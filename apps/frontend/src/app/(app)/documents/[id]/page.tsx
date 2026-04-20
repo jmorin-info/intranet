@@ -396,12 +396,10 @@ export default function DocumentDetailPage() {
         api.get(`/documents/${id}/related`).then(({ data: related }) => {
           setRelatedDocs(related || []);
         }).catch(() => { /* non-critical */ });
-        // Load comments (try backend first, fallback to localStorage)
-        api.get(`/documents/${id}/comments`).then(({ data: apiComments }) => {
-          setComments(Array.isArray(apiComments) ? apiComments : apiComments?.data || []);
-        }).catch(() => {
-          setComments(getDocComments(id));
-        });
+        // Load comments from localStorage (pas de modele DocumentComment cote
+        // backend — les commentaires sont stockes localement par user). Si un
+        // modele backend est ajoute plus tard, restaurer l'appel api.get.
+        setComments(getDocComments(id));
       } catch {
         toast.error('Document introuvable');
         router.push('/documents');
@@ -734,22 +732,14 @@ export default function DocumentDetailPage() {
   const handleAddComment = async () => {
     if (!doc || !user || !commentText.trim()) return;
     setCommentSubmitting(true);
-    try {
-      // Try backend first
-      const { data: saved } = await api.post(`/documents/${doc.id}/comments`, {
-        content: commentText.trim(),
-      });
-      setComments((prev) => [saved, ...prev]);
-    } catch {
-      // Fallback: persist in localStorage
-      const entry = addDocComment({
-        documentId: doc.id,
-        authorName: `${user.firstName} ${user.lastName}`,
-        authorEmail: user.email || '',
-        content: commentText.trim(),
-      });
-      setComments((prev) => [entry, ...prev]);
-    }
+    // Pas de modele DocumentComment backend — persistance localStorage.
+    const entry = addDocComment({
+      documentId: doc.id,
+      authorName: `${user.firstName} ${user.lastName}`,
+      authorEmail: user.email || '',
+      content: commentText.trim(),
+    });
+    setComments((prev) => [entry, ...prev]);
     setCommentText('');
     setCommentSubmitting(false);
     toast.success('Commentaire ajouté');

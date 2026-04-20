@@ -108,25 +108,25 @@ export class WorkflowService {
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException('Document introuvable');
     }
 
     if (document.ownerId !== userId) {
-      throw new ForbiddenException('Only the owner can submit for review');
+      throw new ForbiddenException("Seul l'auteur du document peut le soumettre en revue.");
     }
 
     if (document.status !== 'DRAFT') {
-      throw new BadRequestException('Document must be in DRAFT status to submit for review');
+      throw new BadRequestException("Le document doit être en statut 'Brouillon' pour être soumis en revue.");
     }
 
     if (!document.reviewerId) {
-      throw new BadRequestException('Document must have a reviewer assigned');
+      throw new BadRequestException("Aucun reviewer n'est assigné à ce document. Désignez-en un (via 'Modifier') avant de soumettre en revue.");
     }
 
     // Native (inline) documents store content directly; uploaded documents
     // need at least one version. Both paths require something to review.
     if (!document.currentVersionId && !document.isNative) {
-      throw new BadRequestException('Document must have at least one version uploaded');
+      throw new BadRequestException("Le document doit avoir au moins une version uploadée avant soumission en revue.");
     }
     if (document.isNative && (!document.content || document.content.trim().length === 0)) {
       throw new BadRequestException('Le document natif doit avoir du contenu avant soumission');
@@ -235,19 +235,23 @@ export class WorkflowService {
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException('Document introuvable');
     }
 
     if (document.status !== 'IN_REVIEW') {
-      throw new BadRequestException('Document must be in IN_REVIEW status');
+      throw new BadRequestException(
+        `La revue ne peut être approuvée que si le document est en statut "En revue" (statut actuel : ${document.status}).`,
+      );
     }
 
     if (document.reviewerId !== userId) {
-      throw new ForbiddenException('Only the assigned reviewer can approve the review');
+      throw new ForbiddenException("Seul le reviewer assigné peut approuver la revue de ce document.");
     }
 
     if (!document.approverId) {
-      throw new BadRequestException('Document must have an approver assigned');
+      throw new BadRequestException(
+        "Aucun approbateur final n'est assigné à ce document. Demandez à l'auteur d'en désigner un (via 'Modifier') avant d'approuver la revue.",
+      );
     }
 
     // Atomic: status → REVIEW_APPROVED + validation request + reviewer step
@@ -324,7 +328,7 @@ export class WorkflowService {
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException('Document introuvable');
     }
 
     // Seul le rédacteur (owner) peut lancer la demande d'approbation
@@ -441,15 +445,15 @@ export class WorkflowService {
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException('Document introuvable');
     }
 
     if (document.status !== 'IN_REVIEW') {
-      throw new BadRequestException('Document must be in IN_REVIEW status');
+      throw new BadRequestException("Le document doit être en statut 'En revue' pour rejeter la revue.");
     }
 
     if (document.reviewerId !== userId) {
-      throw new ForbiddenException('Only the assigned reviewer can reject the review');
+      throw new ForbiddenException("Seul le reviewer assigné peut rejeter la revue de ce document.");
     }
 
     const enrichedComment = this.buildRejectionComment(comment, suggestions);
@@ -525,13 +529,13 @@ export class WorkflowService {
 
   async approveDocument(docId: string, userId: string, comment?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
 
     const userRole = user.role as UserRole;
     if (
       ROLE_HIERARCHY[userRole] < ROLE_HIERARCHY[UserRole.DIRECTION]
     ) {
-      throw new ForbiddenException('Only DIRECTION or higher can approve documents');
+      throw new ForbiddenException("Seule la DIRECTION (ou un rôle supérieur) peut approuver définitivement un document.");
     }
 
     const document = await this.prisma.document.findUnique({
@@ -546,11 +550,11 @@ export class WorkflowService {
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException('Document introuvable');
     }
 
     if (document.status !== 'PENDING_APPROVAL') {
-      throw new BadRequestException('Document must be in PENDING_APPROVAL status');
+      throw new BadRequestException("Le document doit être en statut 'En attente d'approbation' pour cette action.");
     }
 
     // Atomic: approve status + complete validation request + approval step
@@ -653,13 +657,13 @@ export class WorkflowService {
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
 
     const userRole = user.role as UserRole;
     if (
       ROLE_HIERARCHY[userRole] < ROLE_HIERARCHY[UserRole.DIRECTION]
     ) {
-      throw new ForbiddenException('Only DIRECTION or higher can reject documents');
+      throw new ForbiddenException("Seule la DIRECTION (ou un rôle supérieur) peut rejeter un document en approbation.");
     }
 
     const document = await this.prisma.document.findUnique({
@@ -674,11 +678,11 @@ export class WorkflowService {
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException('Document introuvable');
     }
 
     if (document.status !== 'PENDING_APPROVAL') {
-      throw new BadRequestException('Document must be in PENDING_APPROVAL status');
+      throw new BadRequestException("Le document doit être en statut 'En attente d'approbation' pour cette action.");
     }
 
     const enrichedComment = this.buildRejectionComment(comment, suggestions);
@@ -738,11 +742,11 @@ export class WorkflowService {
 
   async markObsolete(docId: string, userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
 
     const userRole = user.role as UserRole;
     if (ROLE_HIERARCHY[userRole] < ROLE_HIERARCHY[UserRole.ADMIN]) {
-      throw new ForbiddenException('Only ADMIN or higher can mark documents as obsolete');
+      throw new ForbiddenException("Seul un ADMIN (ou rôle supérieur) peut marquer un document comme obsolète.");
     }
 
     const document = await this.prisma.document.findUnique({
@@ -750,7 +754,7 @@ export class WorkflowService {
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException('Document introuvable');
     }
 
     await this.prisma.document.update({

@@ -41,6 +41,33 @@ export class HealthController {
     @Optional() private readonly officeService?: OfficeService,
   ) {}
 
+  /**
+   * Lightweight endpoint pollé par le frontend (toutes les 30s) pour afficher
+   * l'overlay de maintenance. Public pour que l'overlay soit visible même
+   * sans session authentifiée.
+   */
+  @Public()
+  @Get('maintenance')
+  async maintenance() {
+    try {
+      const cfg = await this.prisma.appConfig.findUnique({
+        where: { key: 'maintenance_mode' },
+      });
+      if (cfg?.value === 'true') {
+        const returnTimeCfg = await this.prisma.appConfig.findUnique({
+          where: { key: 'maintenance_return_time' },
+        });
+        return {
+          maintenance: true,
+          estimatedReturnTime: returnTimeCfg?.value || null,
+        };
+      }
+    } catch {
+      // DB indisponible → on considère que le site est dispo (fallback safe)
+    }
+    return { maintenance: false };
+  }
+
   @Public()
   @Get()
   async check(@Query('check') check?: string) {
