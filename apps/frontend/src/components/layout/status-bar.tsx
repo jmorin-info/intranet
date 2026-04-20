@@ -636,7 +636,7 @@ export function StatusBar() {
                       <Link
                         href={
                           w.instance?.documentId
-                            ? `/documents/${w.instance.documentId}`
+                            ? `/documents/${w.instance.documentId}#workflow`
                             : w.instance?.workflow?.id
                               ? `/admin/workflows/${w.instance.workflow.id}`
                               : '/admin/workflows'

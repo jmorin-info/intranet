@@ -498,6 +498,45 @@ export class DocumentsService {
    * (no file upload). Stores HTML in Document.content and flags isNative = true.
    * ISO 27001 A.5.1 — full traceability of policy drafting inside the GED.
    */
+  /**
+   * Create + publish a document in one shot (status = APPROVED, no workflow).
+   * Used for permanent / info-only docs where the 4-eyes review is irrelevant.
+   * Audit trail : logs DOCUMENT_DIRECT_PUBLISHED with WARN severity so admins
+   * can track bypasses.
+   */
+  async directPublish(dto: CreateDocumentDto, user: RequestUser) {
+    // Delegate to normal create first so references, slugs, audit trail,
+    // search indexing etc. are identical.
+    const doc = await this.create(dto, user.id);
+
+    const published = await this.prisma.document.update({
+      where: { id: doc.id },
+      data: { status: 'APPROVED' },
+      include: {
+        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
+        isoControls: { include: { isoControl: true } },
+      },
+    });
+
+    await this.auditService.log({
+      userId: user.id,
+      action: 'DOCUMENT_DIRECT_PUBLISHED',
+      resourceType: 'Document',
+      resourceId: doc.id,
+      severity: 'WARN',
+      metadata: {
+        title: doc.title,
+        reference: (doc as { reference?: string }).reference,
+        reason: 'Permanent document — workflow bypassed by admin',
+      },
+    });
+
+    this.logger.warn(
+      `Direct publish : document ${doc.id} ('${doc.title}') published by ${user.id} — workflow bypassed`,
+    );
+    return published;
+  }
+
   async createInline(dto: CreateDocumentDto, userId: string) {
     const reference = await this.generateReference(
       dto.category,

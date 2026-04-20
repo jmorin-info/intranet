@@ -171,6 +171,21 @@ export class DocumentsController {
   }
 
   /**
+   * Create a document and publish it immediately (status = APPROVED) without
+   * going through the review/approval workflow. For permanent documents that
+   * don't require validation (info notes, shared references).
+   * Reserved to ADMIN+ since it bypasses the 4-eyes principle.
+   */
+  @Post('direct-publish')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DIRECTION)
+  async directPublish(
+    @Body() dto: CreateDocumentDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.documentsService.directPublish(dto, user);
+  }
+
+  /**
    * Create a document authored inline (HTML content directly in the intranet,
    * no file upload). ISO 27001 A.5.1 — full GED traceability.
    */

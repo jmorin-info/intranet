@@ -1021,7 +1021,26 @@ export default function DocumentDetailPage() {
                 }
                 return null;
               })()}
-              <Button variant="outline" size="sm" className="no-print" onClick={() => window.print()}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="no-print"
+                onClick={() => {
+                  // Si le doc a un fichier (PDF, DOCX…) on l'ouvre dans un
+                  // nouvel onglet en mode inline : le navigateur affichera
+                  // son propre viewer avec son bouton imprimer sur le CONTENU,
+                  // pas sur la page intranet.
+                  // Pour les documents natifs inline (HTML), fallback sur
+                  // window.print() mais avec nos classes no-print pour
+                  // masquer l'UI qui n'est pas le contenu.
+                  if (currentVersion?.id) {
+                    const w = window.open(`/api/v1/documents/${doc.id}/download?inline=true`, '_blank');
+                    if (w) w.focus();
+                  } else {
+                    window.print();
+                  }
+                }}
+              >
                 <Printer className="h-3.5 w-3.5" />
                 Imprimer
               </Button>
@@ -2054,12 +2073,14 @@ export default function DocumentDetailPage() {
 
           {/* Multi-reviewer approval workflow (configurable) */}
           {currentVersion && (
+            <div id="workflow" className="scroll-mt-20">
             <WorkflowPanel
               documentId={doc.id}
               currentVersionId={currentVersion.id}
               canStartWorkflow={canEdit}
               documentCategory={doc.category}
             />
+            </div>
           )}
 
           {/* Document Metadata */}
