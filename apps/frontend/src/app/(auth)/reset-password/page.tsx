@@ -117,7 +117,7 @@ function ResetPasswordContent() {
                   </div>
                 </div>
                 <h2 className="text-lg font-semibold text-navy dark:text-white mb-2">{t('resetPassword.successTitle')}</h2>
-                <p className="text-sm text-taupe mb-4">{t('resetPassword.successMessage')}</p>
+                <p className="text-sm text-seal-gray-500 mb-4">{t('resetPassword.successMessage')}</p>
                 {/* Countdown progress bar */}
                 <div className="w-48 mx-auto mb-4">
                   <div className="h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -126,7 +126,7 @@ function ResetPasswordContent() {
                       style={{ width: `${((5 - countdown) / 5) * 100}%` }}
                     />
                   </div>
-                  <p className="text-xs text-taupe dark:text-slate-400 mt-2">
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-2">
                     Redirection vers la connexion dans {countdown}s...
                   </p>
                 </div>
@@ -139,7 +139,7 @@ function ResetPasswordContent() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400 block mb-1">{t('resetPassword.label.password')}</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">{t('resetPassword.label.password')}</label>
                   <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('resetPassword.passwordPlaceholder')} required minLength={12} autoFocus />
 
                   {/* Password strength meter */}
@@ -147,7 +147,7 @@ function ResetPasswordContent() {
                     <div className="mt-2">
                       <div className="flex items-center justify-between mb-1">
                         <span className={`text-xs font-medium ${strength.color}`}>Force : {strength.label}</span>
-                        <span className="text-xs text-taupe dark:text-slate-400">{strengthPercent}%</span>
+                        <span className="text-xs text-seal-gray-500 dark:text-slate-400">{strengthPercent}%</span>
                       </div>
                       <div className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                         <div
@@ -167,7 +167,7 @@ function ResetPasswordContent() {
                         { test: /[0-9]/.test(password), label: t('resetPassword.rule.digit') },
                         { test: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password), label: t('resetPassword.rule.special') },
                       ].map(({ test, label }) => (
-                        <div key={label} className={`flex items-center gap-1.5 text-xs ${test ? 'text-emerald-600' : 'text-taupe dark:text-slate-400'}`}>
+                        <div key={label} className={`flex items-center gap-1.5 text-xs ${test ? 'text-emerald-600' : 'text-seal-gray-500 dark:text-slate-400'}`}>
                           {test ? <CheckCircle2 className="h-3 w-3" /> : <div className="h-3 w-3 rounded-full border border-gray-300 dark:border-slate-600" />}
                           {label}
                         </div>
@@ -176,7 +176,7 @@ function ResetPasswordContent() {
                   )}
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400 block mb-1">{t('resetPassword.label.confirm')}</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">{t('resetPassword.label.confirm')}</label>
                   <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t('resetPassword.confirmPlaceholder')} required />
                   {confirmPassword && password !== confirmPassword && (
                     <p className="text-xs text-red-500 mt-1">{t('resetPassword.mismatch')}</p>

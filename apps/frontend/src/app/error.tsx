@@ -34,7 +34,7 @@ export default function Error({
           </svg>
         </div>
         <h1 className="text-2xl font-semibold text-navy dark:text-white">Une erreur est survenue</h1>
-        <p className="mt-3 text-sm text-taupe dark:text-slate-400 leading-relaxed">
+        <p className="mt-3 text-sm text-seal-gray-500 dark:text-slate-400 leading-relaxed">
           Cette section a rencontré un problème inattendu.
           Essayez de rafraîchir la page ou de revenir au tableau de bord.
         </p>

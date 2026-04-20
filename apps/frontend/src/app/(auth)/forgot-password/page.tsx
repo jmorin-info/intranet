@@ -89,10 +89,10 @@ export default function ForgotPasswordPage() {
                   </div>
                 </div>
                 <h2 className="text-lg font-semibold text-navy dark:text-white mb-2">{t('forgotPassword.sentTitle')}</h2>
-                <p className="text-sm text-taupe dark:text-slate-400 mb-4">
+                <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">
                   {t('forgotPassword.sentMessage')} <strong>{email}</strong>{t('forgotPassword.sentMessage2')}
                 </p>
-                <p className="text-xs text-taupe dark:text-slate-400 mb-6">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-6">
                   {t('forgotPassword.checkSpam')}
                 </p>
                 <div className="space-y-3">
@@ -118,11 +118,11 @@ export default function ForgotPasswordPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <p className="text-sm text-taupe dark:text-slate-400 mb-4">
+                <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">
                   {t('forgotPassword.instruction')}
                 </p>
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400 block mb-1">{t('forgotPassword.label.email')}</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">{t('forgotPassword.label.email')}</label>
                   <Input
                     type="email"
                     value={email}

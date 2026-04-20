@@ -14,7 +14,7 @@ export default function NotFound() {
         <OmnitechLogo size="lg" variant="icon" className="mx-auto mb-6" />
         <h1 className="text-8xl font-semibold text-navy/20 dark:text-white/10">404</h1>
         <h2 className="text-xl font-semibold text-navy dark:text-white -mt-4">Page introuvable</h2>
-        <p className="mt-3 text-sm text-taupe dark:text-slate-400 max-w-sm mx-auto">
+        <p className="mt-3 text-sm text-seal-gray-500 dark:text-slate-400 max-w-sm mx-auto">
           La page que vous recherchez n&apos;existe pas ou a été déplacée.
           Vérifiez l&apos;URL ou retournez au tableau de bord.
         </p>
