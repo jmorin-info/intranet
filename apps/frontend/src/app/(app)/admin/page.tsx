@@ -200,7 +200,7 @@ export default function AdminLandingPage() {
                 <Icon className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xl font-semibold text-navy dark:text-white">
+                <p className="text-xl font-semibold text-seal-navy dark:text-white">
                   {stats[key] !== null ? stats[key] : <span className="inline-block w-8 h-5 rounded shimmer" />}
                 </p>
                 <p className="text-[11px] text-gray-500 dark:text-slate-400">{label}</p>

@@ -202,7 +202,7 @@ export default function TimelinePage() {
     <div className="space-y-5 animate-fade-in-up">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">Timeline</h1>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Timeline</h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400">
             Vue unifiée des actualités, notifications et documents.
           </p>
@@ -289,7 +289,7 @@ export default function TimelinePage() {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm font-medium text-navy dark:text-white truncate">{entry.title}</p>
+                              <p className="text-sm font-medium text-seal-navy dark:text-white truncate">{entry.title}</p>
                               {entry.body && (
                                 <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mt-0.5">
                                   {entry.body}

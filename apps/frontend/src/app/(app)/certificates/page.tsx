@@ -209,7 +209,7 @@ export default function MyCertificatesPage() {
                 <CardContent className="py-5 px-5 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-semibold text-navy dark:text-white line-clamp-2">
+                      <h3 className="text-sm font-semibold text-seal-navy dark:text-white line-clamp-2">
                         {cert.name}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-0.5">
@@ -332,7 +332,7 @@ export default function MyCertificatesPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[13px] font-semibold text-navy dark:text-white">
+            <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
               Fichier justificatif (PDF, image)
             </label>
             <div className="flex items-center gap-2">

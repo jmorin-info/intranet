@@ -192,7 +192,7 @@ export default function AdminChartesPage() {
       {/* Create form */}
       {showCreate && (
         <Card>
-          <CardHeader><h3 className="font-medium text-navy dark:text-white">Créer une charte</h3></CardHeader>
+          <CardHeader><h3 className="font-medium text-seal-navy dark:text-white">Créer une charte</h3></CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -217,7 +217,7 @@ export default function AdminChartesPage() {
       {/* Import from document */}
       {showImport && (
         <Card>
-          <CardHeader><h3 className="font-medium text-navy dark:text-white">Importer une charte depuis un document existant</h3></CardHeader>
+          <CardHeader><h3 className="font-medium text-seal-navy dark:text-white">Importer une charte depuis un document existant</h3></CardHeader>
           <CardContent>
             <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">
               Sélectionnez un document approuvé (politique, procédure...) pour le transformer en charte obligatoire.
@@ -283,7 +283,7 @@ export default function AdminChartesPage() {
                     <div className="flex items-start gap-3">
                       <Shield className="h-5 w-5 text-primary mt-0.5" />
                       <div>
-                        <h3 className="font-medium text-navy dark:text-white">{charte.title}</h3>
+                        <h3 className="font-medium text-seal-navy dark:text-white">{charte.title}</h3>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <Badge variant="navy">{charte.classification}</Badge>
                           {charte.isMandatory && <Badge variant="warning">Obligatoire</Badge>}
@@ -367,7 +367,7 @@ export default function AdminChartesPage() {
                                   <div key={v.id} className="relative">
                                     <div className="absolute -left-[17px] top-1 h-2.5 w-2.5 rounded-full border-2 border-primary bg-white dark:bg-slate-900" />
                                     <div className="flex items-center gap-2">
-                                      <span className={`text-xs font-medium ${vi === 0 ? 'text-navy dark:text-white' : 'text-seal-gray-500 dark:text-slate-400'}`}>
+                                      <span className={`text-xs font-medium ${vi === 0 ? 'text-seal-navy dark:text-white' : 'text-seal-gray-500 dark:text-slate-400'}`}>
                                         v{v.versionNumber}
                                       </span>
                                       {v.isActive && <Badge variant="approved" className="text-[8px]">Active</Badge>}
@@ -413,7 +413,7 @@ export default function AdminChartesPage() {
                   {/* Upload form inline */}
                   {uploadCharteId === charte.id && (
                     <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                      <h4 className="text-sm font-medium text-navy dark:text-white mb-3">Uploader une nouvelle version PDF</h4>
+                      <h4 className="text-sm font-medium text-seal-navy dark:text-white mb-3">Uploader une nouvelle version PDF</h4>
                       <div className="grid grid-cols-3 gap-3">
                         <div>
                           <label className="text-xs font-medium text-seal-gray-500">Fichier PDF</label>
@@ -459,7 +459,7 @@ export default function AdminChartesPage() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-medium text-navy dark:text-white">
+                  <h2 className="text-lg font-medium text-seal-navy dark:text-white">
                     Rapport de conformité
                     {compliance?.activeVersion && ` — v${compliance.activeVersion.versionNumber}`}
                   </h2>

@@ -585,7 +585,7 @@ export default function DocumentEditorPage() {
                 <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
               <div className="flex-1">
-                <h3 className="text-base font-semibold text-navy dark:text-white mb-2">
+                <h3 className="text-base font-semibold text-seal-navy dark:text-white mb-2">
                   Impossible d&apos;ouvrir l&apos;éditeur
                 </h3>
                 <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4 whitespace-pre-line">{error}</p>
@@ -625,7 +625,7 @@ export default function DocumentEditorPage() {
                 )}
                 {error.includes('désactivé') && !error.includes('ONLYOFFICE_JWT_SECRET') && (
                   <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 text-xs font-mono text-seal-gray-500 dark:text-slate-400">
-                    <p className="font-semibold text-navy dark:text-white not-italic mb-2">
+                    <p className="font-semibold text-seal-navy dark:text-white not-italic mb-2">
                       Configuration requise côté serveur :
                     </p>
                     <p># 1. Démarrer OnlyOffice Docs Server</p>
@@ -676,7 +676,7 @@ export default function DocumentEditorPage() {
           </Link>
           <FileText className="h-4 w-4 text-primary flex-shrink-0" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-navy dark:text-white truncate">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">
               {editorConfig.document.title}
             </p>
             <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 truncate">

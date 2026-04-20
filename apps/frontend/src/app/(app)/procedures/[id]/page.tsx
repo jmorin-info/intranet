@@ -224,7 +224,7 @@ export default function ProcedureViewerPage() {
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
           <div>
-            <h1 className="text-2xl font-medium text-navy">{doc.title}</h1>
+            <h1 className="text-2xl font-medium text-seal-navy">{doc.title}</h1>
             <div className="flex items-center gap-2 mt-1">
               <span className="font-mono text-sm text-seal-gray-500 font-semibold">{doc.reference}</span>
               <Badge variant="navy">
@@ -299,23 +299,23 @@ export default function ProcedureViewerPage() {
           <div className="flex flex-wrap items-center gap-6 text-sm">
             <div>
               <span className="text-seal-gray-500">{t('procedureDetail.author')} : </span>
-              <span className="font-semibold text-navy">{doc.owner.firstName} {doc.owner.lastName}</span>
+              <span className="font-semibold text-seal-navy">{doc.owner.firstName} {doc.owner.lastName}</span>
             </div>
             {currentVersion && (
               <>
                 <div>
                   <span className="text-seal-gray-500">{t('procedureDetail.version')} : </span>
-                  <span className="font-semibold text-navy">v{currentVersion.versionNumber}</span>
+                  <span className="font-semibold text-seal-navy">v{currentVersion.versionNumber}</span>
                 </div>
                 <div>
                   <span className="text-seal-gray-500">{t('procedureDetail.size')} : </span>
-                  <span className="text-navy">{formatFileSize(currentVersion.fileSizeBytes)}</span>
+                  <span className="text-seal-navy">{formatFileSize(currentVersion.fileSizeBytes)}</span>
                 </div>
               </>
             )}
             <div>
               <span className="text-seal-gray-500">{t('procedureDetail.updatedAt')} : </span>
-              <span className="text-navy">{formatDate(doc.updatedAt)}</span>
+              <span className="text-seal-navy">{formatDate(doc.updatedAt)}</span>
             </div>
           </div>
           {doc.isoControls.length > 0 && (
@@ -350,7 +350,7 @@ export default function ProcedureViewerPage() {
       {activeTab === 'document' && fileUrl && (
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-medium text-navy">{t('procedureDetail.preview')}</h2>
+            <h2 className="text-lg font-medium text-seal-navy">{t('procedureDetail.preview')}</h2>
           </CardHeader>
           <CardContent>
             {isPdf && <PdfViewer url={fileUrl} />}
@@ -385,7 +385,7 @@ export default function ProcedureViewerPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-medium text-navy dark:text-white">Historique des versions</h2>
+              <h2 className="text-lg font-medium text-seal-navy dark:text-white">Historique des versions</h2>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -404,7 +404,7 @@ export default function ProcedureViewerPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-navy dark:text-white">v{ver.versionNumber}</span>
+                        <span className="text-sm font-semibold text-seal-navy dark:text-white">v{ver.versionNumber}</span>
                         {idx === 0 && <Badge variant="approved">Actuelle</Badge>}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5 text-xs text-seal-gray-500 dark:text-slate-400">
@@ -436,7 +436,7 @@ export default function ProcedureViewerPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-[#004469] dark:text-blue-400" />
-              <h2 className="text-lg font-medium text-navy dark:text-white">Contrôles ISO associés</h2>
+              <h2 className="text-lg font-medium text-seal-navy dark:text-white">Contrôles ISO associés</h2>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -447,7 +447,7 @@ export default function ProcedureViewerPage() {
                     <ShieldCheck className="h-4 w-4 text-[#004469] dark:text-blue-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-white">{isoControl.code}</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white">{isoControl.code}</p>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{isoControl.titleFr || isoControl.title}</p>
                   </div>
                   <IsoControlBadge code={isoControl.code} title={isoControl.titleFr || isoControl.title} />
@@ -465,7 +465,7 @@ export default function ProcedureViewerPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FolderOpen className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-medium text-navy dark:text-white">Procédures connexes</h2>
+                <h2 className="text-lg font-medium text-seal-navy dark:text-white">Procédures connexes</h2>
               </div>
               <Link href={`/procedures?category=${doc.category}`} className="text-xs text-primary hover:underline flex items-center gap-1">
                 Voir tout <ArrowLeft className="h-3 w-3 rotate-180" />
@@ -480,7 +480,7 @@ export default function ProcedureViewerPage() {
                     <FileText className="h-4 w-4 text-seal-gray-500 dark:text-slate-400 group-hover:text-primary transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-white truncate group-hover:text-primary transition-colors">{rel.title}</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white truncate group-hover:text-primary transition-colors">{rel.title}</p>
                     <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5">{rel.reference}</p>
                   </div>
                   <StatusBadge status={rel.status as 'APPROVED'} />

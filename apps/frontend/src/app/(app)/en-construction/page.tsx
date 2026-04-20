@@ -16,7 +16,7 @@ export default function UnderConstructionPage() {
           <Construction className="h-10 w-10 text-orange" />
         </div>
 
-        <h1 className="text-2xl font-semibold text-navy dark:text-white">
+        <h1 className="text-2xl font-semibold text-seal-navy dark:text-white">
           {t('construction.title')}
         </h1>
 
@@ -27,14 +27,14 @@ export default function UnderConstructionPage() {
         <div className="flex items-center justify-center gap-3 mt-8">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-sm font-semibold text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-sm font-semibold text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
           >
             <ArrowLeft className="h-4 w-4" />
             {t('common.back')}
           </button>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-xl bg-navy px-6 py-3 text-sm font-semibold text-white hover:bg-navy/90 transition-all hover:shadow-lg hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 rounded-xl bg-seal-navy px-6 py-3 text-sm font-semibold text-white hover:bg-seal-navy/90 transition-all hover:shadow-lg hover:-translate-y-0.5"
           >
             {t('notFound.backToDashboard')}
           </Link>

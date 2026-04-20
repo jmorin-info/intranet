@@ -580,7 +580,7 @@ export default function DocumentDetailPage() {
   if (!doc || !user) return (
     <div className="max-w-5xl mx-auto py-12 text-center">
       <FileText className="h-12 w-12 text-seal-gray-500/30 mx-auto mb-4" />
-      <p className="text-lg font-medium text-navy dark:text-white">Document introuvable</p>
+      <p className="text-lg font-medium text-seal-navy dark:text-white">Document introuvable</p>
       <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">Ce document n&apos;existe pas ou vous n&apos;y avez pas accès.</p>
       <Button variant="outline" className="mt-4" onClick={() => router.push('/documents')}>
         <ArrowLeft className="h-4 w-4" /> {t('documents.detail.back')}
@@ -819,49 +819,49 @@ export default function DocumentDetailPage() {
                     {doc.status === 'DRAFT' && transitions.includes('IN_REVIEW' as never) && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); handleAction('submit-review'); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                         <Eye className="h-3.5 w-3.5 text-blue-500" />
-                        <span className="text-navy dark:text-white">Soumettre en revue</span>
+                        <span className="text-seal-navy dark:text-white">Soumettre en revue</span>
                       </button>
                     )}
                     {doc.status === 'IN_REVIEW' && transitions.includes('REVIEW_APPROVED' as never) && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); handleAction('approve-review'); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                         <UserCheck className="h-3.5 w-3.5 text-emerald-500" />
-                        <span className="text-navy dark:text-white">Valider la revue</span>
+                        <span className="text-seal-navy dark:text-white">Valider la revue</span>
                       </button>
                     )}
                     {doc.status === 'IN_REVIEW' && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); handleAction('reject-review'); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                         <XCircle className="h-3.5 w-3.5 text-red-500" />
-                        <span className="text-navy dark:text-white">Rejeter la revue</span>
+                        <span className="text-seal-navy dark:text-white">Rejeter la revue</span>
                       </button>
                     )}
                     {doc.status === 'REVIEW_APPROVED' && user?.id === doc.owner?.id && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); handleAction('request-approval'); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        <span className="text-navy dark:text-white">Demander approbation</span>
+                        <span className="text-seal-navy dark:text-white">Demander approbation</span>
                       </button>
                     )}
                     {doc.status === 'PENDING_APPROVAL' && transitions.includes('APPROVED' as never) && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); handleAction('approve-direction'); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        <span className="text-navy dark:text-white">Approuver</span>
+                        <span className="text-seal-navy dark:text-white">Approuver</span>
                       </button>
                     )}
                     {doc.status === 'PENDING_APPROVAL' && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); handleAction('reject-direction'); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                         <XCircle className="h-3.5 w-3.5 text-red-500" />
-                        <span className="text-navy dark:text-white">Refuser</span>
+                        <span className="text-seal-navy dark:text-white">Refuser</span>
                       </button>
                     )}
                     {doc.status === 'APPROVED' && transitions.includes('OBSOLETE' as never) && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); setShowObsoleteDialog(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                         <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                        <span className="text-navy dark:text-white">Marquer obsolete</span>
+                        <span className="text-seal-navy dark:text-white">Marquer obsolete</span>
                       </button>
                     )}
                     {transitions.includes('ARCHIVED' as never) && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); setShowArchiveDialog(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                         <ArrowLeftRight className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="text-navy dark:text-white">Archiver</span>
+                        <span className="text-seal-navy dark:text-white">Archiver</span>
                       </button>
                     )}
                   </div>
@@ -960,7 +960,7 @@ export default function DocumentDetailPage() {
                           <button
                             key={tool.path}
                             type="button"
-                            className="w-full text-left px-3 py-2 text-xs text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white first:rounded-t-lg last:rounded-b-lg transition-colors duration-200"
+                            className="w-full text-left px-3 py-2 text-xs text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white first:rounded-t-lg last:rounded-b-lg transition-colors duration-200"
                             onClick={() => router.push(`/tools/pdf?doc=${doc.id}&version=${currentVersion.id}`)}
                           >
                             {tool.label}
@@ -1038,7 +1038,7 @@ export default function DocumentDetailPage() {
 
           {/* Line 2: Title + Ask AI */}
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-medium text-navy dark:text-white">{doc.title}</h1>
+            <h1 className="text-xl font-medium text-seal-navy dark:text-white">{doc.title}</h1>
             <Button
               variant="outline"
               size="sm"
@@ -1056,7 +1056,7 @@ export default function DocumentDetailPage() {
             <div className="rounded-xl border border-primary/30 bg-primary/5 dark:bg-primary/10 p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-navy dark:text-white">Question sur ce document</span>
+                <span className="text-sm font-semibold text-seal-navy dark:text-white">Question sur ce document</span>
               </div>
               <div className="flex gap-2">
                 <input
@@ -1065,7 +1065,7 @@ export default function DocumentDetailPage() {
                   onChange={(e) => setAiQuestion(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !aiAnswerLoading) handleAskAi(); }}
                   placeholder="Ex: Quels sont les contrôles ISO couverts ?"
-                  className="flex-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-seal-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="flex-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
                   disabled={aiAnswerLoading}
                 />
                 <Button
@@ -1086,7 +1086,7 @@ export default function DocumentDetailPage() {
               )}
               {aiAnswer && !aiAnswerLoading && (
                 <div className="rounded-lg bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 p-3 space-y-2">
-                  <p className="text-sm leading-relaxed text-navy dark:text-slate-200 whitespace-pre-wrap">{aiAnswer}</p>
+                  <p className="text-sm leading-relaxed text-seal-navy dark:text-slate-200 whitespace-pre-wrap">{aiAnswer}</p>
                   {aiAnswerSources.length > 0 && (
                     <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
                       <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 mb-1">Sources</p>
@@ -1107,7 +1107,7 @@ export default function DocumentDetailPage() {
           {/* Line 3: Inline metadata */}
           <div className="flex items-center gap-4 flex-wrap text-[11px] text-seal-gray-500 dark:text-slate-400">
             <span>
-              Proprietaire : <span className="text-navy dark:text-white font-medium">{doc.owner.firstName} {doc.owner.lastName}</span>
+              Proprietaire : <span className="text-seal-navy dark:text-white font-medium">{doc.owner.firstName} {doc.owner.lastName}</span>
             </span>
             <span className="hidden sm:inline text-gray-300 dark:text-slate-600">|</span>
             <span>
@@ -1115,7 +1115,7 @@ export default function DocumentDetailPage() {
             </span>
             <span className="hidden sm:inline text-gray-300 dark:text-slate-600">|</span>
             <span>
-              Mis à jour : <span className="text-navy dark:text-white font-medium">{formatDate(doc.updatedAt)}</span>
+              Mis à jour : <span className="text-seal-navy dark:text-white font-medium">{formatDate(doc.updatedAt)}</span>
             </span>
             {reviewInfo && (
               <>
@@ -1165,7 +1165,7 @@ export default function DocumentDetailPage() {
           {signatureModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setSignatureModal(false)}>
               <div className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
-                <h3 className="text-lg font-medium text-navy dark:text-white mb-4">Demander une signature</h3>
+                <h3 className="text-lg font-medium text-seal-navy dark:text-white mb-4">Demander une signature</h3>
 
                 {templates.length > 0 && (
                   <div className="mb-4">
@@ -1220,7 +1220,7 @@ export default function DocumentDetailPage() {
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-primary" />
             <div>
-              <p className="text-sm font-semibold text-navy dark:text-white">
+              <p className="text-sm font-semibold text-seal-navy dark:text-white">
                 Accusé de réception requis
               </p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">
@@ -1264,7 +1264,7 @@ export default function DocumentDetailPage() {
                         )}
                       </div>
                       <span className={`mt-1.5 text-[11px] font-medium text-center leading-tight ${
-                        step.status === 'pending' ? 'text-seal-gray-500 dark:text-slate-500' : 'text-navy dark:text-white'
+                        step.status === 'pending' ? 'text-seal-gray-500 dark:text-slate-500' : 'text-seal-navy dark:text-white'
                       }`}>
                         {step.label}
                       </span>
@@ -1298,7 +1298,7 @@ export default function DocumentDetailPage() {
                 <div className="space-y-4">
                   {doc.description && (
                     <div>
-                      <h3 className="text-sm font-medium text-navy dark:text-white mb-1">Description</h3>
+                      <h3 className="text-sm font-medium text-seal-navy dark:text-white mb-1">Description</h3>
                       <p className="text-sm text-gray-700 dark:text-slate-300">{doc.description}</p>
                     </div>
                   )}
@@ -1310,11 +1310,11 @@ export default function DocumentDetailPage() {
                           <Sparkles className="h-4.5 w-4.5 text-primary" />
                         </div>
                         <div>
-                          <h3 className="text-base font-semibold text-navy dark:text-white">Résumé IA</h3>
+                          <h3 className="text-base font-semibold text-seal-navy dark:text-white">Résumé IA</h3>
                           <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">Généré par l&apos;assistant OMNITECH (Ollama)</p>
                         </div>
                       </div>
-                      <div className="text-sm leading-relaxed text-navy dark:text-slate-200 whitespace-pre-wrap wiki-content">
+                      <div className="text-sm leading-relaxed text-seal-navy dark:text-slate-200 whitespace-pre-wrap wiki-content">
                         {aiSummary}
                       </div>
                     </div>
@@ -1323,29 +1323,29 @@ export default function DocumentDetailPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs text-seal-gray-500 dark:text-slate-400">Responsable</p>
-                      <p className="text-sm font-semibold text-navy dark:text-white">
+                      <p className="text-sm font-semibold text-seal-navy dark:text-white">
                         {doc.owner.firstName} {doc.owner.lastName}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-seal-gray-500 dark:text-slate-400">Prochaine révision</p>
-                      <p className="text-sm font-semibold text-navy dark:text-white">
+                      <p className="text-sm font-semibold text-seal-navy dark:text-white">
                         {doc.nextReviewDate ? formatDate(doc.nextReviewDate) : 'Non défini'}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-seal-gray-500 dark:text-slate-400">Créé le</p>
-                      <p className="text-sm text-navy dark:text-white">{formatDateTime(doc.createdAt)}</p>
+                      <p className="text-sm text-seal-navy dark:text-white">{formatDateTime(doc.createdAt)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-seal-gray-500 dark:text-slate-400">Dernière modification</p>
-                      <p className="text-sm text-navy dark:text-white">{formatDateTime(doc.updatedAt)}</p>
+                      <p className="text-sm text-seal-navy dark:text-white">{formatDateTime(doc.updatedAt)}</p>
                     </div>
                   </div>
 
                   {isos.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-medium text-navy dark:text-white mb-2">Contrôles de sécurité</h3>
+                      <h3 className="text-sm font-medium text-seal-navy dark:text-white mb-2">Contrôles de sécurité</h3>
                       <div className="flex flex-wrap gap-1.5">
                         {isos.map(({ isoControl }) => (
                           <IsoControlBadge
@@ -1360,12 +1360,12 @@ export default function DocumentDetailPage() {
 
                   {currentVersion && (
                     <div>
-                      <h3 className="text-sm font-medium text-navy dark:text-white mb-2">Version actuelle</h3>
+                      <h3 className="text-sm font-medium text-seal-navy dark:text-white mb-2">Version actuelle</h3>
                       <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-3">
                         <div className="flex items-center gap-3">
                           <FileText className="h-8 w-8 text-primary" />
                           <div className="flex-1">
-                            <p className="text-sm font-semibold text-navy dark:text-white">
+                            <p className="text-sm font-semibold text-seal-navy dark:text-white">
                               v{currentVersion.versionNumber} — {currentVersion.fileType}
                             </p>
                             <p className="text-xs text-seal-gray-500 dark:text-slate-400">
@@ -1429,7 +1429,7 @@ export default function DocumentDetailPage() {
                         <div className="text-xs text-seal-gray-500 dark:text-slate-400">
                           {compareMode ? (
                             <span>
-                              Sélectionnez <span className="font-semibold text-navy dark:text-white">deux versions</span> à comparer
+                              Sélectionnez <span className="font-semibold text-seal-navy dark:text-white">deux versions</span> à comparer
                               {compareLeft && compareRight ? ' — prêt' : compareLeft ? ' — 1/2' : ' — 0/2'}
                             </span>
                           ) : (
@@ -1454,7 +1454,7 @@ export default function DocumentDetailPage() {
                             className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition ${
                               compareMode
                                 ? 'border-[#892034] text-[#892034] hover:bg-[#892034]/5'
-                                : 'border-gray-200 dark:border-slate-700 text-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'
+                                : 'border-gray-200 dark:border-slate-700 text-seal-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'
                             }`}
                           >
                             <ArrowLeftRight className="h-3 w-3" />
@@ -1522,7 +1522,7 @@ export default function DocumentDetailPage() {
                                           className="h-4 w-4 accent-primary"
                                         />
                                       )}
-                                      <p className="text-sm font-semibold text-navy dark:text-white">
+                                      <p className="text-sm font-semibold text-seal-navy dark:text-white">
                                         Version {version.versionNumber}
                                       </p>
                                       {isCurrent && (
@@ -1638,7 +1638,7 @@ export default function DocumentDetailPage() {
                       >
                         <PenLine className="h-5 w-5 text-primary" />
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-navy dark:text-white">
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">
                             {sig.signer.firstName} {sig.signer.lastName}
                           </p>
                           <p className="text-xs text-seal-gray-500 dark:text-slate-400">
@@ -1691,7 +1691,7 @@ export default function DocumentDetailPage() {
                       >
                         <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-navy dark:text-white">
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">
                             {ack.user.firstName} {ack.user.lastName}
                           </p>
                         </div>
@@ -1729,11 +1729,11 @@ export default function DocumentDetailPage() {
                             <div className="flex items-center justify-between">
                               <div>
                                 {entry.type === 'version' ? (
-                                  <p className="text-sm font-semibold text-navy dark:text-white">
+                                  <p className="text-sm font-semibold text-seal-navy dark:text-white">
                                     Version {entry.versionNumber} uploadée
                                   </p>
                                 ) : (
-                                  <p className="text-sm font-semibold text-navy dark:text-white">
+                                  <p className="text-sm font-semibold text-seal-navy dark:text-white">
                                     {entry.action?.replace(/_/g, ' ')}
                                   </p>
                                 )}
@@ -1800,7 +1800,7 @@ export default function DocumentDetailPage() {
                           className="rounded-lg border border-gray-200 dark:border-slate-700 p-3"
                         >
                           <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-sm font-semibold text-navy dark:text-white">
+                            <span className="text-sm font-semibold text-seal-navy dark:text-white">
                               {c.authorName}
                             </span>
                             <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">
@@ -1885,11 +1885,11 @@ export default function DocumentDetailPage() {
                             ? 'Partiel'
                             : 'A evaluer'}
                         </Badge>
-                        <span className="ml-auto text-xs font-semibold text-navy dark:text-white">
+                        <span className="ml-auto text-xs font-semibold text-seal-navy dark:text-white">
                           {item.relevanceScore}%
                         </span>
                       </div>
-                      <p className="text-sm text-navy dark:text-white font-semibold">{item.controlTitle}</p>
+                      <p className="text-sm text-seal-navy dark:text-white font-semibold">{item.controlTitle}</p>
                       <p className="text-xs text-gray-600 dark:text-slate-300 mt-1">{item.justification}</p>
                       {item.matchedKeywords.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
@@ -1913,7 +1913,7 @@ export default function DocumentDetailPage() {
           {/* Workflow (vertical, compact) */}
           <Card className="shadow-sm rounded-xl">
             <CardHeader>
-              <h3 className="text-sm font-medium text-navy dark:text-white">Cycle de vie</h3>
+              <h3 className="text-sm font-medium text-seal-navy dark:text-white">Cycle de vie</h3>
             </CardHeader>
             <CardContent>
               <WorkflowTimeline steps={workflowSteps} />
@@ -2035,12 +2035,12 @@ export default function DocumentDetailPage() {
           {/* Document Metadata */}
           <Card className="shadow-sm rounded-xl">
             <CardHeader>
-              <h3 className="text-sm font-medium text-navy dark:text-white">Métadonnées</h3>
+              <h3 className="text-sm font-medium text-seal-navy dark:text-white">Métadonnées</h3>
             </CardHeader>
             <CardContent className="space-y-2.5 text-[11px]">
               <div className="flex justify-between items-start">
                 <span className="text-seal-gray-500 dark:text-slate-400">Référence</span>
-                <span className="font-mono font-semibold text-navy dark:text-white">{doc.reference}</span>
+                <span className="font-mono font-semibold text-seal-navy dark:text-white">{doc.reference}</span>
               </div>
               <div className="flex justify-between items-start">
                 <span className="text-seal-gray-500 dark:text-slate-400">Catégorie</span>
@@ -2060,33 +2060,33 @@ export default function DocumentDetailPage() {
               <div className="border-t border-gray-100 dark:border-slate-700 pt-2" />
               <div className="flex justify-between items-start">
                 <span className="text-seal-gray-500 dark:text-slate-400">Propriétaire</span>
-                <span className="text-navy dark:text-white font-medium">{doc.owner.firstName} {doc.owner.lastName}</span>
+                <span className="text-seal-navy dark:text-white font-medium">{doc.owner.firstName} {doc.owner.lastName}</span>
               </div>
               {doc.reviewer && (
                 <div className="flex justify-between items-start">
                   <span className="text-seal-gray-500 dark:text-slate-400">Réviseur</span>
-                  <span className="text-navy dark:text-white font-medium">{doc.reviewer.firstName} {doc.reviewer.lastName}</span>
+                  <span className="text-seal-navy dark:text-white font-medium">{doc.reviewer.firstName} {doc.reviewer.lastName}</span>
                 </div>
               )}
               {doc.approver && (
                 <div className="flex justify-between items-start">
                   <span className="text-seal-gray-500 dark:text-slate-400">Approbateur</span>
-                  <span className="text-navy dark:text-white font-medium">{doc.approver.firstName} {doc.approver.lastName}</span>
+                  <span className="text-seal-navy dark:text-white font-medium">{doc.approver.firstName} {doc.approver.lastName}</span>
                 </div>
               )}
               <div className="border-t border-gray-100 dark:border-slate-700 pt-2" />
               <div className="flex justify-between items-start">
                 <span className="text-seal-gray-500 dark:text-slate-400">Créé le</span>
-                <span className="text-navy dark:text-white">{formatDate(doc.createdAt)}</span>
+                <span className="text-seal-navy dark:text-white">{formatDate(doc.createdAt)}</span>
               </div>
               <div className="flex justify-between items-start">
                 <span className="text-seal-gray-500 dark:text-slate-400">Modifié le</span>
-                <span className="text-navy dark:text-white">{formatDate(doc.updatedAt)}</span>
+                <span className="text-seal-navy dark:text-white">{formatDate(doc.updatedAt)}</span>
               </div>
               {doc.nextReviewDate && (
                 <div className="flex justify-between items-start">
                   <span className="text-seal-gray-500 dark:text-slate-400">Prochaine révision</span>
-                  <span className={`font-semibold ${reviewInfo?.color || 'text-navy dark:text-white'}`}>{formatDate(doc.nextReviewDate)}</span>
+                  <span className={`font-semibold ${reviewInfo?.color || 'text-seal-navy dark:text-white'}`}>{formatDate(doc.nextReviewDate)}</span>
                 </div>
               )}
               <div className="flex justify-between items-start">
@@ -2101,7 +2101,7 @@ export default function DocumentDetailPage() {
             <Card className="shadow-sm rounded-xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-navy dark:text-white">
+                  <h3 className="text-sm font-medium text-seal-navy dark:text-white">
                     <Shield className="inline h-3.5 w-3.5 mr-1.5" />
                     Controles ISO
                   </h3>
@@ -2142,7 +2142,7 @@ export default function DocumentDetailPage() {
           {sigs.length > 0 && (
             <Card className="shadow-sm rounded-xl">
               <CardHeader>
-                <h3 className="text-sm font-medium text-navy dark:text-white">
+                <h3 className="text-sm font-medium text-seal-navy dark:text-white">
                   <PenLine className="inline h-3.5 w-3.5 mr-1.5" />
                   Signatures
                 </h3>
@@ -2157,7 +2157,7 @@ export default function DocumentDetailPage() {
                   return (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-semibold text-navy dark:text-white">{signed} / {total}</span>
+                        <span className="font-semibold text-seal-navy dark:text-white">{signed} / {total}</span>
                         <span className="text-xs text-seal-gray-500 dark:text-slate-400">{pct}% signées</span>
                       </div>
                       <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
@@ -2178,24 +2178,24 @@ export default function DocumentDetailPage() {
           {/* Stats */}
           <Card className="shadow-sm rounded-xl">
             <CardHeader>
-              <h3 className="text-sm font-medium text-navy dark:text-white">Statistiques</h3>
+              <h3 className="text-sm font-medium text-seal-navy dark:text-white">Statistiques</h3>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-seal-gray-500 dark:text-slate-400">Versions</span>
-                <span className="text-sm font-semibold text-navy dark:text-white">{versions.length}</span>
+                <span className="text-sm font-semibold text-seal-navy dark:text-white">{versions.length}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-seal-gray-500 dark:text-slate-400">Signatures</span>
-                <span className="text-sm font-semibold text-navy dark:text-white">{sigs.length}</span>
+                <span className="text-sm font-semibold text-seal-navy dark:text-white">{sigs.length}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-seal-gray-500 dark:text-slate-400">Accusés de réception</span>
-                <span className="text-sm font-semibold text-navy dark:text-white">{acks.length}</span>
+                <span className="text-sm font-semibold text-seal-navy dark:text-white">{acks.length}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-seal-gray-500 dark:text-slate-400">Contrôles ISO</span>
-                <span className="text-sm font-semibold text-navy dark:text-white">{isos.length}</span>
+                <span className="text-sm font-semibold text-seal-navy dark:text-white">{isos.length}</span>
               </div>
             </CardContent>
           </Card>
@@ -2204,7 +2204,7 @@ export default function DocumentDetailPage() {
           {ragRelatedLoading && (
             <Card className="shadow-sm rounded-xl">
               <CardHeader>
-                <h3 className="text-sm font-medium text-navy dark:text-white">
+                <h3 className="text-sm font-medium text-seal-navy dark:text-white">
                   <BookOpen className="inline h-3.5 w-3.5 mr-1.5" />
                   Documents liés
                 </h3>
@@ -2232,7 +2232,7 @@ export default function DocumentDetailPage() {
             return (
               <Card className="shadow-sm rounded-xl">
                 <CardHeader>
-                  <h3 className="text-sm font-medium text-navy dark:text-white">
+                  <h3 className="text-sm font-medium text-seal-navy dark:text-white">
                     <BookOpen className="inline h-3.5 w-3.5 mr-1.5" />
                     Documents liés
                   </h3>
@@ -2244,7 +2244,7 @@ export default function DocumentDetailPage() {
                       href={`/documents/${rd.id}`}
                       className="block rounded-lg border border-gray-100 dark:border-slate-700 p-2.5 hover:border-primary/50 hover:bg-primary/5 transition-all"
                     >
-                      <p className="text-xs font-semibold text-navy dark:text-white line-clamp-1">{rd.title}</p>
+                      <p className="text-xs font-semibold text-seal-navy dark:text-white line-clamp-1">{rd.title}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="font-mono text-[10px] text-seal-gray-500 dark:text-slate-400">{rd.reference}</span>
                         <StatusBadge status={rd.status as 'DRAFT' | 'IN_REVIEW' | 'PENDING_APPROVAL' | 'APPROVED' | 'OBSOLETE' | 'ARCHIVED'} />
@@ -2366,7 +2366,7 @@ export default function DocumentDetailPage() {
             <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50/60 dark:bg-slate-800/40 p-4 max-h-[320px] overflow-y-auto">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-sm font-semibold text-navy dark:text-white">
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">
                     Suggestions d&apos;amélioration
                   </p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
@@ -2408,7 +2408,7 @@ export default function DocumentDetailPage() {
                               }}
                               className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary"
                             />
-                            <span className={`text-xs leading-snug ${checked ? 'text-navy dark:text-white font-medium' : 'text-seal-gray-500 dark:text-slate-400'}`}>
+                            <span className={`text-xs leading-snug ${checked ? 'text-seal-navy dark:text-white font-medium' : 'text-seal-gray-500 dark:text-slate-400'}`}>
                               {item.label}
                             </span>
                           </label>

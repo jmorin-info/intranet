@@ -368,7 +368,7 @@ export default function IncidentDetailPage() {
                   </span>
                 )}
               </div>
-              <h1 className="mt-2 text-xl font-medium text-navy dark:text-white">
+              <h1 className="mt-2 text-xl font-medium text-seal-navy dark:text-white">
                 {incident.title}
               </h1>
               <div className="mt-1 text-xs text-seal-gray-500 space-x-3">
@@ -423,20 +423,20 @@ export default function IncidentDetailPage() {
               <h3 className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">
                 Description
               </h3>
-              <p className="text-sm text-navy dark:text-white whitespace-pre-wrap">
+              <p className="text-sm text-seal-navy dark:text-white whitespace-pre-wrap">
                 {incident.description}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
                 <p className="text-seal-gray-500">Catégorie</p>
-                <p className="text-navy dark:text-white font-semibold">
+                <p className="text-seal-navy dark:text-white font-semibold">
                   {incident.category}
                 </p>
               </div>
               <div>
                 <p className="text-seal-gray-500">Systèmes affectés</p>
-                <p className="text-navy dark:text-white font-semibold">
+                <p className="text-seal-navy dark:text-white font-semibold">
                   {incident.affectedSystems.length > 0
                     ? incident.affectedSystems.join(', ')
                     : '—'}
@@ -444,7 +444,7 @@ export default function IncidentDetailPage() {
               </div>
               <div>
                 <p className="text-seal-gray-500">Contenu le</p>
-                <p className="text-navy dark:text-white font-semibold">
+                <p className="text-seal-navy dark:text-white font-semibold">
                   {incident.containedAt
                     ? new Date(incident.containedAt).toLocaleString('fr-FR')
                     : '—'}
@@ -452,7 +452,7 @@ export default function IncidentDetailPage() {
               </div>
               <div>
                 <p className="text-seal-gray-500">Rétabli le</p>
-                <p className="text-navy dark:text-white font-semibold">
+                <p className="text-seal-navy dark:text-white font-semibold">
                   {incident.resolvedAt
                     ? new Date(incident.resolvedAt).toLocaleString('fr-FR')
                     : '—'}
@@ -468,7 +468,7 @@ export default function IncidentDetailPage() {
         <Card>
           <CardContent className="p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-navy dark:text-white">
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
                 Plan de remédiation
               </h3>
               {isReviewer && (
@@ -496,7 +496,7 @@ export default function IncidentDetailPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-semibold text-navy dark:text-white">
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">
                             {r.title}
                           </p>
                           <Badge
@@ -587,7 +587,7 @@ export default function IncidentDetailPage() {
                       ? { bg: 'bg-[#70916a]/15', icon: <CheckCircle2 className="h-3.5 w-3.5 text-[#70916a]" /> }
                       : t.entryType === 'ACTION'
                       ? { bg: 'bg-[#c68200]/15', icon: <Target className="h-3.5 w-3.5 text-[#c68200]" /> }
-                      : { bg: 'bg-navy/10 dark:bg-slate-700', icon: <MessageSquare className="h-3.5 w-3.5 text-navy dark:text-slate-300" /> };
+                      : { bg: 'bg-seal-navy/10 dark:bg-slate-700', icon: <MessageSquare className="h-3.5 w-3.5 text-seal-navy dark:text-slate-300" /> };
                     const entryLabel = t.entryType === 'STATUS_CHANGE' ? 'Changement de statut'
                       : t.entryType === 'EVIDENCE' ? 'Preuve'
                       : t.entryType === 'ACTION' ? 'Action'
@@ -604,7 +604,7 @@ export default function IncidentDetailPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-semibold text-navy dark:text-white">
+                            <span className="text-xs font-semibold text-seal-navy dark:text-white">
                               {t.author
                                 ? `${t.author.firstName} ${t.author.lastName}`
                                 : 'Système'}
@@ -626,7 +626,7 @@ export default function IncidentDetailPage() {
                               </span>
                             )}
                           </div>
-                          <p className="mt-1 text-xs text-navy dark:text-slate-200 whitespace-pre-wrap">
+                          <p className="mt-1 text-xs text-seal-navy dark:text-slate-200 whitespace-pre-wrap">
                             {t.content}
                           </p>
                         </div>
@@ -674,7 +674,7 @@ export default function IncidentDetailPage() {
                 }
               />
               <div className="flex items-end pb-2">
-                <label className="flex items-center gap-2 text-xs text-navy dark:text-white">
+                <label className="flex items-center gap-2 text-xs text-seal-navy dark:text-white">
                   <input
                     type="checkbox"
                     disabled={!isReviewer}

@@ -102,7 +102,7 @@ function DepartmentCard({ dept, isLast }: { dept: Department; isLast: boolean })
                   <Building2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-navy dark:text-white text-sm">{dept.name}</h3>
+                  <h3 className="font-semibold text-seal-navy dark:text-white text-sm">{dept.name}</h3>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">{dept.code}</p>
                 </div>
               </div>
@@ -181,7 +181,7 @@ function DepartmentCard({ dept, isLast }: { dept: Department; isLast: boolean })
                           className={`flex-shrink-0 ${!member.avatarUrl ? color : ''}`}
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white truncate">
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">
                             {member.firstName} {member.lastName}
                           </p>
                           {member.jobTitle ? (
@@ -261,7 +261,7 @@ export default function OrganigrammePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <Building2 className="h-7 w-7 text-primary" />
             Organigramme
           </h1>
@@ -280,7 +280,7 @@ export default function OrganigrammePage() {
       <div className="flex items-center gap-1 border-b border-gray-200 dark:border-slate-700">
         <Link
           href="/directory"
-          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
         >
           <Users className="h-4 w-4" />
           Annuaire
@@ -291,7 +291,7 @@ export default function OrganigrammePage() {
         </div>
         <Link
           href="/directory/contacts"
-          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
         >
           <ExternalLink className="h-4 w-4" />
           Contacts externes
@@ -322,7 +322,7 @@ export default function OrganigrammePage() {
         <Card>
           <CardContent className="p-12 text-center">
             <Building2 className="h-12 w-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
-            <p className="text-lg font-medium text-navy dark:text-white">Aucun département</p>
+            <p className="text-lg font-medium text-seal-navy dark:text-white">Aucun département</p>
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
               Les départements apparaîtront ici une fois créés.
             </p>
@@ -346,7 +346,7 @@ export default function OrganigrammePage() {
                   className="object-contain"
                   style={{ width: 44, height: 44 }}
                 />
-                <h2 className="font-semibold text-navy dark:text-white text-sm">OMNITECH Security</h2>
+                <h2 className="font-semibold text-seal-navy dark:text-white text-sm">OMNITECH Security</h2>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">Organisation</p>
               </div>
             </CardContent>

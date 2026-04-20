@@ -28,7 +28,7 @@ function Tooltip({ text }: { text: string }) {
   return (
     <span className="relative group inline-flex ml-1 cursor-help">
       <HelpCircle className="h-3.5 w-3.5 text-seal-gray-500/60 dark:text-slate-500" />
-      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block w-52 rounded-lg bg-navy dark:bg-slate-700 text-white text-[11px] leading-snug px-3 py-2 shadow-lg z-10 pointer-events-none transition-opacity duration-200">
+      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block w-52 rounded-lg bg-seal-navy dark:bg-slate-700 text-white text-[11px] leading-snug px-3 py-2 shadow-lg z-10 pointer-events-none transition-opacity duration-200">
         {text}
         <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-navy dark:border-t-slate-700" />
       </span>
@@ -157,7 +157,7 @@ function StepperIndicator({ currentStep }: { currentStep: number }) {
               </div>
               <p className={[
                 'mt-1.5 text-xs font-semibold leading-tight text-center',
-                state === 'upcoming' ? 'text-seal-gray-500 dark:text-slate-500' : 'text-navy dark:text-white',
+                state === 'upcoming' ? 'text-seal-gray-500 dark:text-slate-500' : 'text-seal-navy dark:text-white',
               ].join(' ')}>
                 {step.label}
               </p>
@@ -419,7 +419,7 @@ export default function NewDocumentPage() {
           <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
         </button>
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">{t('documents.new.title')}</h1>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('documents.new.title')}</h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{t('documents.new.subtitle')}</p>
         </div>
       </div>
@@ -434,7 +434,7 @@ export default function NewDocumentPage() {
       {/* Template selector */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-medium text-navy dark:text-white">Choisir un modèle</h2>
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white">Choisir un modèle</h2>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5">Sélectionnez un modèle ISO 27001 pour pré-remplir le formulaire</p>
         </CardHeader>
         <CardContent>
@@ -464,7 +464,7 @@ export default function NewDocumentPage() {
                 >
                   <div className="mt-0.5 flex-shrink-0">{tpl.icon}</div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-white leading-snug">{tpl.titlePrefix}</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white leading-snug">{tpl.titlePrefix}</p>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5 leading-snug">{tpl.description}</p>
                     <span className={[
                       'mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold',
@@ -497,7 +497,7 @@ export default function NewDocumentPage() {
       <form onSubmit={handleSubmit(onSubmit)} onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleSubmit(onSubmit)(); } }}>
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-medium text-navy dark:text-white">{t('documents.new.formTitle')}</h2>
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white">{t('documents.new.formTitle')}</h2>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Reference preview */}
@@ -506,7 +506,7 @@ export default function NewDocumentPage() {
                 <FileText className="h-4 w-4 text-seal-gray-500 dark:text-slate-400 flex-shrink-0" />
                 <div>
                   <p className="text-[11px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 font-medium">Référence générée</p>
-                  <p className="text-sm font-mono font-medium text-navy dark:text-white">
+                  <p className="text-sm font-mono font-medium text-seal-navy dark:text-white">
                     {(watch('category') || 'DOC').substring(0, 3).toUpperCase()}-{new Date().getFullYear()}-{String(Math.floor(Math.random() * 900) + 100).padStart(3, '0')}
                   </p>
                 </div>
@@ -523,7 +523,7 @@ export default function NewDocumentPage() {
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center mb-1">
-                    <label className="text-[13px] font-medium text-navy dark:text-white">{t('documents.new.titleLabel')}</label>
+                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.titleLabel')}</label>
                     <Tooltip text="Titre complet du document. Sera utilise pour la recherche et la reference." />
                   </div>
                   <Input
@@ -567,7 +567,7 @@ export default function NewDocumentPage() {
 
                 <div>
                   <div className="flex items-center mb-1">
-                    <label className="text-[13px] font-medium text-navy dark:text-white">{t('documents.new.domainLabel')}</label>
+                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.domainLabel')}</label>
                     <Tooltip text="Domaine d'application du document (ex: Securite reseau, Gestion des acces)." />
                   </div>
                   <Input
@@ -579,7 +579,7 @@ export default function NewDocumentPage() {
 
                 <div>
                   <div className="flex items-center mb-1">
-                    <label className="text-[13px] font-medium text-navy dark:text-white">{t('documents.new.descriptionLabel')}</label>
+                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.descriptionLabel')}</label>
                     <Tooltip text="Description detaillee du contenu et de l'objectif du document." />
                   </div>
                   <Textarea
@@ -591,7 +591,7 @@ export default function NewDocumentPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center mb-1">
-                      <label className="text-[13px] font-medium text-navy dark:text-white">{t('documents.new.nextReview')}</label>
+                      <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.nextReview')}</label>
                       <Tooltip text="Date de la prochaine revision obligatoire du document." />
                     </div>
                     <input
@@ -609,7 +609,7 @@ export default function NewDocumentPage() {
                         {...register('isPublic')}
                         className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       />
-                      <span className="text-sm text-navy dark:text-white">{t('documents.new.isPublic')}</span>
+                      <span className="text-sm text-seal-navy dark:text-white">{t('documents.new.isPublic')}</span>
                     </label>
                   </div>
                 </div>
@@ -619,7 +619,7 @@ export default function NewDocumentPage() {
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center mb-1">
-                    <label className="text-[13px] font-medium text-navy dark:text-white">{t('documents.new.categoryLabel')}</label>
+                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.categoryLabel')}</label>
                     <Tooltip text="Categorie ISO 27001 du document (Politique, Procedure, Plan, etc.)." />
                   </div>
                   <Select
@@ -632,7 +632,7 @@ export default function NewDocumentPage() {
 
                 <div>
                   <div className="flex items-center mb-1">
-                    <label className="text-[13px] font-medium text-navy dark:text-white">{t('documents.new.classificationLabel')}</label>
+                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.classificationLabel')}</label>
                     <Tooltip text="Niveau de confidentialité. Détermine les droits d'accès au document." />
                   </div>
                   <div className="flex items-end gap-2">
@@ -669,16 +669,16 @@ export default function NewDocumentPage() {
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
                       <div className="text-xs">
-                        <span className="font-medium text-navy dark:text-white">Suggestion IA : </span>
+                        <span className="font-medium text-seal-navy dark:text-white">Suggestion IA : </span>
                         {autoClassifySuggestion.category && (
                           <span className="text-seal-gray-500 dark:text-slate-400">
-                            Categorie <span className="font-medium text-navy dark:text-white">{DOCUMENT_CATEGORY_LABELS[autoClassifySuggestion.category as DocumentCategory] || autoClassifySuggestion.category}</span>
+                            Categorie <span className="font-medium text-seal-navy dark:text-white">{DOCUMENT_CATEGORY_LABELS[autoClassifySuggestion.category as DocumentCategory] || autoClassifySuggestion.category}</span>
                           </span>
                         )}
                         {autoClassifySuggestion.classification && (
                           <span className="text-seal-gray-500 dark:text-slate-400">
                             {autoClassifySuggestion.category ? ' / ' : ''}
-                            Classification <span className="font-medium text-navy dark:text-white">{autoClassifySuggestion.classification}</span>
+                            Classification <span className="font-medium text-seal-navy dark:text-white">{autoClassifySuggestion.classification}</span>
                           </span>
                         )}
                       </div>
@@ -702,7 +702,7 @@ export default function NewDocumentPage() {
                 {reviewers.length > 0 && (
                   <div className="space-y-1">
                     <div className="flex items-center mb-1">
-                      <label className="text-[13px] font-medium text-navy dark:text-white">Réviseur / Approbateur</label>
+                      <label className="text-[13px] font-medium text-seal-navy dark:text-white">Réviseur / Approbateur</label>
                       <Tooltip text="Personne responsable de la validation du document avant publication." />
                     </div>
                     <select
@@ -727,7 +727,7 @@ export default function NewDocumentPage() {
             {/* ISO Controls - full width section */}
             <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-slate-700">
               <div className="flex items-center">
-                <label className="text-[13px] font-medium text-navy dark:text-white">{t('documents.new.isoControls')}</label>
+                <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.isoControls')}</label>
                 <Tooltip text="Controles ISO 27001 couverts par ce document. Impacte le taux de couverture conformité." />
               </div>
               <div className="flex flex-wrap gap-1.5 min-h-[32px]">
@@ -764,7 +764,7 @@ export default function NewDocumentPage() {
                       }}
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700 text-sm transition-colors duration-200"
                     >
-                      <span className="font-mono font-medium text-navy dark:text-white">{ctrl.code}</span>
+                      <span className="font-mono font-medium text-seal-navy dark:text-white">{ctrl.code}</span>
                       <span className="text-seal-gray-500 ml-2">{ctrl.titleFr || ctrl.title}</span>
                     </button>
                   ))}
@@ -774,7 +774,7 @@ export default function NewDocumentPage() {
 
             {/* File upload */}
             <div>
-              <label className="block text-[13px] font-semibold text-navy dark:text-white mb-1">
+              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white mb-1">
                 {t('documents.new.fileLabel')}
               </label>
               <FileUploadZone
@@ -797,7 +797,7 @@ export default function NewDocumentPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-white truncate">{file.name}</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">{file.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-seal-gray-500 dark:text-slate-400">{formatFileSize(file.size)}</span>
                       <span className="text-xs text-seal-gray-500 dark:text-slate-400">{file.type || 'Type inconnu'}</span>

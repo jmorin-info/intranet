@@ -176,7 +176,7 @@ export function ComplianceControls() {
       sortable: true,
       className: 'w-24',
       render: (c) => (
-        <span className="font-mono text-sm font-semibold text-navy dark:text-white">{c.code}</span>
+        <span className="font-mono text-sm font-semibold text-seal-navy dark:text-white">{c.code}</span>
       ),
     },
     {
@@ -184,7 +184,7 @@ export function ComplianceControls() {
       header: t('isoControls.header.title'),
       render: (c) => (
         <div>
-          <span className="text-sm text-navy dark:text-white">{c.titleFr || c.title}</span>
+          <span className="text-sm text-seal-navy dark:text-white">{c.titleFr || c.title}</span>
           {c.titleFr && (
             <span className="block text-xs text-seal-gray-500 dark:text-slate-400">{c.title}</span>
           )}
@@ -249,7 +249,7 @@ export function ComplianceControls() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">{t('isoControls.title')}</h1>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('isoControls.title')}</h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             {t('isoControls.subtitle')}
           </p>
@@ -369,7 +369,7 @@ export function ComplianceControls() {
                   >
                     {isCollapsed ? <ChevronRight className="h-4 w-4 text-seal-gray-500" /> : <ChevronDown className="h-4 w-4 text-seal-gray-500" />}
                     <Badge variant={domainColor(domainKey) as 'primary' | 'info' | 'warning' | 'navy'}>{domainKey}</Badge>
-                    <span className="text-sm font-medium text-navy dark:text-white">
+                    <span className="text-sm font-medium text-seal-navy dark:text-white">
                       {domainOptions.find(d => d.value === domainKey)?.label || domainKey}
                     </span>
                     <span className="ml-auto text-xs text-seal-gray-500 dark:text-slate-400">{coveredCount}/{items.length} couverts</span>
@@ -385,7 +385,7 @@ export function ComplianceControls() {
                           return (
                             <div key={c.id} className="flex items-center gap-3 py-2 px-1">
                               {coverageIcon(c)}
-                              <span className="font-mono text-sm font-medium text-navy dark:text-white w-16">{c.code}</span>
+                              <span className="font-mono text-sm font-medium text-seal-navy dark:text-white w-16">{c.code}</span>
                               <span className="text-sm text-gray-700 dark:text-slate-300 flex-1">{c.titleFr || c.title}</span>
                               {docCount > 0 ? (
                                 <Link

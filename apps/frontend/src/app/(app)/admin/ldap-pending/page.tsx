@@ -220,7 +220,7 @@ export default function LdapPendingPage() {
             className={`px-4 py-2 text-xs font-semibold transition-colors border-b-2 ${
               statusFilter === s
                 ? 'border-primary text-primary'
-                : 'border-transparent text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                : 'border-transparent text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
             }`}
           >
             {s === 'PENDING'
@@ -264,7 +264,7 @@ export default function LdapPendingPage() {
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-lg font-semibold text-navy dark:text-white">
+                      <h3 className="text-lg font-semibold text-seal-navy dark:text-white">
                         {item.firstName} {item.lastName}
                       </h3>
                       <span className="text-xs text-seal-gray-500 dark:text-slate-500">{item.email}</span>
@@ -329,7 +329,7 @@ export default function LdapPendingPage() {
                             [item.id]: { ...choice, departmentId: e.target.value || undefined },
                           })
                         }
-                        className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-navy dark:text-white"
+                        className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-seal-navy dark:text-white"
                       >
                         <option value="">— Aucun —</option>
                         {departments.map((d) => (
@@ -351,7 +351,7 @@ export default function LdapPendingPage() {
                             [item.id]: { ...choice, role: e.target.value },
                           })
                         }
-                        className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-navy dark:text-white"
+                        className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-seal-navy dark:text-white"
                       >
                         {ROLES.map((r) => (
                           <option key={r.value} value={r.value}>
@@ -397,7 +397,7 @@ export default function LdapPendingPage() {
             className="bg-white dark:bg-slate-900 rounded-xl shadow-xl p-6 max-w-md w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold text-navy dark:text-white mb-2">
+            <h3 className="text-lg font-semibold text-seal-navy dark:text-white mb-2">
               Motif du rejet
             </h3>
             <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">
@@ -408,7 +408,7 @@ export default function LdapPendingPage() {
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex : hors périmètre organisation, compte obsolète à supprimer côté AD…"
             />
             <div className="flex justify-end gap-2 mt-4">

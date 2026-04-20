@@ -184,7 +184,7 @@ export default function AdminReportsPage() {
   return (
     <div className="space-y-6">
       <div className="animate-fade-in-up">
-        <h1 className="text-2xl font-medium text-navy dark:text-white">{t('reports.title')}</h1>
+        <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('reports.title')}</h1>
         <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
           {t('reports.subtitle')}
         </p>
@@ -210,7 +210,7 @@ export default function AdminReportsPage() {
                 <div className={`h-10 w-10 rounded-xl ${stat.bg} flex items-center justify-center mb-2`}>
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
-                <p className="text-2xl font-medium text-navy dark:text-white">{stat.value}</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{stat.value}</p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">{stat.label}</p>
                 {stat.label === 'Taux de conformité' && typeof stat.numValue === 'number' && (
                   <div className="mt-2 h-1.5 w-full rounded-full bg-gray-100 dark:bg-slate-700 overflow-hidden">
@@ -233,7 +233,7 @@ export default function AdminReportsPage() {
           <div className="flex items-center gap-3">
             <Clock className="h-5 w-5 text-primary" />
             <div>
-              <p className="text-sm font-semibold text-navy dark:text-white">Rapports automatiques</p>
+              <p className="text-sm font-semibold text-seal-navy dark:text-white">Rapports automatiques</p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                 Rapport hebdomadaire : chaque lundi à 7h (envoyé aux ADMIN/SUPER_ADMIN) —
                 Rapport mensuel RSSI : 1er du mois à 8h (envoyé aux SUPER_ADMIN)
@@ -262,7 +262,7 @@ export default function AdminReportsPage() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-semibold text-navy dark:text-white">{t(report.titleKey)}</h3>
+                      <h3 className="text-sm font-semibold text-seal-navy dark:text-white">{t(report.titleKey)}</h3>
                       {report.format && (
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${formatBadgeClass}`}>
                           <FormatIcon className="h-3 w-3" />

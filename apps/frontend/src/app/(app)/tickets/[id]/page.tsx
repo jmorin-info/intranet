@@ -321,7 +321,7 @@ export default function TicketDetailPage() {
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="font-mono text-sm font-semibold text-navy dark:text-blue-300">{ticket.reference}</span>
+            <span className="font-mono text-sm font-semibold text-seal-navy dark:text-blue-300">{ticket.reference}</span>
             {/* Inline status dropdown — single click to change */}
             <div ref={statusDropdownRef} className="relative">
               <button
@@ -357,7 +357,7 @@ export default function TicketDetailPage() {
                         {s === 'WAITING' && <Timer className="h-3.5 w-3.5 text-gray-400" />}
                         {s === 'RESOLVED' && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
                         {s === 'CLOSED' && <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />}
-                        <span className="text-navy dark:text-white">{statusLabel[s] || s}</span>
+                        <span className="text-seal-navy dark:text-white">{statusLabel[s] || s}</span>
                         {active && <CheckCircle2 className="h-3 w-3 ml-auto text-primary" />}
                       </button>
                     );
@@ -376,10 +376,10 @@ export default function TicketDetailPage() {
               );
             })}
           </div>
-          <h1 className="text-xl font-medium text-navy dark:text-white mt-1">{ticket.title}</h1>
+          <h1 className="text-xl font-medium text-seal-navy dark:text-white mt-1">{ticket.title}</h1>
           {/* Ticket age */}
           <div className="flex items-center gap-3 mt-1.5">
-            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-navy dark:text-white">
+            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-seal-navy dark:text-white">
               <Clock className="h-3 w-3 text-seal-gray-500" />
               Créé il y a {getTicketAge(ticket.createdAt)}
             </span>
@@ -423,7 +423,7 @@ export default function TicketDetailPage() {
           <Card className={priorityBorderColor[ticket.priority] || ''}>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-navy dark:text-white">{t('tickets.detail.description')}</h3>
+                <h3 className="text-sm font-semibold text-seal-navy dark:text-white">{t('tickets.detail.description')}</h3>
                 {isAdmin && (
                   <Button
                     variant="outline"
@@ -461,7 +461,7 @@ export default function TicketDetailPage() {
           {/* Status Timeline */}
           <Card>
             <CardHeader>
-              <h3 className="text-sm font-semibold text-navy dark:text-white">Historique du statut</h3>
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Historique du statut</h3>
             </CardHeader>
             <CardContent>
               <div className="relative pl-6 space-y-4">
@@ -472,7 +472,7 @@ export default function TicketDetailPage() {
                   </div>
                   <div className="border-l-2 border-gray-200 dark:border-slate-600 absolute -left-[14px] top-5 bottom-0 h-full" />
                   <div>
-                    <p className="text-sm font-semibold text-navy dark:text-white">Ticket créé</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white">Ticket créé</p>
                     <p className="text-[10px] text-seal-gray-500">{formatDateTime(ticket.createdAt)} — {ticket.creator.firstName} {ticket.creator.lastName}</p>
                   </div>
                 </div>
@@ -485,7 +485,7 @@ export default function TicketDetailPage() {
                       {(() => { const StIcon = statusTimelineIcons[ticket.status] || Circle; return <StIcon className={`h-3 w-3 ${ticket.status === 'RESOLVED' || ticket.status === 'CLOSED' ? 'text-emerald-500' : 'text-amber-500'}`} />; })()}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-navy dark:text-white">{statusLabel[ticket.status] || ticket.status}</p>
+                      <p className="text-sm font-semibold text-seal-navy dark:text-white">{statusLabel[ticket.status] || ticket.status}</p>
                       <p className="text-[10px] text-seal-gray-500">{formatDateTime(ticket.updatedAt)}{ticket.assignee ? ` — ${ticket.assignee.firstName} ${ticket.assignee.lastName}` : ''}</p>
                     </div>
                   </div>
@@ -497,7 +497,7 @@ export default function TicketDetailPage() {
                       <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-navy dark:text-white">Résolu</p>
+                      <p className="text-sm font-semibold text-seal-navy dark:text-white">Résolu</p>
                       <p className="text-[10px] text-seal-gray-500">{formatDateTime(ticket.resolvedAt)}</p>
                     </div>
                   </div>
@@ -513,14 +513,14 @@ export default function TicketDetailPage() {
                 {satisfactionSent ? (
                   <div className="text-center py-3">
                     <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-navy dark:text-white">Merci pour votre retour !</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white">Merci pour votre retour !</p>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">Votre évaluation nous aide à améliorer le service.</p>
                   </div>
                 ) : (
                   <>
                     <div className="flex items-center gap-2 mb-3">
                       <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-                      <h3 className="text-sm font-semibold text-navy dark:text-white">Évaluez la résolution</h3>
+                      <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Évaluez la résolution</h3>
                     </div>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">Comment évaluez-vous la prise en charge de votre ticket ?</p>
                     <div className="flex items-center gap-1 mb-3">
@@ -572,7 +572,7 @@ export default function TicketDetailPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                   <Send className="h-4 w-4 text-primary" />
                   Conversation ({ticket.comments.length})
                 </h3>
@@ -630,7 +630,7 @@ export default function TicketDetailPage() {
                               <User className="h-3.5 w-3.5" />
                             </div>
                           )}
-                          <span className="text-[11px] font-semibold text-navy dark:text-white">
+                          <span className="text-[11px] font-semibold text-seal-navy dark:text-white">
                             {isMe ? 'Vous' : `${c.author.firstName} ${c.author.lastName}`}
                           </span>
                           {c.author.role && !isMe && (
@@ -689,7 +689,7 @@ export default function TicketDetailPage() {
                       onChange={setComment}
                       placeholder={isInternalComment ? 'Note interne... (@ pour mentionner)' : t('tickets.detail.addComment')}
                       rows={2}
-                      className={`w-full rounded-lg border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary ${isInternalComment ? 'border-amber-300 dark:border-amber-700' : 'border-gray-200 dark:border-slate-700'}`}
+                      className={`w-full rounded-lg border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary ${isInternalComment ? 'border-amber-300 dark:border-amber-700' : 'border-gray-200 dark:border-slate-700'}`}
                       onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleComment(); } }}
                     />
                   </div>
@@ -713,24 +713,24 @@ export default function TicketDetailPage() {
         <div className="space-y-4">
           {/* Info */}
           <Card>
-            <CardHeader><h3 className="text-sm font-semibold text-navy dark:text-white">{t('tickets.detail.info')}</h3></CardHeader>
+            <CardHeader><h3 className="text-sm font-semibold text-seal-navy dark:text-white">{t('tickets.detail.info')}</h3></CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-seal-gray-500">{t('tickets.detail.creator')}</span>
-                <span className="font-semibold text-navy dark:text-white">{ticket.creator.firstName} {ticket.creator.lastName}</span>
+                <span className="font-semibold text-seal-navy dark:text-white">{ticket.creator.firstName} {ticket.creator.lastName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-seal-gray-500">{t('tickets.detail.assignee')}</span>
-                <span className="font-semibold text-navy dark:text-white">{ticket.assignee ? `${ticket.assignee.firstName} ${ticket.assignee.lastName}` : t('tickets.detail.unassigned')}</span>
+                <span className="font-semibold text-seal-navy dark:text-white">{ticket.assignee ? `${ticket.assignee.firstName} ${ticket.assignee.lastName}` : t('tickets.detail.unassigned')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-seal-gray-500">{t('tickets.detail.createdAt')}</span>
-                <span className="text-navy dark:text-white">{formatDateTime(ticket.createdAt)}</span>
+                <span className="text-seal-navy dark:text-white">{formatDateTime(ticket.createdAt)}</span>
               </div>
               {ticket.resolvedAt && (
                 <div className="flex justify-between">
                   <span className="text-seal-gray-500">{t('tickets.detail.resolvedAt')}</span>
-                  <span className="text-navy dark:text-white">{formatDateTime(ticket.resolvedAt)}</span>
+                  <span className="text-seal-navy dark:text-white">{formatDateTime(ticket.resolvedAt)}</span>
                 </div>
               )}
             </CardContent>
@@ -741,7 +741,7 @@ export default function TicketDetailPage() {
             <Card className="border-l-4 border-l-teal-500">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-teal-600" />
                     Checklist deploiement
                   </h3>
@@ -769,7 +769,7 @@ export default function TicketDetailPage() {
                         disabled={!isAdmin}
                         className="h-3.5 w-3.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
                       />
-                      <span className={`text-xs ${checked ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-navy dark:text-white'}`}>{item.label}</span>
+                      <span className={`text-xs ${checked ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-seal-navy dark:text-white'}`}>{item.label}</span>
                     </label>
                   );
                 })}
@@ -782,7 +782,7 @@ export default function TicketDetailPage() {
                       return (
                         <div key={field.id} className="flex justify-between text-xs">
                           <span className="text-seal-gray-500 dark:text-slate-400">{field.label}</span>
-                          <span className="font-semibold text-navy dark:text-white font-mono">{val}</span>
+                          <span className="font-semibold text-seal-navy dark:text-white font-mono">{val}</span>
                         </div>
                       );
                     })}
@@ -811,7 +811,7 @@ export default function TicketDetailPage() {
           )}
           {isAdmin && (
             <Card className="no-print border-l-4 border-l-amber-400">
-              <CardHeader><h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" />{t('tickets.detail.actions')}</h3></CardHeader>
+              <CardHeader><h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" />{t('tickets.detail.actions')}</h3></CardHeader>
               <CardContent className="space-y-3">
                 <Select
                   label={t('tickets.detail.statusLabel')}

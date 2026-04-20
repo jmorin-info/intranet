@@ -169,7 +169,7 @@ export default function AdminExternalAccessPage() {
         <Card className="border-l-4 border-l-primary">
           <CardContent className="py-3 flex items-center gap-4">
             <Shield className="h-5 w-5 text-primary flex-shrink-0" />
-            <p className="text-sm text-navy dark:text-white">
+            <p className="text-sm text-seal-navy dark:text-white">
               <span className="font-semibold">{activeAccesses.length}</span> accès actifs, <span className="font-semibold">{dueReview.length}</span> en attente de revue
             </p>
           </CardContent>
@@ -201,7 +201,7 @@ export default function AdminExternalAccessPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
-              <h3 className="font-semibold text-navy dark:text-white">Nouveau prestataire</h3>
+              <h3 className="font-semibold text-seal-navy dark:text-white">Nouveau prestataire</h3>
               <div className="flex gap-1 border rounded-lg p-0.5 dark:border-slate-700">
                 <button onClick={() => setCreateMode('new')}
                   className={`px-3 py-1 text-xs rounded font-semibold transition ${createMode === 'new' ? 'bg-primary text-white' : 'text-seal-gray-500'}`}>
@@ -305,13 +305,13 @@ export default function AdminExternalAccessPage() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-6 w-6 text-amber-500 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-navy dark:text-white">Identifiants du prestataire</h3>
+                <h3 className="font-semibold text-seal-navy dark:text-white">Identifiants du prestataire</h3>
                 <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
                   Ce mot de passe ne sera plus affiché. Notez-le et transmettez-le de manière sécurisée.
                 </p>
                 <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-3 font-mono text-sm space-y-1">
-                  <div><span className="text-seal-gray-500 dark:text-slate-400">Email :</span> <span className="text-navy dark:text-white font-semibold">{createdCredentials.email}</span></div>
-                  <div><span className="text-seal-gray-500 dark:text-slate-400">Mot de passe :</span> <span className="text-navy dark:text-white font-semibold">{createdCredentials.password}</span></div>
+                  <div><span className="text-seal-gray-500 dark:text-slate-400">Email :</span> <span className="text-seal-navy dark:text-white font-semibold">{createdCredentials.email}</span></div>
+                  <div><span className="text-seal-gray-500 dark:text-slate-400">Mot de passe :</span> <span className="text-seal-navy dark:text-white font-semibold">{createdCredentials.password}</span></div>
                 </div>
                 <div className="flex gap-2 mt-3">
                   <Button size="sm" variant="outline" onClick={() => {
@@ -341,7 +341,7 @@ export default function AdminExternalAccessPage() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-navy dark:text-white text-sm">Revue mensuelle requise</h3>
+                <h3 className="font-semibold text-seal-navy dark:text-white text-sm">Revue mensuelle requise</h3>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
                   {dueReview.length} accès n&apos;ont pas été révisés depuis plus de 30 jours (obligation RSSI — revue mensuelle)
                 </p>
@@ -369,7 +369,7 @@ export default function AdminExternalAccessPage() {
         <EmptyState type="general" title="Aucun accès actif" description="Aucun prestataire externe n'a d'accès actif." />
       ) : (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-navy dark:text-white">Accès actifs ({activeAccesses.length})</h2>
+          <h2 className="text-sm font-semibold text-seal-navy dark:text-white">Accès actifs ({activeAccesses.length})</h2>
           {activeAccesses.map((access, idx) => {
             const expiryInfo = getExpiryInfo(access);
             return (
@@ -380,7 +380,7 @@ export default function AdminExternalAccessPage() {
                     <Building2 className="h-5 w-5 text-primary" />
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-navy dark:text-white text-sm">{access.companyName}</span>
+                        <span className="font-semibold text-seal-navy dark:text-white text-sm">{access.companyName}</span>
                         <Badge variant="navy">{access.user.firstName} {access.user.lastName}</Badge>
                         {access.contractRef && <Badge variant="primary">{access.contractRef}</Badge>}
                         {expiryInfo && (
@@ -421,7 +421,7 @@ export default function AdminExternalAccessPage() {
       {/* Revoked accesses */}
       {revokedAccesses.length > 0 && (
         <div className="space-y-3 opacity-60">
-          <h2 className="text-sm font-semibold text-navy dark:text-white">Accès révoqués ({revokedAccesses.length})</h2>
+          <h2 className="text-sm font-semibold text-seal-navy dark:text-white">Accès révoqués ({revokedAccesses.length})</h2>
           {revokedAccesses.map(access => (
             <Card key={access.id}>
               <CardContent className="py-2">

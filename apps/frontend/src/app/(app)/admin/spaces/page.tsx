@@ -190,7 +190,7 @@ export default function SpacesAdminPage() {
       <AdminGroupTabs group="config" />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <Layers className="h-6 w-6" /> Espaces & modules
           </h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
@@ -249,7 +249,7 @@ export default function SpacesAdminPage() {
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-navy dark:text-white">
+                          <span className="font-semibold text-seal-navy dark:text-white">
                             {mod.label}
                           </span>
                           {mod.alwaysOn && (
@@ -291,7 +291,7 @@ export default function SpacesAdminPage() {
             <Card>
               <CardContent className="p-0 overflow-x-auto">
                 <div className="px-4 py-3 border-b border-gray-200 dark:border-slate-700">
-                  <h2 className="text-sm font-semibold text-navy dark:text-white">
+                  <h2 className="text-sm font-semibold text-seal-navy dark:text-white">
                     Accès par département
                   </h2>
                   <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5">
@@ -320,7 +320,7 @@ export default function SpacesAdminPage() {
                         className="even:bg-gray-50/50 dark:even:bg-slate-800/30 hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors"
                       >
                         <td className="px-4 py-3">
-                          <span className="font-semibold text-navy dark:text-white">
+                          <span className="font-semibold text-seal-navy dark:text-white">
                             {mod.label}
                           </span>
                         </td>

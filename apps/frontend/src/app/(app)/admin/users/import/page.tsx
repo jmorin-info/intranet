@@ -124,7 +124,7 @@ export default function ImportUsersPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">Importer des utilisateurs (CSV)</h1>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Importer des utilisateurs (CSV)</h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">Import en masse via fichier CSV</p>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default function ImportUsersPage() {
       {/* Template download */}
       <Card>
         <CardContent className="py-3 flex items-center justify-between">
-          <p className="text-sm text-navy dark:text-white">Télécharger le modèle CSV avec les en-têtes attendues</p>
+          <p className="text-sm text-seal-navy dark:text-white">Télécharger le modèle CSV avec les en-têtes attendues</p>
           <a href={`${apiUrl}/users/import/template`} download>
             <Button variant="secondary" size="sm">
               <Download className="h-4 w-4" />
@@ -173,7 +173,7 @@ export default function ImportUsersPage() {
                 <div className="flex flex-col items-center gap-3">
                   <Upload className="h-10 w-10 text-seal-gray-500 dark:text-slate-400" />
                   <div>
-                    <p className="text-sm text-navy dark:text-white">
+                    <p className="text-sm text-seal-navy dark:text-white">
                       {isDragActive ? 'Deposez le fichier ici' : 'Glissez-deposez un fichier CSV ou cliquez pour parcourir'}
                     </p>
                     <p className="text-xs text-seal-gray-500 mt-1">CSV uniquement, 5 Mo maximum</p>
@@ -194,7 +194,7 @@ export default function ImportUsersPage() {
               <CardContent className="py-4 flex items-center gap-3">
                 <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{validRows.length}</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{validRows.length}</p>
                   <p className="text-xs text-seal-gray-500">Lignes valides</p>
                 </div>
               </CardContent>
@@ -203,7 +203,7 @@ export default function ImportUsersPage() {
               <CardContent className="py-4 flex items-center gap-3">
                 <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{errors.length}</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{errors.length}</p>
                   <p className="text-xs text-seal-gray-500">Erreurs</p>
                 </div>
               </CardContent>
@@ -214,7 +214,7 @@ export default function ImportUsersPage() {
           {validRows.length > 0 && (
             <Card>
               <CardHeader>
-                <h2 className="font-semibold text-navy dark:text-white text-sm">Utilisateurs a importer</h2>
+                <h2 className="font-semibold text-seal-navy dark:text-white text-sm">Utilisateurs a importer</h2>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -232,9 +232,9 @@ export default function ImportUsersPage() {
                     <tbody>
                       {validRows.slice(0, 50).map((row, idx) => (
                         <tr key={idx} className="border-b border-gray-100 dark:border-slate-800">
-                          <td className="py-2 px-3 text-navy dark:text-white">{row.email}</td>
-                          <td className="py-2 px-3 text-navy dark:text-white">{row.firstName}</td>
-                          <td className="py-2 px-3 text-navy dark:text-white">{row.lastName}</td>
+                          <td className="py-2 px-3 text-seal-navy dark:text-white">{row.email}</td>
+                          <td className="py-2 px-3 text-seal-navy dark:text-white">{row.firstName}</td>
+                          <td className="py-2 px-3 text-seal-navy dark:text-white">{row.lastName}</td>
                           <td className="py-2 px-3"><Badge>{row.role}</Badge></td>
                           <td className="py-2 px-3 text-seal-gray-500">{row.department || '-'}</td>
                           <td className="py-2 px-3 text-seal-gray-500">{row.jobTitle || '-'}</td>
@@ -269,8 +269,8 @@ export default function ImportUsersPage() {
                     <tbody>
                       {errors.map((err, idx) => (
                         <tr key={idx} className="border-b border-gray-100 dark:border-slate-800">
-                          <td className="py-2 px-3 text-navy dark:text-white">{err.line}</td>
-                          <td className="py-2 px-3 text-navy dark:text-white">{err.field}</td>
+                          <td className="py-2 px-3 text-seal-navy dark:text-white">{err.line}</td>
+                          <td className="py-2 px-3 text-seal-navy dark:text-white">{err.field}</td>
                           <td className="py-2 px-3 text-amber-600 dark:text-amber-400">{err.message}</td>
                         </tr>
                       ))}
@@ -301,7 +301,7 @@ export default function ImportUsersPage() {
             <CardContent className="py-6">
               <div className="flex items-center gap-4 mb-4">
                 <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                <h2 className="text-lg font-medium text-navy dark:text-white">Import terminé</h2>
+                <h2 className="text-lg font-medium text-seal-navy dark:text-white">Import terminé</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="text-center p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">

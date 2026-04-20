@@ -146,11 +146,11 @@ export default function AdminSignaturesPage() {
         <div className="space-y-4">
           {/* Document select */}
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Document</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Document</label>
             <select
               value={selectedDocVersionId}
               onChange={(e) => setSelectedDocVersionId(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">-- Choisir un document approuve --</option>
               {documents.map((d) => (
@@ -163,7 +163,7 @@ export default function AdminSignaturesPage() {
 
           {/* Signers multi-select */}
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">
               Signataires ({selectedSigners.length} sélectionné{selectedSigners.length > 1 ? 's' : ''})
             </label>
             {/* Selected chips */}
@@ -191,7 +191,7 @@ export default function AdminSignaturesPage() {
                 value={signerSearch}
                 onChange={(e) => setSignerSearch(e.target.value)}
                 placeholder="Rechercher un collaborateur..."
-                className="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 pl-9 pr-3 py-2 text-sm text-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 pl-9 pr-3 py-2 text-sm text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             {/* User list */}
@@ -203,7 +203,7 @@ export default function AdminSignaturesPage() {
                     key={u.id}
                     type="button"
                     onClick={() => setSelectedSigners(prev => isSelected ? prev.filter(s => s !== u.id) : [...prev, u.id])}
-                    className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between transition-colors ${isSelected ? 'bg-primary/5 text-primary' : 'text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                    className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between transition-colors ${isSelected ? 'bg-primary/5 text-primary' : 'text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                   >
                     <span>{u.firstName} {u.lastName} <span className="text-xs text-seal-gray-500 dark:text-slate-400">({u.email})</span></span>
                     {isSelected && <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />}
@@ -235,7 +235,7 @@ export default function AdminSignaturesPage() {
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {([
-          { key: 'ALL' as const, label: t('signatures.total'), icon: FileText, color: 'text-navy dark:text-white', bg: 'bg-gray-100 dark:bg-slate-800' },
+          { key: 'ALL' as const, label: t('signatures.total'), icon: FileText, color: 'text-seal-navy dark:text-white', bg: 'bg-gray-100 dark:bg-slate-800' },
           { key: 'PENDING' as const, label: t('signatures.pending'), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/30' },
           { key: 'SIGNED' as const, label: t('signatures.signed'), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
           { key: 'REJECTED' as const, label: t('signatures.rejected'), icon: XCircle, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/30' },
@@ -250,7 +250,7 @@ export default function AdminSignaturesPage() {
                 <div className={`h-10 w-10 rounded-xl ${stat.bg} flex items-center justify-center mb-2`}>
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
-                <p className="text-2xl font-medium text-navy dark:text-white">{counts[stat.key]}</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{counts[stat.key]}</p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">{stat.label}</p>
               </CardContent>
             </Card>
@@ -264,7 +264,7 @@ export default function AdminSignaturesPage() {
           <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
           <div className="flex-1">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-navy dark:text-white">
+              <span className="text-xs font-semibold text-seal-navy dark:text-white">
                 Taux de completion : {requests.length > 0 ? Math.round((counts.SIGNED / requests.length) * 100) : 0}%
               </span>
               <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">
@@ -351,7 +351,7 @@ export default function AdminSignaturesPage() {
       {/* Signatures list */}
       <Card>
         <CardHeader>
-          <h2 className="font-semibold text-navy dark:text-white">
+          <h2 className="font-semibold text-seal-navy dark:text-white">
             {filter === 'ALL' ? t('signatures.allRequests') : filter === 'PENDING' ? t('signatures.pendingRequests') : filter === 'SIGNED' ? t('signatures.signedRequests') : t('signatures.rejectedRequests')}
             {' '}({filtered.length})
           </h2>
@@ -375,7 +375,7 @@ export default function AdminSignaturesPage() {
                     <div className="flex items-center justify-between mb-1">
                       <Link
                         href={`/documents/${req.documentVersion.document.id}`}
-                        className="text-sm font-semibold text-navy dark:text-white hover:text-primary transition-colors"
+                        className="text-sm font-semibold text-seal-navy dark:text-white hover:text-primary transition-colors"
                       >
                         {req.documentVersion.document.title}
                       </Link>
@@ -416,7 +416,7 @@ export default function AdminSignaturesPage() {
                   <div className="flex-1 min-w-0">
                     <Link
                       href={`/documents/${req.documentVersion.document.id}`}
-                      className="text-sm font-semibold text-navy dark:text-white hover:text-primary transition-colors"
+                      className="text-sm font-semibold text-seal-navy dark:text-white hover:text-primary transition-colors"
                     >
                       {req.documentVersion.document.title}
                     </Link>

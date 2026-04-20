@@ -171,7 +171,7 @@ function LoginPageInner() {
           {/* Mobile logo */}
           <div className="lg:hidden flex flex-col items-center mb-8">
             <Image src="/logo-icon.png" alt="OMNITECH" width={72} height={72} className="mb-4" />
-            <p className="text-2xl font-light text-navy dark:text-white tracking-tight">OMNITECH</p>
+            <p className="text-2xl font-light text-seal-navy dark:text-white tracking-tight">OMNITECH</p>
             <p className="text-[#F68D2E] text-xs font-medium tracking-[0.35em] uppercase mt-1">Security</p>
           </div>
 
@@ -184,7 +184,7 @@ function LoginPageInner() {
               <div>
                 <div className="mb-6 text-center">
                   <Key className="h-12 w-12 text-primary mx-auto mb-3" />
-                  <h2 className="text-2xl font-semibold text-navy dark:text-white">{t('auth.mfaTitle')}</h2>
+                  <h2 className="text-2xl font-semibold text-seal-navy dark:text-white">{t('auth.mfaTitle')}</h2>
                   <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
                     {t('auth.mfaSubtitle')}
                   </p>
@@ -195,14 +195,14 @@ function LoginPageInner() {
                     value={mfaCode}
                     onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="000000"
-                    className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-navy dark:text-white py-3 text-center text-2xl font-mono tracking-[0.5em] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-navy dark:text-white py-3 text-center text-2xl font-mono tracking-[0.5em] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                     autoFocus
                     onKeyDown={(e) => { if (e.key === 'Enter') onMfaSubmit(); }}
                   />
                   <Button onClick={onMfaSubmit} loading={loading} className="w-full" disabled={mfaCode.length !== 6}>
                     {t('auth.mfaVerify')}
                   </Button>
-                  <button onClick={() => { setMfaRequired(false); setMfaCode(''); }} className="w-full text-xs text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
+                  <button onClick={() => { setMfaRequired(false); setMfaCode(''); }} className="w-full text-xs text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
                     {t('auth.mfaBack')}
                   </button>
                 </div>
@@ -217,7 +217,7 @@ function LoginPageInner() {
               </div>
             )}
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-navy dark:text-white">{t('auth.login')}</h2>
+              <h2 className="text-2xl font-semibold text-seal-navy dark:text-white">{t('auth.login')}</h2>
               <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
                 {t('auth.loginSubtitle')}
               </p>
@@ -225,7 +225,7 @@ function LoginPageInner() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-1">
-                <label className="block text-[13px] font-semibold text-navy dark:text-white">
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
                   {t('auth.email')}
                 </label>
                 <div className="relative">
@@ -234,7 +234,7 @@ function LoginPageInner() {
                     {...register('email')}
                     type="email"
                     placeholder="prenom.nom@omnitech-security.fr"
-                    className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-navy dark:text-white py-2.5 pl-10 pr-4 text-sm placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-navy dark:text-white py-2.5 pl-10 pr-4 text-sm placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                     autoComplete="email"
                     autoFocus
                   />
@@ -245,7 +245,7 @@ function LoginPageInner() {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[13px] font-semibold text-navy dark:text-white">
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
                   {t('auth.password')}
                 </label>
                 <div className="relative">
@@ -254,7 +254,7 @@ function LoginPageInner() {
                     {...register('password')}
                     type="password"
                     placeholder="Votre mot de passe"
-                    className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-navy dark:text-white py-2.5 pl-10 pr-4 text-sm placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-navy dark:text-white py-2.5 pl-10 pr-4 text-sm placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                     autoComplete="current-password"
                   />
                 </div>

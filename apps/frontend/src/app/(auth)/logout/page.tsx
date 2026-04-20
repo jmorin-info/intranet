@@ -55,7 +55,7 @@ export default function LogoutPage() {
               {t('logout.message')}
             </p>
             <Link href="/login">
-              <Button className="bg-white text-navy hover:bg-white/90 font-semibold px-6">
+              <Button className="bg-white text-seal-navy hover:bg-white/90 font-semibold px-6">
                 <LogIn className="h-4 w-4" /> {t('logout.reconnect')}
               </Button>
             </Link>

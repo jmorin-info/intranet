@@ -124,7 +124,7 @@ const DocumentCard = React.memo(function DocumentCard({
           </span>
         </div>
         <p className="text-xs font-mono text-seal-gray-500 dark:text-slate-500 mb-0.5">{doc.reference}</p>
-        <h3 className="text-sm font-medium text-navy dark:text-white line-clamp-2 mb-2">{doc.title}</h3>
+        <h3 className="text-sm font-medium text-seal-navy dark:text-white line-clamp-2 mb-2">{doc.title}</h3>
         {doc.description && (
           <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mb-3">{doc.description}</p>
         )}
@@ -595,7 +595,7 @@ function DocumentsContent() {
       sortable: true,
       className: 'w-36',
       render: (doc) => (
-        <span className="font-mono text-xs text-navy dark:text-white font-semibold">{doc.reference}</span>
+        <span className="font-mono text-xs text-seal-navy dark:text-white font-semibold">{doc.reference}</span>
       ),
     },
     {
@@ -604,7 +604,7 @@ function DocumentsContent() {
       sortable: true,
       render: (doc) => (
         <div className="min-w-0" title={doc.description || doc.title}>
-          <p className="text-sm font-semibold text-navy dark:text-white truncate max-w-xs">{doc.title}</p>
+          <p className="text-sm font-semibold text-seal-navy dark:text-white truncate max-w-xs">{doc.title}</p>
           <div className="flex gap-1 mt-1 flex-wrap">
             {doc.isoControls?.slice(0, 3).map(({ isoControl }) => (
               <IsoControlBadge
@@ -845,7 +845,7 @@ function DocumentsContent() {
                   <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full">
                     <div className="h-full bg-primary rounded-full" style={{ width: `${(c.count / docStats.total) * 100}%` }} />
                   </div>
-                  <span className="text-navy dark:text-white font-semibold w-6 text-right">{c.count}</span>
+                  <span className="text-seal-navy dark:text-white font-semibold w-6 text-right">{c.count}</span>
                 </div>
               ))}
             </div>
@@ -859,7 +859,7 @@ function DocumentsContent() {
                   <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full">
                     <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.count / docStats.total) * 100}%` }} />
                   </div>
-                  <span className="text-navy dark:text-white font-semibold w-6 text-right">{s.count}</span>
+                  <span className="text-seal-navy dark:text-white font-semibold w-6 text-right">{s.count}</span>
                 </div>
               ))}
             </div>
@@ -875,7 +875,7 @@ function DocumentsContent() {
                     <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full">
                       <div className={`h-full ${colors[c.classification] || 'bg-gray-400'} rounded-full`} style={{ width: `${(c.count / docStats.total) * 100}%` }} />
                     </div>
-                    <span className="text-navy dark:text-white font-semibold w-6 text-right">{c.count}</span>
+                    <span className="text-seal-navy dark:text-white font-semibold w-6 text-right">{c.count}</span>
                   </div>
                 );
               })}
@@ -963,21 +963,21 @@ function DocumentsContent() {
                 }
               />
               <div className="space-y-1">
-                <label className="block text-[13px] font-semibold text-navy dark:text-white">Date début</label>
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Date début</label>
                 <input
                   type="date"
                   value={filters.dateFrom || ''}
                   onChange={(e) => setFilters({ dateFrom: e.target.value || undefined, page: 1 })}
-                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-navy dark:text-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-navy dark:text-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-[13px] font-semibold text-navy dark:text-white">Date fin</label>
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Date fin</label>
                 <input
                   type="date"
                   value={filters.dateTo || ''}
                   onChange={(e) => setFilters({ dateTo: e.target.value || undefined, page: 1 })}
-                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-navy dark:text-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-navy dark:text-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -990,7 +990,7 @@ function DocumentsContent() {
         <span className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 font-semibold mr-1">Classification</span>
         <button
           onClick={() => setFilters({ classification: undefined, page: 1 })}
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${!filters.classification ? 'bg-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${!filters.classification ? 'bg-seal-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
         >
           Toutes
         </button>
@@ -1023,7 +1023,7 @@ function DocumentsContent() {
       <div className="flex gap-1.5 flex-wrap items-center">
         <button
           onClick={() => { setMyDocsOnly(!myDocsOnly); setFilters({ page: 1 }); }}
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${myDocsOnly ? 'bg-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${myDocsOnly ? 'bg-seal-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
         >
           <User className="h-3 w-3" />
           Mes documents
@@ -1104,7 +1104,7 @@ function DocumentsContent() {
                 className={`inline-flex items-center gap-1.5 rounded-t-lg border-b-2 px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                   active
                     ? `${tab.color} bg-white dark:bg-slate-800`
-                    : 'border-transparent text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                    : 'border-transparent text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -1125,7 +1125,7 @@ function DocumentsContent() {
                 const [sortBy, sortOrder] = e.target.value.split(':');
                 setFilters({ sortBy, sortOrder: sortOrder as 'asc' | 'desc', page: 1 });
               }}
-              className="bg-transparent text-xs text-navy dark:text-white focus:outline-none"
+              className="bg-transparent text-xs text-seal-navy dark:text-white focus:outline-none"
             >
               <option value="updatedAt:desc">Récemment modifiés</option>
               <option value="createdAt:desc">Récemment créés</option>
@@ -1296,7 +1296,7 @@ function DocumentsContent() {
                     </span>
                   </div>
                   <p className="text-xs font-mono text-seal-gray-500 dark:text-slate-500 mb-0.5">{doc.reference}</p>
-                  <h3 className="text-sm font-medium text-navy dark:text-white line-clamp-2 mb-2">{doc.title}</h3>
+                  <h3 className="text-sm font-medium text-seal-navy dark:text-white line-clamp-2 mb-2">{doc.title}</h3>
                   {(() => {
                     const info = getValidityInfo(doc.nextReviewDate);
                     return (
@@ -1554,7 +1554,7 @@ function DocumentKanbanBoard({ documents, loading, isAdmin, onStatusChange, onCa
             }`}
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-navy dark:text-white">{col.label}</h3>
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">{col.label}</h3>
               <Badge variant="navy">{colDocs.length}</Badge>
             </div>
 
@@ -1590,7 +1590,7 @@ function DocumentKanbanBoard({ documents, loading, isAdmin, onStatusChange, onCa
                       </div>
                       <span className="text-[10px] text-seal-gray-500 font-mono">{doc.reference}</span>
                     </div>
-                    <p className="text-xs font-semibold text-navy dark:text-white line-clamp-2 group-hover:text-primary transition-colors">
+                    <p className="text-xs font-semibold text-seal-navy dark:text-white line-clamp-2 group-hover:text-primary transition-colors">
                       {doc.title}
                     </p>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50 dark:border-slate-700/50">

@@ -186,7 +186,7 @@ export function SelfServicePortal() {
       {/* Quick Requests Section */}
       <Card>
         <CardContent className="py-4">
-          <h2 className="text-sm font-semibold text-navy dark:text-white mb-3 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-3 flex items-center gap-2">
             <Zap className="h-4 w-4 text-primary" /> {t('selfservice.quickRequests')}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -198,7 +198,7 @@ export function SelfServicePortal() {
                   <div className={`h-9 w-9 rounded-lg ${tpl.color} flex items-center justify-center mb-2`}>
                     <Icon className={`h-4.5 w-4.5 ${tpl.iconColor}`} />
                   </div>
-                  <p className="text-xs font-medium text-navy dark:text-white">{tpl.title}</p>
+                  <p className="text-xs font-medium text-seal-navy dark:text-white">{tpl.title}</p>
                 </button>
               );
             })}
@@ -216,7 +216,7 @@ export function SelfServicePortal() {
                     <tpl.icon className={`h-4 w-4 ${tpl.iconColor}`} />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-sm font-medium text-navy dark:text-white">{tpl.title}</h3>
+                    <h3 className="text-sm font-medium text-seal-navy dark:text-white">{tpl.title}</h3>
                     <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{tpl.description}</p>
                   </div>
                   <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 rounded-full px-3 py-1 border border-gray-200 dark:border-slate-600">
@@ -228,7 +228,7 @@ export function SelfServicePortal() {
                 <div className="space-y-3">
                   {tpl.fields.map((f, idx) => (
                     <div key={f.name}>
-                      <label className="text-xs font-medium text-navy dark:text-slate-300 flex items-center gap-2">
+                      <label className="text-xs font-medium text-seal-navy dark:text-slate-300 flex items-center gap-2">
                         <span className="h-5 w-5 rounded-full bg-[#004469]/10 dark:bg-[#004469]/30 text-[#004469] dark:text-white text-[10px] font-medium flex items-center justify-center flex-shrink-0">
                           {idx + 1}
                         </span>
@@ -252,7 +252,7 @@ export function SelfServicePortal() {
       {/* Dernières demandes */}
       <Card>
         <CardContent className="py-4">
-          <h2 className="text-sm font-semibold text-navy dark:text-white mb-3 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-3 flex items-center gap-2">
             <Clock className="h-4 w-4 text-primary" /> Dernières demandes
           </h2>
           {loadingRequests ? (
@@ -266,7 +266,7 @@ export function SelfServicePortal() {
                 <Link key={ticket.id} href={`/tickets/${ticket.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
                   <Ticket className="h-4 w-4 text-primary flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-navy dark:text-white truncate">{ticket.title.replace('[Self-Service] ', '')}</p>
+                    <p className="text-xs font-semibold text-seal-navy dark:text-white truncate">{ticket.title.replace('[Self-Service] ', '')}</p>
                     <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                       {new Date(ticket.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -287,7 +287,7 @@ export function SelfServicePortal() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-navy dark:text-white text-sm">{t('selfservice.serviceStatus')}</h2>
+            <h2 className="font-semibold text-seal-navy dark:text-white text-sm">{t('selfservice.serviceStatus')}</h2>
             <Button variant="ghost" size="sm" onClick={handleRefreshServices} disabled={refreshingServices}>
               <RefreshCw className={`h-3.5 w-3.5 ${refreshingServices ? 'animate-spin' : ''}`} />
               {refreshingServices ? 'Actualisation...' : 'Actualiser'}
@@ -322,7 +322,7 @@ export function SelfServicePortal() {
                   }`} />
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-navy dark:text-white">{s.name}</p>
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">{s.name}</p>
                   <p className="text-[10px] text-seal-gray-500 capitalize">{s.status === 'up' ? t('selfservice.status.up') : s.status === 'degraded' ? t('selfservice.status.degraded') : t('selfservice.status.down')}</p>
                 </div>
               </div>
@@ -334,7 +334,7 @@ export function SelfServicePortal() {
       {/* Guided diagnostics / FAQ */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-medium text-navy dark:text-white">{t('selfservice.guidedDiagnostics')}</h2>
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white">{t('selfservice.guidedDiagnostics')}</h2>
         </div>
         {/* FAQ search */}
         <div className="relative mb-4">
@@ -344,7 +344,7 @@ export function SelfServicePortal() {
             value={faqSearch}
             onChange={(e) => setFaqSearch(e.target.value)}
             placeholder="Rechercher dans la FAQ..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -379,7 +379,7 @@ export function SelfServicePortal() {
                     }`} />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-navy dark:text-white text-sm">{guide.title}</h3>
+                    <h3 className="font-semibold text-seal-navy dark:text-white text-sm">{guide.title}</h3>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{guide.desc}</p>
                     {openGuide === i && (
                       <div className="mt-3 space-y-2">
@@ -388,7 +388,7 @@ export function SelfServicePortal() {
                             <div className="h-5 w-5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center flex-shrink-0">
                               {si + 1}
                             </div>
-                            <p className="text-xs text-navy dark:text-white">{step}</p>
+                            <p className="text-xs text-seal-navy dark:text-white">{step}</p>
                           </div>
                         ))}
                         <Link href="/tickets" className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2">
@@ -417,7 +417,7 @@ export function SelfServicePortal() {
         <Card className="mt-6 border-dashed border-2 border-primary/30 bg-primary/5 dark:bg-primary/10">
           <CardContent className="py-5 text-center">
             <MessageCircleQuestion className="h-8 w-8 text-primary mx-auto mb-2" />
-            <h3 className="text-sm font-semibold text-navy dark:text-white mb-1">Pas trouvé de réponse ?</h3>
+            <h3 className="text-sm font-semibold text-seal-navy dark:text-white mb-1">Pas trouvé de réponse ?</h3>
             <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">Notre équipe support est là pour vous aider. Créez un ticket et nous reviendrons vers vous rapidement.</p>
             <Link href="/tickets">
               <Button><Ticket className="h-4 w-4" /> Créer un ticket</Button>
@@ -430,11 +430,11 @@ export function SelfServicePortal() {
       {systemInfo && (
         <Card>
           <CardContent className="py-4">
-            <h3 className="text-sm font-semibold text-navy dark:text-white mb-3">Informations système</h3>
+            <h3 className="text-sm font-semibold text-seal-navy dark:text-white mb-3">Informations système</h3>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
                 <span className="text-seal-gray-500 dark:text-slate-400">Serveur</span>
-                <span className="font-semibold text-navy dark:text-white">{systemInfo.status === 'ok' ? 'Opérationnel' : 'Dégradé'}</span>
+                <span className="font-semibold text-seal-navy dark:text-white">{systemInfo.status === 'ok' ? 'Opérationnel' : 'Dégradé'}</span>
               </div>
               {Object.entries(systemInfo.services || {}).map(([svc, status]) => (
                 <div key={svc} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
@@ -451,7 +451,7 @@ export function SelfServicePortal() {
 
       {/* Quick links */}
       <Card>
-        <CardHeader><h2 className="font-semibold text-navy dark:text-white text-sm">{t('selfservice.usefulLinks')}</h2></CardHeader>
+        <CardHeader><h2 className="font-semibold text-seal-navy dark:text-white text-sm">{t('selfservice.usefulLinks')}</h2></CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
@@ -461,11 +461,11 @@ export function SelfServicePortal() {
               { label: 'Mon profil', url: '/profile', icon: Shield, internal: true },
             ].map(l => l.internal ? (
               <Link key={l.label} href={l.url} className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-slate-700 p-3 hover:bg-gray-50 dark:hover:bg-slate-800">
-                <l.icon className="h-4 w-4 text-primary" /><span className="text-sm font-semibold text-navy dark:text-white">{l.label}</span>
+                <l.icon className="h-4 w-4 text-primary" /><span className="text-sm font-semibold text-seal-navy dark:text-white">{l.label}</span>
               </Link>
             ) : (
               <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-slate-700 p-3 hover:bg-gray-50 dark:hover:bg-slate-800">
-                <l.icon className="h-4 w-4 text-primary" /><span className="text-sm font-semibold text-navy dark:text-white">{l.label}</span>
+                <l.icon className="h-4 w-4 text-primary" /><span className="text-sm font-semibold text-seal-navy dark:text-white">{l.label}</span>
               </a>
             ))}
           </div>

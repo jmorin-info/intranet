@@ -129,7 +129,7 @@ export default function TipsPage() {
                   {TIP_CATEGORY_LABELS[tipOfTheDay.category]}
                 </span>
               </div>
-              <h3 className="mt-1 text-base font-semibold text-navy dark:text-white">
+              <h3 className="mt-1 text-base font-semibold text-seal-navy dark:text-white">
                 {tipOfTheDay.title}
               </h3>
               <p className="mt-1 text-sm leading-relaxed text-seal-gray-500 dark:text-slate-400">
@@ -188,7 +188,7 @@ export default function TipsPage() {
                           {TIP_CATEGORY_LABELS[tip.category]}
                         </span>
                       </div>
-                      <h3 className="mt-2 text-sm font-semibold text-navy dark:text-white">
+                      <h3 className="mt-2 text-sm font-semibold text-seal-navy dark:text-white">
                         {tip.title}
                       </h3>
                       <p className="mt-1 text-xs leading-relaxed text-seal-gray-500 dark:text-slate-400">

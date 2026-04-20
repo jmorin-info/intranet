@@ -84,7 +84,7 @@ export default function MySignaturesPage() {
           <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">{t('signatures.signed')}</p>
         </CardContent></Card>
         <Card className="shadow-sm rounded-xl"><CardContent className="py-3 text-center">
-          <p className="text-2xl font-medium text-navy dark:text-white">{totalCount}</p>
+          <p className="text-2xl font-medium text-seal-navy dark:text-white">{totalCount}</p>
           <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">{t('signatures.total')}</p>
         </CardContent></Card>
       </div>
@@ -101,8 +101,8 @@ export default function MySignaturesPage() {
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition duration-200 ${
               activeTab === tab.id
-                ? 'bg-white dark:bg-slate-700 text-navy dark:text-white shadow-sm'
-                : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                ? 'bg-white dark:bg-slate-700 text-seal-navy dark:text-white shadow-sm'
+                : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
             }`}
           >
             <tab.icon className="h-3.5 w-3.5" />
@@ -144,7 +144,7 @@ export default function MySignaturesPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <Link href={`/documents/${sig.documentVersion.document.id}`}
-                          className="text-sm font-medium text-navy dark:text-white hover:text-primary transition duration-200 line-clamp-1">
+                          className="text-sm font-medium text-seal-navy dark:text-white hover:text-primary transition duration-200 line-clamp-1">
                           {sig.documentVersion.document.title}
                         </Link>
                         {isPending && (

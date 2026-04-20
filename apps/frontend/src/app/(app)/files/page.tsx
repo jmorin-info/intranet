@@ -235,7 +235,7 @@ export default function FilesPage() {
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">{t('nav.networkFiles')}</h1>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('nav.networkFiles')}</h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             {currentShare ? `\\\\10.33.50.5\\${currentShare}` : 'Parcourez les partages réseau OMNITECH'}
           </p>
@@ -261,7 +261,7 @@ export default function FilesPage() {
           <CardContent className="py-6">
             <div className="max-w-md mx-auto text-center">
               <Server className="h-10 w-10 text-red-400 mx-auto mb-3" />
-              <h2 className="text-lg font-medium text-navy dark:text-white mb-1">Serveur de fichiers inaccessible</h2>
+              <h2 className="text-lg font-medium text-seal-navy dark:text-white mb-1">Serveur de fichiers inaccessible</h2>
               <p className="text-sm text-seal-gray-500 dark:text-slate-400">
                 Impossible de contacter le serveur SMB. Vérifiez que le serveur est en ligne et que les variables <span className="font-mono text-xs">FILESERVER_HOST</span>, <span className="font-mono text-xs">FILESERVER_USER</span> et <span className="font-mono text-xs">FILESERVER_PASSWORD</span> sont configurées dans le backend.
               </p>
@@ -283,7 +283,7 @@ export default function FilesPage() {
                 const newPath = pathParts.slice(0, i + 1).join('\\');
                 setCurrentPath(newPath);
                 loadFiles(currentShare, newPath);
-              }} className={i === pathParts.length - 1 ? 'text-navy dark:text-white font-semibold' : 'text-primary hover:underline'}>
+              }} className={i === pathParts.length - 1 ? 'text-seal-navy dark:text-white font-semibold' : 'text-primary hover:underline'}>
                 {part}
               </button>
             </React.Fragment>
@@ -297,7 +297,7 @@ export default function FilesPage() {
                 toast.error('Copie non supportée par le navigateur');
               }
             }}
-            className="ml-2 flex items-center gap-1 px-2 py-0.5 rounded-md text-xs text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white transition-colors"
+            className="ml-2 flex items-center gap-1 px-2 py-0.5 rounded-md text-xs text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white transition-colors"
             title="Copier le chemin UNC"
           >
             <Copy className="h-3 w-3" />
@@ -321,7 +321,7 @@ export default function FilesPage() {
       {/* Multi-select action bar */}
       {selected.size > 0 && (
         <div className="flex items-center gap-3 bg-primary/10 rounded-lg px-4 py-2">
-          <span className="text-sm font-semibold text-navy dark:text-white">{selected.size} sélectionné(s)</span>
+          <span className="text-sm font-semibold text-seal-navy dark:text-white">{selected.size} sélectionné(s)</span>
           <Button size="sm" variant="ghost" className="text-red-500" onClick={() => setShowDeleteConfirm(true)}>
             <Trash2 className="h-4 w-4" /> Supprimer
           </Button>
@@ -340,7 +340,7 @@ export default function FilesPage() {
           <CardContent className="py-6">
             <div className="max-w-md mx-auto text-center">
               <HardDrive className="h-10 w-10 text-primary mx-auto mb-3" />
-              <h2 className="text-lg font-medium text-navy dark:text-white mb-1">Connexion au serveur de fichiers</h2>
+              <h2 className="text-lg font-medium text-seal-navy dark:text-white mb-1">Connexion au serveur de fichiers</h2>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-4">
                 Entrez vos identifiants Active Directory pour accéder aux partages réseau avec vos propres droits.
               </p>
@@ -384,7 +384,7 @@ export default function FilesPage() {
                   <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
                     <Icon className="h-6 w-6 text-primary" />
                   </div>
-                  <p className="text-sm font-semibold text-navy dark:text-white">{share.label}</p>
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">{share.label}</p>
                   <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 font-mono mt-1">\\\\10.33.50.5\\{share.name}</p>
                 </CardContent>
               </Card>
@@ -398,7 +398,7 @@ export default function FilesPage() {
                 <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-3">
                   <Cloud className="h-6 w-6 text-blue-500" />
                 </div>
-                <p className="text-sm font-semibold text-navy dark:text-white">Nextcloud</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">Nextcloud</p>
                 <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-1">fichiers.omnitech-security.fr</p>
               </CardContent>
             </Card>
@@ -443,7 +443,7 @@ export default function FilesPage() {
                       </td>
                       <td className="px-4 py-2.5 flex items-center gap-3">
                         {file.type === 'directory' ? <Folder className="h-4 w-4 text-primary" /> : getFileIcon(file.name)}
-                        <span className={`text-sm ${file.type === 'directory' ? 'font-semibold text-navy dark:text-white' : 'text-navy dark:text-slate-200'}`}>
+                        <span className={`text-sm ${file.type === 'directory' ? 'font-semibold text-seal-navy dark:text-white' : 'text-seal-navy dark:text-slate-200'}`}>
                           {file.name}
                         </span>
                       </td>

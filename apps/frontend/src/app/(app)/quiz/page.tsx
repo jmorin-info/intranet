@@ -303,7 +303,7 @@ function CreateCampaignDialog({ open, onClose, onCreated, initialData }: CreateC
 
         <div className="border-t border-gray-200 dark:border-slate-700 pt-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-navy dark:text-white">Questions ({questions.length})</p>
+            <p className="text-sm font-semibold text-seal-navy dark:text-white">Questions ({questions.length})</p>
             <Button size="sm" variant="outline" onClick={addQuestion}>
               <Plus className="h-3 w-3 mr-1" /> Ajouter
             </Button>
@@ -606,7 +606,7 @@ export default function QuizPage() {
         {/* Header */}
         <div className="flex items-start justify-between animate-fade-in-up">
           <div>
-            <h1 className="text-2xl font-medium text-navy dark:text-white flex items-center gap-2">
+            <h1 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
               <GraduationCap className="h-7 w-7 text-primary" aria-hidden="true" />
               {t('quiz.campaigns')}
             </h1>
@@ -633,7 +633,7 @@ export default function QuizPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Card className="stagger-item">
               <CardContent className="py-3 text-center">
-                <p className="text-2xl font-medium text-navy dark:text-white">{stats.participationRate}%</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.participationRate}%</p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">Participation</p>
               </CardContent>
             </Card>
@@ -645,7 +645,7 @@ export default function QuizPage() {
             </Card>
             <Card className="stagger-item">
               <CardContent className="py-3 text-center">
-                <p className="text-2xl font-medium text-navy dark:text-white">{stats.averageScore}%</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.averageScore}%</p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">Score moyen</p>
               </CardContent>
             </Card>
@@ -673,7 +673,7 @@ export default function QuizPage() {
                     <Shuffle className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-navy dark:text-white group-hover:text-primary transition-colors">
+                    <h3 className="text-sm font-medium text-seal-navy dark:text-white group-hover:text-primary transition-colors">
                       Quiz par défaut
                     </h3>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2">
@@ -739,7 +739,7 @@ export default function QuizPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-medium text-navy dark:text-white group-hover:text-primary transition-colors truncate">
+                          <h3 className="text-sm font-medium text-seal-navy dark:text-white group-hover:text-primary transition-colors truncate">
                             {campaign.title}
                           </h3>
                           {campaign.isActive ? (
@@ -823,7 +823,7 @@ export default function QuizPage() {
         {leaderboard.length > 0 && (
           <Card className="animate-fade-in-up">
             <CardHeader>
-              <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
                 Classement global
               </h3>
@@ -848,10 +848,10 @@ export default function QuizPage() {
                         }`}
                       >
                         <span className="text-2xl">{MEDAL_ICONS[podiumIdx]}</span>
-                        <p className="text-xs font-semibold text-navy dark:text-white mt-1 truncate">
+                        <p className="text-xs font-semibold text-seal-navy dark:text-white mt-1 truncate">
                           {entry.user.firstName} {entry.user.lastName}
                         </p>
-                        <p className="text-lg font-bold text-navy dark:text-white">{pct}%</p>
+                        <p className="text-lg font-bold text-seal-navy dark:text-white">{pct}%</p>
                         <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{entry.score}/{entry.total}</p>
                       </div>
                     );
@@ -870,7 +870,7 @@ export default function QuizPage() {
                       <span className="text-sm font-semibold w-6 text-center text-seal-gray-500 dark:text-slate-400">
                         {rank}
                       </span>
-                      <span className="text-sm font-medium text-navy dark:text-white flex-1">
+                      <span className="text-sm font-medium text-seal-navy dark:text-white flex-1">
                         {entry.user.firstName} {entry.user.lastName}
                       </span>
                       <Badge variant={entry.score / entry.total >= 0.7 ? 'success' : 'warning'}>
@@ -891,7 +891,7 @@ export default function QuizPage() {
         {myResults.length > 0 && (
           <Card className="animate-fade-in-up">
             <CardHeader>
-              <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                 <History className="h-5 w-5 text-primary" />
                 Mon historique
               </h3>
@@ -910,7 +910,7 @@ export default function QuizPage() {
                       ) : (
                         <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
                       )}
-                      <span className="text-sm font-medium text-navy dark:text-white flex-1 truncate">
+                      <span className="text-sm font-medium text-seal-navy dark:text-white flex-1 truncate">
                         {r.campaignTitle}
                       </span>
                       <Badge variant={r.passed ? 'success' : 'warning'}>
@@ -974,7 +974,7 @@ export default function QuizPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-medium text-navy dark:text-white flex items-center gap-2">
+          <h2 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <GraduationCap className="h-7 w-7 text-primary" aria-hidden="true" />
             {activeCampaign?.title ?? 'Quiz'}
           </h2>
@@ -993,7 +993,7 @@ export default function QuizPage() {
           <Card className="animate-fade-in-up">
             <CardContent className="py-8 text-center">
               <GraduationCap className="h-16 w-16 text-primary mx-auto mb-4" />
-              <h2 className="text-xl font-medium text-navy dark:text-white mb-2">
+              <h2 className="text-xl font-medium text-seal-navy dark:text-white mb-2">
                 Prêt pour le quiz ?
               </h2>
               <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-6">
@@ -1010,7 +1010,7 @@ export default function QuizPage() {
           {leaderboard.length > 0 && (
             <Card className="animate-fade-in-up">
               <CardHeader>
-                <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-yellow-500" />
                   Classement
                 </h3>
@@ -1025,7 +1025,7 @@ export default function QuizPage() {
                       <span className="text-sm font-semibold w-6 text-center">
                         {idx < 3 ? MEDAL_ICONS[idx] : <span className="text-seal-gray-500 dark:text-slate-400">{idx + 1}</span>}
                       </span>
-                      <span className="text-sm font-medium text-navy dark:text-white flex-1">
+                      <span className="text-sm font-medium text-seal-navy dark:text-white flex-1">
                         {entry.user.firstName} {entry.user.lastName}
                       </span>
                       <Badge variant={entry.score / entry.total >= 0.7 ? 'success' : 'warning'}>
@@ -1084,7 +1084,7 @@ export default function QuizPage() {
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="info">{questions[currentIndex]!.category}</Badge>
               </div>
-              <h2 className="text-lg font-medium text-navy dark:text-white">
+              <h2 className="text-lg font-medium text-seal-navy dark:text-white">
                 {questions[currentIndex]!.question}
               </h2>
             </CardHeader>
@@ -1120,7 +1120,7 @@ export default function QuizPage() {
                         <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-current text-xs font-semibold flex-shrink-0">
                           {String.fromCharCode(65 + idx)}
                         </span>
-                        <span className="text-sm text-navy dark:text-white">{option}</span>
+                        <span className="text-sm text-seal-navy dark:text-white">{option}</span>
                         {showExplanation && isCorrect && (
                           <CheckCircle2 className="h-5 w-5 text-green-500 ml-auto flex-shrink-0" />
                         )}
@@ -1169,7 +1169,7 @@ export default function QuizPage() {
               ) : (
                 <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
               )}
-              <h2 className="text-xl font-medium text-navy dark:text-white mb-2">
+              <h2 className="text-xl font-medium text-seal-navy dark:text-white mb-2">
                 {result.percentage >= 80 ? 'Bravo !' : result.passed ? 'Quiz réussi' : 'Quiz terminé'}
               </h2>
               <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">
@@ -1190,7 +1190,7 @@ export default function QuizPage() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-semibold text-navy dark:text-white">{result.percentage}%</span>
+                    <span className="text-3xl font-semibold text-seal-navy dark:text-white">{result.percentage}%</span>
                     <span className="text-xs text-seal-gray-500 dark:text-slate-400">{result.score}/{result.total}</span>
                   </div>
                 </div>
@@ -1225,7 +1225,7 @@ export default function QuizPage() {
                       return (
                         <div key={cat}>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold text-navy dark:text-white">{cat}</span>
+                            <span className="text-xs font-semibold text-seal-navy dark:text-white">{cat}</span>
                             <span className="text-xs text-seal-gray-500 dark:text-slate-400">{correct}/{total} ({pct}%)</span>
                           </div>
                           <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -1258,7 +1258,7 @@ export default function QuizPage() {
                               <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
                             )}
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-navy dark:text-white">{qi + 1}. {q.question}</p>
+                              <p className="text-xs font-medium text-seal-navy dark:text-white">{qi + 1}. {q.question}</p>
                               {!isCorrect && (
                                 <p className="text-[11px] mt-1">
                                   <span className="text-red-500 line-through">{q.options[userAnswer ?? 0]}</span>
@@ -1303,7 +1303,7 @@ export default function QuizPage() {
           {leaderboard.length > 0 && (
             <Card className="animate-fade-in-up">
               <CardHeader>
-                <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-yellow-500" />
                   Classement
                 </h3>
@@ -1318,7 +1318,7 @@ export default function QuizPage() {
                       <span className="text-sm font-semibold w-6 text-center">
                         {idx < 3 ? MEDAL_ICONS[idx] : <span className="text-seal-gray-500 dark:text-slate-400">{idx + 1}</span>}
                       </span>
-                      <span className="text-sm font-medium text-navy dark:text-white flex-1">
+                      <span className="text-sm font-medium text-seal-navy dark:text-white flex-1">
                         {entry.user.firstName} {entry.user.lastName}
                       </span>
                       <Badge variant={entry.score / entry.total >= 0.7 ? 'success' : 'warning'}>

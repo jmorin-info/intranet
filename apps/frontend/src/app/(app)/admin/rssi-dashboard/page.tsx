@@ -199,7 +199,7 @@ export default function RSSIDashboardPage() {
       </div>
       <div className="flex items-center justify-between animate-fade-in-up stagger-item">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">Tableau de bord RSSI</h1>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Tableau de bord RSSI</h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             Vue centralisée de la sécurité — ISO 27001 · NIS2 · ANSSI · PSSI
           </p>
@@ -253,14 +253,14 @@ export default function RSSIDashboardPage() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center rotate-0">
-                    <span className="text-xl font-medium text-navy dark:text-white leading-none">{pct}%</span>
+                    <span className="text-xl font-medium text-seal-navy dark:text-white leading-none">{pct}%</span>
                     <ShieldCheck className="h-3.5 w-3.5 mt-0.5" style={{ color: ringColor }} />
                   </div>
                 </div>
               );
             })()}
             <div className="flex-1">
-              <h2 className="text-lg font-medium text-navy dark:text-white">Conformité ISO 27001</h2>
+              <h2 className="text-lg font-medium text-seal-navy dark:text-white">Conformité ISO 27001</h2>
               <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5">
                 {data.compliance.covered}/{data.compliance.total} contrôles couverts
               </p>
@@ -291,7 +291,7 @@ export default function RSSIDashboardPage() {
           <Activity className="h-5 w-5 text-emerald-500" />
           <div>
             <p className="text-xs text-seal-gray-500 dark:text-slate-400">Uptime serveur</p>
-            <p className="text-sm font-medium text-navy dark:text-white">
+            <p className="text-sm font-medium text-seal-navy dark:text-white">
               {Math.floor(uptime / 86400)}j {Math.floor((uptime % 86400) / 3600)}h {Math.floor((uptime % 3600) / 60)}m
             </p>
           </div>
@@ -320,7 +320,7 @@ export default function RSSIDashboardPage() {
           <Card hoverable className="h-full">
             <CardContent className="py-4">
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-1">Incidents actifs</p>
-              <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">{recentIncidents.filter(i => i.status !== 'CLOSED').length}</p>
+              <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">{recentIncidents.filter(i => i.status !== 'CLOSED').length}</p>
               <p className="text-[10px] text-red-500 mt-1">{recentIncidents.filter(i => i.severity === 'CRITICAL').length} critiques</p>
             </CardContent>
           </Card>
@@ -330,7 +330,7 @@ export default function RSSIDashboardPage() {
           <Card hoverable className="h-full">
             <CardContent className="py-4">
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-1">Tickets ouverts</p>
-              <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">{data.tickets.open + data.tickets.inProgress}</p>
+              <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">{data.tickets.open + data.tickets.inProgress}</p>
               <div className="h-1.5 rounded-full bg-gray-200 dark:bg-slate-700 mt-2 overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${thresholdBg(ticketsResolvedPct)}`} style={{ width: `${ticketsResolvedPct}%` }} />
               </div>
@@ -343,7 +343,7 @@ export default function RSSIDashboardPage() {
           <Card hoverable className="h-full">
             <CardContent className="py-4">
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-1">MFA coverage</p>
-              <p className={`text-2xl font-medium tabular-nums ${mfaAdoption != null ? thresholdColor(mfaAdoption) : 'text-navy dark:text-white'}`}>{mfaAdoption != null ? `${mfaAdoption}%` : '\u2014'}</p>
+              <p className={`text-2xl font-medium tabular-nums ${mfaAdoption != null ? thresholdColor(mfaAdoption) : 'text-seal-navy dark:text-white'}`}>{mfaAdoption != null ? `${mfaAdoption}%` : '\u2014'}</p>
               {mfaAdoption != null && (
                 <div className="h-1.5 rounded-full bg-gray-200 dark:bg-slate-700 mt-2 overflow-hidden">
                   <div className={`h-full rounded-full transition-all ${thresholdBg(mfaAdoption)}`} style={{ width: `${mfaAdoption}%` }} />
@@ -391,7 +391,7 @@ export default function RSSIDashboardPage() {
                 <div className={`h-10 w-10 rounded-xl ${m.bg} flex items-center justify-center mb-2`}>
                   <m.icon className={`h-5 w-5 ${m.color}`} />
                 </div>
-                <p className="text-2xl font-medium text-navy dark:text-white">{m.value}</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{m.value}</p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">{m.label}</p>
               </CardContent>
             </Card>
@@ -408,7 +408,7 @@ export default function RSSIDashboardPage() {
               <div className="h-10 w-10 rounded-xl bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center mb-2">
                 <ShieldAlert className="h-5 w-5 text-orange-600" />
               </div>
-              <p className="text-2xl font-medium text-navy dark:text-white">{data.veille.unprocessed}</p>
+              <p className="text-2xl font-medium text-seal-navy dark:text-white">{data.veille.unprocessed}</p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">Alertes veille non traitées</p>
             </CardContent>
           </Card>
@@ -421,7 +421,7 @@ export default function RSSIDashboardPage() {
               <div className="h-10 w-10 rounded-xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center mb-2">
                 <ListChecks className="h-5 w-5 text-red-600" />
               </div>
-              <p className="text-2xl font-medium text-navy dark:text-white">{complianceOverdue}</p>
+              <p className="text-2xl font-medium text-seal-navy dark:text-white">{complianceOverdue}</p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">Tâches conformité en retard</p>
             </CardContent>
           </Card>
@@ -434,7 +434,7 @@ export default function RSSIDashboardPage() {
               <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mb-2">
                 <KeyRound className="h-5 w-5 text-emerald-600" />
               </div>
-              <p className="text-2xl font-medium text-navy dark:text-white">{mfaAdoption != null ? `${mfaAdoption}%` : '—'}</p>
+              <p className="text-2xl font-medium text-seal-navy dark:text-white">{mfaAdoption != null ? `${mfaAdoption}%` : '—'}</p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">Taux adoption MFA</p>
             </CardContent>
           </Card>
@@ -451,11 +451,11 @@ export default function RSSIDashboardPage() {
                 <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
                   <Users className="h-5 w-5 text-indigo-600" />
                 </div>
-                <h3 className="text-sm font-medium text-navy dark:text-white">Accès prestataires</h3>
+                <h3 className="text-sm font-medium text-seal-navy dark:text-white">Accès prestataires</h3>
               </div>
               <div className="flex items-center gap-4">
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{data.externalAccess.total}</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{data.externalAccess.total}</p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">accès actifs</p>
                 </div>
                 {data.externalAccess.dueReview > 0 && (
@@ -477,11 +477,11 @@ export default function RSSIDashboardPage() {
                 <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
                   <ScrollText className="h-5 w-5 text-emerald-600" />
                 </div>
-                <h3 className="text-sm font-medium text-navy dark:text-white">Chartes</h3>
+                <h3 className="text-sm font-medium text-seal-navy dark:text-white">Chartes</h3>
               </div>
               <div className="flex items-center gap-4">
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{data.chartes.total}</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{data.chartes.total}</p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">chartes publiées</p>
                 </div>
               </div>
@@ -497,11 +497,11 @@ export default function RSSIDashboardPage() {
                 <div className="h-10 w-10 rounded-xl bg-sky-50 dark:bg-sky-900/30 flex items-center justify-center">
                   <Newspaper className="h-5 w-5 text-sky-600" />
                 </div>
-                <h3 className="text-sm font-medium text-navy dark:text-white">Bulletin cyber</h3>
+                <h3 className="text-sm font-medium text-seal-navy dark:text-white">Bulletin cyber</h3>
               </div>
               {data.latestBulletin ? (
                 <div>
-                  <p className="text-sm font-medium text-navy dark:text-white truncate">{data.latestBulletin.title}</p>
+                  <p className="text-sm font-medium text-seal-navy dark:text-white truncate">{data.latestBulletin.title}</p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
                     {new Date(data.latestBulletin.createdAt).toLocaleDateString('fr-FR')}
                     {data.latestBulletin.itemCount > 0 && ` — ${data.latestBulletin.itemCount} éléments`}
@@ -520,7 +520,7 @@ export default function RSSIDashboardPage() {
         {/* Derniers incidents */}
         <Card>
           <CardHeader>
-            <h2 className="font-medium text-navy dark:text-white flex items-center gap-2">
+            <h2 className="font-medium text-seal-navy dark:text-white flex items-center gap-2">
               <Flame className="h-5 w-5 text-red-500" /> Derniers incidents
             </h2>
           </CardHeader>
@@ -536,7 +536,7 @@ export default function RSSIDashboardPage() {
                       <div className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${sev.bg} hover:opacity-80 transition-opacity`}>
                         <ShieldAlert className={`h-4 w-4 flex-shrink-0 ${sev.text}`} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-navy dark:text-white truncate">{inc.title}</p>
+                          <p className="text-sm font-medium text-seal-navy dark:text-white truncate">{inc.title}</p>
                           <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">{inc.reference} · {inc.category}</p>
                         </div>
                         <Badge variant={inc.severity === 'CRITICAL' ? 'error' : inc.severity === 'HIGH' ? 'warning' : 'info'} className="text-[10px] flex-shrink-0">
@@ -558,7 +558,7 @@ export default function RSSIDashboardPage() {
         {/* Alertes veille */}
         <Card>
           <CardHeader>
-            <h2 className="font-medium text-navy dark:text-white flex items-center gap-2">
+            <h2 className="font-medium text-seal-navy dark:text-white flex items-center gap-2">
               <Rss className="h-5 w-5 text-blue-500" /> Alertes veille
             </h2>
           </CardHeader>
@@ -573,7 +573,7 @@ export default function RSSIDashboardPage() {
                     <div key={v.id} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${sev.bg}`}>
                       <Rss className={`h-4 w-4 flex-shrink-0 ${sev.text}`} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-navy dark:text-white truncate">{v.title}</p>
+                        <p className="text-sm font-medium text-seal-navy dark:text-white truncate">{v.title}</p>
                         <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">{v.source}</p>
                       </div>
                       <Badge variant={v.severity === 'CRITICAL' ? 'error' : v.severity === 'HIGH' ? 'warning' : 'info'} className="text-[10px] flex-shrink-0">
@@ -596,11 +596,11 @@ export default function RSSIDashboardPage() {
       <div className="animate-fade-in-up stagger-item grid grid-cols-1 md:grid-cols-2 gap-4">
         {ticketAnalytics && (
           <Card>
-            <CardHeader><h2 className="font-medium text-navy dark:text-white">Analytique tickets</h2></CardHeader>
+            <CardHeader><h2 className="font-medium text-seal-navy dark:text-white">Analytique tickets</h2></CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="text-center">
-                  <p className="text-3xl font-medium text-navy dark:text-white">{ticketAnalytics.total}</p>
+                  <p className="text-3xl font-medium text-seal-navy dark:text-white">{ticketAnalytics.total}</p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">Total</p>
                 </div>
                 <div className="text-center">
@@ -627,7 +627,7 @@ export default function RSSIDashboardPage() {
                       <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full">
                         <div className="h-full bg-primary rounded-full" style={{ width: `${(c.count / ticketAnalytics.total) * 100}%` }} />
                       </div>
-                      <span className="text-navy dark:text-white font-medium w-6 text-right">{c.count}</span>
+                      <span className="text-seal-navy dark:text-white font-medium w-6 text-right">{c.count}</span>
                     </div>
                   ))}
                 </div>
@@ -638,10 +638,10 @@ export default function RSSIDashboardPage() {
 
         {docStats && (
           <Card>
-            <CardHeader><h2 className="font-medium text-navy dark:text-white">Classification documents</h2></CardHeader>
+            <CardHeader><h2 className="font-medium text-seal-navy dark:text-white">Classification documents</h2></CardHeader>
             <CardContent>
               <div className="text-center mb-4">
-                <p className="text-3xl font-medium text-navy dark:text-white">{docStats.total}</p>
+                <p className="text-3xl font-medium text-seal-navy dark:text-white">{docStats.total}</p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">Documents total</p>
               </div>
               <div className="space-y-2">
@@ -654,7 +654,7 @@ export default function RSSIDashboardPage() {
                       <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full">
                         <div className={`h-full ${colors[c.classification] || 'bg-gray-400'} rounded-full`} style={{ width: `${(c.count / docStats.total) * 100}%` }} />
                       </div>
-                      <span className="text-navy dark:text-white font-medium w-6 text-right">{c.count}</span>
+                      <span className="text-seal-navy dark:text-white font-medium w-6 text-right">{c.count}</span>
                     </div>
                   );
                 })}
@@ -668,7 +668,7 @@ export default function RSSIDashboardPage() {
                       <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full">
                         <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.count / docStats.total) * 100}%` }} />
                       </div>
-                      <span className="text-navy dark:text-white font-medium w-6 text-right">{s.count}</span>
+                      <span className="text-seal-navy dark:text-white font-medium w-6 text-right">{s.count}</span>
                     </div>
                   ))}
                 </div>
@@ -681,7 +681,7 @@ export default function RSSIDashboardPage() {
       {/* Department breakdown */}
       {deptBreakdown.length > 0 && (
         <Card>
-          <CardHeader><h2 className="font-medium text-navy dark:text-white flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Répartition par département</h2></CardHeader>
+          <CardHeader><h2 className="font-medium text-seal-navy dark:text-white flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Répartition par département</h2></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {deptBreakdown.map(dept => {
@@ -689,7 +689,7 @@ export default function RSSIDashboardPage() {
                 const maxCount = Math.max(...deptBreakdown.map(d => (d._count?.users ?? 0) + (d._count?.userMemberships ?? 0)), 1);
                 return (
                   <div key={dept.id} className="flex items-center gap-3 text-sm">
-                    <span className="w-32 text-navy dark:text-white font-medium truncate">{dept.name}</span>
+                    <span className="w-32 text-seal-navy dark:text-white font-medium truncate">{dept.name}</span>
                     <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                       <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(userCount / maxCount) * 100}%` }} />
                     </div>
@@ -705,7 +705,7 @@ export default function RSSIDashboardPage() {
 
       {/* Domain coverage */}
       <Card className="animate-fade-in-up stagger-item">
-        <CardHeader><h2 className="font-medium text-navy dark:text-white">Couverture par domaine</h2></CardHeader>
+        <CardHeader><h2 className="font-medium text-seal-navy dark:text-white">Couverture par domaine</h2></CardHeader>
         <CardContent>
           <div className="space-y-3">
             {Object.entries(data.compliance?.byDomain ?? {}).map(([domain, stats]) => {
@@ -713,7 +713,7 @@ export default function RSSIDashboardPage() {
               return (
                 <div key={domain}>
                   <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-navy dark:text-white font-medium">{domain}</span>
+                    <span className="text-seal-navy dark:text-white font-medium">{domain}</span>
                     <span className="text-seal-gray-500">{stats.covered}/{stats.total} ({pct}%)</span>
                   </div>
                   <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
@@ -730,7 +730,7 @@ export default function RSSIDashboardPage() {
       {recentAlerts.length > 0 && (
         <Card className="animate-fade-in-up stagger-item">
           <CardHeader>
-            <h2 className="font-medium text-navy dark:text-white flex items-center gap-2">
+            <h2 className="font-medium text-seal-navy dark:text-white flex items-center gap-2">
               <Bell className="h-5 w-5 text-red-500" /> Alertes sécurité récentes
             </h2>
           </CardHeader>
@@ -747,7 +747,7 @@ export default function RSSIDashboardPage() {
                 return (
                   <div key={alert.id} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${cfg.bg}`}>
                     <Icon className={`h-4 w-4 flex-shrink-0 ${cfg.color}`} />
-                    <p className="flex-1 text-sm font-medium text-navy dark:text-white truncate">{alert.title}</p>
+                    <p className="flex-1 text-sm font-medium text-seal-navy dark:text-white truncate">{alert.title}</p>
                     <span className={`text-[10px] font-medium uppercase ${cfg.color}`}>{cfg.label}</span>
                     <span className="text-xs text-seal-gray-500 dark:text-slate-400 whitespace-nowrap">{formatRelativeTime(alert.createdAt)}</span>
                   </div>
@@ -763,11 +763,11 @@ export default function RSSIDashboardPage() {
 
       {/* Quick links */}
       <div className="animate-fade-in-up stagger-item grid grid-cols-2 md:grid-cols-5 gap-4 print:hidden">
-        <Link href="/admin/compliance"><Card hoverable><CardContent className="text-center py-6"><ShieldCheck className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-navy dark:text-white">Analyse écarts</p></CardContent></Card></Link>
-        <Link href="/veille"><Card hoverable><CardContent className="text-center py-6"><Rss className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-navy dark:text-white">Veille cyber</p></CardContent></Card></Link>
-        <Link href="/admin/audit-log"><Card hoverable><CardContent className="text-center py-6"><BarChart3 className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-navy dark:text-white">Journal audit</p></CardContent></Card></Link>
-        <Link href="/admin/signatures"><Card hoverable><CardContent className="text-center py-6"><PenLine className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-navy dark:text-white">Signatures</p></CardContent></Card></Link>
-        <Link href="/alerts"><Card hoverable><CardContent className="text-center py-6"><AlertTriangle className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-navy dark:text-white">Alertes ({data.alerts})</p></CardContent></Card></Link>
+        <Link href="/admin/compliance"><Card hoverable><CardContent className="text-center py-6"><ShieldCheck className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-seal-navy dark:text-white">Analyse écarts</p></CardContent></Card></Link>
+        <Link href="/veille"><Card hoverable><CardContent className="text-center py-6"><Rss className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-seal-navy dark:text-white">Veille cyber</p></CardContent></Card></Link>
+        <Link href="/admin/audit-log"><Card hoverable><CardContent className="text-center py-6"><BarChart3 className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-seal-navy dark:text-white">Journal audit</p></CardContent></Card></Link>
+        <Link href="/admin/signatures"><Card hoverable><CardContent className="text-center py-6"><PenLine className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-seal-navy dark:text-white">Signatures</p></CardContent></Card></Link>
+        <Link href="/alerts"><Card hoverable><CardContent className="text-center py-6"><AlertTriangle className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-seal-navy dark:text-white">Alertes ({data.alerts})</p></CardContent></Card></Link>
       </div>
     </div>
   );

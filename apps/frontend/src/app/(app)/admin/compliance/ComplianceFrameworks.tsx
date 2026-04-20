@@ -255,7 +255,7 @@ export function ComplianceFrameworks() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">Référentiels de conformité</h1>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Référentiels de conformité</h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             Gestion des référentiels ISO 27001, NIST CSF, NIS2, ANSSI et autres cadres de conformité
           </p>
@@ -330,7 +330,7 @@ export function ComplianceFrameworks() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-lg font-medium text-navy dark:text-white truncate">
+                      <h3 className="text-lg font-medium text-seal-navy dark:text-white truncate">
                         {fw.name}
                       </h3>
                       <Badge variant={fw.isActive ? 'approved' : 'info'}>
@@ -346,7 +346,7 @@ export function ComplianceFrameworks() {
                     <div className="flex items-center gap-4 mt-3">
                       <div className="flex items-center gap-1.5 text-xs text-seal-gray-500 dark:text-slate-400">
                         <Shield className="h-3.5 w-3.5" />
-                        <span className="font-semibold text-navy dark:text-white">{fw._count.controls}</span> contrôles
+                        <span className="font-semibold text-seal-navy dark:text-white">{fw._count.controls}</span> contrôles
                       </div>
                       {summary && (
                         <>
@@ -388,7 +388,7 @@ export function ComplianceFrameworks() {
                         const barColor = pct === 100 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-400' : 'bg-red-400';
                         return (
                           <div key={domain} className="rounded-lg bg-gray-50 dark:bg-slate-800/50 p-3">
-                            <p className="text-xs font-semibold text-navy dark:text-white truncate mb-1">{domain}</p>
+                            <p className="text-xs font-semibold text-seal-navy dark:text-white truncate mb-1">{domain}</p>
                             <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                               <div className={`h-full rounded-full ${barColor} transition-all duration-500`} style={{ width: `${pct}%` }} />
                             </div>
@@ -415,7 +415,7 @@ export function ComplianceFrameworks() {
                     <div className="space-y-6 max-h-[600px] overflow-y-auto">
                       {groupByDomain(detail.controls).map(([domain, controls]) => (
                         <div key={domain}>
-                          <h4 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+                          <h4 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                             <Shield className="h-4 w-4 text-primary" />
                             {domain}
                             <Badge variant="info">{controls.length}</Badge>
@@ -430,7 +430,7 @@ export function ComplianceFrameworks() {
                                   {ctrl.code}
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm text-navy dark:text-white">
+                                  <p className="text-sm text-seal-navy dark:text-white">
                                     {ctrl.titleFr || ctrl.title}
                                   </p>
                                   {ctrl.titleFr && ctrl.title !== ctrl.titleFr && (

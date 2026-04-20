@@ -388,7 +388,7 @@ export default function CalendarPage() {
       <div className="flex items-center justify-end mb-6 gap-2">
         <button
           onClick={goToday}
-          className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-slate-600 text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+          className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-slate-600 text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition"
         >
           {t('calendar.today')}
         </button>
@@ -406,9 +406,9 @@ export default function CalendarPage() {
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition"
                   aria-label={t('calendar.prevMonth')}
                 >
-                  <ChevronLeft className="h-5 w-5 text-navy dark:text-white" />
+                  <ChevronLeft className="h-5 w-5 text-seal-navy dark:text-white" />
                 </button>
-                <h2 className="text-lg font-medium text-navy dark:text-white">
+                <h2 className="text-lg font-medium text-seal-navy dark:text-white">
                   {MONTHS_FR[month]} {year}
                 </h2>
                 <button
@@ -416,7 +416,7 @@ export default function CalendarPage() {
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition"
                   aria-label={t('calendar.nextMonth')}
                 >
-                  <ChevronRight className="h-5 w-5 text-navy dark:text-white" />
+                  <ChevronRight className="h-5 w-5 text-seal-navy dark:text-white" />
                 </button>
               </div>
 
@@ -461,7 +461,7 @@ export default function CalendarPage() {
                             'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium',
                             isToday
                               ? 'bg-primary text-white font-medium'
-                              : 'text-navy dark:text-white',
+                              : 'text-seal-navy dark:text-white',
                           ].filter(Boolean).join(' ')}
                         >
                           {day.getDate()}
@@ -530,7 +530,7 @@ export default function CalendarPage() {
               {selectedDate ? (
                 <>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium text-navy dark:text-white">
+                    <h3 className="text-sm font-medium text-seal-navy dark:text-white">
                       {formatDate(selectedDate)}
                     </h3>
                     <button
@@ -577,7 +577,7 @@ export default function CalendarPage() {
                                 {evTime && (
                                   <span className="text-[10px] font-semibold text-primary tabular-nums">{evTime}</span>
                                 )}
-                                <p className="text-sm font-medium text-navy dark:text-white truncate">{ev.title}</p>
+                                <p className="text-sm font-medium text-seal-navy dark:text-white truncate">{ev.title}</p>
                               </div>
                               {ev.location && (
                                 <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
@@ -616,7 +616,7 @@ export default function CalendarPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-navy dark:text-white">
+                <h3 className="text-sm font-medium text-seal-navy dark:text-white">
                   {formatDate(selectedDate)}
                 </h3>
                 <button
@@ -650,7 +650,7 @@ export default function CalendarPage() {
                           {evTime && (
                             <span className="text-[10px] font-semibold text-primary tabular-nums">{evTime}</span>
                           )}
-                          <p className="text-sm font-medium text-navy dark:text-white truncate">{ev.title}</p>
+                          <p className="text-sm font-medium text-seal-navy dark:text-white truncate">{ev.title}</p>
                         </div>
                         {ev.location && (
                           <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
@@ -697,7 +697,7 @@ export default function CalendarPage() {
             <Input label={t('calendar.form.location')} value={eventForm.location} onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })} placeholder={t('calendar.form.locationPh')} aria-label={t('calendar.form.location')} />
           </div>
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-navy dark:text-white cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-seal-navy dark:text-white cursor-pointer">
               <input type="checkbox" checked={eventForm.allDay} onChange={(e) => setEventForm({ ...eventForm, allDay: e.target.checked })} className="rounded border-gray-300 dark:border-slate-600 text-primary focus:ring-primary" />
               {t('calendar.form.allDay')}
             </label>

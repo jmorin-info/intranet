@@ -295,7 +295,7 @@ export default function NotificationsPage() {
         <Card>
           <CardContent className="flex items-center justify-between py-4">
             <div>
-              <h3 className="text-sm font-semibold text-navy dark:text-white">{t('notifications.admin')}</h3>
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">{t('notifications.admin')}</h3>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">{t('notifications.adminDesc')}</p>
             </div>
             <Button onClick={() => setShowBroadcast(true)}>
@@ -323,7 +323,7 @@ export default function NotificationsPage() {
             rows={3}
           />
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1">{t('notifications.form.type')}</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1">{t('notifications.form.type')}</label>
             <select
               className="w-full rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
               value={broadcastForm.type}
@@ -338,7 +338,7 @@ export default function NotificationsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1">{t('notifications.form.recipients')}</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1">{t('notifications.form.recipients')}</label>
             <select
               className="w-full rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
               value={broadcastForm.target}
@@ -351,7 +351,7 @@ export default function NotificationsPage() {
           </div>
           {broadcastForm.target === 'role' && (
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1">Rôle cible</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1">Rôle cible</label>
               <select
                 className="w-full rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                 value={broadcastForm.targetRole}
@@ -369,7 +369,7 @@ export default function NotificationsPage() {
           )}
           {broadcastForm.target === 'department' && (
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1">Département cible</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1">Département cible</label>
               <select
                 className="w-full rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                 value={broadcastForm.targetDepartmentId}
@@ -385,14 +385,14 @@ export default function NotificationsPage() {
           {/* Preview */}
           {broadcastForm.title.trim() && (
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1">Apercu</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1">Apercu</label>
               <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-4">
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-primary-light dark:bg-slate-700 flex-shrink-0">
                     <Bell className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-white">{broadcastForm.title}</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white">{broadcastForm.title}</p>
                     {broadcastForm.body && (
                       <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">{broadcastForm.body}</p>
                     )}
@@ -532,7 +532,7 @@ export default function NotificationsPage() {
                           <div className="flex items-center gap-2">
                             <p
                               className={`text-sm ${
-                                !notif.isRead ? 'font-semibold text-navy dark:text-white' : 'text-navy dark:text-white'
+                                !notif.isRead ? 'font-semibold text-seal-navy dark:text-white' : 'text-seal-navy dark:text-white'
                               }`}
                             >
                               {notif.title}

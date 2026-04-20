@@ -113,13 +113,13 @@ function EditInPlaceField({ icon: Icon, label, value, onChange, placeholder }: {
             onKeyDown={(e) => e.key === 'Enter' && setEditing(false)}
             placeholder={placeholder}
             aria-label={label}
-            className="w-full text-sm text-navy dark:text-white bg-transparent border-b border-primary outline-none py-0.5 placeholder:text-seal-gray-500/40 focus:ring-2 focus:ring-primary/15"
+            className="w-full text-sm text-seal-navy dark:text-white bg-transparent border-b border-primary outline-none py-0.5 placeholder:text-seal-gray-500/40 focus:ring-2 focus:ring-primary/15"
           />
         ) : (
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="text-sm text-navy dark:text-white text-left w-full truncate flex items-center gap-1.5 cursor-text"
+            className="text-sm text-seal-navy dark:text-white text-left w-full truncate flex items-center gap-1.5 cursor-text"
           >
             {value || <span className="text-seal-gray-500 dark:text-slate-500 italic">{placeholder}</span>}
             <PenLine className="h-3 w-3 text-seal-gray-500/40 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
@@ -434,7 +434,7 @@ export default function ProfilePage() {
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in-up">
       {/* Hero section — full width */}
       <Card className="overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-navy via-navy/80 to-primary/60 relative">
+        <div className="h-24 bg-gradient-to-r from-seal-navy via-seal-navy/80 to-primary/60 relative">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PHBhdGggZD0iTTAgMGg2MHY2MEgweiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjMwIiBjeT0iMzAiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30" />
         </div>
         <CardContent className="-mt-12 relative">
@@ -489,7 +489,7 @@ export default function ProfilePage() {
                   Ajouter une photo de profil
                 </button>
               )}
-              <h1 className="text-2xl font-medium text-navy dark:text-white">
+              <h1 className="text-2xl font-medium text-seal-navy dark:text-white">
                 {user.firstName} {user.lastName}
               </h1>
               {user.jobTitle && (
@@ -554,7 +554,7 @@ export default function ProfilePage() {
                   <p className="text-[10px] font-medium text-seal-gray-500 dark:text-slate-500 uppercase tracking-widest mb-2">Langues</p>
                   <div className="flex flex-wrap gap-1.5">
                     {parsedLanguages.map((lang: string) => (
-                      <span key={lang} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-slate-800 text-navy dark:text-white border border-gray-200 dark:border-slate-700">
+                      <span key={lang} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-slate-800 text-seal-navy dark:text-white border border-gray-200 dark:border-slate-700">
                         <Globe className="h-3 w-3 text-seal-gray-500" /> {lang}
                       </span>
                     ))}
@@ -566,21 +566,21 @@ export default function ProfilePage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
             <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
-              <p className="text-3xl font-bold text-navy dark:text-white">{myDocs}</p>
+              <p className="text-3xl font-bold text-seal-navy dark:text-white">{myDocs}</p>
               <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mb-1.5">Documents</p>
               <div className="h-1 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                 <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${Math.min(100, myDocs * 2)}%` }} />
               </div>
             </div>
             <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
-              <p className="text-3xl font-bold text-navy dark:text-white">{unreadNotifCount}</p>
+              <p className="text-3xl font-bold text-seal-navy dark:text-white">{unreadNotifCount}</p>
               <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mb-1.5">Notifications</p>
               <div className="h-1 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                 <div className="h-full rounded-full bg-amber-500 transition-all duration-500" style={{ width: `${Math.min(100, unreadNotifCount * 10)}%` }} />
               </div>
             </div>
             <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
-              <p className="text-lg font-bold text-navy dark:text-white">{user.createdAt ? formatDate(user.createdAt) : '—'}</p>
+              <p className="text-lg font-bold text-seal-navy dark:text-white">{user.createdAt ? formatDate(user.createdAt) : '—'}</p>
               <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">Membre depuis</p>
             </div>
             <div className={`text-center p-3 rounded-lg ${profile?.mfaEnabled ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-amber-50 dark:bg-amber-900/20'}`}>
@@ -596,7 +596,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in-scale" onClick={() => setShowEditModal(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowEditModal(false); }}>
           <div ref={(el) => { if (el) { requestAnimationFrame(() => { const input = el.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled])'); input?.focus(); }); } }} className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl max-h-[85vh] overflow-y-auto animate-fade-in-scale" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+              <h3 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
                 <PenLine className="h-5 w-5 text-primary" />
                 Modifier mon profil
               </h3>
@@ -683,7 +683,7 @@ export default function ProfilePage() {
       {(user.manager || (user.subordinates && user.subordinates.length > 0)) && (
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
               Organisation
             </h2>
@@ -695,7 +695,7 @@ export default function ProfilePage() {
                   {user.manager.firstName.charAt(0)}{user.manager.lastName.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-navy dark:text-white">
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">
                     Manager : {user.manager.firstName} {user.manager.lastName}
                   </p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">{user.manager.email}</p>
@@ -706,7 +706,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
                 <Users className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="text-sm font-semibold text-navy dark:text-white">
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">
                     Équipe : {user.subordinates.length} collaborateur{user.subordinates.length > 1 ? 's' : ''}
                   </p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">
@@ -722,7 +722,7 @@ export default function ProfilePage() {
       {/* Informations personnelles — edit-in-place */}
       <Card className="shadow-sm rounded-xl">
         <CardHeader>
-          <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <PenLine className="h-5 w-5 text-primary" />
             Informations personnelles
           </h2>
@@ -755,7 +755,7 @@ export default function ProfilePage() {
       {/* Departments */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <Building2 className="h-5 w-5 text-primary" />
             {t('profile.departments')}
           </h2>
@@ -766,7 +766,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
                 <Building2 className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="text-sm font-semibold text-navy dark:text-white">{user.departmentName}</p>
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">{user.departmentName}</p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">{t('profile.mainDepartment')}</p>
                 </div>
                 <Badge variant="primary" className="ml-auto">Actif</Badge>
@@ -787,7 +787,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-sm font-semibold text-navy dark:text-white">Notifications</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">Notifications</p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                   {unreadNotifCount > 0
                     ? `${unreadNotifCount} notification${unreadNotifCount > 1 ? 's' : ''} non lue${unreadNotifCount > 1 ? 's' : ''}`
@@ -806,7 +806,7 @@ export default function ProfilePage() {
       {chartes.length > 0 && (
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
               <PenLine className="h-5 w-5 text-primary" />
               Chartes obligatoires
             </h2>
@@ -816,7 +816,7 @@ export default function ProfilePage() {
               <div key={charte.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
                 <FileText className={`h-5 w-5 ${charte.signedAt ? 'text-emerald-500' : 'text-amber-500'}`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-navy dark:text-white truncate">{charte.title}</p>
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">{charte.title}</p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                     {charte.signedAt
                       ? `Signée le ${formatDate(charte.signedAt)}`
@@ -835,7 +835,7 @@ export default function ProfilePage() {
       {/* Security section */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-medium text-navy dark:text-white">Sécurité du compte</h2>
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white">Sécurité du compte</h2>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* MFA Status — prominent */}
@@ -853,7 +853,7 @@ export default function ProfilePage() {
                 <Shield className={`h-5 w-5 ${profile?.mfaEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-navy dark:text-white flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-1.5">
                   Authentification MFA
                   {profile?.mfaEnabled ? (
                     <span className="text-emerald-600 dark:text-emerald-400 text-xs font-medium">Activé</span>
@@ -878,7 +878,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
               <Clock className="h-5 w-5 text-seal-gray-500" />
               <div>
-                <p className="text-sm font-semibold text-navy dark:text-white">Dernière connexion</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">Dernière connexion</p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">{formatDate(profile.lastLoginAt)}</p>
               </div>
             </div>
@@ -888,7 +888,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
             <Monitor className="h-5 w-5 text-primary" />
             <div>
-              <p className="text-sm font-semibold text-navy dark:text-white">Session active</p>
+              <p className="text-sm font-semibold text-seal-navy dark:text-white">Session active</p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                 {profile?.lastLoginAt
                   ? `Connect\u00e9 depuis le ${new Date(profile.lastLoginAt).toLocaleDateString('fr-FR')} \u00e0 ${new Date(profile.lastLoginAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
@@ -903,7 +903,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
             <FileText className="h-5 w-5 text-emerald-500" />
             <div>
-              <p className="text-sm font-semibold text-navy dark:text-white">Chartes obligatoires</p>
+              <p className="text-sm font-semibold text-seal-navy dark:text-white">Chartes obligatoires</p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                 {profile?.chartesAcceptedAt ? `Signées le ${formatDate(profile.chartesAcceptedAt)}` : 'En attente de signature'}
               </p>
@@ -920,7 +920,7 @@ export default function ProfilePage() {
             onClick={() => setShowPasswordSection(!showPasswordSection)}
             className="w-full flex items-center justify-between"
           >
-            <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
               <Lock className="h-5 w-5 text-primary" />
               Modifier le mot de passe
             </h2>
@@ -1014,7 +1014,7 @@ export default function ProfilePage() {
       {/* Quiz history */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <Trophy className="h-5 w-5 text-primary" /> Quiz sécurité
           </h2>
         </CardHeader>
@@ -1041,7 +1041,7 @@ export default function ProfilePage() {
                   <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">sur {quizHistory.totalParticipants} participants</p>
                 </div>
                 <div className="text-center p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                  <p className="text-sm font-medium text-navy dark:text-white">{formatDate(quizHistory.lastDate)}</p>
+                  <p className="text-sm font-medium text-seal-navy dark:text-white">{formatDate(quizHistory.lastDate)}</p>
                   <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">Derniere tentative</p>
                 </div>
               </div>
@@ -1063,7 +1063,7 @@ export default function ProfilePage() {
 
       {/* Activity summary — stats row */}
       <Card>
-        <CardHeader><h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Mon activité</h2></CardHeader>
+        <CardHeader><h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Mon activité</h2></CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
@@ -1071,7 +1071,7 @@ export default function ProfilePage() {
                 <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-lg font-medium text-navy dark:text-white">{myDocs}</p>
+                <p className="text-lg font-medium text-seal-navy dark:text-white">{myDocs}</p>
                 <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Documents créés</p>
               </div>
             </div>
@@ -1080,7 +1080,7 @@ export default function ProfilePage() {
                 <FolderOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-lg font-medium text-navy dark:text-white">{myOpenTickets}</p>
+                <p className="text-lg font-medium text-seal-navy dark:text-white">{myOpenTickets}</p>
                 <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Tickets ouverts</p>
               </div>
             </div>
@@ -1108,7 +1108,7 @@ export default function ProfilePage() {
                         <IconComp className="h-3.5 w-3.5" />
                       </div>
                       <div className="flex-1 min-w-0 pt-0.5">
-                        <p className="text-xs font-medium text-navy dark:text-white capitalize">{actionLabel}</p>
+                        <p className="text-xs font-medium text-seal-navy dark:text-white capitalize">{actionLabel}</p>
                         {a.details && (
                           <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">{typeof a.details === 'string' ? a.details : JSON.stringify(a.details).slice(0, 80)}</p>
                         )}
@@ -1127,7 +1127,7 @@ export default function ProfilePage() {
 
       {/* Keyboard shortcuts */}
       <Card>
-        <CardHeader><h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2"><Keyboard className="h-5 w-5 text-primary" /> Raccourcis clavier</h2></CardHeader>
+        <CardHeader><h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2"><Keyboard className="h-5 w-5 text-primary" /> Raccourcis clavier</h2></CardHeader>
         <CardContent>
           <div className="space-y-2">
             {[
@@ -1135,7 +1135,7 @@ export default function ProfilePage() {
               { keys: 'Ctrl+/', desc: 'Aide' },
             ].map(({ keys, desc }) => (
               <div key={keys} className="flex items-center justify-between py-1.5 border-b border-gray-200 dark:border-slate-700 last:border-0">
-                <span className="text-sm text-navy dark:text-white">{desc}</span>
+                <span className="text-sm text-seal-navy dark:text-white">{desc}</span>
                 <kbd className="px-2 py-0.5 text-xs font-mono bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-300 rounded border border-gray-200 dark:border-slate-700">{keys}</kbd>
               </div>
             ))}
@@ -1146,7 +1146,7 @@ export default function ProfilePage() {
       {/* Mes documents GED */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <FolderOpen className="h-5 w-5 text-primary" />
             Mes documents
           </h2>
@@ -1157,7 +1157,7 @@ export default function ProfilePage() {
               {/* Total with progress context */}
               <div className="flex items-center justify-between px-1">
                 <span className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Total documents</span>
-                <span className="text-2xl font-bold text-navy dark:text-white">{gedSummary.total}</span>
+                <span className="text-2xl font-bold text-seal-navy dark:text-white">{gedSummary.total}</span>
               </div>
               <div className="space-y-3">
                 {([
@@ -1172,7 +1172,7 @@ export default function ProfilePage() {
                     <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-slate-700 overflow-hidden">
                       <div className={`h-full rounded-full ${color} transition-all duration-500`} style={{ width: gedSummary.total > 0 ? `${Math.max(4, (value / gedSummary.total) * 100)}%` : '0%' }} />
                     </div>
-                    <span className="text-sm font-bold text-navy dark:text-white w-8 text-right tabular-nums">{value}</span>
+                    <span className="text-sm font-bold text-seal-navy dark:text-white w-8 text-right tabular-nums">{value}</span>
                   </div>
                 ))}
               </div>
@@ -1201,7 +1201,7 @@ export default function ProfilePage() {
       {/* Notification preferences */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <Bell className="h-5 w-5 text-primary" />
             Preferences de notification
           </h2>
@@ -1217,7 +1217,7 @@ export default function ProfilePage() {
           ]).map(pref => (
             <div key={pref.key} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
               <div>
-                <p className="text-sm font-semibold text-navy dark:text-white">{pref.label}</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">{pref.label}</p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">{pref.desc}</p>
               </div>
               <button
@@ -1238,7 +1238,7 @@ export default function ProfilePage() {
       {/* Language preference */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <Globe className="h-5 w-5 text-primary" />
             Langue de l&apos;interface
           </h2>
@@ -1258,7 +1258,7 @@ export default function ProfilePage() {
                   setLocale(value);
                   toast.success(`Langue changée : ${label}`);
                 }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${locale === value ? 'border-primary bg-primary/10 text-primary dark:text-primary' : 'border-gray-200 dark:border-slate-700 text-navy dark:text-white hover:border-primary/40 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${locale === value ? 'border-primary bg-primary/10 text-primary dark:text-primary' : 'border-gray-200 dark:border-slate-700 text-seal-navy dark:text-white hover:border-primary/40 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
               >
                 <span className="text-base">{flag}</span>
                 {label}
@@ -1274,7 +1274,7 @@ export default function ProfilePage() {
       {/* GDPR */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
             Données personnelles (RGPD)
           </h2>

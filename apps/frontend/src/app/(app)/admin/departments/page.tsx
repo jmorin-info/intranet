@@ -209,12 +209,12 @@ export default function AdminDepartmentsPage() {
     {
       key: 'code',
       header: t('departments.header.code'),
-      render: (d) => <span className="font-mono font-semibold text-navy dark:text-white">{d.code}</span>,
+      render: (d) => <span className="font-mono font-semibold text-seal-navy dark:text-white">{d.code}</span>,
     },
     {
       key: 'name',
       header: t('departments.header.name'),
-      render: (d) => <span className="text-sm font-semibold text-navy dark:text-white">{d.name}</span>,
+      render: (d) => <span className="text-sm font-semibold text-seal-navy dark:text-white">{d.name}</span>,
     },
     {
       key: 'users',
@@ -229,7 +229,7 @@ export default function AdminDepartmentsPage() {
         <div className="flex items-center gap-1">
           <button
             onClick={(e) => { e.stopPropagation(); openEdit(d); }}
-            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
           >
             <Edit className="h-4 w-4" />
           </button>
@@ -344,14 +344,14 @@ export default function AdminDepartmentsPage() {
                           <Building2 className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-navy dark:text-white">{dept.name}</h3>
+                          <h3 className="font-semibold text-seal-navy dark:text-white">{dept.name}</h3>
                           <span className="font-mono text-xs text-seal-gray-500 dark:text-slate-400">{dept.code}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => { e.stopPropagation(); openEdit(dept); }}
-                          className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+                          className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
@@ -375,7 +375,7 @@ export default function AdminDepartmentsPage() {
                           </div>
                           <div className="min-w-0">
                             <p className="text-[11px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 font-medium leading-none">Responsable</p>
-                            <p className="text-xs font-medium text-navy dark:text-white truncate">{manager.firstName} {manager.lastName}</p>
+                            <p className="text-xs font-medium text-seal-navy dark:text-white truncate">{manager.firstName} {manager.lastName}</p>
                           </div>
                         </div>
                       );
@@ -385,7 +385,7 @@ export default function AdminDepartmentsPage() {
                     <div className="flex items-center gap-4 mt-3">
                       <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800 rounded-xl px-3 py-2">
                         <Users className="h-4 w-4 text-primary" />
-                        <span className="text-lg font-medium text-navy dark:text-white">{userCount}</span>
+                        <span className="text-lg font-medium text-seal-navy dark:text-white">{userCount}</span>
                         <span className="text-xs text-seal-gray-500 dark:text-slate-400">membre{userCount !== 1 ? 's' : ''}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -435,7 +435,7 @@ export default function AdminDepartmentsPage() {
                           {Object.entries(roleCounts).map(([role, count]) => (
                             <span key={role} className="flex items-center gap-1 text-[10px] text-seal-gray-500 dark:text-slate-400">
                               <span className={`h-2 w-2 rounded-sm ${roleColors[role] || 'bg-gray-400'}`} />
-                              {roleLabels[role] || role.replace(/_/g, ' ')} <span className="font-semibold text-navy dark:text-white">{count}</span>
+                              {roleLabels[role] || role.replace(/_/g, ' ')} <span className="font-semibold text-seal-navy dark:text-white">{count}</span>
                             </span>
                           ))}
                         </div>
@@ -470,7 +470,7 @@ export default function AdminDepartmentsPage() {
                                 <span className="text-xs font-semibold text-primary">{u.firstName[0]}{u.lastName[0]}</span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-navy dark:text-white truncate">{u.firstName} {u.lastName}</p>
+                                <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">{u.firstName} {u.lastName}</p>
                                 <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">{u.email}</p>
                               </div>
                               <Badge variant="info">{u.role.replace(/_/g, ' ')}</Badge>
@@ -494,17 +494,17 @@ export default function AdminDepartmentsPage() {
                           <Link href={`/admin/users?department=${dept.id}`}
                             className="p-3 bg-gray-50 dark:bg-slate-800 rounded-lg text-center hover:bg-gray-100 dark:hover:bg-slate-700 transition">
                             <Users className="h-5 w-5 text-primary mx-auto mb-1" />
-                            <p className="text-xs font-semibold text-navy dark:text-white">{users.length} utilisateurs</p>
+                            <p className="text-xs font-semibold text-seal-navy dark:text-white">{users.length} utilisateurs</p>
                           </Link>
                           <Link href={`/documents?search=${encodeURIComponent(dept.name)}`}
                             className="p-3 bg-gray-50 dark:bg-slate-800 rounded-lg text-center hover:bg-gray-100 dark:hover:bg-slate-700 transition">
                             <FileText className="h-5 w-5 text-primary mx-auto mb-1" />
-                            <p className="text-xs font-semibold text-navy dark:text-white">Documents</p>
+                            <p className="text-xs font-semibold text-seal-navy dark:text-white">Documents</p>
                           </Link>
                           <Link href={`/tickets?search=${encodeURIComponent(dept.name)}`}
                             className="p-3 bg-gray-50 dark:bg-slate-800 rounded-lg text-center hover:bg-gray-100 dark:hover:bg-slate-700 transition">
                             <Ticket className="h-5 w-5 text-primary mx-auto mb-1" />
-                            <p className="text-xs font-semibold text-navy dark:text-white">Tickets</p>
+                            <p className="text-xs font-semibold text-seal-navy dark:text-white">Tickets</p>
                           </Link>
                         </div>
                       </div>

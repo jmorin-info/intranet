@@ -76,11 +76,11 @@ function NpsGauge({ score }: { score: number }) {
           }}
         />
         {/* Needle */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom w-0.5 h-12 rounded-full bg-navy dark:bg-white transition-transform duration-700"
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom w-0.5 h-12 rounded-full bg-seal-navy dark:bg-white transition-transform duration-700"
           style={{ transform: `translateX(-50%) rotate(${(pct / 100) * 180 - 90}deg)` }} />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-2.5 w-2.5 rounded-full bg-navy dark:bg-white" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-2.5 w-2.5 rounded-full bg-seal-navy dark:bg-white" />
       </div>
-      <span className="text-lg font-bold text-navy dark:text-white">{clamped > 0 ? '+' : ''}{clamped}</span>
+      <span className="text-lg font-bold text-seal-navy dark:text-white">{clamped > 0 ? '+' : ''}{clamped}</span>
       <span className="text-[10px] font-medium" style={{ color }}>{label}</span>
     </div>
   );
@@ -129,7 +129,7 @@ function SurveyPreview({ title, description, questions, anonymous }: {
         <Eye className="h-4 w-4 text-primary" />
         <span className="text-xs font-semibold text-primary uppercase tracking-wide">Apercu du questionnaire</span>
       </div>
-      <h4 className="text-sm font-medium text-navy dark:text-white">{title || 'Sans titre'}</h4>
+      <h4 className="text-sm font-medium text-seal-navy dark:text-white">{title || 'Sans titre'}</h4>
       {description && <p className="text-xs text-seal-gray-500 dark:text-slate-400">{description}</p>}
       {anonymous && <Badge variant="info">Anonyme</Badge>}
       {validQs.length === 0 ? (
@@ -139,7 +139,7 @@ function SurveyPreview({ title, description, questions, anonymous }: {
           {validQs.map((q, i) => (
             <li key={i} className="rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3">
               <div className="flex items-start justify-between gap-2">
-                <span className="text-xs text-navy dark:text-white font-medium">
+                <span className="text-xs text-seal-navy dark:text-white font-medium">
                   {i + 1}. {q.label}
                   {q.isRequired && <span className="text-red-500 ml-0.5">*</span>}
                 </span>
@@ -384,7 +384,7 @@ export default function SatisfactionPage() {
 
     return (
       <div key={q.id} className="space-y-2">
-        <label className="block text-sm font-medium text-navy dark:text-white">
+        <label className="block text-sm font-medium text-seal-navy dark:text-white">
           {q.label}
           {q.isRequired && <span className="text-red-500 ml-0.5">*</span>}
         </label>
@@ -405,7 +405,7 @@ export default function SatisfactionPage() {
         {q.type === 'text' && (
           <textarea value={value} onChange={e => setValue(e.target.value)}
             placeholder="Votre réponse..."
-            className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-navy dark:text-white px-3 py-2 min-h-[80px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-3 py-2 min-h-[80px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
         )}
 
         {q.type === 'choice' && (() => {
@@ -417,7 +417,7 @@ export default function SatisfactionPage() {
                   <input type="radio" name={`q-${q.id}`} value={opt} checked={value === opt}
                     onChange={() => setValue(opt)}
                     className="h-4 w-4 text-primary border-gray-300 focus:ring-primary" />
-                  <span className="text-sm text-navy dark:text-white">{opt}</span>
+                  <span className="text-sm text-seal-navy dark:text-white">{opt}</span>
                 </label>
               ))}
             </div>
@@ -465,7 +465,7 @@ export default function SatisfactionPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">{t('satisfaction.title')}</h1>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('satisfaction.title')}</h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{t('satisfaction.subtitle')}</p>
         </div>
         {isAdmin && (
@@ -485,7 +485,7 @@ export default function SatisfactionPage() {
                   <Star className="h-6 w-6 text-amber-500 fill-amber-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{stats.globalAverage.toFixed(1)}</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.globalAverage.toFixed(1)}</p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">Note moyenne</p>
                 </div>
               </CardContent>
@@ -496,7 +496,7 @@ export default function SatisfactionPage() {
                   <BarChart3 className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{stats.totalSurveys}</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.totalSurveys}</p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">Enquetes</p>
                 </div>
               </CardContent>
@@ -507,7 +507,7 @@ export default function SatisfactionPage() {
                   <MessageSquare className="h-6 w-6 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{stats.totalResponses}</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.totalResponses}</p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">Reponses</p>
                 </div>
               </CardContent>
@@ -518,7 +518,7 @@ export default function SatisfactionPage() {
                   <Users className="h-6 w-6 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{stats.totalResponses > 0 ? Math.round((stats.totalResponses / Math.max(1, stats.totalSurveys)) * 10) / 10 : 0}</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.totalResponses > 0 ? Math.round((stats.totalResponses / Math.max(1, stats.totalSurveys)) * 10) / 10 : 0}</p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">Moy. reponses/enquete</p>
                 </div>
               </CardContent>
@@ -530,7 +530,7 @@ export default function SatisfactionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger-item">
               <Card>
                 <CardContent className="py-4">
-                  <h4 className="text-xs font-semibold text-navy dark:text-white uppercase tracking-wide mb-3">Score NPS estime</h4>
+                  <h4 className="text-xs font-semibold text-seal-navy dark:text-white uppercase tracking-wide mb-3">Score NPS estime</h4>
                   <div className="flex justify-center">
                     <NpsGauge score={Math.round((stats.globalAverage - 3) * 50)} />
                   </div>
@@ -541,7 +541,7 @@ export default function SatisfactionPage() {
               </Card>
               <Card>
                 <CardContent className="py-4">
-                  <h4 className="text-xs font-semibold text-navy dark:text-white uppercase tracking-wide mb-3">Repartition globale par enquete</h4>
+                  <h4 className="text-xs font-semibold text-seal-navy dark:text-white uppercase tracking-wide mb-3">Repartition globale par enquete</h4>
                   <div className="space-y-2">
                     {stats.surveys.filter(s => s.responses > 0).slice(0, 6).map(s => {
                       const maxR = Math.max(1, ...stats.surveys.map(x => x.responses));
@@ -549,7 +549,7 @@ export default function SatisfactionPage() {
                       return (
                         <div key={s.id} className="space-y-0.5">
                           <div className="flex items-center justify-between text-[10px]">
-                            <span className="text-navy dark:text-white font-medium truncate mr-2">{s.title}</span>
+                            <span className="text-seal-navy dark:text-white font-medium truncate mr-2">{s.title}</span>
                             <span className="text-seal-gray-500 dark:text-slate-400 flex-shrink-0 tabular-nums">
                               {s.responses} rep. &middot; {s.avg.toFixed(1)}/5
                             </span>
@@ -624,7 +624,7 @@ export default function SatisfactionPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className="text-sm font-medium text-navy dark:text-white">{survey.title}</h3>
+                      <h3 className="text-sm font-medium text-seal-navy dark:text-white">{survey.title}</h3>
                       {survey.isActive ? <Badge variant="approved">Active</Badge> : <Badge variant="draft">Terminée</Badge>}
                       {survey.isAnonymous && <Badge variant="info">Anonyme</Badge>}
                       {survey.expiresAt && (
@@ -706,11 +706,11 @@ export default function SatisfactionPage() {
                       {/* Global stats summary */}
                       <div className="flex items-center gap-6 text-sm">
                         <span className="text-seal-gray-500 dark:text-slate-400">
-                          <strong className="text-navy dark:text-white">{surveyResults[survey.id].stats.totalResponses}</strong> réponse{surveyResults[survey.id].stats.totalResponses !== 1 ? 's' : ''}
+                          <strong className="text-seal-navy dark:text-white">{surveyResults[survey.id].stats.totalResponses}</strong> réponse{surveyResults[survey.id].stats.totalResponses !== 1 ? 's' : ''}
                         </span>
                         {surveyResults[survey.id].stats.averageRating > 0 && (
                           <span className="text-seal-gray-500 dark:text-slate-400">
-                            Note moy. <strong className="text-navy dark:text-white">{surveyResults[survey.id].stats.averageRating}/5</strong>
+                            Note moy. <strong className="text-seal-navy dark:text-white">{surveyResults[survey.id].stats.averageRating}/5</strong>
                           </span>
                         )}
                       </div>
@@ -718,7 +718,7 @@ export default function SatisfactionPage() {
                       {/* Per-question results */}
                       {surveyResults[survey.id].questionResults?.map((qr: any) => (
                         <div key={qr.questionId} className="rounded-lg border border-gray-200 dark:border-slate-700 p-3 bg-white dark:bg-slate-800 space-y-2">
-                          <p className="text-xs font-medium text-navy dark:text-white">{qr.label}</p>
+                          <p className="text-xs font-medium text-seal-navy dark:text-white">{qr.label}</p>
                           <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">{qr.aggregation.total} réponse{qr.aggregation.total !== 1 ? 's' : ''}</p>
 
                           {/* Rating: donut chart */}
@@ -741,7 +741,7 @@ export default function SatisfactionPage() {
                                       strokeDasharray={dashArray} transform={`rotate(${rotation} 60 60)`} />;
                                   });
                                 })()}
-                                <text x="60" y="56" textAnchor="middle" fontSize="20" fontWeight="700" fill="currentColor" className="text-navy dark:text-white">{qr.aggregation.average}</text>
+                                <text x="60" y="56" textAnchor="middle" fontSize="20" fontWeight="700" fill="currentColor" className="text-seal-navy dark:text-white">{qr.aggregation.average}</text>
                                 <text x="60" y="72" textAnchor="middle" fontSize="10" fill="#9ca3af">/5</text>
                               </svg>
                               <div className="flex-1 space-y-1">
@@ -800,7 +800,7 @@ export default function SatisfactionPage() {
                                 return (
                                   <div key={i}>
                                     <div className="flex items-center justify-between text-[10px] mb-0.5">
-                                      <span className="text-navy dark:text-white font-medium truncate mr-2">{c.label}</span>
+                                      <span className="text-seal-navy dark:text-white font-medium truncate mr-2">{c.label}</span>
                                       <span className="text-seal-gray-500 dark:text-slate-400 flex-shrink-0">{c.count} ({Math.round(pct)}%)</span>
                                     </div>
                                     <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -819,7 +819,7 @@ export default function SatisfactionPage() {
                                 <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 italic">Aucune réponse texte</p>
                               ) : (
                                 qr.aggregation.texts.map((t: string, i: number) => (
-                                  <div key={i} className="text-xs text-navy dark:text-slate-300 bg-gray-50 dark:bg-slate-900 rounded p-2 border-l-2 border-primary/40">
+                                  <div key={i} className="text-xs text-seal-navy dark:text-slate-300 bg-gray-50 dark:bg-slate-900 rounded p-2 border-l-2 border-primary/40">
                                     {t}
                                   </div>
                                 ))
@@ -850,7 +850,7 @@ export default function SatisfactionPage() {
                                   strokeDasharray={dashArray} transform={`rotate(${rotation} 60 60)`} />;
                               });
                             })()}
-                            <text x="60" y="56" textAnchor="middle" fontSize="20" fontWeight="700" fill="currentColor" className="text-navy dark:text-white">{surveyResults[survey.id].stats.averageRating}</text>
+                            <text x="60" y="56" textAnchor="middle" fontSize="20" fontWeight="700" fill="currentColor" className="text-seal-navy dark:text-white">{surveyResults[survey.id].stats.averageRating}</text>
                             <text x="60" y="72" textAnchor="middle" fontSize="10" fill="#9ca3af">/5</text>
                           </svg>
                           <div className="flex-1 space-y-1">
@@ -890,7 +890,7 @@ export default function SatisfactionPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[13px] font-medium text-navy dark:text-white mb-1">Date d&apos;expiration</label>
+              <label className="block text-[13px] font-medium text-seal-navy dark:text-white mb-1">Date d&apos;expiration</label>
               <input type="date" value={formExpiry} onChange={e => setFormExpiry(e.target.value)}
                 aria-label="Date d'expiration"
                 className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
@@ -899,7 +899,7 @@ export default function SatisfactionPage() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={formAnonymous} onChange={e => setFormAnonymous(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                <span className="text-sm text-navy dark:text-white">Réponses anonymes</span>
+                <span className="text-sm text-seal-navy dark:text-white">Réponses anonymes</span>
               </label>
             </div>
           </div>
@@ -907,7 +907,7 @@ export default function SatisfactionPage() {
           {/* Questions builder */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-[13px] font-medium text-navy dark:text-white">Questions</label>
+              <label className="text-[13px] font-medium text-seal-navy dark:text-white">Questions</label>
               <Button variant="outline" size="sm" onClick={addQuestion}><Plus className="h-3 w-3" /> Question</Button>
             </div>
             <div className="space-y-3">

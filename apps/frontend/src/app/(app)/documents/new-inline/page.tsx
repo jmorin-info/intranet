@@ -93,7 +93,7 @@ export default function NewInlineDocumentPage() {
 
       <Card>
         <CardHeader>
-          <h1 className="text-xl font-medium text-navy dark:text-white flex items-center gap-2">
+          <h1 className="text-xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
             Nouveau document en ligne
           </h1>
@@ -106,7 +106,7 @@ export default function NewInlineDocumentPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-navy dark:text-slate-300 uppercase tracking-wider">
+              <label className="text-xs font-medium text-seal-navy dark:text-slate-300 uppercase tracking-wider">
                 Titre
               </label>
               <Input
@@ -116,7 +116,7 @@ export default function NewInlineDocumentPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy dark:text-slate-300 uppercase tracking-wider">
+              <label className="text-xs font-medium text-seal-navy dark:text-slate-300 uppercase tracking-wider">
                 Domaine
               </label>
               <Input
@@ -126,7 +126,7 @@ export default function NewInlineDocumentPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy dark:text-slate-300 uppercase tracking-wider">
+              <label className="text-xs font-medium text-seal-navy dark:text-slate-300 uppercase tracking-wider">
                 Catégorie
               </label>
               <Select
@@ -141,7 +141,7 @@ export default function NewInlineDocumentPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy dark:text-slate-300 uppercase tracking-wider">
+              <label className="text-xs font-medium text-seal-navy dark:text-slate-300 uppercase tracking-wider">
                 Classification
               </label>
               <Select
@@ -153,7 +153,7 @@ export default function NewInlineDocumentPage() {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-navy dark:text-slate-300 uppercase tracking-wider">
+            <label className="text-xs font-medium text-seal-navy dark:text-slate-300 uppercase tracking-wider">
               Description
             </label>
             <Textarea
@@ -165,7 +165,7 @@ export default function NewInlineDocumentPage() {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-navy dark:text-slate-300 uppercase tracking-wider mb-1 block">
+            <label className="text-xs font-medium text-seal-navy dark:text-slate-300 uppercase tracking-wider mb-1 block">
               Contenu
             </label>
             <InlineEditor value={content} onChange={setContent} />

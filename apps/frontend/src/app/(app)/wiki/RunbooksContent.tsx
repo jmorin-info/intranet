@@ -319,7 +319,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
         <Card className="border-2 border-primary">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-navy dark:text-white">{executingRunbook.title}</h2>
+              <h2 className="font-semibold text-seal-navy dark:text-white">{executingRunbook.title}</h2>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-seal-gray-500 flex items-center gap-1">
                   <Clock className="h-3 w-3" />
@@ -345,7 +345,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
                     {completedSteps.has(i) && <CheckCircle2 className="h-3 w-3" />}
                   </button>
                   <div>
-                    <p className={`text-sm font-semibold ${completedSteps.has(i) ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-navy dark:text-white'}`}>
+                    <p className={`text-sm font-semibold ${completedSteps.has(i) ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-seal-navy dark:text-white'}`}>
                       {t('runbooks.step')} {i + 1}: {step.title || String(step)}
                     </p>
                     {step.description && <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">{step.description}</p>}
@@ -362,7 +362,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
             )}
             {/* Dernières exécutions */}
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
-              <h3 className="text-xs font-semibold text-navy dark:text-white mb-2 flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-seal-gray-500" />
                 Dernières exécutions
               </h3>
@@ -376,7 +376,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
                   {executionHistory.map((exec) => (
                     <div key={exec.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-gray-50 dark:bg-slate-800">
                       <div className={`h-2 w-2 rounded-full flex-shrink-0 ${exec.status === 'COMPLETED' ? 'bg-emerald-500' : exec.status === 'RUNNING' ? 'bg-blue-500 animate-pulse' : 'bg-amber-500'}`} />
-                      <span className="text-navy dark:text-white font-medium">
+                      <span className="text-seal-navy dark:text-white font-medium">
                         {new Date(exec.startedAt).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
                       {exec.executedBy && (
@@ -407,7 +407,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
           <EmptyState type="documents" title={t('runbooks.empty')} description={t('runbooks.emptyDescription')} />
           {isAdmin && runbooks.length === 0 && (
             <div className="rounded-xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
-              <h3 className="text-sm font-semibold text-navy dark:text-white mb-1">Templates prêts à l'emploi</h3>
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white mb-1">Templates prêts à l'emploi</h3>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-4">
                 Démarrez rapidement avec ces procédures courantes. Cliquez pour pré-remplir la création d'un runbook.
               </p>
@@ -429,7 +429,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <BookOpen className="h-4 w-4 text-primary" />
-                      <h4 className="text-sm font-semibold text-navy dark:text-white">{tpl.title}</h4>
+                      <h4 className="text-sm font-semibold text-seal-navy dark:text-white">{tpl.title}</h4>
                       <Badge variant="navy">{tpl.category}</Badge>
                     </div>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2">{tpl.description}</p>
@@ -453,7 +453,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-navy dark:text-white text-sm">{rb.title}</h3>
+                      <h3 className="font-semibold text-seal-navy dark:text-white text-sm">{rb.title}</h3>
                       {isNewRunbook(rb.createdAt) && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F9964A]/15 text-[#c46714] border border-[#F9964A]/30 dark:bg-[#F9964A]/20 dark:text-[#FBC078] dark:border-[#F9964A]/40">
                           Nouveau

@@ -114,7 +114,7 @@ export default function ExtranetPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card><CardContent className="py-3 px-4 flex items-center gap-3">
             <Users className="h-5 w-5 text-primary" />
-            <div><p className="text-xs text-seal-gray-500 dark:text-slate-400">Total</p><p className="text-xl font-medium text-navy dark:text-white">{accesses.length}</p></div>
+            <div><p className="text-xs text-seal-gray-500 dark:text-slate-400">Total</p><p className="text-xl font-medium text-seal-navy dark:text-white">{accesses.length}</p></div>
           </CardContent></Card>
           <Card><CardContent className="py-3 px-4 flex items-center gap-3">
             <Shield className="h-5 w-5 text-emerald-500" />
@@ -164,7 +164,7 @@ export default function ExtranetPage() {
         <Card className="shadow-sm rounded-xl">
           <CardContent className="p-12 text-center">
             <Search className="h-12 w-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
-            <p className="text-lg font-semibold text-navy dark:text-white">Aucun accès prestataire</p>
+            <p className="text-lg font-semibold text-seal-navy dark:text-white">Aucun accès prestataire</p>
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
               {search ? 'Aucun r\u00e9sultat pour cette recherche' : 'Aucun acc\u00e8s extranet configur\u00e9'}
             </p>
@@ -191,7 +191,7 @@ export default function ExtranetPage() {
                         <Users className={`h-5 w-5 ${isExpiredOrRevoked ? 'text-gray-400' : 'text-primary'}`} />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="font-medium text-navy dark:text-white text-sm truncate">{access.name}</h3>
+                        <h3 className="font-medium text-seal-navy dark:text-white text-sm truncate">{access.name}</h3>
                         <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">{access.company}</p>
                       </div>
                     </div>

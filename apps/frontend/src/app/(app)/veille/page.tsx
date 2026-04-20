@@ -368,7 +368,7 @@ export default function VeillePage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold text-navy dark:text-white">Résumé hebdomadaire</h2>
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white">Résumé hebdomadaire</h2>
               {weeklySummary && (
                 <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 ml-auto">
                   {new Date(weeklySummary.weekStart).toLocaleDateString('fr-FR')} — {new Date(weeklySummary.weekEnd).toLocaleDateString('fr-FR')}
@@ -387,7 +387,7 @@ export default function VeillePage() {
                 {/* Total + severity pills */}
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl font-medium text-navy dark:text-white">{weeklySummary.total}</span>
+                    <span className="text-2xl font-medium text-seal-navy dark:text-white">{weeklySummary.total}</span>
                     <span className="text-xs text-seal-gray-500 dark:text-slate-400">alertes cette semaine</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -418,7 +418,7 @@ export default function VeillePage() {
                         <div key={item.id} className="flex items-start gap-2 rounded-lg border border-red-100 dark:border-red-900/40 bg-red-50/50 dark:bg-red-900/10 px-3 py-2">
                           <AlertOctagon className="h-3.5 w-3.5 text-red-500 mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-navy dark:text-white line-clamp-1">{item.title}</p>
+                            <p className="text-xs font-semibold text-seal-navy dark:text-white line-clamp-1">{item.title}</p>
                             <div className="flex items-center gap-2 mt-0.5">
                               {item.cveId && (
                                 <span className="text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 rounded">{item.cveId}</span>
@@ -441,7 +441,7 @@ export default function VeillePage() {
                     <p className="text-[11px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1.5">Produits du parc affectés</p>
                     <div className="flex flex-wrap gap-1.5">
                       {weeklySummary.productsAffected.map(product => (
-                        <span key={product} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-navy/10 text-navy dark:bg-blue-900/30 dark:text-blue-300">
+                        <span key={product} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-seal-navy/10 text-seal-navy dark:bg-blue-900/30 dark:text-blue-300">
                           {product}
                         </span>
                       ))}
@@ -464,8 +464,8 @@ export default function VeillePage() {
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="shadow-sm rounded-xl"><CardContent className="py-3 px-4 flex items-center gap-3">
-            <Rss className="h-5 w-5 text-navy dark:text-blue-400" />
-            <div><p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Total</p><p className="text-xl font-medium text-navy dark:text-white">{stats.total}</p></div>
+            <Rss className="h-5 w-5 text-seal-navy dark:text-blue-400" />
+            <div><p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Total</p><p className="text-xl font-medium text-seal-navy dark:text-white">{stats.total}</p></div>
           </CardContent></Card>
           <Card className="shadow-sm rounded-xl"><CardContent className="py-3 px-4 flex items-center gap-3">
             <AlertOctagon className="h-5 w-5 text-red-500" />
@@ -508,7 +508,7 @@ export default function VeillePage() {
           <button
             onClick={() => setSeverityFilter(null)}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-              !severityFilter ? 'bg-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'
+              !severityFilter ? 'bg-seal-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'
             }`}
           >
             Toutes ({items.length})
@@ -561,8 +561,8 @@ export default function VeillePage() {
               onClick={() => setSourcesOpen(o => !o)}
             >
               <div className="flex items-center gap-2">
-                <Rss className="h-4 w-4 text-navy dark:text-blue-400" />
-                <span className="text-sm font-semibold text-navy dark:text-white">Gérer les sources RSS</span>
+                <Rss className="h-4 w-4 text-seal-navy dark:text-blue-400" />
+                <span className="text-sm font-semibold text-seal-navy dark:text-white">Gérer les sources RSS</span>
               </div>
               {sourcesOpen ? <ChevronUp className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" /> : <ChevronDown className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />}
             </button>
@@ -590,7 +590,7 @@ export default function VeillePage() {
                     {sources.map(source => (
                       <div key={source.id} className={`flex items-center gap-3 px-3 py-2.5 ${source.isActive ? '' : 'opacity-50 bg-gray-50 dark:bg-slate-800/50'}`}>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-navy dark:text-white truncate">{source.name}</p>
+                          <p className="text-sm font-medium text-seal-navy dark:text-white truncate">{source.name}</p>
                           <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 truncate">{source.url}</p>
                         </div>
                         <button
@@ -623,7 +623,7 @@ export default function VeillePage() {
                     placeholder="Nom de la source"
                     value={newSourceName}
                     onChange={e => setNewSourceName(e.target.value)}
-                    className="flex-1 min-w-[140px] rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm px-3 py-1.5 text-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 min-w-[140px] rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm px-3 py-1.5 text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
                   <input
@@ -631,7 +631,7 @@ export default function VeillePage() {
                     placeholder="https://example.com/feed.xml"
                     value={newSourceUrl}
                     onChange={e => setNewSourceUrl(e.target.value)}
-                    className="flex-[2] min-w-[200px] rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm px-3 py-1.5 text-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-[2] min-w-[200px] rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm px-3 py-1.5 text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
                   <Button type="submit" loading={addingSource} size="sm">
@@ -691,9 +691,9 @@ export default function VeillePage() {
                 >
                   <CardHeader>
                     <div className="flex items-start gap-3">
-                      <Newspaper className="h-5 w-5 text-navy dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                      <Newspaper className="h-5 w-5 text-seal-navy dark:text-blue-400 flex-shrink-0 mt-0.5" />
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-semibold text-navy dark:text-white line-clamp-2">{bulletin.title}</h3>
+                        <h3 className="text-sm font-semibold text-seal-navy dark:text-white line-clamp-2">{bulletin.title}</h3>
                         <div className="flex items-center gap-1.5 mt-2">
                           <Calendar className="h-3 w-3 text-seal-gray-500 dark:text-slate-400" />
                           <span className="text-[11px] text-seal-gray-500 dark:text-slate-400">
@@ -731,7 +731,7 @@ export default function VeillePage() {
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <h2 className="text-lg font-medium text-navy dark:text-white">{selectedBulletin.title}</h2>
+                        <h2 className="text-lg font-medium text-seal-navy dark:text-white">{selectedBulletin.title}</h2>
                         <div className="flex items-center gap-3 mt-1">
                           <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                             {formatDate(selectedBulletin.weekStart)} — {formatDate(selectedBulletin.weekEnd)}
@@ -756,7 +756,7 @@ export default function VeillePage() {
                     />
                     {/* Linked veille items */}
                     <div className="mt-6 pt-4 border-t border-gray-200 dark:border-slate-700">
-                      <h3 className="text-sm font-semibold text-navy dark:text-white mb-3">Alertes liées ({bulletinItems.length})</h3>
+                      <h3 className="text-sm font-semibold text-seal-navy dark:text-white mb-3">Alertes liées ({bulletinItems.length})</h3>
                       {bulletinItemsLoading ? (
                         <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded bg-gray-100 dark:bg-slate-800" />)}</div>
                       ) : bulletinItems.length > 0 ? (
@@ -765,7 +765,7 @@ export default function VeillePage() {
                             <details key={item.id} className="group rounded-lg border border-gray-200 dark:border-slate-700">
                               <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800">
                                 {severityIcon(item.severity)}
-                                <span className="text-xs font-semibold text-navy dark:text-white flex-1 line-clamp-1">{item.title}</span>
+                                <span className="text-xs font-semibold text-seal-navy dark:text-white flex-1 line-clamp-1">{item.title}</span>
                                 {severityBadge(item.severity)}
                                 {item.cveId && <Badge variant="error">{item.cveId}</Badge>}
                               </summary>
@@ -818,7 +818,7 @@ export default function VeillePage() {
                         {item.cveId && <Badge variant="error">{item.cveId}</Badge>}
                         <Badge variant="navy">{item.sourceName}</Badge>
                       </div>
-                      <h3 className="text-sm font-semibold text-navy dark:text-white line-clamp-1">{item.title}</h3>
+                      <h3 className="text-sm font-semibold text-seal-navy dark:text-white line-clamp-1">{item.title}</h3>
                       {item.description && <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-1 mt-0.5">{item.description}</p>}
                       <div className="flex items-center gap-3 mt-1">
                         <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{formatDate(item.publishedAt)}</span>
@@ -893,7 +893,7 @@ export default function VeillePage() {
             <Filter className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-400 mt-0.5" />
             <button
               onClick={() => setProductFilter('')}
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${!productFilter ? 'bg-navy text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${!productFilter ? 'bg-seal-navy text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
             >
               Tous produits
             </button>
@@ -907,7 +907,7 @@ export default function VeillePage() {
                 <button
                   key={prod}
                   onClick={() => setProductFilter(productFilter === prod ? '' : prod)}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${productFilter === prod ? 'bg-navy text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${productFilter === prod ? 'bg-seal-navy text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
                 >
                   {prod} ({count})
                 </button>
@@ -967,7 +967,7 @@ export default function VeillePage() {
                       {item.isProcessed && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
                     </div>
                     <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
-                      className="text-sm font-medium text-navy dark:text-white hover:text-primary transition duration-200 line-clamp-1 block">
+                      className="text-sm font-medium text-seal-navy dark:text-white hover:text-primary transition duration-200 line-clamp-1 block">
                       {item.title}
                     </a>
                     <div className="flex items-center gap-2 mt-1 text-[11px] text-seal-gray-500 dark:text-slate-500">

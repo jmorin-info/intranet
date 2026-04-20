@@ -243,14 +243,14 @@ export default function AdminAuditLogPage() {
       sortable: true,
       className: 'w-44',
       render: (e) => (
-        <span className="text-xs font-mono text-navy dark:text-white">{formatDateTime(e.createdAt)}</span>
+        <span className="text-xs font-mono text-seal-navy dark:text-white">{formatDateTime(e.createdAt)}</span>
       ),
     },
     {
       key: 'user',
       header: t('auditLog.header.user'),
       render: (e) => (
-        <span className="text-sm text-navy dark:text-white">
+        <span className="text-sm text-seal-navy dark:text-white">
           {e.user ? `${e.user.firstName} ${e.user.lastName}` : e.userId}
         </span>
       ),
@@ -361,7 +361,7 @@ export default function AdminAuditLogPage() {
           <CardContent className="py-4">
             <div className="flex items-center gap-2 mb-3">
               <Download className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold text-navy dark:text-white">Exporter le journal d&apos;audit</h3>
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Exporter le journal d&apos;audit</h3>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-end gap-3 flex-wrap">
               <div>
@@ -370,7 +370,7 @@ export default function AdminAuditLogPage() {
                   type="date"
                   value={exportDateFrom}
                   onChange={(e) => setExportDateFrom(e.target.value)}
-                  className="text-xs border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-navy dark:text-white"
+                  className="text-xs border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-seal-navy dark:text-white"
                 />
               </div>
               <div>
@@ -379,7 +379,7 @@ export default function AdminAuditLogPage() {
                   type="date"
                   value={exportDateTo}
                   onChange={(e) => setExportDateTo(e.target.value)}
-                  className="text-xs border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-navy dark:text-white"
+                  className="text-xs border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-seal-navy dark:text-white"
                 />
               </div>
               <Button size="sm" onClick={exportCsvWithDateRange} loading={exporting}>
@@ -390,7 +390,7 @@ export default function AdminAuditLogPage() {
               </Button>
               <button
                 onClick={() => setShowExportPanel(false)}
-                className="text-xs text-seal-gray-500 hover:text-navy dark:hover:text-white transition-colors ml-auto"
+                className="text-xs text-seal-gray-500 hover:text-seal-navy dark:hover:text-white transition-colors ml-auto"
               >
                 Fermer
               </button>
@@ -452,14 +452,14 @@ export default function AdminAuditLogPage() {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-                className="text-xs border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-navy dark:text-white w-full sm:w-auto"
+                className="text-xs border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-seal-navy dark:text-white w-full sm:w-auto"
               />
               <span className="text-xs text-seal-gray-500 dark:text-slate-400 hidden sm:inline">—</span>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-                className="text-xs border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-navy dark:text-white w-full sm:w-auto"
+                className="text-xs border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-seal-navy dark:text-white w-full sm:w-auto"
               />
             </div>
             {(action || dateFrom || dateTo || severity || search) && (
@@ -526,7 +526,7 @@ export default function AdminAuditLogPage() {
                         {entry.action}
                       </span>
                       {/* User */}
-                      <span className="text-xs font-medium text-navy dark:text-white flex-shrink-0 hidden md:inline">
+                      <span className="text-xs font-medium text-seal-navy dark:text-white flex-shrink-0 hidden md:inline">
                         {entry.user ? `${entry.user.firstName} ${entry.user.lastName}` : entry.userId.slice(0, 8)}
                       </span>
                       {/* Resource */}
@@ -548,7 +548,7 @@ export default function AdminAuditLogPage() {
                 <span className="text-xs text-seal-gray-500 dark:text-slate-400">{entries.meta.total} entrees</span>
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>{t('audit.prev')}</Button>
-                  <span className="text-xs text-navy dark:text-white font-medium">{page} / {entries.meta.totalPages}</span>
+                  <span className="text-xs text-seal-navy dark:text-white font-medium">{page} / {entries.meta.totalPages}</span>
                   <Button size="sm" variant="outline" disabled={page >= entries.meta.totalPages} onClick={() => setPage(p => p + 1)}>{t('audit.next')}</Button>
                 </div>
               </div>

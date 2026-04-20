@@ -81,7 +81,7 @@ function CompliancePageInner() {
               className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors -mb-px ${
                 isActive
                   ? 'border-b-2 border-primary text-primary font-semibold'
-                  : 'text-seal-gray-500 hover:text-navy dark:hover:text-white border-b-2 border-transparent'
+                  : 'text-seal-gray-500 hover:text-seal-navy dark:hover:text-white border-b-2 border-transparent'
               }`}
             >
               <tab.icon className="h-4 w-4" />

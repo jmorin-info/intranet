@@ -270,7 +270,7 @@ export default function ChartesWallPage() {
                 >
                   ← Précédent
                 </Button>
-                <span className="text-sm text-navy dark:text-white font-medium">
+                <span className="text-sm text-seal-navy dark:text-white font-medium">
                   Page {currentPage} / {numPages || '...'}
                 </span>
                 <Button
@@ -336,7 +336,7 @@ export default function ChartesWallPage() {
                     <CheckCircle2 className="h-8 w-8 text-emerald-500" />
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-navy dark:text-white">Charte signee</h3>
+                <h3 className="text-lg font-semibold text-seal-navy dark:text-white">Charte signee</h3>
                 <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{charte.title}</p>
                 <p className="text-xs text-emerald-600 mt-2">
                   Signe le {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}

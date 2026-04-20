@@ -20,7 +20,7 @@ function highlightMatch(text: string, query: string): React.ReactNode {
   const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
   const parts = text.split(regex);
   return parts.map((part, i) =>
-    regex.test(part) ? <mark key={i} className="bg-primary/20 text-navy dark:text-white px-0.5 rounded">{part}</mark> : part
+    regex.test(part) ? <mark key={i} className="bg-primary/20 text-seal-navy dark:text-white px-0.5 rounded">{part}</mark> : part
   );
 }
 
@@ -326,7 +326,7 @@ export default function SearchPage() {
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm transition ${
-            showFilters ? 'border-navy bg-navy/5 dark:border-slate-400 dark:bg-slate-700' : 'border-gray-200 dark:border-slate-600 hover:border-gray-300'
+            showFilters ? 'border-seal-navy bg-seal-navy/5 dark:border-slate-400 dark:bg-slate-700' : 'border-gray-200 dark:border-slate-600 hover:border-gray-300'
           }`}
         >
           <Filter className="h-4 w-4" />
@@ -359,7 +359,7 @@ export default function SearchPage() {
                       key={opt.value}
                       onClick={() => setDateRange(opt.value)}
                       className={`px-2.5 py-1 rounded text-xs transition ${
-                        dateRange === opt.value ? 'bg-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
+                        dateRange === opt.value ? 'bg-seal-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
                       }`}
                     >
                       {opt.label}
@@ -381,7 +381,7 @@ export default function SearchPage() {
                       key={opt.value}
                       onClick={() => setClassificationFilter(opt.value)}
                       className={`px-2.5 py-1 rounded text-xs transition ${
-                        classificationFilter === opt.value ? 'bg-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
+                        classificationFilter === opt.value ? 'bg-seal-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
                       }`}
                     >
                       {opt.label}
@@ -401,7 +401,7 @@ export default function SearchPage() {
                       key={opt.value}
                       onClick={() => setSortBy(opt.value)}
                       className={`px-2.5 py-1 rounded text-xs transition ${
-                        sortBy === opt.value ? 'bg-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
+                        sortBy === opt.value ? 'bg-seal-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
                       }`}
                     >
                       {opt.label}
@@ -417,7 +417,7 @@ export default function SearchPage() {
       {/* Quick Actions (command palette) */}
       {quickActions.length > 0 && debouncedQuery && (
         <div>
-          <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
             <Zap className="h-4 w-4 text-primary" /> {t('search.quickActions')}
           </h2>
           <div className="space-y-1.5">
@@ -431,7 +431,7 @@ export default function SearchPage() {
                         <Icon className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-navy dark:text-white">{action.label}</p>
+                        <p className="text-sm font-semibold text-seal-navy dark:text-white">{action.label}</p>
                         <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">{action.description}</p>
                       </div>
                       <Badge variant="navy" className="text-[10px]">Action</Badge>
@@ -471,7 +471,7 @@ export default function SearchPage() {
                     <button
                       key={i}
                       onClick={() => setQuery(term)}
-                      className="px-3 py-1 rounded-full bg-gray-100 dark:bg-slate-800 text-sm text-navy dark:text-white hover:bg-primary hover:text-white transition"
+                      className="px-3 py-1 rounded-full bg-gray-100 dark:bg-slate-800 text-sm text-seal-navy dark:text-white hover:bg-primary hover:text-white transition"
                     >
                       {term}
                     </button>
@@ -520,7 +520,7 @@ export default function SearchPage() {
 
           {aiResults.documents.length > 0 && (
             <div id="ai-documents">
-              <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" /> Documents ({aiResults.documents.length})
               </h2>
               <div className="space-y-2">
@@ -528,9 +528,9 @@ export default function SearchPage() {
                   <Link key={doc.id} href={`/documents/${doc.id}`} className="stagger-item block">
                     <Card hoverable>
                       <CardContent className="py-3 flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-navy dark:text-blue-400 flex-shrink-0" />
+                        <FileText className="h-5 w-5 text-seal-navy dark:text-blue-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(doc.title, debouncedQuery)}</p>
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">{highlightMatch(doc.title, debouncedQuery)}</p>
                           {doc.reference && <p className="text-[10px] font-mono text-seal-gray-500 dark:text-slate-400">{doc.reference}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -547,7 +547,7 @@ export default function SearchPage() {
 
           {aiResults.wiki.length > 0 && (
             <div id="ai-wiki">
-              <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-emerald-500" /> Wiki ({aiResults.wiki.length})
               </h2>
               <div className="space-y-2">
@@ -557,7 +557,7 @@ export default function SearchPage() {
                       <CardContent className="py-3 flex items-center gap-3">
                         <BookOpen className="h-5 w-5 text-emerald-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(page.title, debouncedQuery)}</p>
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">{highlightMatch(page.title, debouncedQuery)}</p>
                           {page.category && <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{page.category}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -574,7 +574,7 @@ export default function SearchPage() {
 
           {aiResults.tickets.length > 0 && (
             <div id="ai-tickets">
-              <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                 <Ticket className="h-4 w-4 text-amber-500" /> Tickets ({aiResults.tickets.length})
               </h2>
               <div className="space-y-2">
@@ -584,7 +584,7 @@ export default function SearchPage() {
                       <CardContent className="py-3 flex items-center gap-3">
                         <Ticket className="h-5 w-5 text-amber-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(t.title, debouncedQuery)}</p>
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">{highlightMatch(t.title, debouncedQuery)}</p>
                           {t.reference && <p className="text-[10px] font-mono text-seal-gray-500 dark:text-slate-400">{t.reference}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -601,7 +601,7 @@ export default function SearchPage() {
 
           {aiResults.news.length > 0 && (
             <div id="ai-news">
-              <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                 <Newspaper className="h-4 w-4 text-blue-500" /> Actualités ({aiResults.news.length})
               </h2>
               <div className="space-y-2">
@@ -610,7 +610,7 @@ export default function SearchPage() {
                     <Card hoverable>
                       <CardContent className="py-3 flex items-center gap-3">
                         <Newspaper className="h-5 w-5 text-blue-500 flex-shrink-0" />
-                        <p className="text-sm font-semibold text-navy dark:text-white flex-1">{highlightMatch(n.title, debouncedQuery)}</p>
+                        <p className="text-sm font-semibold text-seal-navy dark:text-white flex-1">{highlightMatch(n.title, debouncedQuery)}</p>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <ConfidenceBadge score={n.confidence} />
                           <Badge variant="info">Actualité</Badge>
@@ -625,7 +625,7 @@ export default function SearchPage() {
 
           {(aiResults.runbooks || []).length > 0 && (
             <div id="ai-runbooks">
-              <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                 <PlayCircle className="h-4 w-4 text-violet-500" /> Runbooks ({aiResults.runbooks.length})
               </h2>
               <div className="space-y-2">
@@ -635,7 +635,7 @@ export default function SearchPage() {
                       <CardContent className="py-3 flex items-center gap-3">
                         <PlayCircle className="h-5 w-5 text-violet-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(rb.title, debouncedQuery)}</p>
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">{highlightMatch(rb.title, debouncedQuery)}</p>
                           {rb.category && <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{rb.category}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -652,7 +652,7 @@ export default function SearchPage() {
 
           {(aiResults.veille || []).length > 0 && (
             <div id="ai-veille">
-              <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-rose-500" /> Veille ({aiResults.veille.length})
               </h2>
               <div className="space-y-2">
@@ -662,7 +662,7 @@ export default function SearchPage() {
                       <CardContent className="py-3 flex items-center gap-3">
                         <AlertTriangle className="h-5 w-5 text-rose-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(v.title, debouncedQuery)}</p>
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">{highlightMatch(v.title, debouncedQuery)}</p>
                           {v.severity && <Badge variant={v.severity === 'CRITICAL' ? 'error' : v.severity === 'HIGH' ? 'warning' : 'info'} className="mt-0.5">{v.severity}</Badge>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -685,7 +685,7 @@ export default function SearchPage() {
 
           {(aiResults.kb || []).length > 0 && (
             <div id="ai-kb">
-              <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                 <MessageCircle className="h-4 w-4 text-teal-500" /> Base de connaissances ({aiResults.kb.length})
               </h2>
               <div className="space-y-2">
@@ -695,7 +695,7 @@ export default function SearchPage() {
                       <div className="flex items-start gap-3">
                         <MessageCircle className="h-5 w-5 text-teal-500 flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(item.question, debouncedQuery)}</p>
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">{highlightMatch(item.question, debouncedQuery)}</p>
                           <p className="text-xs text-gray-600 dark:text-slate-400 line-clamp-2 mt-1">{item.answer}</p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -714,7 +714,7 @@ export default function SearchPage() {
           {aiResults.didYouMean && aiResults.didYouMean.length > 0 && (
             <Card className="border-l-4 border-l-amber-400">
               <CardContent className="py-3">
-                <p className="text-xs font-semibold text-navy dark:text-white mb-2 flex items-center gap-1.5">
+                <p className="text-xs font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-1.5">
                   <CornerDownRight className="h-3.5 w-3.5 text-amber-500" /> Vouliez-vous dire ?
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -732,7 +732,7 @@ export default function SearchPage() {
           {aiResults.suggestions.length > 0 && (
             <Card className="border-l-4 border-l-primary">
               <CardContent className="py-3">
-                <p className="text-xs font-semibold text-navy dark:text-white mb-2 flex items-center gap-1.5">
+                <p className="text-xs font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-1.5">
                   <Lightbulb className="h-3.5 w-3.5 text-primary" /> Suggestions IA
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -760,7 +760,7 @@ export default function SearchPage() {
       ) : !debouncedQuery ? (
         <div className="text-center py-16">
           <Search className="h-16 w-16 text-seal-gray-500/20 mx-auto mb-4" />
-          <p className="text-lg font-medium text-navy dark:text-white mb-1">{t('search.intranet')}</p>
+          <p className="text-lg font-medium text-seal-navy dark:text-white mb-1">{t('search.intranet')}</p>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('search.minChars')}</p>
           <p className="text-xs text-seal-gray-500/60 dark:text-slate-500 mt-2">Appuyez sur <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[10px] font-mono border border-gray-200 dark:border-slate-700">/</kbd> pour rechercher</p>
           <div className="flex justify-center gap-4 mt-4 text-xs text-seal-gray-500 dark:text-slate-500 flex-wrap">
@@ -788,7 +788,7 @@ export default function SearchPage() {
 
           {sfFilteredDocuments.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" /> {t('search.sectionDocuments')} ({sfFilteredDocuments.length})
               </h2>
               <div className="space-y-2">
@@ -796,9 +796,9 @@ export default function SearchPage() {
                   <Link key={doc.id} href={`/documents/${doc.id}`} className="stagger-item block">
                     <Card hoverable>
                       <CardContent className="py-3 flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-navy dark:text-blue-400 flex-shrink-0" />
+                        <FileText className="h-5 w-5 text-seal-navy dark:text-blue-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(doc.title, debouncedQuery)}</p>
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">{highlightMatch(doc.title, debouncedQuery)}</p>
                           {doc.reference && <p className="text-[10px] font-mono text-seal-gray-500 dark:text-slate-400">{doc.reference}</p>}
                           {doc.excerpt && (
                             <p className="text-xs text-gray-600 dark:text-slate-400 line-clamp-2 mt-0.5">
@@ -825,7 +825,7 @@ export default function SearchPage() {
 
           {sfFilteredNews.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                 <Newspaper className="h-4 w-4 text-primary" /> {t('search.sectionNews')} ({sfFilteredNews.length})
               </h2>
               <div className="space-y-2">
@@ -835,7 +835,7 @@ export default function SearchPage() {
                       <CardContent className="py-3 flex items-center gap-3">
                         <Newspaper className="h-5 w-5 text-blue-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(n.title, debouncedQuery)}</p>
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">{highlightMatch(n.title, debouncedQuery)}</p>
                           {n.excerpt && (
                             <p className="text-xs text-gray-600 dark:text-slate-400 line-clamp-2 mt-0.5">
                               <Spotlight text={n.excerpt} query={debouncedQuery} />
@@ -858,7 +858,7 @@ export default function SearchPage() {
 
           {sfFilteredWiki.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-primary" /> Wiki ({sfFilteredWiki.length})
               </h2>
               <div className="space-y-2">
@@ -868,7 +868,7 @@ export default function SearchPage() {
                       <CardContent className="py-3 flex items-center gap-3">
                         <BookOpen className="h-5 w-5 text-emerald-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(w.title, debouncedQuery)}</p>
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">{highlightMatch(w.title, debouncedQuery)}</p>
                           {w.category && <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{w.category}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -887,7 +887,7 @@ export default function SearchPage() {
 
           {sfFilteredTickets.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-navy dark:text-white mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
                 <Ticket className="h-4 w-4 text-primary" /> Tickets ({sfFilteredTickets.length})
               </h2>
               <div className="space-y-2">
@@ -897,7 +897,7 @@ export default function SearchPage() {
                       <CardContent className="py-3 flex items-center gap-3">
                         <Ticket className="h-5 w-5 text-violet-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(tk.title, debouncedQuery)}</p>
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">{highlightMatch(tk.title, debouncedQuery)}</p>
                           {tk.reference && <p className="text-[10px] font-mono text-seal-gray-500 dark:text-slate-400">{tk.reference}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">

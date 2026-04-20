@@ -144,7 +144,7 @@ export default function ProceduresPage() {
             <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md transition ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-navy dark:text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'}`}
+                className={`p-1.5 rounded-md transition ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-seal-navy dark:text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'}`}
                 title="Vue grille"
             aria-label="Afficher en vue grille"
           >
@@ -152,7 +152,7 @@ export default function ProceduresPage() {
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`p-1.5 rounded-md transition ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-navy dark:text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'}`}
+            className={`p-1.5 rounded-md transition ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-seal-navy dark:text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'}`}
             title="Vue liste"
             aria-label="Afficher en vue liste"
           >
@@ -202,7 +202,7 @@ export default function ProceduresPage() {
           {domainStats.map(([label, count]) => (
             <span
               key={label}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-slate-800 text-xs font-medium text-navy dark:text-white flex-shrink-0"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-slate-800 text-xs font-medium text-seal-navy dark:text-white flex-shrink-0"
             >
               {label}
               <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded-full text-[10px] font-semibold">{count}</span>
@@ -262,7 +262,7 @@ export default function ProceduresPage() {
                         {getFileIcon(proc.currentVersion?.fileType)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-navy dark:text-white line-clamp-2">
+                        <p className="text-sm font-semibold text-seal-navy dark:text-white line-clamp-2">
                           {proc.title}
                         </p>
                         <p className="text-xs font-mono text-seal-gray-500 dark:text-slate-400 mt-0.5">
@@ -312,7 +312,7 @@ export default function ProceduresPage() {
                 {/* Hover preview tooltip */}
                 {hoveredId === proc.id && proc.description && (
                   <div className="absolute z-20 left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-600 p-3 pointer-events-none">
-                    <p className="text-xs font-semibold text-navy dark:text-white mb-1">{proc.title}</p>
+                    <p className="text-xs font-semibold text-seal-navy dark:text-white mb-1">{proc.title}</p>
                     <p className="text-[11px] text-gray-600 dark:text-slate-300 leading-relaxed">{proc.description}</p>
                     <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-2">
                       Dernière mise à jour : {formatDate(proc.updatedAt)}
@@ -335,7 +335,7 @@ export default function ProceduresPage() {
                     {getFileIcon(proc.currentVersion?.fileType)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-white truncate">{proc.title}</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">{proc.title}</p>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400 font-mono">{proc.reference}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">

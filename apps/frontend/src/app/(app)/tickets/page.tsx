@@ -69,7 +69,7 @@ const TEMPLATE_ICONS: Record<string, React.ReactNode> = {
   SOFTWARE: <Settings className="h-5 w-5 text-primary" />,
   NETWORK: <Wifi className="h-5 w-5 text-blue-500" />,
   ACCESS: <Lock className="h-5 w-5 text-[#70916a]" />,
-  REQUEST: <FileText className="h-5 w-5 text-navy dark:text-sky-300" />,
+  REQUEST: <FileText className="h-5 w-5 text-seal-navy dark:text-sky-300" />,
   OTHER: <HelpCircle className="h-5 w-5 text-seal-gray-500" />,
 };
 
@@ -798,13 +798,13 @@ export default function TicketsPage() {
     }] : []),
     { key: 'reference', header: t('tickets.column.ref'), className: 'w-28', render: (ticket) => (
       <div className="flex items-center gap-1.5">
-        <span className="font-mono text-xs font-semibold text-navy dark:text-white">{ticket.reference}</span>
+        <span className="font-mono text-xs font-semibold text-seal-navy dark:text-white">{ticket.reference}</span>
         {isRedmineTicket(ticket) && (
           <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-medium bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400">Redmine</span>
         )}
       </div>
     ) },
-    { key: 'title', header: t('tickets.column.title'), sortable: true, render: (t) => <span className="text-sm font-semibold text-navy dark:text-white truncate max-w-xs block">{t.title}</span> },
+    { key: 'title', header: t('tickets.column.title'), sortable: true, render: (t) => <span className="text-sm font-semibold text-seal-navy dark:text-white truncate max-w-xs block">{t.title}</span> },
     { key: 'category', header: t('tickets.column.category'), render: (t) => <Badge variant={categoryBadgeVariant(t.category)}>{categoryLabel(t.category)}</Badge> },
     { key: 'tags' , header: 'Labels', render: (t) => {
       const visible = visibleTags(t.tags);
@@ -840,11 +840,11 @@ export default function TicketsPage() {
     ...(sourceTab === 'deploiements' ? [
       { key: 'client', header: 'Client', className: 'w-36', render: (ticket: TicketItem) => {
         const client = extractClientFromTags(ticket.tags);
-        return client ? <span className="text-xs font-medium text-navy dark:text-white">{client}</span> : <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">--</span>;
+        return client ? <span className="text-xs font-medium text-seal-navy dark:text-white">{client}</span> : <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">--</span>;
       }},
       { key: 'sn', header: 'SN', className: 'w-32', render: (ticket: TicketItem) => {
         const sn = extractSnFromDescription(ticket.description);
-        return sn ? <span className="font-mono text-xs text-navy dark:text-white">{sn}</span> : <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">--</span>;
+        return sn ? <span className="font-mono text-xs text-seal-navy dark:text-white">{sn}</span> : <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">--</span>;
       }},
     ] : []),
     { key: 'priority', header: t('tickets.column.priority'), sortable: true, render: (t) => priorityBadge(t.priority) },
@@ -869,7 +869,7 @@ export default function TicketsPage() {
           <button
             title="Changer le statut"
             onClick={(e) => { e.stopPropagation(); const el = e.currentTarget.nextElementSibling as HTMLElement; if (el) el.classList.toggle('hidden'); }}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-gray-500 hover:text-navy dark:hover:text-white transition"
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-gray-500 hover:text-seal-navy dark:hover:text-white transition"
           >
             <ChevronDown className="h-3.5 w-3.5" />
           </button>
@@ -886,7 +886,7 @@ export default function TicketsPage() {
                     fetchTickets();
                   } catch { toast.error('Erreur'); }
                 }}
-                className="w-full text-left px-3 py-1.5 text-xs text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800 transition"
+                className="w-full text-left px-3 py-1.5 text-xs text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800 transition"
               >
                 {statusBadge(s)}
               </button>
@@ -920,7 +920,7 @@ export default function TicketsPage() {
             toast.success(`${ticket.reference} copié`);
             setTimeout(() => setCopiedRef(null), 2000);
           }}
-          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-gray-500 hover:text-navy dark:hover:text-white transition"
+          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-gray-500 hover:text-seal-navy dark:hover:text-white transition"
         >
           {copiedRef === ticket.reference ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
@@ -976,7 +976,7 @@ export default function TicketsPage() {
             onClick={() => { setActiveSpaceSlug(''); setPage(1); }}
             className={`px-3 py-1.5 text-xs rounded-full font-semibold transition-all ${
               activeSpaceSlug === ''
-                ? 'bg-navy text-white dark:bg-white dark:text-navy shadow-sm'
+                ? 'bg-seal-navy text-white dark:bg-white dark:text-seal-navy shadow-sm'
                 : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
             }`}
           >
@@ -1049,7 +1049,7 @@ export default function TicketsPage() {
             </div>
             <div>
               <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Ouverts</p>
-              <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">{contextualStats.open}</p>
+              <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">{contextualStats.open}</p>
             </div>
           </CardContent>
         </Card>
@@ -1060,7 +1060,7 @@ export default function TicketsPage() {
             </div>
             <div>
               <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">En cours</p>
-              <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">{contextualStats.inProgress}</p>
+              <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">{contextualStats.inProgress}</p>
             </div>
           </CardContent>
         </Card>
@@ -1071,7 +1071,7 @@ export default function TicketsPage() {
             </div>
             <div>
               <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Resolus / Fermes</p>
-              <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">{contextualStats.resolved}</p>
+              <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">{contextualStats.resolved}</p>
             </div>
           </CardContent>
         </Card>
@@ -1150,7 +1150,7 @@ export default function TicketsPage() {
             })}
             <button
               onClick={() => { setShowClosed(!showClosed); if (!showClosed && statusFilter === 'CLOSED') setStatusFilter('OPEN'); }}
-              className={`ml-2 rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${showClosed ? 'bg-navy/10 dark:bg-slate-600 text-navy dark:text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600'}`}
+              className={`ml-2 rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${showClosed ? 'bg-seal-navy/10 dark:bg-slate-600 text-seal-navy dark:text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600'}`}
               title="Afficher / masquer les tickets fermés"
             >
               {showClosed ? <ToggleRight className="h-3.5 w-3.5" /> : <ToggleLeft className="h-3.5 w-3.5" />}
@@ -1160,7 +1160,7 @@ export default function TicketsPage() {
           <div className="flex gap-1.5 items-center flex-wrap">
             <button
               onClick={() => { setMyTicketsOnly(!myTicketsOnly); setPage(1); }}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${myTicketsOnly ? 'bg-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${myTicketsOnly ? 'bg-seal-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
             >
               <User className="h-3 w-3" />
               Mes tickets
@@ -1329,7 +1329,7 @@ export default function TicketsPage() {
         <div className="space-y-4">
           {/* Type de demande — cartes visuelles */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-navy dark:text-white">Type de demande</label>
+            <label className="text-xs font-semibold text-seal-navy dark:text-white">Type de demande</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {REQUEST_TYPES.map((rt) => (
                 <button
@@ -1359,7 +1359,7 @@ export default function TicketsPage() {
                     {rt.icon}
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-navy dark:text-white">{rt.label}</p>
+                    <p className="text-xs font-semibold text-seal-navy dark:text-white">{rt.label}</p>
                     <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 leading-tight">{rt.description}</p>
                   </div>
                 </button>
@@ -1368,7 +1368,7 @@ export default function TicketsPage() {
           </div>
           {templates.length > 0 && (
             <div className="space-y-2">
-              <label className="text-xs font-medium text-navy dark:text-white">Template</label>
+              <label className="text-xs font-medium text-seal-navy dark:text-white">Template</label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -1386,7 +1386,7 @@ export default function TicketsPage() {
                     <FileText className="h-4 w-4 text-seal-gray-500" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-navy dark:text-white truncate">Vide</p>
+                    <p className="text-xs font-semibold text-seal-navy dark:text-white truncate">Vide</p>
                     <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 truncate">Ticket libre</p>
                   </div>
                 </button>
@@ -1415,7 +1415,7 @@ export default function TicketsPage() {
                       {TEMPLATE_ICONS[tpl.category] || TEMPLATE_ICONS['OTHER']}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-navy dark:text-white truncate">{tpl.label}</p>
+                      <p className="text-xs font-semibold text-seal-navy dark:text-white truncate">{tpl.label}</p>
                       <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 truncate">{categoryLabel(tpl.category)}</p>
                     </div>
                   </button>
@@ -1436,7 +1436,7 @@ export default function TicketsPage() {
               <button
                 type="button"
                 onClick={() => setTitleSuggestionsOpen((v) => !v)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-navy dark:text-white hover:bg-blue-100/50 dark:hover:bg-blue-800/20 transition"
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-seal-navy dark:text-white hover:bg-blue-100/50 dark:hover:bg-blue-800/20 transition"
               >
                 <Info className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
                 Articles et tickets similaires
@@ -1456,7 +1456,7 @@ export default function TicketsPage() {
                         >
                           <Ticket className="h-3 w-3 text-seal-gray-500 group-hover:text-primary flex-shrink-0" />
                           <span className="font-mono text-[10px] text-seal-gray-500 dark:text-slate-400 flex-shrink-0">{tk.reference}</span>
-                          <span className="text-navy dark:text-white truncate">{tk.title}</span>
+                          <span className="text-seal-navy dark:text-white truncate">{tk.title}</span>
                           <Badge
                             variant={tk.status === 'RESOLVED' || tk.status === 'CLOSED' ? 'approved' : tk.status === 'IN_PROGRESS' ? 'warning' : 'info'}
                             className="text-[8px] ml-auto flex-shrink-0"
@@ -1478,7 +1478,7 @@ export default function TicketsPage() {
                           className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] hover:bg-blue-100 dark:hover:bg-blue-800/30 transition group"
                         >
                           <FileText className="h-3 w-3 text-seal-gray-500 group-hover:text-primary flex-shrink-0" />
-                          <span className="text-navy dark:text-white truncate">{article.title}</span>
+                          <span className="text-seal-navy dark:text-white truncate">{article.title}</span>
                           <Link2 className="h-3 w-3 text-seal-gray-500 ml-auto flex-shrink-0" />
                         </a>
                       ))}
@@ -1506,7 +1506,7 @@ export default function TicketsPage() {
               ]} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
               {form.category && CATEGORY_ASSIGNEES[form.category] && (
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-                  💡 Assignation suggérée : <span className="font-semibold text-navy dark:text-white">{CATEGORY_ASSIGNEES[form.category]}</span>
+                  💡 Assignation suggérée : <span className="font-semibold text-seal-navy dark:text-white">{CATEGORY_ASSIGNEES[form.category]}</span>
                 </p>
               )}
             </div>
@@ -1578,7 +1578,7 @@ export default function TicketsPage() {
             <div className="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-900/10 p-4 space-y-4">
               <div className="flex items-center gap-2">
                 <Cpu className="h-4 w-4 text-teal-600 dark:text-teal-400" />
-                <span className="text-sm font-semibold text-navy dark:text-white">Checklist deploiement</span>
+                <span className="text-sm font-semibold text-seal-navy dark:text-white">Checklist deploiement</span>
                 <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 ml-auto">
                   {Object.values(checklistState).filter(Boolean).length}/{deployLabels.deployment.checklist.length} coches
                 </span>
@@ -1592,7 +1592,7 @@ export default function TicketsPage() {
                       onChange={(e) => setChecklistState(prev => ({ ...prev, [item.id]: e.target.checked }))}
                       className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary"
                     />
-                    <span className="text-xs text-navy dark:text-white group-hover:text-primary transition">{item.label}</span>
+                    <span className="text-xs text-seal-navy dark:text-white group-hover:text-primary transition">{item.label}</span>
                   </label>
                 ))}
               </div>
@@ -1640,7 +1640,7 @@ export default function TicketsPage() {
             <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 p-3 space-y-2 animate-[fadeIn_0.3s_ease-out]">
               <div className="flex items-center gap-2">
                 <Sparkles className={`h-4 w-4 text-primary ${aiLoading ? 'animate-spin' : ''}`} />
-                <span className="text-xs font-semibold text-navy dark:text-white">Analyse IA</span>
+                <span className="text-xs font-semibold text-seal-navy dark:text-white">Analyse IA</span>
                 {aiLoading && <span className="text-[10px] text-seal-gray-500 animate-pulse">Analyse en cours...</span>}
               </div>
               {aiAnalysis && !aiLoading && (
@@ -1681,7 +1681,7 @@ export default function TicketsPage() {
                       <div className="space-y-0.5">
                         {aiAnalysis.relatedTickets.slice(0, 3).map((rt: any) => (
                           <div key={rt.id} className="flex items-center gap-2 text-[10px]">
-                            <span className="font-mono font-semibold text-navy dark:text-white">{rt.reference}</span>
+                            <span className="font-mono font-semibold text-seal-navy dark:text-white">{rt.reference}</span>
                             <span className="text-seal-gray-500 dark:text-slate-400 truncate">{rt.title}</span>
                             <Badge variant={rt.status === 'RESOLVED' || rt.status === 'CLOSED' ? 'approved' : 'warning'} className="text-[8px] ml-auto">{rt.status}</Badge>
                           </div>
@@ -1839,7 +1839,7 @@ function AnimatedStatsCards({ analytics }: { analytics: any }) {
             <div>
               <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">{c.label}</p>
               <div className="flex items-baseline gap-1.5">
-                <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">
+                <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">
                   {c.value}{c.suffix}
                 </p>
                 {c.trend != null && c.trend !== 0 && (
@@ -1952,7 +1952,7 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
         </div>
 
         {/* Title */}
-        <p className="text-xs font-semibold text-navy dark:text-white line-clamp-2 group-hover:text-primary transition-colors duration-200">
+        <p className="text-xs font-semibold text-seal-navy dark:text-white line-clamp-2 group-hover:text-primary transition-colors duration-200">
           {ticket.title}
         </p>
 
@@ -2043,7 +2043,7 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
         }`}
       >
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-navy dark:text-white">{col.label}</h3>
+          <h3 className="text-sm font-semibold text-seal-navy dark:text-white">{col.label}</h3>
           <div className="flex items-center gap-1.5">
             <Badge variant={isOverWip ? 'error' : 'navy'}>{columnTickets.length}</Badge>
             {col.wipLimit > 0 && (

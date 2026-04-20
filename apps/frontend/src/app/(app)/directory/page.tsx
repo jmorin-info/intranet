@@ -189,14 +189,14 @@ export default function DirectoryPage() {
         </div>
         <Link
           href="/directory/organigramme"
-          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
         >
           <GitBranchPlus className="h-4 w-4" />
           Organigramme
         </Link>
         <Link
           href="/directory/contacts"
-          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
         >
           <ExternalLink className="h-4 w-4" />
           Contacts externes
@@ -233,7 +233,7 @@ export default function DirectoryPage() {
                   className={`p-1.5 rounded-md transition-all duration-200 ${
                     viewMode === 'grid'
                       ? 'bg-primary text-white shadow-sm'
-                      : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
+                      : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
                   }`}
                 >
                   <LayoutGrid className="h-4 w-4" />
@@ -244,7 +244,7 @@ export default function DirectoryPage() {
                   className={`p-1.5 rounded-md transition-all duration-200 ${
                     viewMode === 'list'
                       ? 'bg-primary text-white shadow-sm'
-                      : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
+                      : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
                   }`}
                 >
                   <List className="h-4 w-4" />
@@ -341,7 +341,7 @@ export default function DirectoryPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <Search className="h-12 w-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
-            <p className="text-lg font-medium text-navy dark:text-white">{t('common.noResults')}</p>
+            <p className="text-lg font-medium text-seal-navy dark:text-white">{t('common.noResults')}</p>
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
               {t('directory.noResultsHint')}
             </p>
@@ -377,7 +377,7 @@ export default function DirectoryPage() {
 
                     {/* Name + job title block */}
                     <div className="space-y-0.5">
-                      <h3 className="font-medium text-navy dark:text-white text-sm leading-tight">
+                      <h3 className="font-medium text-seal-navy dark:text-white text-sm leading-tight">
                         {u.firstName} {u.lastName}
                       </h3>
                       {u.jobTitle && (
@@ -462,7 +462,7 @@ export default function DirectoryPage() {
 
                   {/* Name + job title */}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-navy dark:text-white text-sm truncate">
+                    <p className="font-medium text-seal-navy dark:text-white text-sm truncate">
                       {u.firstName} {u.lastName}
                     </p>
                     {u.jobTitle && (

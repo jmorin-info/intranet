@@ -84,7 +84,7 @@ export default function MaintenancePage() {
       </div>
 
       {/* Title */}
-      <h1 className="text-3xl md:text-4xl font-semibold text-navy dark:text-white text-center animate-fade-in-up">
+      <h1 className="text-3xl md:text-4xl font-semibold text-seal-navy dark:text-white text-center animate-fade-in-up">
         Maintenance en cours
       </h1>
 
@@ -109,7 +109,7 @@ export default function MaintenancePage() {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-navy dark:text-white">{t('maintenance.estimatedReturn')}</p>
+            <p className="text-sm font-semibold text-seal-navy dark:text-white">{t('maintenance.estimatedReturn')}</p>
             <p className="text-lg font-semibold text-primary">{estimatedReturnTime}</p>
           </div>
         </div>
@@ -125,11 +125,11 @@ export default function MaintenancePage() {
           <div className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
             <span>{t('maintenance.estimatedIn')}</span>
             <div className="flex items-center gap-1 font-mono">
-              <span className="inline-flex items-center justify-center min-w-[2.2rem] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-1.5 py-0.5 text-base font-semibold text-navy dark:text-white shadow-sm">
+              <span className="inline-flex items-center justify-center min-w-[2.2rem] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-1.5 py-0.5 text-base font-semibold text-seal-navy dark:text-white shadow-sm">
                 {String(countdown.hours).padStart(2, '0')}
               </span>
               <span className="text-slate-400 font-semibold">:</span>
-              <span className="inline-flex items-center justify-center min-w-[2.2rem] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-1.5 py-0.5 text-base font-semibold text-navy dark:text-white shadow-sm">
+              <span className="inline-flex items-center justify-center min-w-[2.2rem] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-1.5 py-0.5 text-base font-semibold text-seal-navy dark:text-white shadow-sm">
                 {String(countdown.minutes).padStart(2, '0')}
               </span>
               <span className="text-slate-400 font-semibold">:</span>

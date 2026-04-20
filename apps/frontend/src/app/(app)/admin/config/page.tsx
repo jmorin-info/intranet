@@ -633,8 +633,8 @@ export default function AdminConfigPage() {
       <Card className="shadow-sm rounded-xl animate-fade-in-up">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Server className="h-5 w-5 text-navy dark:text-blue-400" />
-            <h2 className="text-sm font-semibold text-navy dark:text-white">Informations système</h2>
+            <Server className="h-5 w-5 text-seal-navy dark:text-blue-400" />
+            <h2 className="text-sm font-semibold text-seal-navy dark:text-white">Informations système</h2>
           </div>
         </CardHeader>
         <CardContent>
@@ -648,7 +648,7 @@ export default function AdminConfigPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
                 <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Version</p>
-                <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.version || 'N/A'}</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">{systemInfo.version || 'N/A'}</p>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
                 <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Base de données</p>
@@ -658,7 +658,7 @@ export default function AdminConfigPage() {
                   ) : (
                     <XCircle className="h-4 w-4 text-red-500" />
                   )}
-                  <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.database || 'N/A'}</p>
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">{systemInfo.database || 'N/A'}</p>
                 </div>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
@@ -669,24 +669,24 @@ export default function AdminConfigPage() {
                   ) : (
                     <XCircle className="h-4 w-4 text-red-500" />
                   )}
-                  <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.redis || 'N/A'}</p>
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">{systemInfo.redis || 'N/A'}</p>
                 </div>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
                 <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Utilisateurs</p>
-                <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.totalUsers ?? 'N/A'}</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">{systemInfo.totalUsers ?? 'N/A'}</p>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
                 <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Documents</p>
-                <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.totalDocuments ?? 'N/A'}</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">{systemInfo.totalDocuments ?? 'N/A'}</p>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
                 <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Uptime</p>
-                <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.uptime || 'N/A'}</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">{systemInfo.uptime || 'N/A'}</p>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
                 <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Mémoire</p>
-                <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.memoryUsage || 'N/A'}</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">{systemInfo.memoryUsage || 'N/A'}</p>
               </div>
             </div>
           ) : null}
@@ -697,8 +697,8 @@ export default function AdminConfigPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Megaphone className="h-5 w-5 text-navy dark:text-blue-400" />
-            <h2 className="text-sm font-semibold text-navy dark:text-white">Bannières prioritaires</h2>
+            <Megaphone className="h-5 w-5 text-seal-navy dark:text-blue-400" />
+            <h2 className="text-sm font-semibold text-seal-navy dark:text-white">Bannières prioritaires</h2>
           </div>
         </CardHeader>
         <CardContent>
@@ -722,7 +722,7 @@ export default function AdminConfigPage() {
                 <label className="block text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-1.5">Niveau</label>
                 <select
                   aria-label="Niveau de la bannière"
-                  className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-navy dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                  className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-seal-navy dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
                   value={newBanner.level}
                   onChange={(e) => setNewBanner((p) => ({ ...p, level: e.target.value }))}
                 >
@@ -767,7 +767,7 @@ export default function AdminConfigPage() {
                       {b.level}
                     </Badge>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-navy dark:text-white truncate">{b.title}</p>
+                      <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">{b.title}</p>
                       <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">{b.message}</p>
                     </div>
                     {!b.isActive && (
@@ -780,7 +780,7 @@ export default function AdminConfigPage() {
                     )}
                     <button
                       onClick={() => handleToggleBanner(b.id, b.isActive)}
-                      className="text-seal-gray-500 hover:text-navy dark:hover:text-white transition-colors"
+                      className="text-seal-gray-500 hover:text-seal-navy dark:hover:text-white transition-colors"
                       title={b.isActive ? 'Désactiver' : 'Activer'}
                       aria-label={b.isActive ? 'Désactiver le bandeau' : 'Activer le bandeau'}
                     >
@@ -806,8 +806,8 @@ export default function AdminConfigPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Search className="h-5 w-5 text-navy dark:text-blue-400" />
-            <h2 className="text-sm font-semibold text-navy dark:text-white">Meilisearch</h2>
+            <Search className="h-5 w-5 text-seal-navy dark:text-blue-400" />
+            <h2 className="text-sm font-semibold text-seal-navy dark:text-white">Meilisearch</h2>
             {meiliStats && (
               <Badge variant={meiliStats.available ? 'success' : 'error'}>
                 {meiliStats.available ? 'Connecté' : 'Hors ligne'}
@@ -836,7 +836,7 @@ export default function AdminConfigPage() {
                   </p>
                   <div className="flex items-center gap-1.5">
                     <Database className="h-4 w-4 text-primary" />
-                    <p className="text-sm font-semibold text-navy dark:text-white">
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white">
                       {count >= 0 ? count : 'N/A'}
                     </p>
                   </div>
@@ -896,7 +896,7 @@ export default function AdminConfigPage() {
               <div className="flex items-start gap-3">
                 <currentGroup.icon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="text-sm font-semibold text-navy dark:text-white">{currentGroup.label}</h3>
+                  <h3 className="text-sm font-semibold text-seal-navy dark:text-white">{currentGroup.label}</h3>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{currentGroup.description}</p>
                 </div>
               </div>
@@ -931,12 +931,12 @@ export default function AdminConfigPage() {
             <div className="space-y-1">
               {/* SMTP test button */}
               {activeTab === 'smtp' && (
-                <div className="mb-6 rounded-lg border-2 border-navy/20 bg-navy/5 dark:bg-slate-800 p-4">
+                <div className="mb-6 rounded-lg border-2 border-seal-navy/20 bg-seal-navy/5 dark:bg-slate-800 p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Mail className="h-6 w-6 text-navy dark:text-white" />
+                      <Mail className="h-6 w-6 text-seal-navy dark:text-white" />
                       <div>
-                        <h3 className="text-sm font-semibold text-navy dark:text-white">Configuration SMTP</h3>
+                        <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Configuration SMTP</h3>
                         <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
                           Paramètres du serveur de messagerie pour l&apos;envoi de notifications par email
                         </p>
@@ -965,13 +965,13 @@ export default function AdminConfigPage() {
                     const hasFieldChanges = def.fields.some((f) => changes[f.key] !== undefined);
 
                     return (
-                      <div key={def.id} className="rounded-lg border-2 border-navy/20 bg-navy/5 dark:bg-slate-800 p-5 space-y-4">
+                      <div key={def.id} className="rounded-lg border-2 border-seal-navy/20 bg-seal-navy/5 dark:bg-slate-800 p-5 space-y-4">
                         {/* Header */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <def.icon className="h-6 w-6 text-navy dark:text-white" />
+                            <def.icon className="h-6 w-6 text-seal-navy dark:text-white" />
                             <div>
-                              <h3 className="text-sm font-semibold text-navy dark:text-white">{def.label}</h3>
+                              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">{def.label}</h3>
                               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{def.description}</p>
                             </div>
                           </div>
@@ -996,7 +996,7 @@ export default function AdminConfigPage() {
                                 <div key={field.key} className="rounded-lg border border-gray-200 dark:border-slate-700 p-3 bg-white dark:bg-slate-900">
                                   <div className="flex items-center justify-between">
                                     <div>
-                                      <p className="text-xs font-semibold text-navy dark:text-white">{field.label}</p>
+                                      <p className="text-xs font-semibold text-seal-navy dark:text-white">{field.label}</p>
                                       <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1 font-mono tracking-widest">********</p>
                                     </div>
                                     <Button
@@ -1017,7 +1017,7 @@ export default function AdminConfigPage() {
 
                             return (
                               <div key={field.key} className={changes[field.key] !== undefined ? 'ring-2 ring-primary/30 rounded-lg' : ''}>
-                                <label className="block text-xs font-semibold text-navy dark:text-white mb-1">{field.label}</label>
+                                <label className="block text-xs font-semibold text-seal-navy dark:text-white mb-1">{field.label}</label>
                                 <div className="relative">
                                   <Input
                                     type={isPassword && !passwordVisible ? 'password' : 'text'}
@@ -1029,7 +1029,7 @@ export default function AdminConfigPage() {
                                     <button
                                       type="button"
                                       onClick={() => setShowPasswords((prev) => ({ ...prev, [field.key]: !passwordVisible }))}
-                                      className="absolute right-3 top-1/2 -translate-y-1/2 text-seal-gray-500 hover:text-navy dark:hover:text-white transition-colors"
+                                      className="absolute right-3 top-1/2 -translate-y-1/2 text-seal-gray-500 hover:text-seal-navy dark:hover:text-white transition-colors"
                                       title={passwordVisible ? 'Masquer' : 'Afficher'}
                                     >
                                       {passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -1087,12 +1087,12 @@ export default function AdminConfigPage() {
 
               {/* LDAP specific header */}
               {activeTab === 'ldap' && (
-                <div className="mb-6 rounded-lg border-2 border-navy/20 bg-navy/5 dark:bg-slate-800 p-4">
+                <div className="mb-6 rounded-lg border-2 border-seal-navy/20 bg-seal-navy/5 dark:bg-slate-800 p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Shield className="h-6 w-6 text-navy dark:text-white" />
+                      <Shield className="h-6 w-6 text-seal-navy dark:text-white" />
                       <div>
-                        <h3 className="text-sm font-semibold text-navy dark:text-white">
+                        <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
                           Authentification LDAP Active Directory
                         </h3>
                         <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
@@ -1121,7 +1121,7 @@ export default function AdminConfigPage() {
                     <RefreshCw className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-400" />
                     <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                       Dernière synchronisation LDAP :{' '}
-                      <span className="font-semibold text-navy dark:text-white">
+                      <span className="font-semibold text-seal-navy dark:text-white">
                         {lastSyncTimes?.ldap
                           ? new Date(lastSyncTimes.ldap).toLocaleString('fr-FR', {
                               day: '2-digit', month: '2-digit', year: 'numeric',
@@ -1189,7 +1189,7 @@ export default function AdminConfigPage() {
 
                   {/* LDAP Test buttons */}
                   {hasLdapConfig && (
-                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-navy/10">
+                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-seal-navy/10">
                       <Button
                         variant="primary"
                         loading={testingLdap}
@@ -1295,7 +1295,7 @@ export default function AdminConfigPage() {
                     return (
                       <div key={key} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700 p-4">
                         <div>
-                          <p className="text-sm font-semibold text-navy dark:text-white">{key}</p>
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">{key}</p>
                           {description && <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{description}</p>}
                         </div>
                         <button
@@ -1337,7 +1337,7 @@ export default function AdminConfigPage() {
                       <div key={key} className="rounded-lg border border-gray-200 dark:border-slate-700 p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-semibold text-navy dark:text-white">{key}</p>
+                            <p className="text-sm font-semibold text-seal-navy dark:text-white">{key}</p>
                             {description && <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{description}</p>}
                             <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1 font-mono tracking-widest">••••••••</p>
                           </div>
@@ -1400,13 +1400,13 @@ export default function AdminConfigPage() {
       {showSaveConfirm && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 pt-[5vh] pb-[5vh]">
           <Card className="max-w-md w-full mx-4 max-h-[85vh] overflow-y-auto">
-            <CardHeader><h3 className="font-semibold text-navy dark:text-white">Confirmer les modifications</h3></CardHeader>
+            <CardHeader><h3 className="font-semibold text-seal-navy dark:text-white">Confirmer les modifications</h3></CardHeader>
             <CardContent>
               <div className="space-y-2 mb-4">
                 {Object.entries(changes).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between text-xs py-1 border-b border-gray-100 dark:border-slate-700">
                     <span className="text-seal-gray-500 dark:text-slate-400 font-mono">{key}</span>
-                    <span className="text-navy dark:text-white font-semibold truncate ml-2 max-w-[200px]">
+                    <span className="text-seal-navy dark:text-white font-semibold truncate ml-2 max-w-[200px]">
                       {key.includes('password') || key.includes('secret') || key.includes('api_key') ? '••••••••' : String(value)}
                     </span>
                   </div>
@@ -1429,8 +1429,8 @@ export default function AdminConfigPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-navy dark:text-blue-400" />
-                <h2 className="text-sm font-semibold text-navy dark:text-white">Matrice des accès</h2>
+                <ShieldCheck className="h-5 w-5 text-seal-navy dark:text-blue-400" />
+                <h2 className="text-sm font-semibold text-seal-navy dark:text-white">Matrice des accès</h2>
               </div>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
                 Cliquez sur une cellule pour modifier les permissions par role et module
@@ -1455,26 +1455,26 @@ export default function AdminConfigPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b-2 border-gray-200 dark:border-slate-700">
-                  <th className="text-left py-2 pr-4 font-semibold text-navy dark:text-white whitespace-nowrap">
+                  <th className="text-left py-2 pr-4 font-semibold text-seal-navy dark:text-white whitespace-nowrap">
                     Role
                   </th>
-                  <th className="text-left py-2 pr-4 font-semibold text-navy dark:text-white whitespace-nowrap min-w-[180px]">
+                  <th className="text-left py-2 pr-4 font-semibold text-seal-navy dark:text-white whitespace-nowrap min-w-[180px]">
                     Description
                   </th>
                   {ACCESS_MODULES.map((mod) => (
                     <th
                       key={mod}
-                      className="px-2 py-2 font-semibold text-navy dark:text-white text-center whitespace-nowrap group relative"
+                      className="px-2 py-2 font-semibold text-seal-navy dark:text-white text-center whitespace-nowrap group relative"
                     >
-                      <span className="cursor-help border-b border-dotted border-navy/30 dark:border-slate-500">
+                      <span className="cursor-help border-b border-dotted border-seal-navy/30 dark:border-slate-500">
                         {mod}
                       </span>
                       {/* Tooltip on hover */}
                       <div className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block w-52 pointer-events-none">
-                        <div className="bg-navy dark:bg-slate-900 text-white text-[10px] font-normal leading-snug rounded-lg px-3 py-2 shadow-lg text-left whitespace-normal">
+                        <div className="bg-seal-navy dark:bg-slate-900 text-white text-[10px] font-normal leading-snug rounded-lg px-3 py-2 shadow-lg text-left whitespace-normal">
                           <p className="font-semibold mb-0.5">{mod}</p>
                           <p className="opacity-80">{ACCESS_MODULE_DESCRIPTIONS[mod] || mod}</p>
-                          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-navy dark:bg-slate-900" />
+                          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-seal-navy dark:bg-slate-900" />
                         </div>
                       </div>
                     </th>
@@ -1494,7 +1494,7 @@ export default function AdminConfigPage() {
                           : 'border-gray-100 dark:border-slate-800'
                       } ${isLastAdmin ? 'border-b-2 border-b-amber-200 dark:border-b-amber-800/40' : ''}`}
                     >
-                      <td className="py-2.5 pr-4 font-semibold text-navy dark:text-white whitespace-nowrap">
+                      <td className="py-2.5 pr-4 font-semibold text-seal-navy dark:text-white whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           {isAdminLevel && (
                             <Shield className="h-3 w-3 text-amber-500 flex-shrink-0" />
@@ -1621,7 +1621,7 @@ export default function AdminConfigPage() {
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-lg">
           <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
             <p className="text-sm text-seal-gray-500 dark:text-slate-400">
-              <span className="font-semibold text-navy dark:text-white">{Object.keys(changes).length}</span> paramètre{Object.keys(changes).length > 1 ? 's' : ''} modifié{Object.keys(changes).length > 1 ? 's' : ''} — pensez à sauvegarder
+              <span className="font-semibold text-seal-navy dark:text-white">{Object.keys(changes).length}</span> paramètre{Object.keys(changes).length > 1 ? 's' : ''} modifié{Object.keys(changes).length > 1 ? 's' : ''} — pensez à sauvegarder
             </p>
             <div className="flex items-center gap-3">
               <Button variant="outline" onClick={() => setChanges({})}>

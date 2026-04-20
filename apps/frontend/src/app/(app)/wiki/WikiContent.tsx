@@ -1385,7 +1385,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     <History className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-white truncate">
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">
                       {v.title}
                     </p>
                     <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">
@@ -1447,7 +1447,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
         <div className="space-y-4">
           {/* Visibility toggle */}
           <div className="space-y-2">
-            <label className="block text-[13px] font-semibold text-navy dark:text-white">
+            <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
               Visibilit\u00e9
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -1465,7 +1465,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   }`}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-navy dark:text-white">
+                    <p className="text-xs font-semibold text-seal-navy dark:text-white">
                       {VISIBILITY_LABELS[vis]}
                     </p>
                     <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5">
@@ -1483,7 +1483,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           {/* Role checkboxes (when ROLE visibility) */}
           {shareData.visibility === 'ROLE' && (
             <div className="space-y-2">
-              <label className="block text-[13px] font-semibold text-navy dark:text-white">
+              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
                 R\u00f4les autoris\u00e9s
               </label>
               <div className="grid grid-cols-2 gap-1.5">
@@ -1528,7 +1528,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           {/* Collaborator search (when PRIVATE) */}
           {shareData.visibility === 'PRIVATE' && (
             <div className="space-y-2">
-              <label className="block text-[13px] font-semibold text-navy dark:text-white">
+              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
                 Collaborateurs
               </label>
               <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">
@@ -1567,7 +1567,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     value={collabSearch}
                     onChange={(e) => handleCollabSearchChange(e.target.value)}
                     placeholder="Rechercher un utilisateur..."
-                    className="flex-1 bg-transparent text-sm text-navy dark:text-white outline-none placeholder:text-seal-gray-500 dark:placeholder:text-slate-500"
+                    className="flex-1 bg-transparent text-sm text-seal-navy dark:text-white outline-none placeholder:text-seal-gray-500 dark:placeholder:text-slate-500"
                   />
                   {collabLoading && (
                     <div className="h-3.5 w-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -1597,7 +1597,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                             {u.firstName[0]}{u.lastName[0]}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-navy dark:text-white truncate">
+                            <p className="text-xs font-medium text-seal-navy dark:text-white truncate">
                               {u.firstName} {u.lastName}
                             </p>
                             <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">
@@ -1620,7 +1620,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             className={`w-full flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
               shareLinkCopied
                 ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300'
-                : 'border-gray-200 dark:border-slate-700 text-navy dark:text-white hover:border-primary/40 hover:bg-primary/5'
+                : 'border-gray-200 dark:border-slate-700 text-seal-navy dark:text-white hover:border-primary/40 hover:bg-primary/5'
             }`}
           >
             {shareLinkCopied ? (
@@ -1699,13 +1699,13 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             placeholder="mon-article"
           />
           <div className="space-y-1">
-            <label className="block text-[13px] font-semibold text-navy dark:text-white">{t('wiki.categoryLabel')}</label>
+            <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">{t('wiki.categoryLabel')}</label>
             <input
               list="wiki-category-list"
               value={formData.category}
               onChange={(e) => setFormData((f) => ({ ...f, category: e.target.value }))}
               placeholder={t('wiki.categoryPlaceholder')}
-              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-navy dark:text-white px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             <datalist id="wiki-category-list">
               {categories.filter(c => c !== CATEGORY_ALL).map(c => (
@@ -1742,9 +1742,9 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           )}
           <div className={`space-y-1 ${isEditorFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-slate-900 p-6 flex flex-col' : ''}`}>
             <div className="flex items-center justify-between">
-              <label className="block text-[13px] font-semibold text-navy dark:text-white">{t('wiki.contentLabel')}</label>
+              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">{t('wiki.contentLabel')}</label>
               {isEditorFullscreen && (
-                <button type="button" onClick={toggleEditorFullscreen} className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white" title="Quitter le plein écran (Échap)">
+                <button type="button" onClick={toggleEditorFullscreen} className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white" title="Quitter le plein écran (Échap)">
                   <Minimize2 className="h-4 w-4" />
                 </button>
               )}
@@ -1752,10 +1752,10 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             {/* WYSIWYG toolbar — sticky */}
             <div className="sticky top-0 z-20 flex flex-wrap items-center gap-1 border border-b-0 border-gray-300 dark:border-slate-600 rounded-t-lg p-2 bg-gray-50 dark:bg-slate-800" onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}>
               {/* Undo / Redo */}
-              <button type="button" title="Annuler (Ctrl+Z)" onClick={() => execCmd('undo')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white">
+              <button type="button" title="Annuler (Ctrl+Z)" onClick={() => execCmd('undo')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
                 <Undo2 className="h-3.5 w-3.5" />
               </button>
-              <button type="button" title="Rétablir (Ctrl+Y)" onClick={() => execCmd('redo')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white">
+              <button type="button" title="Rétablir (Ctrl+Y)" onClick={() => execCmd('redo')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
                 <Redo2 className="h-3.5 w-3.5" />
               </button>
               <div className="w-px h-5 bg-gray-300 dark:bg-slate-600 mx-1" />
@@ -1764,24 +1764,24 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               {(['H1', 'H2', 'H3'] as const).map((h) => (
                 <button key={h} type="button" title={`Titre ${h} (Ctrl+Shift+${h[1]})`}
                   onClick={() => execCmd('formatBlock', h)}
-                  className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white font-semibold"
+                  className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white font-semibold"
                 >{h}</button>
               ))}
-              <button type="button" title="Normal" onClick={() => execCmd('formatBlock', 'P')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white">P</button>
+              <button type="button" title="Normal" onClick={() => execCmd('formatBlock', 'P')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">P</button>
               <div className="w-px h-5 bg-gray-300 dark:bg-slate-600 mx-1" />
 
               {/* Bold / Italic / Underline / Strikethrough */}
-              <button type="button" title="Gras (Ctrl+B)" onClick={() => execCmd('bold')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white font-bold">B</button>
-              <button type="button" title="Italique (Ctrl+I)" onClick={() => execCmd('italic')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white italic">I</button>
-              <button type="button" title="Souligné (Ctrl+U)" onClick={() => execCmd('underline')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white underline">U</button>
-              <button type="button" title="Barré" onClick={() => execCmd('strikeThrough')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white line-through">S</button>
+              <button type="button" title="Gras (Ctrl+B)" onClick={() => execCmd('bold')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white font-bold">B</button>
+              <button type="button" title="Italique (Ctrl+I)" onClick={() => execCmd('italic')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white italic">I</button>
+              <button type="button" title="Souligné (Ctrl+U)" onClick={() => execCmd('underline')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white underline">U</button>
+              <button type="button" title="Barré" onClick={() => execCmd('strikeThrough')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white line-through">S</button>
               <div className="w-px h-5 bg-gray-300 dark:bg-slate-600 mx-1" />
 
               {/* Text color */}
               <div className="relative">
                 <button type="button" title="Couleur du texte"
                   onClick={() => { setShowColorPicker((v) => !v); setShowHighlightPicker(false); setShowTableInsert(false); }}
-                  className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white flex items-center gap-0.5"
+                  className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white flex items-center gap-0.5"
                 >
                   <Palette className="h-3.5 w-3.5" />
                 </button>
@@ -1802,7 +1802,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               <div className="relative">
                 <button type="button" title="Surligneur"
                   onClick={() => { setShowHighlightPicker((v) => !v); setShowColorPicker(false); setShowTableInsert(false); }}
-                  className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white flex items-center gap-0.5"
+                  className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white flex items-center gap-0.5"
                 >
                   <Highlighter className="h-3.5 w-3.5" />
                 </button>
@@ -1821,12 +1821,12 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               <div className="w-px h-5 bg-gray-300 dark:bg-slate-600 mx-1" />
 
               {/* Lists */}
-              <button type="button" title="Liste à puces" onClick={() => execCmd('insertUnorderedList')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white font-semibold">{'\u2022'}</button>
-              <button type="button" title="Liste numérotée" onClick={() => execCmd('insertOrderedList')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white font-semibold">1.</button>
+              <button type="button" title="Liste à puces" onClick={() => execCmd('insertUnorderedList')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white font-semibold">{'\u2022'}</button>
+              <button type="button" title="Liste numérotée" onClick={() => execCmd('insertOrderedList')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white font-semibold">1.</button>
               <div className="w-px h-5 bg-gray-300 dark:bg-slate-600 mx-1" />
 
               {/* Blockquote */}
-              <button type="button" title="Citation" onClick={() => execCmd('formatBlock', 'BLOCKQUOTE')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white">
+              <button type="button" title="Citation" onClick={() => execCmd('formatBlock', 'BLOCKQUOTE')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
                 <Quote className="h-3.5 w-3.5" />
               </button>
 
@@ -1837,7 +1837,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   const text = sel?.toString() || 'code';
                   insertHtmlAtCursor(`<code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.875em;">${text}</code>&nbsp;`);
                 }}
-                className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white"
+                className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
               >
                 <Code className="h-3.5 w-3.5" />
               </button>
@@ -1849,7 +1849,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   const text = sel?.toString() || '// code';
                   insertHtmlAtCursor(`<pre style="background:#1e293b;color:#e2e8f0;padding:12px 16px;border-radius:8px;font-family:monospace;font-size:0.875em;overflow-x:auto;"><code>${text}</code></pre><p><br></p>`);
                 }}
-                className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white"
+                className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
               >
                 <CodeSquare className="h-3.5 w-3.5" />
               </button>
@@ -1858,7 +1858,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               {/* Link */}
               <button type="button" title="Ajouter un lien (Ctrl+K)"
                 onClick={() => { saveSelection(); setLinkUrl(''); setLinkText(''); setShowLinkDialog(true); }}
-                className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white flex items-center gap-1"
+                className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white flex items-center gap-1"
               >
                 <Link2 className="h-3.5 w-3.5" />
               </button>
@@ -1866,7 +1866,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               {/* Image */}
               <button type="button" title="Ajouter une image"
                 onClick={() => { saveSelection(); setImgUrl(''); setImgAlt(''); setShowImageDialog(true); }}
-                className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white flex items-center gap-1"
+                className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white flex items-center gap-1"
               >
                 <ImageIcon className="h-3.5 w-3.5" />
               </button>
@@ -1875,7 +1875,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               <div className="relative">
                 <button type="button" title="Insérer un tableau"
                   onClick={() => { setShowTableInsert((v) => !v); setShowColorPicker(false); setShowHighlightPicker(false); }}
-                  className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white"
+                  className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
                 >
                   <Table className="h-3.5 w-3.5" />
                 </button>
@@ -1888,7 +1888,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                         insertHtmlAtCursor(html);
                         setShowTableInsert(false);
                       }}
-                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-navy dark:text-white flex items-center gap-2"
+                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-navy dark:text-white flex items-center gap-2"
                     >
                       <Table className="h-3.5 w-3.5 text-seal-gray-500" /> Tableau 3x3
                     </button>
@@ -1897,7 +1897,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               </div>
 
               {/* Horizontal rule */}
-              <button type="button" title="Séparateur horizontal" onClick={() => execCmd('insertHorizontalRule')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white">
+              <button type="button" title="Séparateur horizontal" onClick={() => execCmd('insertHorizontalRule')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
                 <Minus className="h-3.5 w-3.5" />
               </button>
               <div className="w-px h-5 bg-gray-300 dark:bg-slate-600 mx-1" />
@@ -1905,7 +1905,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               {/* Fullscreen */}
               <button type="button" title={isEditorFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
                 onClick={toggleEditorFullscreen}
-                className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white ml-auto"
+                className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white ml-auto"
               >
                 {isEditorFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
               </button>
@@ -1915,7 +1915,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               <div
                 ref={editorRef}
                 contentEditable
-                className={`w-full rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 prose prose-sm dark:prose-invert max-w-none overflow-y-auto ${isEditorFullscreen ? 'h-full' : 'min-h-[200px] max-h-[60vh]'}`}
+                className={`w-full rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 prose prose-sm dark:prose-invert max-w-none overflow-y-auto ${isEditorFullscreen ? 'h-full' : 'min-h-[200px] max-h-[60vh]'}`}
                 onInput={handleEditorInput}
                 onKeyDown={handleEditorKeyDown}
                 onDrop={handleEditorDrop}
@@ -1950,7 +1950,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                         {mu.firstName[0]}{mu.lastName[0]}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-navy dark:text-white truncate">
+                        <p className="text-xs font-medium text-seal-navy dark:text-white truncate">
                           {mu.firstName} {mu.lastName}
                         </p>
                         <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">
@@ -2085,7 +2085,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               </>
             )}
             <ChevronRight className="h-3 w-3" />
-            <span className="font-semibold text-navy dark:text-white truncate max-w-[40ch]">{viewingPage.title}</span>
+            <span className="font-semibold text-seal-navy dark:text-white truncate max-w-[40ch]">{viewingPage.title}</span>
           </nav>
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -2103,7 +2103,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     className={`px-2 py-0.5 text-[11px] font-semibold rounded transition-colors ${
                       readingSize === s
                         ? 'bg-primary/10 text-primary'
-                        : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                        : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
                     }`}
                     title={`Taille ${s === 'sm' ? 'petite' : s === 'md' ? 'moyenne' : 'grande'}`}
                   >
@@ -2188,7 +2188,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                 </div>
 
                 <div className="flex items-start gap-2 mb-4">
-                  <h1 className="text-[34px] leading-tight font-semibold text-navy dark:text-white tracking-tight flex-1 min-w-0">
+                  <h1 className="text-[34px] leading-tight font-semibold text-seal-navy dark:text-white tracking-tight flex-1 min-w-0">
                     {viewingPage.title}
                   </h1>
                   <BookmarkButton
@@ -2308,7 +2308,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                 return (
                   <section className="mt-10 pt-8 border-t border-gray-200 dark:border-slate-700">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+                      <h2 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                         <Paperclip className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
                         Pièces jointes {attachments.length > 0 && <span className="text-xs font-normal text-seal-gray-500 dark:text-slate-500">({attachments.length})</span>}
                       </h2>
@@ -2348,7 +2348,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                                 <AttIcon className="h-4 w-4" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-navy dark:text-white hover:text-primary truncate block">{att.name}</a>
+                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-seal-navy dark:text-white hover:text-primary truncate block">{att.name}</a>
                                 <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">{fmtSize(att.size)} — {new Date(att.uploadedAt).toLocaleDateString('fr-FR')}</p>
                               </div>
                               <a href={att.url} download className="text-xs text-primary hover:underline flex-shrink-0">Télécharger</a>
@@ -2381,7 +2381,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
 
               {/* Feedback block */}
               <div className="mt-10 rounded-2xl border border-gray-200 dark:border-slate-700 bg-gradient-to-br from-gray-50 to-white dark:from-slate-900 dark:to-slate-900/60 p-6 text-center">
-                <p className="text-sm font-semibold text-navy dark:text-white mb-3">
+                <p className="text-sm font-semibold text-seal-navy dark:text-white mb-3">
                   Cet article vous a été utile ?
                 </p>
                 <div className="flex items-center justify-center gap-3">
@@ -2391,7 +2391,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
                       currentFeedback === 'up'
                         ? 'bg-emerald-500 text-white border-emerald-500'
-                        : 'bg-white dark:bg-slate-800 text-navy dark:text-white border-gray-200 dark:border-slate-700 hover:border-emerald-300 hover:text-emerald-600'
+                        : 'bg-white dark:bg-slate-800 text-seal-navy dark:text-white border-gray-200 dark:border-slate-700 hover:border-emerald-300 hover:text-emerald-600'
                     } disabled:cursor-not-allowed`}
                   >
                     <ThumbsUp className="h-4 w-4" /> Oui {counts.up > 0 && `(${counts.up})`}
@@ -2402,7 +2402,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
                       currentFeedback === 'down'
                         ? 'bg-red-500 text-white border-red-500'
-                        : 'bg-white dark:bg-slate-800 text-navy dark:text-white border-gray-200 dark:border-slate-700 hover:border-red-300 hover:text-red-600'
+                        : 'bg-white dark:bg-slate-800 text-seal-navy dark:text-white border-gray-200 dark:border-slate-700 hover:border-red-300 hover:text-red-600'
                     } disabled:cursor-not-allowed`}
                   >
                     <ThumbsDown className="h-4 w-4" /> Non {counts.down > 0 && `(${counts.down})`}
@@ -2417,7 +2417,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               <div className="mt-10 rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-semibold text-navy dark:text-white">Poser une question sur cet article</h3>
+                  <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Poser une question sur cet article</h3>
                 </div>
                 <div className="flex gap-2">
                   <input
@@ -2435,7 +2435,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       }
                     }}
                     placeholder="Ex : Quelle est la procedure pour..."
-                    className="flex-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-seal-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="flex-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                   <Button
                     size="sm"
@@ -2483,7 +2483,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                           onClick={() => handleViewPage(p.slug)}
                           className="text-left rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 hover:border-primary/40 hover:shadow-md transition-all group"
                         >
-                          <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-primary line-clamp-2 mb-1.5">
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white group-hover:text-primary line-clamp-2 mb-1.5">
                             {p.title}
                           </p>
                           {excerpt && (
@@ -2514,7 +2514,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 flex items-center gap-1">
                         <ArrowLeft className="h-3 w-3" /> Précédent
                       </span>
-                      <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-primary mt-1 line-clamp-1">
+                      <p className="text-sm font-semibold text-seal-navy dark:text-white group-hover:text-primary mt-1 line-clamp-1">
                         {prevPage.title}
                       </p>
                     </button>
@@ -2529,7 +2529,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 flex items-center gap-1 justify-end">
                         Suivant <ArrowRight className="h-3 w-3" />
                       </span>
-                      <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-primary mt-1 line-clamp-1">
+                      <p className="text-sm font-semibold text-seal-navy dark:text-white group-hover:text-primary mt-1 line-clamp-1">
                         {nextPage.title}
                       </p>
                     </button>
@@ -2684,7 +2684,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                 const found = pages.find(p => p.id === r.id);
                 if (found) setViewingPage(found);
               }}
-              className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-navy dark:text-white hover:bg-primary/10 hover:text-primary transition-colors truncate max-w-[200px] flex-shrink-0"
+              className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-seal-navy dark:text-white hover:bg-primary/10 hover:text-primary transition-colors truncate max-w-[200px] flex-shrink-0"
             >
               <Clock className="h-3 w-3 text-seal-gray-500 dark:text-slate-500 flex-shrink-0" />
               {r.title}
@@ -2696,9 +2696,9 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
       {/* Total article count */}
       {!loading && pages.length > 0 && (
         <p className="text-sm text-seal-gray-500 dark:text-slate-400 font-medium">
-          <span className="text-navy dark:text-white font-semibold">{pages.length}</span> article{pages.length !== 1 ? 's' : ''}
+          <span className="text-seal-navy dark:text-white font-semibold">{pages.length}</span> article{pages.length !== 1 ? 's' : ''}
           {search && sorted.length !== pages.length && (
-            <span> — <span className="text-navy dark:text-white font-semibold">{sorted.length}</span> résultat{sorted.length !== 1 ? 's' : ''}</span>
+            <span> — <span className="text-seal-navy dark:text-white font-semibold">{sorted.length}</span> résultat{sorted.length !== 1 ? 's' : ''}</span>
           )}
         </p>
       )}
@@ -2746,11 +2746,11 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     <div className="flex-1 min-w-0">
                       {formatted?.title ? (
                         <p
-                          className="text-sm font-medium text-navy dark:text-white truncate [&>em]:bg-yellow-200 [&>em]:dark:bg-yellow-700/50 [&>em]:not-italic [&>em]:rounded-sm [&>em]:px-0.5"
+                          className="text-sm font-medium text-seal-navy dark:text-white truncate [&>em]:bg-yellow-200 [&>em]:dark:bg-yellow-700/50 [&>em]:not-italic [&>em]:rounded-sm [&>em]:px-0.5"
                           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatted.title) }}
                         />
                       ) : (
-                        <p className="text-sm font-medium text-navy dark:text-white truncate">
+                        <p className="text-sm font-medium text-seal-navy dark:text-white truncate">
                           {highlightText(p.title, search)}
                         </p>
                       )}
@@ -2800,7 +2800,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             className={`p-1.5 rounded transition-colors ${
               listViewMode === 'grid'
                 ? 'bg-primary/10 text-primary'
-                : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
             }`}
             title="Vue grille"
           >
@@ -2811,7 +2811,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             className={`p-1.5 rounded transition-colors ${
               listViewMode === 'category'
                 ? 'bg-primary/10 text-primary'
-                : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
             }`}
             title="Vue par catégorie"
           >
@@ -2827,7 +2827,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           className={`flex items-center gap-2 px-5 py-2.5 text-sm transition-all duration-200 -mb-[2px] rounded-t-lg ${
             scopeFilter === SCOPE_ALL
               ? 'border-b-2 border-primary text-primary font-medium bg-primary/5 dark:bg-primary/10'
-              : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
+              : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
           }`}
         >
           <BookOpen className="h-4 w-4" /> Toutes les pages
@@ -2837,7 +2837,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           className={`flex items-center gap-2 px-5 py-2.5 text-sm transition-all duration-200 -mb-[2px] rounded-t-lg ${
             scopeFilter === SCOPE_MINE
               ? 'border-b-2 border-primary text-primary font-medium bg-primary/5 dark:bg-primary/10'
-              : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
+              : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
           }`}
         >
           <User className="h-4 w-4" /> Mes pages
@@ -2871,7 +2871,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   className={`w-full flex items-center gap-2 px-2.5 py-2 text-xs font-medium rounded-lg transition-all ${
                     categoryFilter === CATEGORY_ALL
                       ? 'bg-primary/10 text-primary font-semibold'
-                      : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white'
+                      : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white'
                   }`}
                 >
                   <BookOpen className="h-3.5 w-3.5 flex-shrink-0" />
@@ -2904,7 +2904,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                         } ${
                           categoryFilter === cat
                             ? 'font-semibold'
-                            : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white'
+                            : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white'
                         }`}
                         style={categoryFilter === cat ? { backgroundColor: `${color}15`, color } : undefined}
                       >
@@ -2981,7 +2981,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                         onClick={() => handleViewPage(page.slug)}
                         className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors group"
                       >
-                        <p className="text-xs font-medium text-navy dark:text-white truncate group-hover:text-primary transition-colors">
+                        <p className="text-xs font-medium text-seal-navy dark:text-white truncate group-hover:text-primary transition-colors">
                           {page.title}
                         </p>
                         <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-1 mt-0.5">
@@ -3058,7 +3058,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           {pages.length === 0 && (
             <div className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6">
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-navy dark:text-white mb-1">
+                <h3 className="text-sm font-semibold text-seal-navy dark:text-white mb-1">
                   Démarrer à partir d&apos;un modèle
                 </h3>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">
@@ -3079,7 +3079,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-primary transition-colors">
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white group-hover:text-primary transition-colors">
                             {tpl.title}
                           </p>
                           <p className="text-[11px] text-seal-gray-500 dark:text-slate-500 leading-relaxed mt-0.5">
@@ -3133,7 +3133,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-medium text-navy dark:text-white text-[15px] truncate">
+                        <h3 className="font-medium text-seal-navy dark:text-white text-[15px] truncate">
                           {highlightText(page.title, search)}
                         </h3>
                         {isNewArticle(page.createdAt) && (
@@ -3244,7 +3244,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   >
                     <CatIcon className="h-4 w-4" />
                   </div>
-                  <span className="flex-1 text-left text-sm font-semibold text-navy dark:text-white">
+                  <span className="flex-1 text-left text-sm font-semibold text-seal-navy dark:text-white">
                     {cat}
                   </span>
                   <span className="text-[11px] text-seal-gray-500 dark:text-slate-500 font-medium mr-2">
@@ -3266,7 +3266,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                         className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors text-left group"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-navy dark:text-white group-hover:text-primary transition-colors truncate">
+                          <p className="text-sm font-medium text-seal-navy dark:text-white group-hover:text-primary transition-colors truncate">
                             {highlightText(page.title, search)}
                           </p>
                           <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-3 mt-0.5">
@@ -3402,7 +3402,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                 }
               }}
               placeholder="Nouvelle catégorie…"
-              className="flex-1 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-navy dark:text-white px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="flex-1 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             <Button
               size="sm"
@@ -3430,7 +3430,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                 return (
                   <div key={cat} className="flex items-center justify-between rounded-lg px-3 py-2 bg-gray-50 dark:bg-slate-800/60">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-navy dark:text-white">{cat}</span>
+                      <span className="text-sm font-semibold text-seal-navy dark:text-white">{cat}</span>
                       <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{pageCount} page{pageCount !== 1 ? 's' : ''}</span>
                       {!isManaged && <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 italic">depuis les pages</span>}
                     </div>

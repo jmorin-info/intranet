@@ -111,7 +111,7 @@ export default function MfaPage() {
     <div className="max-w-lg mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">Authentification MFA</h1>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Authentification MFA</h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             Double authentification TOTP
           </p>
@@ -122,7 +122,7 @@ export default function MfaPage() {
         <Card>
           <CardContent className="text-center py-8">
             <Shield className="h-16 w-16 text-[#F68D2E] mx-auto mb-4" />
-            <h2 className="text-lg font-medium text-navy dark:text-white mb-2">Protégez votre compte</h2>
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white mb-2">Protégez votre compte</h2>
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 max-w-sm mx-auto mb-4">
               Activez la double authentification avec une application TOTP.
             </p>
@@ -194,7 +194,7 @@ export default function MfaPage() {
                 <span className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Codes secours</span>
               </div>
             </div>
-            <h2 className="font-semibold text-navy dark:text-white flex items-center gap-2">
+            <h2 className="font-semibold text-seal-navy dark:text-white flex items-center gap-2">
               <QrCode className="h-5 w-5 text-[#F68D2E]" /> Scannez le QR code
             </h2>
           </CardHeader>
@@ -222,7 +222,7 @@ export default function MfaPage() {
                 <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-3 mt-2">
                   <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mb-1">Clé secrète (saisie manuelle) :</p>
                   <div className="flex items-center gap-2">
-                    <p className="font-mono text-sm text-navy dark:text-white break-all flex-1">{secret}</p>
+                    <p className="font-mono text-sm text-seal-navy dark:text-white break-all flex-1">{secret}</p>
                     <button
                       onClick={() => {
                         if (navigator.clipboard?.writeText) {
@@ -263,7 +263,7 @@ export default function MfaPage() {
         <Card>
           <CardContent className="text-center py-8">
             <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
-            <h2 className="text-lg font-medium text-navy dark:text-white mb-2">MFA actif</h2>
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white mb-2">MFA actif</h2>
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-2">
               Votre compte est protégé par la double authentification.
             </p>
@@ -298,7 +298,7 @@ export default function MfaPage() {
                 <Key className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-semibold text-navy dark:text-white mb-1">Codes de secours</h3>
+                <h3 className="text-sm font-semibold text-seal-navy dark:text-white mb-1">Codes de secours</h3>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">
                   Les codes de secours vous permettent de vous connecter si vous perdez l&apos;accès à votre application TOTP.
                   Conservez-les dans un endroit sûr (gestionnaire de mots de passe, coffre-fort).
@@ -321,7 +321,7 @@ export default function MfaPage() {
       {backupCodes.length > 0 && (
         <Card className="border-2 border-amber-400">
           <CardHeader>
-            <h3 className="font-semibold text-navy dark:text-white">Codes de secours</h3>
+            <h3 className="font-semibold text-seal-navy dark:text-white">Codes de secours</h3>
             <p className="text-xs text-amber-600">Conservez ces codes en lieu sûr. Ils ne seront plus affichés.</p>
           </CardHeader>
           <CardContent>

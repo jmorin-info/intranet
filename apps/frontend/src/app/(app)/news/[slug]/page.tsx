@@ -146,12 +146,12 @@ export default function NewsArticlePage() {
       <div className="max-w-4xl mx-auto flex gap-6 animate-fade-in-up">
       <div className="flex-1 min-w-0 space-y-6">
         <div className="flex items-center justify-between">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white">
+          <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white">
             <ArrowLeft className="h-4 w-4" />
             {t('news.backToList')}
           </button>
           {canEdit && (
-            <button onClick={() => router.push(`/news/${slug}/edit`)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-navy dark:text-white transition">
+            <button onClick={() => router.push(`/news/${slug}/edit`)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-seal-navy dark:text-white transition">
               <Edit className="h-3.5 w-3.5" /> Modifier
             </button>
           )}
@@ -181,7 +181,7 @@ export default function NewsArticlePage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-medium text-navy dark:text-white">{post.title}</h1>
+                  <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{post.title}</h1>
                   <BookmarkButton type="news" id={post.id} title={post.title} href={`/news/${post.slug}`} />
                 </div>
                 <div className="flex items-center gap-4 mt-3 text-sm text-seal-gray-500 dark:text-slate-400">
@@ -207,7 +207,7 @@ export default function NewsArticlePage() {
               <hr className="border-gray-100 dark:border-slate-700" />
 
               <div
-                className="prose prose-sm max-w-none prose-headings:text-navy dark:prose-headings:text-white prose-a:text-primary dark:prose-p:text-slate-300 dark:prose-li:text-slate-300 dark:prose-strong:text-white"
+                className="prose prose-sm max-w-none prose-headings:text-seal-navy dark:prose-headings:text-white prose-a:text-primary dark:prose-p:text-slate-300 dark:prose-li:text-slate-300 dark:prose-strong:text-white"
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(contentWithIds, { ADD_ATTR: ['id'] }),
                 }}
@@ -264,7 +264,7 @@ export default function NewsArticlePage() {
                 className="w-full flex items-center justify-between text-left"
               >
                 <div>
-                  <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                     <Eye className="h-4 w-4 text-primary" />
                     Audience et lecteurs
                   </h3>
@@ -288,7 +288,7 @@ export default function NewsArticlePage() {
                     </div>
                     <div className="rounded-lg border border-gray-200 dark:border-slate-700 p-3">
                       <p className="text-[10px] uppercase tracking-wider text-seal-gray-500">Total actifs</p>
-                      <p className="text-xl font-medium text-navy dark:text-white mt-1">
+                      <p className="text-xl font-medium text-seal-navy dark:text-white mt-1">
                         {audience.summary.totalActiveUsers}
                       </p>
                     </div>
@@ -324,7 +324,7 @@ export default function NewsArticlePage() {
                           {audience.viewers.map((v) => (
                             <tr key={v.userId} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/40">
                               <td className="px-3 py-2">
-                                <p className="text-navy dark:text-white font-medium">{v.firstName} {v.lastName}</p>
+                                <p className="text-seal-navy dark:text-white font-medium">{v.firstName} {v.lastName}</p>
                                 <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{v.email}</p>
                               </td>
                               <td className="px-3 py-2 text-seal-gray-500 dark:text-slate-400">{v.department?.name || '—'}</td>
@@ -349,13 +349,13 @@ export default function NewsArticlePage() {
             {related[0] ? (
               <Link href={`/news/${related[0].slug}`} className="group flex-1 rounded-xl border border-gray-200 dark:border-slate-700 p-4 hover:border-primary/40 transition">
                 <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 mb-1">Article precedent</p>
-                <p className="text-sm font-medium text-navy dark:text-white group-hover:text-primary transition line-clamp-1">{related[0].title}</p>
+                <p className="text-sm font-medium text-seal-navy dark:text-white group-hover:text-primary transition line-clamp-1">{related[0].title}</p>
               </Link>
             ) : <div className="flex-1" />}
             {related[1] ? (
               <Link href={`/news/${related[1].slug}`} className="group flex-1 text-right rounded-xl border border-gray-200 dark:border-slate-700 p-4 hover:border-primary/40 transition">
                 <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 mb-1">Article suivant</p>
-                <p className="text-sm font-medium text-navy dark:text-white group-hover:text-primary transition line-clamp-1">{related[1].title}</p>
+                <p className="text-sm font-medium text-seal-navy dark:text-white group-hover:text-primary transition line-clamp-1">{related[1].title}</p>
               </Link>
             ) : <div className="flex-1" />}
           </div>
@@ -364,7 +364,7 @@ export default function NewsArticlePage() {
         {/* Related articles */}
         {related.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-medium text-navy dark:text-white">Articles similaires</h2>
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white">Articles similaires</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {related.map((article) => (
                 <Link key={article.id} href={`/news/${article.slug}`}>
@@ -373,7 +373,7 @@ export default function NewsArticlePage() {
                       {article.category && (
                         <Badge variant="primary" className="mb-2 text-[10px]">{article.category}</Badge>
                       )}
-                      <h3 className="text-sm font-semibold text-navy dark:text-white line-clamp-2">
+                      <h3 className="text-sm font-semibold text-seal-navy dark:text-white line-clamp-2">
                         {article.title}
                       </h3>
                       {article.excerpt && (

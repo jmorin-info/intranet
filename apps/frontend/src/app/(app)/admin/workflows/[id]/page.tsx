@@ -213,11 +213,11 @@ export default function WorkflowDetailPage() {
 
       <Card>
         <CardContent className="p-6 space-y-4">
-          <h1 className="text-xl font-bold text-navy dark:text-white">
+          <h1 className="text-xl font-bold text-seal-navy dark:text-white">
             Configuration du workflow
           </h1>
           <div>
-            <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+            <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
               Nom
             </label>
             <input
@@ -228,7 +228,7 @@ export default function WorkflowDetailPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+            <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
               Description
             </label>
             <textarea
@@ -239,7 +239,7 @@ export default function WorkflowDetailPage() {
             />
           </div>
           <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 text-sm text-navy dark:text-white">
+            <label className="flex items-center gap-2 text-sm text-seal-navy dark:text-white">
               <input
                 type="checkbox"
                 checked={isActive}
@@ -247,7 +247,7 @@ export default function WorkflowDetailPage() {
               />
               Actif
             </label>
-            <label className="flex items-center gap-2 text-sm text-navy dark:text-white">
+            <label className="flex items-center gap-2 text-sm text-seal-navy dark:text-white">
               <input
                 type="checkbox"
                 checked={isDefault}
@@ -268,7 +268,7 @@ export default function WorkflowDetailPage() {
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-navy dark:text-white">
+            <h2 className="text-lg font-bold text-seal-navy dark:text-white">
               Étapes du workflow
             </h2>
             <Button onClick={() => setStepDialogOpen(true)}>
@@ -282,7 +282,7 @@ export default function WorkflowDetailPage() {
               <div className="rounded-2xl p-5 mb-4 bg-gray-100 dark:bg-slate-800 ring-1 ring-black/5 dark:ring-white/5">
                 <Plus className="h-8 w-8 text-seal-gray-500/40" />
               </div>
-              <p className="text-sm font-medium text-navy dark:text-white mb-1">
+              <p className="text-sm font-medium text-seal-navy dark:text-white mb-1">
                 Aucune étape définie
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 text-center max-w-xs">
@@ -321,7 +321,7 @@ export default function WorkflowDetailPage() {
                     </button>
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium text-navy dark:text-white">
+                    <div className="font-medium text-seal-navy dark:text-white">
                       {step.order}. {step.name}
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400 space-x-2">
@@ -363,7 +363,7 @@ export default function WorkflowDetailPage() {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+              <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                 Nom de l'étape *
               </label>
               <input
@@ -377,7 +377,7 @@ export default function WorkflowDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+              <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                 Mode
               </label>
               <select
@@ -396,7 +396,7 @@ export default function WorkflowDetailPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+                <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                   Rôle approbateur
                 </label>
                 <select
@@ -415,7 +415,7 @@ export default function WorkflowDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+                <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                   OU UserId explicite
                 </label>
                 <input
@@ -431,7 +431,7 @@ export default function WorkflowDetailPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+                <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                   SLA (heures)
                 </label>
                 <input
@@ -444,7 +444,7 @@ export default function WorkflowDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+                <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                   Escalade vers (userId)
                 </label>
                 <input
@@ -460,7 +460,7 @@ export default function WorkflowDetailPage() {
                 />
               </div>
             </div>
-            <label className="flex items-center gap-2 text-sm text-navy dark:text-white">
+            <label className="flex items-center gap-2 text-sm text-seal-navy dark:text-white">
               <input
                 type="checkbox"
                 checked={stepForm.autoApproveOnTimeout}

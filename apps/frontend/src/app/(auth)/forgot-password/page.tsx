@@ -88,7 +88,7 @@ export default function ForgotPasswordPage() {
                     <Mail className="h-8 w-8 text-emerald-600" />
                   </div>
                 </div>
-                <h2 className="text-lg font-semibold text-navy dark:text-white mb-2">{t('forgotPassword.sentTitle')}</h2>
+                <h2 className="text-lg font-semibold text-seal-navy dark:text-white mb-2">{t('forgotPassword.sentTitle')}</h2>
                 <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">
                   {t('forgotPassword.sentMessage')} <strong>{email}</strong>{t('forgotPassword.sentMessage2')}
                 </p>

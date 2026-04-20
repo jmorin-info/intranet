@@ -192,10 +192,10 @@ export default function WorkflowsAdminPage() {
                         </div>
                       ) : null}
                     </td>
-                    <td className="p-3 text-navy dark:text-slate-200">
+                    <td className="p-3 text-seal-navy dark:text-slate-200">
                       {CATEGORY_LABELS[wf.documentCategory ?? 'ALL']}
                     </td>
-                    <td className="p-3 text-navy dark:text-slate-200">
+                    <td className="p-3 text-seal-navy dark:text-slate-200">
                       <span>{wf.steps.length}</span>
                       {wf.steps.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
@@ -214,7 +214,7 @@ export default function WorkflowsAdminPage() {
                         </div>
                       )}
                     </td>
-                    <td className="p-3 text-navy dark:text-slate-200">
+                    <td className="p-3 text-seal-navy dark:text-slate-200">
                       {wf._count?.instances ?? 0}
                     </td>
                     <td className="p-3">
@@ -252,7 +252,7 @@ export default function WorkflowsAdminPage() {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+              <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                 Nom *
               </label>
               <input
@@ -264,7 +264,7 @@ export default function WorkflowsAdminPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+              <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                 Description
               </label>
               <textarea
@@ -277,7 +277,7 @@ export default function WorkflowsAdminPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+              <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                 Catégorie de document
               </label>
               <select

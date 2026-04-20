@@ -162,13 +162,13 @@ export default function ComposeNewsPage() {
           <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-medium text-navy dark:text-white">{t('newsCompose.title')}</h1>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('newsCompose.title')}</h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{t('newsCompose.subtitle')}</p>
         </div>
         <button
           type="button"
           onClick={() => setShowPreview(!showPreview)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition ${showPreview ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 dark:border-slate-700 text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition ${showPreview ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 dark:border-slate-700 text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
         >
           {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           {showPreview ? 'Masquer l\'aperçu' : 'Aperçu live'}
@@ -195,7 +195,7 @@ export default function ComposeNewsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-[13px] font-semibold text-navy dark:text-white">{t('newsCompose.label.category')}</label>
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">{t('newsCompose.label.category')}</label>
                 <input
                   list="news-category-suggestions"
                   placeholder={t('newsCompose.categoryPlaceholder')}
@@ -226,7 +226,7 @@ export default function ComposeNewsPage() {
                 )}
               </div>
               <div className="space-y-1">
-                <label className="block text-[13px] font-semibold text-navy dark:text-white">Image de couverture</label>
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Image de couverture</label>
                 <div className="flex gap-2">
                   <label className="flex-1 cursor-pointer">
                     <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp,image/gif"
@@ -257,7 +257,7 @@ export default function ComposeNewsPage() {
 
             {/* Template selector */}
             <div>
-              <label className="block text-[13px] font-semibold text-navy dark:text-white mb-1">Modèle</label>
+              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white mb-1">Modèle</label>
               <div className="flex gap-2 flex-wrap">
                 {TEMPLATES.map(tpl => (
                   <button
@@ -267,7 +267,7 @@ export default function ComposeNewsPage() {
                       if (content) { setPendingTemplate(tpl.content); return; }
                       setContent(tpl.content);
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-navy dark:text-white transition"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-seal-navy dark:text-white transition"
                   >
                     <FileText className="h-3 w-3" />
                     {tpl.name}
@@ -277,7 +277,7 @@ export default function ComposeNewsPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[13px] font-semibold text-navy dark:text-white">{t('newsCompose.label.content')}</label>
+              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">{t('newsCompose.label.content')}</label>
               {/* WYSIWYG toolbar */}
               <div className="flex items-center gap-1 border border-b-0 border-gray-300 dark:border-slate-600 rounded-t-lg p-2 bg-gray-50 dark:bg-slate-800">
                 {[
@@ -293,14 +293,14 @@ export default function ComposeNewsPage() {
                       document.execCommand(parts[0]!, false, parts[1] ?? '');
                       editorRef.current?.focus();
                     }}
-                    className={`px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white ${style || 'font-semibold'}`}
+                    className={`px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white ${style || 'font-semibold'}`}
                   >{label}</button>
                 ))}
                 <button
                   type="button"
                   title="Insérer une image"
                   onClick={() => { setImageUrl(''); setImageAlt('image'); setShowImageDialog(true); }}
-                  className="px-2 py-1 text-xs font-semibold rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white"
+                  className="px-2 py-1 text-xs font-semibold rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
                 >
                   <Image className="h-3.5 w-3.5 inline" />
                 </button>
@@ -309,7 +309,7 @@ export default function ComposeNewsPage() {
               <div
                 ref={editorRef}
                 contentEditable
-                className="w-full min-h-[200px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"
+                className="w-full min-h-[200px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"
                 onInput={(e) => setValue('content', (e.target as HTMLDivElement).innerHTML, { shouldValidate: true })}
                 suppressContentEditableWarning
               />
@@ -326,7 +326,7 @@ export default function ComposeNewsPage() {
 
             {/* Target roles */}
             <div className="space-y-2">
-              <label className="block text-[13px] font-semibold text-navy dark:text-white">
+              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
                 {t('newsCompose.targetRoles')}
               </label>
               <div className="flex flex-wrap gap-2">
@@ -344,7 +344,7 @@ export default function ComposeNewsPage() {
                       }}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
-                    <span className="text-sm text-navy dark:text-white">{role}</span>
+                    <span className="text-sm text-seal-navy dark:text-white">{role}</span>
                   </label>
                 ))}
               </div>
@@ -357,7 +357,7 @@ export default function ComposeNewsPage() {
                   {...register('isPinned')}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
-                <span className="text-sm text-navy dark:text-white">{t('newsCompose.pinTop')}</span>
+                <span className="text-sm text-seal-navy dark:text-white">{t('newsCompose.pinTop')}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -365,7 +365,7 @@ export default function ComposeNewsPage() {
                   {...register('isPublished')}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
-                <span className="text-sm text-navy dark:text-white">{t('newsCompose.publishNow')}</span>
+                <span className="text-sm text-seal-navy dark:text-white">{t('newsCompose.publishNow')}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -374,7 +374,7 @@ export default function ComposeNewsPage() {
                   onChange={(e) => setNotifyOnPublish(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500"
                 />
-                <span className="text-sm text-navy dark:text-white">Publier et notifier</span>
+                <span className="text-sm text-seal-navy dark:text-white">Publier et notifier</span>
                 <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">(envoie une notification a tous les utilisateurs)</span>
               </label>
             </div>
@@ -400,7 +400,7 @@ export default function ComposeNewsPage() {
         <div className="hidden lg:block">
           <Card className="sticky top-20 max-h-[calc(100vh-8rem)] overflow-y-auto">
             <CardHeader>
-              <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                 <Eye className="h-4 w-4 text-primary" />
                 Aperçu de l&apos;article
               </h3>
@@ -417,7 +417,7 @@ export default function ComposeNewsPage() {
                   <Badge variant="primary">{watch('category')}</Badge>
                 )}
               </div>
-              <h2 className="text-xl font-medium text-navy dark:text-white">
+              <h2 className="text-xl font-medium text-seal-navy dark:text-white">
                 {watch('title') || 'Titre de l\'article'}
               </h2>
               {watch('excerpt') && (
@@ -428,7 +428,7 @@ export default function ComposeNewsPage() {
               <hr className="border-gray-100 dark:border-slate-700" />
               {content ? (
                 <div
-                  className="prose prose-sm max-w-none prose-headings:text-navy dark:prose-headings:text-white prose-a:text-primary dark:prose-p:text-slate-300 dark:prose-li:text-slate-300 dark:prose-strong:text-white"
+                  className="prose prose-sm max-w-none prose-headings:text-seal-navy dark:prose-headings:text-white prose-a:text-primary dark:prose-p:text-slate-300 dark:prose-li:text-slate-300 dark:prose-strong:text-white"
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
                 />
               ) : (
@@ -453,13 +453,13 @@ export default function ComposeNewsPage() {
       <Dialog open={showImageDialog} onClose={() => setShowImageDialog(false)} title="Insérer une image">
         <div className="space-y-3">
           <div>
-            <label className="block text-[13px] font-semibold text-navy dark:text-white mb-1">URL de l&apos;image</label>
+            <label className="block text-[13px] font-semibold text-seal-navy dark:text-white mb-1">URL de l&apos;image</label>
             <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://..."
               aria-label="URL de l'image"
               className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
           </div>
           <div>
-            <label className="block text-[13px] font-semibold text-navy dark:text-white mb-1">Texte alternatif</label>
+            <label className="block text-[13px] font-semibold text-seal-navy dark:text-white mb-1">Texte alternatif</label>
             <input value={imageAlt} onChange={e => setImageAlt(e.target.value)} placeholder="Description de l'image"
               aria-label="Texte alternatif de l'image"
               className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />

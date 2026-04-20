@@ -495,7 +495,7 @@ export default function AdminUsersPage() {
             </span>
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-navy dark:text-white truncate">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">
               {u.firstName} {u.lastName}
             </p>
             {u.jobTitle && (
@@ -573,35 +573,35 @@ export default function AdminUsersPage() {
         <div className="flex items-center gap-0.5">
           <button
             onClick={() => { setEditRoleUser(u); setEditRoleValue(u.role); }}
-            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
             title="Modifier le r\u00f4le"
           >
             <Shield className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => { setEditDeptUser(u); setEditDeptValue(u.department?.id ?? ''); }}
-            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
             title="Modifier le d\u00e9partement"
           >
             <Building2 className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => openSpaceAccess(u)}
-            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
             title="G\u00e9rer les acc\u00e8s espaces"
           >
             <Lock className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => setResetPasswordUser(u)}
-            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
             title="R\u00e9initialiser le mot de passe"
           >
             <Key className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => setResetMfaUser(u)}
-            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
             title="R\u00e9initialiser MFA"
           >
             <Smartphone className="h-3.5 w-3.5" />
@@ -677,9 +677,9 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-navy dark:text-white">Adoption MFA</span>
+                <span className="text-sm font-semibold text-seal-navy dark:text-white">Adoption MFA</span>
               </div>
-              <span className="text-lg font-bold text-navy dark:text-white">{mfaPercent}%</span>
+              <span className="text-lg font-bold text-seal-navy dark:text-white">{mfaPercent}%</span>
             </div>
             <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
               <div
@@ -705,7 +705,7 @@ export default function AdminUsersPage() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <RefreshCw className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold text-navy dark:text-white">Synchronisation LDAP</span>
+                  <span className="text-sm font-semibold text-seal-navy dark:text-white">Synchronisation LDAP</span>
                 </div>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                   {ldapSyncTime
@@ -744,7 +744,7 @@ export default function AdminUsersPage() {
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value as '' | 'active' | 'inactive')}
-              className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white lg:w-36 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white lg:w-36 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               aria-label="Filtrer par statut"
             >
               <option value="">Tous les statuts</option>
@@ -787,7 +787,7 @@ export default function AdminUsersPage() {
         <Card>
           <CardContent className="p-3">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <span className="text-sm font-semibold text-navy dark:text-white">
+              <span className="text-sm font-semibold text-seal-navy dark:text-white">
                 {selectedIds.size} utilisateur{selectedIds.size !== 1 ? 's' : ''} s\u00e9lectionn\u00e9{selectedIds.size !== 1 ? 's' : ''}
               </span>
               <div className="flex items-center gap-2 flex-wrap">
@@ -991,7 +991,7 @@ export default function AdminUsersPage() {
                 className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-slate-700 p-3"
               >
                 <div>
-                  <p className="text-sm font-semibold text-navy dark:text-white">{space.label}</p>
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">{space.label}</p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400 font-mono">{space.module}</p>
                 </div>
                 <button

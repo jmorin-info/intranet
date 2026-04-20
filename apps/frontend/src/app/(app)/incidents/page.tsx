@@ -206,7 +206,7 @@ function IncidentStatsCards({ kpis }: { kpis: DashboardKpis | null }) {
             </div>
             <div>
               <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">{c.label}</p>
-              <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">
+              <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">
                 {c.value !== null ? `${c.value}${c.suffix}` : '\u2014'}
               </p>
             </div>
@@ -359,7 +359,7 @@ export default function IncidentsPage() {
       key: 'reference',
       header: 'Référence',
       render: (i) => (
-        <span className="font-mono text-xs text-navy dark:text-white">
+        <span className="font-mono text-xs text-seal-navy dark:text-white">
           {i.reference}
         </span>
       ),
@@ -369,7 +369,7 @@ export default function IncidentsPage() {
       header: 'Titre',
       render: (i) => (
         <div className="max-w-md">
-          <p className="text-sm font-medium text-navy dark:text-white truncate">
+          <p className="text-sm font-medium text-seal-navy dark:text-white truncate">
             {i.title}
           </p>
           <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
@@ -503,7 +503,7 @@ export default function IncidentsPage() {
           </>
         }
         meta={
-          <span className="inline-flex items-center gap-1 rounded-full bg-navy/10 dark:bg-sky-400/10 px-2 py-0.5 text-[10px] font-medium text-navy dark:text-sky-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-seal-navy/10 dark:bg-sky-400/10 px-2 py-0.5 text-[10px] font-medium text-seal-navy dark:text-sky-300">
             ISO 27001 A.5.24 / A.5.25 / A.5.26 / A.5.27
           </span>
         }
@@ -635,7 +635,7 @@ export default function IncidentsPage() {
       {kpis && kpis.byCategory.length > 0 && (
         <Card>
           <CardContent className="p-4">
-            <h3 className="text-sm font-semibold text-navy dark:text-white mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-seal-navy dark:text-white mb-3 flex items-center gap-2">
               <Activity className="h-4 w-4" />
               Répartition par catégorie
             </h3>
@@ -643,7 +643,7 @@ export default function IncidentsPage() {
               {kpis.byCategory.map((c) => (
                 <span
                   key={c.category}
-                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-navy dark:text-sky-300 px-2 py-1 text-[11px] font-semibold"
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-seal-navy dark:text-sky-300 px-2 py-1 text-[11px] font-semibold"
                 >
                   {CATEGORY_OPTIONS.find((o) => o.value === c.category)?.label ||
                     c.category}
@@ -721,7 +721,7 @@ export default function IncidentsPage() {
               }
             />
             <div className="flex items-end pb-2">
-              <label className="flex items-center gap-2 text-xs text-navy dark:text-white">
+              <label className="flex items-center gap-2 text-xs text-seal-navy dark:text-white">
                 <input
                   type="checkbox"
                   checked={form.gdprNotifiable}

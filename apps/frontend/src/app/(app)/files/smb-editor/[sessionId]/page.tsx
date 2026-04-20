@@ -178,7 +178,7 @@ export default function SmbEditorPage() {
         <Card className="border-2 border-red-200 dark:border-red-900/40">
           <CardContent className="py-8 text-center">
             <AlertTriangle className="h-10 w-10 text-red-500 mx-auto mb-3" />
-            <h2 className="text-lg font-semibold text-navy dark:text-white mb-2">
+            <h2 className="text-lg font-semibold text-seal-navy dark:text-white mb-2">
               Impossible d'ouvrir l'éditeur
             </h2>
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 max-w-xl mx-auto">{error}</p>
@@ -206,7 +206,7 @@ export default function SmbEditorPage() {
         <Link href="/files" className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
           <ArrowLeft className="h-4 w-4" /> Retour aux fichiers
         </Link>
-        <div className="text-sm text-navy dark:text-white font-medium truncate max-w-md">
+        <div className="text-sm text-seal-navy dark:text-white font-medium truncate max-w-md">
           {editorData.fileName}
           {!editorData.canEdit && (
             <span className="ml-2 text-xs text-seal-gray-500">(lecture seule)</span>

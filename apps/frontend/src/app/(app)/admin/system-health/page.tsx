@@ -171,7 +171,7 @@ export default function SystemHealthPage() {
         <div>
           <div className="flex items-center gap-2">
             <Activity className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl text-navy dark:text-white">Santé système</h1>
+            <h1 className="text-2xl text-seal-navy dark:text-white">Santé système</h1>
             <span
               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] uppercase font-bold ${
                 globalStatus === 'up'
@@ -196,7 +196,7 @@ export default function SystemHealthPage() {
         </div>
         <button
           onClick={() => void load()}
-          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-medium text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-medium text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
         >
           <RefreshCw className="h-3 w-3" />
           Rafraîchir
@@ -208,23 +208,23 @@ export default function SystemHealthPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in-up">
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
             <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Version</p>
-            <p className="text-xl font-light text-navy dark:text-white">{health.version || '—'}</p>
+            <p className="text-xl font-light text-seal-navy dark:text-white">{health.version || '—'}</p>
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
             <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Uptime</p>
-            <p className="text-xl font-light text-navy dark:text-white">
+            <p className="text-xl font-light text-seal-navy dark:text-white">
               {health.uptime ? formatUptime(health.uptime) : '—'}
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
             <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Mémoire RSS</p>
-            <p className="text-xl font-light text-navy dark:text-white">
+            <p className="text-xl font-light text-seal-navy dark:text-white">
               {health.memory?.rss ? formatBytes(health.memory.rss) : '—'}
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
             <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Utilisateurs actifs</p>
-            <p className="text-xl font-light text-navy dark:text-white">
+            <p className="text-xl font-light text-seal-navy dark:text-white">
               {health.counts?.activeUsers ?? '—'}
             </p>
           </div>
@@ -268,7 +268,7 @@ export default function SystemHealthPage() {
                     <span className={`relative inline-flex rounded-full h-2 w-2 ${toneDot}`} />
                   </span>
                 </div>
-                <p className="text-sm font-semibold text-navy dark:text-white">{svc.label}</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">{svc.label}</p>
                 <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mt-0.5">
                   {svc.status === 'up'
                     ? 'Opérationnel'

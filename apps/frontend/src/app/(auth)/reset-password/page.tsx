@@ -116,7 +116,7 @@ function ResetPasswordContent() {
                     <CheckCircle2 className="h-10 w-10 text-emerald-600" />
                   </div>
                 </div>
-                <h2 className="text-lg font-semibold text-navy dark:text-white mb-2">{t('resetPassword.successTitle')}</h2>
+                <h2 className="text-lg font-semibold text-seal-navy dark:text-white mb-2">{t('resetPassword.successTitle')}</h2>
                 <p className="text-sm text-seal-gray-500 mb-4">{t('resetPassword.successMessage')}</p>
                 {/* Countdown progress bar */}
                 <div className="w-48 mx-auto mb-4">

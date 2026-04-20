@@ -264,7 +264,7 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
           <div>
-            <h2 className="text-lg font-medium text-navy dark:text-white">
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white">
               Ajouter un export {category.label}
             </h2>
             <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
@@ -284,7 +284,7 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
           <div className="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 px-4 py-3">
             <FileText className="h-8 w-8 text-primary flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-navy dark:text-white truncate">
+              <p className="text-sm font-medium text-seal-navy dark:text-white truncate">
                 {file.name}
               </p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">
@@ -294,7 +294,7 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-navy dark:text-slate-200 mb-1">
+            <label className="block text-xs font-medium text-seal-navy dark:text-slate-200 mb-1">
               Période de référence
             </label>
             <input
@@ -302,7 +302,7 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
               value={reportPeriod}
               onChange={(e) => setReportPeriod(e.target.value)}
               placeholder="Ex : 2026-04, Q2-2026, mensuel"
-              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
             />
             <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-1">
               Utilisé pour le classement et les filtres.
@@ -310,7 +310,7 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-navy dark:text-slate-200 mb-1">
+            <label className="block text-xs font-medium text-seal-navy dark:text-slate-200 mb-1">
               Description (facultatif)
             </label>
             <textarea
@@ -318,7 +318,7 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Contexte, version, commentaires…"
-              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
             />
           </div>
         </div>
@@ -399,7 +399,7 @@ function VeeamReportWidget() {
           <div className="flex items-start gap-3">
             <Database className="h-8 w-8 text-seal-gray-500 dark:text-slate-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-navy dark:text-white">
+              <p className="text-sm font-medium text-seal-navy dark:text-white">
                 Aucun rapport Veeam disponible
               </p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
@@ -425,7 +425,7 @@ function VeeamReportWidget() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-6 w-6 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-navy dark:text-white">
+              <p className="text-sm font-medium text-seal-navy dark:text-white">
                 Rapport Veeam présent mais non parsable
               </p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
@@ -464,7 +464,7 @@ function VeeamReportWidget() {
               <Database className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-navy dark:text-white">
+              <h2 className="text-base font-semibold text-seal-navy dark:text-white">
                 Dernier rapport Veeam
                 {report.reportPeriod && (
                   <span className="ml-2 text-primary">
@@ -547,7 +547,7 @@ function VeeamReportWidget() {
             <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
               Jobs actifs
             </p>
-            <p className="text-sm font-semibold text-navy dark:text-white mt-0.5">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white mt-0.5">
               {totalJobs}
             </p>
           </div>
@@ -555,7 +555,7 @@ function VeeamReportWidget() {
             <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
               Volume sauvegardé
             </p>
-            <p className="text-sm font-semibold text-navy dark:text-white mt-0.5">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white mt-0.5">
               {totalBackedUpGB.toLocaleString('fr-FR', {
                 maximumFractionDigits: 2,
               })}{' '}
@@ -566,7 +566,7 @@ function VeeamReportWidget() {
             <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
               Durée moyenne
             </p>
-            <p className="text-sm font-semibold text-navy dark:text-white mt-0.5">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white mt-0.5">
               {summary.averageDurationMinutes ?? 0} min
             </p>
           </div>
@@ -574,7 +574,7 @@ function VeeamReportWidget() {
             <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
               Tests de restore
             </p>
-            <p className="text-sm font-semibold text-navy dark:text-white mt-0.5">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white mt-0.5">
               {restoreOk} / {restoreCount}
             </p>
           </div>
@@ -607,7 +607,7 @@ function VeeamReportWidget() {
         {/* Jobs table */}
         {report.jobs.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-navy dark:text-white uppercase tracking-wider mb-2">
+            <p className="text-xs font-semibold text-seal-navy dark:text-white uppercase tracking-wider mb-2">
               Jobs ({report.jobsCount})
             </p>
             <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700">
@@ -645,7 +645,7 @@ function VeeamReportWidget() {
                         key={`${job.name}-${idx}`}
                         className="hover:bg-gray-50 dark:hover:bg-slate-800/40"
                       >
-                        <td className="px-3 py-2 font-medium text-navy dark:text-white">
+                        <td className="px-3 py-2 font-medium text-seal-navy dark:text-white">
                           {job.name}
                           {job.isEnabled === false && (
                             <span className="ml-2 text-[10px] text-red-600 dark:text-red-400 font-normal">
@@ -836,7 +836,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
               <Icon className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-medium text-navy dark:text-white">
+              <h2 className="text-xl font-medium text-seal-navy dark:text-white">
                 {category.label}
               </h2>
               <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
@@ -876,7 +876,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
               />
             </div>
             <div>
-              <p className="text-sm font-medium text-navy dark:text-white">
+              <p className="text-sm font-medium text-seal-navy dark:text-white">
                 Glissez vos fichiers ici ou cliquez pour parcourir
               </p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
@@ -904,7 +904,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Rechercher un fichier, tag, description…"
-                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
               />
             </div>
             <div className="relative">
@@ -914,7 +914,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
                 value={periodFilter}
                 onChange={(e) => setPeriodFilter(e.target.value)}
                 placeholder="Période (ex : 2026-04)"
-                className="pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                className="pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
               />
             </div>
           </div>
@@ -947,7 +947,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-[200px]">
-                    <p className="text-sm font-medium text-navy dark:text-white truncate">
+                    <p className="text-sm font-medium text-seal-navy dark:text-white truncate">
                       {item.originalName}
                     </p>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
@@ -1085,7 +1085,7 @@ export default function ItExportsPage() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <ClipboardCheck className="h-7 w-7 text-primary" />
             Exports IT &amp; Conformité
           </h1>
@@ -1097,19 +1097,19 @@ export default function ItExportsPage() {
           <div className="flex items-center gap-6 text-xs text-seal-gray-500 dark:text-slate-400">
             <div>
               <p className="text-[10px] uppercase tracking-wider">Total exports</p>
-              <p className="text-lg font-medium text-navy dark:text-white">
+              <p className="text-lg font-medium text-seal-navy dark:text-white">
                 {globalCount}
               </p>
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-wider">Volume</p>
-              <p className="text-lg font-medium text-navy dark:text-white">
+              <p className="text-lg font-medium text-seal-navy dark:text-white">
                 {formatSize(globalSize)}
               </p>
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-wider">Dernier dépôt</p>
-              <p className="text-lg font-medium text-navy dark:text-white">
+              <p className="text-lg font-medium text-seal-navy dark:text-white">
                 {formatDate(stats.totals.lastUploadAt)}
               </p>
             </div>
@@ -1148,7 +1148,7 @@ export default function ItExportsPage() {
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-navy dark:text-white truncate group-hover:text-primary transition-colors">
+                    <p className="text-sm font-medium text-seal-navy dark:text-white truncate group-hover:text-primary transition-colors">
                       {cat.label}
                     </p>
                     {cat.iso && (
