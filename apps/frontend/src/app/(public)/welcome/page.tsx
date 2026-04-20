@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { OmnitechLogo } from '@/components/omnitech-logo';
@@ -145,20 +145,50 @@ export default function WelcomePage() {
     setIsLoggedIn(!!localStorage.getItem('accessToken'));
   }, []);
 
-  useEffect(() => {
+  // Fetch public data. Wrapped in useCallback so we can also trigger it on
+  // visibility change and window focus, pour refléter les nouveautés sans
+  // demander à l'utilisateur de F5 (bug signalé 2026-04-20 : portail ne
+  // montrait plus les news/docs récents).
+  const refreshPortal = useCallback(() => {
+    const opts: RequestInit = { cache: 'no-store' as const };
     Promise.all([
-      fetch(`${API}/public/info`).then(r => r.json()).catch(() => null),
-      fetch(`${API}/public/news?limit=6`).then(r => r.json()).catch(() => ({ data: [] })),
-      fetch(`${API}/public/documents?limit=9`).then(r => r.json()).catch(() => ({ data: [] })),
+      fetch(`${API}/public/info`, opts).then(r => r.json()).catch(() => null),
+      fetch(`${API}/public/news?limit=6`, opts).then(r => r.json()).catch(() => ({ data: [] })),
+      fetch(`${API}/public/documents?limit=9`, opts).then(r => r.json()).catch(() => ({ data: [] })),
     ]).then(([infoData, newsData, docsData]) => {
       if (infoData) setInfo(infoData);
       setNews(newsData?.data || []);
       setDocs(docsData?.data || []);
       setLoaded(true);
     }).catch(console.error);
-    // Fetch cyber alerts from veille
-    fetch(`${API}/public/veille?limit=5`).then(r => r.json()).then(d => setAlerts(d?.data || [])).catch(console.error);
+    fetch(`${API}/public/veille?limit=5`, opts)
+      .then(r => r.json())
+      .then(d => setAlerts(d?.data || []))
+      .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    refreshPortal();
+
+    // Refetch quand l'onglet redevient visible (user revient après un moment)
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refreshPortal();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', refreshPortal);
+
+    // Poll léger toutes les 5 min si l'onglet reste ouvert (news temps réel
+    // pas critique, mais éviter un portail figé plusieurs heures)
+    const pollId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') refreshPortal();
+    }, 5 * 60 * 1000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', refreshPortal);
+      clearInterval(pollId);
+    };
+  }, [refreshPortal]);
 
 
   return (

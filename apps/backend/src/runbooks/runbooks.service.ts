@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { slugify, generateUniqueSlug } from '../common/utils/slugify';
 
 @Injectable()
 export class RunbooksService {
@@ -58,15 +59,29 @@ export class RunbooksService {
 
   async create(data: {
     title: string;
-    slug: string;
+    slug?: string;
     description?: string;
     category?: string;
     content: string;
     authorId: string;
   }) {
+    // Auto-génère slug depuis titre si non fourni (ou normalise si fourni)
+    const rawSlug = typeof data.slug === 'string' ? data.slug.trim() : '';
+    const slug = rawSlug
+      ? (slugify(rawSlug, { maxLength: 120 }) || await this.autoSlug(data.title))
+      : await this.autoSlug(data.title);
+
     return this.prisma.runbook.create({
-      data: { ...data, isPublished: true },
+      data: { ...data, slug, isPublished: true },
     });
+  }
+
+  private autoSlug(title: string): Promise<string> {
+    return generateUniqueSlug(
+      title,
+      async (candidate) => !!(await this.prisma.runbook.findUnique({ where: { slug: candidate } })),
+      { maxLength: 120, fallback: 'runbook' },
+    );
   }
 
   async update(

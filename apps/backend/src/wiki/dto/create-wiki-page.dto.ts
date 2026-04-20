@@ -19,10 +19,11 @@ export class CreateWikiPageDto {
   @MaxLength(200)
   title: string;
 
+  // Slug optionnel : auto-généré depuis title si absent (slugify util).
+  @IsOptional()
   @IsString()
-  @MinLength(1)
   @MaxLength(200)
-  slug: string;
+  slug?: string;
 
   @IsString()
   content: string;
