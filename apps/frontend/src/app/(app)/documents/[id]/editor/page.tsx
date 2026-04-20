@@ -136,7 +136,6 @@ export default function DocumentEditorPage() {
     node.appendChild(div);
     placeholderRef.current = div;
     setPlaceholderReady(true);
-    console.log('[OnlyOffice] Placeholder created and ready');
   }, []);
   const editorInstanceRef = useRef<any>(null);
 
@@ -343,26 +342,14 @@ export default function DocumentEditorPage() {
   const initGuardRef = useRef(false);
 
   useEffect(() => {
-    // DEBUG: trace why editor init may not fire
-    console.log('[OnlyOffice] Init effect fired:', {
-      initGuard: initGuardRef.current,
-      hasInstance: !!editorInstanceRef.current,
-      scriptLoaded,
-      hasConfig: !!editorConfigRef.current,
-      hasPlaceholderRef: !!placeholderRef.current,
-      hasPlaceholderDOM: !!document.getElementById('onlyoffice-placeholder'),
-      hasDocsAPI: !!(window as any).DocsAPI?.DocEditor,
-    });
-
     // HARD GUARD: prevent double init
-    if (initGuardRef.current) { console.log('[OnlyOffice] BLOCKED by initGuard'); return; }
-    if (editorInstanceRef.current) { console.log('[OnlyOffice] BLOCKED by existing instance'); return; }
-    if (!scriptLoaded) { console.log('[OnlyOffice] WAITING: script not loaded'); return; }
-    if (!editorConfigRef.current) { console.log('[OnlyOffice] WAITING: no config'); return; }
-    if (!placeholderReady || !placeholderRef.current) { console.log('[OnlyOffice] WAITING: placeholder not ready'); return; }
+    if (initGuardRef.current) { return; }
+    if (editorInstanceRef.current) { return; }
+    if (!scriptLoaded) { return; }
+    if (!editorConfigRef.current) { return; }
+    if (!placeholderReady || !placeholderRef.current) { return; }
 
     const placeholder = placeholderRef.current;
-    console.log('[OnlyOffice] ALL CHECKS PASSED — creating editor instance');
 
     const DocsAPI = (window as any).DocsAPI;
     if (!DocsAPI || typeof DocsAPI.DocEditor !== 'function') {
@@ -546,8 +533,6 @@ export default function DocumentEditorPage() {
         return `${node.tagName.toLowerCase()}${node.id ? '#' + node.id : ''}.${cls.split(/\s+/).slice(0, 4).join('.')} [pos=${cs.position} z=${cs.zIndex} bg=${cs.backgroundColor}]`;
       });
     setOverlapping(found);
-    // eslint-disable-next-line no-console
-    console.log('[OnlyOffice] overlapping elements for placeholder:', found, 'placeholder rect:', r);
     toast.info(`Diagnostic overlap : ${found.length} éléments chevauchent la zone`);
   }, []);
 
