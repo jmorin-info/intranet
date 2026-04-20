@@ -294,12 +294,16 @@ export class ChartesService {
 
   async remove(charteId: string, userId: string) {
     const charte = await this.prisma.charte.findUnique({ where: { id: charteId } });
-    if (!charte) throw new NotFoundException('Charte not found');
+    if (!charte) throw new NotFoundException('Charte introuvable');
 
     // Delete all signatures, versions, then the charte
     await this.prisma.charteSignature.deleteMany({ where: { charteId } });
     await this.prisma.charteVersion.deleteMany({ where: { charteId } });
     await this.prisma.charte.delete({ where: { id: charteId } });
+
+    // Désindexation : les chartes ne sont actuellement pas dans Meilisearch
+    // ni dans le RAG (validé par l'enum RagSourceType), donc pas d'appel
+    // explicite. Si une indexation future est ajoutée, desindexer ici.
 
     await this.audit.log({
       userId,

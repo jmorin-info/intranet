@@ -523,13 +523,19 @@ export class WikiService {
 
   async delete(id: string, user: RequestUser) {
     const existing = await this.prisma.wikiPage.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Wiki page not found');
+    if (!existing) throw new NotFoundException('Page wiki introuvable');
 
     if (!isPrivilegedRole(user.role) && existing.authorId !== user.id) {
-      throw new ForbiddenException('You cannot delete this wiki page');
+      throw new ForbiddenException('Vous ne pouvez pas supprimer cette page wiki.');
     }
 
-    return this.prisma.wikiPage.delete({ where: { id } });
+    const deleted = await this.prisma.wikiPage.delete({ where: { id } });
+
+    // Désindexation complète
+    void this.meili?.deleteDocument('wiki', id);
+    void this.rag?.removeFromIndex('WIKI' as never, id).catch(() => undefined);
+
+    return deleted;
   }
 
   /**

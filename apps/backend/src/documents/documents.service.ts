@@ -22,6 +22,7 @@ import { ISO_CONTROLS_FR } from '../iso-controls/iso-controls-fr.map';
 import { sanitizePlainText } from '../common/sanitize';
 import { safeParseInt } from '../common/validation-helpers';
 import { MeilisearchService, MeiliDocument } from '../search/meilisearch.service';
+import { RagService } from '../rag/rag.service';
 
 /** Enrich any object that has nested isoControls[].isoControl with titleFr */
 function enrichIsoControls<T>(doc: T): T {
@@ -106,6 +107,7 @@ export class DocumentsService {
     private readonly notificationsService: NotificationsService,
     private readonly cacheService: CacheService,
     @Optional() private readonly meili?: MeilisearchService,
+    @Optional() private readonly rag?: RagService,
   ) {}
 
   /** Invalidate document + dashboard stats caches after mutations. */
@@ -727,6 +729,11 @@ export class DocumentsService {
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    // Désindexation complète : Meilisearch (recherche globale) + RAG
+    // (chatbot ne doit plus ressortir le contenu).
+    void this.meili?.deleteDocument('document', id);
+    void this.rag?.removeFromIndex('DOCUMENT' as never, id).catch(() => undefined);
 
     await this.auditService.log({
       userId: currentUser.id,

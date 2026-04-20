@@ -253,15 +253,27 @@ export class NewsService {
     const post = await this.prisma.newsPost.findUnique({ where: { id } });
 
     if (!post || post.deletedAt) {
-      throw new NotFoundException('News post not found');
+      throw new NotFoundException('Actualité introuvable');
     }
+
+    // Libère le slug pour qu'une future actualité puisse réutiliser le même
+    // titre. On suffixe avec timestamp pour garder l'audit trail tout en
+    // dégageant le slug unique côté DB.
+    const releasedSlug = `${post.slug}.deleted-${Date.now().toString(36)}`.slice(0, 200);
 
     await this.prisma.newsPost.update({
       where: { id },
-      data: { deletedAt: new Date() },
+      data: {
+        deletedAt: new Date(),
+        slug: releasedSlug,
+      },
     });
 
-    return { message: 'News post deleted' };
+    // Désindexe de Meilisearch. Les actualités ne sont pas indexées par le
+    // RAG (cf. enum RagSourceType) — pas besoin de removeFromIndex.
+    void this.meili?.deleteDocument('news', id);
+
+    return { message: 'Actualité supprimée' };
   }
 
   async publish(id: string) {
