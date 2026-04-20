@@ -765,7 +765,7 @@ export default function RSSIDashboardPage() {
       <div className="animate-fade-in-up stagger-item grid grid-cols-2 md:grid-cols-5 gap-4 print:hidden">
         <Link href="/admin/compliance"><Card hoverable><CardContent className="text-center py-6"><ShieldCheck className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-navy dark:text-white">Analyse écarts</p></CardContent></Card></Link>
         <Link href="/veille"><Card hoverable><CardContent className="text-center py-6"><Rss className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-navy dark:text-white">Veille cyber</p></CardContent></Card></Link>
-        <Link href="/admin/audit-log"><Card hoverable><CardContent className="text-center py-6"><BarChart3 className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-navy dark:text-white">Journal audit</p></CardContent></Card></Link>
+        <Link href="/admin/audit"><Card hoverable><CardContent className="text-center py-6"><BarChart3 className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-navy dark:text-white">Journal audit</p></CardContent></Card></Link>
         <Link href="/admin/signatures"><Card hoverable><CardContent className="text-center py-6"><PenLine className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-navy dark:text-white">Signatures</p></CardContent></Card></Link>
         <Link href="/alerts"><Card hoverable><CardContent className="text-center py-6"><AlertTriangle className="h-8 w-8 text-primary mx-auto mb-2" /><p className="text-sm font-medium text-navy dark:text-white">Alertes ({data.alerts})</p></CardContent></Card></Link>
       </div>

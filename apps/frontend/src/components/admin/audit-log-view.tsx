@@ -1,5 +1,16 @@
 'use client';
 
+/**
+ * Audit Log View
+ * -----------------------------------------------------------------------------
+ * Extrait de `app/(app)/admin/audit-log/page.tsx` pour être ré-utilisé dans la
+ * page unifiée `/admin/audit` (onglet « Journal d'audit »).
+ *
+ * Zero changement de logique métier par rapport au fichier d'origine : seul
+ * le <PageHeader> global a été retiré (c'est le parent qui le pose) pour
+ * éviter un double titre.
+ */
+
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
@@ -43,9 +54,7 @@ import {
   FileEdit,
   Eye,
   Trash2,
-  Clock,
 } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
 import { downloadCsv } from '@/lib/export-csv';
 import type { CsvColumn } from '@/lib/export-csv';
 
@@ -67,7 +76,14 @@ interface PaginatedAudit {
   meta: { total: number; page: number; limit: number; totalPages: number };
 }
 
-export default function AdminAuditLogPage() {
+export interface AuditLogViewProps {
+  /** Rend les actions barre d'outils (auto-refresh / export). Utilisé par le parent
+   * pour composer avec son propre <PageHeader>. Si non fourni, la barre est rendue
+   * en tête du composant. */
+  renderToolbar?: (toolbar: React.ReactNode) => React.ReactNode;
+}
+
+export function AuditLogView({ renderToolbar }: AuditLogViewProps = {}) {
   const { t } = useTranslation();
   const [entries, setEntries] = useState<PaginatedAudit | null>(null);
   const [loading, setLoading] = useState(true);
@@ -285,38 +301,34 @@ export default function AdminAuditLogPage() {
     },
   ], [t]);
 
+  const toolbar = (
+    <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2">
+        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="text-xs text-taupe dark:text-slate-400">{t('audit.live')}</span>
+      </div>
+      <Button
+        variant={autoRefresh ? 'primary' : 'outline'}
+        size="sm"
+        onClick={() => setAutoRefresh(!autoRefresh)}
+      >
+        <RefreshCw className={`h-4 w-4 ${autoRefresh ? 'animate-spin' : ''}`} />
+        {autoRefresh ? 'Auto' : 'Manuel'}
+      </Button>
+      <Button variant="outline" size="sm" onClick={fetchLogs}>
+        <RefreshCw className="h-4 w-4" />
+        Rafraîchir
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => setShowExportPanel(!showExportPanel)}>
+        <Download className="h-4 w-4" />
+        Exporter CSV
+      </Button>
+    </div>
+  );
+
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <PageHeader
-        title={t('auditLog.title')}
-        subtitle={t('auditLog.subtitle')}
-        icon={ClipboardList}
-        hub="admin"
-        actions={
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs text-taupe dark:text-slate-400">{t('audit.live')}</span>
-            </div>
-            <Button
-              variant={autoRefresh ? 'primary' : 'outline'}
-              size="sm"
-              onClick={() => setAutoRefresh(!autoRefresh)}
-            >
-              <RefreshCw className={`h-4 w-4 ${autoRefresh ? 'animate-spin' : ''}`} />
-              {autoRefresh ? 'Auto' : 'Manuel'}
-            </Button>
-            <Button variant="outline" size="sm" onClick={fetchLogs}>
-              <RefreshCw className="h-4 w-4" />
-              Rafraîchir
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowExportPanel(!showExportPanel)}>
-              <Download className="h-4 w-4" />
-              Exporter CSV
-            </Button>
-          </div>
-        }
-      />
+    <div className="space-y-6">
+      {renderToolbar ? renderToolbar(toolbar) : <div className="flex justify-end">{toolbar}</div>}
 
       {/* Quick action chips */}
       <div className="flex items-center gap-1.5 flex-wrap">

@@ -1,13 +1,20 @@
 'use client';
 
-// Page Frise d'audit — ISO 27001 A.5.36 (Journal d'audit sécurité)
-// Affiche les événements critiques sous forme de frise verticale, avec
-// filtres et export PDF signé "Rapport d'audit trimestriel".
+/**
+ * Audit Timeline View
+ * -----------------------------------------------------------------------------
+ * Extrait de `app/(app)/admin/audit-timeline/page.tsx` pour être ré-utilisé
+ * dans la page unifiée `/admin/audit` (onglet « Chronologie »).
+ *
+ * Zero changement de logique métier par rapport au fichier d'origine : seuls
+ * le wrapper bg-gray-50/min-h-screen, <AdminGroupTabs> et le header (h1)
+ * ont été retirés (c'est le parent qui les pose) pour éviter double titre
+ * et double tabs.
+ */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
-  Activity,
   AlertOctagon,
   AlertTriangle,
   CheckCircle,
@@ -19,7 +26,6 @@ import {
 import { api } from '@/lib/api';
 import { PdfExportButton } from '@/components/ui/pdf-export-button';
 import type { SignedPdfRequest } from '@/lib/export-pdf';
-import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
 import { Skeleton, EmptyState } from '@omnitech/ui';
 import { useTranslation } from '@/lib/i18n';
 
@@ -147,7 +153,7 @@ function severityBadgeClass(sev: Severity): string {
 
 // --- Composant ---
 
-export default function AuditTimelinePage() {
+export function AuditTimelineView() {
   const { t } = useTranslation();
   const [period, setPeriod] = useState<PeriodKey>('30d');
   const [severities, setSeverities] = useState<Severity[]>(['WARN', 'CRITICAL']);
@@ -332,36 +338,21 @@ export default function AuditTimelinePage() {
 
   // --- Rendu ---
   return (
-    <div className="p-6 space-y-6 bg-gray-50 dark:bg-slate-950 min-h-screen">
-      <AdminGroupTabs group="audit" />
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-navy/10 dark:bg-slate-800">
-            <Activity className="h-6 w-6 text-navy dark:text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-navy dark:text-white">Frise d'audit</h1>
-            <p className="text-sm text-gray-600 dark:text-slate-400">
-              ISO 27001 A.5.36 — Journal d'audit sécurité
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setPage(1);
-              fetchPage(1, false);
-              fetchStats();
-            }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
-          >
-            <RefreshCw className="h-3.5 w-3.5" /> Rafraîchir
-          </button>
-          <PdfExportButton payload={pdfPayload} label="Rapport trimestriel" />
-        </div>
+    <div className="space-y-6">
+      {/* Actions (rafraîchir + export PDF) */}
+      <div className="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setPage(1);
+            fetchPage(1, false);
+            fetchStats();
+          }}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+        >
+          <RefreshCw className="h-3.5 w-3.5" /> Rafraîchir
+        </button>
+        <PdfExportButton payload={pdfPayload} label="Rapport trimestriel" />
       </div>
 
       {/* Filtres */}

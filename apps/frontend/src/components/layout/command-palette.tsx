@@ -243,7 +243,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       { id: 'admin:system-health',  label: 'Santé système',           icon: Activity,     category: 'admin', href: '/admin/system-health',   minRole: UserRole.ADMIN, keywords: ['monitoring'] },
       { id: 'admin:ldap-pending',   label: 'Validation LDAP',         icon: UserCheck,    category: 'admin', href: '/admin/ldap-pending',    minRole: UserRole.ADMIN, keywords: ['ad', 'active directory'] },
       { id: 'admin:workflows',      label: 'Workflows d\'approbation', icon: Layers,      category: 'admin', href: '/admin/workflows',       minRole: UserRole.ADMIN, keywords: ['approbation', 'flow'] },
-      { id: 'admin:audit',          label: 'Frise audit',             icon: ClipboardList, category: 'admin', href: '/admin/audit-log',      minRole: UserRole.SUPER_ADMIN, keywords: ['journal', 'trace'] },
+      { id: 'admin:audit',          label: 'Audit (journal + chronologie)', icon: ClipboardList, category: 'admin', href: '/admin/audit',     minRole: UserRole.ADMIN, keywords: ['journal', 'trace', 'frise', 'timeline'] },
       { id: 'admin:rssi',           label: 'Dashboard RSSI',          icon: ShieldCheck,  category: 'admin', href: '/admin/rssi-dashboard',  minRole: UserRole.SUPER_ADMIN, keywords: ['ciso', 'supervision'] },
       { id: 'admin:users',          label: 'Utilisateurs',            icon: Users,        category: 'admin', href: '/admin/users',           minRole: UserRole.ADMIN, keywords: ['comptes', 'ldap'] },
       { id: 'admin:config',         label: 'Configuration',           icon: Settings,     category: 'admin', href: '/admin/config',          minRole: UserRole.SUPER_ADMIN, keywords: ['paramètres', 'smtp'] },

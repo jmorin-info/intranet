@@ -134,7 +134,7 @@ const PAGE_CONTEXTS: Record<string, PageContext> = {
     actions: [
       { id: 'manage-users', label: 'Gérer les utilisateurs', icon: 'Users', href: '/admin/users', routerAction: 'push', description: 'Comptes, rôles, départements et import CSV' },
       { id: 'view-compliance', label: 'Conformité ISO', icon: 'ShieldCheck', href: '/admin/compliance', routerAction: 'push', description: 'Couverture des 93 contrôles de l\'Annexe A' },
-      { id: 'audit-log', label: 'Journal d\'audit', icon: 'ClipboardList', href: '/admin/audit-log', routerAction: 'push', description: 'Trace d\'audit ISO 27001 A.8.15' },
+      { id: 'audit-log', label: 'Journal d\'audit', icon: 'ClipboardList', href: '/admin/audit', routerAction: 'push', description: 'Trace d\'audit ISO 27001 A.8.15' },
       { id: 'config', label: 'Configuration', icon: 'Settings', href: '/admin/config', routerAction: 'push', description: 'Paramètres système, LDAP, SMTP, intégrations' },
     ],
     workflows: [],

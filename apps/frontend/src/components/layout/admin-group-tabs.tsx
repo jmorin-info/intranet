@@ -63,8 +63,7 @@ const GROUPS: Record<string, { label: string; tabs: Tab[] }> = {
   audit: {
     label: 'Audit & monitoring',
     tabs: [
-      { label: "Log d'audit", href: '/admin/audit-log', icon: ClipboardList, minRole: UserRole.ADMIN },
-      { label: 'Frise audit', href: '/admin/audit-timeline', icon: Activity, minRole: UserRole.ADMIN },
+      { label: 'Audit (log + frise)', href: '/admin/audit', icon: ClipboardList, minRole: UserRole.ADMIN },
       { label: 'Santé système', href: '/admin/system-health', icon: Monitor, minRole: UserRole.ADMIN },
       { label: 'Dashboard RSSI', href: '/admin/rssi-dashboard', icon: BarChart3, minRole: UserRole.SUPER_ADMIN },
       { label: 'Rapports', href: '/admin/reports', icon: BarChart3, minRole: UserRole.ADMIN },
