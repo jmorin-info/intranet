@@ -1,0 +1,443 @@
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+import { NotificationType } from '@prisma/client';
+import { CreateCertificateDto } from './dto/create-certificate.dto';
+import { UpdateCertificateDto } from './dto/update-certificate.dto';
+import { RequestUser } from '../common/interfaces';
+
+@Injectable()
+export class CertificatesService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
+
+  private addStatus<T extends { expiresAt: Date | null }>(
+    cert: T,
+  ): T & { status: 'valid' | 'expired' } {
+    const now = new Date();
+    const status =
+      cert.expiresAt && cert.expiresAt < now ? 'expired' : 'valid';
+    return { ...cert, status };
+  }
+
+  async findMy(userId: string) {
+    const certs = await this.prisma.certificate.findMany({
+      where: { userId },
+      orderBy: { obtainedAt: 'desc' },
+    });
+    return certs.map((c) => this.addStatus(c));
+  }
+
+  async findAll(filters: {
+    userId?: string;
+    externalPersonId?: string;
+    certType?: string;
+    status?: 'valid' | 'expired' | 'all';
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const where: any = {};
+
+    if (filters.userId) where.userId = filters.userId;
+    if (filters.externalPersonId)
+      where.externalPersonId = filters.externalPersonId;
+    if (filters.certType) where.certType = filters.certType;
+
+    if (filters.search) {
+      where.OR = [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { certType: { contains: filters.search, mode: 'insensitive' } },
+        {
+          user: {
+            OR: [
+              {
+                firstName: {
+                  contains: filters.search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                lastName: {
+                  contains: filters.search,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          },
+        },
+        {
+          externalPerson: {
+            OR: [
+              {
+                firstName: {
+                  contains: filters.search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                lastName: {
+                  contains: filters.search,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          },
+        },
+      ];
+    }
+
+    const now = new Date();
+    if (filters.status === 'valid') {
+      where.OR = [
+        ...(where.OR || []),
+        { expiresAt: null },
+        { expiresAt: { gte: now } },
+      ];
+      // If we already had an OR from search, we need AND logic
+      if (filters.search) {
+        const searchOr = where.OR.slice(0, -2);
+        const statusOr = where.OR.slice(-2);
+        delete where.OR;
+        where.AND = [{ OR: searchOr }, { OR: statusOr }];
+      }
+    } else if (filters.status === 'expired') {
+      where.expiresAt = { lt: now };
+    }
+
+    const page = filters.page || 1;
+    const limit = Math.min(filters.limit || 20, 100);
+
+    const [data, total] = await Promise.all([
+      this.prisma.certificate.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          externalPerson: true,
+          createdBy: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: { obtainedAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.certificate.count({ where }),
+    ]);
+
+    return {
+      data: data.map((c) => this.addStatus(c)),
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  async getStats() {
+    const now = new Date();
+    const in30Days = new Date();
+    in30Days.setDate(in30Days.getDate() + 30);
+
+    const [total, expired, expiringIn30Days, byTypeRaw] = await Promise.all([
+      this.prisma.certificate.count(),
+      this.prisma.certificate.count({
+        where: { expiresAt: { lt: now } },
+      }),
+      this.prisma.certificate.count({
+        where: { expiresAt: { gte: now, lte: in30Days } },
+      }),
+      this.prisma.certificate.groupBy({
+        by: ['certType'],
+        _count: { _all: true },
+      }),
+    ]);
+
+    const valid = total - expired;
+    const byType = byTypeRaw.map((g) => ({
+      certType: g.certType,
+      count: g._count._all,
+    }));
+
+    return { total, valid, expired, expiringIn30Days, byType };
+  }
+
+  async findExpiring() {
+    const now = new Date();
+    const in30Days = new Date();
+    in30Days.setDate(in30Days.getDate() + 30);
+
+    const certs = await this.prisma.certificate.findMany({
+      where: {
+        expiresAt: { gte: now, lte: in30Days },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        externalPerson: true,
+      },
+      orderBy: { expiresAt: 'asc' },
+    });
+
+    return certs.map((c) => this.addStatus(c));
+  }
+
+  async findOne(id: string) {
+    const cert = await this.prisma.certificate.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        externalPerson: true,
+        createdBy: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+    if (!cert) throw new NotFoundException('Certificate not found');
+    return this.addStatus(cert);
+  }
+
+  async create(dto: CreateCertificateDto, createdById: string) {
+    if (!dto.userId && !dto.externalPersonId) {
+      throw new BadRequestException(
+        'userId or externalPersonId must be provided',
+      );
+    }
+    if (dto.userId && dto.externalPersonId) {
+      throw new BadRequestException(
+        'Provide either userId or externalPersonId, not both',
+      );
+    }
+
+    const cert = await this.prisma.certificate.create({
+      data: {
+        name: dto.name,
+        certType: dto.certType,
+        obtainedAt: new Date(dto.obtainedAt),
+        expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+        fileUrl: dto.fileUrl ?? null,
+        fileName: dto.fileName ?? null,
+        fileSizeBytes: dto.fileSizeBytes ?? null,
+        notes: dto.notes ?? null,
+        userId: dto.userId ?? null,
+        externalPersonId: dto.externalPersonId ?? null,
+        createdById,
+      },
+    });
+
+    await this.audit.log({
+      userId: createdById,
+      action: 'CERTIFICATE_CREATED',
+      resourceType: 'Certificate',
+      resourceId: cert.id,
+      metadata: { name: cert.name, certType: cert.certType },
+    });
+
+    return this.addStatus(cert);
+  }
+
+  async createMy(dto: CreateCertificateDto, user: RequestUser) {
+    // Force ownership: user can only create certificates for themselves
+    dto.userId = user.id;
+    dto.externalPersonId = undefined;
+
+    const pendingNote = 'En attente de validation';
+    const notes = dto.notes
+      ? `[${pendingNote}] ${dto.notes}`
+      : pendingNote;
+
+    const cert = await this.prisma.certificate.create({
+      data: {
+        name: dto.name,
+        certType: dto.certType,
+        obtainedAt: new Date(dto.obtainedAt),
+        expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+        fileUrl: dto.fileUrl ?? null,
+        fileName: dto.fileName ?? null,
+        fileSizeBytes: dto.fileSizeBytes ?? null,
+        notes,
+        userId: user.id,
+        externalPersonId: null,
+        createdById: user.id,
+      },
+    });
+
+    await this.audit.log({
+      userId: user.id,
+      action: 'CERTIFICATE_CREATED',
+      resourceType: 'Certificate',
+      resourceId: cert.id,
+      metadata: { name: cert.name, certType: cert.certType, selfService: true },
+    });
+
+    // Notify all admins
+    const admins = await this.prisma.user.findMany({
+      where: { role: { in: ['SUPER_ADMIN', 'ADMIN'] }, isActive: true },
+      select: { id: true },
+    });
+    const adminUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { firstName: true, lastName: true },
+    });
+    const fullName = adminUser
+      ? `${adminUser.firstName} ${adminUser.lastName}`.trim()
+      : user.email;
+    for (const admin of admins) {
+      await this.prisma.notification.create({
+        data: {
+          userId: admin.id,
+          type: 'TICKET_CREATED' as NotificationType,
+          title: 'Nouveau certificat a valider',
+          body: `${fullName} a ajoute le certificat "${cert.name}" (${cert.certType}). Validation requise.`,
+          resourceType: 'Certificate',
+          resourceId: cert.id,
+        },
+      });
+    }
+
+    return this.addStatus(cert);
+  }
+
+  async updateMy(id: string, dto: UpdateCertificateDto, user: RequestUser) {
+    const cert = await this.prisma.certificate.findUnique({ where: { id } });
+    if (!cert) throw new NotFoundException('Certificate not found');
+    if (cert.userId !== user.id) {
+      throw new ForbiddenException('You can only edit your own certificates');
+    }
+
+    // Prevent changing ownership
+    dto.userId = undefined;
+    dto.externalPersonId = undefined;
+
+    const data: Record<string, unknown> = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.certType !== undefined) data.certType = dto.certType;
+    if (dto.obtainedAt !== undefined) data.obtainedAt = new Date(dto.obtainedAt);
+    if (dto.expiresAt !== undefined)
+      data.expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
+    if (dto.fileUrl !== undefined) data.fileUrl = dto.fileUrl;
+    if (dto.fileName !== undefined) data.fileName = dto.fileName;
+    if (dto.fileSizeBytes !== undefined) data.fileSizeBytes = dto.fileSizeBytes;
+    if (dto.notes !== undefined) data.notes = dto.notes;
+
+    const updated = await this.prisma.certificate.update({
+      where: { id },
+      data,
+    });
+
+    await this.audit.log({
+      userId: user.id,
+      action: 'CERTIFICATE_UPDATED',
+      resourceType: 'Certificate',
+      resourceId: updated.id,
+      metadata: { updatedFields: Object.keys(data), selfService: true },
+    });
+
+    return this.addStatus(updated);
+  }
+
+  async update(id: string, dto: UpdateCertificateDto, updatedById: string) {
+    await this.findOne(id);
+
+    const data: any = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.certType !== undefined) data.certType = dto.certType;
+    if (dto.obtainedAt !== undefined) data.obtainedAt = new Date(dto.obtainedAt);
+    if (dto.expiresAt !== undefined)
+      data.expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
+    if (dto.fileUrl !== undefined) data.fileUrl = dto.fileUrl;
+    if (dto.fileName !== undefined) data.fileName = dto.fileName;
+    if (dto.fileSizeBytes !== undefined) data.fileSizeBytes = dto.fileSizeBytes;
+    if (dto.notes !== undefined) data.notes = dto.notes;
+
+    const cert = await this.prisma.certificate.update({
+      where: { id },
+      data,
+    });
+
+    await this.audit.log({
+      userId: updatedById,
+      action: 'CERTIFICATE_UPDATED',
+      resourceType: 'Certificate',
+      resourceId: cert.id,
+      metadata: { updatedFields: Object.keys(data) },
+    });
+
+    return this.addStatus(cert);
+  }
+
+  async remove(id: string, deletedById: string) {
+    const cert = await this.findOne(id);
+
+    await this.prisma.certificate.delete({ where: { id } });
+
+    await this.audit.log({
+      userId: deletedById,
+      action: 'CERTIFICATE_DELETED',
+      resourceType: 'Certificate',
+      resourceId: id,
+      metadata: { name: cert.name, certType: cert.certType },
+    });
+
+    return { deleted: true };
+  }
+
+  async updateFile(
+    id: string,
+    fileUrl: string,
+    fileName: string,
+    fileSizeBytes: number,
+    updatedById: string,
+  ) {
+    await this.findOne(id);
+
+    const cert = await this.prisma.certificate.update({
+      where: { id },
+      data: { fileUrl, fileName, fileSizeBytes },
+    });
+
+    await this.audit.log({
+      userId: updatedById,
+      action: 'CERTIFICATE_UPDATED',
+      resourceType: 'Certificate',
+      resourceId: cert.id,
+      metadata: { updatedFields: ['fileUrl', 'fileName', 'fileSizeBytes'] },
+    });
+
+    return this.addStatus(cert);
+  }
+}

@@ -1,0 +1,82 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../common/enums';
+import { ComplianceTasksService } from './compliance-tasks.service';
+
+@Controller('compliance-tasks')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class ComplianceTasksController {
+  constructor(private readonly service: ComplianceTasksService) {}
+
+  @Get()
+  findAll(
+    @Query('status') status?: string,
+    @Query('overdue') overdue?: string,
+  ) {
+    return this.service.findAll(status, overdue === 'true');
+  }
+
+  @Get('overdue')
+  getOverdue() {
+    return this.service.getOverdue();
+  }
+
+  @Post()
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  create(
+    @Body()
+    body: {
+      title: string;
+      description?: string;
+      frequency?: string;
+      responsibleId?: string;
+      status?: string;
+      nextDueDate?: string;
+      isoControl?: string;
+    },
+  ) {
+    return this.service.create(body);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body()
+    body: Partial<{
+      title: string;
+      description: string;
+      frequency: string;
+      responsibleId: string;
+      status: string;
+      nextDueDate: string;
+      isoControl: string;
+    }>,
+  ) {
+    return this.service.update(id, body);
+  }
+
+  @Post(':id/complete')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.REVIEWER)
+  completeTask(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.completeTask(id);
+  }
+
+  @Post('seed')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  seed() {
+    return this.service.seed();
+  }
+}

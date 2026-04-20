@@ -1,0 +1,1268 @@
+{
+  "runId": "eval-1776683463536",
+  "timestamp": "2026-04-20T11:11:03.536Z",
+  "aggregate": {
+    "mode": "hybrid",
+    "k": 5,
+    "goldSetVersion": "1.0.0",
+    "totalQuestions": 50,
+    "passRate": 0.96,
+    "meanRecallAt5": 1,
+    "meanMRR": 0.9066666666666667,
+    "meanTermCoverage": 0.95,
+    "p50LatencyMs": 202,
+    "p95LatencyMs": 285
+  },
+  "results": [
+    {
+      "questionId": "Q001",
+      "question": "Quelle est la politique de sécurité des systèmes d'information ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Politique de mots de passe Politique de mots de passe OMNITECH Cette politique définit les exigences"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 259,
+      "passed": true
+    },
+    {
+      "questionId": "Q002",
+      "question": "Comment gérer un incident de sécurité ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "RUNBOOK",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Procédure de gestion des incidents",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "Gestion incident de sécurité [{\"title\":\"Détection et signalement\",\"description\":\"Identifier l'incide",
+        "Lancement du projet de certification ISO 27001:2022 <h2>OMNITECH Security engage sa demarche de cert",
+        "Sensibilisation : les 5 réflexes cybersécurité <h2>Adoptez les bons réflexes !</h2><p>La cybersécuri"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 175,
+      "passed": true
+    },
+    {
+      "questionId": "Q003",
+      "question": "Quelle est la politique de mots de passe en vigueur ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "DOCUMENT"
+      ],
+      "retrievedSnippets": [
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri",
+        "er le Wall. Migration Depuis la migration en V4.5.5 effectué par CDA le 20/07/2011 - Les quadraAlarm",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Mise à jour de la politique de mots de passe — ce qui change <h2>Pourquoi ce changement ?</h2> <p>Su",
+        "Politique de Sécurité des Systèmes d'Information (PSSI)"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 0.5
+      },
+      "latencyMs": 182,
+      "passed": true
+    },
+    {
+      "questionId": "Q004",
+      "question": "Quelles sont les règles BYOD pour le matériel personnel ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Utilisation du matériel personnel (BYOD) Politique BYOD — Bring Your Own Device L'utilisation d'appa",
+        "Nouvelle charte d utilisation du SI — Lecture obligatoire <p>La nouvelle charte d utilisation du sys"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 326,
+      "passed": true
+    },
+    {
+      "questionId": "Q005",
+      "question": "Quelle est la charte d'utilisation du SI ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Guide d'utilisation du poste de travail",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Nouvelle charte d utilisation du SI — Lecture obligatoire <p>La nouvelle charte d utilisation du sys",
+        "Procédure de gestion des incidents",
+        "Sauvegarde et restauration Politique de sauvegarde et restauration La sauvegarde des données est un "
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.5,
+        "termCoverage": 1
+      },
+      "latencyMs": 227,
+      "passed": true
+    },
+    {
+      "questionId": "Q006",
+      "question": "Où en est la certification ISO 27001 ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Certification ISO 27001:2022 — avancement du projet <h2>Point d'avancement — Avril 2026</h2><p>Le pr",
+        "Procédure de gestion des incidents",
+        "Lancement du projet de certification ISO 27001:2022 <h2>OMNITECH Security engage sa demarche de cert"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 179,
+      "passed": true
+    },
+    {
+      "questionId": "Q007",
+      "question": "Comment chiffrer les données sensibles ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Sensibilisation : les 5 réflexes cybersécurité <h2>Adoptez les bons réflexes !</h2><p>La cybersécuri",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 190,
+      "passed": true
+    },
+    {
+      "questionId": "Q008",
+      "question": "Quels sont les 5 réflexes cybersécurité ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "er le Wall. Migration Depuis la migration en V4.5.5 effectué par CDA le 20/07/2011 - Les quadraAlarm",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Sensibilisation : les 5 réflexes cybersécurité <h2>Adoptez les bons réflexes !</h2><p>La cybersécuri",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 200,
+      "passed": true
+    },
+    {
+      "questionId": "Q009",
+      "question": "Quelles sont les bonnes pratiques pour les emails et le phishing ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Bonnes pratiques email et anti-phishing Bonnes pratiques email et protection contre le phishing Le p",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 286,
+      "passed": true
+    },
+    {
+      "questionId": "Q010",
+      "question": "Quelles actions sont prévues pour le Cybermois 2026 ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Cybermois 2026 : les actions OMNITECH <h2>Un mois dédié à la cybersécurité</h2> <p>Comme chaque anné",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Lancement du projet de certification ISO 27001:2022 <h2>OMNITECH Security engage sa demarche de cert",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 198,
+      "passed": true
+    },
+    {
+      "questionId": "Q011",
+      "question": "Quelles sont les procédures à jour actuellement ?",
+      "retrievedSourceTypes": [
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Revue trimestrielle firewall [{\"title\":\"Export des règles actuelles\",\"description\":\"Se connecter à F",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Les procédures à jours (tableau) Les procédures à jours (tableau) Nom Étiquettes Date de création Pr",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Mise à jour de la politique de mots de passe — ce qui change <h2>Pourquoi ce changement ?</h2> <p>Su"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.5,
+        "termCoverage": 1
+      },
+      "latencyMs": 170,
+      "passed": true
+    },
+    {
+      "questionId": "Q012",
+      "question": "Comment accéder au VPN et au réseau à distance ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "a Mettre le nom sur l’arrière de la caméra CA Se connecter via le https://prestataire.lyonaeroports.",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Procédure VPN et accès distant Accès distant sécurisé — VPN OMNITECH Tout accès au système d'informa",
+        "er le Wall. Migration Depuis la migration en V4.5.5 effectué par CDA le 20/07/2011 - Les quadraAlarm",
+        "Université Paris I La Sorbonne VPN Se rendre sur https://nomade.univ-paris1.fr/ Identifiant et mot d"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 174,
+      "passed": true
+    },
+    {
+      "questionId": "Q013",
+      "question": "Comment créer un compte utilisateur dans Active Directory ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Renommer une adresse mail active Étiquettes: office365 Date: 22 septembre 2023 13:25 Depuis l’AD, al",
+        "Création compte utilisateur AD [{\"title\":\"Réceptionner la demande\",\"description\":\"Vérifier le formul",
+        "Intégrer au domaine linux Étiquettes: domain join, linux Date: 22 septembre 2023 13:25 Avant toute c",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 0.5
+      },
+      "latencyMs": 204,
+      "passed": true
+    },
+    {
+      "questionId": "Q014",
+      "question": "Comment récupérer les membres d'un groupe AD ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "AD récupérer membres d’un groupe \"C:\\ListeGroupeWSUSServeurs.txt\" --> Étiquettes: active directry, p",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Départ Collaborateur Étiquettes: ad, system Date: 22 septembre 2023 13:25 Désactiver le compte utili",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 202,
+      "passed": true
+    },
+    {
+      "questionId": "Q015",
+      "question": "Comment exporter les comptes actifs de l'AD ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Exporter Comptes Acitfs AD Étiquettes: powershell # Importer le module Active Directory Import-Modul",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Exporter compte neverExpire Étiquettes: powershell # Import the AD module to the session Import-Modu",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 201,
+      "passed": true
+    },
+    {
+      "questionId": "Q016",
+      "question": "Comment vérifier le statut MFA des utilisateurs ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI",
+        "DOCUMENT"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Exporter Statut MFA Utilisateur Étiquettes: powershell #Connect to Microsoft Online Connect-MsolServ",
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "Procédure Vérification Règle FW Étiquettes: Firewall, règle Date de création: 25 septembre 2023 20:3",
+        "Procédure de gestion des incidents"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 174,
+      "passed": true
+    },
+    {
+      "questionId": "Q017",
+      "question": "Comment déployer un poste via MDT ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "RUNBOOK",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Guide d'utilisation du poste de travail",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Déploiement poste via MDT [{\"title\":\"Préparer le poste\",\"description\":\"Brancher le poste au réseau, ",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.25,
+        "termCoverage": 1
+      },
+      "latencyMs": 206,
+      "passed": true
+    },
+    {
+      "questionId": "Q018",
+      "question": "Comment gérer les switchs réseau ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Management des switch Étiquettes: ad, dev, fw, reseaux Date: 22 septembre 2023 13:25 Connexion au sw",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "QUIDE Vidéo et Contrôle d’accès est à l’heure actuelle maintenu par nos soins, l’infrastructure est ",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 193,
+      "passed": true
+    },
+    {
+      "questionId": "Q019",
+      "question": "Quelle est la procédure de vérification des règles firewall ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "RUNBOOK"
+      ],
+      "retrievedSnippets": [
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Procédure Vérification Règle FW Étiquettes: Firewall, règle Date de création: 25 septembre 2023 20:3",
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "Revue trimestrielle firewall [{\"title\":\"Export des règles actuelles\",\"description\":\"Se connecter à F"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 205,
+      "passed": true
+    },
+    {
+      "questionId": "Q020",
+      "question": "Comment intégrer une machine Linux au domaine ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Intégrer au domaine linux Étiquettes: domain join, linux Date: 22 septembre 2023 13:25 Avant toute c",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri",
+        "er le Wall. Migration Depuis la migration en V4.5.5 effectué par CDA le 20/07/2011 - Les quadraAlarm"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 183,
+      "passed": true
+    },
+    {
+      "questionId": "Q021",
+      "question": "Comment forcer le redémarrage d'un PC à distance ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "er le Wall. Migration Depuis la migration en V4.5.5 effectué par CDA le 20/07/2011 - Les quadraAlarm",
+        "Forcer redémarrage PC Étiquettes: active directry, powershell Restart-Computer -ComputerName “NomDuP",
+        "vril@lyon.aeroport.fr Aéroport de Lyon Administrateur système et bases de données Damien GOASGUEN Té",
+        " » et « valable au » Procedure d'ouverture à distance d'une porte hors des plages horaire L’ouvertur",
+        "a Mettre le nom sur l’arrière de la caméra CA Se connecter via le https://prestataire.lyonaeroports."
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 207,
+      "passed": true
+    },
+    {
+      "questionId": "Q022",
+      "question": "Comment restaurer une VM depuis Veeam ?",
+      "retrievedSourceTypes": [
+        "RUNBOOK",
+        "RUNBOOK",
+        "RUNBOOK",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Restauration VM depuis Veeam [{\"title\":\"Accéder à la console Veeam\",\"description\":\"Ouvrir Veeam Back",
+        "Sauvegarde et test de restauration [{\"title\":\"Vérifier les jobs de sauvegarde\",\"description\":\"Ouvrir",
+        "Gestion incident de sécurité [{\"title\":\"Détection et signalement\",\"description\":\"Identifier l'incide",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "er le Wall. Migration Depuis la migration en V4.5.5 effectué par CDA le 20/07/2011 - Les quadraAlarm"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 173,
+      "passed": true
+    },
+    {
+      "questionId": "Q023",
+      "question": "Comment sauvegarder et tester les sauvegardes ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Sauvegarde et test de restauration [{\"title\":\"Vérifier les jobs de sauvegarde\",\"description\":\"Ouvrir",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Sauvegarde et restauration Politique de sauvegarde et restauration La sauvegarde des données est un ",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 200,
+      "passed": true
+    },
+    {
+      "questionId": "Q024",
+      "question": "Comment débugger une sauvegarde VEEAM en erreur ?",
+      "retrievedSourceTypes": [
+        "RUNBOOK",
+        "RUNBOOK",
+        "RUNBOOK",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Sauvegarde et test de restauration [{\"title\":\"Vérifier les jobs de sauvegarde\",\"description\":\"Ouvrir",
+        "Restauration VM depuis Veeam [{\"title\":\"Accéder à la console Veeam\",\"description\":\"Ouvrir Veeam Back",
+        "Gestion incident de sécurité [{\"title\":\"Détection et signalement\",\"description\":\"Identifier l'incide",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "TIPS debug sauvegarde VEEAM Étiquettes: sauvegarde, veeam Date: 22 septembre 2023 13:25 Veeam Helper"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.25,
+        "termCoverage": 1
+      },
+      "latencyMs": 197,
+      "passed": true
+    },
+    {
+      "questionId": "Q025",
+      "question": "Comment mettre à jour ESET avec les définitions YARA offline ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "er le Wall. Migration Depuis la migration en V4.5.5 effectué par CDA le 20/07/2011 - Les quadraAlarm",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom",
+        "vril@lyon.aeroport.fr Aéroport de Lyon Administrateur système et bases de données Damien GOASGUEN Té",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Mettre à jour ESET OFFFLINE YARA ... --> Étiquettes: eset, system Date: 22 septembre 2023 13:25 Se c"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 184,
+      "passed": true
+    },
+    {
+      "questionId": "Q026",
+      "question": "Quel est le guide d'utilisation du poste de travail ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Guide d'utilisation du poste de travail",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Procédure de gestion des incidents",
+        "Nouvelle charte d utilisation du SI — Lecture obligatoire <p>La nouvelle charte d utilisation du sys"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 176,
+      "passed": true
+    },
+    {
+      "questionId": "Q027",
+      "question": "Quelle est la procédure d'onboarding IT pour un nouvel arrivant ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Procédure de gestion des incidents",
+        "Nouveau portail self-service IT disponible <h2>Un support IT plus rapide et plus intelligent</h2> <p",
+        "Mise à jour de la politique de mots de passe — ce qui change <h2>Pourquoi ce changement ?</h2> <p>Su"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 227,
+      "passed": true
+    },
+    {
+      "questionId": "Q028",
+      "question": "Comment contacter le support IT et escalader un problème ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Nouveau portail self-service IT disponible <h2>Un support IT plus rapide et plus intelligent</h2> <p",
+        "é dans SEAL). PROBLEME DE COMMUNICATION SEAL -> UTL Un bug a été remonté sur seal. Si vous rencontre",
+        "Contact IT et procédure d'escalade Contact IT et procédure d'escalade Cette page centralise les coor",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 201,
+      "passed": true
+    },
+    {
+      "questionId": "Q029",
+      "question": "Quelle est la procédure de départ d'un collaborateur ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "DOCUMENT"
+      ],
+      "retrievedSnippets": [
+        "Procédure de gestion des incidents",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Guide d'utilisation du poste de travail"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.5,
+        "termCoverage": 0
+      },
+      "latencyMs": 200,
+      "passed": false
+    },
+    {
+      "questionId": "Q030",
+      "question": "Comment renommer une adresse email dans Active Directory ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Renommer une adresse mail active Étiquettes: office365 Date: 22 septembre 2023 13:25 Depuis l’AD, al",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Exporter Comptes Acitfs AD Étiquettes: powershell # Importer le module Active Directory Import-Modul"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 182,
+      "passed": true
+    },
+    {
+      "questionId": "Q031",
+      "question": "Comment changer la langue de Windows 11 IoT ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Nouveau portail self-service IT disponible <h2>Un support IT plus rapide et plus intelligent</h2> <p",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Guide - Changement Langue Windows 11 IoT Après avoir téléchargé FOD lié à la version de windows (n° ",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Exporter Statut MFA Utilisateur Étiquettes: powershell #Connect to Microsoft Online Connect-MsolServ"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 205,
+      "passed": true
+    },
+    {
+      "questionId": "Q032",
+      "question": "Comment utiliser le portail self-service IT ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "a Mettre le nom sur l’arrière de la caméra CA Se connecter via le https://prestataire.lyonaeroports.",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "Nouveau portail self-service IT disponible <h2>Un support IT plus rapide et plus intelligent</h2> <p",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri",
+        "FAQ Support IT — Problèmes courants FAQ Support IT — Problèmes courants Retrouvez ici les réponses a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 226,
+      "passed": true
+    },
+    {
+      "questionId": "Q033",
+      "question": "Quels sont les problèmes courants traités par le support IT ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "FAQ Support IT — Problèmes courants FAQ Support IT — Problèmes courants Retrouvez ici les réponses a",
+        "Nouveau portail self-service IT disponible <h2>Un support IT plus rapide et plus intelligent</h2> <p"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 220,
+      "passed": true
+    },
+    {
+      "questionId": "Q034",
+      "question": "Comment préparer un poste de travail neuf ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "RUNBOOK",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Guide d'utilisation du poste de travail",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom",
+        "Création compte utilisateur AD [{\"title\":\"Réceptionner la demande\",\"description\":\"Vérifier le formul",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.5,
+        "termCoverage": 1
+      },
+      "latencyMs": 173,
+      "passed": true
+    },
+    {
+      "questionId": "Q035",
+      "question": "Comment configurer un téléphone Snom 870 ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "RUNBOOK",
+        "RUNBOOK",
+        "WIKI",
+        "RUNBOOK"
+      ],
+      "retrievedSnippets": [
+        "Utilisation du Snom 870 Objectif : Ce document a pour but de présenter les fonctionnalités principal",
+        "Création compte utilisateur AD [{\"title\":\"Réceptionner la demande\",\"description\":\"Vérifier le formul",
+        "Restauration VM depuis Veeam [{\"title\":\"Accéder à la console Veeam\",\"description\":\"Ouvrir Veeam Back",
+        "as s’affiche j’ai du créer chaque caméra dans un cycle séparé et ajouter le cycle. Les opératrices d",
+        "Déploiement poste via MDT [{\"title\":\"Préparer le poste\",\"description\":\"Brancher le poste au réseau, "
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 184,
+      "passed": true
+    },
+    {
+      "questionId": "Q036",
+      "question": "Comment configurer le guide de démarrage sur mobile ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Guide d'utilisation du poste de travail",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Guide de démarrage sur mobile 👋 Bienvenue sur Notion ! Voici les fondamentaux : Appuyez n’importe o",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.5,
+        "termCoverage": 1
+      },
+      "latencyMs": 188,
+      "passed": true
+    },
+    {
+      "questionId": "Q037",
+      "question": "Qu'est-ce que Centreon et comment utiliser les plugins ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI",
+        "DOCUMENT"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Centreon commande plugin Étiquettes: centreon, monitoring Date: 22 septembre 2023 13:25 perl centreo",
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "ient: les tables comptes utilisateur Point d'accueil \"Einstein\" C’est le point d’accueil des prestat",
+        "Procédure de gestion des incidents"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 224,
+      "passed": true
+    },
+    {
+      "questionId": "Q038",
+      "question": "Comment lister les serveurs Windows actifs dans l'AD ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "AD récupérer membres d’un groupe \"C:\\ListeGroupeWSUSServeurs.txt\" --> Étiquettes: active directry, p",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Exporter ordinateurs inactifs + supprimer Étiquettes: powershell $DaysInactive = 730 $Time = (Get-Da",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 0.5
+      },
+      "latencyMs": 259,
+      "passed": true
+    },
+    {
+      "questionId": "Q039",
+      "question": "Comment exporter la date de dernière connexion des utilisateurs ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI",
+        "DOCUMENT"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Exporter Date dernière connexion user Étiquettes: powershell Get-ADUser -Identity \"MSOL_fb89b304261e",
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "Exporter User Creation Date Étiquettes: powershell Import-Module ActiveDirectory $Users = Get-ADUser",
+        "Procédure de gestion des incidents"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 233,
+      "passed": true
+    },
+    {
+      "questionId": "Q040",
+      "question": "Comment exporter les comptes avec mot de passe qui n'expire jamais ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Exporter compte neverExpire Étiquettes: powershell # Import the AD module to the session Import-Modu",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Mise à jour de la politique de mots de passe — ce qui change <h2>Pourquoi ce changement ?</h2> <p>Su",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 202,
+      "passed": true
+    },
+    {
+      "questionId": "Q041",
+      "question": "Comment déplacer une partition Windows ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Déplacer partition Windows Étiquettes: gparted, windows Date: 22 septembre 2023 13:25 Avec Gparted i",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "ndows nommé : Storage) 192.168.253.18 (partage dossier Windows nommé : R) Les partages de dossier Wi",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 204,
+      "passed": true
+    },
+    {
+      "questionId": "Q042",
+      "question": "Comment récupérer les systèmes d'exploitation des machines AD ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Intégrer au domaine linux Étiquettes: domain join, linux Date: 22 septembre 2023 13:25 Avant toute c",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Récupèration des OS dans l'AD Récupèration des OS dnas l'AD.txt --> Étiquettes: powershell, wsus des",
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "Exporter ordinateurs inactifs + supprimer Étiquettes: powershell $DaysInactive = 730 $Time = (Get-Da"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 278,
+      "passed": true
+    },
+    {
+      "questionId": "Q043",
+      "question": "Quelle est la revue trimestrielle des règles firewall ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "RUNBOOK",
+        "DOCUMENT",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "er le Wall. Migration Depuis la migration en V4.5.5 effectué par CDA le 20/07/2011 - Les quadraAlarm",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Revue trimestrielle firewall [{\"title\":\"Export des règles actuelles\",\"description\":\"Se connecter à F",
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "Procédure Vérification Règle FW Étiquettes: Firewall, règle Date de création: 25 septembre 2023 20:3"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.3333333333333333,
+        "termCoverage": 1
+      },
+      "latencyMs": 258,
+      "passed": true
+    },
+    {
+      "questionId": "Q044",
+      "question": "Comment exporter les ordinateurs inactifs et les supprimer de l'AD ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Exporter ordinateurs inactifs + supprimer Étiquettes: powershell $DaysInactive = 730 $Time = (Get-Da",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Exporter Comptes Acitfs AD Étiquettes: powershell # Importer le module Active Directory Import-Modul",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 285,
+      "passed": true
+    },
+    {
+      "questionId": "Q045",
+      "question": "Quel est le calendrier des vols disponible depuis Bordeaux ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI",
+        "DOCUMENT"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Bordeaux (Ville) plan_d_adressage_ip_ville_de_bordeaux_omnitech_avec_adresse_physique_a_jour.xls VIL",
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "cs\", sur les postes, doit être désactivé (ticket GLPI: ID 11231). Laurent Fortier doit demandé une e",
+        "Procédure de gestion des incidents"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 247,
+      "passed": true
+    },
+    {
+      "questionId": "Q046",
+      "question": "Qui est le client L'Oréal et quelles sont ses spécificités ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Clients",
+        "Procédure de gestion des incidents",
+        "L'Oréal Pilotage des caméras ATTENTION AVEC LA NOUVELLE VERSION DE SEAL, LE PILOTAGE DES MURS REELS ",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 278,
+      "passed": true
+    },
+    {
+      "questionId": "Q047",
+      "question": "Comment fonctionne le réseau quantique pour la téléportation ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        " 10.67.113.85 CPN2-Z08-LT1 (13) Axis 243Q 73.25.1.54 10.67.113.86 CPN1-Z13-LT1 (22) Axis 243Q 73.25.",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "QUIDE Vidéo et Contrôle d’accès est à l’heure actuelle maintenu par nos soins, l’infrastructure est ",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 195,
+      "passed": false
+    },
+    {
+      "questionId": "Q048",
+      "question": "politike de securite mot de pass",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "a Mettre le nom sur l’arrière de la caméra CA Se connecter via le https://prestataire.lyonaeroports.",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri",
+        "Mise à jour de la politique de mots de passe — ce qui change <h2>Pourquoi ce changement ?</h2> <p>Su"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 226,
+      "passed": true
+    },
+    {
+      "questionId": "Q049",
+      "question": "Comment créer un compte et sécuriser le poste pour un nouvel arrivant ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "RUNBOOK",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Guide d'utilisation du poste de travail",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Création compte utilisateur AD [{\"title\":\"Réceptionner la demande\",\"description\":\"Vérifier le formul",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 233,
+      "passed": true
+    },
+    {
+      "questionId": "Q050",
+      "question": "Quelles sauvegardes sont en place et comment vérifier qu'elles fonctionnent ?",
+      "retrievedSourceTypes": [
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Sauvegarde et test de restauration [{\"title\":\"Vérifier les jobs de sauvegarde\",\"description\":\"Ouvrir",
+        "utput 1, puis sur le bouton (O) de l'Output 1). 10.46.32.201 serveur backup 10.46.32.202 CCS VOS1 10",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "Sauvegarde et restauration Politique de sauvegarde et restauration La sauvegarde des données est un ",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 274,
+      "passed": true
+    }
+  ]
+}

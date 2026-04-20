@@ -1,0 +1,85 @@
+# ============================================================================
+# OMNITECH Intranet — Meilisearch self-hosted
+# ============================================================================
+# Pourquoi Meilisearch ?
+#   Meilisearch fournit une recherche full-text ultra-rapide, typo-tolerante et
+#   multi-langue (dont le francais) sans dependance externe. Il remplace (ou
+#   complete) la recherche Postgres `to_tsvector` actuelle, trop limitee pour
+#   une recherche federee type "Algolia-like" sur l'ensemble de l'intranet
+#   (documents, tickets, wiki, news).
+#
+# Deploiement :
+#   docker compose -f infra/meilisearch-compose.yml up -d
+#
+# Variables d'environnement requises (a placer dans .env a la racine infra) :
+#   MEILI_MASTER_KEY=<cle aleatoire 32+ chars, generer avec `openssl rand -hex 32`>
+#   DOCKER_BIND_IP=127.0.0.1   # par defaut local-only, a passer en 0.0.0.0 si
+#                              # expose derriere BunkerWeb sur un autre host.
+#
+# Integration BunkerWeb :
+#   Option 1 (recommandee) — sous-domaine dedie :
+#     - Declarer `search.omnitech-security.fr` dans BunkerWeb
+#     - Reverse proxy vers http://127.0.0.1:7700
+#     - Restreindre par IP (VPN admin) + Basic Auth OU header
+#       `Authorization: Bearer ${MEILI_MASTER_KEY}`
+#     - Activer WAF (ModSecurity) et rate-limiting strict
+#   Option 2 — uniquement accessible depuis le backend Nest :
+#     - Laisser bind 127.0.0.1 et ne pas exposer publiquement
+#     - Le backend appelle `http://localhost:7700` en interne
+#     - C'est le mode par defaut de ce compose (plus sur)
+#
+# Ressources :
+#   Memoire limitee a 1 Go (suffisant pour <1M documents indexes).
+#   Passer a 2-4 Go si le corpus depasse 5M docs ou >10k recherches/min.
+# ============================================================================
+
+version: '3.8'
+
+services:
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    container_name: omnitech-meilisearch
+    restart: unless-stopped
+    # Bind local-only par defaut (override via DOCKER_BIND_IP pour BunkerWeb)
+    ports:
+      - "${DOCKER_BIND_IP:-127.0.0.1}:7700:7700"
+    environment:
+      # Mode production : active l'obligation de master key et desactive
+      # l'interface de debug/analytics publique.
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?MEILI_MASTER_KEY manquante — generer avec openssl rand -hex 32}
+      # Desactiver la telemetrie Meilisearch (RGPD)
+      MEILI_NO_ANALYTICS: "true"
+      # Logs au format humain pour debug
+      MEILI_LOG_LEVEL: INFO
+      # Limite de payload : 100 Mo (gros documents wiki/PDF extraits)
+      MEILI_HTTP_PAYLOAD_SIZE_LIMIT: "104857600"
+    volumes:
+      # Volume persistant — NE PAS supprimer, contient tous les index.
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7700/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    # Limitation memoire : 1 Go max, 256 Mo reserves
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    # Hors Swarm, docker compose v2 respecte `mem_limit` :
+    mem_limit: 1g
+    mem_reservation: 256m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  meilisearch_data:
+    name: omnitech_meilisearch_data
+    driver: local

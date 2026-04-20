@@ -1,0 +1,59 @@
+import {
+  IsOptional,
+  IsEnum,
+  IsString,
+  IsUUID,
+  IsDateString,
+  IsNumberString,
+} from 'class-validator';
+import { DocumentStatus, DocumentCategory } from '@prisma/client';
+
+export class DocumentFiltersDto {
+  @IsOptional()
+  @IsEnum(DocumentStatus)
+  status?: DocumentStatus;
+
+  @IsOptional()
+  @IsEnum(DocumentCategory)
+  category?: DocumentCategory;
+
+  @IsOptional()
+  @IsString()
+  classification?: string;
+
+  @IsOptional()
+  @IsString()
+  isoControlCode?: string;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsUUID()
+  ownerId?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dateFrom?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dateTo?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  page?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  limit?: string;
+
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @IsOptional()
+  @IsString()
+  sortOrder?: string;
+}

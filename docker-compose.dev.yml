@@ -1,0 +1,136 @@
+version: '3.8'
+
+# ============================================
+# OMNITECH Intranet — Development Environment
+# ============================================
+
+services:
+  # ---------------------
+  # PostgreSQL 16
+  # ---------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: omnitech-postgres-dev
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-omnitech}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-omnitech_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-omnitech_intranet}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-omnitech} -d ${POSTGRES_DB:-omnitech_intranet}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------------------
+  # Redis 7
+  # ---------------------
+  redis:
+    image: redis:7-alpine
+    container_name: omnitech-redis-dev
+    command: redis-server --requirepass ${REDIS_PASSWORD:-omnitech_dev}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-omnitech_dev}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ---------------------
+  # Backend (NestJS dev)
+  # ---------------------
+  backend:
+    image: node:20-alpine
+    container_name: omnitech-backend-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - backend_node_modules:/app/apps/backend/node_modules
+    command: sh -c "corepack enable && pnpm --filter backend dev"
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Node.js debugger
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-omnitech}:${POSTGRES_PASSWORD:-omnitech_dev}@postgres:5432/${POSTGRES_DB:-omnitech_intranet}?schema=public
+      REDIS_HOST: redis
+
+  # ---------------------
+  # OnlyOffice Docs Server
+  # ---------------------
+  documentserver:
+    image: onlyoffice/documentserver:latest
+    container_name: omnitech-documentserver-dev
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    environment:
+      # DEV UNIQUEMENT : JWT désactivé pour simplifier le démarrage.
+      # Si ONLYOFFICE_JWT_SECRET est défini dans .env, le backend signera quand
+      # même les configs et le Docs Server les acceptera (JWT_ENABLED=false
+      # ne rejette pas les tokens, il les rend simplement optionnels).
+      # EN PROD : passer à "true" et s'assurer que ONLYOFFICE_JWT_SECRET est
+      # identique côté backend et conteneur.
+      JWT_ENABLED: "false"
+      JWT_SECRET: ${ONLYOFFICE_JWT_SECRET:-}
+      JWT_HEADER: Authorization
+      JWT_IN_BODY: "true"
+      SECURE_LINK_SECRET: ${ONLYOFFICE_SECURE_LINK_SECRET:-}
+    volumes:
+      - onlyoffice-data:/var/www/onlyoffice/Data
+      - onlyoffice-logs:/var/log/onlyoffice
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - backend
+
+  # ---------------------
+  # Frontend (Next.js dev)
+  # ---------------------
+  frontend:
+    image: node:20-alpine
+    container_name: omnitech-frontend-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - frontend_node_modules:/app/apps/frontend/node_modules
+    command: sh -c "corepack enable && pnpm --filter frontend dev"
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3000/api
+      NEXT_PUBLIC_WS_URL: ws://localhost:3000
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_node_modules:
+    driver: local
+  frontend_node_modules:
+    driver: local
+  onlyoffice-data:
+    driver: local
+  onlyoffice-logs:
+    driver: local

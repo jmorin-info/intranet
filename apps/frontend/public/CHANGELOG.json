@@ -1,0 +1,134 @@
+[
+  {
+    "date": "2026-04-17",
+    "title": "SLA tickets avec temps restant",
+    "description": "Les tickets affichent desormais le temps restant avant echeance SLA avec jauge visuelle, alertes automatiques et escalade configurable par priorite.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Multi-departements et droits personnalises",
+    "description": "Un collaborateur peut appartenir a plusieurs departements simultanement. Les droits d'acces sont personnalisables par role, departement et combinaison de criteres.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Durcissement securite ANSSI",
+    "description": "Helmet CSP, validation magic bytes sur les uploads, limite a 2 Go par fichier, headers securises et audit de conformite ANSSI integre.",
+    "type": "improvement"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Mode maintenance et toast mise a jour PWA",
+    "description": "Page de maintenance activable par l'admin avec message personnalise. Notification toast automatique lorsqu'une nouvelle version PWA est disponible.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Import Caramel et Notion",
+    "description": "Import en masse depuis Caramel (CSV/JSON) et Notion (export Markdown/ZIP). Mapping automatique des champs et rapport de migration detaille.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Editeur riche ameliore",
+    "description": "Plus de 20 outils d'edition : tableaux, blocs code, ancres, couleurs, mode plein ecran, drag and drop d'images et insertion de fichiers.",
+    "type": "improvement"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Visibilite et partage wiki",
+    "description": "Controle de visibilite granulaire des pages wiki : prive, departement, role ou public. Partage par lien avec expiration configurable.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Mentions @utilisateur",
+    "description": "Mentionnez un collegue avec @ dans le wiki, les commentaires et les tickets. Notifications temps reel et lien direct vers le profil.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Pieces jointes wiki",
+    "description": "Ajoutez des fichiers (PDF, images, archives) directement aux pages wiki. Previsualisation inline et gestion des versions de pieces jointes.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Ollama IA locale",
+    "description": "Integration Ollama pour chatbot, resumes automatiques et suggestions intelligentes. Traitement 100% local, aucune donnee ne quitte l'infrastructure.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Meilisearch recherche ultra-rapide",
+    "description": "Moteur de recherche Meilisearch pour des resultats instantanes sur l'ensemble du contenu : wiki, tickets, documents, utilisateurs et procedures.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Backup et restauration",
+    "description": "Interface admin pour sauvegardes planifiees et restauration a la demande. Support SMB pour stockage reseau et historique des sauvegardes.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Export RGPD donnees utilisateur",
+    "description": "Export complet des donnees personnelles d'un utilisateur au format JSON, conforme RGPD. Accessible depuis le profil et l'interface admin.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-17",
+    "title": "Gestion des personnes externes",
+    "description": "Annuaire dedie aux prestataires, auditeurs et visiteurs : fiches contact, badges temporaires, historique des interventions et expiration automatique.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-16",
+    "title": "Module Certifications de formation",
+    "description": "Suivi complet des certifications par collaborateur : echeances, rappels automatiques, export PDF et tableau de bord RH avec taux de conformite.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-14",
+    "title": "Integration KnowBe4",
+    "description": "Synchronisation automatique des scores de sensibilisation phishing KnowBe4. Visualisation par equipe et alertes sur les profils a risque.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-12",
+    "title": "Timeline unifiee",
+    "description": "Vue chronologique consolidee des evenements : tickets, incidents, documents, formations et audits sur un fil unique filtrable.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-10",
+    "title": "Chatbot IA enrichi (RAG + detection d'intention)",
+    "description": "Le chatbot exploite desormais la base documentaire interne (RAG) et detecte automatiquement l'intention pour router vers le bon module.",
+    "type": "improvement"
+  },
+  {
+    "date": "2026-04-08",
+    "title": "Dashboard Watch Faces",
+    "description": "Nouveaux widgets personnalisables pour le tableau de bord : meteo securite, jauge SLA, compteurs incidents et progression formations.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-05",
+    "title": "Recherche intelligente (Smart Filter)",
+    "description": "Filtres contextuels dynamiques dans la recherche globale : suggestions en temps reel, filtres par type, date, auteur et statut.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-03",
+    "title": "Annotations collaboratives",
+    "description": "Ajoutez des commentaires et annotations directement sur les documents, wiki et runbooks. Mentions @utilisateur et resolution de fils de discussion.",
+    "type": "new"
+  },
+  {
+    "date": "2026-04-01",
+    "title": "Workflows d'approbation predefinis",
+    "description": "Modeles de workflows d'approbation reutilisables : validation manager, double signature, circuit RH. Configuration en quelques clics.",
+    "type": "improvement"
+  }
+]

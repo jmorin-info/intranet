@@ -1,0 +1,26 @@
+{
+  "name": "omnitech-intranet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Intranet GED sécurisé OMNITECH Security — ISO 27001:2022",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "db:generate": "pnpm --filter @omnitech/database generate",
+    "db:push": "pnpm --filter @omnitech/database db:push",
+    "db:migrate": "pnpm --filter @omnitech/database migrate:dev",
+    "db:seed": "pnpm --filter @omnitech/database seed",
+    "clean": "turbo clean && rm -rf node_modules",
+    "test:e2e": "playwright test"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@omnitech/database",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "generate": "prisma generate",
+    "db:push": "prisma db push",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "seed": "tsx prisma/seed.ts",
+    "reset-demo": "tsx prisma/reset-demo.ts",
+    "reset-demo:apply": "tsx prisma/reset-demo.ts --apply",
+    "seed-wiki": "tsx prisma/seed-wiki.ts",
+    "seed-content": "tsx prisma/seed-content.ts",
+    "seed-news": "tsx prisma/seed-news.ts",
+    "import-caramel": "tsx prisma/import-caramel.ts",
+    "import-notion": "tsx prisma/import-notion.ts",
+    "import-csv": "tsx prisma/import-csv.ts",
+    "import-redmine": "tsx prisma/import-redmine.ts",
+    "studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

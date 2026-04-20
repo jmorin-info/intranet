@@ -1,0 +1,181 @@
+import {
+  Controller, Post, Get, Body, Req, Res, UseGuards, HttpCode, HttpStatus,
+  UnauthorizedException, Logger,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
+import { AuthService } from './auth.service';
+import { MfaService } from '../mfa/mfa.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Public } from './decorators/public.decorator';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { LoginDto } from './dto/login.dto';
+import { RefreshDto } from './dto/refresh.dto';
+import { LogoutDto } from './dto/logout.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RequestUser } from '../common/interfaces';
+import { UserRole } from '../common/enums';
+import { UsersService } from '../users/users.service';
+
+@Controller('auth')
+export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
+  constructor(
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
+    private readonly mfaService: MfaService,
+  ) {}
+
+  @Public()
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async login(
+    @Body() loginDto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const user = await this.authService.validateUser(loginDto.email, loginDto.password);
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    // Check if MFA is enabled for this user
+    if (user.mfaEnabled && user.mfaSecret) {
+      // If mfaCode is provided in the login request, verify it immediately
+      const mfaCode = loginDto.mfaCode;
+      if (mfaCode) {
+        const valid = await this.mfaService.verifyMfa(user.id, mfaCode);
+        if (!valid) {
+          // Try backup code as fallback
+          const backupValid = await this.mfaService.verifyBackupCode(user.id, mfaCode);
+          if (!backupValid) {
+            throw new UnauthorizedException('Code MFA invalide');
+          }
+          // Backup code was valid — proceed
+        }
+        // MFA verified — proceed with full login
+        const result = await this.authService.login(user, ip, userAgent);
+        this.setRefreshTokenCookie(res, result.refreshToken);
+        return result;
+      }
+
+      // No mfaCode provided — return mfaRequired flag
+      // Do NOT issue a JWT yet
+      return {
+        mfaRequired: true,
+        email: user.email,
+        message: 'Code MFA requis',
+      };
+    }
+
+    // PRESTATAIRE sans MFA: laisser se connecter mais forcer la config MFA côté frontend
+    // (au lieu de bloquer le login, on émet un token avec un flag)
+    const mfaSetupRequired = user.role === UserRole.PRESTATAIRE && !user.mfaEnabled;
+
+    // Login (with optional mfaSetupRequired flag for prestataires)
+    const loginResult = await this.authService.login(user, ip, userAgent);
+    this.setRefreshTokenCookie(res, loginResult.refreshToken);
+    if (mfaSetupRequired) {
+      return { ...loginResult, mfaSetupRequired: true };
+    }
+    return loginResult;
+  }
+
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async refresh(
+    @Body() refreshDto: RefreshDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    // Prefer cookie, fall back to body for backward compatibility.
+    // TODO: Retirer le fallback body le 2026-05-16 — le refresh token doit venir uniquement du cookie httpOnly.
+    const token: string | undefined =
+      (req.cookies?.refreshToken as string | undefined) || refreshDto.refreshToken;
+
+    if (!token) {
+      throw new UnauthorizedException('refreshToken manquant');
+    }
+
+    try {
+      const result = await this.authService.refreshTokens(token, ip, userAgent);
+      this.setRefreshTokenCookie(res, result.refreshToken);
+      return result;
+    } catch (err) {
+      // Toute erreur de token (expiré, invalide, révoqué, malformé) DOIT renvoyer 401 — jamais 400.
+      // Sinon l'intercepteur axios du frontend ne déclenche pas son flow de déconnexion propre.
+      if (err instanceof UnauthorizedException) throw err;
+      this.logger.warn(
+        `refresh failed from ${ip}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw new UnauthorizedException('Session expirée');
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(
+    @CurrentUser() user: RequestUser,
+    @Body() body: LogoutDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // Best-effort : on n'échoue jamais un logout pour un refreshToken manquant/bancal,
+    // sinon le frontend se retrouve bloqué en boucle 400 et ne nettoie pas son état local.
+    try {
+      // TODO: Retirer le fallback body le 2026-05-16 — le refresh token doit venir uniquement du cookie httpOnly.
+      const token: string | undefined =
+        (req.cookies?.refreshToken as string | undefined) || body?.refreshToken;
+      if (token) {
+        await this.authService.logout(user.id, token);
+      }
+    } catch (err) {
+      this.logger.warn(
+        `logout cleanup failed for user ${user.id}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    res.clearCookie('refreshToken', { path: '/api/v1/auth/refresh' });
+    return { message: 'Logged out successfully' };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async forgotPassword(@Body() body: ForgotPasswordDto) {
+    return this.authService.requestPasswordReset(body.email);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    return this.authService.resetPasswordWithToken(body.token, body.password);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async me(@CurrentUser() user: RequestUser) {
+    return this.usersService.findById(user.id);
+  }
+
+  /** Store refresh token in a httpOnly cookie (ANSSI R16). */
+  private setRefreshTokenCookie(res: Response, refreshToken: string): void {
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      path: '/api/v1/auth/refresh',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+  }
+}

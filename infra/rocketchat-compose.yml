@@ -1,0 +1,131 @@
+# Rocket.Chat Community Edition (self-hosted, gratuit)
+#
+# Déploiement recommandé : sur la VM intranet (10.33.120.55) ou une VM dédiée.
+# Derrière BunkerWeb via un sous-domaine chat.omnitech-security.fr (comme
+# office et stirling).
+#
+# Capacités :
+#   - LDAP/AD natif (à configurer via l'admin UI après démarrage)
+#   - OAuth/OIDC pour SSO avec l'intranet
+#   - Channels, DM, threads, réactions, fichiers
+#   - Mobile apps iOS/Android
+#   - API REST complète
+#   - Webhooks entrants/sortants
+#
+# Après démarrage :
+#   1. http://localhost:3030 pour setup admin initial
+#   2. Admin → Connexions → LDAP → configurer :
+#      Host: 10.33.50.x   Port: 389/636
+#      Base DN: DC=omnitech,DC=local
+#      Bind DN: svc_intranet@omnitech.local
+#      Search filter: (&(objectClass=user)(mail=%username%))
+#      Enable sync + user auto-creation
+#   3. Admin → Connexions → OAuth → ajouter "Intranet OMNITECH"
+#   4. BunkerWeb : ajouter chat.omnitech-security.fr avec REVERSE_PROXY_WS=yes
+#
+# ISO 27001 :
+#   - A.5.10 (règles d'usage) : publier une charte "Rocket.Chat" signée
+#   - A.5.13 (marquage) : channels #public/#interne/#confidentiel
+#   - A.5.33 (rétention) : définir policy sur Admin → Retention
+
+services:
+  rocketchat-mongo:
+    image: mongo:6
+    container_name: rocketchat-mongo
+    restart: unless-stopped
+    command: mongod --oplogSize 128 --replSet rs0 --wiredTigerCacheSizeGB 1
+    volumes:
+      - rocketchat-mongo-data:/data/db
+      - rocketchat-mongo-config:/data/configdb
+    networks:
+      - rocketchat-net
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  rocketchat-mongo-init:
+    image: mongo:6
+    container_name: rocketchat-mongo-init
+    restart: on-failure
+    command: >
+      bash -c
+        "for i in {1..30}; do
+          mongosh mongodb://rocketchat-mongo:27017/?replicaSet=rs0 --eval \"
+            try {
+              rs.status();
+            } catch (e) {
+              rs.initiate({_id:'rs0',members:[{_id:0,host:'rocketchat-mongo:27017'}]});
+            }
+          \" && exit 0;
+          sleep 2;
+        done"
+    depends_on:
+      rocketchat-mongo:
+        condition: service_healthy
+    networks:
+      - rocketchat-net
+
+  rocketchat:
+    image: rocketchat/rocket.chat:7.0.0
+    container_name: rocketchat
+    restart: unless-stopped
+    ports:
+      - "${DOCKER_BIND_IP:-127.0.0.1}:3030:3000"
+    environment:
+      MONGO_URL: mongodb://rocketchat-mongo:27017/rocketchat?replicaSet=rs0
+      MONGO_OPLOG_URL: mongodb://rocketchat-mongo:27017/local?replicaSet=rs0
+      ROOT_URL: https://chat.omnitech-security.fr
+      PORT: 3000
+      # À configurer via l'admin UI après démarrage — pas dans l'env (sauf init)
+      CREATE_TOKENS_FOR_USERS: "true"
+      ADMIN_USERNAME: admin
+      ADMIN_EMAIL: rssi@omnitech-security.fr
+      ADMIN_PASS: "${ROCKETCHAT_ADMIN_PASS:-ChangeMeOnFirstLogin!}"
+      DEPLOY_METHOD: docker
+      # Accept Term of Service
+      OVERWRITE_SETTING_Show_Setup_Wizard: completed
+    depends_on:
+      rocketchat-mongo:
+        condition: service_healthy
+      rocketchat-mongo-init:
+        condition: service_completed_successfully
+    volumes:
+      - rocketchat-uploads:/app/uploads
+    networks:
+      - rocketchat-net
+    healthcheck:
+      test: curl -fsS http://localhost:3000/api/info || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+volumes:
+  rocketchat-mongo-data:
+  rocketchat-mongo-config:
+  rocketchat-uploads:
+
+networks:
+  rocketchat-net:
+    driver: bridge

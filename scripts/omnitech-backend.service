@@ -1,0 +1,18 @@
+[Unit]
+Description=OMNITECH Intranet Backend (NestJS)
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/omnitech-intranet
+EnvironmentFile=/root/omnitech-intranet/.env
+ExecStart=/usr/bin/pnpm --filter @omnitech/backend start
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/omnitech/backend.log
+StandardError=append:/var/log/omnitech/backend.log
+
+[Install]
+WantedBy=multi-user.target

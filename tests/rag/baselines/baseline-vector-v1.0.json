@@ -1,0 +1,1268 @@
+{
+  "runId": "eval-1776683491805",
+  "timestamp": "2026-04-20T11:11:31.805Z",
+  "aggregate": {
+    "mode": "vector",
+    "k": 5,
+    "goldSetVersion": "1.0.0",
+    "totalQuestions": 50,
+    "passRate": 0.96,
+    "meanRecallAt5": 1,
+    "meanMRR": 0.96,
+    "meanTermCoverage": 0.98,
+    "p50LatencyMs": 196,
+    "p95LatencyMs": 305
+  },
+  "results": [
+    {
+      "questionId": "Q001",
+      "question": "Quelle est la politique de sécurité des systèmes d'information ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "Politique de mots de passe Politique de mots de passe OMNITECH Cette politique définit les exigences",
+        "Sensibilisation : les 5 réflexes cybersécurité <h2>Adoptez les bons réflexes !</h2><p>La cybersécuri",
+        "Sauvegarde et restauration Politique de sauvegarde et restauration La sauvegarde des données est un ",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 305,
+      "passed": true
+    },
+    {
+      "questionId": "Q002",
+      "question": "Comment gérer un incident de sécurité ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "RUNBOOK",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Procédure de gestion des incidents",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "Gestion incident de sécurité [{\"title\":\"Détection et signalement\",\"description\":\"Identifier l'incide",
+        "Sensibilisation : les 5 réflexes cybersécurité <h2>Adoptez les bons réflexes !</h2><p>La cybersécuri",
+        "é dans SEAL). PROBLEME DE COMMUNICATION SEAL -> UTL Un bug a été remonté sur seal. Si vous rencontre"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 206,
+      "passed": true
+    },
+    {
+      "questionId": "Q003",
+      "question": "Quelle est la politique de mots de passe en vigueur ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Mise à jour de la politique de mots de passe — ce qui change <h2>Pourquoi ce changement ?</h2> <p>Su",
+        "Politique de mots de passe Politique de mots de passe OMNITECH Cette politique définit les exigences",
+        "s/ admin3 / admin123 Serait il possible d'arrêter de modifier les mots de passe des comptes admin ou",
+        "FAQ Support IT — Problèmes courants FAQ Support IT — Problèmes courants Retrouvez ici les réponses a",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 185,
+      "passed": true
+    },
+    {
+      "questionId": "Q004",
+      "question": "Quelles sont les règles BYOD pour le matériel personnel ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Utilisation du matériel personnel (BYOD) Politique BYOD — Bring Your Own Device L'utilisation d'appa",
+        "Nouvelle charte d utilisation du SI — Lecture obligatoire <p>La nouvelle charte d utilisation du sys",
+        "Guide d'utilisation du poste de travail",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Politique de mots de passe Politique de mots de passe OMNITECH Cette politique définit les exigences"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 221,
+      "passed": true
+    },
+    {
+      "questionId": "Q005",
+      "question": "Quelle est la charte d'utilisation du SI ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "DOCUMENT",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Nouvelle charte d utilisation du SI — Lecture obligatoire <p>La nouvelle charte d utilisation du sys",
+        "Guide d'utilisation du poste de travail",
+        "Sauvegarde et restauration Politique de sauvegarde et restauration La sauvegarde des données est un ",
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "Utilisation du matériel personnel (BYOD) Politique BYOD — Bring Your Own Device L'utilisation d'appa"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 219,
+      "passed": true
+    },
+    {
+      "questionId": "Q006",
+      "question": "Où en est la certification ISO 27001 ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Certification ISO 27001:2022 — avancement du projet <h2>Point d'avancement — Avril 2026</h2><p>Le pr",
+        "Lancement du projet de certification ISO 27001:2022 <h2>OMNITECH Security engage sa demarche de cert",
+        "Mise à jour de la politique de mots de passe — ce qui change <h2>Pourquoi ce changement ?</h2> <p>Su",
+        "Bienvenue sur le nouvel intranet OMNITECH Security <h2>Un intranet repensé pour la sécurité et l'eff",
+        "Nouvelle charte d utilisation du SI — Lecture obligatoire <p>La nouvelle charte d utilisation du sys"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 183,
+      "passed": true
+    },
+    {
+      "questionId": "Q007",
+      "question": "Comment chiffrer les données sensibles ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri",
+        "Sensibilisation : les 5 réflexes cybersécurité <h2>Adoptez les bons réflexes !</h2><p>La cybersécuri",
+        "45 192.168.252.146 C46 192.168.252.147 C47 192.168.252.148 C48 192.168.252.149 C49 192.168.252.150 C",
+        "Politique de mots de passe Politique de mots de passe OMNITECH Cette politique définit les exigences",
+        "Sauvegarde VEEAM Étiquettes: sauvegarde, veeam Date: 22 septembre 2023 13:25 Pour sauvegarder des se"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 165,
+      "passed": true
+    },
+    {
+      "questionId": "Q008",
+      "question": "Quels sont les 5 réflexes cybersécurité ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Sensibilisation : les 5 réflexes cybersécurité <h2>Adoptez les bons réflexes !</h2><p>La cybersécuri",
+        "Cybermois 2026 : les actions OMNITECH <h2>Un mois dédié à la cybersécurité</h2> <p>Comme chaque anné",
+        "QUIDE Vidéo et Contrôle d’accès est à l’heure actuelle maintenu par nos soins, l’infrastructure est ",
+        " 1 (acces systeme) + “ent”, 1 (install) + “ent” et 1 active en cliquant sur “A” ou “B” + “ent”, ensu",
+        "remonter d’alarme et M/A Laser 10.45.32.xx4 : Moxa Port COM virtuel pour la remonter d’info Laser xx"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 183,
+      "passed": true
+    },
+    {
+      "questionId": "Q009",
+      "question": "Quelles sont les bonnes pratiques pour les emails et le phishing ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Bonnes pratiques email et anti-phishing Bonnes pratiques email et protection contre le phishing Le p",
+        "Sensibilisation : les 5 réflexes cybersécurité <h2>Adoptez les bons réflexes !</h2><p>La cybersécuri",
+        "Cybermois 2026 : les actions OMNITECH <h2>Un mois dédié à la cybersécurité</h2> <p>Comme chaque anné",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "Chiffrement et protection des données Chiffrement et protection des données OMNITECH applique le pri"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 188,
+      "passed": true
+    },
+    {
+      "questionId": "Q010",
+      "question": "Quelles actions sont prévues pour le Cybermois 2026 ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Cybermois 2026 : les actions OMNITECH <h2>Un mois dédié à la cybersécurité</h2> <p>Comme chaque anné",
+        "Lancement du projet de certification ISO 27001:2022 <h2>OMNITECH Security engage sa demarche de cert",
+        "Certification ISO 27001:2022 — avancement du projet <h2>Point d'avancement — Avril 2026</h2><p>Le pr",
+        "Nouvelle charte d utilisation du SI — Lecture obligatoire <p>La nouvelle charte d utilisation du sys",
+        "Bienvenue sur le nouvel intranet OMNITECH Security <h2>Un intranet repensé pour la sécurité et l'eff"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 189,
+      "passed": true
+    },
+    {
+      "questionId": "Q011",
+      "question": "Quelles sont les procédures à jour actuellement ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Les procédures à jours (tableau) Les procédures à jours (tableau) Nom Étiquettes Date de création Pr",
+        "Mise à jour de la politique de mots de passe — ce qui change <h2>Pourquoi ce changement ?</h2> <p>Su",
+        "Wiki de l’admin SYS Notes & Tips Scripts Les procédures à jours",
+        "Procédure Vérification Règle FW Étiquettes: Firewall, règle Date de création: 25 septembre 2023 20:3",
+        "Nouvelle charte d utilisation du SI — Lecture obligatoire <p>La nouvelle charte d utilisation du sys"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 166,
+      "passed": true
+    },
+    {
+      "questionId": "Q012",
+      "question": "Comment accéder au VPN et au réseau à distance ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Procédure VPN et accès distant Accès distant sécurisé — VPN OMNITECH Tout accès au système d'informa",
+        "Université Paris I La Sorbonne VPN Se rendre sur https://nomade.univ-paris1.fr/ Identifiant et mot d",
+        "re . Pour cela, quelques modifications doivent être apporté dans vos demandes : Sujet du mail , bien",
+        "rqué) soit par sont nom DNS \"nomade1\" ou \"nomade2\" ou \"192.168.13.1\" entrer nom d'utilisateur \"seal\"",
+        "Aéroport de Nice Nice Nice VPN Document de référence : J:\\Aéroport de Nice\\VPN nom du fichier : CCIN"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 177,
+      "passed": true
+    },
+    {
+      "questionId": "Q013",
+      "question": "Comment créer un compte utilisateur dans Active Directory ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Exporter Comptes Acitfs AD Étiquettes: powershell # Importer le module Active Directory Import-Modul",
+        "Création compte utilisateur AD [{\"title\":\"Réceptionner la demande\",\"description\":\"Vérifier le formul",
+        "Exporter User Creation Date Étiquettes: powershell Import-Module ActiveDirectory $Users = Get-ADUser",
+        "Exporter LastLogin PC uniquement Étiquettes: powershell Import-Module ActiveDirectory $ErrorActionPr",
+        "Renommer une adresse mail active Étiquettes: office365 Date: 22 septembre 2023 13:25 Depuis l’AD, al"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 177,
+      "passed": true
+    },
+    {
+      "questionId": "Q014",
+      "question": "Comment récupérer les membres d'un groupe AD ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "RUNBOOK",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "AD récupérer membres d’un groupe \"C:\\ListeGroupeWSUSServeurs.txt\" --> Étiquettes: active directry, p",
+        "Départ Collaborateur Étiquettes: ad, system Date: 22 septembre 2023 13:25 Désactiver le compte utili",
+        "Création compte utilisateur AD [{\"title\":\"Réceptionner la demande\",\"description\":\"Vérifier le formul",
+        "Récupèration des OS dans l'AD Récupèration des OS dnas l'AD.txt --> Étiquettes: powershell, wsus des",
+        "Scripts (tableau) Scripts (tableau) Nom Étiquettes Exporter Comptes Acitfs AD powershell Exporter St"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 189,
+      "passed": true
+    },
+    {
+      "questionId": "Q015",
+      "question": "Comment exporter les comptes actifs de l'AD ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Exporter Comptes Acitfs AD Étiquettes: powershell # Importer le module Active Directory Import-Modul",
+        "Exporter compte neverExpire Étiquettes: powershell # Import the AD module to the session Import-Modu",
+        "Scripts (tableau) Scripts (tableau) Nom Étiquettes Exporter Comptes Acitfs AD powershell Exporter St",
+        "Exporter ordinateurs inactifs + supprimer Étiquettes: powershell $DaysInactive = 730 $Time = (Get-Da",
+        "Départ Collaborateur Étiquettes: ad, system Date: 22 septembre 2023 13:25 Désactiver le compte utili"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 186,
+      "passed": true
+    },
+    {
+      "questionId": "Q016",
+      "question": "Comment vérifier le statut MFA des utilisateurs ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "RUNBOOK",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Exporter Statut MFA Utilisateur Étiquettes: powershell #Connect to Microsoft Online Connect-MsolServ",
+        "Procédure Vérification Règle FW Étiquettes: Firewall, règle Date de création: 25 septembre 2023 20:3",
+        "Revue trimestrielle firewall [{\"title\":\"Export des règles actuelles\",\"description\":\"Se connecter à F",
+        "FAQ Support IT — Problèmes courants FAQ Support IT — Problèmes courants Retrouvez ici les réponses a",
+        "00 (part à la retraire décembre 2019) Mr Robert URANGA (responsable de la sécurité : service DPSE) 0"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 174,
+      "passed": true
+    },
+    {
+      "questionId": "Q017",
+      "question": "Comment déployer un poste via MDT ?",
+      "retrievedSourceTypes": [
+        "RUNBOOK",
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Déploiement poste via MDT [{\"title\":\"Préparer le poste\",\"description\":\"Brancher le poste au réseau, ",
+        "Guide d'utilisation du poste de travail",
+        "ce se trouve sur le d:\\ identifiant: 10.108.11.50 mdp: Sealadm33 IP POSTE MAGASIN CENTRAL: 10.108.11",
+        "4-LT4 (6) Axis 243Q 73.25.1.98 CPN3-Z03-LT4 (4) Axis Q7406 73.25.1.99 CPN2-Z03-LT4 (10) Axis Q7406 7",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 178,
+      "passed": true
+    },
+    {
+      "questionId": "Q018",
+      "question": "Comment gérer les switchs réseau ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Management des switch Étiquettes: ad, dev, fw, reseaux Date: 22 septembre 2023 13:25 Connexion au sw",
+        "QUIDE Vidéo et Contrôle d’accès est à l’heure actuelle maintenu par nos soins, l’infrastructure est ",
+        "s/ admin3 / admin123 Serait il possible d'arrêter de modifier les mots de passe des comptes admin ou",
+        "as s’affiche j’ai du créer chaque caméra dans un cycle séparé et ajouter le cycle. Les opératrices d",
+        "23.60.166 PC PORTABLE CHAMOUX 157.23.60.170 SWITCH MULAN 157.23.59.200 SWITCH TSE 157.23.59.201 SWIT"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 173,
+      "passed": true
+    },
+    {
+      "questionId": "Q019",
+      "question": "Quelle est la procédure de vérification des règles firewall ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Procédure Vérification Règle FW Étiquettes: Firewall, règle Date de création: 25 septembre 2023 20:3",
+        "Revue trimestrielle firewall [{\"title\":\"Export des règles actuelles\",\"description\":\"Se connecter à F",
+        "Les procédures à jours (tableau) Les procédures à jours (tableau) Nom Étiquettes Date de création Pr",
+        ".46.32.44 Mat 4 fixe droite 10.46.32.45 Mat 5 fixe droite 10.46.32.46 Mat 6 fixe droite 10.46.32.47 ",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 275,
+      "passed": true
+    },
+    {
+      "questionId": "Q020",
+      "question": "Comment intégrer une machine Linux au domaine ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "RUNBOOK",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Intégrer au domaine linux Étiquettes: domain join, linux Date: 22 septembre 2023 13:25 Avant toute c",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom",
+        "on session required pam_mkhomedir.so skel=/etc/skel/ umask=0077 Editer le fichier /etc/sssd/sssd.con",
+        "Déploiement poste via MDT [{\"title\":\"Préparer le poste\",\"description\":\"Brancher le poste au réseau, ",
+        "vante pour rentrer dans la centrale : http://10.33.10.220 Adresse IP : 10.33.10.220 identifiant : En"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 259,
+      "passed": true
+    },
+    {
+      "questionId": "Q021",
+      "question": "Comment forcer le redémarrage d'un PC à distance ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Forcer redémarrage PC Étiquettes: active directry, powershell Restart-Computer -ComputerName “NomDuP",
+        " » et « valable au » Procedure d'ouverture à distance d'une porte hors des plages horaire L’ouvertur",
+        "Procédure VPN et accès distant Accès distant sécurisé — VPN OMNITECH Tout accès au système d'informa",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom",
+        " 1 (acces systeme) + “ent”, 1 (install) + “ent” et 1 active en cliquant sur “A” ou “B” + “ent”, ensu"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 196,
+      "passed": true
+    },
+    {
+      "questionId": "Q022",
+      "question": "Comment restaurer une VM depuis Veeam ?",
+      "retrievedSourceTypes": [
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "RUNBOOK",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Restauration VM depuis Veeam [{\"title\":\"Accéder à la console Veeam\",\"description\":\"Ouvrir Veeam Back",
+        "Procédure restauration & test sauvegarde Étiquettes: sauvegarde, veeam Date de création: 25 septembr",
+        "’explorateur de fichier Windows. Une fois le fichier sélectionné vous aurez la possibilité de restau",
+        "Sauvegarde et test de restauration [{\"title\":\"Vérifier les jobs de sauvegarde\",\"description\":\"Ouvrir",
+        "Sauvegarde VEEAM Étiquettes: sauvegarde, veeam Date: 22 septembre 2023 13:25 Pour sauvegarder des se"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 196,
+      "passed": true
+    },
+    {
+      "questionId": "Q023",
+      "question": "Comment sauvegarder et tester les sauvegardes ?",
+      "retrievedSourceTypes": [
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Sauvegarde et test de restauration [{\"title\":\"Vérifier les jobs de sauvegarde\",\"description\":\"Ouvrir",
+        "Sauvegarde et restauration Politique de sauvegarde et restauration La sauvegarde des données est un ",
+        "’explorateur de fichier Windows. Une fois le fichier sélectionné vous aurez la possibilité de restau",
+        "Sauvegarde VEEAM Étiquettes: sauvegarde, veeam Date: 22 septembre 2023 13:25 Pour sauvegarder des se",
+        "TIPS debug sauvegarde VEEAM Étiquettes: sauvegarde, veeam Date: 22 septembre 2023 13:25 Veeam Helper"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 171,
+      "passed": true
+    },
+    {
+      "questionId": "Q024",
+      "question": "Comment débugger une sauvegarde VEEAM en erreur ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "TIPS debug sauvegarde VEEAM Étiquettes: sauvegarde, veeam Date: 22 septembre 2023 13:25 Veeam Helper",
+        "Sauvegarde et test de restauration [{\"title\":\"Vérifier les jobs de sauvegarde\",\"description\":\"Ouvrir",
+        "Sauvegarde VEEAM Étiquettes: sauvegarde, veeam Date: 22 septembre 2023 13:25 Pour sauvegarder des se",
+        "Procédure restauration & test sauvegarde Étiquettes: sauvegarde, veeam Date de création: 25 septembr",
+        "’explorateur de fichier Windows. Une fois le fichier sélectionné vous aurez la possibilité de restau"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 208,
+      "passed": true
+    },
+    {
+      "questionId": "Q025",
+      "question": "Comment mettre à jour ESET avec les définitions YARA offline ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Mettre à jour ESET OFFFLINE YARA ... --> Étiquettes: eset, system Date: 22 septembre 2023 13:25 Se c",
+        " 1 (acces systeme) + “ent”, 1 (install) + “ent” et 1 active en cliquant sur “A” ou “B” + “ent”, ensu",
+        "er le Wall. Migration Depuis la migration en V4.5.5 effectué par CDA le 20/07/2011 - Les quadraAlarm",
+        "s/ admin3 / admin123 Serait il possible d'arrêter de modifier les mots de passe des comptes admin ou",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 213,
+      "passed": true
+    },
+    {
+      "questionId": "Q026",
+      "question": "Quel est le guide d'utilisation du poste de travail ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "RUNBOOK"
+      ],
+      "retrievedSnippets": [
+        "Guide d'utilisation du poste de travail",
+        "Nouvelle charte d utilisation du SI — Lecture obligatoire <p>La nouvelle charte d utilisation du sys",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom",
+        "Déploiement poste via MDT [{\"title\":\"Préparer le poste\",\"description\":\"Brancher le poste au réseau, "
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 205,
+      "passed": true
+    },
+    {
+      "questionId": "Q027",
+      "question": "Quelle est la procédure d'onboarding IT pour un nouvel arrivant ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Nouveau portail self-service IT disponible <h2>Un support IT plus rapide et plus intelligent</h2> <p",
+        "Mise à jour de la politique de mots de passe — ce qui change <h2>Pourquoi ce changement ?</h2> <p>Su",
+        "FAQ Support IT — Problèmes courants FAQ Support IT — Problèmes courants Retrouvez ici les réponses a",
+        "as s’affiche j’ai du créer chaque caméra dans un cycle séparé et ajouter le cycle. Les opératrices d"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 245,
+      "passed": true
+    },
+    {
+      "questionId": "Q028",
+      "question": "Comment contacter le support IT et escalader un problème ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Contact IT et procédure d'escalade Contact IT et procédure d'escalade Cette page centralise les coor",
+        "FAQ Support IT — Problèmes courants FAQ Support IT — Problèmes courants Retrouvez ici les réponses a",
+        "Nouveau portail self-service IT disponible <h2>Un support IT plus rapide et plus intelligent</h2> <p",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 182,
+      "passed": true
+    },
+    {
+      "questionId": "Q029",
+      "question": "Quelle est la procédure de départ d'un collaborateur ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Guide d'utilisation du poste de travail",
+        "Départ Collaborateur Étiquettes: ad, system Date: 22 septembre 2023 13:25 Désactiver le compte utili",
+        "Procédure de gestion des incidents",
+        "Gestion des incidents de sécurité Procédure de gestion des incidents de sécurité Cette procédure s'a",
+        "Procédure VPN et accès distant Accès distant sécurisé — VPN OMNITECH Tout accès au système d'informa"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.5,
+        "termCoverage": 1
+      },
+      "latencyMs": 171,
+      "passed": true
+    },
+    {
+      "questionId": "Q030",
+      "question": "Comment renommer une adresse email dans Active Directory ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "RUNBOOK",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Renommer une adresse mail active Étiquettes: office365 Date: 22 septembre 2023 13:25 Depuis l’AD, al",
+        "Exporter Comptes Acitfs AD Étiquettes: powershell # Importer le module Active Directory Import-Modul",
+        "Exporter User Creation Date Étiquettes: powershell Import-Module ActiveDirectory $Users = Get-ADUser",
+        "Création compte utilisateur AD [{\"title\":\"Réceptionner la demande\",\"description\":\"Vérifier le formul",
+        "s/ admin3 / admin123 Serait il possible d'arrêter de modifier les mots de passe des comptes admin ou"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 191,
+      "passed": true
+    },
+    {
+      "questionId": "Q031",
+      "question": "Comment changer la langue de Windows 11 IoT ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Guide - Changement Langue Windows 11 IoT Après avoir téléchargé FOD lié à la version de windows (n° ",
+        "Exporter Statut MFA Utilisateur Étiquettes: powershell #Connect to Microsoft Online Connect-MsolServ",
+        "Nouveau portail self-service IT disponible <h2>Un support IT plus rapide et plus intelligent</h2> <p",
+        "QUIDE Vidéo et Contrôle d’accès est à l’heure actuelle maintenu par nos soins, l’infrastructure est ",
+        "m deux sessions sur le serveur. Topologie réseau: 10.x.x.x. ; IP de l’ancien serveur Vidéo: 10.108.1"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 163,
+      "passed": true
+    },
+    {
+      "questionId": "Q032",
+      "question": "Comment utiliser le portail self-service IT ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Nouveau portail self-service IT disponible <h2>Un support IT plus rapide et plus intelligent</h2> <p",
+        "FAQ Support IT — Problèmes courants FAQ Support IT — Problèmes courants Retrouvez ici les réponses a",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "a Mettre le nom sur l’arrière de la caméra CA Se connecter via le https://prestataire.lyonaeroports.",
+        " 1 (acces systeme) + “ent”, 1 (install) + “ent” et 1 active en cliquant sur “A” ou “B” + “ent”, ensu"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 211,
+      "passed": true
+    },
+    {
+      "questionId": "Q033",
+      "question": "Quels sont les problèmes courants traités par le support IT ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "FAQ Support IT — Problèmes courants FAQ Support IT — Problèmes courants Retrouvez ici les réponses a",
+        "Nouveau portail self-service IT disponible <h2>Un support IT plus rapide et plus intelligent</h2> <p",
+        "Contact IT et procédure d'escalade Contact IT et procédure d'escalade Cette page centralise les coor",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "ndows nommé : Storage) 192.168.253.18 (partage dossier Windows nommé : R) Les partages de dossier Wi"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 208,
+      "passed": true
+    },
+    {
+      "questionId": "Q034",
+      "question": "Comment préparer un poste de travail neuf ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "RUNBOOK",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Guide d'utilisation du poste de travail",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom",
+        "Déploiement poste via MDT [{\"title\":\"Préparer le poste\",\"description\":\"Brancher le poste au réseau, ",
+        "Guide de démarrage sur mobile 👋 Bienvenue sur Notion ! Voici les fondamentaux : Appuyez n’importe o"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.5,
+        "termCoverage": 1
+      },
+      "latencyMs": 199,
+      "passed": true
+    },
+    {
+      "questionId": "Q035",
+      "question": "Comment configurer un téléphone Snom 870 ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Utilisation du Snom 870 Objectif : Ce document a pour but de présenter les fonctionnalités principal",
+        "as s’affiche j’ai du créer chaque caméra dans un cycle séparé et ajouter le cycle. Les opératrices d",
+        "rqué) soit par sont nom DNS \"nomade1\" ou \"nomade2\" ou \"192.168.13.1\" entrer nom d'utilisateur \"seal\"",
+        "G CAM 3 10.230.0.53 255.255.255.240 (28) 10.230.0.62 10.230.64.130, 10.230.64.131 AVG CAM 4 10.230.0",
+        " 1 (acces systeme) + “ent”, 1 (install) + “ent” et 1 active en cliquant sur “A” ou “B” + “ent”, ensu"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 191,
+      "passed": true
+    },
+    {
+      "questionId": "Q036",
+      "question": "Comment configurer le guide de démarrage sur mobile ?",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Guide d'utilisation du poste de travail",
+        "Guide de démarrage sur mobile 👋 Bienvenue sur Notion ! Voici les fondamentaux : Appuyez n’importe o",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        " 1 (acces systeme) + “ent”, 1 (install) + “ent” et 1 active en cliquant sur “A” ou “B” + “ent”, ensu",
+        "Exporter Statut MFA Utilisateur Étiquettes: powershell #Connect to Microsoft Online Connect-MsolServ"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.5,
+        "termCoverage": 1
+      },
+      "latencyMs": 180,
+      "passed": true
+    },
+    {
+      "questionId": "Q037",
+      "question": "Qu'est-ce que Centreon et comment utiliser les plugins ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Centreon commande plugin Étiquettes: centreon, monitoring Date: 22 septembre 2023 13:25 perl centreo",
+        "ient: les tables comptes utilisateur Point d'accueil \"Einstein\" C’est le point d’accueil des prestat",
+        "Notes & Tips (tableau) Notes & Tips (tableau) Nom Étiquettes Date Gestion Renommer une adresse mail ",
+        "ctions sur l’entrée Schueller . L’intance Schueller du plugin de gestion des visites reste utilisabl",
+        "68.253.1 Identifiant caméras AVIGILON 2023 : administrator / S34l4dm Une nouvelle caméra HIK sur le "
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 184,
+      "passed": true
+    },
+    {
+      "questionId": "Q038",
+      "question": "Comment lister les serveurs Windows actifs dans l'AD ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "AD récupérer membres d’un groupe \"C:\\ListeGroupeWSUSServeurs.txt\" --> Étiquettes: active directry, p",
+        "Exporter ordinateurs inactifs + supprimer Étiquettes: powershell $DaysInactive = 730 $Time = (Get-Da",
+        "Scripts (tableau) Scripts (tableau) Nom Étiquettes Exporter Comptes Acitfs AD powershell Exporter St",
+        "Exporter Comptes Acitfs AD Étiquettes: powershell # Importer le module Active Directory Import-Modul",
+        "ndows nommé : Storage) 192.168.253.18 (partage dossier Windows nommé : R) Les partages de dossier Wi"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 253,
+      "passed": true
+    },
+    {
+      "questionId": "Q039",
+      "question": "Comment exporter la date de dernière connexion des utilisateurs ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Exporter Date dernière connexion user Étiquettes: powershell Get-ADUser -Identity \"MSOL_fb89b304261e",
+        "Exporter User Creation Date Étiquettes: powershell Import-Module ActiveDirectory $Users = Get-ADUser",
+        "Exporter LastLogin PC uniquement Étiquettes: powershell Import-Module ActiveDirectory $ErrorActionPr",
+        "Exporter Statut MFA Utilisateur Étiquettes: powershell #Connect to Microsoft Online Connect-MsolServ",
+        "Exporter Comptes Acitfs AD Étiquettes: powershell # Importer le module Active Directory Import-Modul"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 180,
+      "passed": true
+    },
+    {
+      "questionId": "Q040",
+      "question": "Comment exporter les comptes avec mot de passe qui n'expire jamais ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Exporter compte neverExpire Étiquettes: powershell # Import the AD module to the session Import-Modu",
+        "Mise à jour de la politique de mots de passe — ce qui change <h2>Pourquoi ce changement ?</h2> <p>Su",
+        "Exporter Comptes Acitfs AD Étiquettes: powershell # Importer le module Active Directory Import-Modul",
+        "Exporter Date dernière connexion user Étiquettes: powershell Get-ADUser -Identity \"MSOL_fb89b304261e",
+        "Exporter User Creation Date Étiquettes: powershell Import-Module ActiveDirectory $Users = Get-ADUser"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 362,
+      "passed": true
+    },
+    {
+      "questionId": "Q041",
+      "question": "Comment déplacer une partition Windows ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Déplacer partition Windows Étiquettes: gparted, windows Date: 22 septembre 2023 13:25 Avec Gparted i",
+        "ndows nommé : Storage) 192.168.253.18 (partage dossier Windows nommé : R) Les partages de dossier Wi",
+        "’explorateur de fichier Windows. Une fois le fichier sélectionné vous aurez la possibilité de restau",
+        "Guide d'utilisation du poste de travail",
+        "Guide - Changement Langue Windows 11 IoT Après avoir téléchargé FOD lié à la version de windows (n° "
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 209,
+      "passed": true
+    },
+    {
+      "questionId": "Q042",
+      "question": "Comment récupérer les systèmes d'exploitation des machines AD ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Récupèration des OS dans l'AD Récupèration des OS dnas l'AD.txt --> Étiquettes: powershell, wsus des",
+        "Exporter ordinateurs inactifs + supprimer Étiquettes: powershell $DaysInactive = 730 $Time = (Get-Da",
+        "Scripts (tableau) Scripts (tableau) Nom Étiquettes Exporter Comptes Acitfs AD powershell Exporter St",
+        "AD récupérer membres d’un groupe \"C:\\ListeGroupeWSUSServeurs.txt\" --> Étiquettes: active directry, p",
+        "Exporter compte neverExpire Étiquettes: powershell # Import the AD module to the session Import-Modu"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 200,
+      "passed": true
+    },
+    {
+      "questionId": "Q043",
+      "question": "Quelle est la revue trimestrielle des règles firewall ?",
+      "retrievedSourceTypes": [
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Revue trimestrielle firewall [{\"title\":\"Export des règles actuelles\",\"description\":\"Se connecter à F",
+        "Procédure Vérification Règle FW Étiquettes: Firewall, règle Date de création: 25 septembre 2023 20:3",
+        "er le Wall. Migration Depuis la migration en V4.5.5 effectué par CDA le 20/07/2011 - Les quadraAlarm",
+        ".46.32.44 Mat 4 fixe droite 10.46.32.45 Mat 5 fixe droite 10.46.32.46 Mat 6 fixe droite 10.46.32.47 ",
+        "Les procédures à jours (tableau) Les procédures à jours (tableau) Nom Étiquettes Date de création Pr"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 234,
+      "passed": true
+    },
+    {
+      "questionId": "Q044",
+      "question": "Comment exporter les ordinateurs inactifs et les supprimer de l'AD ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Exporter ordinateurs inactifs + supprimer Étiquettes: powershell $DaysInactive = 730 $Time = (Get-Da",
+        "Exporter Comptes Acitfs AD Étiquettes: powershell # Importer le module Active Directory Import-Modul",
+        "Exporter compte neverExpire Étiquettes: powershell # Import the AD module to the session Import-Modu",
+        "Scripts (tableau) Scripts (tableau) Nom Étiquettes Exporter Comptes Acitfs AD powershell Exporter St",
+        "Départ Collaborateur Étiquettes: ad, system Date: 22 septembre 2023 13:25 Désactiver le compte utili"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 254,
+      "passed": true
+    },
+    {
+      "questionId": "Q045",
+      "question": "Quel est le calendrier des vols disponible depuis Bordeaux ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Bordeaux (Ville) plan_d_adressage_ip_ville_de_bordeaux_omnitech_avec_adresse_physique_a_jour.xls VIL",
+        "cs\", sur les postes, doit être désactivé (ticket GLPI: ID 11231). Laurent Fortier doit demandé une e",
+        "vril@lyon.aeroport.fr Aéroport de Lyon Administrateur système et bases de données Damien GOASGUEN Té",
+        "Biarritz Cahier de configuration Connexion à distance Le réseau de l’aéroport de Biarritz est direct",
+        "Aéroport de Montpellier LOGIN/MOT DE PASSE SEAL: omnitech/ s34l4dm Contacts client PCT : m. Bouchet "
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 238,
+      "passed": true
+    },
+    {
+      "questionId": "Q046",
+      "question": "Qui est le client L'Oréal et quelles sont ses spécificités ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Clients",
+        "L'Oréal Pilotage des caméras ATTENTION AVEC LA NOUVELLE VERSION DE SEAL, LE PILOTAGE DES MURS REELS ",
+        "ctions sur l’entrée Schueller . L’intance Schueller du plugin de gestion des visites reste utilisabl",
+        "4 --- > Hostname : AVIGILON_CAM2 AVIGILON_CAM3 -- > 73.25.2.23 --> 255.255.252.0 --> 73.25.1.254 ---",
+        "ient: les tables comptes utilisateur Point d'accueil \"Einstein\" C’est le point d’accueil des prestat"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 342,
+      "passed": true
+    },
+    {
+      "questionId": "Q047",
+      "question": "Comment fonctionne le réseau quantique pour la téléportation ?",
+      "retrievedSourceTypes": [
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        " 10.67.113.85 CPN2-Z08-LT1 (13) Axis 243Q 73.25.1.54 10.67.113.86 CPN1-Z13-LT1 (22) Axis 243Q 73.25.",
+        "QUIDE Vidéo et Contrôle d’accès est à l’heure actuelle maintenu par nos soins, l’infrastructure est ",
+        "7.112.78 UTL-BAT36 73.25.1.129 10.67.112.91 UTL-BAT A1 LT217 73.25.1.130 10.67.112.73 UTL-BAT18 73.2",
+        "Procédure VPN et accès distant Accès distant sécurisé — VPN OMNITECH Tout accès au système d'informa",
+        "a Mettre le nom sur l’arrière de la caméra CA Se connecter via le https://prestataire.lyonaeroports."
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 226,
+      "passed": false
+    },
+    {
+      "questionId": "Q048",
+      "question": "politike de securite mot de pass",
+      "retrievedSourceTypes": [
+        "DOCUMENT",
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Politique de Sécurité des Systèmes d'Information (PSSI)",
+        "Mise à jour de la politique de mots de passe — ce qui change <h2>Pourquoi ce changement ?</h2> <p>Su",
+        "Politique de mots de passe Politique de mots de passe OMNITECH Cette politique définit les exigences",
+        "Procédure de gestion des incidents",
+        "Divers powershell commande recommandation de sécurité Set-ADAccountControl -Identity MSOL_fb89b30426"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 0.5,
+        "termCoverage": 0
+      },
+      "latencyMs": 182,
+      "passed": false
+    },
+    {
+      "questionId": "Q049",
+      "question": "Comment créer un compte et sécuriser le poste pour un nouvel arrivant ?",
+      "retrievedSourceTypes": [
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "DOCUMENT",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Création compte utilisateur AD [{\"title\":\"Réceptionner la demande\",\"description\":\"Vérifier le formul",
+        "Préparation de poste Étiquettes: system Date: 22 septembre 2023 13:25 Actions : Ajouter poste au dom",
+        "Onboarding IT — Nouvel arrivant Onboarding IT — Guide du nouvel arrivant Bienvenue chez OMNITECH Sec",
+        "Guide d'utilisation du poste de travail",
+        "Création de compte AD Étiquettes: ad, system Date: 22 septembre 2023 13:25 Après création remplir l’"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 188,
+      "passed": true
+    },
+    {
+      "questionId": "Q050",
+      "question": "Quelles sauvegardes sont en place et comment vérifier qu'elles fonctionnent ?",
+      "retrievedSourceTypes": [
+        "RUNBOOK",
+        "WIKI",
+        "WIKI",
+        "WIKI",
+        "WIKI"
+      ],
+      "retrievedSnippets": [
+        "Sauvegarde et test de restauration [{\"title\":\"Vérifier les jobs de sauvegarde\",\"description\":\"Ouvrir",
+        "Sauvegarde et restauration Politique de sauvegarde et restauration La sauvegarde des données est un ",
+        "Sauvegarde VEEAM Étiquettes: sauvegarde, veeam Date: 22 septembre 2023 13:25 Pour sauvegarder des se",
+        "a lettre C dans le fichier ca_flag.dat après chaque lecture. Les badges peuvent venir du Sgita mais ",
+        "’explorateur de fichier Windows. Une fois le fichier sélectionné vous aurez la possibilité de restau"
+      ],
+      "metrics": {
+        "recallAt5": 1,
+        "mrr": 1,
+        "termCoverage": 1
+      },
+      "latencyMs": 196,
+      "passed": true
+    }
+  ]
+}

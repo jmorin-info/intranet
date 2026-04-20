@@ -1,0 +1,17 @@
+[Unit]
+Description=OMNITECH Intranet Frontend (Next.js)
+After=network.target omnitech-backend.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/omnitech-intranet
+EnvironmentFile=/root/omnitech-intranet/.env
+ExecStart=/usr/bin/pnpm --filter @omnitech/frontend start
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/omnitech/frontend.log
+StandardError=append:/var/log/omnitech/frontend.log
+
+[Install]
+WantedBy=multi-user.target
