@@ -1371,7 +1371,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               ))}
             </div>
           ) : versions.length === 0 ? (
-            <p className="text-sm text-taupe dark:text-slate-400 text-center py-6">
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-6">
               Aucune version antérieure pour cette page.
             </p>
           ) : (
@@ -1388,7 +1388,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     <p className="text-sm font-semibold text-navy dark:text-white truncate">
                       {v.title}
                     </p>
-                    <p className="text-[11px] text-taupe dark:text-slate-500">
+                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">
                       {v.author
                         ? `${v.author.firstName} ${v.author.lastName} — `
                         : ''}
@@ -1401,7 +1401,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       })}
                     </p>
                     {v.changeLog && (
-                      <p className="text-[11px] text-taupe dark:text-slate-500 italic truncate">
+                      <p className="text-[11px] text-seal-gray-500 dark:text-slate-500 italic truncate">
                         {v.changeLog}
                       </p>
                     )}
@@ -1468,7 +1468,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     <p className="text-xs font-semibold text-navy dark:text-white">
                       {VISIBILITY_LABELS[vis]}
                     </p>
-                    <p className="text-[10px] text-taupe dark:text-slate-500 mt-0.5">
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5">
                       {VISIBILITY_DESCRIPTIONS[vis]}
                     </p>
                   </div>
@@ -1493,7 +1493,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-all text-xs ${
                       shareData.allowedRoles.includes(role.value)
                         ? 'border-primary bg-primary/5 text-primary font-semibold'
-                        : 'border-gray-200 dark:border-slate-700 text-taupe dark:text-slate-400 hover:border-primary/30'
+                        : 'border-gray-200 dark:border-slate-700 text-seal-gray-500 dark:text-slate-400 hover:border-primary/30'
                     }`}
                   >
                     <input
@@ -1531,7 +1531,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               <label className="block text-[13px] font-semibold text-navy dark:text-white">
                 Collaborateurs
               </label>
-              <p className="text-[11px] text-taupe dark:text-slate-500">
+              <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">
                 Ces utilisateurs pourront voir et modifier la page.
               </p>
               {/* Selected collaborators chips */}
@@ -1561,13 +1561,13 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               {/* Search input */}
               <div className="relative">
                 <div className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2">
-                  <Search className="h-3.5 w-3.5 text-taupe dark:text-slate-500 flex-shrink-0" />
+                  <Search className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-500 flex-shrink-0" />
                   <input
                     type="text"
                     value={collabSearch}
                     onChange={(e) => handleCollabSearchChange(e.target.value)}
                     placeholder="Rechercher un utilisateur..."
-                    className="flex-1 bg-transparent text-sm text-navy dark:text-white outline-none placeholder:text-taupe dark:placeholder:text-slate-500"
+                    className="flex-1 bg-transparent text-sm text-navy dark:text-white outline-none placeholder:text-seal-gray-500 dark:placeholder:text-slate-500"
                   />
                   {collabLoading && (
                     <div className="h-3.5 w-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -1600,7 +1600,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                             <p className="text-xs font-medium text-navy dark:text-white truncate">
                               {u.firstName} {u.lastName}
                             </p>
-                            <p className="text-[10px] text-taupe dark:text-slate-500 truncate">
+                            <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">
                               {u.email}
                             </p>
                           </div>
@@ -1881,7 +1881,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                 </button>
                 {showTableInsert && (
                   <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-xl p-3 z-30 w-48" onMouseDown={(e) => e.stopPropagation()}>
-                    <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 mb-2">Insérer un tableau 3x3</p>
+                    <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 mb-2">Insérer un tableau 3x3</p>
                     <button type="button"
                       onClick={() => {
                         const html = `<table style="border-collapse:collapse;width:100%;margin:8px 0;"><thead><tr>${'<th style="border:1px solid #d1d5db;padding:8px 12px;background:#f3f4f6;text-align:left;font-weight:600;">En-tête</th>'.repeat(3)}</tr></thead><tbody>${Array.from({ length: 2 }, () => `<tr>${'<td style="border:1px solid #d1d5db;padding:8px 12px;">Cellule</td>'.repeat(3)}</tr>`).join('')}</tbody></table><p><br></p>`;
@@ -1890,7 +1890,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       }}
                       className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-navy dark:text-white flex items-center gap-2"
                     >
-                      <Table className="h-3.5 w-3.5 text-taupe" /> Tableau 3x3
+                      <Table className="h-3.5 w-3.5 text-seal-gray-500" /> Tableau 3x3
                     </button>
                   </div>
                 )}
@@ -1929,7 +1929,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   ref={mentionDropdownRef}
                   className="absolute z-50 left-4 bottom-4 w-72 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl max-h-52 overflow-y-auto"
                 >
-                  <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-500 border-b border-gray-100 dark:border-slate-700 flex items-center gap-1.5">
+                  <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 border-b border-gray-100 dark:border-slate-700 flex items-center gap-1.5">
                     <Users className="h-3 w-3" /> Mentionner un utilisateur
                   </div>
                   {mentionResults.map((mu, idx) => (
@@ -1953,7 +1953,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                         <p className="text-xs font-medium text-navy dark:text-white truncate">
                           {mu.firstName} {mu.lastName}
                         </p>
-                        <p className="text-[10px] text-taupe dark:text-slate-500 truncate">
+                        <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">
                           {mu.email}
                         </p>
                       </div>
@@ -1969,10 +1969,10 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             </div>
             {/* Word & character count */}
             <div className="flex justify-between items-center mt-1">
-              <span className="text-[10px] text-taupe/60 dark:text-slate-600">
+              <span className="text-[10px] text-seal-gray-500/60 dark:text-slate-600">
                 Glissez une image pour l&apos;insérer {'\u2022'} Ctrl+K lien {'\u2022'} Ctrl+Shift+1/2/3 titres
               </span>
-              <span className="text-[11px] text-taupe dark:text-slate-500">
+              <span className="text-[11px] text-seal-gray-500 dark:text-slate-500">
                 {editorWordCount} mot{editorWordCount !== 1 ? 's' : ''} {'\u2022'} {editorPlainText.length} car.
               </span>
             </div>
@@ -2063,7 +2063,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
 
         <div className="space-y-5">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-xs text-taupe dark:text-slate-400" aria-label="Breadcrumb">
+          <nav className="flex items-center gap-1.5 text-xs text-seal-gray-500 dark:text-slate-400" aria-label="Breadcrumb">
             <button
               onClick={() => setViewingPage(null)}
               className="flex items-center gap-1 hover:text-primary transition-colors"
@@ -2095,7 +2095,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             <div className="flex items-center gap-2">
               {/* Reading size controls */}
               <div className="flex items-center gap-0.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5">
-                <Type className="h-3.5 w-3.5 text-taupe dark:text-slate-400 mx-1.5" />
+                <Type className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-400 mx-1.5" />
                 {(['sm', 'md', 'lg'] as const).map((s) => (
                   <button
                     key={s}
@@ -2103,7 +2103,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     className={`px-2 py-0.5 text-[11px] font-semibold rounded transition-colors ${
                       readingSize === s
                         ? 'bg-primary/10 text-primary'
-                        : 'text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                        : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
                     }`}
                     title={`Taille ${s === 'sm' ? 'petite' : s === 'md' ? 'moyenne' : 'grande'}`}
                   >
@@ -2199,7 +2199,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   />
                 </div>
 
-                <div className="flex items-center gap-4 flex-wrap text-[13px] text-taupe dark:text-slate-400 pb-4 border-b border-gray-200 dark:border-slate-700">
+                <div className="flex items-center gap-4 flex-wrap text-[13px] text-seal-gray-500 dark:text-slate-400 pb-4 border-b border-gray-200 dark:border-slate-700">
                   <span className="flex items-center gap-1.5">
                     <span className="h-6 w-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold">
                       {viewingPage.author.firstName[0]}
@@ -2264,7 +2264,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               {/* Mobile TOC drawer */}
               {tocDrawerOpen && tocEntries.length >= 2 && (
                 <div className="lg:hidden mb-6 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-400 mb-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 mb-2">
                     Sur cette page
                   </p>
                   <nav className="space-y-0.5">
@@ -2303,14 +2303,14 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   if (m.includes('sheet') || m.includes('excel')) return { Icon: FileSpreadsheet, color: 'text-green-600' };
                   if (m.includes('presentation') || m.includes('powerpoint')) return { Icon: FileText, color: 'text-orange-500' };
                   if (m.includes('zip') || m.includes('archive')) return { Icon: FolderOpen, color: 'text-amber-500' };
-                  return { Icon: Paperclip, color: 'text-taupe dark:text-slate-400' };
+                  return { Icon: Paperclip, color: 'text-seal-gray-500 dark:text-slate-400' };
                 };
                 return (
                   <section className="mt-10 pt-8 border-t border-gray-200 dark:border-slate-700">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
-                        <Paperclip className="h-4 w-4 text-taupe dark:text-slate-400" />
-                        Pièces jointes {attachments.length > 0 && <span className="text-xs font-normal text-taupe dark:text-slate-500">({attachments.length})</span>}
+                        <Paperclip className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
+                        Pièces jointes {attachments.length > 0 && <span className="text-xs font-normal text-seal-gray-500 dark:text-slate-500">({attachments.length})</span>}
                       </h2>
                       {canEditAtt && (
                         <Button variant="outline" size="sm" className="relative">
@@ -2337,7 +2337,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       )}
                     </div>
                     {attachments.length === 0 ? (
-                      <p className="text-xs text-taupe dark:text-slate-500 italic">Aucune pièce jointe.</p>
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-500 italic">Aucune pièce jointe.</p>
                     ) : (
                       <div className="space-y-2">
                         {attachments.map((att, i) => {
@@ -2349,7 +2349,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                               </div>
                               <div className="flex-1 min-w-0">
                                 <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-navy dark:text-white hover:text-primary truncate block">{att.name}</a>
-                                <p className="text-[10px] text-taupe dark:text-slate-500">{fmtSize(att.size)} — {new Date(att.uploadedAt).toLocaleDateString('fr-FR')}</p>
+                                <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">{fmtSize(att.size)} — {new Date(att.uploadedAt).toLocaleDateString('fr-FR')}</p>
                               </div>
                               <a href={att.url} download className="text-xs text-primary hover:underline flex-shrink-0">Télécharger</a>
                               {canEditAtt && (
@@ -2409,7 +2409,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   </button>
                 </div>
                 {currentFeedback && (
-                  <p className="text-[11px] text-taupe dark:text-slate-500 mt-3">Merci pour votre retour</p>
+                  <p className="text-[11px] text-seal-gray-500 dark:text-slate-500 mt-3">Merci pour votre retour</p>
                 )}
               </div>
 
@@ -2435,7 +2435,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       }
                     }}
                     placeholder="Ex : Quelle est la procedure pour..."
-                    className="flex-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-taupe focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="flex-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-seal-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                   <Button
                     size="sm"
@@ -2454,7 +2454,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   </Button>
                 </div>
                 {wikiAnswerLoading && (
-                  <div className="mt-3 flex items-center gap-2 text-xs text-taupe dark:text-slate-400">
+                  <div className="mt-3 flex items-center gap-2 text-xs text-seal-gray-500 dark:text-slate-400">
                     <div className="h-2 w-2 rounded-full bg-primary animate-bounce" />
                     <div className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
                     <div className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -2471,7 +2471,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               {/* Related / recent articles */}
               {related.length > 0 && (
                 <section className="mt-10">
-                  <h2 className="text-[11px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-400 mb-3">
+                  <h2 className="text-[11px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 mb-3">
                     {relatedLabel}
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -2487,11 +2487,11 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                             {p.title}
                           </p>
                           {excerpt && (
-                            <p className="text-[11px] text-taupe dark:text-slate-500 line-clamp-2 leading-relaxed mb-2">
+                            <p className="text-[11px] text-seal-gray-500 dark:text-slate-500 line-clamp-2 leading-relaxed mb-2">
                               {excerpt}{stripHtml(p.content).length > 120 ? '…' : ''}
                             </p>
                           )}
-                          <p className="text-[10px] text-taupe dark:text-slate-500 flex items-center gap-2">
+                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-2">
                             <span>{p.author.firstName} {p.author.lastName}</span>
                             <span>·</span>
                             <span>{formatRelativeTime(p.updatedAt)}</span>
@@ -2511,7 +2511,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       onClick={() => handleViewPage(prevPage.slug)}
                       className="flex-1 text-left rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 hover:border-primary/40 hover:shadow-md transition-all group"
                     >
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-500 flex items-center gap-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 flex items-center gap-1">
                         <ArrowLeft className="h-3 w-3" /> Précédent
                       </span>
                       <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-primary mt-1 line-clamp-1">
@@ -2526,7 +2526,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       onClick={() => handleViewPage(nextPage.slug)}
                       className="flex-1 text-right rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 hover:border-primary/40 hover:shadow-md transition-all group"
                     >
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-500 flex items-center gap-1 justify-end">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 flex items-center gap-1 justify-end">
                         Suivant <ArrowRight className="h-3 w-3" />
                       </span>
                       <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-primary mt-1 line-clamp-1">
@@ -2545,7 +2545,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               <div className="sticky top-20 space-y-4">
                 {tocEntries.length >= 2 && (
                   <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-400 mb-2 px-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 mb-2 px-2">
                       Sur cette page
                     </p>
                     <nav className="space-y-0.5">
@@ -2571,7 +2571,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     className={`flex items-center gap-2 px-3 py-2 text-xs rounded-lg transition-all ${
                       linkCopied
                         ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
-                        : 'text-taupe dark:text-slate-400 hover:text-primary hover:bg-primary/5'
+                        : 'text-seal-gray-500 dark:text-slate-400 hover:text-primary hover:bg-primary/5'
                     }`}
                   >
                     {linkCopied ? (
@@ -2589,7 +2589,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     className={`flex items-center gap-2 px-3 py-2 text-xs rounded-lg transition-all ${
                       contentCopied
                         ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
-                        : 'text-taupe dark:text-slate-400 hover:text-primary hover:bg-primary/5'
+                        : 'text-seal-gray-500 dark:text-slate-400 hover:text-primary hover:bg-primary/5'
                     }`}
                   >
                     {contentCopied ? (
@@ -2600,7 +2600,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   </button>
                   <button
                     onClick={() => window.print()}
-                    className="flex items-center gap-2 px-3 py-2 text-xs text-taupe dark:text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 text-xs text-seal-gray-500 dark:text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
                   >
                     <Printer className="h-3.5 w-3.5" /> Imprimer / PDF
                   </button>
@@ -2609,7 +2609,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     className={`flex items-center gap-2 px-3 py-2 text-xs rounded-lg transition-colors ${
                       isFavorite
                         ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                        : 'text-taupe dark:text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                        : 'text-seal-gray-500 dark:text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20'
                     }`}
                   >
                     <Star className={`h-3.5 w-3.5 ${isFavorite ? 'fill-current' : ''}`} />
@@ -2617,7 +2617,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   </button>
                   <button
                     onClick={reportError}
-                    className="flex items-center gap-2 px-3 py-2 text-xs text-taupe dark:text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 text-xs text-seal-gray-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                   >
                     <AlertCircle className="h-3.5 w-3.5" /> Signaler une erreur
                   </button>
@@ -2675,7 +2675,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
       {/* Recently viewed articles */}
       {!viewingPage && recentlyViewed.length > 0 && !search && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <span className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 flex-shrink-0">Récents</span>
+          <span className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 flex-shrink-0">Récents</span>
           {recentlyViewed.map(r => (
             <button
               key={r.id}
@@ -2686,7 +2686,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               }}
               className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-navy dark:text-white hover:bg-primary/10 hover:text-primary transition-colors truncate max-w-[200px] flex-shrink-0"
             >
-              <Clock className="h-3 w-3 text-taupe dark:text-slate-500 flex-shrink-0" />
+              <Clock className="h-3 w-3 text-seal-gray-500 dark:text-slate-500 flex-shrink-0" />
               {r.title}
             </button>
           ))}
@@ -2695,7 +2695,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
 
       {/* Total article count */}
       {!loading && pages.length > 0 && (
-        <p className="text-sm text-taupe dark:text-slate-400 font-medium">
+        <p className="text-sm text-seal-gray-500 dark:text-slate-400 font-medium">
           <span className="text-navy dark:text-white font-semibold">{pages.length}</span> article{pages.length !== 1 ? 's' : ''}
           {search && sorted.length !== pages.length && (
             <span> — <span className="text-navy dark:text-white font-semibold">{sorted.length}</span> résultat{sorted.length !== 1 ? 's' : ''}</span>
@@ -2725,7 +2725,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           {/* Search suggestions dropdown — Meilisearch results preferred when available */}
           {showSearchSuggestions && (meiliResults.length > 0 || searchSuggestions.length > 0) && (
             <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
-              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-500 border-b border-gray-100 dark:border-slate-700 flex items-center gap-1.5">
+              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 border-b border-gray-100 dark:border-slate-700 flex items-center gap-1.5">
                 <Search className="h-3 w-3" /> {meiliResults.length > 0 ? 'Résultats' : 'Suggestions'}
                 {meiliLoading && <span className="ml-1 animate-pulse">...</span>}
               </div>
@@ -2756,7 +2756,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       )}
                       {formatted?.content ? (
                         <p
-                          className="text-[10px] text-taupe dark:text-slate-500 truncate mt-0.5 [&>em]:bg-yellow-200 [&>em]:dark:bg-yellow-700/50 [&>em]:not-italic [&>em]:rounded-sm [&>em]:px-0.5"
+                          className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate mt-0.5 [&>em]:bg-yellow-200 [&>em]:dark:bg-yellow-700/50 [&>em]:not-italic [&>em]:rounded-sm [&>em]:px-0.5"
                           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(stripHtml(formatted.content).slice(0, 150)) }}
                         />
                       ) : (() => {
@@ -2767,17 +2767,17 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                           const end = Math.min(plain.length, lIdx + search.length + 80);
                           const snippet = (start > 0 ? '...' : '') + plain.slice(start, end) + (end < plain.length ? '...' : '');
                           return (
-                            <p className="text-[10px] text-taupe dark:text-slate-500 truncate mt-0.5">
+                            <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate mt-0.5">
                               {highlightText(snippet, search)}
                             </p>
                           );
                         }
                         return p.category ? (
-                          <p className="text-[10px] text-taupe dark:text-slate-500">{p.category}</p>
+                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">{p.category}</p>
                         ) : null;
                       })()}
                     </div>
-                    <ChevronRight className="h-3 w-3 text-taupe dark:text-slate-500 flex-shrink-0" />
+                    <ChevronRight className="h-3 w-3 text-seal-gray-500 dark:text-slate-500 flex-shrink-0" />
                   </button>
                 );
               })}
@@ -2800,7 +2800,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             className={`p-1.5 rounded transition-colors ${
               listViewMode === 'grid'
                 ? 'bg-primary/10 text-primary'
-                : 'text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
             }`}
             title="Vue grille"
           >
@@ -2811,7 +2811,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             className={`p-1.5 rounded transition-colors ${
               listViewMode === 'category'
                 ? 'bg-primary/10 text-primary'
-                : 'text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
             }`}
             title="Vue par catégorie"
           >
@@ -2827,7 +2827,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           className={`flex items-center gap-2 px-5 py-2.5 text-sm transition-all duration-200 -mb-[2px] rounded-t-lg ${
             scopeFilter === SCOPE_ALL
               ? 'border-b-2 border-primary text-primary font-medium bg-primary/5 dark:bg-primary/10'
-              : 'text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
+              : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
           }`}
         >
           <BookOpen className="h-4 w-4" /> Toutes les pages
@@ -2837,7 +2837,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           className={`flex items-center gap-2 px-5 py-2.5 text-sm transition-all duration-200 -mb-[2px] rounded-t-lg ${
             scopeFilter === SCOPE_MINE
               ? 'border-b-2 border-primary text-primary font-medium bg-primary/5 dark:bg-primary/10'
-              : 'text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
+              : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
           }`}
         >
           <User className="h-4 w-4" /> Mes pages
@@ -2846,7 +2846,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               className={`ml-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
                 scopeFilter === SCOPE_MINE
                   ? 'bg-primary/15 text-primary'
-                  : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-400'
+                  : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400'
               }`}
             >
               {myPagesCount}
@@ -2861,7 +2861,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
         <aside className="hidden md:block w-56 flex-shrink-0">
           <div className="sticky top-20 space-y-2">
             <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-400 mb-2 px-2 flex items-center gap-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 mb-2 px-2 flex items-center gap-1.5">
                 <Filter className="h-3 w-3" /> Catégories
               </p>
               <nav className="space-y-0.5">
@@ -2871,7 +2871,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   className={`w-full flex items-center gap-2 px-2.5 py-2 text-xs font-medium rounded-lg transition-all ${
                     categoryFilter === CATEGORY_ALL
                       ? 'bg-primary/10 text-primary font-semibold'
-                      : 'text-taupe dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white'
+                      : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white'
                   }`}
                 >
                   <BookOpen className="h-3.5 w-3.5 flex-shrink-0" />
@@ -2879,7 +2879,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${
                     categoryFilter === CATEGORY_ALL
                       ? 'bg-primary/20 text-primary'
-                      : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-500'
+                      : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-500'
                   }`}>
                     {pages.length}
                   </span>
@@ -2904,7 +2904,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                         } ${
                           categoryFilter === cat
                             ? 'font-semibold'
-                            : 'text-taupe dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white'
+                            : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white'
                         }`}
                         style={categoryFilter === cat ? { backgroundColor: `${color}15`, color } : undefined}
                       >
@@ -2913,7 +2913,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${
                           categoryFilter === cat
                             ? 'bg-white/30'
-                            : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-500'
+                            : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-500'
                         }`} style={categoryFilter === cat ? { color } : undefined}>
                           {count}
                         </span>
@@ -2931,10 +2931,10 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       const parentCount = adminSysChildren.reduce((sum, c) => sum + (categoryCounts[c] ?? 0), 0);
                       result.push(
                         <div key="__admin-sys-group" className="mt-1 mb-0.5">
-                          <div className="flex items-center gap-2 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-500">
+                          <div className="flex items-center gap-2 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
                             <Code className="h-3 w-3 flex-shrink-0" />
                             <span className="flex-1 text-left">{ADMIN_SYS_PREFIX}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-500">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-500">
                               {parentCount}
                             </span>
                           </div>
@@ -2949,10 +2949,10 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                     const parentCount = adminSysChildren.reduce((sum, c) => sum + (categoryCounts[c] ?? 0), 0);
                     result.push(
                       <div key="__admin-sys-group" className="mt-1 mb-0.5">
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-500">
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
                           <Code className="h-3 w-3 flex-shrink-0" />
                           <span className="flex-1 text-left">{ADMIN_SYS_PREFIX}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-500">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-500">
                             {parentCount}
                           </span>
                         </div>
@@ -2968,7 +2968,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             {/* Popular pages quick links */}
             {!loading && pages.length > 0 && (
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-400 mb-2 px-2 flex items-center gap-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 mb-2 px-2 flex items-center gap-1.5">
                   <Star className="h-3 w-3" /> Pages populaires
                 </p>
                 <div className="space-y-0.5">
@@ -2984,7 +2984,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                         <p className="text-xs font-medium text-navy dark:text-white truncate group-hover:text-primary transition-colors">
                           {page.title}
                         </p>
-                        <p className="text-[10px] text-taupe dark:text-slate-500 flex items-center gap-1 mt-0.5">
+                        <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-1 mt-0.5">
                           <Clock className="h-2.5 w-2.5" />
                           {formatRelativeTime(page.updatedAt)}
                         </p>
@@ -3000,7 +3000,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
         <div className="flex-1 min-w-0">
           {/* Mobile category pills (visible on small screens) */}
           <div className="flex md:hidden items-center gap-2 overflow-x-auto pb-3 scrollbar-thin">
-            <Filter className="h-4 w-4 text-taupe dark:text-slate-400 flex-shrink-0" />
+            <Filter className="h-4 w-4 text-seal-gray-500 dark:text-slate-400 flex-shrink-0" />
             {categories.map((cat) => {
               const count = cat === CATEGORY_ALL ? pages.length : (categoryCounts[cat] ?? 0);
               const Icon = cat === CATEGORY_ALL ? BookOpen : getCategoryIcon(cat);
@@ -3011,7 +3011,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-full transition-all duration-200 whitespace-nowrap flex-shrink-0 shadow-sm ${
                     categoryFilter === cat
                       ? 'bg-[#004469] text-white shadow-md'
-                      : 'bg-white dark:bg-slate-800 text-taupe dark:text-slate-400 border border-gray-200 dark:border-slate-700 hover:border-[#004469]/40 hover:text-[#004469] dark:hover:text-white'
+                      : 'bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 border border-gray-200 dark:border-slate-700 hover:border-[#004469]/40 hover:text-[#004469] dark:hover:text-white'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -3019,7 +3019,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                     categoryFilter === cat
                       ? 'bg-white/20 text-white'
-                      : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-500'
+                      : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-500'
                   }`}>
                     {count}
                   </span>
@@ -3061,7 +3061,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                 <h3 className="text-sm font-semibold text-navy dark:text-white mb-1">
                   Démarrer à partir d&apos;un modèle
                 </h3>
-                <p className="text-xs text-taupe dark:text-slate-400">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                   Choisissez un modèle pré-rempli pour créer votre première page rapidement.
                 </p>
               </div>
@@ -3082,7 +3082,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                           <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-primary transition-colors">
                             {tpl.title}
                           </p>
-                          <p className="text-[11px] text-taupe dark:text-slate-500 leading-relaxed mt-0.5">
+                          <p className="text-[11px] text-seal-gray-500 dark:text-slate-500 leading-relaxed mt-0.5">
                             {tpl.description}
                           </p>
                           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary mt-2">
@@ -3169,14 +3169,14 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       </div>
                       {/* Content preview with highlight */}
                       {page.content && (
-                        <p className="text-xs text-taupe dark:text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-seal-gray-500 dark:text-slate-500 mt-2 line-clamp-2 leading-relaxed">
                           {highlightText(
                             stripHtml(page.content).slice(0, 120) + (stripHtml(page.content).length > 120 ? '...' : ''),
                             search,
                           )}
                         </p>
                       )}
-                      <div className="flex items-center gap-3 mt-2.5 text-[10px] text-taupe dark:text-slate-500">
+                      <div className="flex items-center gap-3 mt-2.5 text-[10px] text-seal-gray-500 dark:text-slate-500">
                         <span className="flex items-center gap-1">
                           <User className="h-3 w-3" />
                           {page.author.firstName} {page.author.lastName}
@@ -3247,11 +3247,11 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   <span className="flex-1 text-left text-sm font-semibold text-navy dark:text-white">
                     {cat}
                   </span>
-                  <span className="text-[11px] text-taupe dark:text-slate-500 font-medium mr-2">
+                  <span className="text-[11px] text-seal-gray-500 dark:text-slate-500 font-medium mr-2">
                     {catPages.length} article{catPages.length !== 1 ? 's' : ''}
                   </span>
                   <ChevronDown
-                    className={`h-4 w-4 text-taupe dark:text-slate-400 transition-transform duration-200 ${
+                    className={`h-4 w-4 text-seal-gray-500 dark:text-slate-400 transition-transform duration-200 ${
                       isExpanded ? 'rotate-180' : ''
                     }`}
                   />
@@ -3269,7 +3269,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                           <p className="text-sm font-medium text-navy dark:text-white group-hover:text-primary transition-colors truncate">
                             {highlightText(page.title, search)}
                           </p>
-                          <p className="text-[10px] text-taupe dark:text-slate-500 flex items-center gap-3 mt-0.5">
+                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-3 mt-0.5">
                             <span className="flex items-center gap-1">
                               <span className="h-4 w-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[8px] font-bold">
                                 {page.author.firstName[0]}{page.author.lastName[0]}
@@ -3282,7 +3282,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                             </span>
                           </p>
                         </div>
-                        <ChevronRight className="h-3.5 w-3.5 text-taupe dark:text-slate-500 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ChevronRight className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-500 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </button>
                     ))}
                   </div>
@@ -3382,7 +3382,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
         title="Gérer les catégories Wiki"
       >
         <div className="space-y-4">
-          <p className="text-xs text-taupe dark:text-slate-400">
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400">
             Ajoutez des catégories prédéfinies. Elles apparaîtront dans le filtre et en suggestion lors de la création/édition de pages.
           </p>
           {/* Add new category */}
@@ -3421,7 +3421,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           </div>
           {/* Existing categories */}
           {categories.filter(c => c !== CATEGORY_ALL).length === 0 ? (
-            <p className="text-xs text-center text-taupe dark:text-slate-500 py-4">Aucune catégorie pour l'instant</p>
+            <p className="text-xs text-center text-seal-gray-500 dark:text-slate-500 py-4">Aucune catégorie pour l'instant</p>
           ) : (
             <div className="space-y-1 max-h-64 overflow-y-auto">
               {categories.filter(c => c !== CATEGORY_ALL).map(cat => {
@@ -3431,8 +3431,8 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   <div key={cat} className="flex items-center justify-between rounded-lg px-3 py-2 bg-gray-50 dark:bg-slate-800/60">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-navy dark:text-white">{cat}</span>
-                      <span className="text-[10px] text-taupe dark:text-slate-500">{pageCount} page{pageCount !== 1 ? 's' : ''}</span>
-                      {!isManaged && <span className="text-[10px] text-taupe dark:text-slate-500 italic">depuis les pages</span>}
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{pageCount} page{pageCount !== 1 ? 's' : ''}</span>
+                      {!isManaged && <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 italic">depuis les pages</span>}
                     </div>
                     {isManaged && (
                       <button

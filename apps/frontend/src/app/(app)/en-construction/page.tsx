@@ -20,7 +20,7 @@ export default function UnderConstructionPage() {
           {t('construction.title')}
         </h1>
 
-        <p className="mt-3 text-sm text-taupe dark:text-slate-400 leading-relaxed">
+        <p className="mt-3 text-sm text-seal-gray-500 dark:text-slate-400 leading-relaxed">
           {t('construction.subtitle')}
         </p>
 

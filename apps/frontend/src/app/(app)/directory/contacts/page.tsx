@@ -148,14 +148,14 @@ export default function ExternalContactsPage() {
       <div className="flex items-center gap-1 border-b border-gray-200 dark:border-slate-700">
         <Link
           href="/directory"
-          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
         >
           <Users className="h-4 w-4" />
           Annuaire
         </Link>
         <Link
           href="/directory/organigramme"
-          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white border-b-2 border-transparent hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
         >
           <GitBranchPlus className="h-4 w-4" />
           Organigramme
@@ -172,7 +172,7 @@ export default function ExternalContactsPage() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-navy dark:text-white">Nouveau contact externe</h3>
-              <button onClick={() => setShowAddForm(false)} className="text-taupe hover:text-navy dark:hover:text-white">
+              <button onClick={() => setShowAddForm(false)} className="text-seal-gray-500 hover:text-navy dark:hover:text-white">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -224,7 +224,7 @@ export default function ExternalContactsPage() {
           <CardContent className="p-12 text-center">
             <Users className="h-12 w-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
             <p className="text-lg font-medium text-navy dark:text-white">Aucun contact trouvé</p>
-            <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
               Essayez de modifier vos filtres de recherche.
             </p>
           </CardContent>
@@ -275,13 +275,13 @@ export default function ExternalContactsPage() {
 
                     {/* Role */}
                     {contact.role && (
-                      <p className="text-xs text-taupe dark:text-slate-400">
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                         {contact.role}
                       </p>
                     )}
 
                     {/* Company */}
-                    <div className="flex items-center gap-1.5 text-xs text-taupe dark:text-slate-400">
+                    <div className="flex items-center gap-1.5 text-xs text-seal-gray-500 dark:text-slate-400">
                       <Building2 className="h-3.5 w-3.5 flex-shrink-0" />
                       <span className="truncate">{contact.company}</span>
                     </div>
@@ -313,7 +313,7 @@ export default function ExternalContactsPage() {
                     {contact.phone && (
                       <a
                         href={`tel:${contact.phone}`}
-                        className="flex items-center gap-1.5 text-xs text-taupe dark:text-slate-400 hover:text-primary"
+                        className="flex items-center gap-1.5 text-xs text-seal-gray-500 dark:text-slate-400 hover:text-primary"
                       >
                         <Phone className="h-3.5 w-3.5 flex-shrink-0" />
                         <span>{contact.phone}</span>

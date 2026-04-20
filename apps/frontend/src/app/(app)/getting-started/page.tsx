@@ -156,7 +156,7 @@ export default function WelcomePage() {
               <h2 className="text-base font-semibold text-[#004469] dark:text-white">
                 La cybersécurité, notre valeur fondamentale
               </h2>
-              <p className="mt-1 text-sm leading-relaxed text-taupe dark:text-slate-400">
+              <p className="mt-1 text-sm leading-relaxed text-seal-gray-500 dark:text-slate-400">
                 Chez OMNITECH Security, la protection de l&apos;information est au cœur de
                 chaque action. Cet intranet est conçu selon les exigences ISO 27001:2022
                 et NIS2. Chaque collaborateur est un maillon essentiel de notre chaîne de
@@ -170,7 +170,7 @@ export default function WelcomePage() {
       {/* Progress bar */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-taupe dark:text-slate-500">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
             Premiers pas
           </h3>
           <span className="text-sm font-semibold text-navy dark:text-white">
@@ -215,10 +215,10 @@ export default function WelcomePage() {
 
                 {/* Step content */}
                 <div className="min-w-0 flex-1">
-                  <h4 className={`text-sm font-semibold ${done ? 'text-taupe dark:text-slate-400 line-through' : 'text-navy dark:text-white'}`}>
+                  <h4 className={`text-sm font-semibold ${done ? 'text-seal-gray-500 dark:text-slate-400 line-through' : 'text-navy dark:text-white'}`}>
                     {step.title}
                   </h4>
-                  <p className="mt-0.5 text-xs leading-relaxed text-taupe dark:text-slate-400">
+                  <p className="mt-0.5 text-xs leading-relaxed text-seal-gray-500 dark:text-slate-400">
                     {step.description}
                   </p>
                 </div>
@@ -228,7 +228,7 @@ export default function WelcomePage() {
                   href={step.href}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors flex-shrink-0 ${
                     done
-                      ? 'text-taupe dark:text-slate-500 hover:text-navy dark:hover:text-white'
+                      ? 'text-seal-gray-500 dark:text-slate-500 hover:text-navy dark:hover:text-white'
                       : 'bg-[#004469]/5 text-[#004469] dark:bg-seal-orange/10 dark:text-seal-orange hover:bg-[#004469]/10 dark:hover:bg-seal-orange/20'
                   }`}
                 >
@@ -242,7 +242,7 @@ export default function WelcomePage() {
       </div>
 
       {/* Raccourcis clavier */}
-      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-taupe dark:text-slate-500">
+      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
         Raccourcis clavier utiles
       </h3>
       <Card className="mb-10">
@@ -262,7 +262,7 @@ export default function WelcomePage() {
                 <kbd className="inline-flex min-w-[3.5rem] items-center justify-center rounded-md border border-gray-200 bg-white px-2 py-1 font-mono text-xs font-semibold text-[#004469] shadow-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white">
                   {s.keys}
                 </kbd>
-                <span className="text-xs text-taupe dark:text-slate-400">{s.label}</span>
+                <span className="text-xs text-seal-gray-500 dark:text-slate-400">{s.label}</span>
               </div>
             ))}
           </div>
@@ -288,11 +288,11 @@ export default function WelcomePage() {
                 <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-[#F68D2E] transition-colors">
                   Toutes les astuces
                 </p>
-                <p className="text-[11px] text-taupe dark:text-slate-400">
+                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
                   Raccourcis, bonnes pratiques et conseils securite
                 </p>
               </div>
-              <ArrowRight className="ml-auto h-4 w-4 text-taupe/40 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="ml-auto h-4 w-4 text-seal-gray-500/40 transition-transform group-hover:translate-x-1" />
             </CardContent>
           </Card>
         </Link>
@@ -306,11 +306,11 @@ export default function WelcomePage() {
                 <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-[#F68D2E] transition-colors">
                   Tableau de bord
                 </p>
-                <p className="text-[11px] text-taupe dark:text-slate-400">
+                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
                   Retrouvez vos widgets, notifications et indicateurs
                 </p>
               </div>
-              <ArrowRight className="ml-auto h-4 w-4 text-taupe/40 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="ml-auto h-4 w-4 text-seal-gray-500/40 transition-transform group-hover:translate-x-1" />
             </CardContent>
           </Card>
         </Link>

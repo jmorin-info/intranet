@@ -205,7 +205,7 @@ function IncidentStatsCards({ kpis }: { kpis: DashboardKpis | null }) {
               {c.icon}
             </div>
             <div>
-              <p className="text-[11px] text-taupe dark:text-slate-400">{c.label}</p>
+              <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">{c.label}</p>
               <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">
                 {c.value !== null ? `${c.value}${c.suffix}` : '\u2014'}
               </p>
@@ -372,7 +372,7 @@ export default function IncidentsPage() {
           <p className="text-sm font-medium text-navy dark:text-white truncate">
             {i.title}
           </p>
-          <p className="text-[11px] text-taupe dark:text-slate-400">
+          <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
             {CATEGORY_OPTIONS.find((c) => c.value === i.category)?.label || i.category}
           </p>
         </div>
@@ -412,19 +412,19 @@ export default function IncidentsPage() {
             <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-[9px] font-semibold flex-shrink-0">
               {`${i.assignedTo.firstName[0] || ''}${i.assignedTo.lastName[0] || ''}`.toUpperCase()}
             </span>
-            <span className="text-xs text-taupe dark:text-slate-400">
+            <span className="text-xs text-seal-gray-500 dark:text-slate-400">
               {i.assignedTo.firstName} {i.assignedTo.lastName}
             </span>
           </div>
         ) : (
-          <span className="text-xs text-taupe/60 italic">Non assigné</span>
+          <span className="text-xs text-seal-gray-500/60 italic">Non assigné</span>
         ),
     },
     {
       key: 'detectedAt',
       header: 'Détecté',
       render: (i) => (
-        <span className="text-xs text-taupe dark:text-slate-400">
+        <span className="text-xs text-seal-gray-500 dark:text-slate-400">
           {new Date(i.detectedAt).toLocaleDateString('fr-FR')}
         </span>
       ),
@@ -433,7 +433,7 @@ export default function IncidentsPage() {
       key: '_count',
       header: 'Actions',
       render: (i) => (
-        <span className="text-xs text-taupe dark:text-slate-400">
+        <span className="text-xs text-seal-gray-500 dark:text-slate-400">
           {i._count.remediations} remédiation
           {i._count.remediations > 1 ? 's' : ''}
         </span>
@@ -605,7 +605,7 @@ export default function IncidentsPage() {
         </CardContent>
         {incidents && incidents.meta.totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-4 border-t border-gray-200 dark:border-slate-700">
-            <span className="text-xs text-taupe">
+            <span className="text-xs text-seal-gray-500">
               Page {incidents.meta.page} / {incidents.meta.totalPages} —{' '}
               {incidents.meta.total} incidents
             </span>

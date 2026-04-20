@@ -174,7 +174,7 @@ export function SelfServicePortal() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-taupe dark:text-slate-400">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">
             {t('selfservice.subtitle')}
           </p>
         </div>
@@ -217,7 +217,7 @@ export function SelfServicePortal() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-medium text-navy dark:text-white">{tpl.title}</h3>
-                    <p className="text-[10px] text-taupe dark:text-slate-400">{tpl.description}</p>
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{tpl.description}</p>
                   </div>
                   <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 rounded-full px-3 py-1 border border-gray-200 dark:border-slate-600">
                     <span className="text-[10px] font-medium text-[#004469] dark:text-white">
@@ -234,7 +234,7 @@ export function SelfServicePortal() {
                         </span>
                         {f.label}
                       </label>
-                      <input className="w-full mt-1 rounded-xl border border-gray-200 dark:border-slate-600 px-3 py-2.5 text-sm bg-white dark:bg-slate-900 dark:text-white placeholder:text-taupe dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm"
+                      <input className="w-full mt-1 rounded-xl border border-gray-200 dark:border-slate-600 px-3 py-2.5 text-sm bg-white dark:bg-slate-900 dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm"
                         placeholder={f.placeholder} onChange={e => formRef[f.label] = e.target.value} />
                     </div>
                   ))}
@@ -256,8 +256,8 @@ export function SelfServicePortal() {
             <Clock className="h-4 w-4 text-primary" /> Dernières demandes
           </h2>
           {loadingRequests ? (
-            <div className="flex gap-2 items-center text-xs text-taupe">
-              <div className="h-3 w-3 border-2 border-taupe/30 border-t-taupe rounded-full animate-spin" />
+            <div className="flex gap-2 items-center text-xs text-seal-gray-500">
+              <div className="h-3 w-3 border-2 border-seal-gray-500/30 border-t-taupe rounded-full animate-spin" />
               Chargement...
             </div>
           ) : recentRequests.length > 0 ? (
@@ -267,7 +267,7 @@ export function SelfServicePortal() {
                   <Ticket className="h-4 w-4 text-primary flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-navy dark:text-white truncate">{ticket.title.replace('[Self-Service] ', '')}</p>
-                    <p className="text-[10px] text-taupe dark:text-slate-400">
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                       {new Date(ticket.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
@@ -278,7 +278,7 @@ export function SelfServicePortal() {
               ))}
             </div>
           ) : (
-            <p className="text-xs text-taupe dark:text-slate-500 italic">Aucune demande r\u00e9cente. Vos futures demandes de support appara\u00eetront ici.</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-500 italic">Aucune demande r\u00e9cente. Vos futures demandes de support appara\u00eetront ici.</p>
           )}
         </CardContent>
       </Card>
@@ -323,7 +323,7 @@ export function SelfServicePortal() {
                 </span>
                 <div>
                   <p className="text-sm font-semibold text-navy dark:text-white">{s.name}</p>
-                  <p className="text-[10px] text-taupe capitalize">{s.status === 'up' ? t('selfservice.status.up') : s.status === 'degraded' ? t('selfservice.status.degraded') : t('selfservice.status.down')}</p>
+                  <p className="text-[10px] text-seal-gray-500 capitalize">{s.status === 'up' ? t('selfservice.status.up') : s.status === 'degraded' ? t('selfservice.status.degraded') : t('selfservice.status.down')}</p>
                 </div>
               </div>
             ))}
@@ -338,13 +338,13 @@ export function SelfServicePortal() {
         </div>
         {/* FAQ search */}
         <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-taupe dark:text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-seal-gray-500 dark:text-slate-500" />
           <input
             type="text"
             value={faqSearch}
             onChange={(e) => setFaqSearch(e.target.value)}
             placeholder="Rechercher dans la FAQ..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-navy dark:text-white placeholder:text-taupe dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -380,7 +380,7 @@ export function SelfServicePortal() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-navy dark:text-white text-sm">{guide.title}</h3>
-                    <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">{guide.desc}</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{guide.desc}</p>
                     {openGuide === i && (
                       <div className="mt-3 space-y-2">
                         {guide.steps.map((step, si) => (
@@ -397,7 +397,7 @@ export function SelfServicePortal() {
                       </div>
                     )}
                   </div>
-                  <ChevronRight className={`h-4 w-4 text-taupe transition-transform ${openGuide === i ? 'rotate-90' : ''}`} />
+                  <ChevronRight className={`h-4 w-4 text-seal-gray-500 transition-transform ${openGuide === i ? 'rotate-90' : ''}`} />
                 </div>
               </CardContent>
             </Card>
@@ -409,8 +409,8 @@ export function SelfServicePortal() {
           return g.title.toLowerCase().includes(q) || g.desc.toLowerCase().includes(q) || g.steps.some(s => s.toLowerCase().includes(q));
         }).length === 0 && (
           <div className="text-center py-6">
-            <HelpCircle className="h-8 w-8 text-taupe/30 mx-auto mb-2" />
-            <p className="text-sm text-taupe dark:text-slate-400">Aucun guide ne correspond \u00e0 \u00ab\u00a0{faqSearch}\u00a0\u00bb. Essayez un autre terme ou cr\u00e9ez un ticket pour obtenir de l\u2019aide.</p>
+            <HelpCircle className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucun guide ne correspond \u00e0 \u00ab\u00a0{faqSearch}\u00a0\u00bb. Essayez un autre terme ou cr\u00e9ez un ticket pour obtenir de l\u2019aide.</p>
           </div>
         )}
         {/* CTA: not found? create a ticket */}
@@ -418,7 +418,7 @@ export function SelfServicePortal() {
           <CardContent className="py-5 text-center">
             <MessageCircleQuestion className="h-8 w-8 text-primary mx-auto mb-2" />
             <h3 className="text-sm font-semibold text-navy dark:text-white mb-1">Pas trouvé de réponse ?</h3>
-            <p className="text-xs text-taupe dark:text-slate-400 mb-3">Notre équipe support est là pour vous aider. Créez un ticket et nous reviendrons vers vous rapidement.</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">Notre équipe support est là pour vous aider. Créez un ticket et nous reviendrons vers vous rapidement.</p>
             <Link href="/tickets">
               <Button><Ticket className="h-4 w-4" /> Créer un ticket</Button>
             </Link>
@@ -433,12 +433,12 @@ export function SelfServicePortal() {
             <h3 className="text-sm font-semibold text-navy dark:text-white mb-3">Informations système</h3>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
-                <span className="text-taupe dark:text-slate-400">Serveur</span>
+                <span className="text-seal-gray-500 dark:text-slate-400">Serveur</span>
                 <span className="font-semibold text-navy dark:text-white">{systemInfo.status === 'ok' ? 'Opérationnel' : 'Dégradé'}</span>
               </div>
               {Object.entries(systemInfo.services || {}).map(([svc, status]) => (
                 <div key={svc} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
-                  <span className="text-taupe dark:text-slate-400 capitalize">{svc}</span>
+                  <span className="text-seal-gray-500 dark:text-slate-400 capitalize">{svc}</span>
                   <span className={`font-semibold ${status === 'up' ? 'text-emerald-500' : status === 'configured' ? 'text-blue-500' : 'text-red-500'}`}>
                     {status === 'up' ? '\u25CF' : status === 'configured' ? '\u25D0' : '\u25CB'} {String(status)}
                   </span>

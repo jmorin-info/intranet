@@ -112,7 +112,7 @@ export default function MfaPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-medium text-navy dark:text-white">Authentification MFA</h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             Double authentification TOTP
           </p>
         </div>
@@ -123,7 +123,7 @@ export default function MfaPage() {
           <CardContent className="text-center py-8">
             <Shield className="h-16 w-16 text-[#F68D2E] mx-auto mb-4" />
             <h2 className="text-lg font-medium text-navy dark:text-white mb-2">Protégez votre compte</h2>
-            <p className="text-sm text-taupe dark:text-slate-400 max-w-sm mx-auto mb-4">
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 max-w-sm mx-auto mb-4">
               Activez la double authentification avec une application TOTP.
             </p>
 
@@ -133,24 +133,24 @@ export default function MfaPage() {
                 <div className="h-12 w-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-1">
                   <Shield className="h-6 w-6 text-blue-600" />
                 </div>
-                <p className="text-xs text-taupe dark:text-slate-400">Microsoft<br />Authenticator</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Microsoft<br />Authenticator</p>
               </div>
               <div className="text-center">
                 <div className="h-12 w-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-1">
                   <Key className="h-6 w-6 text-green-600" />
                 </div>
-                <p className="text-xs text-taupe dark:text-slate-400">Google<br />Authenticator</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Google<br />Authenticator</p>
               </div>
               <div className="text-center">
                 <div className="h-12 w-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mx-auto mb-1">
                   <Smartphone className="h-6 w-6 text-purple-600" />
                 </div>
-                <p className="text-xs text-taupe dark:text-slate-400">Aegis /<br />FreeOTP</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Aegis /<br />FreeOTP</p>
               </div>
             </div>
 
             {/* Setup steps preview */}
-            <div className="flex items-center justify-center gap-2 mb-6 text-xs text-taupe dark:text-slate-400">
+            <div className="flex items-center justify-center gap-2 mb-6 text-xs text-seal-gray-500 dark:text-slate-400">
               <span className="flex items-center gap-1.5">
                 <span className="h-5 w-5 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center text-[10px]">1</span>
                 Scanner QR
@@ -185,13 +185,13 @@ export default function MfaPage() {
               </div>
               <div className="h-px w-8 bg-primary mx-2" />
               <div className="flex items-center gap-1.5">
-                <div className={`h-7 w-7 rounded-full font-semibold flex items-center justify-center text-xs ${code.length === 6 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-slate-700 text-taupe dark:text-slate-400'}`}>2</div>
-                <span className={`text-xs font-semibold ${code.length === 6 ? 'text-primary' : 'text-taupe dark:text-slate-400'}`}>Vérifier</span>
+                <div className={`h-7 w-7 rounded-full font-semibold flex items-center justify-center text-xs ${code.length === 6 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400'}`}>2</div>
+                <span className={`text-xs font-semibold ${code.length === 6 ? 'text-primary' : 'text-seal-gray-500 dark:text-slate-400'}`}>Vérifier</span>
               </div>
               <div className="h-px w-8 bg-gray-300 dark:bg-slate-600 mx-2" />
               <div className="flex items-center gap-1.5">
-                <div className="h-7 w-7 rounded-full bg-gray-200 dark:bg-slate-700 text-taupe dark:text-slate-400 font-semibold flex items-center justify-center text-xs">3</div>
-                <span className="text-xs font-semibold text-taupe dark:text-slate-400">Codes secours</span>
+                <div className="h-7 w-7 rounded-full bg-gray-200 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400 font-semibold flex items-center justify-center text-xs">3</div>
+                <span className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Codes secours</span>
               </div>
             </div>
             <h2 className="font-semibold text-navy dark:text-white flex items-center gap-2">
@@ -199,7 +199,7 @@ export default function MfaPage() {
             </h2>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-taupe dark:text-slate-400">
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">
               Ouvrez votre application TOTP et scannez ce QR code :
             </p>
             {qrCode && (
@@ -220,7 +220,7 @@ export default function MfaPage() {
               </button>
               {showManualSecret && (
                 <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-3 mt-2">
-                  <p className="text-[10px] text-taupe dark:text-slate-400 mb-1">Clé secrète (saisie manuelle) :</p>
+                  <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mb-1">Clé secrète (saisie manuelle) :</p>
                   <div className="flex items-center gap-2">
                     <p className="font-mono text-sm text-navy dark:text-white break-all flex-1">{secret}</p>
                     <button
@@ -264,13 +264,13 @@ export default function MfaPage() {
           <CardContent className="text-center py-8">
             <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
             <h2 className="text-lg font-medium text-navy dark:text-white mb-2">MFA actif</h2>
-            <p className="text-sm text-taupe dark:text-slate-400 mb-2">
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-2">
               Votre compte est protégé par la double authentification.
             </p>
             <div className="flex items-center justify-center gap-2 mb-6">
               <Badge variant="success">Activé</Badge>
               {lastLoginAt && (
-                <span className="text-xs text-taupe dark:text-slate-400">
+                <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                   Dernière connexion : {new Date(lastLoginAt).toLocaleDateString('fr-FR')}
                 </span>
               )}
@@ -280,7 +280,7 @@ export default function MfaPage() {
                 Désactiver le MFA
               </Button>
             ) : (
-              <div className="text-xs text-taupe dark:text-slate-400 flex items-center justify-center gap-1">
+              <div className="text-xs text-seal-gray-500 dark:text-slate-400 flex items-center justify-center gap-1">
                 <AlertTriangle className="h-3 w-3" />
                 Contactez un administrateur pour désactiver le MFA
               </div>
@@ -299,7 +299,7 @@ export default function MfaPage() {
               </div>
               <div className="flex-1">
                 <h3 className="text-sm font-semibold text-navy dark:text-white mb-1">Codes de secours</h3>
-                <p className="text-xs text-taupe dark:text-slate-400 mb-3">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">
                   Les codes de secours vous permettent de vous connecter si vous perdez l&apos;accès à votre application TOTP.
                   Conservez-les dans un endroit sûr (gestionnaire de mots de passe, coffre-fort).
                 </p>
@@ -307,7 +307,7 @@ export default function MfaPage() {
                   <Button size="sm" variant="outline" onClick={handleRegenerateBackupCodes} loading={regenerating}>
                     <Key className="h-3.5 w-3.5" /> Régénérer les codes
                   </Button>
-                  <span className="text-[10px] text-taupe dark:text-slate-500">
+                  <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">
                     <AlertTriangle className="h-3 w-3 inline mr-0.5" />
                     {t('mfa.codesInvalidated')}
                   </span>

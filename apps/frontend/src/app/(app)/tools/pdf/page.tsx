@@ -285,7 +285,7 @@ export default function StirlingPdfPage() {
             <StatusPill status={status} loading={loading} onRefresh={fetchStatus} />
           )}
         </div>
-        <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+        <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
           Suite complète d&apos;outils PDF : fusionner, diviser, OCR, compresser, filigraner,
           signer, convertir, nettoyer — le tout sans quitter l&apos;intranet.
         </p>
@@ -319,7 +319,7 @@ export default function StirlingPdfPage() {
     if (!status?.ok) return null;
     return (
       <div className="flex items-center gap-1.5 overflow-x-auto py-1">
-        <span className="text-[10px] text-taupe dark:text-slate-500 flex-shrink-0 mr-1">Accès rapide :</span>
+        <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex-shrink-0 mr-1">Accès rapide :</span>
         {STIRLING_TOOLS.map((tool) => {
           const Icon = tool.icon;
           const isActive = iframeSrc?.includes(tool.path);
@@ -331,7 +331,7 @@ export default function StirlingPdfPage() {
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex-shrink-0 ${
                 isActive
                   ? 'bg-primary/10 text-primary border border-primary/20'
-                  : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700 hover:text-navy dark:hover:text-white border border-transparent'
+                  : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700 hover:text-navy dark:hover:text-white border border-transparent'
               }`}
             >
               <Icon className="h-3 w-3" />
@@ -342,7 +342,7 @@ export default function StirlingPdfPage() {
         <button
           type="button"
           onClick={() => { setIframeSrc(status.url); setIframeLoaded(false); }}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700 hover:text-navy dark:hover:text-white border border-transparent transition-colors flex-shrink-0"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700 hover:text-navy dark:hover:text-white border border-transparent transition-colors flex-shrink-0"
         >
           Accueil Stirling
         </button>
@@ -356,7 +356,7 @@ export default function StirlingPdfPage() {
         <Card>
           <CardContent className="py-16 text-center">
             <Loader2 className="h-10 w-10 text-primary mx-auto animate-spin mb-4" />
-            <p className="text-sm text-taupe dark:text-slate-400">
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">
               Vérification du service Stirling PDF...
             </p>
           </CardContent>
@@ -378,11 +378,11 @@ export default function StirlingPdfPage() {
                 <h3 className="text-base font-semibold text-navy dark:text-white mb-2">
                   Stirling PDF n&apos;est pas activé
                 </h3>
-                <p className="text-sm text-taupe dark:text-slate-400 mb-4">
+                <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">
                   Le module d&apos;outils PDF est désactivé. Contactez votre administrateur
                   pour l&apos;activer.
                 </p>
-                <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 text-xs font-mono text-taupe dark:text-slate-400">
+                <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 text-xs font-mono text-seal-gray-500 dark:text-slate-400">
                   <p className="mb-2 font-semibold text-navy dark:text-white not-italic">
                     Pour activer (côté serveur) :
                   </p>
@@ -422,10 +422,10 @@ export default function StirlingPdfPage() {
                 <h3 className="text-base font-semibold text-navy dark:text-white mb-2">
                   Service Stirling PDF injoignable
                 </h3>
-                <p className="text-sm text-taupe dark:text-slate-400 mb-2">
+                <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-2">
                   {status.message}
                 </p>
-                <p className="text-xs text-taupe dark:text-slate-500">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-500">
                   URL configurée : <code className="font-mono">{status.url}</code>
                 </p>
                 <Button variant="outline" size="sm" onClick={fetchStatus} className="mt-4">
@@ -450,7 +450,7 @@ export default function StirlingPdfPage() {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-navy dark:text-white truncate">
                   PDF téléchargé : {preloaded.fileName}
-                  <span className="font-normal text-taupe dark:text-slate-400 ml-2">
+                  <span className="font-normal text-seal-gray-500 dark:text-slate-400 ml-2">
                     ({(preloaded.fileSize / 1024).toFixed(1)} Ko) — Glissez-le dans Stirling ci-dessous
                   </span>
                 </p>
@@ -467,7 +467,7 @@ export default function StirlingPdfPage() {
                 <button
                   type="button"
                   onClick={() => { setShowPreloadBanner(false); setCountdownActive(false); }}
-                  className="p-1 rounded text-taupe hover:text-navy dark:hover:text-white transition-colors"
+                  className="p-1 rounded text-seal-gray-500 hover:text-navy dark:hover:text-white transition-colors"
                 >
                   <XCircle className="h-3.5 w-3.5" />
                 </button>
@@ -503,7 +503,7 @@ export default function StirlingPdfPage() {
               <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-slate-950/80 z-10">
                 <div className="text-center">
                   <Loader2 className="h-8 w-8 text-primary mx-auto animate-spin mb-2" />
-                  <p className="text-xs text-taupe dark:text-slate-400">
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                     Chargement de Stirling PDF...
                   </p>
                 </div>
@@ -575,7 +575,7 @@ function StatusPill({
 }) {
   if (loading) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-2.5 py-1 text-[10px] font-semibold text-taupe">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-2.5 py-1 text-[10px] font-semibold text-seal-gray-500">
         <Loader2 className="h-3 w-3 animate-spin" />
         Vérification
       </span>
@@ -583,7 +583,7 @@ function StatusPill({
   }
   if (!status.enabled) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-2.5 py-1 text-[10px] font-semibold text-taupe">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-2.5 py-1 text-[10px] font-semibold text-seal-gray-500">
         <XCircle className="h-3 w-3" />
         Désactivé
       </span>
@@ -599,7 +599,7 @@ function StatusPill({
         <button
           type="button"
           onClick={onRefresh}
-          className="p-1 rounded text-taupe hover:text-primary hover:bg-primary/10 transition-colors"
+          className="p-1 rounded text-seal-gray-500 hover:text-primary hover:bg-primary/10 transition-colors"
           title="Actualiser"
           aria-label="Actualiser"
         >

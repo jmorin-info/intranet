@@ -146,7 +146,7 @@ export default function NewsArticlePage() {
       <div className="max-w-4xl mx-auto flex gap-6 animate-fade-in-up">
       <div className="flex-1 min-w-0 space-y-6">
         <div className="flex items-center justify-between">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white">
+          <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white">
             <ArrowLeft className="h-4 w-4" />
             {t('news.backToList')}
           </button>
@@ -175,7 +175,7 @@ export default function NewsArticlePage() {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   {post.category && <Badge variant="primary">{post.category}</Badge>}
-                  <span className="inline-flex items-center gap-1 text-xs text-taupe dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-xs text-seal-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
                     <Clock className="h-3 w-3" />
                     {estimatedReadTime} min de lecture
                   </span>
@@ -184,7 +184,7 @@ export default function NewsArticlePage() {
                   <h1 className="text-2xl font-medium text-navy dark:text-white">{post.title}</h1>
                   <BookmarkButton type="news" id={post.id} title={post.title} href={`/news/${post.slug}`} />
                 </div>
-                <div className="flex items-center gap-4 mt-3 text-sm text-taupe dark:text-slate-400">
+                <div className="flex items-center gap-4 mt-3 text-sm text-seal-gray-500 dark:text-slate-400">
                   <span className="flex items-center gap-2">
                     <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex-shrink-0">
                       {(post.author.firstName?.[0] || '').toUpperCase()}{(post.author.lastName?.[0] || '').toUpperCase()}
@@ -233,19 +233,19 @@ export default function NewsArticlePage() {
                 </button>
                 <button
                   onClick={() => navigator.clipboard?.writeText(window.location.href).then(() => toast.success('Lien copié dans le presse-papiers'))}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-taupe hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-seal-gray-500 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
                 >
                   <Link2 className="h-3 w-3" /> Copier le lien
                 </button>
                 <a
                   href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(`${post.excerpt || post.title}\n\nLire l'article : ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-taupe hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-seal-gray-500 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
                 >
                   <Mail className="h-3 w-3" /> Partager par email
                 </a>
                 <button
                   onClick={() => window.print()}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-taupe hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-seal-gray-500 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
                 >
                   <Printer className="h-3 w-3" /> Imprimer
                 </button>
@@ -268,7 +268,7 @@ export default function NewsArticlePage() {
                     <Eye className="h-4 w-4 text-primary" />
                     Audience et lecteurs
                   </h3>
-                  <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
                     Qui a consulté cette actualité (ISO 27001 A.5.13)
                   </p>
                 </div>
@@ -281,13 +281,13 @@ export default function NewsArticlePage() {
                 <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 space-y-3">
                   <div className="grid grid-cols-3 gap-3">
                     <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/15 p-3">
-                      <p className="text-[10px] uppercase tracking-wider text-taupe">Lecteurs</p>
+                      <p className="text-[10px] uppercase tracking-wider text-seal-gray-500">Lecteurs</p>
                       <p className="text-xl font-medium text-emerald-700 dark:text-emerald-400 mt-1">
                         {audience.summary.totalViewers}
                       </p>
                     </div>
                     <div className="rounded-lg border border-gray-200 dark:border-slate-700 p-3">
-                      <p className="text-[10px] uppercase tracking-wider text-taupe">Total actifs</p>
+                      <p className="text-[10px] uppercase tracking-wider text-seal-gray-500">Total actifs</p>
                       <p className="text-xl font-medium text-navy dark:text-white mt-1">
                         {audience.summary.totalActiveUsers}
                       </p>
@@ -299,7 +299,7 @@ export default function NewsArticlePage() {
                         ? 'border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/15'
                         : 'border-red-200 dark:border-red-800 bg-red-50/60 dark:bg-red-900/15'
                     }`}>
-                      <p className="text-[10px] uppercase tracking-wider text-taupe">Taux de lecture</p>
+                      <p className="text-[10px] uppercase tracking-wider text-seal-gray-500">Taux de lecture</p>
                       <p className={`text-xl font-medium mt-1 ${
                         audience.summary.readRate >= 70 ? 'text-emerald-700 dark:text-emerald-400'
                         : audience.summary.readRate >= 40 ? 'text-amber-700 dark:text-amber-400'
@@ -315,9 +315,9 @@ export default function NewsArticlePage() {
                       <table className="w-full text-xs">
                         <thead className="bg-gray-50 dark:bg-slate-900 sticky top-0">
                           <tr>
-                            <th className="text-left px-3 py-2 font-semibold text-taupe dark:text-slate-400">Utilisateur</th>
-                            <th className="text-left px-3 py-2 font-semibold text-taupe dark:text-slate-400">Département</th>
-                            <th className="text-right px-3 py-2 font-semibold text-taupe dark:text-slate-400">Lu le</th>
+                            <th className="text-left px-3 py-2 font-semibold text-seal-gray-500 dark:text-slate-400">Utilisateur</th>
+                            <th className="text-left px-3 py-2 font-semibold text-seal-gray-500 dark:text-slate-400">Département</th>
+                            <th className="text-right px-3 py-2 font-semibold text-seal-gray-500 dark:text-slate-400">Lu le</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
@@ -325,10 +325,10 @@ export default function NewsArticlePage() {
                             <tr key={v.userId} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/40">
                               <td className="px-3 py-2">
                                 <p className="text-navy dark:text-white font-medium">{v.firstName} {v.lastName}</p>
-                                <p className="text-[10px] text-taupe dark:text-slate-400">{v.email}</p>
+                                <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{v.email}</p>
                               </td>
-                              <td className="px-3 py-2 text-taupe dark:text-slate-400">{v.department?.name || '—'}</td>
-                              <td className="px-3 py-2 text-right text-taupe dark:text-slate-400 whitespace-nowrap">
+                              <td className="px-3 py-2 text-seal-gray-500 dark:text-slate-400">{v.department?.name || '—'}</td>
+                              <td className="px-3 py-2 text-right text-seal-gray-500 dark:text-slate-400 whitespace-nowrap">
                                 {formatDate(v.viewedAt)}
                               </td>
                             </tr>
@@ -348,13 +348,13 @@ export default function NewsArticlePage() {
           <div className="flex items-center justify-between gap-4">
             {related[0] ? (
               <Link href={`/news/${related[0].slug}`} className="group flex-1 rounded-xl border border-gray-200 dark:border-slate-700 p-4 hover:border-primary/40 transition">
-                <p className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500 mb-1">Article precedent</p>
+                <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 mb-1">Article precedent</p>
                 <p className="text-sm font-medium text-navy dark:text-white group-hover:text-primary transition line-clamp-1">{related[0].title}</p>
               </Link>
             ) : <div className="flex-1" />}
             {related[1] ? (
               <Link href={`/news/${related[1].slug}`} className="group flex-1 text-right rounded-xl border border-gray-200 dark:border-slate-700 p-4 hover:border-primary/40 transition">
-                <p className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500 mb-1">Article suivant</p>
+                <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 mb-1">Article suivant</p>
                 <p className="text-sm font-medium text-navy dark:text-white group-hover:text-primary transition line-clamp-1">{related[1].title}</p>
               </Link>
             ) : <div className="flex-1" />}
@@ -377,11 +377,11 @@ export default function NewsArticlePage() {
                         {article.title}
                       </h3>
                       {article.excerpt && (
-                        <p className="text-xs text-taupe dark:text-slate-400 line-clamp-2 mt-1">
+                        <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mt-1">
                           {article.excerpt}
                         </p>
                       )}
-                      <p className="text-[10px] text-taupe dark:text-slate-500 mt-2">
+                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-2">
                         {formatDate(article.publishedAt)}
                       </p>
                     </CardContent>
@@ -397,10 +397,10 @@ export default function NewsArticlePage() {
       {headings.length > 2 && (
         <div className="hidden xl:block w-48 flex-shrink-0">
           <div className="sticky top-20 space-y-1">
-            <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-2">Sommaire</p>
+            <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-2">Sommaire</p>
             {headings.map(h => (
               <a key={h.id} href={`#${h.id}`}
-                className={`block text-xs ${h.level === 3 ? 'pl-3' : ''} text-taupe dark:text-slate-400 hover:text-primary transition truncate`}>
+                className={`block text-xs ${h.level === 3 ? 'pl-3' : ''} text-seal-gray-500 dark:text-slate-400 hover:text-primary transition truncate`}>
                 {h.text}
               </a>
             ))}

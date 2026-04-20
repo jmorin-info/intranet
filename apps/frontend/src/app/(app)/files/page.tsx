@@ -41,7 +41,7 @@ function getFileIcon(name: string) {
   if (['mp3', 'wav', 'ogg', 'flac', 'aac'].includes(ext || '')) return <FileAudio className="h-4 w-4 text-teal-500" />;
   if (['ts', 'tsx', 'js', 'jsx', 'py', 'sh', 'json', 'xml', 'html', 'css', 'sql', 'yaml', 'yml'].includes(ext || '')) return <FileCode className="h-4 w-4 text-cyan-500" />;
   if (['txt', 'md', 'log', 'rtf'].includes(ext || '')) return <FileText className="h-4 w-4 text-gray-500" />;
-  return <File className="h-4 w-4 text-taupe" />;
+  return <File className="h-4 w-4 text-seal-gray-500" />;
 }
 
 function formatSize(bytes: number): string {
@@ -236,7 +236,7 @@ export default function FilesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-medium text-navy dark:text-white">{t('nav.networkFiles')}</h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             {currentShare ? `\\\\10.33.50.5\\${currentShare}` : 'Parcourez les partages réseau OMNITECH'}
           </p>
         </div>
@@ -262,7 +262,7 @@ export default function FilesPage() {
             <div className="max-w-md mx-auto text-center">
               <Server className="h-10 w-10 text-red-400 mx-auto mb-3" />
               <h2 className="text-lg font-medium text-navy dark:text-white mb-1">Serveur de fichiers inaccessible</h2>
-              <p className="text-sm text-taupe dark:text-slate-400">
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400">
                 Impossible de contacter le serveur SMB. Vérifiez que le serveur est en ligne et que les variables <span className="font-mono text-xs">FILESERVER_HOST</span>, <span className="font-mono text-xs">FILESERVER_USER</span> et <span className="font-mono text-xs">FILESERVER_PASSWORD</span> sont configurées dans le backend.
               </p>
             </div>
@@ -274,11 +274,11 @@ export default function FilesPage() {
       {currentShare && (
         <div className="flex items-center gap-1 text-sm">
           <button onClick={() => { setCurrentShare(null); setFiles([]); }} className="text-primary hover:underline font-medium">Partages</button>
-          <ChevronRight className="h-3 w-3 text-taupe" />
+          <ChevronRight className="h-3 w-3 text-seal-gray-500" />
           <button onClick={() => { setCurrentPath(''); loadFiles(currentShare, ''); }} className="text-primary hover:underline font-medium">{currentShare}</button>
           {pathParts.map((part, i) => (
             <React.Fragment key={i}>
-              <ChevronRight className="h-3 w-3 text-taupe" />
+              <ChevronRight className="h-3 w-3 text-seal-gray-500" />
               <button onClick={() => {
                 const newPath = pathParts.slice(0, i + 1).join('\\');
                 setCurrentPath(newPath);
@@ -297,7 +297,7 @@ export default function FilesPage() {
                 toast.error('Copie non supportée par le navigateur');
               }
             }}
-            className="ml-2 flex items-center gap-1 px-2 py-0.5 rounded-md text-xs text-taupe dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white transition-colors"
+            className="ml-2 flex items-center gap-1 px-2 py-0.5 rounded-md text-xs text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white transition-colors"
             title="Copier le chemin UNC"
           >
             <Copy className="h-3 w-3" />
@@ -341,18 +341,18 @@ export default function FilesPage() {
             <div className="max-w-md mx-auto text-center">
               <HardDrive className="h-10 w-10 text-primary mx-auto mb-3" />
               <h2 className="text-lg font-medium text-navy dark:text-white mb-1">Connexion au serveur de fichiers</h2>
-              <p className="text-xs text-taupe dark:text-slate-400 mb-4">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-4">
                 Entrez vos identifiants Active Directory pour accéder aux partages réseau avec vos propres droits.
               </p>
               <div className="space-y-3 text-left">
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400">Identifiant AD</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Identifiant AD</label>
                   <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                     placeholder="prenom.nom ou jmorin" value={smbUsername} onChange={e => setSmbUsername(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') handleSmbAuth(); }} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400">Mot de passe</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Mot de passe</label>
                   <input type="password" className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                     placeholder="Votre mot de passe Windows" value={smbPassword} onChange={e => setSmbPassword(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') handleSmbAuth(); }} />
@@ -361,7 +361,7 @@ export default function FilesPage() {
                   Se connecter au serveur de fichiers
                 </Button>
               </div>
-              <p className="text-[10px] text-taupe dark:text-slate-500 mt-3">
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-3">
                 Vos identifiants sont utilisés uniquement pour cette session et ne sont pas stockés de manière permanente.
               </p>
             </div>
@@ -385,7 +385,7 @@ export default function FilesPage() {
                     <Icon className="h-6 w-6 text-primary" />
                   </div>
                   <p className="text-sm font-semibold text-navy dark:text-white">{share.label}</p>
-                  <p className="text-[10px] text-taupe dark:text-slate-500 font-mono mt-1">\\\\10.33.50.5\\{share.name}</p>
+                  <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 font-mono mt-1">\\\\10.33.50.5\\{share.name}</p>
                 </CardContent>
               </Card>
             );
@@ -399,7 +399,7 @@ export default function FilesPage() {
                   <Cloud className="h-6 w-6 text-blue-500" />
                 </div>
                 <p className="text-sm font-semibold text-navy dark:text-white">Nextcloud</p>
-                <p className="text-[10px] text-taupe dark:text-slate-500 mt-1">fichiers.omnitech-security.fr</p>
+                <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-1">fichiers.omnitech-security.fr</p>
               </CardContent>
             </Card>
           </a>
@@ -414,21 +414,21 @@ export default function FilesPage() {
               <div className="space-y-1 p-4">{[1,2,3,4,5].map(i => <div key={i} className="h-10 animate-pulse bg-gray-100 dark:bg-slate-800 rounded" />)}</div>
             ) : files.length === 0 ? (
               <div className="py-12 text-center">
-                <Folder className="h-12 w-12 text-taupe/30 mx-auto mb-3" />
-                <p className="text-sm font-medium text-taupe dark:text-slate-400">Ce dossier est vide</p>
-                <p className="text-xs text-taupe/70 dark:text-slate-500 mt-1">Déposez un fichier ou créez un sous-dossier pour commencer.</p>
+                <Folder className="h-12 w-12 text-seal-gray-500/30 mx-auto mb-3" />
+                <p className="text-sm font-medium text-seal-gray-500 dark:text-slate-400">Ce dossier est vide</p>
+                <p className="text-xs text-seal-gray-500/70 dark:text-slate-500 mt-1">Déposez un fichier ou créez un sous-dossier pour commencer.</p>
               </div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 w-10 px-2 py-3 text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">
+                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 w-10 px-2 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">
                       <input type="checkbox" checked={selected.size === files.length && files.length > 0}
                         onChange={selectAll} className="rounded" />
                     </th>
-                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Nom</th>
-                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-right px-4 py-3 w-24 text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Taille</th>
-                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-right px-4 py-3 w-48 hidden md:table-cell text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Modifié</th>
+                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Nom</th>
+                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-right px-4 py-3 w-24 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Taille</th>
+                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-right px-4 py-3 w-48 hidden md:table-cell text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Modifié</th>
                     <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 w-12"></th>
                   </tr>
                 </thead>
@@ -447,10 +447,10 @@ export default function FilesPage() {
                           {file.name}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-right text-xs text-taupe dark:text-slate-400">
+                      <td className="px-4 py-2.5 text-right text-xs text-seal-gray-500 dark:text-slate-400">
                         {file.type === 'file' ? formatSize(file.size) : '—'}
                       </td>
-                      <td className="px-4 py-2.5 text-right text-xs text-taupe dark:text-slate-500 hidden md:table-cell">
+                      <td className="px-4 py-2.5 text-right text-xs text-seal-gray-500 dark:text-slate-500 hidden md:table-cell">
                         {file.modified}
                       </td>
                       <td className="px-2" onClick={e => e.stopPropagation()}>
@@ -470,7 +470,7 @@ export default function FilesPage() {
                               title="Télécharger"
                               onClick={() => handleDownload(file.name)}
                             >
-                              <Download className="h-3.5 w-3.5 text-taupe" />
+                              <Download className="h-3.5 w-3.5 text-seal-gray-500" />
                             </button>
                           </div>
                         )}

@@ -70,7 +70,7 @@ const TEMPLATE_ICONS: Record<string, React.ReactNode> = {
   NETWORK: <Wifi className="h-5 w-5 text-blue-500" />,
   ACCESS: <Lock className="h-5 w-5 text-[#70916a]" />,
   REQUEST: <FileText className="h-5 w-5 text-navy dark:text-sky-300" />,
-  OTHER: <HelpCircle className="h-5 w-5 text-taupe" />,
+  OTHER: <HelpCircle className="h-5 w-5 text-seal-gray-500" />,
 };
 
 interface ChecklistItem { id: string; label: string }
@@ -141,7 +141,7 @@ const REQUEST_TYPES: RequestTypeOption[] = [
   { id: 'deploiement', label: 'Déploiement matériel', description: 'Installation, configuration poste', icon: <Cpu className="h-6 w-6 text-teal-600" />, category: 'HARDWARE', tags: ['deploiement'] },
   { id: 'rma', label: 'RMA', description: 'Retour matériel, échange, garantie', icon: <RefreshCw className="h-6 w-6 text-amber-500" />, category: 'HARDWARE', tags: ['rma'] },
   { id: 'projet-interne', label: 'Projet interne', description: 'Projet transverse, évolution SI', icon: <Settings className="h-6 w-6 text-purple-500" />, category: 'REQUEST', tags: ['redmine:projet-interne-informatique'] },
-  { id: 'autre', label: 'Autre', description: 'Demande libre', icon: <HelpCircle className="h-6 w-6 text-taupe" />, category: 'OTHER', tags: [] },
+  { id: 'autre', label: 'Autre', description: 'Demande libre', icon: <HelpCircle className="h-6 w-6 text-seal-gray-500" />, category: 'OTHER', tags: [] },
 ];
 
 const CATEGORY_ASSIGNEES: Record<string, string> = {
@@ -791,7 +791,7 @@ export default function TicketsPage() {
           {selectedIds.has(ticket.id) ? (
             <CheckSquare className="h-4 w-4 text-primary" />
           ) : (
-            <Square className="h-4 w-4 text-taupe/40 dark:text-slate-500" />
+            <Square className="h-4 w-4 text-seal-gray-500/40 dark:text-slate-500" />
           )}
         </button>
       ),
@@ -822,7 +822,7 @@ export default function TicketsPage() {
                   <span key={tag} className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${tagColor(tag)}`}>{tag}</span>
                 );
               })}
-              {visible.length > 3 && <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-400">+{visible.length - 3}</span>}
+              {visible.length > 3 && <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400">+{visible.length - 3}</span>}
             </div>
           )}
           {progress && (
@@ -830,29 +830,29 @@ export default function TicketsPage() {
               <div className="h-1.5 w-16 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${progress.checked === progress.total ? 'bg-emerald-500' : progress.checked > 0 ? 'bg-primary' : 'bg-gray-300'}`} style={{ width: `${Math.round((progress.checked / progress.total) * 100)}%` }} />
               </div>
-              <span className={`text-[10px] font-semibold tabular-nums ${progress.checked === progress.total ? 'text-emerald-600 dark:text-emerald-400' : 'text-taupe dark:text-slate-400'}`}>{progress.checked}/{progress.total}</span>
+              <span className={`text-[10px] font-semibold tabular-nums ${progress.checked === progress.total ? 'text-emerald-600 dark:text-emerald-400' : 'text-seal-gray-500 dark:text-slate-400'}`}>{progress.checked}/{progress.total}</span>
             </div>
           )}
-          {visible.length === 0 && !progress && <span className="text-taupe/40 dark:text-slate-600 text-xs">—</span>}
+          {visible.length === 0 && !progress && <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">—</span>}
         </div>
       );
     }},
     ...(sourceTab === 'deploiements' ? [
       { key: 'client', header: 'Client', className: 'w-36', render: (ticket: TicketItem) => {
         const client = extractClientFromTags(ticket.tags);
-        return client ? <span className="text-xs font-medium text-navy dark:text-white">{client}</span> : <span className="text-taupe/40 dark:text-slate-600 text-xs">--</span>;
+        return client ? <span className="text-xs font-medium text-navy dark:text-white">{client}</span> : <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">--</span>;
       }},
       { key: 'sn', header: 'SN', className: 'w-32', render: (ticket: TicketItem) => {
         const sn = extractSnFromDescription(ticket.description);
-        return sn ? <span className="font-mono text-xs text-navy dark:text-white">{sn}</span> : <span className="text-taupe/40 dark:text-slate-600 text-xs">--</span>;
+        return sn ? <span className="font-mono text-xs text-navy dark:text-white">{sn}</span> : <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">--</span>;
       }},
     ] : []),
     { key: 'priority', header: t('tickets.column.priority'), sortable: true, render: (t) => priorityBadge(t.priority) },
     { key: 'status', header: t('tickets.column.status'), sortable: true, render: (t) => <div className="flex items-center gap-1.5">{statusBadge(t.status)}{slaBadge(t)}</div> },
-    { key: 'sla', header: 'SLA', className: 'w-20', render: (t) => slaRemainingLabel(t) ?? <span className="text-taupe/40 dark:text-slate-600 text-xs">--</span> },
-    { key: 'creator', header: t('tickets.column.creator'), sortable: true, render: (t) => <span className="text-xs text-taupe dark:text-slate-400">{t.creator.firstName} {t.creator.lastName}</span> },
-    { key: 'assignee', header: t('tickets.column.assignee'), sortable: true, render: (t) => t.assignee ? <span className="text-xs text-taupe dark:text-slate-400">{t.assignee.firstName} {t.assignee.lastName}</span> : <span className="text-xs text-taupe dark:text-slate-500">—</span> },
-    { key: 'createdAt', header: t('tickets.column.date'), sortable: true, render: (t) => <span className="text-xs text-taupe dark:text-slate-400">{formatRelativeTime(t.createdAt)}</span> },
+    { key: 'sla', header: 'SLA', className: 'w-20', render: (t) => slaRemainingLabel(t) ?? <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">--</span> },
+    { key: 'creator', header: t('tickets.column.creator'), sortable: true, render: (t) => <span className="text-xs text-seal-gray-500 dark:text-slate-400">{t.creator.firstName} {t.creator.lastName}</span> },
+    { key: 'assignee', header: t('tickets.column.assignee'), sortable: true, render: (t) => t.assignee ? <span className="text-xs text-seal-gray-500 dark:text-slate-400">{t.assignee.firstName} {t.assignee.lastName}</span> : <span className="text-xs text-seal-gray-500 dark:text-slate-500">—</span> },
+    { key: 'createdAt', header: t('tickets.column.date'), sortable: true, render: (t) => <span className="text-xs text-seal-gray-500 dark:text-slate-400">{formatRelativeTime(t.createdAt)}</span> },
     { key: 'age' , header: 'Âge', className: 'w-16', render: (t) => {
       const days = getTicketAgeDays(t.createdAt);
       return (
@@ -869,7 +869,7 @@ export default function TicketsPage() {
           <button
             title="Changer le statut"
             onClick={(e) => { e.stopPropagation(); const el = e.currentTarget.nextElementSibling as HTMLElement; if (el) el.classList.toggle('hidden'); }}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-taupe hover:text-navy dark:hover:text-white transition"
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-gray-500 hover:text-navy dark:hover:text-white transition"
           >
             <ChevronDown className="h-3.5 w-3.5" />
           </button>
@@ -905,7 +905,7 @@ export default function TicketsPage() {
                 fetchTickets();
               } catch { toast.error('Erreur'); }
             }}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-taupe hover:text-primary transition"
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-gray-500 hover:text-primary transition"
           >
             <UserPlus className="h-3.5 w-3.5" />
           </button>
@@ -920,7 +920,7 @@ export default function TicketsPage() {
             toast.success(`${ticket.reference} copié`);
             setTimeout(() => setCopiedRef(null), 2000);
           }}
-          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-taupe hover:text-navy dark:hover:text-white transition"
+          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-gray-500 hover:text-navy dark:hover:text-white transition"
         >
           {copiedRef === ticket.reference ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
@@ -940,11 +940,11 @@ export default function TicketsPage() {
           <>
             <div className="flex items-center gap-1 border rounded-lg p-0.5 dark:border-slate-700" role="tablist" aria-label="Mode d'affichage">
               <button onClick={() => setViewMode('table')} role="tab" aria-selected={viewMode === 'table'} aria-label="Vue tableau"
-                className={`px-3 py-1.5 text-xs rounded font-semibold transition focus-visible:ring-2 focus-visible:ring-primary ${viewMode === 'table' ? 'bg-primary text-white' : 'text-taupe dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
+                className={`px-3 py-1.5 text-xs rounded font-semibold transition focus-visible:ring-2 focus-visible:ring-primary ${viewMode === 'table' ? 'bg-primary text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
                 Tableau
               </button>
               <button onClick={() => setViewMode('kanban')} role="tab" aria-selected={viewMode === 'kanban'} aria-label="Vue Kanban"
-                className={`px-3 py-1.5 text-xs rounded font-semibold transition focus-visible:ring-2 focus-visible:ring-primary ${viewMode === 'kanban' ? 'bg-primary text-white' : 'text-taupe dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
+                className={`px-3 py-1.5 text-xs rounded font-semibold transition focus-visible:ring-2 focus-visible:ring-primary ${viewMode === 'kanban' ? 'bg-primary text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
                 Kanban
               </button>
             </div>
@@ -977,7 +977,7 @@ export default function TicketsPage() {
             className={`px-3 py-1.5 text-xs rounded-full font-semibold transition-all ${
               activeSpaceSlug === ''
                 ? 'bg-navy text-white dark:bg-white dark:text-navy shadow-sm'
-                : 'text-taupe dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
+                : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
             }`}
           >
             Tous les espaces
@@ -989,7 +989,7 @@ export default function TicketsPage() {
               className={`px-3 py-1.5 text-xs rounded-full font-semibold transition-all flex items-center gap-1.5 ${
                 activeSpaceSlug === space.slug
                   ? 'text-white shadow-sm'
-                  : 'text-taupe dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
+                  : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
               }`}
               style={activeSpaceSlug === space.slug && space.color ? { backgroundColor: space.color } : activeSpaceSlug === space.slug ? { backgroundColor: '#1e3a5f' } : undefined}
             >
@@ -1015,12 +1015,12 @@ export default function TicketsPage() {
             className={`rounded-lg px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary inline-flex items-center gap-2 ${
               sourceTab === key
                 ? 'bg-primary text-white shadow-sm'
-                : 'bg-white dark:bg-slate-800 text-taupe dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                : 'bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
             }`}
           >
             {label}
             <span className={`inline-flex items-center justify-center rounded-full text-[10px] font-semibold leading-none px-1.5 py-0.5 min-w-[20px] ${
-              sourceTab === key ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-400'
+              sourceTab === key ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400'
             }`}>
               {tabCounts[key]}
             </span>
@@ -1048,7 +1048,7 @@ export default function TicketsPage() {
               <Circle className="h-5 w-5 text-blue-500" />
             </div>
             <div>
-              <p className="text-[11px] text-taupe dark:text-slate-400">Ouverts</p>
+              <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Ouverts</p>
               <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">{contextualStats.open}</p>
             </div>
           </CardContent>
@@ -1059,7 +1059,7 @@ export default function TicketsPage() {
               <Clock className="h-5 w-5 text-amber-500" />
             </div>
             <div>
-              <p className="text-[11px] text-taupe dark:text-slate-400">En cours</p>
+              <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">En cours</p>
               <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">{contextualStats.inProgress}</p>
             </div>
           </CardContent>
@@ -1070,7 +1070,7 @@ export default function TicketsPage() {
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
-              <p className="text-[11px] text-taupe dark:text-slate-400">Resolus / Fermes</p>
+              <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Resolus / Fermes</p>
               <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">{contextualStats.resolved}</p>
             </div>
           </CardContent>
@@ -1123,7 +1123,7 @@ export default function TicketsPage() {
           />
           {/* Status filter pills with counts */}
           <div className="flex gap-1.5 items-center flex-wrap">
-            <span className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mr-1">Statut</span>
+            <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mr-1">Statut</span>
             {([
               { value: '', label: 'Tous' },
               { value: 'OPEN', label: t('tickets.status.open') },
@@ -1137,11 +1137,11 @@ export default function TicketsPage() {
                 <button
                   key={value}
                   onClick={() => { setStatusFilter(value); setPage(1); }}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary inline-flex items-center gap-1 ${statusFilter === value ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'}`}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary inline-flex items-center gap-1 ${statusFilter === value ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'}`}
                 >
                   {label}
                   {count !== null && (
-                    <span className={`inline-flex items-center justify-center rounded-full text-[10px] font-semibold leading-none px-1.5 py-0.5 min-w-[18px] ${statusFilter === value ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-slate-600 text-taupe dark:text-slate-300'}`}>
+                    <span className={`inline-flex items-center justify-center rounded-full text-[10px] font-semibold leading-none px-1.5 py-0.5 min-w-[18px] ${statusFilter === value ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-slate-600 text-seal-gray-500 dark:text-slate-300'}`}>
                       {count}
                     </span>
                   )}
@@ -1150,7 +1150,7 @@ export default function TicketsPage() {
             })}
             <button
               onClick={() => { setShowClosed(!showClosed); if (!showClosed && statusFilter === 'CLOSED') setStatusFilter('OPEN'); }}
-              className={`ml-2 rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${showClosed ? 'bg-navy/10 dark:bg-slate-600 text-navy dark:text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600'}`}
+              className={`ml-2 rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${showClosed ? 'bg-navy/10 dark:bg-slate-600 text-navy dark:text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600'}`}
               title="Afficher / masquer les tickets fermés"
             >
               {showClosed ? <ToggleRight className="h-3.5 w-3.5" /> : <ToggleLeft className="h-3.5 w-3.5" />}
@@ -1160,7 +1160,7 @@ export default function TicketsPage() {
           <div className="flex gap-1.5 items-center flex-wrap">
             <button
               onClick={() => { setMyTicketsOnly(!myTicketsOnly); setPage(1); }}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${myTicketsOnly ? 'bg-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${myTicketsOnly ? 'bg-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
             >
               <User className="h-3 w-3" />
               Mes tickets
@@ -1168,17 +1168,17 @@ export default function TicketsPage() {
             <span className="text-gray-300 dark:text-slate-600">|</span>
             {(['', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(p => (
               <button key={p} onClick={() => { setPriorityFilter(p); setPage(1); }}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${priorityFilter === p ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}>
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${priorityFilter === p ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}>
                 {!p && t('tickets.priority.toutes')}{p === 'CRITICAL' && `${t('tickets.priority.critical')} \u{1F534}`}{p === 'HIGH' && `${t('tickets.priority.high')} \u{1F7E0}`}{p === 'MEDIUM' && `${t('tickets.priority.medium')} \u{1F535}`}{p === 'LOW' && `${t('tickets.priority.low')} \u26AA`}
               </button>
             ))}
           </div>
           {/* Category filter chips */}
           <div className="flex gap-1.5 items-center flex-wrap">
-            <span className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mr-1">Catégorie</span>
+            <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mr-1">Catégorie</span>
             <button
               onClick={() => { setCategoryFilter(''); setPage(1); }}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${!categoryFilter ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${!categoryFilter ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
             >
               Toutes
             </button>
@@ -1186,7 +1186,7 @@ export default function TicketsPage() {
               <button
                 key={cat}
                 onClick={() => { setCategoryFilter(categoryFilter === cat ? '' : cat); setPage(1); }}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${categoryFilter === cat ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${categoryFilter === cat ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
               >
                 {categoryLabel(cat)}
               </button>
@@ -1227,14 +1227,14 @@ export default function TicketsPage() {
         <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700">
           <button
             onClick={toggleSelectAll}
-            className="flex items-center gap-2 p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition text-xs text-taupe dark:text-slate-400 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex items-center gap-2 p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition text-xs text-seal-gray-500 dark:text-slate-400 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             {allSelected ? (
               <CheckSquare className="h-3.5 w-3.5 text-primary" />
             ) : someSelected ? (
               <MinusSquare className="h-3.5 w-3.5 text-primary" />
             ) : (
-              <Square className="h-3.5 w-3.5 text-taupe/40 dark:text-slate-500" />
+              <Square className="h-3.5 w-3.5 text-seal-gray-500/40 dark:text-slate-500" />
             )}
             {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
           </button>
@@ -1248,7 +1248,7 @@ export default function TicketsPage() {
         <Card className="border-l-4 border-l-red-400">
           <CardContent className="py-6 text-center">
             <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-3" />
-            <p className="text-sm text-taupe dark:text-slate-400">Impossible de charger les tickets.</p>
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">Impossible de charger les tickets.</p>
             <Button variant="outline" className="mt-3" onClick={fetchTickets}><RefreshCw className="h-4 w-4 mr-1" /> Réessayer</Button>
           </CardContent>
         </Card>
@@ -1269,8 +1269,8 @@ export default function TicketsPage() {
           />
         ) : !loading && sortedFilteredTickets.length === 0 && (statusFilter || priorityFilter || categoryFilter || assigneeFilter || myTicketsOnly || searchQuery) ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Ticket className="h-12 w-12 text-taupe dark:text-slate-500 mb-4" />
-            <p className="text-sm text-taupe dark:text-slate-400 mb-4">{t('tickets.empty')}</p>
+            <Ticket className="h-12 w-12 text-seal-gray-500 dark:text-slate-500 mb-4" />
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">{t('tickets.empty')}</p>
             <Button
               variant="outline"
               size="sm"
@@ -1301,7 +1301,7 @@ export default function TicketsPage() {
             onPageChange={setPage}
             onRowClick={(t) => router.push(`/tickets/${t.id}`)}
             emptyMessage={t('tickets.empty')}
-            emptyIcon={<Ticket className="h-12 w-12 text-taupe dark:text-slate-500" />}
+            emptyIcon={<Ticket className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />}
           />
         )}
         </div>
@@ -1360,7 +1360,7 @@ export default function TicketsPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-navy dark:text-white">{rt.label}</p>
-                    <p className="text-[10px] text-taupe dark:text-slate-400 leading-tight">{rt.description}</p>
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 leading-tight">{rt.description}</p>
                   </div>
                 </button>
               ))}
@@ -1383,11 +1383,11 @@ export default function TicketsPage() {
                   }`}
                 >
                   <div className="h-8 w-8 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                    <FileText className="h-4 w-4 text-taupe" />
+                    <FileText className="h-4 w-4 text-seal-gray-500" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-navy dark:text-white truncate">Vide</p>
-                    <p className="text-[10px] text-taupe dark:text-slate-400 truncate">Ticket libre</p>
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 truncate">Ticket libre</p>
                   </div>
                 </button>
                 {templates.map((tpl) => (
@@ -1416,7 +1416,7 @@ export default function TicketsPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-navy dark:text-white truncate">{tpl.label}</p>
-                      <p className="text-[10px] text-taupe dark:text-slate-400 truncate">{categoryLabel(tpl.category)}</p>
+                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 truncate">{categoryLabel(tpl.category)}</p>
                     </div>
                   </button>
                 ))}
@@ -1426,7 +1426,7 @@ export default function TicketsPage() {
           <Input label={t('tickets.create.titleLabel')} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={t('tickets.create.titlePlaceholder')} required autoFocus onKeyDown={(e: React.KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleCreate(); } }} />
           {/* Smart suggestions based on title */}
           {titleSuggestionsLoading && (
-            <div className="flex items-center gap-2 text-xs text-taupe dark:text-slate-400 animate-pulse">
+            <div className="flex items-center gap-2 text-xs text-seal-gray-500 dark:text-slate-400 animate-pulse">
               <Sparkles className="h-3.5 w-3.5 animate-spin" />
               Recherche de suggestions...
             </div>
@@ -1440,7 +1440,7 @@ export default function TicketsPage() {
               >
                 <Info className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
                 Articles et tickets similaires
-                {titleSuggestionsOpen ? <ChevronUp className="h-3.5 w-3.5 ml-auto text-taupe" /> : <ChevronDown className="h-3.5 w-3.5 ml-auto text-taupe" />}
+                {titleSuggestionsOpen ? <ChevronUp className="h-3.5 w-3.5 ml-auto text-seal-gray-500" /> : <ChevronDown className="h-3.5 w-3.5 ml-auto text-seal-gray-500" />}
               </button>
               {titleSuggestionsOpen && (
                 <div className="px-3 pb-2.5 space-y-1.5">
@@ -1454,8 +1454,8 @@ export default function TicketsPage() {
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] hover:bg-blue-100 dark:hover:bg-blue-800/30 transition group"
                         >
-                          <Ticket className="h-3 w-3 text-taupe group-hover:text-primary flex-shrink-0" />
-                          <span className="font-mono text-[10px] text-taupe dark:text-slate-400 flex-shrink-0">{tk.reference}</span>
+                          <Ticket className="h-3 w-3 text-seal-gray-500 group-hover:text-primary flex-shrink-0" />
+                          <span className="font-mono text-[10px] text-seal-gray-500 dark:text-slate-400 flex-shrink-0">{tk.reference}</span>
                           <span className="text-navy dark:text-white truncate">{tk.title}</span>
                           <Badge
                             variant={tk.status === 'RESOLVED' || tk.status === 'CLOSED' ? 'approved' : tk.status === 'IN_PROGRESS' ? 'warning' : 'info'}
@@ -1477,9 +1477,9 @@ export default function TicketsPage() {
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] hover:bg-blue-100 dark:hover:bg-blue-800/30 transition group"
                         >
-                          <FileText className="h-3 w-3 text-taupe group-hover:text-primary flex-shrink-0" />
+                          <FileText className="h-3 w-3 text-seal-gray-500 group-hover:text-primary flex-shrink-0" />
                           <span className="text-navy dark:text-white truncate">{article.title}</span>
-                          <Link2 className="h-3 w-3 text-taupe ml-auto flex-shrink-0" />
+                          <Link2 className="h-3 w-3 text-seal-gray-500 ml-auto flex-shrink-0" />
                         </a>
                       ))}
                     </div>
@@ -1505,7 +1505,7 @@ export default function TicketsPage() {
                 { value: 'SECURITY', label: `🛡️ ${t('tickets.category.security')}` }, { value: 'OTHER', label: `📎 ${t('tickets.category.other')}` },
               ]} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
               {form.category && CATEGORY_ASSIGNEES[form.category] && (
-                <p className="text-xs text-taupe dark:text-slate-400 mt-1">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
                   💡 Assignation suggérée : <span className="font-semibold text-navy dark:text-white">{CATEGORY_ASSIGNEES[form.category]}</span>
                 </p>
               )}
@@ -1528,7 +1528,7 @@ export default function TicketsPage() {
                   {form.priority === 'MEDIUM' && <Clock className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />}
                   {form.priority === 'LOW' && <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />}
                   <div>
-                    <p className="text-[11px] uppercase tracking-wider text-taupe dark:text-slate-500 font-medium">SLA</p>
+                    <p className="text-[11px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 font-medium">SLA</p>
                     <p className={`text-xs font-medium ${
                       form.priority === 'CRITICAL' ? 'text-red-600 dark:text-red-400' :
                       form.priority === 'HIGH' ? 'text-amber-600 dark:text-amber-400' :
@@ -1579,7 +1579,7 @@ export default function TicketsPage() {
               <div className="flex items-center gap-2">
                 <Cpu className="h-4 w-4 text-teal-600 dark:text-teal-400" />
                 <span className="text-sm font-semibold text-navy dark:text-white">Checklist deploiement</span>
-                <span className="text-[10px] text-taupe dark:text-slate-400 ml-auto">
+                <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 ml-auto">
                   {Object.values(checklistState).filter(Boolean).length}/{deployLabels.deployment.checklist.length} coches
                 </span>
               </div>
@@ -1610,7 +1610,7 @@ export default function TicketsPage() {
               </div>
               {/* Type selector */}
               <div className="flex flex-wrap gap-1.5 pt-2 border-t border-teal-200/60 dark:border-teal-800/60">
-                <span className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mr-1 self-center">Type</span>
+                <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mr-1 self-center">Type</span>
                 {deployLabels.deployment.types.map((dtype) => {
                   const active = form.tagsInput.toLowerCase().includes(dtype.toLowerCase());
                   return (
@@ -1626,7 +1626,7 @@ export default function TicketsPage() {
                           setForm({ ...form, tagsInput: [...currentTags, dtype].join(', ') });
                         }
                       }}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${active ? 'bg-teal-600 text-white' : 'bg-white dark:bg-slate-800 text-taupe dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:border-teal-400'}`}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${active ? 'bg-teal-600 text-white' : 'bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:border-teal-400'}`}
                     >
                       {dtype}
                     </button>
@@ -1641,12 +1641,12 @@ export default function TicketsPage() {
               <div className="flex items-center gap-2">
                 <Sparkles className={`h-4 w-4 text-primary ${aiLoading ? 'animate-spin' : ''}`} />
                 <span className="text-xs font-semibold text-navy dark:text-white">Analyse IA</span>
-                {aiLoading && <span className="text-[10px] text-taupe animate-pulse">Analyse en cours...</span>}
+                {aiLoading && <span className="text-[10px] text-seal-gray-500 animate-pulse">Analyse en cours...</span>}
               </div>
               {aiAnalysis && !aiLoading && (
                 <>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-taupe dark:text-slate-400">Priorité suggérée :</span>
+                    <span className="text-xs text-seal-gray-500 dark:text-slate-400">Priorité suggérée :</span>
                     <Badge variant={aiAnalysis.suggestedPriority === 'CRITICAL' ? 'error' : aiAnalysis.suggestedPriority === 'HIGH' ? 'warning' : aiAnalysis.suggestedPriority === 'MEDIUM' ? 'info' : 'navy'}>
                       {aiAnalysis.suggestedPriority}
                     </Badge>
@@ -1659,7 +1659,7 @@ export default function TicketsPage() {
                         Appliquer
                       </button>
                     )}
-                    <span className="ml-auto text-[10px] text-taupe dark:text-slate-400">Risque :</span>
+                    <span className="ml-auto text-[10px] text-seal-gray-500 dark:text-slate-400">Risque :</span>
                     <Badge variant={aiAnalysis.riskLevel === 'critical' ? 'error' : aiAnalysis.riskLevel === 'high' ? 'warning' : aiAnalysis.riskLevel === 'medium' ? 'info' : 'navy'}>
                       {aiAnalysis.riskLevel === 'critical' ? 'Critique' : aiAnalysis.riskLevel === 'high' ? 'Élevé' : aiAnalysis.riskLevel === 'medium' ? 'Moyen' : 'Faible'}
                     </Badge>
@@ -1675,14 +1675,14 @@ export default function TicketsPage() {
                   )}
                   {aiAnalysis.relatedTickets.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 flex items-center gap-1 mb-1">
+                      <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 flex items-center gap-1 mb-1">
                         <Link2 className="h-3 w-3" /> Tickets similaires ({aiAnalysis.relatedTickets.length})
                       </p>
                       <div className="space-y-0.5">
                         {aiAnalysis.relatedTickets.slice(0, 3).map((rt: any) => (
                           <div key={rt.id} className="flex items-center gap-2 text-[10px]">
                             <span className="font-mono font-semibold text-navy dark:text-white">{rt.reference}</span>
-                            <span className="text-taupe dark:text-slate-400 truncate">{rt.title}</span>
+                            <span className="text-seal-gray-500 dark:text-slate-400 truncate">{rt.title}</span>
                             <Badge variant={rt.status === 'RESOLVED' || rt.status === 'CLOSED' ? 'approved' : 'warning'} className="text-[8px] ml-auto">{rt.status}</Badge>
                           </div>
                         ))}
@@ -1837,7 +1837,7 @@ function AnimatedStatsCards({ analytics }: { analytics: any }) {
               {c.icon}
             </div>
             <div>
-              <p className="text-[11px] text-taupe dark:text-slate-400">{c.label}</p>
+              <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">{c.label}</p>
               <div className="flex items-baseline gap-1.5">
                 <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">
                   {c.value}{c.suffix}
@@ -1938,7 +1938,7 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-1.5">
             {isAdmin && (
-              <GripVertical className="h-3 w-3 text-taupe/30 group-hover:text-taupe/60 flex-shrink-0" />
+              <GripVertical className="h-3 w-3 text-seal-gray-500/30 group-hover:text-seal-gray-500/60 flex-shrink-0" />
             )}
             <span
               className={`inline-block h-2 w-2 rounded-full flex-shrink-0 ${
@@ -1946,9 +1946,9 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
               }`}
               title={ticket.priority}
             />
-            <span className="text-[9px] font-medium text-taupe/70 dark:text-slate-500 uppercase tracking-wide">{ticket.priority}</span>
+            <span className="text-[9px] font-medium text-seal-gray-500/70 dark:text-slate-500 uppercase tracking-wide">{ticket.priority}</span>
           </div>
-          <span className="text-[10px] text-taupe font-mono">{ticket.reference}</span>
+          <span className="text-[10px] text-seal-gray-500 font-mono">{ticket.reference}</span>
         </div>
 
         {/* Title */}
@@ -1960,7 +1960,7 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
         {slaProgress !== null && (
           <div className="mt-2">
             <div className="flex items-center justify-between mb-0.5">
-              <span className="text-[9px] font-medium text-taupe/70 dark:text-slate-500">SLA</span>
+              <span className="text-[9px] font-medium text-seal-gray-500/70 dark:text-slate-500">SLA</span>
               {sla === 'exceeded' && (
                 <span className="text-[9px] text-red-600 dark:text-red-400 font-semibold flex items-center gap-0.5">
                   <AlertTriangle className="h-2.5 w-2.5" /> Dépassé
@@ -1989,7 +1989,7 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
               <span key={tag} className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${tagColor(tag)}`}>{tag}</span>
             ))}
             {ticket.tags.length > 4 && (
-              <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-400">+{ticket.tags.length - 4}</span>
+              <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400">+{ticket.tags.length - 4}</span>
             )}
           </div>
         )}
@@ -2002,15 +2002,15 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
                 <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary/10 text-primary text-[8px] font-semibold ring-1 ring-primary/20 flex-shrink-0" title={`${ticket.assignee.firstName} ${ticket.assignee.lastName}`}>
                   {ticket.assignee.firstName[0]}{ticket.assignee.lastName[0]}
                 </span>
-                <span className="text-[10px] text-taupe dark:text-slate-400 truncate">{ticket.assignee.firstName} {ticket.assignee.lastName[0]}.</span>
+                <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 truncate">{ticket.assignee.firstName} {ticket.assignee.lastName[0]}.</span>
               </div>
             ) : (
-              <span className="text-[10px] text-taupe dark:text-slate-500 italic">Non assigné</span>
+              <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 italic">Non assigné</span>
             )}
           </div>
           <div className="flex items-center gap-1.5">
             {commentCount > 0 && (
-              <span className="inline-flex items-center gap-0.5 text-[9px] text-taupe dark:text-slate-400" title={`${commentCount} commentaire(s)`}>
+              <span className="inline-flex items-center gap-0.5 text-[9px] text-seal-gray-500 dark:text-slate-400" title={`${commentCount} commentaire(s)`}>
                 <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 {commentCount}
               </span>
@@ -2047,7 +2047,7 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
           <div className="flex items-center gap-1.5">
             <Badge variant={isOverWip ? 'error' : 'navy'}>{columnTickets.length}</Badge>
             {col.wipLimit > 0 && (
-              <span className={`text-[9px] font-semibold ${isOverWip ? 'text-red-500' : 'text-taupe dark:text-slate-400'}`}>
+              <span className={`text-[9px] font-semibold ${isOverWip ? 'text-red-500' : 'text-seal-gray-500 dark:text-slate-400'}`}>
                 / {col.wipLimit} WIP
               </span>
             )}
@@ -2072,7 +2072,7 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
         <div className="space-y-2">
           {columnTickets.map(renderKanbanCard)}
           {columnTickets.length === 0 && !isOver && (
-            <p className="text-xs text-taupe dark:text-slate-500 text-center py-8">Aucun ticket dans cette colonne</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-500 text-center py-8">Aucun ticket dans cette colonne</p>
           )}
         </div>
       </div>
@@ -2083,9 +2083,9 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
     <div className="space-y-6">
       {/* Kanban toolbar */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 text-xs text-taupe dark:text-slate-400">
+        <div className="flex items-center gap-3 text-xs text-seal-gray-500 dark:text-slate-400">
           <span>{tickets.length} tickets au total</span>
-          <span className="text-taupe/40">|</span>
+          <span className="text-seal-gray-500/40">|</span>
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /> {tickets.filter(t => getSlaStatus(t) === 'exceeded').length} SLA dépassés</span>
         </div>
         <button
@@ -2093,7 +2093,7 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
             showSwimlanes
               ? 'bg-primary/10 text-primary dark:bg-primary/20'
-              : 'bg-gray-100 text-taupe dark:bg-slate-700 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600'
+              : 'bg-gray-100 text-seal-gray-500 dark:bg-slate-700 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600'
           }`}
         >
           <TrendingUp className="h-3 w-3" />
@@ -2119,7 +2119,7 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
           <div key={cat} className="space-y-2">
             <div className="flex items-center gap-2">
               <Badge variant={categoryBadgeVariant(cat)}>{categoryLabel(cat)}</Badge>
-              <span className="text-xs text-taupe dark:text-slate-400">{catTickets.length} ticket(s)</span>
+              <span className="text-xs text-seal-gray-500 dark:text-slate-400">{catTickets.length} ticket(s)</span>
               <div className="flex-1 border-t border-gray-200 dark:border-slate-700" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

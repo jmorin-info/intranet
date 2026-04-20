@@ -159,11 +159,11 @@ export default function ComposeNewsPage() {
     <div className={`mx-auto space-y-6 ${showPreview ? 'max-w-6xl' : 'max-w-3xl'}`}>
       <div className="flex items-center gap-4">
         <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
-          <ArrowLeft className="h-5 w-5 text-taupe" />
+          <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
         </button>
         <div className="flex-1">
           <h1 className="text-2xl font-medium text-navy dark:text-white">{t('newsCompose.title')}</h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">{t('newsCompose.subtitle')}</p>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{t('newsCompose.subtitle')}</p>
         </div>
         <button
           type="button"
@@ -214,7 +214,7 @@ export default function ComposeNewsPage() {
                 {suggestedCategories.length > 0 && !watch('category') && (
                   <div className="flex items-center gap-1.5 mt-1">
                     <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />
-                    <span className="text-[10px] text-taupe dark:text-slate-400">Suggestions :</span>
+                    <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">Suggestions :</span>
                     {suggestedCategories.map(cat => (
                       <button key={cat} type="button"
                         onClick={() => setValue('category', cat)}
@@ -241,7 +241,7 @@ export default function ComposeNewsPage() {
                         } catch { toast.error('Erreur upload image'); }
                       }}
                     />
-                    <span className="flex items-center justify-center gap-1.5 w-full rounded-btn border border-dashed border-gray-300 dark:border-slate-600 px-3 py-2 text-xs text-taupe hover:border-primary hover:text-primary transition cursor-pointer">
+                    <span className="flex items-center justify-center gap-1.5 w-full rounded-btn border border-dashed border-gray-300 dark:border-slate-600 px-3 py-2 text-xs text-seal-gray-500 hover:border-primary hover:text-primary transition cursor-pointer">
                       <Image className="h-3.5 w-3.5" /> Choisir une image
                     </span>
                   </label>
@@ -318,7 +318,7 @@ export default function ComposeNewsPage() {
               )}
               {/* Word / character count */}
               <div className="flex justify-end mt-1">
-                <span className="text-[11px] text-taupe dark:text-slate-500">
+                <span className="text-[11px] text-seal-gray-500 dark:text-slate-500">
                   {wordCount} mot{wordCount !== 1 ? 's' : ''}, {charCount} caractère{charCount !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -375,7 +375,7 @@ export default function ComposeNewsPage() {
                   className="h-4 w-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500"
                 />
                 <span className="text-sm text-navy dark:text-white">Publier et notifier</span>
-                <span className="text-[10px] text-taupe dark:text-slate-400">(envoie une notification a tous les utilisateurs)</span>
+                <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">(envoie une notification a tous les utilisateurs)</span>
               </label>
             </div>
           </CardContent>
@@ -421,7 +421,7 @@ export default function ComposeNewsPage() {
                 {watch('title') || 'Titre de l\'article'}
               </h2>
               {watch('excerpt') && (
-                <p className="text-sm text-taupe dark:text-slate-400 italic">
+                <p className="text-sm text-seal-gray-500 dark:text-slate-400 italic">
                   {watch('excerpt')}
                 </p>
               )}
@@ -432,7 +432,7 @@ export default function ComposeNewsPage() {
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
                 />
               ) : (
-                <p className="text-sm text-taupe dark:text-slate-500 italic">Le contenu apparaîtra ici...</p>
+                <p className="text-sm text-seal-gray-500 dark:text-slate-500 italic">Le contenu apparaîtra ici...</p>
               )}
             </CardContent>
           </Card>

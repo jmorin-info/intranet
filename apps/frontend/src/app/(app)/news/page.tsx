@@ -151,7 +151,7 @@ export default function NewsPage() {
 
       <div className="flex gap-1.5 flex-wrap">
         <button onClick={() => { setCategoryFilter(''); setVisibleCount(10); }}
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition ${!categoryFilter ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe'}`}>
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition ${!categoryFilter ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500'}`}>
           Toutes
         </button>
         {(categories.length > 0 ? categories : FALLBACK_CATEGORIES).map(cat => (
@@ -183,7 +183,7 @@ export default function NewsPage() {
                   {topArticle.excerpt && (
                     <p className="text-sm text-gray-600 dark:text-slate-400 line-clamp-2 mt-1">{topArticle.excerpt}</p>
                   )}
-                  <div className="flex items-center gap-3 mt-2 text-xs text-taupe dark:text-slate-400">
+                  <div className="flex items-center gap-3 mt-2 text-xs text-seal-gray-500 dark:text-slate-400">
                     <span className="flex items-center gap-1">
                       <User className="h-3 w-3" />
                       {topArticle.author?.firstName} {topArticle.author?.lastName}
@@ -361,7 +361,7 @@ export default function NewsPage() {
                 {popular.map((article) => (
                   <Link key={article.id} href={`/news/${article.slug}`} className="block text-xs text-navy dark:text-white hover:text-primary transition line-clamp-2 font-medium">
                     {article.title}
-                    <span className="text-[10px] text-taupe dark:text-slate-500 block mt-0.5">{article._count?.views || 0} vues</span>
+                    <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 block mt-0.5">{article._count?.views || 0} vues</span>
                   </Link>
                 ))}
               </CardContent>
@@ -410,19 +410,19 @@ function NewsCard({ post, t, onPin }: { post: NewsPost; t: (key: string) => stri
                 {post.category}
               </span>
             )}
-            <span className="flex items-center gap-0.5 text-[10px] text-taupe/70 dark:text-slate-500">
+            <span className="flex items-center gap-0.5 text-[10px] text-seal-gray-500/70 dark:text-slate-500">
               <Clock className="h-2.5 w-2.5" />
               {readingTime} min
             </span>
             {(post.viewCount ?? post._count?.views) !== undefined && (
-              <span className="flex items-center gap-0.5 text-[10px] text-taupe/70 dark:text-slate-500">
+              <span className="flex items-center gap-0.5 text-[10px] text-seal-gray-500/70 dark:text-slate-500">
                 <Eye className="h-2.5 w-2.5" />
                 {post.viewCount ?? post._count?.views}
               </span>
             )}
             {onPin && (
               <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPin(post.id, !post.isPinned); }}
-                className={`ml-auto p-0.5 rounded transition duration-200 ${post.isPinned ? 'text-primary hover:text-primary/70' : 'text-taupe/30 hover:text-primary'}`}
+                className={`ml-auto p-0.5 rounded transition duration-200 ${post.isPinned ? 'text-primary hover:text-primary/70' : 'text-seal-gray-500/30 hover:text-primary'}`}
                 title={post.isPinned ? 'Désépingler' : 'Épingler'}>
                 <Pin className="h-3 w-3" />
               </button>
@@ -432,7 +432,7 @@ function NewsCard({ post, t, onPin }: { post: NewsPost; t: (key: string) => stri
           {post.excerpt && (
             <p className="text-xs text-gray-500 dark:text-slate-400 line-clamp-2 mt-1">{post.excerpt}</p>
           )}
-          <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-gray-50 dark:border-slate-800 text-[11px] text-taupe dark:text-slate-400">
+          <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-gray-50 dark:border-slate-800 text-[11px] text-seal-gray-500 dark:text-slate-400">
             <span className="flex items-center gap-1">
               <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-primary/10 text-primary text-[8px] font-medium flex-shrink-0">
                 {initials}

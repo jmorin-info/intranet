@@ -371,7 +371,7 @@ export default function CalendarPage() {
         hub="monEspace"
         actions={
           <>
-            <div className="hidden md:flex items-center gap-3 mr-2 text-xs text-taupe dark:text-slate-400">
+            <div className="hidden md:flex items-center gap-3 mr-2 text-xs text-seal-gray-500 dark:text-slate-400">
               <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-blue-500 inline-block" /> {t('calendar.legendNews')}</span>
               <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-red-500 inline-block" /> {t('calendar.legendCompliance')}</span>
               <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block" /> {t('calendar.legendReview')}</span>
@@ -423,7 +423,7 @@ export default function CalendarPage() {
               {/* Day headers */}
               <div className="grid grid-cols-7 mb-1">
                 {DAYS_FR.map((d) => (
-                  <div key={d} className="text-center text-xs font-medium text-taupe dark:text-slate-400 py-2">
+                  <div key={d} className="text-center text-xs font-medium text-seal-gray-500 dark:text-slate-400 py-2">
                     {d}
                   </div>
                 ))}
@@ -502,7 +502,7 @@ export default function CalendarPage() {
                           </div>
                         )}
                         {dayEvents.length > 0 && (
-                          <span className="absolute bottom-1 right-1.5 text-[9px] font-medium text-taupe dark:text-slate-500">
+                          <span className="absolute bottom-1 right-1.5 text-[9px] font-medium text-seal-gray-500 dark:text-slate-500">
                             {dayEvents.length}
                           </span>
                         )}
@@ -513,7 +513,7 @@ export default function CalendarPage() {
               )}
 
               {/* Mobile legend */}
-              <div className="flex md:hidden items-center justify-center gap-4 mt-4 text-[10px] text-taupe dark:text-slate-400">
+              <div className="flex md:hidden items-center justify-center gap-4 mt-4 text-[10px] text-seal-gray-500 dark:text-slate-400">
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500 inline-block" /> {t('calendar.legendNews')}</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500 inline-block" /> {t('calendar.legendCompliance')}</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500 inline-block" /> {t('calendar.legendReview')}</span>
@@ -538,14 +538,14 @@ export default function CalendarPage() {
                       className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition"
                       aria-label={t('calendar.close')}
                     >
-                      <X className="h-4 w-4 text-taupe" />
+                      <X className="h-4 w-4 text-seal-gray-500" />
                     </button>
                   </div>
 
                   {selectedEvents.length === 0 ? (
                     <div className="py-6 text-center animate-fade-in-up">
-                      <CalendarIcon className="h-8 w-8 text-taupe/20 mx-auto mb-2" />
-                      <p className="text-sm text-taupe dark:text-slate-400 mb-3">
+                      <CalendarIcon className="h-8 w-8 text-seal-gray-500/20 mx-auto mb-2" />
+                      <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-3">
                         {t('calendar.noEvents')}
                       </p>
                       {isReviewer && (
@@ -580,7 +580,7 @@ export default function CalendarPage() {
                                 <p className="text-sm font-medium text-navy dark:text-white truncate">{ev.title}</p>
                               </div>
                               {ev.location && (
-                                <p className="text-[10px] text-taupe dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                                <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                                   <MapPin className="h-3 w-3" />{ev.location}
                                 </p>
                               )}
@@ -601,8 +601,8 @@ export default function CalendarPage() {
                 </>
               ) : (
                 <div className="py-8 text-center">
-                  <CalendarIcon className="h-10 w-10 text-taupe/20 mx-auto mb-3" />
-                  <p className="text-sm text-taupe dark:text-slate-400">{t('calendar.selectDay')}</p>
+                  <CalendarIcon className="h-10 w-10 text-seal-gray-500/20 mx-auto mb-3" />
+                  <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('calendar.selectDay')}</p>
                 </div>
               )}
             </CardContent>
@@ -624,11 +624,11 @@ export default function CalendarPage() {
                   className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition"
                   aria-label={t('calendar.close')}
                 >
-                  <X className="h-4 w-4 text-taupe" />
+                  <X className="h-4 w-4 text-seal-gray-500" />
                 </button>
               </div>
               {selectedEvents.length === 0 ? (
-                <p className="text-sm text-taupe dark:text-slate-400 py-4 text-center">
+                <p className="text-sm text-seal-gray-500 dark:text-slate-400 py-4 text-center">
                   {t('calendar.noEvents')}
                 </p>
               ) : (
@@ -653,7 +653,7 @@ export default function CalendarPage() {
                           <p className="text-sm font-medium text-navy dark:text-white truncate">{ev.title}</p>
                         </div>
                         {ev.location && (
-                          <p className="text-[10px] text-taupe dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                             <MapPin className="h-3 w-3" />{ev.location}
                           </p>
                         )}

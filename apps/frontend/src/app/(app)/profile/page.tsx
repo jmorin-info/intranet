@@ -101,9 +101,9 @@ function EditInPlaceField({ icon: Icon, label, value, onChange, placeholder }: {
   const [editing, setEditing] = useState(false);
   return (
     <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg group transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-slate-700/60">
-      <Icon className="h-4 w-4 text-taupe dark:text-slate-400 flex-shrink-0" />
+      <Icon className="h-4 w-4 text-seal-gray-500 dark:text-slate-400 flex-shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-medium text-taupe dark:text-slate-500 uppercase tracking-widest">{label}</p>
+        <p className="text-[10px] font-medium text-seal-gray-500 dark:text-slate-500 uppercase tracking-widest">{label}</p>
         {editing ? (
           <input
             autoFocus
@@ -113,7 +113,7 @@ function EditInPlaceField({ icon: Icon, label, value, onChange, placeholder }: {
             onKeyDown={(e) => e.key === 'Enter' && setEditing(false)}
             placeholder={placeholder}
             aria-label={label}
-            className="w-full text-sm text-navy dark:text-white bg-transparent border-b border-primary outline-none py-0.5 placeholder:text-taupe/40 focus:ring-2 focus:ring-primary/15"
+            className="w-full text-sm text-navy dark:text-white bg-transparent border-b border-primary outline-none py-0.5 placeholder:text-seal-gray-500/40 focus:ring-2 focus:ring-primary/15"
           />
         ) : (
           <button
@@ -121,8 +121,8 @@ function EditInPlaceField({ icon: Icon, label, value, onChange, placeholder }: {
             onClick={() => setEditing(true)}
             className="text-sm text-navy dark:text-white text-left w-full truncate flex items-center gap-1.5 cursor-text"
           >
-            {value || <span className="text-taupe dark:text-slate-500 italic">{placeholder}</span>}
-            <PenLine className="h-3 w-3 text-taupe/40 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+            {value || <span className="text-seal-gray-500 dark:text-slate-500 italic">{placeholder}</span>}
+            <PenLine className="h-3 w-3 text-seal-gray-500/40 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
           </button>
         )}
       </div>
@@ -493,9 +493,9 @@ export default function ProfilePage() {
                 {user.firstName} {user.lastName}
               </h1>
               {user.jobTitle && (
-                <p className="text-sm text-taupe dark:text-slate-400">{user.jobTitle}</p>
+                <p className="text-sm text-seal-gray-500 dark:text-slate-400">{user.jobTitle}</p>
               )}
-              <p className="text-sm text-taupe dark:text-slate-400">{user.email}</p>
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400">{user.email}</p>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r from-primary to-primary/80 shadow-sm">
                   <Shield className="h-3.5 w-3.5" />
@@ -505,12 +505,12 @@ export default function ProfilePage() {
                   <Badge variant="navy">{user.departmentName}</Badge>
                 )}
                 {user.location && (
-                  <span className="inline-flex items-center gap-1 text-[11px] text-taupe dark:text-slate-400">
+                  <span className="inline-flex items-center gap-1 text-[11px] text-seal-gray-500 dark:text-slate-400">
                     <MapPin className="h-3 w-3" /> {user.location}
                   </span>
                 )}
                 {profile?.lastLoginAt && (
-                  <span className="inline-flex items-center gap-1 text-[11px] text-taupe dark:text-slate-400">
+                  <span className="inline-flex items-center gap-1 text-[11px] text-seal-gray-500 dark:text-slate-400">
                     <Clock className="h-3 w-3" /> Dernière connexion : {formatRelativeTime(profile.lastLoginAt)}
                   </span>
                 )}
@@ -539,7 +539,7 @@ export default function ProfilePage() {
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
               {parsedSkills.length > 0 && (
                 <div className="mb-2">
-                  <p className="text-[10px] font-medium text-taupe dark:text-slate-500 uppercase tracking-widest mb-2">Compétences</p>
+                  <p className="text-[10px] font-medium text-seal-gray-500 dark:text-slate-500 uppercase tracking-widest mb-2">Compétences</p>
                   <div className="flex flex-wrap gap-1.5">
                     {parsedSkills.map((skill: string, i: number) => (
                       <span key={skill} className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${skillColors[i % skillColors.length]}`}>
@@ -551,11 +551,11 @@ export default function ProfilePage() {
               )}
               {parsedLanguages.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-medium text-taupe dark:text-slate-500 uppercase tracking-widest mb-2">Langues</p>
+                  <p className="text-[10px] font-medium text-seal-gray-500 dark:text-slate-500 uppercase tracking-widest mb-2">Langues</p>
                   <div className="flex flex-wrap gap-1.5">
                     {parsedLanguages.map((lang: string) => (
                       <span key={lang} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-slate-800 text-navy dark:text-white border border-gray-200 dark:border-slate-700">
-                        <Globe className="h-3 w-3 text-taupe" /> {lang}
+                        <Globe className="h-3 w-3 text-seal-gray-500" /> {lang}
                       </span>
                     ))}
                   </div>
@@ -567,25 +567,25 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
             <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
               <p className="text-3xl font-bold text-navy dark:text-white">{myDocs}</p>
-              <p className="text-[10px] text-taupe dark:text-slate-400 mb-1.5">Documents</p>
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mb-1.5">Documents</p>
               <div className="h-1 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                 <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${Math.min(100, myDocs * 2)}%` }} />
               </div>
             </div>
             <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
               <p className="text-3xl font-bold text-navy dark:text-white">{unreadNotifCount}</p>
-              <p className="text-[10px] text-taupe dark:text-slate-400 mb-1.5">Notifications</p>
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mb-1.5">Notifications</p>
               <div className="h-1 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                 <div className="h-full rounded-full bg-amber-500 transition-all duration-500" style={{ width: `${Math.min(100, unreadNotifCount * 10)}%` }} />
               </div>
             </div>
             <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
               <p className="text-lg font-bold text-navy dark:text-white">{user.createdAt ? formatDate(user.createdAt) : '—'}</p>
-              <p className="text-[10px] text-taupe dark:text-slate-400">Membre depuis</p>
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">Membre depuis</p>
             </div>
             <div className={`text-center p-3 rounded-lg ${profile?.mfaEnabled ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-amber-50 dark:bg-amber-900/20'}`}>
               <p className={`text-3xl font-bold ${profile?.mfaEnabled ? 'text-emerald-600' : 'text-amber-600'}`}>{profile?.mfaEnabled ? '\u2713' : '!'}</p>
-              <p className="text-[10px] text-taupe dark:text-slate-400">MFA {profile?.mfaEnabled ? 'Actif' : 'Inactif'}</p>
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">MFA {profile?.mfaEnabled ? 'Actif' : 'Inactif'}</p>
             </div>
           </div>
         </CardContent>
@@ -600,13 +600,13 @@ export default function ProfilePage() {
                 <PenLine className="h-5 w-5 text-primary" />
                 Modifier mon profil
               </h3>
-              <button onClick={() => setShowEditModal(false)} title="Fermer" className="p-1.5 rounded-lg text-taupe hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <button onClick={() => setShowEditModal(false)} title="Fermer" className="p-1.5 rounded-lg text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-taupe dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
                   <Phone className="h-3.5 w-3.5" /> Téléphone
                 </label>
                 <Input
@@ -616,7 +616,7 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-taupe dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
                   <MapPin className="h-3.5 w-3.5" /> Localisation / Bureau
                 </label>
                 <Input
@@ -626,7 +626,7 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-taupe dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
                   <Tags className="h-3.5 w-3.5" /> Compétences (séparées par des virgules)
                 </label>
                 <Input
@@ -643,7 +643,7 @@ export default function ProfilePage() {
                 )}
               </div>
               <div>
-                <label className="text-xs font-semibold text-taupe dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
                   <Globe className="h-3.5 w-3.5" /> Langues (séparées par des virgules)
                 </label>
                 <Input
@@ -653,7 +653,7 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-taupe dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
                   <Link2 className="h-3.5 w-3.5" /> Lien Teams
                 </label>
                 <Input
@@ -698,7 +698,7 @@ export default function ProfilePage() {
                   <p className="text-sm font-semibold text-navy dark:text-white">
                     Manager : {user.manager.firstName} {user.manager.lastName}
                   </p>
-                  <p className="text-xs text-taupe dark:text-slate-400">{user.manager.email}</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">{user.manager.email}</p>
                 </div>
               </div>
             )}
@@ -709,7 +709,7 @@ export default function ProfilePage() {
                   <p className="text-sm font-semibold text-navy dark:text-white">
                     Équipe : {user.subordinates.length} collaborateur{user.subordinates.length > 1 ? 's' : ''}
                   </p>
-                  <p className="text-xs text-taupe dark:text-slate-400">
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                     {user.subordinates.map(s => `${s.firstName} ${s.lastName}`).join(', ')}
                   </p>
                 </div>
@@ -767,13 +767,13 @@ export default function ProfilePage() {
                 <Building2 className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm font-semibold text-navy dark:text-white">{user.departmentName}</p>
-                  <p className="text-xs text-taupe dark:text-slate-400">{t('profile.mainDepartment')}</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">{t('profile.mainDepartment')}</p>
                 </div>
                 <Badge variant="primary" className="ml-auto">Actif</Badge>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-taupe dark:text-slate-400 text-center py-3">
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-3">
               Aucun département assigné
             </p>
           )}
@@ -788,7 +788,7 @@ export default function ProfilePage() {
               <Bell className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm font-semibold text-navy dark:text-white">Notifications</p>
-                <p className="text-xs text-taupe dark:text-slate-400">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                   {unreadNotifCount > 0
                     ? `${unreadNotifCount} notification${unreadNotifCount > 1 ? 's' : ''} non lue${unreadNotifCount > 1 ? 's' : ''}`
                     : 'Toutes les notifications sont lues'}
@@ -817,7 +817,7 @@ export default function ProfilePage() {
                 <FileText className={`h-5 w-5 ${charte.signedAt ? 'text-emerald-500' : 'text-amber-500'}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-navy dark:text-white truncate">{charte.title}</p>
-                  <p className="text-xs text-taupe dark:text-slate-400">
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                     {charte.signedAt
                       ? `Signée le ${formatDate(charte.signedAt)}`
                       : 'En attente de signature'}
@@ -861,7 +861,7 @@ export default function ProfilePage() {
                     <span className="text-amber-600 dark:text-amber-400 text-xs font-medium">Désactivé</span>
                   )}
                 </p>
-                <p className="text-xs text-taupe dark:text-slate-400">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                   {profile?.mfaEnabled ? 'TOTP configur\u00e9 — votre compte est prot\u00e9g\u00e9' : 'Votre compte n\u2019est pas prot\u00e9g\u00e9 par un second facteur'}
                 </p>
               </div>
@@ -876,10 +876,10 @@ export default function ProfilePage() {
           {/* Last login */}
           {profile?.lastLoginAt && (
             <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
-              <Clock className="h-5 w-5 text-taupe" />
+              <Clock className="h-5 w-5 text-seal-gray-500" />
               <div>
                 <p className="text-sm font-semibold text-navy dark:text-white">Dernière connexion</p>
-                <p className="text-xs text-taupe dark:text-slate-400">{formatDate(profile.lastLoginAt)}</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">{formatDate(profile.lastLoginAt)}</p>
               </div>
             </div>
           )}
@@ -889,7 +889,7 @@ export default function ProfilePage() {
             <Monitor className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm font-semibold text-navy dark:text-white">Session active</p>
-              <p className="text-xs text-taupe dark:text-slate-400">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                 {profile?.lastLoginAt
                   ? `Connect\u00e9 depuis le ${new Date(profile.lastLoginAt).toLocaleDateString('fr-FR')} \u00e0 ${new Date(profile.lastLoginAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
                   : `Connect\u00e9 le ${new Date().toLocaleDateString('fr-FR')}`}
@@ -904,7 +904,7 @@ export default function ProfilePage() {
             <FileText className="h-5 w-5 text-emerald-500" />
             <div>
               <p className="text-sm font-semibold text-navy dark:text-white">Chartes obligatoires</p>
-              <p className="text-xs text-taupe dark:text-slate-400">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                 {profile?.chartesAcceptedAt ? `Signées le ${formatDate(profile.chartesAcceptedAt)}` : 'En attente de signature'}
               </p>
             </div>
@@ -924,7 +924,7 @@ export default function ProfilePage() {
               <Lock className="h-5 w-5 text-primary" />
               Modifier le mot de passe
             </h2>
-            <ChevronDown className={`h-5 w-5 text-taupe transition-transform ${showPasswordSection ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`h-5 w-5 text-seal-gray-500 transition-transform ${showPasswordSection ? 'rotate-180' : ''}`} />
           </button>
         </CardHeader>
         {showPasswordSection && (
@@ -978,7 +978,7 @@ export default function ProfilePage() {
                       { test: /[0-9]/.test(watchedNewPassword), label: 'Un chiffre' },
                       { test: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(watchedNewPassword), label: 'Un caractère spécial' },
                     ].map(({ test, label }) => (
-                      <div key={label} className={`flex items-center gap-1.5 text-xs ${test ? 'text-emerald-600' : 'text-taupe dark:text-slate-400'}`}>
+                      <div key={label} className={`flex items-center gap-1.5 text-xs ${test ? 'text-emerald-600' : 'text-seal-gray-500 dark:text-slate-400'}`}>
                         {test ? <CheckCircle2 className="h-3 w-3" /> : <div className="h-3 w-3 rounded-full border border-gray-300 dark:border-slate-600" />}
                         {label}
                       </div>
@@ -1024,7 +1024,7 @@ export default function ProfilePage() {
               {/* Best score highlight */}
               <div className="p-4 bg-gradient-to-r from-primary/5 to-emerald-500/5 rounded-xl border border-primary/10">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Meilleur score</span>
+                  <span className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Meilleur score</span>
                   <span className="text-2xl font-bold text-primary">{quizHistory.bestScore}/{quizHistory.bestTotal}</span>
                 </div>
                 <div className="h-2.5 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
@@ -1038,11 +1038,11 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="text-center p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
                   <p className="text-2xl font-bold text-primary">#{quizHistory.rank}</p>
-                  <p className="text-[10px] text-taupe dark:text-slate-400">sur {quizHistory.totalParticipants} participants</p>
+                  <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">sur {quizHistory.totalParticipants} participants</p>
                 </div>
                 <div className="text-center p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
                   <p className="text-sm font-medium text-navy dark:text-white">{formatDate(quizHistory.lastDate)}</p>
-                  <p className="text-[10px] text-taupe dark:text-slate-400">Derniere tentative</p>
+                  <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">Derniere tentative</p>
                 </div>
               </div>
               <div className="text-center">
@@ -1053,8 +1053,8 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="text-center py-4">
-              <Trophy className="h-8 w-8 text-taupe/30 mx-auto mb-2" />
-              <p className="text-sm text-taupe dark:text-slate-400">Aucune participation au quiz</p>
+              <Trophy className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucune participation au quiz</p>
               <Link href="/quiz" className="text-xs text-primary hover:underline mt-1 inline-block">Tenter le quiz sécurité</Link>
             </div>
           )}
@@ -1072,7 +1072,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <p className="text-lg font-medium text-navy dark:text-white">{myDocs}</p>
-                <p className="text-[11px] text-taupe dark:text-slate-400">Documents créés</p>
+                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Documents créés</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
@@ -1081,11 +1081,11 @@ export default function ProfilePage() {
               </div>
               <div>
                 <p className="text-lg font-medium text-navy dark:text-white">{myOpenTickets}</p>
-                <p className="text-[11px] text-taupe dark:text-slate-400">Tickets ouverts</p>
+                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Tickets ouverts</p>
               </div>
             </div>
           </div>
-          <p className="text-[10px] font-medium text-taupe dark:text-slate-500 uppercase tracking-widest mb-2">Actions récentes</p>
+          <p className="text-[10px] font-medium text-seal-gray-500 dark:text-slate-500 uppercase tracking-widest mb-2">Actions récentes</p>
           {recentActivity.length > 0 ? (
             <div className="relative">
               <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gray-200 dark:bg-slate-700" />
@@ -1110,17 +1110,17 @@ export default function ProfilePage() {
                       <div className="flex-1 min-w-0 pt-0.5">
                         <p className="text-xs font-medium text-navy dark:text-white capitalize">{actionLabel}</p>
                         {a.details && (
-                          <p className="text-[10px] text-taupe dark:text-slate-500 truncate">{typeof a.details === 'string' ? a.details : JSON.stringify(a.details).slice(0, 80)}</p>
+                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">{typeof a.details === 'string' ? a.details : JSON.stringify(a.details).slice(0, 80)}</p>
                         )}
                       </div>
-                      <span className="text-[10px] text-taupe dark:text-slate-500 flex-shrink-0 pt-1 whitespace-nowrap">{formatRelativeTime(a.createdAt)}</span>
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex-shrink-0 pt-1 whitespace-nowrap">{formatRelativeTime(a.createdAt)}</span>
                     </div>
                   );
                 })}
               </div>
             </div>
           ) : (
-            <p className="text-xs text-taupe dark:text-slate-400 text-center py-4">Aucune activité récente</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-4">Aucune activité récente</p>
           )}
         </CardContent>
       </Card>
@@ -1136,7 +1136,7 @@ export default function ProfilePage() {
             ].map(({ keys, desc }) => (
               <div key={keys} className="flex items-center justify-between py-1.5 border-b border-gray-200 dark:border-slate-700 last:border-0">
                 <span className="text-sm text-navy dark:text-white">{desc}</span>
-                <kbd className="px-2 py-0.5 text-xs font-mono bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-300 rounded border border-gray-200 dark:border-slate-700">{keys}</kbd>
+                <kbd className="px-2 py-0.5 text-xs font-mono bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-300 rounded border border-gray-200 dark:border-slate-700">{keys}</kbd>
               </div>
             ))}
           </div>
@@ -1156,7 +1156,7 @@ export default function ProfilePage() {
             <div className="space-y-4">
               {/* Total with progress context */}
               <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Total documents</span>
+                <span className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Total documents</span>
                 <span className="text-2xl font-bold text-navy dark:text-white">{gedSummary.total}</span>
               </div>
               <div className="space-y-3">
@@ -1168,7 +1168,7 @@ export default function ProfilePage() {
                   { label: 'Revue proche', value: gedSummary.nearReviewDate, color: 'bg-red-400' },
                 ] as const).map(({ label, value, color }) => (
                   <div key={label} className="flex items-center gap-3">
-                    <span className="text-xs text-taupe dark:text-slate-400 w-24 text-right flex-shrink-0">{label}</span>
+                    <span className="text-xs text-seal-gray-500 dark:text-slate-400 w-24 text-right flex-shrink-0">{label}</span>
                     <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-slate-700 overflow-hidden">
                       <div className={`h-full rounded-full ${color} transition-all duration-500`} style={{ width: gedSummary.total > 0 ? `${Math.max(4, (value / gedSummary.total) * 100)}%` : '0%' }} />
                     </div>
@@ -1191,8 +1191,8 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="text-center py-4">
-              <FolderOpen className="h-8 w-8 text-taupe/30 mx-auto mb-2" />
-              <p className="text-sm text-taupe dark:text-slate-400">Chargement...</p>
+              <FolderOpen className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400">Chargement...</p>
             </div>
           )}
         </CardContent>
@@ -1218,7 +1218,7 @@ export default function ProfilePage() {
             <div key={pref.key} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
               <div>
                 <p className="text-sm font-semibold text-navy dark:text-white">{pref.label}</p>
-                <p className="text-xs text-taupe dark:text-slate-400">{pref.desc}</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">{pref.desc}</p>
               </div>
               <button
                 onClick={() => toggleNotifPref(pref.key)}
@@ -1244,7 +1244,7 @@ export default function ProfilePage() {
           </h2>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-taupe dark:text-slate-400 mb-3">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-3">
             Choisissez la langue d&apos;affichage de l&apos;application.
           </p>
           <div className="flex gap-3">
@@ -1280,7 +1280,7 @@ export default function ProfilePage() {
           </h2>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-taupe mb-4">
+          <p className="text-sm text-seal-gray-500 mb-4">
             Conformément au RGPD, vous pouvez télécharger l&apos;ensemble de vos données
             personnelles au format JSON (profil, documents, tickets, notifications, journaux).
           </p>

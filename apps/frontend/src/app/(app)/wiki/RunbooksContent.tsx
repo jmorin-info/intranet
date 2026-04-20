@@ -299,7 +299,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
 
       {/* Category filter chips */}
       <div className="flex items-center gap-2 flex-wrap">
-        <Filter className="h-4 w-4 text-taupe dark:text-slate-400" />
+        <Filter className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
         {CATEGORY_FILTERS.map((cat) => (
           <button
             key={cat}
@@ -307,7 +307,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
             className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
               categoryFilter === cat
                 ? 'bg-primary text-white'
-                : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
             }`}
           >
             {cat}
@@ -321,11 +321,11 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-navy dark:text-white">{executingRunbook.title}</h2>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-taupe flex items-center gap-1">
+                <span className="text-xs text-seal-gray-500 flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {estimateTime(executionSteps.length)}
                 </span>
-                <span className="text-xs text-taupe">{completedSteps.size}/{executionSteps.length} {t('runbooks.steps')}</span>
+                <span className="text-xs text-seal-gray-500">{completedSteps.size}/{executionSteps.length} {t('runbooks.steps')}</span>
                 <Button variant="ghost" size="sm" onClick={() => setExecutingRunbook(null)}>{t('runbooks.close')}</Button>
               </div>
             </div>
@@ -348,7 +348,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
                     <p className={`text-sm font-semibold ${completedSteps.has(i) ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-navy dark:text-white'}`}>
                       {t('runbooks.step')} {i + 1}: {step.title || String(step)}
                     </p>
-                    {step.description && <p className="text-xs text-taupe dark:text-slate-400 mt-1">{step.description}</p>}
+                    {step.description && <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">{step.description}</p>}
                   </div>
                 </div>
               ))}
@@ -357,18 +357,18 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
               <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-center">
                 <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
                 <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{t('runbooks.executionComplete')}</p>
-                <p className="text-xs text-taupe">{new Date().toLocaleString('fr-FR')}</p>
+                <p className="text-xs text-seal-gray-500">{new Date().toLocaleString('fr-FR')}</p>
               </div>
             )}
             {/* Dernières exécutions */}
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
               <h3 className="text-xs font-semibold text-navy dark:text-white mb-2 flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-taupe" />
+                <Clock className="h-3.5 w-3.5 text-seal-gray-500" />
                 Dernières exécutions
               </h3>
               {loadingHistory ? (
-                <div className="flex gap-2 items-center text-xs text-taupe">
-                  <div className="h-3 w-3 border-2 border-taupe/30 border-t-taupe rounded-full animate-spin" />
+                <div className="flex gap-2 items-center text-xs text-seal-gray-500">
+                  <div className="h-3 w-3 border-2 border-seal-gray-500/30 border-t-taupe rounded-full animate-spin" />
                   Chargement...
                 </div>
               ) : executionHistory.length > 0 ? (
@@ -380,7 +380,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
                         {new Date(exec.startedAt).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
                       {exec.executedBy && (
-                        <span className="text-taupe dark:text-slate-400">
+                        <span className="text-seal-gray-500 dark:text-slate-400">
                           par {exec.executedBy.firstName} {exec.executedBy.lastName}
                         </span>
                       )}
@@ -391,7 +391,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-taupe dark:text-slate-500 italic">Aucune exécution précédente</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-500 italic">Aucune exécution précédente</p>
               )}
             </div>
           </CardContent>
@@ -408,7 +408,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
           {isAdmin && runbooks.length === 0 && (
             <div className="rounded-xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
               <h3 className="text-sm font-semibold text-navy dark:text-white mb-1">Templates prêts à l'emploi</h3>
-              <p className="text-xs text-taupe dark:text-slate-400 mb-4">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-4">
                 Démarrez rapidement avec ces procédures courantes. Cliquez pour pré-remplir la création d'un runbook.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -432,8 +432,8 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
                       <h4 className="text-sm font-semibold text-navy dark:text-white">{tpl.title}</h4>
                       <Badge variant="navy">{tpl.category}</Badge>
                     </div>
-                    <p className="text-xs text-taupe dark:text-slate-400 line-clamp-2">{tpl.description}</p>
-                    <p className="text-[10px] text-taupe dark:text-slate-500 mt-1.5">
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2">{tpl.description}</p>
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-1.5">
                       {tpl.steps.length} étapes
                     </p>
                   </button>
@@ -474,8 +474,8 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
                         </Badge>
                       )}
                     </div>
-                    {rb.description && <p className="text-xs text-taupe dark:text-slate-400 mt-1 line-clamp-2">{rb.description}</p>}
-                    <div className="flex items-center gap-3 mt-2 text-[10px] text-taupe dark:text-slate-500">
+                    {rb.description && <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1 line-clamp-2">{rb.description}</p>}
+                    <div className="flex items-center gap-3 mt-2 text-[10px] text-seal-gray-500 dark:text-slate-500">
                       {rb.author && (
                         <span className="flex items-center gap-1">
                           <User className="h-3 w-3" />

@@ -304,7 +304,7 @@ export default function SearchPage() {
           className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition whitespace-nowrap ${
             smartMode
               ? 'border-primary bg-primary/10 text-primary dark:bg-primary/20 shadow-sm shadow-primary/10'
-              : 'border-gray-200 dark:border-slate-600 text-taupe hover:border-gray-300 dark:hover:border-slate-500'
+              : 'border-gray-200 dark:border-slate-600 text-seal-gray-500 hover:border-gray-300 dark:hover:border-slate-500'
           }`}
           title={smartMode ? 'Recherche intelligente active' : 'Activer la recherche intelligente'}
         >
@@ -346,7 +346,7 @@ export default function SearchPage() {
           <CardContent className="py-3">
             <div className="flex flex-wrap gap-6">
               <div>
-                <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-1.5">{t('search.filter.period')}</p>
+                <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-1.5">{t('search.filter.period')}</p>
                 <div className="flex gap-1.5">
                   {[
                     { value: 'all', label: 'Tout' },
@@ -359,7 +359,7 @@ export default function SearchPage() {
                       key={opt.value}
                       onClick={() => setDateRange(opt.value)}
                       className={`px-2.5 py-1 rounded text-xs transition ${
-                        dateRange === opt.value ? 'bg-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400 hover:bg-gray-200'
+                        dateRange === opt.value ? 'bg-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
                       }`}
                     >
                       {opt.label}
@@ -368,7 +368,7 @@ export default function SearchPage() {
                 </div>
               </div>
               <div>
-                <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-1.5">{t('search.filter.classification')}</p>
+                <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-1.5">{t('search.filter.classification')}</p>
                 <div className="flex gap-1.5">
                   {[
                     { value: 'all', label: 'Toutes' },
@@ -381,7 +381,7 @@ export default function SearchPage() {
                       key={opt.value}
                       onClick={() => setClassificationFilter(opt.value)}
                       className={`px-2.5 py-1 rounded text-xs transition ${
-                        classificationFilter === opt.value ? 'bg-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400 hover:bg-gray-200'
+                        classificationFilter === opt.value ? 'bg-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
                       }`}
                     >
                       {opt.label}
@@ -390,7 +390,7 @@ export default function SearchPage() {
                 </div>
               </div>
               <div>
-                <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-1.5">{t('search.filter.sort')}</p>
+                <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-1.5">{t('search.filter.sort')}</p>
                 <div className="flex gap-1.5">
                   {([
                     { value: 'relevance', label: 'Pertinence' },
@@ -401,7 +401,7 @@ export default function SearchPage() {
                       key={opt.value}
                       onClick={() => setSortBy(opt.value)}
                       className={`px-2.5 py-1 rounded text-xs transition ${
-                        sortBy === opt.value ? 'bg-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400 hover:bg-gray-200'
+                        sortBy === opt.value ? 'bg-navy text-white dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
                       }`}
                     >
                       {opt.label}
@@ -432,7 +432,7 @@ export default function SearchPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-navy dark:text-white">{action.label}</p>
-                        <p className="text-[11px] text-taupe dark:text-slate-400">{action.description}</p>
+                        <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">{action.description}</p>
                       </div>
                       <Badge variant="navy" className="text-[10px]">Action</Badge>
                     </CardContent>
@@ -449,7 +449,7 @@ export default function SearchPage() {
           <CardContent className="py-4 space-y-4">
             {/* Popular searches */}
             <div>
-              <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-2">{t('search.popular')}</p>
+              <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-2">{t('search.popular')}</p>
               <div className="flex flex-wrap gap-2">
                 {['ISO 27001', 'procédure', 'politique sécurité', 'incident', 'VPN', 'MFA', 'sauvegarde', 'FortiGate'].map(tag => (
                   <button
@@ -465,7 +465,7 @@ export default function SearchPage() {
             {/* Recent searches */}
             {recentSearches.length > 0 && (
               <div className="pt-3 border-t border-gray-100 dark:border-slate-700">
-                <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-2">{t('search.recent')}</p>
+                <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-2">{t('search.recent')}</p>
                 <div className="flex flex-wrap gap-2">
                   {recentSearches.map((term, i) => (
                     <button
@@ -478,7 +478,7 @@ export default function SearchPage() {
                   ))}
                   <button
                     onClick={() => { setRecentSearches([]); localStorage.removeItem('omnitech_recent_searches'); }}
-                    className="px-3 py-1 text-xs text-taupe hover:text-red-500"
+                    className="px-3 py-1 text-xs text-seal-gray-500 hover:text-red-500"
                   >
                     {t('search.clear')}
                   </button>
@@ -513,7 +513,7 @@ export default function SearchPage() {
                 {s.count} {s.label}
               </button>
             ))}
-            <span className="ml-auto text-xs text-taupe dark:text-slate-400 font-medium">
+            <span className="ml-auto text-xs text-seal-gray-500 dark:text-slate-400 font-medium">
               {aiResults.documents.length + aiResults.wiki.length + aiResults.tickets.length + aiResults.news.length + (aiResults.runbooks || []).length + (aiResults.veille || []).length + (aiResults.kb || []).length} resultats
             </span>
           </div>
@@ -531,7 +531,7 @@ export default function SearchPage() {
                         <FileText className="h-5 w-5 text-navy dark:text-blue-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(doc.title, debouncedQuery)}</p>
-                          {doc.reference && <p className="text-[10px] font-mono text-taupe dark:text-slate-400">{doc.reference}</p>}
+                          {doc.reference && <p className="text-[10px] font-mono text-seal-gray-500 dark:text-slate-400">{doc.reference}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <ConfidenceBadge score={doc.confidence} />
@@ -558,7 +558,7 @@ export default function SearchPage() {
                         <BookOpen className="h-5 w-5 text-emerald-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(page.title, debouncedQuery)}</p>
-                          {page.category && <p className="text-[10px] text-taupe dark:text-slate-400">{page.category}</p>}
+                          {page.category && <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{page.category}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <ConfidenceBadge score={page.confidence} />
@@ -585,7 +585,7 @@ export default function SearchPage() {
                         <Ticket className="h-5 w-5 text-amber-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(t.title, debouncedQuery)}</p>
-                          {t.reference && <p className="text-[10px] font-mono text-taupe dark:text-slate-400">{t.reference}</p>}
+                          {t.reference && <p className="text-[10px] font-mono text-seal-gray-500 dark:text-slate-400">{t.reference}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <ConfidenceBadge score={t.confidence} />
@@ -636,7 +636,7 @@ export default function SearchPage() {
                         <PlayCircle className="h-5 w-5 text-violet-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(rb.title, debouncedQuery)}</p>
-                          {rb.category && <p className="text-[10px] text-taupe dark:text-slate-400">{rb.category}</p>}
+                          {rb.category && <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{rb.category}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <ConfidenceBadge score={rb.confidence} />
@@ -667,7 +667,7 @@ export default function SearchPage() {
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {v.sourceUrl && (
-                            <a href={v.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-taupe hover:text-primary transition" title="Source">
+                            <a href={v.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-seal-gray-500 hover:text-primary transition" title="Source">
                               <ExternalLink className="h-4 w-4" />
                             </a>
                           )}
@@ -759,11 +759,11 @@ export default function SearchPage() {
         <div className="space-y-3">{[1,2,3,4].map(i => <ResultSkeleton key={i} />)}</div>
       ) : !debouncedQuery ? (
         <div className="text-center py-16">
-          <Search className="h-16 w-16 text-taupe/20 mx-auto mb-4" />
+          <Search className="h-16 w-16 text-seal-gray-500/20 mx-auto mb-4" />
           <p className="text-lg font-medium text-navy dark:text-white mb-1">{t('search.intranet')}</p>
-          <p className="text-sm text-taupe dark:text-slate-400">{t('search.minChars')}</p>
-          <p className="text-xs text-taupe/60 dark:text-slate-500 mt-2">Appuyez sur <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[10px] font-mono border border-gray-200 dark:border-slate-700">/</kbd> pour rechercher</p>
-          <div className="flex justify-center gap-4 mt-4 text-xs text-taupe dark:text-slate-500 flex-wrap">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('search.minChars')}</p>
+          <p className="text-xs text-seal-gray-500/60 dark:text-slate-500 mt-2">Appuyez sur <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[10px] font-mono border border-gray-200 dark:border-slate-700">/</kbd> pour rechercher</p>
+          <div className="flex justify-center gap-4 mt-4 text-xs text-seal-gray-500 dark:text-slate-500 flex-wrap">
             <span className="flex items-center gap-1"><FileText className="h-3.5 w-3.5" /> {t('search.type.documents')}</span>
             <span className="flex items-center gap-1"><Newspaper className="h-3.5 w-3.5" /> {t('search.type.news')}</span>
             <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" /> Wiki</span>
@@ -778,7 +778,7 @@ export default function SearchPage() {
         />
       ) : (
         <div className="space-y-4">
-          <div className="flex gap-4 text-sm text-taupe dark:text-slate-400 mb-4 flex-wrap">
+          <div className="flex gap-4 text-sm text-seal-gray-500 dark:text-slate-400 mb-4 flex-wrap">
             <span><FileText className="h-4 w-4 inline" /> {sfFilteredDocuments.length} documents</span>
             <span><Newspaper className="h-4 w-4 inline" /> {sfFilteredNews.length} actualités</span>
             {sfFilteredWiki.length > 0 && <span><BookOpen className="h-4 w-4 inline" /> {sfFilteredWiki.length} wiki</span>}
@@ -799,7 +799,7 @@ export default function SearchPage() {
                         <FileText className="h-5 w-5 text-navy dark:text-blue-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(doc.title, debouncedQuery)}</p>
-                          {doc.reference && <p className="text-[10px] font-mono text-taupe dark:text-slate-400">{doc.reference}</p>}
+                          {doc.reference && <p className="text-[10px] font-mono text-seal-gray-500 dark:text-slate-400">{doc.reference}</p>}
                           {doc.excerpt && (
                             <p className="text-xs text-gray-600 dark:text-slate-400 line-clamp-2 mt-0.5">
                               <Spotlight text={doc.excerpt} query={debouncedQuery} />
@@ -808,7 +808,7 @@ export default function SearchPage() {
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {getResultDate(doc) && (
-                            <span className="text-[10px] text-taupe dark:text-slate-500">{formatRelativeTime(getResultDate(doc)!)}</span>
+                            <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{formatRelativeTime(getResultDate(doc)!)}</span>
                           )}
                           {doc.classification && (
                             <Badge variant={classificationVariant(doc.classification)}>{doc.classification}</Badge>
@@ -844,7 +844,7 @@ export default function SearchPage() {
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {getResultDate(n) && (
-                            <span className="text-[10px] text-taupe dark:text-slate-500">{formatRelativeTime(getResultDate(n)!)}</span>
+                            <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{formatRelativeTime(getResultDate(n)!)}</span>
                           )}
                           <Badge variant="info">{t('search.badgeNews')}</Badge>
                         </div>
@@ -869,11 +869,11 @@ export default function SearchPage() {
                         <BookOpen className="h-5 w-5 text-emerald-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(w.title, debouncedQuery)}</p>
-                          {w.category && <p className="text-[10px] text-taupe dark:text-slate-400">{w.category}</p>}
+                          {w.category && <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{w.category}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {getResultDate(w) && (
-                            <span className="text-[10px] text-taupe dark:text-slate-500">{formatRelativeTime(getResultDate(w)!)}</span>
+                            <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{formatRelativeTime(getResultDate(w)!)}</span>
                           )}
                           <Badge variant="primary">Wiki</Badge>
                         </div>
@@ -898,11 +898,11 @@ export default function SearchPage() {
                         <Ticket className="h-5 w-5 text-violet-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-navy dark:text-white">{highlightMatch(tk.title, debouncedQuery)}</p>
-                          {tk.reference && <p className="text-[10px] font-mono text-taupe dark:text-slate-400">{tk.reference}</p>}
+                          {tk.reference && <p className="text-[10px] font-mono text-seal-gray-500 dark:text-slate-400">{tk.reference}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {getResultDate(tk) && (
-                            <span className="text-[10px] text-taupe dark:text-slate-500">{formatRelativeTime(getResultDate(tk)!)}</span>
+                            <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{formatRelativeTime(getResultDate(tk)!)}</span>
                           )}
                           {tk.status && <Badge variant={tk.status === 'OPEN' ? 'warning' : tk.status === 'CLOSED' ? 'approved' : 'info'}>{tk.status}</Badge>}
                           <Badge variant="navy">Ticket</Badge>

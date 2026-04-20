@@ -181,7 +181,7 @@ export default function SmbEditorPage() {
             <h2 className="text-lg font-semibold text-navy dark:text-white mb-2">
               Impossible d'ouvrir l'éditeur
             </h2>
-            <p className="text-sm text-taupe dark:text-slate-400 max-w-xl mx-auto">{error}</p>
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 max-w-xl mx-auto">{error}</p>
             <Button className="mt-4" onClick={() => router.push('/files')}>
               Retour aux fichiers
             </Button>
@@ -195,7 +195,7 @@ export default function SmbEditorPage() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <span className="ml-2 text-sm text-taupe">Chargement de l'éditeur…</span>
+        <span className="ml-2 text-sm text-seal-gray-500">Chargement de l'éditeur…</span>
       </div>
     );
   }
@@ -209,7 +209,7 @@ export default function SmbEditorPage() {
         <div className="text-sm text-navy dark:text-white font-medium truncate max-w-md">
           {editorData.fileName}
           {!editorData.canEdit && (
-            <span className="ml-2 text-xs text-taupe">(lecture seule)</span>
+            <span className="ml-2 text-xs text-seal-gray-500">(lecture seule)</span>
           )}
         </div>
       </div>

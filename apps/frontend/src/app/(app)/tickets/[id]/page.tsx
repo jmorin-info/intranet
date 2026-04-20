@@ -317,7 +317,7 @@ export default function TicketDetailPage() {
       {/* Header */}
       <div className="flex items-start gap-4">
         <button onClick={() => router.back()} className="mt-1 rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-primary" aria-label="Retour à la liste des tickets">
-          <ArrowLeft className="h-5 w-5 text-taupe" />
+          <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
@@ -380,7 +380,7 @@ export default function TicketDetailPage() {
           {/* Ticket age */}
           <div className="flex items-center gap-3 mt-1.5">
             <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-navy dark:text-white">
-              <Clock className="h-3 w-3 text-taupe" />
+              <Clock className="h-3 w-3 text-seal-gray-500" />
               Créé il y a {getTicketAge(ticket.createdAt)}
             </span>
           </div>
@@ -404,7 +404,7 @@ export default function TicketDetailPage() {
               </div>
             );
           })()}
-          <p className="text-xs text-taupe dark:text-slate-400 mt-1">
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
             {t('tickets.detail.createdBy')} {ticket.creator.firstName} {ticket.creator.lastName} — {formatDateTime(ticket.createdAt)}
           </p>
           <div className="mt-2 no-print">
@@ -473,7 +473,7 @@ export default function TicketDetailPage() {
                   <div className="border-l-2 border-gray-200 dark:border-slate-600 absolute -left-[14px] top-5 bottom-0 h-full" />
                   <div>
                     <p className="text-sm font-semibold text-navy dark:text-white">Ticket créé</p>
-                    <p className="text-[10px] text-taupe">{formatDateTime(ticket.createdAt)} — {ticket.creator.firstName} {ticket.creator.lastName}</p>
+                    <p className="text-[10px] text-seal-gray-500">{formatDateTime(ticket.createdAt)} — {ticket.creator.firstName} {ticket.creator.lastName}</p>
                   </div>
                 </div>
                 {/* Current status */}
@@ -486,7 +486,7 @@ export default function TicketDetailPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-navy dark:text-white">{statusLabel[ticket.status] || ticket.status}</p>
-                      <p className="text-[10px] text-taupe">{formatDateTime(ticket.updatedAt)}{ticket.assignee ? ` — ${ticket.assignee.firstName} ${ticket.assignee.lastName}` : ''}</p>
+                      <p className="text-[10px] text-seal-gray-500">{formatDateTime(ticket.updatedAt)}{ticket.assignee ? ` — ${ticket.assignee.firstName} ${ticket.assignee.lastName}` : ''}</p>
                     </div>
                   </div>
                 )}
@@ -498,7 +498,7 @@ export default function TicketDetailPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-navy dark:text-white">Résolu</p>
-                      <p className="text-[10px] text-taupe">{formatDateTime(ticket.resolvedAt)}</p>
+                      <p className="text-[10px] text-seal-gray-500">{formatDateTime(ticket.resolvedAt)}</p>
                     </div>
                   </div>
                 )}
@@ -514,7 +514,7 @@ export default function TicketDetailPage() {
                   <div className="text-center py-3">
                     <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
                     <p className="text-sm font-semibold text-navy dark:text-white">Merci pour votre retour !</p>
-                    <p className="text-xs text-taupe dark:text-slate-400 mt-1">Votre évaluation nous aide à améliorer le service.</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">Votre évaluation nous aide à améliorer le service.</p>
                   </div>
                 ) : (
                   <>
@@ -522,7 +522,7 @@ export default function TicketDetailPage() {
                       <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
                       <h3 className="text-sm font-semibold text-navy dark:text-white">Évaluez la résolution</h3>
                     </div>
-                    <p className="text-xs text-taupe dark:text-slate-400 mb-3">Comment évaluez-vous la prise en charge de votre ticket ?</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">Comment évaluez-vous la prise en charge de votre ticket ?</p>
                     <div className="flex items-center gap-1 mb-3">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -543,7 +543,7 @@ export default function TicketDetailPage() {
                         </button>
                       ))}
                       {satisfactionRating > 0 && (
-                        <span className="text-xs text-taupe dark:text-slate-400 ml-2">
+                        <span className="text-xs text-seal-gray-500 dark:text-slate-400 ml-2">
                           {satisfactionRating}/5
                         </span>
                       )}
@@ -578,7 +578,7 @@ export default function TicketDetailPage() {
                 </h3>
                 <div className="flex items-center gap-3">
                   {isAdmin && ticket.comments.filter(c => c.isInternal).length > 0 && (
-                    <span className="text-[10px] text-taupe dark:text-slate-400">
+                    <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                       {ticket.comments.filter(c => c.isInternal).length} note(s) interne(s)
                     </span>
                   )}
@@ -594,9 +594,9 @@ export default function TicketDetailPage() {
               <div className="max-h-[500px] overflow-y-auto p-4 space-y-1 scroll-smooth">
                 {ticket.comments.length === 0 && (
                   <div className="text-center py-8">
-                    <Send className="h-8 w-8 text-taupe/20 mx-auto mb-2" />
-                    <p className="text-sm text-taupe dark:text-slate-400">{t('tickets.detail.noComments')}</p>
-                    <p className="text-xs text-taupe/60 dark:text-slate-500 mt-1">Démarrez la conversation ci-dessous</p>
+                    <Send className="h-8 w-8 text-seal-gray-500/20 mx-auto mb-2" />
+                    <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('tickets.detail.noComments')}</p>
+                    <p className="text-xs text-seal-gray-500/60 dark:text-slate-500 mt-1">Démarrez la conversation ci-dessous</p>
                   </div>
                 )}
                 {ticket.comments
@@ -639,10 +639,10 @@ export default function TicketDetailPage() {
                                 ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-blue-300'
                                 : c.author.role === 'SYSTEM'
                                   ? 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400'
-                                  : 'bg-gray-100 dark:bg-slate-700 text-taupe'
+                                  : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500'
                             }`}>{c.author.role === 'ADMIN' || c.author.role === 'SUPER_ADMIN' ? 'Admin' : c.author.role}</span>
                           )}
-                          <span className="text-[10px] text-taupe dark:text-slate-500" title={formatDateTime(c.createdAt)}>{formatRelativeTime(c.createdAt)}</span>
+                          <span className="text-[10px] text-seal-gray-500 dark:text-slate-500" title={formatDateTime(c.createdAt)}>{formatRelativeTime(c.createdAt)}</span>
                           {c.isInternal && <Badge variant="warning" className="text-[9px] py-0">Interne</Badge>}
                         </div>
                       )}
@@ -674,7 +674,7 @@ export default function TicketDetailPage() {
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
                         isInternalComment
                           ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                          : 'bg-gray-100 text-taupe dark:bg-slate-700 dark:text-slate-400 hover:bg-gray-200'
+                          : 'bg-gray-100 text-seal-gray-500 dark:bg-slate-700 dark:text-slate-400 hover:bg-gray-200'
                       }`}
                     >
                       {isInternalComment ? <ShieldCheck className="h-3 w-3" /> : <User className="h-3 w-3" />}
@@ -703,7 +703,7 @@ export default function TicketDetailPage() {
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-[10px] text-taupe/60 dark:text-slate-600 mt-1">Entrée pour envoyer · Shift+Entrée pour un retour à la ligne</p>
+                <p className="text-[10px] text-seal-gray-500/60 dark:text-slate-600 mt-1">Entrée pour envoyer · Shift+Entrée pour un retour à la ligne</p>
               </div>
             </CardContent>
           </Card>
@@ -716,20 +716,20 @@ export default function TicketDetailPage() {
             <CardHeader><h3 className="text-sm font-semibold text-navy dark:text-white">{t('tickets.detail.info')}</h3></CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-taupe">{t('tickets.detail.creator')}</span>
+                <span className="text-seal-gray-500">{t('tickets.detail.creator')}</span>
                 <span className="font-semibold text-navy dark:text-white">{ticket.creator.firstName} {ticket.creator.lastName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-taupe">{t('tickets.detail.assignee')}</span>
+                <span className="text-seal-gray-500">{t('tickets.detail.assignee')}</span>
                 <span className="font-semibold text-navy dark:text-white">{ticket.assignee ? `${ticket.assignee.firstName} ${ticket.assignee.lastName}` : t('tickets.detail.unassigned')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-taupe">{t('tickets.detail.createdAt')}</span>
+                <span className="text-seal-gray-500">{t('tickets.detail.createdAt')}</span>
                 <span className="text-navy dark:text-white">{formatDateTime(ticket.createdAt)}</span>
               </div>
               {ticket.resolvedAt && (
                 <div className="flex justify-between">
-                  <span className="text-taupe">{t('tickets.detail.resolvedAt')}</span>
+                  <span className="text-seal-gray-500">{t('tickets.detail.resolvedAt')}</span>
                   <span className="text-navy dark:text-white">{formatDateTime(ticket.resolvedAt)}</span>
                 </div>
               )}
@@ -745,7 +745,7 @@ export default function TicketDetailPage() {
                     <CheckCircle2 className="h-4 w-4 text-teal-600" />
                     Checklist deploiement
                   </h3>
-                  <span className="text-[10px] font-semibold text-taupe dark:text-slate-400 tabular-nums">
+                  <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 tabular-nums">
                     {ticket.tags.filter(t => t.startsWith('check:')).length}/{deployLabels.deployment.checklist.length}
                   </span>
                 </div>
@@ -781,7 +781,7 @@ export default function TicketDetailPage() {
                       if (!val) return null;
                       return (
                         <div key={field.id} className="flex justify-between text-xs">
-                          <span className="text-taupe dark:text-slate-400">{field.label}</span>
+                          <span className="text-seal-gray-500 dark:text-slate-400">{field.label}</span>
                           <span className="font-semibold text-navy dark:text-white font-mono">{val}</span>
                         </div>
                       );
@@ -862,7 +862,7 @@ export default function TicketDetailPage() {
         <div className="space-y-4">
           <Input label="Titre" value={kbTitle} onChange={(e) => setKbTitle(e.target.value)} required />
           <Textarea label="Contenu (HTML)" value={kbContent} onChange={(e) => setKbContent(e.target.value)} rows={12} className="font-mono text-xs" />
-          <p className="text-xs text-taupe dark:text-slate-400">Catégorie : {kbDraft?.category} · Visibilité : {kbDraft?.visibility}</p>
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400">Catégorie : {kbDraft?.category} · Visibilité : {kbDraft?.visibility}</p>
           <div className="flex gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => setKbDraft(null)}>Annuler</Button>
             <Button

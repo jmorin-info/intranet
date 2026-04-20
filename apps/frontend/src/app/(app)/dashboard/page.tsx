@@ -186,7 +186,7 @@ function PrestataireDashboard() {
     <div className="p-6">
       <Card><CardContent className="py-8 text-center">
         <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-3" />
-        <p className="text-sm text-taupe dark:text-slate-400">{t('dashboard.contractorLoadError')}</p>
+        <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('dashboard.contractorLoadError')}</p>
       </CardContent></Card>
     </div>
   );
@@ -196,7 +196,7 @@ function PrestataireDashboard() {
       <div>
         <h1 className="text-2xl font-medium text-navy dark:text-white">Espace Prestataire — Tableau de bord</h1>
         {data?.access && (
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             {data.access.companyName} — Contrat {data.access.contractRef}
           </p>
         )}
@@ -208,7 +208,7 @@ function PrestataireDashboard() {
             <Clock className="h-5 w-5 text-amber-500" />
             <div>
               <p className="text-sm font-semibold text-navy dark:text-white">Accès limité</p>
-              <p className="text-xs text-taupe dark:text-slate-400">Expire le {formatDate(data.access.accessExpiresAt)}</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Expire le {formatDate(data.access.accessExpiresAt)}</p>
             </div>
           </CardContent>
         </Card>
@@ -218,14 +218,14 @@ function PrestataireDashboard() {
         <Card><CardContent className="py-3 flex items-center gap-3">
           <Ticket className="h-5 w-5 text-primary" />
           <div>
-            <p className="text-xs text-taupe dark:text-slate-400">Mes tickets</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400">Mes tickets</p>
             <p className="text-2xl font-medium text-navy dark:text-white">{data?.tickets?.length || 0}</p>
           </div>
         </CardContent></Card>
         <Card><CardContent className="py-3 flex items-center gap-3">
           <FileText className="h-5 w-5 text-primary" />
           <div>
-            <p className="text-xs text-taupe dark:text-slate-400">Documents contractuels</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400">Documents contractuels</p>
             <p className="text-2xl font-medium text-navy dark:text-white">{data?.documents?.length || 0}</p>
           </div>
         </CardContent></Card>
@@ -246,16 +246,16 @@ function PrestataireDashboard() {
                       <Badge variant="navy">{ticket.priority}</Badge>
                     </div>
                   </div>
-                  <span className="text-[10px] text-taupe dark:text-slate-500">{formatDate(ticket.createdAt)}</span>
+                  <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{formatDate(ticket.createdAt)}</span>
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : (
           <Card><CardContent className="py-6 text-center">
-            <Ticket className="h-8 w-8 text-taupe/30 mx-auto mb-2" />
-            <p className="text-sm text-taupe dark:text-slate-400">Aucun ticket pour le moment</p>
-            <p className="text-xs text-taupe/70 dark:text-slate-500 mt-1">Vos demandes de support apparaîtront ici</p>
+            <Ticket className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucun ticket pour le moment</p>
+            <p className="text-xs text-seal-gray-500/70 dark:text-slate-500 mt-1">Vos demandes de support apparaîtront ici</p>
           </CardContent></Card>
         )}
       </div>
@@ -280,9 +280,9 @@ function PrestataireDashboard() {
           </div>
         ) : (
           <Card><CardContent className="py-6 text-center">
-            <FileText className="h-8 w-8 text-taupe/30 mx-auto mb-2" />
-            <p className="text-sm text-taupe dark:text-slate-400">Aucun document contractuel</p>
-            <p className="text-xs text-taupe/70 dark:text-slate-500 mt-1">Les documents liés à votre contrat apparaîtront ici</p>
+            <FileText className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucun document contractuel</p>
+            <p className="text-xs text-seal-gray-500/70 dark:text-slate-500 mt-1">Les documents liés à votre contrat apparaîtront ici</p>
           </CardContent></Card>
         )}
       </div>
@@ -574,7 +574,7 @@ export default function DashboardPage() {
       <div className="p-6">
         <Card><CardContent className="py-8 text-center">
           <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-3" />
-          <p className="text-sm text-taupe dark:text-slate-400">{t('dashboard.loadError')}</p>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('dashboard.loadError')}</p>
           <Button className="mt-4" onClick={() => { setError(false); window.location.reload(); }}>{t('action.retry')}</Button>
         </CardContent></Card>
       </div>
@@ -677,7 +677,7 @@ export default function DashboardPage() {
             className={`relative px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-t-lg ${
               activeView === 'me'
                 ? 'text-primary'
-                : 'text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
             }`}
             aria-current={activeView === 'me' ? 'page' : undefined}
           >
@@ -692,7 +692,7 @@ export default function DashboardPage() {
             className={`relative px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-t-lg ${
               activeView === 'rssi'
                 ? 'text-primary'
-                : 'text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                : 'text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
             }`}
             aria-current={activeView === 'rssi' ? 'page' : undefined}
           >
@@ -728,14 +728,14 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-[26px] font-medium text-navy dark:text-white tracking-tight leading-tight">
-                  <span className="text-taupe dark:text-slate-400 font-light">{greeting},</span> {user?.firstName}
+                  <span className="text-seal-gray-500 dark:text-slate-400 font-light">{greeting},</span> {user?.firstName}
                 </h1>
                 <AIControlToggle />
                 <button onClick={() => setShowSettings(!showSettings)}
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   title="Personnaliser le tableau de bord"
                   aria-label="Personnaliser le tableau de bord">
-                  <Settings className="h-5 w-5 text-taupe dark:text-slate-400" />
+                  <Settings className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
                 </button>
                 <button
                   onClick={handleManualRefresh}
@@ -744,7 +744,7 @@ export default function DashboardPage() {
                   title="Actualiser le tableau de bord"
                   aria-label="Actualiser le tableau de bord"
                 >
-                  <RefreshCw className={`h-5 w-5 text-taupe dark:text-slate-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-5 w-5 text-seal-gray-500 dark:text-slate-400 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </button>
                 {uxInsights && (
                   <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
@@ -759,10 +759,10 @@ export default function DashboardPage() {
                   </span>
                 )}
               </div>
-              <p className="text-sm text-taupe dark:text-slate-400 mt-0.5 capitalize">
-                {dateStr} <span className="text-taupe/60 dark:text-slate-500">— voici votre espace {timeEmoji}</span>
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5 capitalize">
+                {dateStr} <span className="text-seal-gray-500/60 dark:text-slate-500">— voici votre espace {timeEmoji}</span>
               </p>
-              <p className="text-xs text-taupe/70 dark:text-slate-500 mt-1.5 italic max-w-md">{DAILY_TIPS[tipIndex]}</p>
+              <p className="text-xs text-seal-gray-500/70 dark:text-slate-500 mt-1.5 italic max-w-md">{DAILY_TIPS[tipIndex]}</p>
             </div>
             <div className="flex items-center gap-3">
               <Link href="/documents/new" title="Créer un nouveau document dans la base documentaire">
@@ -796,7 +796,7 @@ export default function DashboardPage() {
           <DashboardFaceSelector value={faceId} onChange={applyFace} />
         <Card>
           <CardContent className="py-3">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">{t('dashboard.widgetsVisible')}</p>
+            <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">{t('dashboard.widgetsVisible')}</p>
             <div className="flex flex-wrap gap-2">
               {Object.entries({
                 showStats: t('dashboard.widget.stats'),
@@ -812,7 +812,7 @@ export default function DashboardPage() {
                 <button key={key}
                   onClick={() => toggleWidget(key as keyof WidgetPrefs)}
                   className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                    prefs[key as keyof WidgetPrefs] ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-400'
+                    prefs[key as keyof WidgetPrefs] ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400'
                   }`}>
                   {label}
                 </button>
@@ -873,11 +873,11 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-semibold text-navy dark:text-white">Premiers pas</h2>
-              <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">Lancez-vous : quelques actions suffisent pour mettre en place votre espace documentaire et sécurité.</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">Lancez-vous : quelques actions suffisent pour mettre en place votre espace documentaire et sécurité.</p>
             </div>
             <button
               onClick={() => { localStorage.setItem('dashboard_onboarding_dismissed', '1'); setOnboardingDismissed(true); }}
-              className="p-1.5 rounded-lg text-taupe hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="p-1.5 rounded-lg text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Masquer la section Premiers pas"
               title="Masquer"
             >
@@ -929,7 +929,7 @@ export default function DashboardPage() {
 
         return (
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">Mes tâches</p>
+          <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">Mes tâches</p>
           <Card className="border-l-4 border-l-amber-400">
             <CardContent className="py-4">
               <div className="flex items-center justify-between mb-3">
@@ -1099,7 +1099,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {prefs.showQuickLinks && (
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 lg:col-span-2">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">Accès rapide</p>
+            <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">Accès rapide</p>
             <QuickLinks />
           </div>
         )}
@@ -1130,7 +1130,7 @@ export default function DashboardPage() {
       {/* Stats — admin: classic metric cards | non-admin: action-oriented cards */}
       {prefs.showStats && (
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">{isAdmin ? 'Indicateurs' : 'Actions rapides'}</p>
+          <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">{isAdmin ? 'Indicateurs' : 'Actions rapides'}</p>
           <div className={`grid gap-3 ${isAdmin ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
             {loading ? (
               Array.from({ length: isAdmin ? 6 : 4 }).map((_, i) => <Card key={i}><CardContent className="py-3"><Skeleton className="h-12 w-full" /></CardContent></Card>)
@@ -1138,7 +1138,7 @@ export default function DashboardPage() {
               statCards.map(c => {
                 const Icon = c.icon;
                 const TrendIcon = c.trend?.direction === 'up' ? TrendingUp : c.trend?.direction === 'down' ? TrendingDown : Minus;
-                const trendColor = c.trend?.direction === 'up' ? 'text-emerald-500' : c.trend?.direction === 'down' ? 'text-red-500' : 'text-taupe/50';
+                const trendColor = c.trend?.direction === 'up' ? 'text-emerald-500' : c.trend?.direction === 'down' ? 'text-red-500' : 'text-seal-gray-500/50';
                 const cardInner = (
                   <Card hoverable={!!c.href} className={`h-full bg-gradient-to-br ${c.gradient} dark:from-transparent shadow-sm rounded-xl ${c.href ? 'cursor-pointer hover:shadow-md hover:ring-1 hover:ring-primary/20 transition-shadow' : 'cursor-default'}`}>
                     <CardContent className="py-4 px-5">
@@ -1146,7 +1146,7 @@ export default function DashboardPage() {
                         <div className={`h-8 w-8 rounded-lg ${c.bg} dark:bg-opacity-20 flex items-center justify-center`}>
                           <Icon className={`h-4 w-4 ${c.color}`} />
                         </div>
-                        <p className="text-[11px] text-taupe dark:text-slate-400 truncate flex-1">{c.label}</p>
+                        <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 truncate flex-1">{c.label}</p>
                         {c.trend && c.trend.direction !== 'flat' && (
                           <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${trendColor}`} title={`${c.trend.direction === 'up' ? '+' : '-'}${c.trend.delta} vs periode precedente`}>
                             <TrendIcon className="h-3 w-3" />
@@ -1155,8 +1155,8 @@ export default function DashboardPage() {
                         )}
                       </div>
                       <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">{c.value}</p>
-                      {c.subtext && <p className="text-[10px] text-taupe dark:text-slate-500 mt-0.5 truncate">{c.subtext}</p>}
-                      {!c.subtext && c.value === 0 && <p className="text-[10px] text-taupe">Rien à signaler</p>}
+                      {c.subtext && <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5 truncate">{c.subtext}</p>}
+                      {!c.subtext && c.value === 0 && <p className="text-[10px] text-seal-gray-500">Rien à signaler</p>}
                     </CardContent>
                   </Card>
                 );
@@ -1182,7 +1182,7 @@ export default function DashboardPage() {
                           <div className={`h-8 w-8 rounded-lg ${c.bg} dark:bg-opacity-20 flex items-center justify-center`}>
                             <Icon className={`h-4 w-4 ${c.color}`} />
                           </div>
-                          <p className="text-[11px] text-taupe dark:text-slate-400 truncate flex-1">{c.label}</p>
+                          <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 truncate flex-1">{c.label}</p>
                         </div>
                         <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">{c.value}</p>
                         <div className="flex items-center gap-1 mt-1.5">
@@ -1220,7 +1220,7 @@ export default function DashboardPage() {
           ))}
         </div>
         {lastLoadedAt && !loading && (
-          <p className="text-[10px] text-taupe/70 dark:text-slate-500">
+          <p className="text-[10px] text-seal-gray-500/70 dark:text-slate-500">
             {(() => {
               const diffMin = Math.floor((Date.now() - lastLoadedAt.getTime()) / 60000);
               return diffMin < 1 ? 'À l\'instant' : `Il y a ${diffMin} min`;
@@ -1232,7 +1232,7 @@ export default function DashboardPage() {
       {/* Compliance + Tickets + Veille row — ADMIN FULL MODE (REVIEWER+ for compliance, ADMIN+ for tickets/veille) */}
       {isManager && (compliance || ticketStats || veilleStats) && (
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">Vue d&apos;ensemble</p>
+          <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">Vue d&apos;ensemble</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {compliance && (
             <Link href="/admin/compliance" className="flex stagger-item">
@@ -1242,7 +1242,7 @@ export default function DashboardPage() {
                     <ShieldCheck className="h-6 w-6 text-navy dark:text-blue-400" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs text-taupe dark:text-slate-400">Conformité ISO</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400">Conformité ISO</p>
                     <p className="text-xl font-medium text-navy dark:text-white">{compliance.coveragePercent}%</p>
                     <div className="h-1.5 rounded-full bg-gray-200 dark:bg-slate-700 mt-1 overflow-hidden">
                       <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${compliance.coveragePercent}%` }} />
@@ -1260,9 +1260,9 @@ export default function DashboardPage() {
                     <Ticket className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <p className="text-xs text-taupe dark:text-slate-400">Tickets IT</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400">Tickets IT</p>
                     <p className="text-xl font-medium text-navy dark:text-white">{ticketStats.open + ticketStats.inProgress}</p>
-                    <p className="text-[10px] text-taupe dark:text-slate-500">{ticketStats.open} ouverts, {ticketStats.inProgress} en cours</p>
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">{ticketStats.open} ouverts, {ticketStats.inProgress} en cours</p>
                   </div>
                 </CardContent>
               </Card>
@@ -1276,9 +1276,9 @@ export default function DashboardPage() {
                     <Rss className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div>
-                    <p className="text-xs text-taupe dark:text-slate-400">Veille cyber</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400">Veille cyber</p>
                     <p className="text-xl font-medium text-navy dark:text-white">{veilleStats.unprocessed}</p>
-                    <p className="text-[10px] text-taupe dark:text-slate-500">alertes à traiter sur {veilleStats.total}</p>
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">alertes à traiter sur {veilleStats.total}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -1307,8 +1307,8 @@ export default function DashboardPage() {
                 </div>
               ) : recentDocs.length === 0 ? (
                 <div className="py-12 text-center">
-                  <FileText className="h-10 w-10 text-taupe/30 mx-auto mb-2" />
-                  <p className="text-sm text-taupe dark:text-slate-400">{t('common.noResults')}</p>
+                  <FileText className="h-10 w-10 text-seal-gray-500/30 mx-auto mb-2" />
+                  <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('common.noResults')}</p>
                   <Link href="/documents/new" className="text-xs text-primary hover:underline mt-1 inline-block">Créer un document</Link>
                 </div>
               ) : (
@@ -1316,14 +1316,14 @@ export default function DashboardPage() {
                   {recentDocs.map(doc => (
                     <Link key={doc.id} href={`/documents/${doc.id}`} className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition-colors group">
                       <div className="h-8 w-8 rounded-lg bg-gray-50 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/10 transition-colors">
-                        <FileText className="h-4 w-4 text-taupe dark:text-slate-400 group-hover:text-primary transition-colors" />
+                        <FileText className="h-4 w-4 text-seal-gray-500 dark:text-slate-400 group-hover:text-primary transition-colors" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-navy dark:text-white truncate">{doc.title}</p>
-                        <p className="text-[11px] text-taupe dark:text-slate-400 mt-0.5">{doc.reference} — {doc.owner.firstName} {doc.owner.lastName}</p>
+                        <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5">{doc.reference} — {doc.owner.firstName} {doc.owner.lastName}</p>
                       </div>
                       <StatusBadge status={doc.status as 'DRAFT' | 'IN_REVIEW' | 'PENDING_APPROVAL' | 'APPROVED' | 'OBSOLETE' | 'ARCHIVED'} />
-                      <span className="text-[11px] text-taupe dark:text-slate-500 hidden sm:block whitespace-nowrap">{formatRelativeTime(doc.updatedAt)}</span>
+                      <span className="text-[11px] text-seal-gray-500 dark:text-slate-500 hidden sm:block whitespace-nowrap">{formatRelativeTime(doc.updatedAt)}</span>
                     </Link>
                   ))}
                 </div>
@@ -1344,8 +1344,8 @@ export default function DashboardPage() {
                   {pinnedNews.slice(0, 3).map(n => (
                     <Link key={n.id} href={`/news/${n.slug}`} className="block px-6 py-3 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                       <p className="text-sm font-medium text-navy dark:text-white line-clamp-1">{n.title}</p>
-                      {n.excerpt && <p className="text-xs text-taupe dark:text-slate-400 line-clamp-2 mt-0.5">{n.excerpt}</p>}
-                      <p className="text-[10px] text-taupe/60 dark:text-slate-500 mt-1">{n.author.firstName} {n.author.lastName} — {formatDate(n.publishedAt)}</p>
+                      {n.excerpt && <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mt-0.5">{n.excerpt}</p>}
+                      <p className="text-[10px] text-seal-gray-500/60 dark:text-slate-500 mt-1">{n.author.firstName} {n.author.lastName} — {formatDate(n.publishedAt)}</p>
                     </Link>
                   ))}
                 </div>
@@ -1368,14 +1368,14 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-navy dark:text-white">Enquête de satisfaction</p>
-                    <p className="text-xs text-taupe dark:text-slate-400 truncate">{activeSurvey.title}</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">{activeSurvey.title}</p>
                   </div>
                   <Link href="/satisfaction" className="text-xs text-primary hover:underline flex items-center gap-1 flex-shrink-0">
                     Voir tout <ArrowRight className="h-3 w-3" />
                   </Link>
                 </div>
                 {activeSurvey.description && (
-                  <p className="text-xs text-taupe dark:text-slate-400 mb-3 line-clamp-2">{activeSurvey.description}</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3 line-clamp-2">{activeSurvey.description}</p>
                 )}
                 <Link href="/satisfaction">
                   <Button size="sm" className="w-full">
@@ -1395,7 +1395,7 @@ export default function DashboardPage() {
                     <Activity className="h-4 w-4 text-primary" />
                     <h3 className="text-sm font-semibold text-navy dark:text-white">Mon activité</h3>
                     {weeklyActivityCounts.length > 0 && (
-                      <span className="text-[10px] text-taupe dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-2 py-0.5">
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-2 py-0.5">
                         {weeklyActivityCounts.reduce((a, b) => a + b, 0)} actions cette semaine
                       </span>
                     )}
@@ -1421,7 +1421,7 @@ export default function DashboardPage() {
                               className={`w-full max-w-[18px] rounded-sm transition-all ${count > 0 ? 'bg-primary/70 dark:bg-primary/50' : 'bg-gray-200 dark:bg-slate-700'}`}
                               style={{ height: `${heightPct}%`, minHeight: '2px' }}
                             />
-                            <span className="text-[8px] text-taupe dark:text-slate-500 leading-none">{label}</span>
+                            <span className="text-[8px] text-seal-gray-500 dark:text-slate-500 leading-none">{label}</span>
                           </div>
                         );
                       });
@@ -1501,9 +1501,9 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-navy dark:text-white truncate">{actionLabel}</p>
-                        <p className="text-[10px] text-taupe dark:text-slate-500 truncate">{typeLabel[resType.toLowerCase()] ?? resType.toLowerCase()}</p>
+                        <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">{typeLabel[resType.toLowerCase()] ?? resType.toLowerCase()}</p>
                       </div>
-                      <span className="text-[10px] text-taupe dark:text-slate-500 flex-shrink-0 whitespace-nowrap">{formatRelativeTime(a.createdAt)}</span>
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex-shrink-0 whitespace-nowrap">{formatRelativeTime(a.createdAt)}</span>
                     </div>
                   );
                 })}
@@ -1515,8 +1515,8 @@ export default function DashboardPage() {
           {bookmarks.length === 0 && (
             <Card>
               <CardContent className="py-6 text-center">
-                <Star className="h-6 w-6 text-taupe/30 mx-auto mb-2" />
-                <p className="text-xs text-taupe dark:text-slate-400">Ajoutez des favoris via &#9733; sur n&apos;importe quelle page</p>
+                <Star className="h-6 w-6 text-seal-gray-500/30 mx-auto mb-2" />
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Ajoutez des favoris via &#9733; sur n&apos;importe quelle page</p>
               </CardContent>
             </Card>
           )}
@@ -1526,7 +1526,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
                   <h3 className="text-sm font-semibold text-navy dark:text-white">Mes favoris</h3>
-                  <span className="text-[10px] text-taupe dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-2 py-0.5">{bookmarks.length}</span>
+                  <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-2 py-0.5">{bookmarks.length}</span>
                   <Link href="/documents" className="ml-auto text-xs text-primary hover:underline flex items-center gap-1">
                     Voir tout <ArrowRight className="h-3 w-3" />
                   </Link>
@@ -1545,7 +1545,7 @@ export default function DashboardPage() {
                     <Link key={`${b.type}-${b.id}`} href={b.href} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 dark:border-slate-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition group">
                       <TIcon className={`h-3.5 w-3.5 ${ti.color} flex-shrink-0`} />
                       <span className="text-xs font-medium text-navy dark:text-white truncate group-hover:text-primary transition">{b.title}</span>
-                      <span className="text-[10px] text-taupe dark:text-slate-500 ml-auto capitalize flex-shrink-0">{b.type}</span>
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 ml-auto capitalize flex-shrink-0">{b.type}</span>
                     </Link>
                   );
                 })}
@@ -1558,7 +1558,7 @@ export default function DashboardPage() {
 
           {/* Activity widgets — 2-col grid (Lucca always visible) */}
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">Widgets</p>
+            <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">Widgets</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
                 {/* Lucca RH — always shown */}
                 <Card className="h-full">
@@ -1627,8 +1627,8 @@ export default function DashboardPage() {
                           <div key={a.id} className="flex items-center gap-2 text-xs">
                             <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
                             <span className="text-navy dark:text-white font-medium truncate">{label}</span>
-                            <span className="text-taupe dark:text-slate-400">{typeLabel[rt] ?? rt}</span>
-                            <span className="text-taupe dark:text-slate-500 ml-auto whitespace-nowrap">{formatRelativeTime(a.createdAt)}</span>
+                            <span className="text-seal-gray-500 dark:text-slate-400">{typeLabel[rt] ?? rt}</span>
+                            <span className="text-seal-gray-500 dark:text-slate-500 ml-auto whitespace-nowrap">{formatRelativeTime(a.createdAt)}</span>
                           </div>
                           );
                         })}
@@ -1662,7 +1662,7 @@ function AiSuggestionsCard({ data }: { data: { documents: any[]; wiki: any[]; ac
         <div className="flex items-center gap-2 mb-3">
           <Sparkles className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold text-navy dark:text-white">Suggestions pour vous</h3>
-          <span className="ml-auto text-[10px] text-taupe dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-2 py-0.5">{totalItems}</span>
+          <span className="ml-auto text-[10px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-2 py-0.5">{totalItems}</span>
         </div>
 
         {/* Role-based contextual suggestions */}
@@ -1672,7 +1672,7 @@ function AiSuggestionsCard({ data }: { data: { documents: any[]; wiki: any[]; ac
               className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition text-xs">
               <BookOpen className="h-3.5 w-3.5 text-emerald-600" />
               <span className="font-medium text-navy dark:text-white">Vous avez {data.wiki.length} article{data.wiki.length > 1 ? 's' : ''} wiki non lu{data.wiki.length > 1 ? 's' : ''} cette semaine</span>
-              <ArrowRight className="h-3 w-3 text-taupe ml-auto" />
+              <ArrowRight className="h-3 w-3 text-seal-gray-500 ml-auto" />
             </Link>
           )}
           {data.actions.filter((a): a is string => typeof a === 'string').map((action, i) => {
@@ -1688,7 +1688,7 @@ function AiSuggestionsCard({ data }: { data: { documents: any[]; wiki: any[]; ac
                  isQuiz ? <Brain className="h-3.5 w-3.5 text-pink-600" /> :
                  <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
                 <span className="font-medium text-navy dark:text-white">{action}</span>
-                <ArrowRight className="h-3 w-3 text-taupe ml-auto" />
+                <ArrowRight className="h-3 w-3 text-seal-gray-500 ml-auto" />
               </Link>
             );
           })}
@@ -1696,12 +1696,12 @@ function AiSuggestionsCard({ data }: { data: { documents: any[]; wiki: any[]; ac
 
         {data.documents.length > 0 && (
           <div className="mb-3">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">Documents recommandes</p>
+            <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">Documents recommandes</p>
             <div className="space-y-1">
               {data.documents.slice(0, 3).map((doc: any) => (
                 <Link key={doc.id} href={`/documents/${doc.id}`}
                   className="flex items-center gap-2 p-1.5 rounded hover:bg-gray-50 dark:hover:bg-slate-800 transition text-xs group">
-                  <FileText className="h-3.5 w-3.5 text-taupe group-hover:text-primary transition" />
+                  <FileText className="h-3.5 w-3.5 text-seal-gray-500 group-hover:text-primary transition" />
                   <span className="text-navy dark:text-white truncate group-hover:text-primary transition">{doc.title}</span>
                 </Link>
               ))}
@@ -1711,12 +1711,12 @@ function AiSuggestionsCard({ data }: { data: { documents: any[]; wiki: any[]; ac
 
         {data.wiki.length > 0 && (
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">Wiki recent</p>
+            <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">Wiki recent</p>
             <div className="space-y-1">
               {data.wiki.map((page: any) => (
                 <Link key={page.id} href={`/wiki/${page.slug || page.id}`}
                   className="flex items-center gap-2 p-1.5 rounded hover:bg-gray-50 dark:hover:bg-slate-800 transition text-xs group">
-                  <BookOpen className="h-3.5 w-3.5 text-taupe group-hover:text-primary transition" />
+                  <BookOpen className="h-3.5 w-3.5 text-seal-gray-500 group-hover:text-primary transition" />
                   <span className="text-navy dark:text-white truncate group-hover:text-primary transition">{page.title}</span>
                 </Link>
               ))}
@@ -1779,7 +1779,7 @@ function SmartInsightsWidget({ data }: { data: UxInsightsData }) {
 
   return (
     <div>
-      <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">
+      <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">
         Smart Insights
       </p>
       <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
@@ -1810,7 +1810,7 @@ function SmartInsightsWidget({ data }: { data: UxInsightsData }) {
               <Brain className="h-4 w-4 text-primary" />
               Analyse intelligente
             </h3>
-            <p className="text-[11px] text-taupe dark:text-slate-400 mt-0.5">
+            <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5">
               {(data.insights?.length ?? 0)} recommandation{(data.insights?.length ?? 0) > 1 ? 's' : ''}{' '}
               personnalisée{(data.insights?.length ?? 0) > 1 ? 's' : ''} pour vous
             </p>
@@ -1832,7 +1832,7 @@ function SmartInsightsWidget({ data }: { data: UxInsightsData }) {
                       {typeLabel[insight.type]}
                     </span>
                     <p className="text-xs font-semibold text-navy dark:text-white leading-snug mt-1">{insight.title}</p>
-                    <p className="text-[11px] text-taupe dark:text-slate-400 mt-0.5 line-clamp-2">{insight.description}</p>
+                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2">{insight.description}</p>
                   </div>
                 </div>
                 {insight.action && (

@@ -21,7 +21,7 @@ export default function AppNotFound() {
           Page introuvable
         </h2>
 
-        <p className="mt-3 text-sm text-taupe dark:text-slate-400 leading-relaxed">
+        <p className="mt-3 text-sm text-seal-gray-500 dark:text-slate-400 leading-relaxed">
           L&apos;adresse que vous avez saisie ne correspond &agrave; aucune page.
         </p>
 

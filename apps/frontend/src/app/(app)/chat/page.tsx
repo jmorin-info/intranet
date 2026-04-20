@@ -96,7 +96,7 @@ export default function ChatPage() {
         <div className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold text-navy dark:text-white">{t('chat.title')}</h2>
-          <span className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500">
+          <span className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
             Rocket.Chat
           </span>
         </div>
@@ -104,7 +104,7 @@ export default function ChatPage() {
           href={CHAT_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-taupe dark:text-slate-400 hover:text-primary"
+          className="flex items-center gap-1 text-xs text-seal-gray-500 dark:text-slate-400 hover:text-primary"
         >
           Ouvrir dans un nouvel onglet <ExternalLink className="h-3 w-3" />
         </a>
