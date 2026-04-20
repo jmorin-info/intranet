@@ -650,9 +650,9 @@ export function HelpdeskChat() {
               {isTyping && (
                 <div className="flex gap-1 px-4 py-2">
                   <div className="bg-gray-100 dark:bg-slate-800 rounded-2xl px-4 py-3 flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-taupe/50 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="h-2 w-2 rounded-full bg-taupe/50 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="h-2 w-2 rounded-full bg-taupe/50 animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <div className="h-2 w-2 rounded-full bg-seal-gray-400/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="h-2 w-2 rounded-full bg-seal-gray-400/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="h-2 w-2 rounded-full bg-seal-gray-400/60 animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               )}

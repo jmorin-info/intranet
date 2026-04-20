@@ -1,6 +1,17 @@
 {
   "extends": "next/core-web-vitals",
   "rules": {
-    "@next/next/no-html-link-for-pages": "off"
+    "@next/next/no-html-link-for-pages": "off",
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "JSXAttribute[name.name='className'] Literal[value=/(^|\\s|!)(text|bg|border|ring|from|to|via)-(navy|taupe)(\\b|-|\\/|:)/]",
+        "message": "Classe Tailwind legacy (text-navy / text-taupe / bg-navy / ...). Utiliser l'equivalent seal-* (text-seal-navy / text-seal-gray-500 / bg-seal-navy/10 / ...). Voir docs/design-system/SEAL_USAGE.md §3."
+      },
+      {
+        "selector": "JSXAttribute[name.name='className'] TemplateElement[value.raw=/(^|\\s|!)(text|bg|border|ring|from|to|via)-(navy|taupe)(\\b|-|\\/|:)/]",
+        "message": "Classe Tailwind legacy detectee dans template literal. Utiliser seal-*. Voir docs/design-system/SEAL_USAGE.md §3."
+      }
+    ]
   }
 }
