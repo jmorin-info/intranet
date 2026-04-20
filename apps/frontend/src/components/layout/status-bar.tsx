@@ -624,7 +624,7 @@ export function StatusBar() {
                   {workflows.map((w) => (
                     <li key={w.id}>
                       <Link
-                        href={`/approval-workflows/${w.id}`}
+                        href={`/admin/workflows/${w.id}`}
                         onClick={() => setOpenId(null)}
                         className="flex items-start gap-2 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                       >

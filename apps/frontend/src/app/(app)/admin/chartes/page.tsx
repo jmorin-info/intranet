@@ -106,16 +106,33 @@ export default function AdminChartesPage() {
   }, []);
 
   const handleCreate = async () => {
-    if (!createTitle || !createSlug) return;
+    const title = createTitle.trim();
+    const slug = createSlug.trim();
+    if (!title || !slug) {
+      toast.error('Titre et slug requis');
+      return;
+    }
+    if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) {
+      toast.error('Slug invalide : minuscules, chiffres et tirets uniquement.');
+      return;
+    }
     setCreating(true);
     try {
-      await api.post('/chartes', { title: createTitle, slug: createSlug });
+      await api.post('/chartes', { title, slug });
       toast.success('Charte créée');
       setShowCreate(false);
       setCreateTitle('');
       setCreateSlug('');
       fetchChartes();
-    } catch { toast.error('Erreur lors de la création de la charte'); } finally { setCreating(false); }
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Erreur lors de la création de la charte';
+      toast.error(Array.isArray(message) ? message.join(' · ') : message);
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleUpload = async () => {
@@ -133,7 +150,15 @@ export default function AdminChartesPage() {
       setUploadVersion('');
       setUploadChangeLog('');
       fetchChartes();
-    } catch { toast.error('Erreur upload'); } finally { setUploading(false); }
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Erreur upload';
+      toast.error(Array.isArray(message) ? message.join(' · ') : message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDirectionSign = async (charteId: string) => {

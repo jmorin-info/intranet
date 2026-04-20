@@ -223,7 +223,7 @@ export class DocumentsController {
     @Body('changeLog') changeLog: string,
     @CurrentUser() user: RequestUser,
   ) {
-    if (!file) throw new NotFoundException('File is required');
+    if (!file) throw new BadRequestException('Fichier requis');
     return this.documentsService.uploadVersion(id, file, changeLog, user.id);
   }
 
