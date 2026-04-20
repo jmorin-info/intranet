@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { features } from '@/lib/features';
 import { useAuthStore } from '@/stores/auth-store';
@@ -449,15 +450,40 @@ export default function TicketsPage() {
     }
   }, [showCreate]);
 
-  // Load ticket spaces (multi-space selector)
+  // Load ticket spaces (multi-space selector). Auto-selection d'un espace
+  // par défaut au premier chargement (mono-vue : toujours un espace actif)
+  // pour éviter de voir tous les espaces mélangés (feedback user 2026-04-20).
   useEffect(() => {
     api.get('/tickets/spaces')
       .then((r) => {
         const data = Array.isArray(r.data) ? r.data : [];
         setSpaces(data);
+
+        // Lecture préférence stockée localement, sinon space.isDefault,
+        // sinon premier de la liste.
+        if (data.length > 0 && !activeSpaceSlug) {
+          const saved = typeof window !== 'undefined'
+            ? localStorage.getItem('omnitech.tickets.activeSpace')
+            : null;
+          const savedSpace = saved ? data.find((s: any) => s.slug === saved) : null;
+          const defaultSpace = data.find((s: any) => s.isDefault) ?? data[0];
+          const chosen = savedSpace || defaultSpace;
+          if (chosen) {
+            setActiveSpaceSlug(chosen.slug);
+          }
+        }
       })
       .catch(() => setSpaces([]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Persist active space choice across reloads
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (activeSpaceSlug) {
+      localStorage.setItem('omnitech.tickets.activeSpace', activeSpaceSlug);
+    }
+  }, [activeSpaceSlug]);
 
   // Load departments (for the filter + create form). Falls back to [] on 403/404.
   useEffect(() => {
@@ -969,40 +995,57 @@ export default function TicketsPage() {
         }
       />
 
-      {/* Multi-space selector */}
-      {spaces.length > 1 && (
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <button
-            onClick={() => { setActiveSpaceSlug(''); setPage(1); }}
-            className={`px-3 py-1.5 text-xs rounded-full font-semibold transition-all ${
-              activeSpaceSlug === ''
-                ? 'bg-seal-navy text-white dark:bg-white dark:text-seal-navy shadow-sm'
-                : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            Tous les espaces
-          </button>
-          {spaces.map((space) => (
-            <button
-              key={space.id}
-              onClick={() => { setActiveSpaceSlug(space.slug); setPage(1); }}
-              className={`px-3 py-1.5 text-xs rounded-full font-semibold transition-all flex items-center gap-1.5 ${
-                activeSpaceSlug === space.slug
-                  ? 'text-white shadow-sm'
-                  : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
-              }`}
-              style={activeSpaceSlug === space.slug && space.color ? { backgroundColor: space.color } : activeSpaceSlug === space.slug ? { backgroundColor: '#1e3a5f' } : undefined}
+      {/* Space switcher — mono-vue : un seul espace visible à la fois.
+          Feedback user 2026-04-20 : pas de 'Tous les espaces' pour éviter
+          mélange. Choix persisté en localStorage. */}
+      {spaces.length > 0 && (
+        <div className="flex items-center gap-3 flex-wrap rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-xs font-semibold uppercase tracking-wide text-seal-gray-500">
+              Espace actif
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap flex-1">
+            {spaces.map((space) => {
+              const active = activeSpaceSlug === space.slug;
+              return (
+                <button
+                  key={space.id}
+                  onClick={() => { setActiveSpaceSlug(space.slug); setPage(1); }}
+                  className={`px-3 py-1.5 text-xs rounded-full font-semibold transition-all flex items-center gap-1.5 ${
+                    active
+                      ? 'text-white shadow-sm'
+                      : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-700'
+                  }`}
+                  style={
+                    active && space.color
+                      ? { backgroundColor: space.color }
+                      : active
+                        ? { backgroundColor: '#004469' }
+                        : undefined
+                  }
+                  title={space.name}
+                >
+                  <span
+                    className="inline-block h-2 w-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: active ? 'rgba(255,255,255,0.9)' : space.color ?? '#837274' }}
+                  />
+                  {space.name}
+                  <span className={`opacity-60 tabular-nums ${active ? 'text-white/80' : ''}`}>
+                    ({space._count.tickets})
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {spaces.length > 0 && (
+            <Link
+              href="/admin/ticket-spaces"
+              className="flex-shrink-0 text-[11px] text-seal-gray-400 hover:text-seal-navy dark:hover:text-white underline decoration-dotted underline-offset-2"
             >
-              {space.color && (
-                <span
-                  className="inline-block h-2 w-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: space.color }}
-                />
-              )}
-              {space.name}
-              <span className="opacity-60 tabular-nums">({space._count.tickets})</span>
-            </button>
-          ))}
+              Gérer les espaces
+            </Link>
+          )}
         </div>
       )}
 

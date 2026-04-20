@@ -635,7 +635,14 @@ export default function DocumentDetailPage() {
     },
     {
       label: 'Publié',
-      status: doc.status === 'APPROVED' ? 'current' : doc.status === 'OBSOLETE' ? 'completed' : 'pending',
+      // APPROVED = publication finale effective → étape 'completed' (vert),
+      // pas 'current' (orange clignotant). OBSOLETE reste completed par
+      // cohérence historique (le doc a bien été publié à un moment).
+      status:
+        doc.status === 'APPROVED' || doc.status === 'OBSOLETE'
+          ? 'completed'
+          : 'pending',
+      date: doc.status === 'APPROVED' ? formatDate(doc.updatedAt) : undefined,
     },
   ];
 
