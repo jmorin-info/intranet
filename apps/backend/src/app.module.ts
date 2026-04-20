@@ -69,6 +69,7 @@ import { KnowBe4Module } from './knowbe4/knowbe4.module';
 import { BackupModule } from './backup/backup.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ChatModule } from './chat/chat.module';
+import { TicketSpacesModule } from './ticket-spaces/ticket-spaces.module';
 
 @Module({
   imports: [
@@ -149,6 +150,7 @@ import { ChatModule } from './chat/chat.module';
     BackupModule,
     DashboardModule,
     ChatModule,
+    TicketSpacesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

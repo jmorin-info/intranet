@@ -220,16 +220,44 @@ export class TicketsService {
       where.OR = orClauses;
     }
 
-    // ── Space filtering ──────────────────────────────────────────────
+    // ── Space filtering avec ACL ─────────────────────────────────────
+    // Non-admin : filtré par les espaces dont l'user est membre (via userId,
+    // role ou departmentId) OU qui n'ont pas de spaceId (legacy pré-migration).
+    let accessibleSpaceIds: string[] | null = null;
+    if (!isAdmin) {
+      const memberOf = await this.prisma.ticketSpaceMember.findMany({
+        where: {
+          OR: [
+            { userId: currentUser.id },
+            { role: currentUser.role },
+            ...(currentUser.departmentId ? [{ departmentId: currentUser.departmentId }] : []),
+          ],
+          space: { isActive: true },
+        },
+        select: { spaceId: true },
+      });
+      accessibleSpaceIds = [...new Set(memberOf.map((m) => m.spaceId))];
+    }
+
     if (filters.spaceId) {
+      if (!isAdmin && accessibleSpaceIds && !accessibleSpaceIds.includes(filters.spaceId)) {
+        // User demande un espace où il n'est pas membre → résultat vide
+        return { data: [], meta: { total: 0, page, limit, totalPages: 0 } };
+      }
       where.spaceId = filters.spaceId;
     } else if (filters.spaceSlug) {
       const space = await (this.prisma as any).ticketSpace?.findUnique?.({ where: { slug: filters.spaceSlug } }).catch(() => null);
       if (space) {
+        if (!isAdmin && accessibleSpaceIds && !accessibleSpaceIds.includes(space.id)) {
+          return { data: [], meta: { total: 0, page, limit, totalPages: 0 } };
+        }
         where.spaceId = space.id;
       }
+    } else if (!isAdmin && accessibleSpaceIds) {
+      // Aucun filtre explicite : user ne voit que les tickets de ses espaces
+      // (+ tickets legacy sans spaceId pour rétro-compat pendant la migration)
+      where.spaceId = { in: [...accessibleSpaceIds, null] };
     }
-    // If no space filter provided, return tickets from all spaces (including null/legacy)
 
     if (filters.status) {
       const parsed = parseEnumFilter(filters.status, VALID_TICKET_STATUSES);
