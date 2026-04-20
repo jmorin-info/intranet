@@ -292,17 +292,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-navy dark:text-white">Raccourcis clavier</h3>
-                  <p className="text-[10px] text-taupe dark:text-slate-500">Naviguez plus vite dans l&apos;intranet</p>
+                  <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">Naviguez plus vite dans l&apos;intranet</p>
                 </div>
               </div>
               <button onClick={() => setShowShortcuts(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition">
-                <X className="h-4 w-4 text-taupe" />
+                <X className="h-4 w-4 text-seal-gray-500" />
               </button>
             </div>
             <div className="px-5 py-4 space-y-5 max-h-[60vh] overflow-y-auto">
               {/* Global */}
               <div>
-                <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider mb-2">Recherche et aide</p>
+                <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Recherche et aide</p>
                 <div className="space-y-2">
                   <ShortcutRow keys={['Ctrl', 'K']} description="Recherche globale" icon={<Search className="h-3.5 w-3.5 text-primary" />} />
                   <ShortcutRow keys={['Ctrl', '/']} description="Ouvrir le helpdesk" icon={<MessageSquare className="h-3.5 w-3.5 text-emerald-500" />} />
@@ -310,7 +310,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               </div>
               {/* Creation */}
               <div>
-                <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider mb-2">Création rapide</p>
+                <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Création rapide</p>
                 <div className="space-y-2">
                   <ShortcutRow keys={['Ctrl', 'Shift', 'N']} description="Nouveau document" icon={<FileText className="h-3.5 w-3.5 text-blue-500" />} />
                   <ShortcutRow keys={['Ctrl', 'Shift', 'T']} description="Nouveau ticket" icon={<Ticket className="h-3.5 w-3.5 text-amber-500" />} />
@@ -318,7 +318,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               </div>
               {/* Go-to navigation */}
               <div>
-                <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider mb-2">Aller vers (G puis...)</p>
+                <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Aller vers (G puis...)</p>
                 <div className="space-y-2">
                   <ShortcutRow keys={['G', 'D']} description="Tableau de bord" icon={<Home className="h-3.5 w-3.5 text-navy dark:text-white" />} />
                   <ShortcutRow keys={['G', 'T']} description="Tickets" icon={<Ticket className="h-3.5 w-3.5 text-amber-500" />} />
@@ -328,7 +328,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   <ShortcutRow keys={['G', 'N']} description="Actualités" icon={<FileText className="h-3.5 w-3.5 text-blue-500" />} />
                   <ShortcutRow keys={['G', 'V']} description="Veille cyber" icon={<Shield className="h-3.5 w-3.5 text-red-500" />} />
                   <ShortcutRow keys={['G', 'A']} description="Annuaire" icon={<Users className="h-3.5 w-3.5 text-indigo-500" />} />
-                  <ShortcutRow keys={['G', 'P']} description="Mon profil" icon={<User className="h-3.5 w-3.5 text-taupe" />} />
+                  <ShortcutRow keys={['G', 'P']} description="Mon profil" icon={<User className="h-3.5 w-3.5 text-seal-gray-500" />} />
                   <ShortcutRow keys={['G', 'K']} description="Calendrier" icon={<Calendar className="h-3.5 w-3.5 text-cyan-500" />} />
                   <ShortcutRow keys={['G', 'I']} description="Incidents" icon={<Shield className="h-3.5 w-3.5 text-red-500" />} />
                   <ShortcutRow keys={['G', 'Y']} description="Santé système" icon={<Shield className="h-3.5 w-3.5 text-emerald-500" />} />
@@ -338,7 +338,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               </div>
               {/* General */}
               <div>
-                <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider mb-2">Général</p>
+                <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Général</p>
                 <div className="space-y-2">
                   <ShortcutRow keys={['Alt', 'Clic']} description="Mode Focus — lecture sans distraction" icon={<Focus className="h-3.5 w-3.5 text-primary" />} />
                   <ShortcutRow keys={['?']} description="Afficher les raccourcis" icon={<Keyboard className="h-3.5 w-3.5 text-amber-500" />} />
@@ -347,7 +347,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="px-5 py-3 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
-              <p className="text-[10px] text-taupe dark:text-slate-500 text-center">
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 text-center">
                 Appuyez sur <kbd className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-slate-700 text-[10px] font-mono font-semibold text-navy dark:text-white">Esc</kbd> pour fermer
               </p>
             </div>
@@ -360,7 +360,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             <div className="text-center">
               <Clock className="h-10 w-10 text-amber-500 mx-auto mb-3" />
               <h3 className="text-lg font-semibold text-navy dark:text-white">Session bientôt expirée</h3>
-              <p className="text-sm text-taupe dark:text-slate-400 mt-2">
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-2">
                 Votre session expire dans moins de 2 minutes. Souhaitez-vous la prolonger ?
               </p>
               <div className="flex gap-3 mt-4">
@@ -372,7 +372,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 </button>
                 <button
                   onClick={() => { window.location.href = '/login'; }}
-                  className="flex-1 border border-gray-300 dark:border-slate-600 rounded-lg py-2 text-sm text-taupe dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800"
+                  className="flex-1 border border-gray-300 dark:border-slate-600 rounded-lg py-2 text-sm text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800"
                 >
                   Déconnexion
                 </button>
@@ -402,7 +402,7 @@ function ShortcutRow({ keys, description, icon }: { keys: string[]; description:
       <div className="flex items-center gap-1">
         {keys.map((key, i) => (
           <React.Fragment key={i}>
-            {i > 0 && <span className="text-[10px] text-taupe dark:text-slate-500">+</span>}
+            {i > 0 && <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">+</span>}
             <kbd className="inline-flex items-center justify-center min-w-[24px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 text-[11px] font-mono font-semibold text-navy dark:text-white">
               {key}
             </kbd>

@@ -40,11 +40,11 @@ export const radius = {
 export const typography = {
   pageTitle: 'text-xl md:text-2xl font-semibold text-navy dark:text-white',
   sectionTitle: 'text-sm font-semibold text-navy dark:text-white',
-  body: 'text-sm text-taupe dark:text-slate-300',
-  caption: 'text-xs text-taupe dark:text-slate-400',
-  micro: 'text-[10px] text-taupe/60 dark:text-slate-500',
+  body: 'text-sm text-seal-gray-500 dark:text-slate-300',
+  caption: 'text-xs text-seal-gray-500 dark:text-slate-400',
+  micro: 'text-[10px] text-seal-gray-500/60 dark:text-slate-500',
   mono: 'font-mono text-xs text-navy dark:text-white',
-  label: 'text-[10px] font-semibold uppercase tracking-wider text-taupe/60 dark:text-slate-500',
+  label: 'text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500/60 dark:text-slate-500',
 } as const;
 
 // ── Component Density ──────────────────────────────────────────────

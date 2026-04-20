@@ -164,7 +164,7 @@ export function AnnotationsDrawer() {
           <aside className="relative h-full w-full sm:w-96 bg-white dark:bg-slate-900 shadow-2xl border-l border-gray-200 dark:border-slate-700 flex flex-col animate-slide-in-right">
             <header className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-700">
               <div>
-                <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500">
+                <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500">
                   Annotations
                 </p>
                 <h2 className="text-sm font-medium text-navy dark:text-white truncate max-w-[240px]">
@@ -177,13 +177,13 @@ export function AnnotationsDrawer() {
                 aria-label="Fermer"
                 className="h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 flex items-center justify-center"
               >
-                <X className="h-4 w-4 text-taupe dark:text-slate-400" />
+                <X className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
               </button>
             </header>
 
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
               {pageAnnotations.length === 0 && (
-                <p className="text-xs text-taupe dark:text-slate-500 italic text-center py-6">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-500 italic text-center py-6">
                   Aucune annotation sur cette page. Partagez un commentaire rapide ci-dessous.
                 </p>
               )}
@@ -205,7 +205,7 @@ export function AnnotationsDrawer() {
                       type="button"
                       onClick={() => remove(a.id)}
                       aria-label="Supprimer cette annotation"
-                      className="flex-shrink-0 h-6 w-6 rounded hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center text-taupe hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400 transition"
+                      className="flex-shrink-0 h-6 w-6 rounded hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center text-seal-gray-500 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400 transition"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -213,7 +213,7 @@ export function AnnotationsDrawer() {
                   <p className="text-xs text-navy dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
                     {a.body}
                   </p>
-                  <p className="text-[10px] text-taupe/70 dark:text-slate-500 mt-1.5">
+                  <p className="text-[10px] text-seal-gray-500/70 dark:text-slate-500 mt-1.5">
                     {formatAt(a.createdAt)}
                   </p>
                 </div>
@@ -228,11 +228,11 @@ export function AnnotationsDrawer() {
                 onKeyDown={handleKey}
                 placeholder="Ajoutez une annotation…"
                 rows={3}
-                className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-navy dark:text-white placeholder:text-taupe/60 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 resize-none"
+                className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-navy dark:text-white placeholder:text-seal-gray-500/60 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 resize-none"
                 aria-label="Nouvelle annotation"
               />
               <div className="flex items-center justify-between mt-2">
-                <span className="text-[10px] text-taupe/70 dark:text-slate-500">
+                <span className="text-[10px] text-seal-gray-500/70 dark:text-slate-500">
                   ⌘ + ↵ pour envoyer
                 </span>
                 <button

@@ -81,7 +81,7 @@ const HUB_BY_SEGMENT: Record<string, HubCrumb> = {
 
 // Shared control class — all controls share the same 36px height for visual alignment.
 const CONTROL_BASE =
-  'inline-flex h-9 items-center justify-center rounded-lg text-taupe dark:text-slate-400 ' +
+  'inline-flex h-9 items-center justify-center rounded-lg text-seal-gray-500 dark:text-slate-400 ' +
   'hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-blue dark:hover:text-seal-orange ' +
   'transition-colors focus-visible:outline-none focus-visible:ring-2 ' +
   'focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white ' +
@@ -369,7 +369,7 @@ export function Header() {
         <nav
           key={pathname}
           aria-label="Fil d'Ariane"
-          className="hidden sm:flex items-center gap-1.5 text-[13px] text-taupe dark:text-slate-400 breadcrumb-fade min-w-0"
+          className="hidden sm:flex items-center gap-1.5 text-[13px] text-seal-gray-500 dark:text-slate-400 breadcrumb-fade min-w-0"
         >
           <Link
             href="/dashboard"
@@ -381,10 +381,10 @@ export function Header() {
           </Link>
           {breadcrumbs.map((crumb, idx) => (
             <React.Fragment key={'ellipsis' in crumb ? `ellipsis-${idx}` : `${idx}-${crumb.href}`}>
-              <ChevronRight className="h-3.5 w-3.5 text-taupe/40 dark:text-slate-600 flex-shrink-0" />
+              <ChevronRight className="h-3.5 w-3.5 text-seal-gray-500/40 dark:text-slate-600 flex-shrink-0" />
               {'ellipsis' in crumb ? (
                 <span
-                  className="text-taupe/60 dark:text-slate-500 px-0.5"
+                  className="text-seal-gray-500/60 dark:text-slate-500 px-0.5"
                   aria-label="Segments masqués"
                   title="Segments masqués"
                 >
@@ -412,11 +412,11 @@ export function Header() {
               <>
                 <Link
                   href={prev.href}
-                  className="text-taupe dark:text-slate-400 truncate hover:text-seal-blue dark:hover:text-seal-orange transition-colors"
+                  className="text-seal-gray-500 dark:text-slate-400 truncate hover:text-seal-blue dark:hover:text-seal-orange transition-colors"
                 >
                   {prev.label}
                 </Link>
-                <ChevronRight className="h-3.5 w-3.5 text-taupe/40 dark:text-slate-600 flex-shrink-0" />
+                <ChevronRight className="h-3.5 w-3.5 text-seal-gray-500/40 dark:text-slate-600 flex-shrink-0" />
               </>
             ) : null;
           })()}
@@ -467,7 +467,7 @@ export function Header() {
                 className="header-dropdown-in absolute right-0 top-full mt-2 w-52 max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl py-1 z-50"
               >
                 <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-taupe dark:text-slate-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-seal-gray-500 dark:text-slate-500">
                     Espace actif
                   </p>
                 </div>
@@ -480,7 +480,7 @@ export function Header() {
                       !activeSpaceId ? 'text-seal-blue dark:text-seal-orange font-semibold' : 'text-navy dark:text-slate-200'
                     }`}
                   >
-                    <Layers className="h-3.5 w-3.5 text-taupe dark:text-slate-400" />
+                    <Layers className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-400" />
                     Tous les espaces
                   </button>
                   {spaces.map((space) => (
@@ -511,7 +511,7 @@ export function Header() {
           onClick={openQuickSearch}
           className={
             'hidden sm:inline-flex h-9 items-center gap-2 rounded-lg border border-gray-200 dark:border-slate-700 ' +
-            'bg-gray-50/60 dark:bg-slate-800/40 px-3 text-[13px] text-taupe dark:text-slate-400 ' +
+            'bg-gray-50/60 dark:bg-slate-800/40 px-3 text-[13px] text-seal-gray-500 dark:text-slate-400 ' +
             'hover:bg-white dark:hover:bg-slate-800 hover:border-primary/40 hover:shadow-[0_0_0_1px_rgba(249,150,74,0.15)] ' +
             'transition-all duration-200 md:w-[200px] lg:w-[260px] w-10 ' +
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ' +
@@ -522,7 +522,7 @@ export function Header() {
         >
           <Search className="h-4 w-4 flex-shrink-0" />
           <span className="hidden md:inline flex-1 text-left">Naviguer...</span>
-          <kbd className="hidden md:inline-flex items-center gap-0.5 rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-taupe dark:text-slate-400">
+          <kbd className="hidden md:inline-flex items-center gap-0.5 rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-seal-gray-500 dark:text-slate-400">
             Ctrl K
           </kbd>
         </button>
@@ -552,7 +552,7 @@ export function Header() {
                 className="header-dropdown-in absolute right-0 top-full mt-2 w-60 max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl py-1 z-50"
               >
                 <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-taupe dark:text-slate-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-seal-gray-500 dark:text-slate-500">
                     Actions rapides
                   </p>
                 </div>
@@ -622,7 +622,7 @@ export function Header() {
               </div>
               <div className="max-h-80 overflow-y-auto scrollbar-thin">
                 {recentNotifs.length === 0 ? (
-                  <p className="text-xs text-taupe dark:text-slate-400 text-center py-6">Aucune notification</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-6">Aucune notification</p>
                 ) : recentNotifs.map((n) => (
                   <button
                     key={n.id}
@@ -637,11 +637,11 @@ export function Header() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-navy dark:text-white line-clamp-1">{n.title}</p>
-                      {n.body && <p className="text-[10px] text-taupe dark:text-slate-400 line-clamp-1 mt-0.5">{n.body}</p>}
-                      <p className="text-[10px] text-taupe dark:text-slate-500 mt-1">{formatRelativeTime(n.createdAt)}</p>
+                      {n.body && <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 line-clamp-1 mt-0.5">{n.body}</p>}
+                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-1">{formatRelativeTime(n.createdAt)}</p>
                     </div>
                     {getNotifHref(n) && (
-                      <ExternalLink className="h-3.5 w-3.5 text-taupe dark:text-slate-500 flex-shrink-0 mt-1" aria-hidden="true" />
+                      <ExternalLink className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-500 flex-shrink-0 mt-1" aria-hidden="true" />
                     )}
                   </button>
                 ))}
@@ -700,7 +700,7 @@ export function Header() {
               )}
             </span>
             <ChevronDown
-              className={`h-3.5 w-3.5 text-taupe dark:text-slate-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
+              className={`h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
             />
           </button>
 
@@ -712,9 +712,9 @@ export function Header() {
             >
               <div className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700">
                 <p className="text-sm font-semibold text-navy dark:text-white truncate">{user.firstName} {user.lastName}</p>
-                <p className="text-[11px] text-taupe dark:text-slate-400 truncate">{user.email}</p>
+                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 truncate">{user.email}</p>
                 {lastLoginAt && (
-                  <p className="text-[10px] text-taupe/70 dark:text-slate-500 mt-1">
+                  <p className="text-[10px] text-seal-gray-500/70 dark:text-slate-500 mt-1">
                     Dernière connexion : {formatRelativeTime(lastLoginAt)}
                   </p>
                 )}
@@ -726,7 +726,7 @@ export function Header() {
                   className="flex items-center gap-2.5 px-4 py-2 text-sm text-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
                   onClick={() => setShowUserMenu(false)}
                 >
-                  <User className="h-4 w-4 text-taupe dark:text-slate-400" />
+                  <User className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
                   Mon profil
                 </Link>
                 {isSuperAdmin && (
@@ -736,7 +736,7 @@ export function Header() {
                     className="flex items-center gap-2.5 px-4 py-2 text-sm text-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
                     onClick={() => setShowUserMenu(false)}
                   >
-                    <Settings className="h-4 w-4 text-taupe dark:text-slate-400" />
+                    <Settings className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
                     Paramètres système
                   </Link>
                 )}
@@ -747,7 +747,7 @@ export function Header() {
                 className="flex items-center gap-2.5 px-4 py-2 text-sm text-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
                 onClick={() => setShowUserMenu(false)}
               >
-                <ExternalLink className="h-4 w-4 text-taupe dark:text-slate-400" />
+                <ExternalLink className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
                 Portail OMNITECH
               </Link>
               <hr className="my-1 border-gray-100 dark:border-slate-700" />
@@ -778,7 +778,7 @@ function DarkModeToggle() {
     <button
       onClick={toggleDarkMode}
       className={
-        'inline-flex h-9 w-9 items-center justify-center rounded-lg text-taupe dark:text-slate-400 ' +
+        'inline-flex h-9 w-9 items-center justify-center rounded-lg text-seal-gray-500 dark:text-slate-400 ' +
         'hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-blue dark:hover:text-seal-orange ' +
         'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ' +
         'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900'
@@ -799,7 +799,7 @@ function LanguageToggle() {
     <button
       onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
       className={
-        'inline-flex h-9 items-center gap-1 rounded-lg px-2 text-[12px] font-semibold text-taupe dark:text-slate-400 ' +
+        'inline-flex h-9 items-center gap-1 rounded-lg px-2 text-[12px] font-semibold text-seal-gray-500 dark:text-slate-400 ' +
         'hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-blue dark:hover:text-seal-orange ' +
         'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ' +
         'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900'

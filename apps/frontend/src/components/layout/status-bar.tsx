@@ -111,7 +111,7 @@ function StatusBarPopover({ title, count, footer, children }: StatusBarPopoverPr
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-slate-800">
         <h3 className="text-[13px] font-semibold text-navy dark:text-white truncate">{title}</h3>
         {typeof count === 'number' && (
-          <span className="text-[11px] font-semibold text-taupe dark:text-slate-400 tabular-nums">
+          <span className="text-[11px] font-semibold text-seal-gray-500 dark:text-slate-400 tabular-nums">
             {count}
           </span>
         )}
@@ -177,7 +177,7 @@ function Statuslet({
         aria-expanded={open}
         className={
           'inline-flex h-9 w-9 items-center justify-center rounded-lg relative ' +
-          'text-taupe dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 ' +
+          'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 ' +
           'hover:text-seal-blue dark:hover:text-seal-orange transition-colors ' +
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ' +
           'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ' +
@@ -433,7 +433,7 @@ export function StatusBar() {
               }
             >
               {incidents.length === 0 ? (
-                <p className="text-xs text-taupe dark:text-slate-400 text-center py-6">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-6">
                   Aucun incident critique ouvert.
                 </p>
               ) : (
@@ -451,7 +451,7 @@ export function StatusBar() {
                             {inc.title}
                           </p>
                           {inc.createdAt && (
-                            <p className="text-[10px] text-taupe dark:text-slate-500 mt-0.5">
+                            <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5">
                               {formatRelativeTime(inc.createdAt)}
                             </p>
                           )}
@@ -522,7 +522,7 @@ export function StatusBar() {
                           key={s.name}
                           className="flex items-center justify-between text-[11px]"
                         >
-                          <span className="text-taupe dark:text-slate-400 truncate">{s.name}</span>
+                          <span className="text-seal-gray-500 dark:text-slate-400 truncate">{s.name}</span>
                           <span
                             className={
                               'font-semibold uppercase tracking-wide ' +
@@ -570,7 +570,7 @@ export function StatusBar() {
             >
               <div className="px-4 py-4 text-center">
                 {ldapPending === 0 ? (
-                  <p className="text-xs text-taupe dark:text-slate-400">
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                     Aucune demande en attente.
                   </p>
                 ) : (
@@ -578,7 +578,7 @@ export function StatusBar() {
                     <p className="text-2xl font-bold text-seal-blue dark:text-seal-orange tabular-nums">
                       {ldapPending}
                     </p>
-                    <p className="text-[11px] text-taupe dark:text-slate-400 mt-1">
+                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-1">
                       demande{ldapPending > 1 ? 's' : ''} à traiter
                     </p>
                   </>
@@ -616,7 +616,7 @@ export function StatusBar() {
               }
             >
               {workflows.length === 0 ? (
-                <p className="text-xs text-taupe dark:text-slate-400 text-center py-6">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-6">
                   Aucun workflow en attente de votre décision.
                 </p>
               ) : (
@@ -634,7 +634,7 @@ export function StatusBar() {
                             {w.title || w.name || 'Workflow'}
                           </p>
                           {w.createdAt && (
-                            <p className="text-[10px] text-taupe dark:text-slate-500 mt-0.5">
+                            <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5">
                               {formatRelativeTime(w.createdAt)}
                             </p>
                           )}

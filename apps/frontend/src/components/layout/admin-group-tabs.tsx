@@ -108,7 +108,7 @@ export function AdminGroupTabs({ group }: Props) {
 
   return (
     <div className="mb-4">
-      <p className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500 mb-2">
+      <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 mb-2">
         {definition.label}
       </p>
       <nav
@@ -125,7 +125,7 @@ export function AdminGroupTabs({ group }: Props) {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${
                 isActive
                   ? 'bg-primary text-white shadow-sm'
-                  : 'bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-taupe dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white'
+                  : 'bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white'
               }`}
             >
               <Icon className="h-3.5 w-3.5" />

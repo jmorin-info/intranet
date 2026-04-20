@@ -225,15 +225,15 @@ export function FocusMode() {
             title="Passer en focus page"
             aria-label="Passer en focus page"
           >
-            <Maximize2 className="h-3 w-3 text-taupe" />
+            <Maximize2 className="h-3 w-3 text-seal-gray-500" />
           </button>
         )}
         {mode === 'page' && (
-          <span className="text-[10px] text-taupe dark:text-slate-400 hidden sm:inline">Alt+Clic sur un élément pour le cibler</span>
+          <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 hidden sm:inline">Alt+Clic sur un élément pour le cibler</span>
         )}
         <button
           onClick={exit}
-          className="flex items-center gap-1 rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-1 text-[11px] font-semibold text-taupe hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors"
+          className="flex items-center gap-1 rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-1 text-[11px] font-semibold text-seal-gray-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors"
         >
           <X className="h-3 w-3" />
           <span className="hidden sm:inline">Alt / Esc</span>
