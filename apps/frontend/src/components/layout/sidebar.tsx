@@ -530,8 +530,7 @@ export function Sidebar() {
         { label: 'Certifications', href: '/admin/certificates', icon: Award, minRole: UserRole.ADMIN },
         // --- Audit ---
         { label: 'Audit & reporting', href: '#sep-admin-3', icon: ClipboardList, separator: true, minRole: UserRole.ADMIN },
-        { label: t('nav.auditLog'), href: '/admin/audit-log', icon: ClipboardList, minRole: UserRole.SUPER_ADMIN },
-        { label: 'Frise audit', href: '/admin/audit-timeline', icon: Activity, minRole: UserRole.ADMIN },
+        { label: 'Audit (log + chronologie)', href: '/admin/audit', icon: ClipboardList, minRole: UserRole.ADMIN },
         { label: t('nav.reports'), href: '/admin/reports', icon: BarChart3, minRole: UserRole.ADMIN },
         { label: t('nav.adAudit'), href: '/admin/ad-audit', icon: ShieldAlert, minRole: UserRole.ADMIN },
         { label: 'Exports IT', href: '/admin/it-exports', icon: ClipboardCheck, minRole: UserRole.ADMIN },
@@ -541,7 +540,6 @@ export function Sidebar() {
           statusDot: healthStatus },
         { label: t('nav.config'), href: '/admin/config', icon: Settings, minRole: UserRole.SUPER_ADMIN },
         { label: 'Espaces & modules', href: '/admin/spaces', icon: Layers, minRole: UserRole.SUPER_ADMIN },
-        { label: 'Audit dark mode', href: '/admin/dark-mode-audit', icon: Moon, minRole: UserRole.ADMIN },
         { label: 'Sauvegardes', href: '/admin/backups', icon: Database, minRole: UserRole.SUPER_ADMIN },
         // { label: 'Extranet', href: '/extranet', icon: Globe2, minRole: UserRole.ADMIN },
       ],
