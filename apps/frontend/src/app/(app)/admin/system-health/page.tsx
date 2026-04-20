@@ -171,7 +171,7 @@ export default function SystemHealthPage() {
         <div>
           <div className="flex items-center gap-2">
             <Activity className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl text-navy dark:text-white">Santé système</h1>
+            <h1 className="text-2xl text-seal-navy dark:text-white">Santé système</h1>
             <span
               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] uppercase font-bold ${
                 globalStatus === 'up'
@@ -187,7 +187,7 @@ export default function SystemHealthPage() {
               {globalStatus === 'up' ? 'Opérationnel' : globalStatus === 'down' ? 'Panne' : 'Dégradé'}
             </span>
           </div>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             {upCount}/{allServices.length} services UP · Rafraichi{' '}
             {lastUpdate ? lastUpdate.toLocaleTimeString('fr-FR') : '—'}
             {' · '}Auto-refresh toutes les 30 s
@@ -196,7 +196,7 @@ export default function SystemHealthPage() {
         </div>
         <button
           onClick={() => void load()}
-          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-medium text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-medium text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
         >
           <RefreshCw className="h-3 w-3" />
           Rafraîchir
@@ -207,24 +207,24 @@ export default function SystemHealthPage() {
       {health?.status === 'ok' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in-up">
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <p className="text-[10px] uppercase text-taupe dark:text-slate-500 mb-1">Version</p>
-            <p className="text-xl font-light text-navy dark:text-white">{health.version || '—'}</p>
+            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Version</p>
+            <p className="text-xl font-light text-seal-navy dark:text-white">{health.version || '—'}</p>
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <p className="text-[10px] uppercase text-taupe dark:text-slate-500 mb-1">Uptime</p>
-            <p className="text-xl font-light text-navy dark:text-white">
+            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Uptime</p>
+            <p className="text-xl font-light text-seal-navy dark:text-white">
               {health.uptime ? formatUptime(health.uptime) : '—'}
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <p className="text-[10px] uppercase text-taupe dark:text-slate-500 mb-1">Mémoire RSS</p>
-            <p className="text-xl font-light text-navy dark:text-white">
+            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Mémoire RSS</p>
+            <p className="text-xl font-light text-seal-navy dark:text-white">
               {health.memory?.rss ? formatBytes(health.memory.rss) : '—'}
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <p className="text-[10px] uppercase text-taupe dark:text-slate-500 mb-1">Utilisateurs actifs</p>
-            <p className="text-xl font-light text-navy dark:text-white">
+            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Utilisateurs actifs</p>
+            <p className="text-xl font-light text-seal-navy dark:text-white">
               {health.counts?.activeUsers ?? '—'}
             </p>
           </div>
@@ -233,7 +233,7 @@ export default function SystemHealthPage() {
 
       {/* Services grid */}
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">
+        <p className="text-[10px] uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">
           Dépendances backend
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -260,7 +260,7 @@ export default function SystemHealthPage() {
                 className={`rounded-xl border p-4 ${toneBg} transition stagger-item`}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <Icon className="h-5 w-5 text-taupe dark:text-slate-400" />
+                  <Icon className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
                   <span className="relative flex h-2 w-2">
                     {svc.status === 'up' && (
                       <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
@@ -268,8 +268,8 @@ export default function SystemHealthPage() {
                     <span className={`relative inline-flex rounded-full h-2 w-2 ${toneDot}`} />
                   </span>
                 </div>
-                <p className="text-sm font-semibold text-navy dark:text-white">{svc.label}</p>
-                <p className="text-[10px] uppercase text-taupe dark:text-slate-500 mt-0.5">
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">{svc.label}</p>
+                <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mt-0.5">
                   {svc.status === 'up'
                     ? 'Opérationnel'
                     : svc.status === 'down'
@@ -286,7 +286,7 @@ export default function SystemHealthPage() {
         </div>
       </div>
 
-      <p className="text-[10px] text-taupe/70 dark:text-slate-600 text-center">
+      <p className="text-[10px] text-seal-gray-500/70 dark:text-slate-600 text-center">
         Accès réservé aux rôles ADMIN et SUPER_ADMIN · Auto-refresh toutes les 30 secondes
       </p>
     </div>

@@ -73,7 +73,7 @@ function KnowledgeBasePageInner() {
             className={`flex items-center gap-2 px-4 py-3 text-sm transition-colors ${
               activeTab === tab.id
                 ? 'border-b-2 border-primary text-primary font-semibold'
-                : 'text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
             }`}
           >
             <tab.icon className="h-4 w-4" />
@@ -82,7 +82,7 @@ function KnowledgeBasePageInner() {
               <span className={`ml-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${
                 activeTab === 'wiki'
                   ? 'bg-primary/10 text-primary'
-                  : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-400'
+                  : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400'
               }`}>
                 {wikiCount}
               </span>
@@ -91,7 +91,7 @@ function KnowledgeBasePageInner() {
               <span className={`ml-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${
                 activeTab === 'runbooks'
                   ? 'bg-primary/10 text-primary'
-                  : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-400'
+                  : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400'
               }`}>
                 {runbooksCount}
               </span>

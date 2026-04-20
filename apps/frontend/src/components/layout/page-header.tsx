@@ -59,11 +59,11 @@ export function PageHeader({
             </span>
           )}
           <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-semibold text-navy dark:text-white truncate">
+            <h1 className="text-xl md:text-2xl font-semibold text-seal-navy dark:text-white truncate">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-xs md:text-sm text-taupe dark:text-slate-400 mt-0.5 line-clamp-2">
+              <p className="text-xs md:text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2">
                 {subtitle}
               </p>
             )}

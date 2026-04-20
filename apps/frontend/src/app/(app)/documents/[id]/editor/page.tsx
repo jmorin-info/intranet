@@ -546,7 +546,7 @@ export default function DocumentEditorPage() {
       <div className="flex items-center justify-center py-24">
         <div className="text-center">
           <Loader2 className="h-10 w-10 text-primary mx-auto animate-spin mb-3" />
-          <p className="text-sm text-taupe dark:text-slate-400">Chargement de l&apos;éditeur...</p>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">Chargement de l&apos;éditeur...</p>
         </div>
       </div>
     );
@@ -557,7 +557,7 @@ export default function DocumentEditorPage() {
       <div className="max-w-2xl mx-auto space-y-4">
         <Link
           href={`/documents/${params.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-taupe hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-seal-gray-500 hover:text-primary transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Retour au document
@@ -570,10 +570,10 @@ export default function DocumentEditorPage() {
                 <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
               <div className="flex-1">
-                <h3 className="text-base font-semibold text-navy dark:text-white mb-2">
+                <h3 className="text-base font-semibold text-seal-navy dark:text-white mb-2">
                   Impossible d&apos;ouvrir l&apos;éditeur
                 </h3>
-                <p className="text-sm text-taupe dark:text-slate-400 mb-4 whitespace-pre-line">{error}</p>
+                <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4 whitespace-pre-line">{error}</p>
                 {error.includes('ONLYOFFICE_JWT_SECRET') && (
                   <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-xs font-mono text-amber-900 dark:text-amber-200 mb-3">
                     <p className="font-semibold not-italic mb-2">
@@ -609,8 +609,8 @@ export default function DocumentEditorPage() {
                   </div>
                 )}
                 {error.includes('désactivé') && !error.includes('ONLYOFFICE_JWT_SECRET') && (
-                  <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 text-xs font-mono text-taupe dark:text-slate-400">
-                    <p className="font-semibold text-navy dark:text-white not-italic mb-2">
+                  <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 text-xs font-mono text-seal-gray-500 dark:text-slate-400">
+                    <p className="font-semibold text-seal-navy dark:text-white not-italic mb-2">
                       Configuration requise côté serveur :
                     </p>
                     <p># 1. Démarrer OnlyOffice Docs Server</p>
@@ -654,17 +654,17 @@ export default function DocumentEditorPage() {
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href={`/documents/${params.id}`}
-            className="flex-shrink-0 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-800 text-taupe hover:text-primary transition-colors"
+            className="flex-shrink-0 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 hover:text-primary transition-colors"
             title="Retour au document"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <FileText className="h-4 w-4 text-primary flex-shrink-0" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-navy dark:text-white truncate">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">
               {editorConfig.document.title}
             </p>
-            <p className="text-[10px] text-taupe dark:text-slate-400 truncate">
+            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 truncate">
               {editorConfig.document.reference} · <span className={formatInfo.color}>{formatInfo.label}</span> · {editorConfig.document.classification}
             </p>
           </div>

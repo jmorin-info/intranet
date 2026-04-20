@@ -173,8 +173,8 @@ export function ComplianceOverview() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">{t('compliance.title')}</h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('compliance.title')}</h1>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             {t('compliance.subtitle')}
           </p>
         </div>
@@ -192,15 +192,15 @@ export function ComplianceOverview() {
               <div className="flex items-center gap-4">
                 <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                 <div>
-                  <p className="text-sm font-semibold text-navy dark:text-white">
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">
                     Scan terminé — {scanResult.scanned} documents analysés
                   </p>
-                  <p className="text-xs text-taupe dark:text-slate-400">
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                     {scanResult.assigned} contrôles assignés{scanResult.errors > 0 ? ` · ${scanResult.errors} erreur(s)` : ''}
                   </p>
                 </div>
               </div>
-              <button onClick={() => setScanResult(null)} className="text-taupe hover:text-navy dark:hover:text-white">
+              <button onClick={() => setScanResult(null)} className="text-seal-gray-500 hover:text-seal-navy dark:hover:text-white">
                 <XCircle className="h-4 w-4" />
               </button>
             </div>
@@ -251,7 +251,7 @@ export function ComplianceOverview() {
                   {previousCoverage !== null && (() => {
                     const diff = summary.coveragePercent - previousCoverage;
                     if (diff === 0) return (
-                      <p className="text-center text-[11px] text-taupe dark:text-slate-400 mt-2">
+                      <p className="text-center text-[11px] text-seal-gray-500 dark:text-slate-400 mt-2">
                         = vs mois dernier
                       </p>
                     );
@@ -265,7 +265,7 @@ export function ComplianceOverview() {
                   })()}
                   {/* Last audit date */}
                   {lastAuditDate && (
-                    <p className="text-center text-[11px] text-taupe dark:text-slate-400 mt-1.5 flex items-center justify-center gap-1">
+                    <p className="text-center text-[11px] text-seal-gray-500 dark:text-slate-400 mt-1.5 flex items-center justify-center gap-1">
                       <FileText className="h-3 w-3" />
                       Dernier audit : {new Date(lastAuditDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
@@ -275,13 +275,13 @@ export function ComplianceOverview() {
                 {/* Right side: stats cards + bars */}
                 <div className="flex-1 min-w-0 w-full">
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                    <div className="flex items-center gap-3 rounded-xl bg-navy/5 dark:bg-slate-800/60 p-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-navy/10">
-                        <Shield className="h-5 w-5 text-navy" />
+                    <div className="flex items-center gap-3 rounded-xl bg-seal-navy/5 dark:bg-slate-800/60 p-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-seal-navy/10">
+                        <Shield className="h-5 w-5 text-seal-navy" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-taupe dark:text-slate-400">{t('compliance.totalControls')}</p>
-                        <p className="text-xl font-medium text-navy dark:text-white">{summary.total}</p>
+                        <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{t('compliance.totalControls')}</p>
+                        <p className="text-xl font-medium text-seal-navy dark:text-white">{summary.total}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 p-3">
@@ -289,7 +289,7 @@ export function ComplianceOverview() {
                         <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-taupe dark:text-slate-400">{t('compliance.covered')}</p>
+                        <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{t('compliance.covered')}</p>
                         <p className="text-xl font-medium text-emerald-600">{summary.covered}</p>
                       </div>
                     </div>
@@ -298,7 +298,7 @@ export function ComplianceOverview() {
                         <AlertTriangle className="h-5 w-5 text-amber-600" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-taupe dark:text-slate-400">{t('compliance.partial')}</p>
+                        <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{t('compliance.partial')}</p>
                         <p className="text-xl font-medium text-amber-600">{summary.partial}</p>
                       </div>
                     </div>
@@ -307,37 +307,37 @@ export function ComplianceOverview() {
                         <XCircle className="h-5 w-5 text-red-500" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-taupe dark:text-slate-400">{t('compliance.uncovered')}</p>
+                        <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{t('compliance.uncovered')}</p>
                         <p className="text-xl font-medium text-red-500">{summary.uncovered}</p>
                       </div>
                     </div>
                   </div>
 
-                  <h3 className="text-sm font-semibold text-navy dark:text-white mb-3">{t('compliance.globalCoverage')}</h3>
+                  <h3 className="text-sm font-semibold text-seal-navy dark:text-white mb-3">{t('compliance.globalCoverage')}</h3>
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
                       <span className="h-3 w-3 rounded-full bg-emerald-500 flex-shrink-0" />
-                      <span className="text-xs text-taupe dark:text-slate-400 w-20">{t('compliance.legend.covered')}</span>
+                      <span className="text-xs text-seal-gray-500 dark:text-slate-400 w-20">{t('compliance.legend.covered')}</span>
                       <div className="flex-1 h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                         <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${(summary.covered / summary.total) * 100}%` }} />
                       </div>
-                      <span className="text-xs font-semibold text-navy dark:text-white w-8 text-right">{summary.covered}</span>
+                      <span className="text-xs font-semibold text-seal-navy dark:text-white w-8 text-right">{summary.covered}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="h-3 w-3 rounded-full bg-amber-400 flex-shrink-0" />
-                      <span className="text-xs text-taupe dark:text-slate-400 w-20">{t('compliance.legend.partial')}</span>
+                      <span className="text-xs text-seal-gray-500 dark:text-slate-400 w-20">{t('compliance.legend.partial')}</span>
                       <div className="flex-1 h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                         <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${(summary.partial / summary.total) * 100}%` }} />
                       </div>
-                      <span className="text-xs font-semibold text-navy dark:text-white w-8 text-right">{summary.partial}</span>
+                      <span className="text-xs font-semibold text-seal-navy dark:text-white w-8 text-right">{summary.partial}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="h-3 w-3 rounded-full bg-red-400 flex-shrink-0" />
-                      <span className="text-xs text-taupe dark:text-slate-400 w-20">{t('compliance.legend.uncovered')}</span>
+                      <span className="text-xs text-seal-gray-500 dark:text-slate-400 w-20">{t('compliance.legend.uncovered')}</span>
                       <div className="flex-1 h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                         <div className="h-full bg-red-400 transition-all duration-500" style={{ width: `${(summary.uncovered / summary.total) * 100}%` }} />
                       </div>
-                      <span className="text-xs font-semibold text-navy dark:text-white w-8 text-right">{summary.uncovered}</span>
+                      <span className="text-xs font-semibold text-seal-navy dark:text-white w-8 text-right">{summary.uncovered}</span>
                     </div>
                   </div>
                 </div>
@@ -358,17 +358,17 @@ export function ComplianceOverview() {
             return (
               <Card key={domain} className={`shadow-sm rounded-xl ring-2 ${ringColor}`}>
                 <CardContent>
-                  <p className="text-xs font-semibold text-navy dark:text-white mb-2 truncate">{domain}</p>
+                  <p className="text-xs font-semibold text-seal-navy dark:text-white mb-2 truncate">{domain}</p>
                   <div className="flex items-end gap-2 mb-2">
                     <span className={`text-xl font-medium ${textColor}`}>{pct}%</span>
-                    <span className="text-xs text-taupe dark:text-slate-400 mb-0.5">
+                    <span className="text-xs text-seal-gray-500 dark:text-slate-400 mb-0.5">
                       {stats.covered}/{stats.total} {t('compliance.coveredCount')}
                     </span>
                   </div>
                   <div className="h-2.5 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                     <div className={`h-full rounded-full ${barColor} transition-all duration-500`} style={{ width: `${pct}%` }} />
                   </div>
-                  <div className="flex justify-between mt-2 text-[10px] text-taupe dark:text-slate-400">
+                  <div className="flex justify-between mt-2 text-[10px] text-seal-gray-500 dark:text-slate-400">
                     <span>{stats.covered} couvert{stats.covered !== 1 ? 's' : ''}</span>
                     <span>{stats.partial} partiel{stats.partial !== 1 ? 's' : ''}</span>
                     <span>{stats.uncovered} manquant{stats.uncovered !== 1 ? 's' : ''}</span>
@@ -384,9 +384,9 @@ export function ComplianceOverview() {
       <Card className="shadow-sm rounded-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium text-navy dark:text-white">{t('compliance.detailTitle')}</h2>
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white">{t('compliance.detailTitle')}</h2>
             <div className="flex items-center gap-3">
-              <p className="text-xs text-taupe dark:text-slate-400">{filteredGaps.length} {t('compliance.totalControls').toLowerCase()}</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">{filteredGaps.length} {t('compliance.totalControls').toLowerCase()}</p>
               <Button
                 variant="outline"
                 size="sm"
@@ -452,7 +452,7 @@ export function ComplianceOverview() {
                 {statusIcon(gap.status)}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-semibold text-navy dark:text-white">{gap.controlCode}</span>
+                    <span className="font-mono text-sm font-semibold text-seal-navy dark:text-white">{gap.controlCode}</span>
                     {statusBadge(gap.status)}
                   </div>
                   <p className="text-sm text-gray-700 dark:text-slate-300 mt-0.5">{gap.controlTitle}</p>
@@ -471,7 +471,7 @@ export function ComplianceOverview() {
                     </div>
                   )}
                 </div>
-                <span className="text-xs text-taupe dark:text-slate-400 whitespace-nowrap">
+                <span className="text-xs text-seal-gray-500 dark:text-slate-400 whitespace-nowrap">
                   {gap.documentCount} doc{gap.documentCount !== 1 ? 's' : ''}
                 </span>
               </div>

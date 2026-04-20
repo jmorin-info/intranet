@@ -224,9 +224,9 @@ export default function ProcedureViewerPage() {
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
           <div>
-            <h1 className="text-2xl font-medium text-navy">{doc.title}</h1>
+            <h1 className="text-2xl font-medium text-seal-navy">{doc.title}</h1>
             <div className="flex items-center gap-2 mt-1">
-              <span className="font-mono text-sm text-taupe font-semibold">{doc.reference}</span>
+              <span className="font-mono text-sm text-seal-gray-500 font-semibold">{doc.reference}</span>
               <Badge variant="navy">
                 {DOCUMENT_CATEGORY_LABELS[doc.category as keyof typeof DOCUMENT_CATEGORY_LABELS]}
               </Badge>
@@ -298,24 +298,24 @@ export default function ProcedureViewerPage() {
         <CardContent>
           <div className="flex flex-wrap items-center gap-6 text-sm">
             <div>
-              <span className="text-taupe">{t('procedureDetail.author')} : </span>
-              <span className="font-semibold text-navy">{doc.owner.firstName} {doc.owner.lastName}</span>
+              <span className="text-seal-gray-500">{t('procedureDetail.author')} : </span>
+              <span className="font-semibold text-seal-navy">{doc.owner.firstName} {doc.owner.lastName}</span>
             </div>
             {currentVersion && (
               <>
                 <div>
-                  <span className="text-taupe">{t('procedureDetail.version')} : </span>
-                  <span className="font-semibold text-navy">v{currentVersion.versionNumber}</span>
+                  <span className="text-seal-gray-500">{t('procedureDetail.version')} : </span>
+                  <span className="font-semibold text-seal-navy">v{currentVersion.versionNumber}</span>
                 </div>
                 <div>
-                  <span className="text-taupe">{t('procedureDetail.size')} : </span>
-                  <span className="text-navy">{formatFileSize(currentVersion.fileSizeBytes)}</span>
+                  <span className="text-seal-gray-500">{t('procedureDetail.size')} : </span>
+                  <span className="text-seal-navy">{formatFileSize(currentVersion.fileSizeBytes)}</span>
                 </div>
               </>
             )}
             <div>
-              <span className="text-taupe">{t('procedureDetail.updatedAt')} : </span>
-              <span className="text-navy">{formatDate(doc.updatedAt)}</span>
+              <span className="text-seal-gray-500">{t('procedureDetail.updatedAt')} : </span>
+              <span className="text-seal-navy">{formatDate(doc.updatedAt)}</span>
             </div>
           </div>
           {doc.isoControls.length > 0 && (
@@ -327,7 +327,7 @@ export default function ProcedureViewerPage() {
           )}
           {currentVersion && (
             <div className="mt-3 pt-3 border-t border-gray-100">
-              <p className="font-mono text-[10px] text-taupe">
+              <p className="font-mono text-[10px] text-seal-gray-500">
                 <Hash className="inline h-3 w-3 mr-0.5" />
                 SHA-256 : {currentVersion.checksum}
               </p>
@@ -350,13 +350,13 @@ export default function ProcedureViewerPage() {
       {activeTab === 'document' && fileUrl && (
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-medium text-navy">{t('procedureDetail.preview')}</h2>
+            <h2 className="text-lg font-medium text-seal-navy">{t('procedureDetail.preview')}</h2>
           </CardHeader>
           <CardContent>
             {isPdf && <PdfViewer url={fileUrl} />}
             {isDocx && <DocxViewer url={fileUrl} />}
             {!isPdf && !isDocx && (
-              <div className="flex flex-col items-center py-12 text-taupe">
+              <div className="flex flex-col items-center py-12 text-seal-gray-500">
                 <FileText className="h-12 w-12 mb-3" />
                 <p className="text-sm">{t('procedureDetail.previewUnavailable')}</p>
                 <Button
@@ -385,7 +385,7 @@ export default function ProcedureViewerPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-medium text-navy dark:text-white">Historique des versions</h2>
+              <h2 className="text-lg font-medium text-seal-navy dark:text-white">Historique des versions</h2>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -394,20 +394,20 @@ export default function ProcedureViewerPage() {
                 {[1, 2, 3].map(i => <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-100 dark:bg-slate-800" />)}
               </div>
             ) : (allVersions.length > 0 ? allVersions : doc.versions || []).length === 0 ? (
-              <div className="p-6 text-center text-sm text-taupe">Aucun historique de version disponible</div>
+              <div className="p-6 text-center text-sm text-seal-gray-500">Aucun historique de version disponible</div>
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-slate-700">
                 {(allVersions.length > 0 ? allVersions : doc.versions || []).map((ver, idx) => (
                   <div key={ver.id} className={`flex items-center gap-4 px-6 py-4 ${idx === 0 ? 'bg-primary/5' : ''}`}>
                     <div className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${idx === 0 ? 'bg-primary/10' : 'bg-gray-50 dark:bg-slate-800'}`}>
-                      <FileText className={`h-5 w-5 ${idx === 0 ? 'text-primary' : 'text-taupe dark:text-slate-400'}`} />
+                      <FileText className={`h-5 w-5 ${idx === 0 ? 'text-primary' : 'text-seal-gray-500 dark:text-slate-400'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-navy dark:text-white">v{ver.versionNumber}</span>
+                        <span className="text-sm font-semibold text-seal-navy dark:text-white">v{ver.versionNumber}</span>
                         {idx === 0 && <Badge variant="approved">Actuelle</Badge>}
                       </div>
-                      <div className="flex items-center gap-3 mt-0.5 text-xs text-taupe dark:text-slate-400">
+                      <div className="flex items-center gap-3 mt-0.5 text-xs text-seal-gray-500 dark:text-slate-400">
                         <span>{formatDateTime(ver.createdAt)}</span>
                         <span>{formatFileSize(ver.fileSizeBytes)}</span>
                       </div>
@@ -436,7 +436,7 @@ export default function ProcedureViewerPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-[#004469] dark:text-blue-400" />
-              <h2 className="text-lg font-medium text-navy dark:text-white">Contrôles ISO associés</h2>
+              <h2 className="text-lg font-medium text-seal-navy dark:text-white">Contrôles ISO associés</h2>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -447,8 +447,8 @@ export default function ProcedureViewerPage() {
                     <ShieldCheck className="h-4 w-4 text-[#004469] dark:text-blue-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-white">{isoControl.code}</p>
-                    <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">{isoControl.titleFr || isoControl.title}</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white">{isoControl.code}</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{isoControl.titleFr || isoControl.title}</p>
                   </div>
                   <IsoControlBadge code={isoControl.code} title={isoControl.titleFr || isoControl.title} />
                 </div>
@@ -465,7 +465,7 @@ export default function ProcedureViewerPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FolderOpen className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-medium text-navy dark:text-white">Procédures connexes</h2>
+                <h2 className="text-lg font-medium text-seal-navy dark:text-white">Procédures connexes</h2>
               </div>
               <Link href={`/procedures?category=${doc.category}`} className="text-xs text-primary hover:underline flex items-center gap-1">
                 Voir tout <ArrowLeft className="h-3 w-3 rotate-180" />
@@ -477,11 +477,11 @@ export default function ProcedureViewerPage() {
               {relatedProcedures.map((rel) => (
                 <Link key={rel.id} href={`/procedures/${rel.id}`} className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition-colors group">
                   <div className="h-8 w-8 rounded-lg bg-gray-50 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/10 transition-colors">
-                    <FileText className="h-4 w-4 text-taupe dark:text-slate-400 group-hover:text-primary transition-colors" />
+                    <FileText className="h-4 w-4 text-seal-gray-500 dark:text-slate-400 group-hover:text-primary transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-white truncate group-hover:text-primary transition-colors">{rel.title}</p>
-                    <p className="text-[11px] text-taupe dark:text-slate-400 mt-0.5">{rel.reference}</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white truncate group-hover:text-primary transition-colors">{rel.title}</p>
+                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5">{rel.reference}</p>
                   </div>
                   <StatusBadge status={rel.status as 'APPROVED'} />
                 </Link>

@@ -32,14 +32,14 @@ export function LdapPendingWidget() {
   const contextColor =
     count === 0
       ? 'text-emerald-600 dark:text-emerald-400'
-      : 'text-taupe dark:text-slate-400';
+      : 'text-seal-gray-500 dark:text-slate-400';
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <UserPlus className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-navy dark:text-white">Validation LDAP</h3>
+          <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Validation LDAP</h3>
         </div>
         {count > 0 && (
           <Link

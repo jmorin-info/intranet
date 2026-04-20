@@ -72,17 +72,17 @@ export function Dialog({ open, onClose, title, description, children, className 
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
           <div>
-            <h2 id="dialog-title" className="text-lg font-semibold text-navy dark:text-white">
+            <h2 id="dialog-title" className="text-lg font-semibold text-seal-navy dark:text-white">
               {title}
             </h2>
-            {description && <p className="text-sm text-taupe dark:text-slate-400 mt-0.5">{description}</p>}
+            {description && <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5">{description}</p>}
           </div>
           <button
             onClick={onClose}
             className="rounded-full p-1 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
             aria-label="Fermer"
           >
-            <X className="h-5 w-5 text-taupe dark:text-slate-400" />
+            <X className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
           </button>
         </div>
         <div className="px-6 py-4 overflow-y-auto">{children}</div>

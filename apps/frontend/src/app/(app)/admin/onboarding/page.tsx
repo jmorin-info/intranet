@@ -156,7 +156,7 @@ export default function OnboardingPage() {
           <Card className="border-l-4 border-l-primary animate-fade-in-up">
             <CardContent className="py-3 flex items-center gap-4">
               <Users className="h-5 w-5 text-primary flex-shrink-0" />
-              <p className="text-sm text-navy dark:text-white">
+              <p className="text-sm text-seal-navy dark:text-white">
                 <span className="font-medium">{onboardingCount}</span> onboarding en cours, <span className="font-medium">{offboardingCount}</span> offboarding en cours
               </p>
             </CardContent>
@@ -166,7 +166,7 @@ export default function OnboardingPage() {
 
       {/* Start new process */}
       <Card>
-        <CardHeader><h2 className="font-medium text-navy dark:text-white text-sm">Démarrer un processus</h2></CardHeader>
+        <CardHeader><h2 className="font-medium text-seal-navy dark:text-white text-sm">Démarrer un processus</h2></CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end">
             <Select
@@ -201,8 +201,8 @@ export default function OnboardingPage() {
                 <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-medium text-navy dark:text-white">{pending.length}</p>
-                <p className="text-xs text-taupe">En cours</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{pending.length}</p>
+                <p className="text-xs text-seal-gray-500">En cours</p>
               </div>
             </CardContent>
           </Card>
@@ -212,8 +212,8 @@ export default function OnboardingPage() {
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-2xl font-medium text-navy dark:text-white">{pending.filter(p => p.steps.every(s => s.isCompleted)).length}</p>
-                <p className="text-xs text-taupe">Terminés</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{pending.filter(p => p.steps.every(s => s.isCompleted)).length}</p>
+                <p className="text-xs text-seal-gray-500">Terminés</p>
               </div>
             </CardContent>
           </Card>
@@ -223,10 +223,10 @@ export default function OnboardingPage() {
                 <ClipboardList className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-2xl font-medium text-navy dark:text-white">
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">
                   {pending.length > 0 ? Math.round(pending.reduce((sum, p) => sum + (p.steps.length > 0 ? (p.steps.filter(s => s.isCompleted).length / p.steps.length) * 100 : 0), 0) / pending.length) : 0}%
                 </p>
-                <p className="text-xs text-taupe">Progression moyenne</p>
+                <p className="text-xs text-seal-gray-500">Progression moyenne</p>
               </div>
             </CardContent>
           </Card>
@@ -236,13 +236,13 @@ export default function OnboardingPage() {
       {/* Search filter */}
       {!loading && pending.length > 0 && (
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-taupe dark:text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
           <input
             type="text"
             placeholder="Rechercher par nom, prénom ou email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-navy dark:text-white py-2.5 pl-10 pr-4 text-sm placeholder:text-taupe dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-seal-navy dark:text-white py-2.5 pl-10 pr-4 text-sm placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
       )}
@@ -268,8 +268,8 @@ export default function OnboardingPage() {
                       <Users className="h-5 w-5 text-[#F68D2E]" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-medium text-navy dark:text-white text-sm">{p.user.firstName} {p.user.lastName}</h3>
-                      <p className="text-[10px] text-taupe">{p.user.email} — {p.steps[0]?.stepType || '?'}</p>
+                      <h3 className="font-medium text-seal-navy dark:text-white text-sm">{p.user.firstName} {p.user.lastName}</h3>
+                      <p className="text-[10px] text-seal-gray-500">{p.user.email} — {p.steps[0]?.stepType || '?'}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {progress < 100 && (
@@ -301,14 +301,14 @@ export default function OnboardingPage() {
                   {/* Progress bar & estimated completion */}
                   <div className="mt-3">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-medium text-taupe">Progression</span>
+                      <span className="text-[10px] font-medium text-seal-gray-500">Progression</span>
                       <div className="flex items-center gap-2">
                         {progress < 100 && totalSteps > 0 && completedCount > 0 && (
-                          <span className="text-[10px] text-taupe dark:text-slate-400">
+                          <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                             Fin estimée : ~{Math.ceil((totalSteps - completedCount) * 2)} jours
                           </span>
                         )}
-                        <span className={`text-[10px] font-medium ${progress === 100 ? 'text-emerald-500' : 'text-navy dark:text-white'}`}>{progress}%</span>
+                        <span className={`text-[10px] font-medium ${progress === 100 ? 'text-emerald-500' : 'text-seal-navy dark:text-white'}`}>{progress}%</span>
                       </div>
                     </div>
                     <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-slate-700 overflow-hidden">
@@ -334,12 +334,12 @@ export default function OnboardingPage() {
                             {step.isCompleted ? (
                               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                             ) : (
-                              <StepIcon className="h-4 w-4 text-taupe dark:text-slate-400" />
+                              <StepIcon className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm ${step.isCompleted ? 'text-taupe line-through' : 'font-medium text-navy dark:text-white'}`}>{step.stepName}</p>
-                            {step.description && <p className="text-[10px] text-taupe dark:text-slate-400 mt-0.5 line-clamp-2">{step.description}</p>}
+                            <p className={`text-sm ${step.isCompleted ? 'text-seal-gray-500 line-through' : 'font-medium text-seal-navy dark:text-white'}`}>{step.stepName}</p>
+                            {step.description && <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2">{step.description}</p>}
                             {step.isCompleted && step.completedAt && (
                               <p className="text-[10px] text-emerald-500 mt-1">Fait le {formatDateTime(step.completedAt)}</p>
                             )}
@@ -361,8 +361,8 @@ export default function OnboardingPage() {
       {/* Onboarding Steps Template Reference */}
       <Card>
         <CardHeader>
-          <h2 className="font-medium text-navy dark:text-white text-sm">Checklist d&apos;intégration (modèle)</h2>
-          <p className="text-xs text-taupe dark:text-slate-400 mt-1">Étapes standard pour chaque nouvel arrivant</p>
+          <h2 className="font-medium text-seal-navy dark:text-white text-sm">Checklist d&apos;intégration (modèle)</h2>
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">Étapes standard pour chaque nouvel arrivant</p>
         </CardHeader>
         <CardContent>
           {/* Global progress bar for template overview */}
@@ -388,10 +388,10 @@ export default function OnboardingPage() {
                               {s.auto ? (
                                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                               ) : (
-                                <Circle className="h-3.5 w-3.5 text-taupe dark:text-slate-400" />
+                                <Circle className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-400" />
                               )}
                             </div>
-                            <span className="text-xs text-navy dark:text-white">{s.label}</span>
+                            <span className="text-xs text-seal-navy dark:text-white">{s.label}</span>
                             {s.auto && (
                               <Badge variant="approved" className="text-[9px] px-1.5 py-0">auto</Badge>
                             )}

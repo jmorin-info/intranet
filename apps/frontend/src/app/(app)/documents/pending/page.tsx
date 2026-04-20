@@ -126,20 +126,20 @@ export default function PendingDocumentsPage() {
           {isUrgent(doc.updatedAt) && (
             <span title={t('pending.urgentTooltip')}><AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" /></span>
           )}
-          <span className="font-mono text-xs text-navy dark:text-white font-semibold">{doc.reference}</span>
+          <span className="font-mono text-xs text-seal-navy dark:text-white font-semibold">{doc.reference}</span>
         </div>
       ),
     },
     {
       key: 'title',
       header: t('pending.titleCol'),
-      render: (doc) => <span className="text-sm font-semibold text-navy dark:text-white">{doc.title}</span>,
+      render: (doc) => <span className="text-sm font-semibold text-seal-navy dark:text-white">{doc.title}</span>,
     },
     {
       key: 'category',
       header: t('pending.category'),
       render: (doc) => (
-        <span className="text-sm text-taupe dark:text-slate-400">
+        <span className="text-sm text-seal-gray-500 dark:text-slate-400">
           {DOCUMENT_CATEGORY_LABELS[doc.category as keyof typeof DOCUMENT_CATEGORY_LABELS]}
         </span>
       ),
@@ -149,10 +149,10 @@ export default function PendingDocumentsPage() {
       header: t('pending.author'),
       render: (doc) => (
         <div>
-          <span className="text-sm font-medium text-navy dark:text-white">
+          <span className="text-sm font-medium text-seal-navy dark:text-white">
             {doc.owner.firstName} {doc.owner.lastName}
           </span>
-          <p className="text-[10px] text-taupe dark:text-slate-400">
+          <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
             Soumis {formatRelativeTime(doc.updatedAt)}
           </p>
         </div>
@@ -165,7 +165,7 @@ export default function PendingDocumentsPage() {
         const urgency = getUrgencyConfig(doc.updatedAt);
         return (
           <div className="flex flex-col gap-1">
-            <span className={`text-xs ${isUrgent(doc.updatedAt) ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-taupe dark:text-slate-400'}`}>{formatRelativeTime(doc.updatedAt)}</span>
+            <span className={`text-xs ${isUrgent(doc.updatedAt) ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-seal-gray-500 dark:text-slate-400'}`}>{formatRelativeTime(doc.updatedAt)}</span>
             <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium w-fit ${urgency.color}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${urgency.dot}`} />
               {urgency.label}
@@ -199,8 +199,8 @@ export default function PendingDocumentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-medium text-navy dark:text-white">{t('pending.title')}</h1>
-        <p className="text-sm text-taupe dark:text-slate-400 mt-1">{t('pending.subtitle')}</p>
+        <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('pending.title')}</h1>
+        <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{t('pending.subtitle')}</p>
       </div>
 
       {/* Action required banner */}
@@ -234,8 +234,8 @@ export default function PendingDocumentsPage() {
                 <Eye className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-medium text-navy dark:text-white">{reviewDocs.length}</p>
-                <p className="text-xs text-taupe dark:text-slate-400">{t('pending.inReview')}</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{reviewDocs.length}</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">{t('pending.inReview')}</p>
               </div>
             </CardContent>
           </Card>
@@ -245,8 +245,8 @@ export default function PendingDocumentsPage() {
                 <UserCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-2xl font-medium text-navy dark:text-white">{approvalDocs.length}</p>
-                <p className="text-xs text-taupe dark:text-slate-400">{t('pending.inApproval')}</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{approvalDocs.length}</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">{t('pending.inApproval')}</p>
               </div>
             </CardContent>
           </Card>
@@ -261,8 +261,8 @@ export default function PendingDocumentsPage() {
               <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
                 <PartyPopper className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
-              <p className="text-lg font-medium text-navy dark:text-white">{t('pending.allClear')}</p>
-              <p className="text-sm text-taupe dark:text-slate-400 mt-1 text-center max-w-sm">
+              <p className="text-lg font-medium text-seal-navy dark:text-white">{t('pending.allClear')}</p>
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1 text-center max-w-sm">
                 {activeTab === 'review'
                   ? t('pending.noReview')
                   : t('pending.noApproval')}
@@ -282,9 +282,9 @@ export default function PendingDocumentsPage() {
               }
               emptyIcon={
                 activeTab === 'review' ? (
-                  <Eye className="h-12 w-12 text-taupe dark:text-slate-500" />
+                  <Eye className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />
                 ) : (
-                  <UserCheck className="h-12 w-12 text-taupe dark:text-slate-500" />
+                  <UserCheck className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />
                 )
               }
             />

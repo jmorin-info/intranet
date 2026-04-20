@@ -93,12 +93,12 @@ export function UXCommandCenter() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-navy dark:text-white">UX Intelligence</h3>
+          <h3 className="text-sm font-semibold text-seal-navy dark:text-white">UX Intelligence</h3>
           <Badge variant="navy">{totalEvents} events</Badge>
         </div>
         <button
           onClick={refresh}
-          className="p-1.5 rounded-lg text-taupe hover:bg-gray-100 dark:hover:bg-slate-800 transition"
+          className="p-1.5 rounded-lg text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
           title="Rafraichir"
         >
           <RefreshCw className="h-3.5 w-3.5" />
@@ -113,14 +113,14 @@ export function UXCommandCenter() {
           return (
             <div key={mod} className={`rounded-lg p-3 ${scoreBg(score)} border border-gray-100 dark:border-slate-700`}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-500">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
                   {MODULE_LABELS[mod]}
                 </span>
                 <span className={`text-lg font-semibold tabular-nums ${scoreColor(score)}`}>
                   {metrics.totalActions > 0 ? score : '--'}
                 </span>
               </div>
-              <div className="text-[10px] text-taupe dark:text-slate-400 space-y-0.5">
+              <div className="text-[10px] text-seal-gray-500 dark:text-slate-400 space-y-0.5">
                 <div>{metrics.totalActions} actions</div>
                 {metrics.avgTimeToAction > 0 && <div>{(metrics.avgTimeToAction / 1000).toFixed(1)}s moy.</div>}
                 {metrics.rollbackCount > 0 && <div className="text-red-600 dark:text-red-400">{metrics.rollbackCount} rollback(s)</div>}
@@ -139,14 +139,14 @@ export function UXCommandCenter() {
       )}
 
       {insights.length === 0 && totalEvents === 0 && (
-        <div className="text-xs text-taupe dark:text-slate-500 text-center py-4">
+        <div className="text-xs text-seal-gray-500 dark:text-slate-500 text-center py-4">
           En attente d'interactions utilisateur...
         </div>
       )}
 
       {insights.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-[10px] text-taupe dark:text-slate-500">
+          <div className="flex items-center gap-2 text-[10px] text-seal-gray-500 dark:text-slate-500">
             {highCount > 0 && <span className="text-red-600 dark:text-red-400 font-semibold">{highCount} critique(s)</span>}
             {mediumCount > 0 && <span className="text-amber-600 dark:text-amber-400 font-semibold">{mediumCount} moyenne(s)</span>}
             <span>{insights.length} insight(s) total</span>
@@ -167,15 +167,15 @@ export function UXCommandCenter() {
                       <Badge variant={insight.severity === 'HIGH' ? 'error' : insight.severity === 'MEDIUM' ? 'warning' : 'info'}>
                         {MODULE_LABELS[insight.module]}
                       </Badge>
-                      <span className="text-[10px] font-semibold uppercase text-taupe dark:text-slate-500">
+                      <span className="text-[10px] font-semibold uppercase text-seal-gray-500 dark:text-slate-500">
                         {insight.type.replace('_', ' ')}
                       </span>
-                      <span className="text-[10px] text-taupe dark:text-slate-500 ml-auto">
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 ml-auto">
                         {Math.round(insight.confidence * 100)}%
                       </span>
                     </div>
-                    <p className="text-xs text-navy dark:text-white font-medium">{insight.description}</p>
-                    <p className="text-[11px] text-taupe dark:text-slate-400 mt-1 flex items-center gap-1">
+                    <p className="text-xs text-seal-navy dark:text-white font-medium">{insight.description}</p>
+                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-1 flex items-center gap-1">
                       <TrendingDown className="h-3 w-3" />
                       {insight.recommendation}
                     </p>

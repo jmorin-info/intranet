@@ -330,8 +330,8 @@ export default function AccessReviewsPage() {
           <CardContent className="py-3 px-4 flex items-center gap-3">
             <CalendarDays className="h-5 w-5 text-primary" />
             <div>
-              <p className="text-xs text-taupe dark:text-slate-400">Campagnes actives</p>
-              <p className="text-xl text-navy dark:text-white">{activeCount}</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Campagnes actives</p>
+              <p className="text-xl text-seal-navy dark:text-white">{activeCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -339,17 +339,17 @@ export default function AccessReviewsPage() {
           <CardContent className="py-3 px-4 flex items-center gap-3">
             <Clock className="h-5 w-5 text-amber-500" />
             <div>
-              <p className="text-xs text-taupe dark:text-slate-400">Revues à traiter</p>
-              <p className="text-xl text-navy dark:text-white">{pendingCount}</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Revues à traiter</p>
+              <p className="text-xl text-seal-navy dark:text-white">{pendingCount}</p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-navy">
           <CardContent className="py-3 px-4 flex items-center gap-3">
-            <Users className="h-5 w-5 text-navy dark:text-slate-300" />
+            <Users className="h-5 w-5 text-seal-navy dark:text-slate-300" />
             <div>
-              <p className="text-xs text-taupe dark:text-slate-400">Total campagnes</p>
-              <p className="text-xl text-navy dark:text-white">{campaigns.length}</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Total campagnes</p>
+              <p className="text-xl text-seal-navy dark:text-white">{campaigns.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -466,7 +466,7 @@ function CampaignsList({
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-navy dark:text-white">{c.name}</h3>
+                    <h3 className="text-seal-navy dark:text-white">{c.name}</h3>
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${effectiveStatusClass}`}>
                       {overdue ? 'En retard' : CAMPAIGN_STATUS_LABEL[c.status]}
                     </span>
@@ -477,11 +477,11 @@ function CampaignsList({
                     )}
                   </div>
                   {c.description && (
-                    <p className="text-sm text-taupe dark:text-slate-400 mt-1 line-clamp-2">
+                    <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1 line-clamp-2">
                       {c.description}
                     </p>
                   )}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-taupe dark:text-slate-400">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-seal-gray-500 dark:text-slate-400">
                     <span className="flex items-center gap-1">
                       <CalendarDays className="h-3 w-3" />
                       Échéance : {formatDate(c.dueDate)}
@@ -499,7 +499,7 @@ function CampaignsList({
                   </div>
                   {/* Progress bar */}
                   <div className="mt-3">
-                    <div className="flex items-center justify-between text-[10px] text-taupe dark:text-slate-500 mb-1">
+                    <div className="flex items-center justify-between text-[10px] text-seal-gray-500 dark:text-slate-500 mb-1">
                       <span>
                         Avancement : {stats.completed} / {stats.total}
                       </span>
@@ -528,7 +528,7 @@ function CampaignsList({
                         </span>
                       )}
                       {stats.EXPIRED > 0 && (
-                        <span className="text-[10px] text-taupe">
+                        <span className="text-[10px] text-seal-gray-500">
                           {stats.EXPIRED} expirés
                         </span>
                       )}
@@ -624,7 +624,7 @@ function ReviewCard({
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-navy dark:text-white">{fullName(u)}</span>
+              <span className="text-seal-navy dark:text-white">{fullName(u)}</span>
               {u && <Badge variant="navy">{u.role}</Badge>}
               {u?.department && (
                 <Badge variant="info">
@@ -643,7 +643,7 @@ function ReviewCard({
               </Badge>
             </div>
             {u && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-taupe dark:text-slate-400">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-seal-gray-500 dark:text-slate-400">
                 <span>{u.email}</span>
                 <span>Embauché {formatDate(u.createdAt)}</span>
                 <span>
@@ -668,7 +668,7 @@ function ReviewCard({
             onChange={(e) => setComments(e.target.value)}
             placeholder="Commentaire (optionnel)"
             rows={2}
-            className="w-full rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-taupe focus:border-primary focus:outline-none"
+            className="w-full rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 focus:border-primary focus:outline-none"
           />
           <div className="flex flex-wrap gap-2">
             <Button
@@ -780,9 +780,9 @@ function CreateCampaignDialog({
     >
       <div className="space-y-3">
         <div>
-          <label className="text-xs text-taupe dark:text-slate-400">Nom de la campagne</label>
+          <label className="text-xs text-seal-gray-500 dark:text-slate-400">Nom de la campagne</label>
           <input
-            className="w-full mt-1 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white focus:border-primary focus:outline-none"
+            className="w-full mt-1 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white focus:border-primary focus:outline-none"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Revue Q2 2026"
@@ -790,9 +790,9 @@ function CreateCampaignDialog({
           />
         </div>
         <div>
-          <label className="text-xs text-taupe dark:text-slate-400">Description (optionnel)</label>
+          <label className="text-xs text-seal-gray-500 dark:text-slate-400">Description (optionnel)</label>
           <textarea
-            className="w-full mt-1 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white focus:border-primary focus:outline-none"
+            className="w-full mt-1 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white focus:border-primary focus:outline-none"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
@@ -800,18 +800,18 @@ function CreateCampaignDialog({
           />
         </div>
         <div>
-          <label className="text-xs text-taupe dark:text-slate-400">Date d&apos;échéance</label>
+          <label className="text-xs text-seal-gray-500 dark:text-slate-400">Date d&apos;échéance</label>
           <input
             type="date"
-            className="w-full mt-1 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white focus:border-primary focus:outline-none"
+            className="w-full mt-1 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white focus:border-primary focus:outline-none"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
           />
         </div>
         <div>
-          <label className="text-xs text-taupe dark:text-slate-400">Périmètre — Département (optionnel)</label>
+          <label className="text-xs text-seal-gray-500 dark:text-slate-400">Périmètre — Département (optionnel)</label>
           <select
-            className="w-full mt-1 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white focus:border-primary focus:outline-none"
+            className="w-full mt-1 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white focus:border-primary focus:outline-none"
             value={scopeDepartmentId}
             onChange={(e) => setScopeDepartmentId(e.target.value)}
           >
@@ -861,7 +861,7 @@ function CampaignDetailDrawer({
       <div className="relative ml-auto h-full w-full max-w-3xl bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto">
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900">
           <div>
-            <h2 className="text-navy dark:text-white">
+            <h2 className="text-seal-navy dark:text-white">
               {campaign?.name || 'Campagne'}
             </h2>
             {campaign && (
@@ -869,7 +869,7 @@ function CampaignDetailDrawer({
                 <Badge variant={CAMPAIGN_STATUS_VARIANT[campaign.status]}>
                   {CAMPAIGN_STATUS_LABEL[campaign.status]}
                 </Badge>
-                <span className="text-xs text-taupe dark:text-slate-400">
+                <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                   Échéance : {formatDate(campaign.dueDate)}
                 </span>
               </div>
@@ -892,7 +892,7 @@ function CampaignDetailDrawer({
               className="rounded-full p-1 hover:bg-gray-100 dark:hover:bg-slate-700"
               aria-label="Fermer"
             >
-              <X className="h-5 w-5 text-taupe dark:text-slate-400" />
+              <X className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
             </button>
           </div>
         </div>
@@ -911,7 +911,7 @@ function CampaignDetailDrawer({
           ) : (
             <div className="space-y-4">
               {campaign.description && (
-                <p className="text-sm text-taupe dark:text-slate-400">{campaign.description}</p>
+                <p className="text-sm text-seal-gray-500 dark:text-slate-400">{campaign.description}</p>
               )}
               <ReviewsTable
                 reviews={campaign.reviews}
@@ -1001,9 +1001,9 @@ function InlineReviewRow({
         }
       >
         <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
-          <span className="text-sm text-navy dark:text-white truncate">{fullName(u)}</span>
+          <span className="text-sm text-seal-navy dark:text-white truncate">{fullName(u)}</span>
           {u && (
-            <span className="text-xs text-taupe dark:text-slate-400 truncate">{u.email}</span>
+            <span className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">{u.email}</span>
           )}
           {u?.department && (
             <Badge variant="info">{u.department.name}</Badge>
@@ -1015,14 +1015,14 @@ function InlineReviewRow({
         </Badge>
       </div>
       {review.comments && !expanded && (
-        <div className="px-3 pb-2 text-xs text-taupe dark:text-slate-400 italic">
+        <div className="px-3 pb-2 text-xs text-seal-gray-500 dark:text-slate-400 italic">
           &ldquo;{review.comments}&rdquo;
         </div>
       )}
       {expanded && canDecide && (
         <div className="px-3 py-3 border-t border-gray-100 dark:border-slate-800 space-y-2">
           {u && (
-            <div className="text-xs text-taupe dark:text-slate-400 flex flex-wrap gap-x-3 gap-y-1">
+            <div className="text-xs text-seal-gray-500 dark:text-slate-400 flex flex-wrap gap-x-3 gap-y-1">
               <span>Embauché {formatDate(u.createdAt)}</span>
               <span>
                 Dernière connexion :{' '}
@@ -1035,7 +1035,7 @@ function InlineReviewRow({
             onChange={(e) => setComments(e.target.value)}
             placeholder="Commentaire (optionnel)"
             rows={2}
-            className="w-full rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-taupe focus:border-primary focus:outline-none"
+            className="w-full rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 focus:border-primary focus:outline-none"
           />
           <div className="flex flex-wrap gap-2">
             <Button

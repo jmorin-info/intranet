@@ -41,7 +41,7 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-12 text-sm text-taupe">
+      <div className="flex items-center justify-center py-12 text-sm text-seal-gray-500">
         Impossible de charger l&apos;apercu PDF
       </div>
     );
@@ -89,10 +89,10 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
               value={pageInput !== '' ? pageInput : pageNumber}
               onChange={(e) => setPageInput(e.target.value.replace(/\D/g, ''))}
               onBlur={handlePageInputSubmit}
-              className="w-12 rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-1 py-0.5 text-center text-sm text-navy dark:text-white"
+              className="w-12 rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-1 py-0.5 text-center text-sm text-seal-navy dark:text-white"
               aria-label="Numéro de page"
             />
-            <span className="text-sm text-navy dark:text-white">
+            <span className="text-sm text-seal-navy dark:text-white">
               / {numPages || '—'}
             </span>
           </form>
@@ -109,7 +109,7 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
           </Button>
           {numPages > 0 && (
             <span
-              className="hidden sm:inline text-[10px] text-taupe dark:text-slate-400 ml-1"
+              className="hidden sm:inline text-[10px] text-seal-gray-500 dark:text-slate-400 ml-1"
               aria-live="polite"
             >
               {progressPct}%
@@ -120,13 +120,13 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
         {/* Search (visual only, react-pdf text layer disabled) */}
         <div className="hidden md:flex items-center gap-1.5">
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-taupe dark:text-slate-400" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-400" />
             <input
               type="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Rechercher…"
-              className="pl-7 pr-2 py-1 w-40 rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs text-navy dark:text-white focus:outline-none focus:ring-1 focus:ring-primary"
+              className="pl-7 pr-2 py-1 w-40 rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs text-seal-navy dark:text-white focus:outline-none focus:ring-1 focus:ring-primary"
               aria-label="Rechercher dans le document"
             />
           </div>
@@ -147,7 +147,7 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
           </Button>
           <button
             onClick={() => setScale(1)}
-            className="text-xs text-taupe dark:text-slate-400 w-12 text-center hover:text-primary transition-colors"
+            className="text-xs text-seal-gray-500 dark:text-slate-400 w-12 text-center hover:text-primary transition-colors"
             title="Réinitialiser le zoom"
             aria-label="Réinitialiser le zoom"
           >

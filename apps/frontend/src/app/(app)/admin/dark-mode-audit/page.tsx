@@ -188,9 +188,9 @@ export default function DarkModeAuditPage() {
         <div>
           <div className="flex items-center gap-2">
             <Moon className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-medium text-navy dark:text-white">Audit dark mode</h1>
+            <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Audit dark mode</h1>
           </div>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             Détecte les éléments avec fond clair sans variante <code>dark:</code> (heuristique luminance &gt; 0.9).
           </p>
         </div>
@@ -206,7 +206,7 @@ export default function DarkModeAuditPage() {
           {findings.length > 0 && (
             <button
               onClick={exportCsv}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 text-sm font-medium text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 text-sm font-medium text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
             >
               Export CSV ({findings.length})
             </button>
@@ -246,7 +246,7 @@ export default function DarkModeAuditPage() {
         <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <p className="text-sm font-semibold text-navy dark:text-white">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white">
               {findings.length} élément(s) suspect(s)
             </p>
           </div>

@@ -202,8 +202,8 @@ export default function TimelinePage() {
     <div className="space-y-5 animate-fade-in-up">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">Timeline</h1>
-          <p className="text-sm text-taupe dark:text-slate-400">
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Timeline</h1>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">
             Vue unifiée des actualités, notifications et documents.
           </p>
         </div>
@@ -214,7 +214,7 @@ export default function TimelinePage() {
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <Filter className="h-4 w-4 text-taupe dark:text-slate-500" />
+        <Filter className="h-4 w-4 text-seal-gray-500 dark:text-slate-500" />
         {(Object.keys(KIND_META) as TimelineKind[]).map((k) => {
           const meta = KIND_META[k];
           const active = kindFilter.has(k);
@@ -224,7 +224,7 @@ export default function TimelinePage() {
               type="button"
               onClick={() => toggleKind(k)}
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition btn-lift ${
-                active ? meta.chip : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-500 opacity-60'
+                active ? meta.chip : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-500 opacity-60'
               }`}
             >
               <meta.Icon className="h-3.5 w-3.5" />
@@ -251,8 +251,8 @@ export default function TimelinePage() {
       {!loading && filtered.length === 0 && (
         <Card>
           <CardContent className="py-10 text-center">
-            <Clock className="h-8 w-8 text-taupe/40 dark:text-slate-600 mx-auto mb-2" />
-            <p className="text-sm text-taupe dark:text-slate-400">Aucun évènement à afficher.</p>
+            <Clock className="h-8 w-8 text-seal-gray-500/40 dark:text-slate-600 mx-auto mb-2" />
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucun évènement à afficher.</p>
           </CardContent>
         </Card>
       )}
@@ -260,7 +260,7 @@ export default function TimelinePage() {
       <div className="space-y-6">
         {grouped.map((group) => (
           <section key={group.key}>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">
               {group.label}
             </p>
             <div className="relative pl-5 space-y-2">
@@ -275,23 +275,23 @@ export default function TimelinePage() {
                         <CardContent className="py-3 px-4">
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-gray-50 dark:bg-slate-800 flex items-center justify-center">
-                              <meta.Icon className="h-4 w-4 text-taupe dark:text-slate-400" />
+                              <meta.Icon className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                 <Badge className={`${meta.chip} text-[10px] px-2 py-0.5`}>{meta.label}</Badge>
-                                <span className="text-[10px] text-taupe/70 dark:text-slate-500">
+                                <span className="text-[10px] text-seal-gray-500/70 dark:text-slate-500">
                                   {formatRelativeTime(entry.at)}
                                 </span>
                                 {entry.author && (
-                                  <span className="text-[10px] text-taupe/70 dark:text-slate-500">
+                                  <span className="text-[10px] text-seal-gray-500/70 dark:text-slate-500">
                                     — {entry.author}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm font-medium text-navy dark:text-white truncate">{entry.title}</p>
+                              <p className="text-sm font-medium text-seal-navy dark:text-white truncate">{entry.title}</p>
                               {entry.body && (
-                                <p className="text-xs text-taupe dark:text-slate-400 line-clamp-2 mt-0.5">
+                                <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mt-0.5">
                                   {entry.body}
                                 </p>
                               )}

@@ -129,11 +129,11 @@ export default function EditNewsPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
         <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800">
-          <ArrowLeft className="h-5 w-5 text-taupe" />
+          <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-medium text-navy dark:text-white">Modifier l&apos;article</h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">Éditez le contenu et les métadonnées</p>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Modifier l&apos;article</h1>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">Éditez le contenu et les métadonnées</p>
         </div>
         <Button variant="outline" onClick={() => setShowDeleteConfirm(true)} loading={deleting} className="text-red-600 border-red-200 hover:bg-red-50">
           <Trash2 className="h-4 w-4" /> Supprimer
@@ -163,7 +163,7 @@ export default function EditNewsPage() {
 
             {/* WYSIWYG Content editor */}
             <div className="space-y-1">
-              <label className="block text-[13px] font-semibold text-navy dark:text-white">Contenu</label>
+              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Contenu</label>
               <div className="flex items-center gap-1 border border-b-0 border-gray-300 dark:border-slate-600 rounded-t-lg p-2 bg-gray-50 dark:bg-slate-800">
                 {[
                   { cmd: 'bold', label: 'B', style: 'font-semibold' },
@@ -178,7 +178,7 @@ export default function EditNewsPage() {
                       document.execCommand(parts[0]!, false, parts[1] ?? '');
                       editorRef.current?.focus();
                     }}
-                    className={`px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-navy dark:text-white ${style || 'font-semibold'}`}
+                    className={`px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white ${style || 'font-semibold'}`}
                   >{label}</button>
                 ))}
               </div>
@@ -186,7 +186,7 @@ export default function EditNewsPage() {
               <div
                 ref={editorRef}
                 contentEditable
-                className="w-full min-h-[250px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"
+                className="w-full min-h-[250px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"
                 onInput={(e) => setValue('content', (e.target as HTMLDivElement).innerHTML, { shouldValidate: true, shouldDirty: true })}
                 suppressContentEditableWarning
               />
@@ -198,11 +198,11 @@ export default function EditNewsPage() {
             <div className="flex gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" {...register('isPinned')} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                <span className="text-sm text-navy dark:text-white">Épingler en haut</span>
+                <span className="text-sm text-seal-navy dark:text-white">Épingler en haut</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" {...register('isPublished')} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                <span className="text-sm text-navy dark:text-white">Publié</span>
+                <span className="text-sm text-seal-navy dark:text-white">Publié</span>
               </label>
             </div>
           </CardContent>

@@ -49,8 +49,8 @@ export function QuoteWidget() {
       </div>
       <div className="flex-1">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-primary/60 dark:text-primary/80 mb-1">Citation du jour</p>
-        <p className="text-sm text-navy dark:text-white italic leading-relaxed">&ldquo;{quote?.text}&rdquo;</p>
-        <p className="text-xs text-taupe dark:text-slate-400 mt-1.5">— {quote?.author}</p>
+        <p className="text-sm text-seal-navy dark:text-white italic leading-relaxed">&ldquo;{quote?.text}&rdquo;</p>
+        <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1.5">— {quote?.author}</p>
       </div>
     </div>
   );

@@ -34,7 +34,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="space-y-1">
         {label && (
-          <label htmlFor={selectId} className="block text-[13px] font-semibold text-navy dark:text-white">
+          <label htmlFor={selectId} className="block text-[13px] font-semibold text-seal-navy dark:text-white">
             {label}
           </label>
         )}
@@ -52,7 +52,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             {...props}
           >
             {placeholder && (
-              <option value="" className="text-taupe">
+              <option value="" className="text-seal-gray-500">
                 {placeholder}
               </option>
             )}
@@ -62,7 +62,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-taupe dark:text-slate-400" />
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-seal-gray-500 dark:text-slate-400" />
         </div>
         {error && <p className="text-xs text-red-600">{error}</p>}
       </div>

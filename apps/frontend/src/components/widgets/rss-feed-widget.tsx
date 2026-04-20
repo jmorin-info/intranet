@@ -59,7 +59,7 @@ export function RSSFeedWidget() {
     <div>
       <div className="flex items-center gap-2 mb-4">
         <Rss className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-navy dark:text-white text-sm flex-1">Alertes cybersécurité</h3>
+        <h3 className="font-semibold text-seal-navy dark:text-white text-sm flex-1">Alertes cybersécurité</h3>
         <Link href="/veille" className="flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline">
           Voir tout <ArrowRight className="h-3 w-3" />
         </Link>
@@ -70,7 +70,7 @@ export function RSSFeedWidget() {
           {[1,2,3,4].map(i => <div key={i} className="h-12 rounded-lg bg-gray-100 dark:bg-slate-800 animate-pulse" />)}
         </div>
       ) : items.length === 0 ? (
-        <p className="text-xs text-taupe dark:text-slate-400 py-4 text-center">Aucune alerte de sécurité disponible</p>
+        <p className="text-xs text-seal-gray-500 dark:text-slate-400 py-4 text-center">Aucune alerte de sécurité disponible</p>
       ) : (
         <div className="space-y-1">
           {items.map((item, i) => (
@@ -83,7 +83,7 @@ export function RSSFeedWidget() {
             >
               <div className="mt-0.5 flex-shrink-0">{severityIcon(item.severity)}</div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-navy dark:text-white line-clamp-1 group-hover:text-primary transition-colors">{item.title}</p>
+                <p className="text-xs font-semibold text-seal-navy dark:text-white line-clamp-1 group-hover:text-primary transition-colors">{item.title}</p>
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                   <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${sourceBadgeColor[item.source] || 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400'}`}>
                     {item.source}
@@ -94,7 +94,7 @@ export function RSSFeedWidget() {
                     </span>
                   )}
                   {item.cveId && <span className="text-[10px] font-mono text-red-500 font-semibold">{item.cveId}</span>}
-                  <ExternalLink className="h-2.5 w-2.5 text-taupe opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ExternalLink className="h-2.5 w-2.5 text-seal-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
             </a>

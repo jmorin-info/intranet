@@ -239,7 +239,7 @@ export function OnboardingTour() {
         <div className="p-6">
           <button
             onClick={finish}
-            className="absolute right-3 top-4 rounded-lg p-1.5 text-taupe transition hover:bg-gray-100 dark:hover:bg-slate-800"
+            className="absolute right-3 top-4 rounded-lg p-1.5 text-seal-gray-500 transition hover:bg-gray-100 dark:hover:bg-slate-800"
             aria-label="Fermer le tour"
             type="button"
           >
@@ -265,16 +265,16 @@ export function OnboardingTour() {
                 <Icon className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-taupe dark:text-slate-500">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-seal-gray-500 dark:text-slate-500">
                   Étape {step + 1} / {STEPS.length}
                 </p>
                 <h2
                   id="onboarding-title"
-                  className="mt-1 text-lg font-semibold text-navy dark:text-white"
+                  className="mt-1 text-lg font-semibold text-seal-navy dark:text-white"
                 >
                   {current.title}
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-taupe dark:text-slate-400">
+                <p className="mt-2 text-sm leading-relaxed text-seal-gray-500 dark:text-slate-400">
                   {current.description}
                 </p>
               </div>

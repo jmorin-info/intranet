@@ -23,7 +23,7 @@ function useGreeting() {
     if (h < 6) return { label: 'Bonne nuit', Icon: Moon, gradient: 'from-indigo-500/15 via-purple-500/10 to-transparent' };
     if (h < 12) return { label: 'Bonjour', Icon: Sunrise, gradient: 'from-amber-400/15 via-orange-400/10 to-transparent' };
     if (h < 18) return { label: 'Bon après-midi', Icon: Sun, gradient: 'from-sky-400/15 via-primary/10 to-transparent' };
-    return { label: 'Bonsoir', Icon: Moon, gradient: 'from-indigo-500/15 via-navy/10 to-transparent' };
+    return { label: 'Bonsoir', Icon: Moon, gradient: 'from-indigo-500/15 via-seal-navy/10 to-transparent' };
   }, []);
 }
 
@@ -67,14 +67,14 @@ export function MorningBriefingWidget({ items, loading }: MorningBriefingWidgetP
               <Icon className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500">
+              <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500">
                 {todayLabel || 'Briefing du jour'}
               </p>
-              <h2 className="text-base font-medium text-navy dark:text-white truncate">
+              <h2 className="text-base font-medium text-seal-navy dark:text-white truncate">
                 {greeting.label}
                 {user?.firstName ? <span className="text-primary">, {user.firstName}</span> : null}
               </h2>
-              <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">{briefingLine}</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{briefingLine}</p>
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-1 rounded-full bg-primary/10 dark:bg-primary/20 px-2.5 py-1 text-[10px] font-semibold text-primary">
@@ -89,7 +89,7 @@ export function MorningBriefingWidget({ items, loading }: MorningBriefingWidgetP
               <Link
                 key={item.href}
                 href={item.href}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-white/80 dark:bg-slate-900/60 px-2.5 py-1 text-[11px] font-medium text-navy dark:text-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition"
+                className="group inline-flex items-center gap-1.5 rounded-full bg-white/80 dark:bg-slate-900/60 px-2.5 py-1 text-[11px] font-medium text-seal-navy dark:text-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition"
               >
                 <span className="tabular-nums text-primary">{item.count}</span>
                 <span className="truncate max-w-[140px]">{item.label}</span>

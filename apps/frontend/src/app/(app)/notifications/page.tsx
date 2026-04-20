@@ -295,8 +295,8 @@ export default function NotificationsPage() {
         <Card>
           <CardContent className="flex items-center justify-between py-4">
             <div>
-              <h3 className="text-sm font-semibold text-navy dark:text-white">{t('notifications.admin')}</h3>
-              <p className="text-xs text-taupe dark:text-slate-400">{t('notifications.adminDesc')}</p>
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">{t('notifications.admin')}</h3>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">{t('notifications.adminDesc')}</p>
             </div>
             <Button onClick={() => setShowBroadcast(true)}>
               <Send className="h-4 w-4" />
@@ -323,7 +323,7 @@ export default function NotificationsPage() {
             rows={3}
           />
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1">{t('notifications.form.type')}</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1">{t('notifications.form.type')}</label>
             <select
               className="w-full rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
               value={broadcastForm.type}
@@ -338,7 +338,7 @@ export default function NotificationsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1">{t('notifications.form.recipients')}</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1">{t('notifications.form.recipients')}</label>
             <select
               className="w-full rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
               value={broadcastForm.target}
@@ -351,7 +351,7 @@ export default function NotificationsPage() {
           </div>
           {broadcastForm.target === 'role' && (
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1">Rôle cible</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1">Rôle cible</label>
               <select
                 className="w-full rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                 value={broadcastForm.targetRole}
@@ -369,7 +369,7 @@ export default function NotificationsPage() {
           )}
           {broadcastForm.target === 'department' && (
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1">Département cible</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1">Département cible</label>
               <select
                 className="w-full rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                 value={broadcastForm.targetDepartmentId}
@@ -385,18 +385,18 @@ export default function NotificationsPage() {
           {/* Preview */}
           {broadcastForm.title.trim() && (
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1">Apercu</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1">Apercu</label>
               <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-4">
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-primary-light dark:bg-slate-700 flex-shrink-0">
                     <Bell className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-white">{broadcastForm.title}</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white">{broadcastForm.title}</p>
                     {broadcastForm.body && (
-                      <p className="text-xs text-taupe dark:text-slate-400 mt-1">{broadcastForm.body}</p>
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">{broadcastForm.body}</p>
                     )}
-                    <span className="inline-block mt-1.5 rounded-full bg-gray-200 dark:bg-slate-600 px-2 py-0.5 text-[10px] font-semibold text-taupe dark:text-slate-300">
+                    <span className="inline-block mt-1.5 rounded-full bg-gray-200 dark:bg-slate-600 px-2 py-0.5 text-[10px] font-semibold text-seal-gray-500 dark:text-slate-300">
                       {notificationTypeLabels[broadcastForm.type] || broadcastForm.type}
                     </span>
                   </div>
@@ -436,7 +436,7 @@ export default function NotificationsPage() {
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors border ${
               typeFilter === value
                 ? 'bg-primary text-white border-primary'
-                : 'bg-white dark:bg-slate-800 text-taupe dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:border-primary hover:text-primary dark:hover:text-primary'
+                : 'bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:border-primary hover:text-primary dark:hover:text-primary'
             }`}
           >
             {PillIcon && <PillIcon className="h-3 w-3" />}
@@ -500,8 +500,8 @@ export default function NotificationsPage() {
           {Object.entries(grouped).map(([label, groupNotifs]) => (
             <div key={label}>
               <div className="flex items-center gap-2 mb-2 px-1">
-                <h3 className="text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wide">{label}</h3>
-                <span className="text-[10px] text-taupe/60 dark:text-slate-500 font-medium">{groupNotifs.length}</span>
+                <h3 className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wide">{label}</h3>
+                <span className="text-[10px] text-seal-gray-500/60 dark:text-slate-500 font-medium">{groupNotifs.length}</span>
                 <div className="flex-1 h-px bg-gray-100 dark:bg-slate-800" />
               </div>
               <Card>
@@ -525,14 +525,14 @@ export default function NotificationsPage() {
                           }`}
                         >
                           <Icon
-                            className={`h-4 w-4 ${!notif.isRead ? 'text-primary' : 'text-taupe dark:text-slate-400'}`}
+                            className={`h-4 w-4 ${!notif.isRead ? 'text-primary' : 'text-seal-gray-500 dark:text-slate-400'}`}
                           />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p
                               className={`text-sm ${
-                                !notif.isRead ? 'font-semibold text-navy dark:text-white' : 'text-navy dark:text-white'
+                                !notif.isRead ? 'font-semibold text-seal-navy dark:text-white' : 'text-seal-navy dark:text-white'
                               }`}
                             >
                               {notif.title}
@@ -542,14 +542,14 @@ export default function NotificationsPage() {
                             )}
                           </div>
                           {notificationTypeLabels[notif.type] && (
-                            <span className="inline-block mt-0.5 rounded-full bg-gray-100 dark:bg-slate-700 px-2 py-0.5 text-[10px] font-semibold text-taupe dark:text-slate-300">
+                            <span className="inline-block mt-0.5 rounded-full bg-gray-100 dark:bg-slate-700 px-2 py-0.5 text-[10px] font-semibold text-seal-gray-500 dark:text-slate-300">
                               {notificationTypeLabels[notif.type]}
                             </span>
                           )}
-                          <p className="text-xs text-taupe dark:text-slate-400 line-clamp-2 mt-0.5">{notif.body}</p>
+                          <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mt-0.5">{notif.body}</p>
                         </div>
                         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                          <span className="text-[10px] text-taupe/70 dark:text-slate-500 whitespace-nowrap">
+                          <span className="text-[10px] text-seal-gray-500/70 dark:text-slate-500 whitespace-nowrap">
                             {formatRelativeTime(notif.createdAt)}
                           </span>
                           {(() => {

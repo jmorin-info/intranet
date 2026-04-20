@@ -598,7 +598,7 @@ export default function WelcomePage() {
                         </a>
                       )
                     )}
-                    <span className="text-[10px] text-taupe dark:text-slate-500">{formatDate(d.updatedAt)}</span>
+                    <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{formatDate(d.updatedAt)}</span>
                   </div>
                 </div>
               </div>

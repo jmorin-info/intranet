@@ -114,19 +114,19 @@ export default function ExtranetPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card><CardContent className="py-3 px-4 flex items-center gap-3">
             <Users className="h-5 w-5 text-primary" />
-            <div><p className="text-xs text-taupe dark:text-slate-400">Total</p><p className="text-xl font-medium text-navy dark:text-white">{accesses.length}</p></div>
+            <div><p className="text-xs text-seal-gray-500 dark:text-slate-400">Total</p><p className="text-xl font-medium text-seal-navy dark:text-white">{accesses.length}</p></div>
           </CardContent></Card>
           <Card><CardContent className="py-3 px-4 flex items-center gap-3">
             <Shield className="h-5 w-5 text-emerald-500" />
-            <div><p className="text-xs text-taupe dark:text-slate-400">Actifs</p><p className="text-xl font-medium text-emerald-600">{activeCount}</p></div>
+            <div><p className="text-xs text-seal-gray-500 dark:text-slate-400">Actifs</p><p className="text-xl font-medium text-emerald-600">{activeCount}</p></div>
           </CardContent></Card>
           <Card><CardContent className="py-3 px-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <div><p className="text-xs text-taupe dark:text-slate-400">Expirent bientôt</p><p className="text-xl font-medium text-amber-600">{expiringSoonCount}</p></div>
+            <div><p className="text-xs text-seal-gray-500 dark:text-slate-400">Expirent bientôt</p><p className="text-xl font-medium text-amber-600">{expiringSoonCount}</p></div>
           </CardContent></Card>
           <Card><CardContent className="py-3 px-4 flex items-center gap-3">
             <UserX className="h-5 w-5 text-red-500" />
-            <div><p className="text-xs text-taupe dark:text-slate-400">Expirés / Révoqués</p><p className="text-xl font-medium text-red-600">{expiredCount}</p></div>
+            <div><p className="text-xs text-seal-gray-500 dark:text-slate-400">Expirés / Révoqués</p><p className="text-xl font-medium text-red-600">{expiredCount}</p></div>
           </CardContent></Card>
         </div>
       )}
@@ -164,8 +164,8 @@ export default function ExtranetPage() {
         <Card className="shadow-sm rounded-xl">
           <CardContent className="p-12 text-center">
             <Search className="h-12 w-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
-            <p className="text-lg font-semibold text-navy dark:text-white">Aucun accès prestataire</p>
-            <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+            <p className="text-lg font-semibold text-seal-navy dark:text-white">Aucun accès prestataire</p>
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
               {search ? 'Aucun r\u00e9sultat pour cette recherche' : 'Aucun acc\u00e8s extranet configur\u00e9'}
             </p>
           </CardContent>
@@ -191,8 +191,8 @@ export default function ExtranetPage() {
                         <Users className={`h-5 w-5 ${isExpiredOrRevoked ? 'text-gray-400' : 'text-primary'}`} />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="font-medium text-navy dark:text-white text-sm truncate">{access.name}</h3>
-                        <p className="text-xs text-taupe dark:text-slate-400 truncate">{access.company}</p>
+                        <h3 className="font-medium text-seal-navy dark:text-white text-sm truncate">{access.name}</h3>
+                        <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">{access.company}</p>
                       </div>
                     </div>
                     <Badge className={`text-[10px] font-medium flex-shrink-0 ${status.className}`}>
@@ -200,17 +200,17 @@ export default function ExtranetPage() {
                     </Badge>
                   </div>
 
-                  <p className="text-xs text-taupe dark:text-slate-400 truncate mb-2">{access.email}</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate mb-2">{access.email}</p>
 
                   {access.scope && (
-                    <p className="text-[11px] text-taupe dark:text-slate-500 mb-2">
+                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-500 mb-2">
                       <Shield className="h-3 w-3 inline mr-1" />
                       {access.scope}
                     </p>
                   )}
 
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-slate-700">
-                    <div className="text-[11px] text-taupe dark:text-slate-400 flex items-center gap-1">
+                    <div className="text-[11px] text-seal-gray-500 dark:text-slate-400 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {access.accessExpiresAt
                         ? `Expire ${formatRelativeTime(access.accessExpiresAt)}`

@@ -39,7 +39,7 @@ export default function ChatPage() {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <MessageSquare className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl text-navy dark:text-white">{t('chat.title')}</h1>
+          <h1 className="text-2xl text-seal-navy dark:text-white">{t('chat.title')}</h1>
         </div>
         <section aria-label={t('chat.notConfigured')} className="rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/20 p-4 flex items-start gap-2">
           <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -65,7 +65,7 @@ export default function ChatPage() {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <MessageSquare className="h-6 w-6 text-primary" />
-          <h2 className="text-2xl text-navy dark:text-white">{t('chat.title')}</h2>
+          <h2 className="text-2xl text-seal-navy dark:text-white">{t('chat.title')}</h2>
         </div>
         <section aria-label={t('chat.serverUnreachable')} className="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/20 p-4 flex items-start gap-2">
           <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -95,8 +95,8 @@ export default function ChatPage() {
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-slate-700">
         <div className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-navy dark:text-white">{t('chat.title')}</h2>
-          <span className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500">
+          <h2 className="text-lg font-semibold text-seal-navy dark:text-white">{t('chat.title')}</h2>
+          <span className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
             Rocket.Chat
           </span>
         </div>
@@ -104,7 +104,7 @@ export default function ChatPage() {
           href={CHAT_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-taupe dark:text-slate-400 hover:text-primary"
+          className="flex items-center gap-1 text-xs text-seal-gray-500 dark:text-slate-400 hover:text-primary"
         >
           Ouvrir dans un nouvel onglet <ExternalLink className="h-3 w-3" />
         </a>

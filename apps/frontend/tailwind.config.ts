@@ -55,6 +55,7 @@ const config: Config = {
           blue: '#296DC1',        // PANTONE 660C
           green: '#006233',       // PANTONE 349C
           bordeaux: '#892034',    // PANTONE 202C
+          navy: '#004469',        // Bleu OMNITECH historique (renommage sémantique du token `navy` legacy)
           gray: {
             100: '#dadde2',
             300: '#8f94a4',

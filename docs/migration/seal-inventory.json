@@ -1,0 +1,754 @@
+{
+  "total": 2850,
+  "fileCount": 152,
+  "perClass": {
+    "text-taupe": 1507,
+    "text-navy": 1153,
+    "bg-navy": 28,
+    "text-taupe/40": 23,
+    "text-taupe/70": 22,
+    "text-taupe/60": 21,
+    "bg-navy/10": 17,
+    "text-taupe/30": 17,
+    "bg-navy/5": 10,
+    "border-taupe/30": 5,
+    "text-navy/80": 5,
+    "border-navy": 4,
+    "border-navy/20": 4,
+    "text-taupe/20": 4,
+    "bg-navy/90": 4,
+    "border-navy/10": 3,
+    "from-navy": 3,
+    "bg-taupe/50": 3,
+    "from-navy/5": 2,
+    "text-taupe/50": 2,
+    "bg-navy/20": 2,
+    "text-navy/20": 2,
+    "border-navy/30": 1,
+    "border-taupe": 1,
+    "via-navy/80": 1,
+    "text-navy/90": 1,
+    "bg-navy/60": 1,
+    "from-navy/20": 1,
+    "via-navy/10": 1,
+    "ring-navy/10": 1,
+    "text-taupe/80": 1
+  },
+  "perFamily": {
+    "text-taupe": 1597,
+    "text-navy": 1161,
+    "bg-navy": 62,
+    "border-navy": 12,
+    "border-taupe": 6,
+    "from-navy": 6,
+    "bg-taupe": 3,
+    "via-navy": 2,
+    "ring-navy": 1
+  },
+  "perContext": {
+    "app/(app)": 1622,
+    "app/admin": 794,
+    "components/layout": 102,
+    "components/widgets": 89,
+    "components/other": 66,
+    "packages/ui": 47,
+    "components/ui": 38,
+    "app/(auth)": 35,
+    "components/ai": 27,
+    "app/root": 22,
+    "lib": 7,
+    "app/(public)": 1
+  },
+  "topFiles": [
+    {
+      "rel": "apps/frontend/src/app/(app)/wiki/WikiContent.tsx",
+      "count": 145
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/documents/[id]/page.tsx",
+      "count": 132
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/dashboard/page.tsx",
+      "count": 129
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/tickets/page.tsx",
+      "count": 109
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/profile/page.tsx",
+      "count": 95
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/config/page.tsx",
+      "count": 88
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/rssi-dashboard/page.tsx",
+      "count": 82
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/satisfaction/page.tsx",
+      "count": 70
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/documents/page.tsx",
+      "count": 68
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/search/page.tsx",
+      "count": 65
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/it-exports/page.tsx",
+      "count": 64
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/veille/page.tsx",
+      "count": 59
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/quiz/page.tsx",
+      "count": 58
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/certificates/page.tsx",
+      "count": 55
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/tickets/[id]/page.tsx",
+      "count": 47
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/documents/new/page.tsx",
+      "count": 42
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/ad-audit/page.tsx",
+      "count": 39
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/compliance/CompliancePlanning.tsx",
+      "count": 38
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/users/import/page.tsx",
+      "count": 38
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/helpdesk/SelfServicePortal.tsx",
+      "count": 35
+    }
+  ],
+  "allFiles": [
+    {
+      "rel": "apps/frontend/src/app/(app)/wiki/WikiContent.tsx",
+      "count": 145
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/documents/[id]/page.tsx",
+      "count": 132
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/dashboard/page.tsx",
+      "count": 129
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/tickets/page.tsx",
+      "count": 109
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/profile/page.tsx",
+      "count": 95
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/config/page.tsx",
+      "count": 88
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/rssi-dashboard/page.tsx",
+      "count": 82
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/satisfaction/page.tsx",
+      "count": 70
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/documents/page.tsx",
+      "count": 68
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/search/page.tsx",
+      "count": 65
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/it-exports/page.tsx",
+      "count": 64
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/veille/page.tsx",
+      "count": 59
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/quiz/page.tsx",
+      "count": 58
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/certificates/page.tsx",
+      "count": 55
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/tickets/[id]/page.tsx",
+      "count": 47
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/documents/new/page.tsx",
+      "count": 42
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/ad-audit/page.tsx",
+      "count": 39
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/compliance/CompliancePlanning.tsx",
+      "count": 38
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/users/import/page.tsx",
+      "count": 38
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/helpdesk/SelfServicePortal.tsx",
+      "count": 35
+    },
+    {
+      "rel": "apps/frontend/src/components/layout/header.tsx",
+      "count": 35
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/access-reviews/page.tsx",
+      "count": 34
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/departments/page.tsx",
+      "count": 34
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/users/page.tsx",
+      "count": 33
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/news/[slug]/page.tsx",
+      "count": 33
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/files/page.tsx",
+      "count": 32
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/compliance/ComplianceOverview.tsx",
+      "count": 30
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/audit-log/page.tsx",
+      "count": 28
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/external-access/page.tsx",
+      "count": 28
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/news/compose/page.tsx",
+      "count": 28
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/incidents/[id]/page.tsx",
+      "count": 26
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/chartes/page.tsx",
+      "count": 25
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/alerts/page.tsx",
+      "count": 25
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/procedures/[id]/page.tsx",
+      "count": 25
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/onboarding/page.tsx",
+      "count": 24
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/signatures/page.tsx",
+      "count": 24
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/mfa/page.tsx",
+      "count": 24
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/tools/pdf/page.tsx",
+      "count": 24
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/calendar/page.tsx",
+      "count": 23
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/wiki/RunbooksContent.tsx",
+      "count": 23
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/directory/page.tsx",
+      "count": 22
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/helpdesk/HelpdeskChat.tsx",
+      "count": 22
+    },
+    {
+      "rel": "apps/frontend/src/app/(auth)/login/page.tsx",
+      "count": 22
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/directory/organigramme/page.tsx",
+      "count": 20
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/documents/[id]/edit/page.tsx",
+      "count": 20
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/notifications/page.tsx",
+      "count": 19
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/procedures/page.tsx",
+      "count": 18
+    },
+    {
+      "rel": "apps/frontend/src/components/documents/workflow-panel.tsx",
+      "count": 18
+    },
+    {
+      "rel": "apps/frontend/src/components/layout/auth-provider.tsx",
+      "count": 18
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/getting-started/page.tsx",
+      "count": 17
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/compliance/ComplianceFrameworks.tsx",
+      "count": 16
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/system-health/page.tsx",
+      "count": 16
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/workflows/[id]/page.tsx",
+      "count": 16
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/documents/pending/page.tsx",
+      "count": 16
+    },
+    {
+      "rel": "apps/frontend/src/components/ai/ai-chatbot.tsx",
+      "count": 16
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/workflows/page.tsx",
+      "count": 15
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/incidents/page.tsx",
+      "count": 15
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/directory/contacts/page.tsx",
+      "count": 14
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/news/page.tsx",
+      "count": 14
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/audit-timeline/page.tsx",
+      "count": 13
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/compliance/ComplianceControls.tsx",
+      "count": 13
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/ldap-pending/page.tsx",
+      "count": 13
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/spaces/page.tsx",
+      "count": 13
+    },
+    {
+      "rel": "apps/frontend/src/components/layout/command-palette.tsx",
+      "count": 13
+    },
+    {
+      "rel": "apps/frontend/src/components/layout/status-bar.tsx",
+      "count": 13
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/extranet/page.tsx",
+      "count": 12
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/timeline/page.tsx",
+      "count": 12
+    },
+    {
+      "rel": "apps/frontend/src/components/layout/annotations-drawer.tsx",
+      "count": 12
+    },
+    {
+      "rel": "apps/frontend/src/components/ux/ux-command-center.tsx",
+      "count": 10
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/documents/[id]/editor/page.tsx",
+      "count": 9
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/not-found.tsx",
+      "count": 9
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/signatures/page.tsx",
+      "count": 9
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/lucca-widget.tsx",
+      "count": 9
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/rssi-dashboard-summary.tsx",
+      "count": 9
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/reports/page.tsx",
+      "count": 8
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/documents/new-inline/page.tsx",
+      "count": 8
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/news/[slug]/edit/page.tsx",
+      "count": 8
+    },
+    {
+      "rel": "apps/frontend/src/components/ui/ai-search-modal.tsx",
+      "count": 8
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/weather-widget.tsx",
+      "count": 8
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/search/v2/page.tsx",
+      "count": 7
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/tips/page.tsx",
+      "count": 7
+    },
+    {
+      "rel": "apps/frontend/src/app/(auth)/reset-password/page.tsx",
+      "count": 7
+    },
+    {
+      "rel": "apps/frontend/src/app/chartes/page.tsx",
+      "count": 7
+    },
+    {
+      "rel": "apps/frontend/src/components/viewers/pdf-viewer.tsx",
+      "count": 7
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/docs-due-review-widget.tsx",
+      "count": 7
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/ged-dashboard-widget.tsx",
+      "count": 7
+    },
+    {
+      "rel": "apps/frontend/src/lib/ui/tokens.ts",
+      "count": 7
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/certificates/page.tsx",
+      "count": 6
+    },
+    {
+      "rel": "apps/frontend/src/app/not-found.tsx",
+      "count": 6
+    },
+    {
+      "rel": "apps/frontend/src/components/tips/tip-banner.tsx",
+      "count": 6
+    },
+    {
+      "rel": "apps/frontend/src/components/ui/saved-filters-bar.tsx",
+      "count": 6
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/clock-widget.tsx",
+      "count": 6
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/my-notifications-widget.tsx",
+      "count": 6
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/recent-pages-widget.tsx",
+      "count": 6
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/system-health-compact.tsx",
+      "count": 6
+    },
+    {
+      "rel": "packages/ui/src/data-table.tsx",
+      "count": 6
+    },
+    {
+      "rel": "packages/ui/src/file-upload-zone.tsx",
+      "count": 6
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/chat/page.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/en-construction/page.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/files/smb-editor/[sessionId]/page.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/app/(auth)/forgot-password/page.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/app/error.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/components/notifications/push-notification-manager.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/components/pwa/install-prompt.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/components/tips/tip-of-the-day.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/components/ui/keyboard-shortcuts-dialog.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/components/ui/mention-textarea.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/morning-briefing-widget.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/smsi-indicators-widget.tsx",
+      "count": 5
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/dark-mode-audit/page.tsx",
+      "count": 4
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/wiki/page.tsx",
+      "count": 4
+    },
+    {
+      "rel": "apps/frontend/src/app/maintenance/page.tsx",
+      "count": 4
+    },
+    {
+      "rel": "apps/frontend/src/components/ai/ai-explainability-hints.tsx",
+      "count": 4
+    },
+    {
+      "rel": "apps/frontend/src/components/ai/ai-suggestion-bar.tsx",
+      "count": 4
+    },
+    {
+      "rel": "apps/frontend/src/components/layout/focus-mode.tsx",
+      "count": 4
+    },
+    {
+      "rel": "apps/frontend/src/components/onboarding-tour.tsx",
+      "count": 4
+    },
+    {
+      "rel": "apps/frontend/src/components/ui/smart-filter-bar.tsx",
+      "count": 4
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/dashboard-face-selector.tsx",
+      "count": 4
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/rss-feed-widget.tsx",
+      "count": 4
+    },
+    {
+      "rel": "packages/ui/src/empty-state.tsx",
+      "count": 4
+    },
+    {
+      "rel": "packages/ui/src/search-input.tsx",
+      "count": 4
+    },
+    {
+      "rel": "packages/ui/src/workflow-timeline.tsx",
+      "count": 4
+    },
+    {
+      "rel": "apps/frontend/src/components/ai/ai-control-toggle.tsx",
+      "count": 3
+    },
+    {
+      "rel": "apps/frontend/src/components/layout/admin-group-tabs.tsx",
+      "count": 3
+    },
+    {
+      "rel": "apps/frontend/src/components/ui/entity-breadcrumb.tsx",
+      "count": 3
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/quick-links.tsx",
+      "count": 3
+    },
+    {
+      "rel": "packages/ui/src/badge.tsx",
+      "count": 3
+    },
+    {
+      "rel": "packages/ui/src/button.tsx",
+      "count": 3
+    },
+    {
+      "rel": "packages/ui/src/dialog.tsx",
+      "count": 3
+    },
+    {
+      "rel": "packages/ui/src/input.tsx",
+      "count": 3
+    },
+    {
+      "rel": "packages/ui/src/iso-control-badge.tsx",
+      "count": 3
+    },
+    {
+      "rel": "packages/ui/src/select.tsx",
+      "count": 3
+    },
+    {
+      "rel": "packages/ui/src/tabs.tsx",
+      "count": 3
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/compliance/page.tsx",
+      "count": 2
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/helpdesk/page.tsx",
+      "count": 2
+    },
+    {
+      "rel": "apps/frontend/src/components/error-boundary.tsx",
+      "count": 2
+    },
+    {
+      "rel": "apps/frontend/src/components/layout/hub-landing.tsx",
+      "count": 2
+    },
+    {
+      "rel": "apps/frontend/src/components/layout/page-header.tsx",
+      "count": 2
+    },
+    {
+      "rel": "apps/frontend/src/components/role-guard.tsx",
+      "count": 2
+    },
+    {
+      "rel": "apps/frontend/src/components/ui/export-button.tsx",
+      "count": 2
+    },
+    {
+      "rel": "apps/frontend/src/components/ui/inline-status-dropdown.tsx",
+      "count": 2
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/ldap-pending-widget.tsx",
+      "count": 2
+    },
+    {
+      "rel": "apps/frontend/src/components/widgets/quote-widget.tsx",
+      "count": 2
+    },
+    {
+      "rel": "packages/ui/src/textarea.tsx",
+      "count": 2
+    },
+    {
+      "rel": "apps/frontend/src/app/(app)/admin/page.tsx",
+      "count": 1
+    },
+    {
+      "rel": "apps/frontend/src/app/(auth)/logout/page.tsx",
+      "count": 1
+    },
+    {
+      "rel": "apps/frontend/src/app/(public)/welcome/page.tsx",
+      "count": 1
+    },
+    {
+      "rel": "apps/frontend/src/components/bookmark-button.tsx",
+      "count": 1
+    },
+    {
+      "rel": "apps/frontend/src/components/ui/bulk-actions-bar.tsx",
+      "count": 1
+    },
+    {
+      "rel": "apps/frontend/src/components/ui/focus-mode-toggle.tsx",
+      "count": 1
+    },
+    {
+      "rel": "apps/frontend/src/components/ui/pdf-export-button.tsx",
+      "count": 1
+    },
+    {
+      "rel": "apps/frontend/src/components/viewers/docx-viewer.tsx",
+      "count": 1
+    }
+  ]
+}

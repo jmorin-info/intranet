@@ -64,7 +64,7 @@ function SupportPageInner() {
             className={`flex items-center gap-2 px-4 py-3 text-sm transition-colors ${
               activeTab === tab.id
                 ? 'border-b-2 border-primary text-primary font-semibold'
-                : 'text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
             }`}>
             <tab.icon className="h-4 w-4" />
             {tab.label}

@@ -187,9 +187,9 @@ export default function EditDocumentPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
         <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800">
-          <ArrowLeft className="h-5 w-5 text-taupe dark:text-slate-400" />
+          <ArrowLeft className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
         </button>
-        <h1 className="text-2xl font-medium text-navy dark:text-white">Modifier le document</h1>
+        <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Modifier le document</h1>
         {hasChanges && (
           <span className="ml-auto text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
             <Info className="h-3 w-3" />
@@ -214,18 +214,18 @@ export default function EditDocumentPage() {
                 {...register('category')}
               />
               <div className="space-y-1">
-                <label className="block text-[13px] font-semibold text-navy dark:text-white">Prochaine révision</label>
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Prochaine révision</label>
                 <input
                   type="date"
                   {...register('nextReviewDate')}
-                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-navy dark:text-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-seal-navy dark:text-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
 
             {/* Classification selector with descriptions */}
             <div className="space-y-2">
-              <label className="block text-[13px] font-semibold text-navy dark:text-white">Classification</label>
+              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Classification</label>
               <div className="grid grid-cols-2 gap-2">
                 {allowedClassifications.map((cls) => {
                   const currentCls = watch('classification') || 'INTERNE';
@@ -244,7 +244,7 @@ export default function EditDocumentPage() {
                       }`}
                     >
                       <span className={`text-sm font-semibold ${cls.color}`}>{cls.label}</span>
-                      <p className="text-[11px] text-taupe dark:text-slate-400 mt-0.5">{cls.desc}</p>
+                      <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5">{cls.desc}</p>
                     </button>
                   );
                 })}
@@ -257,12 +257,12 @@ export default function EditDocumentPage() {
                 {...register('isPublic')}
                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
-              <span className="text-sm text-navy dark:text-white">Document public</span>
+              <span className="text-sm text-seal-navy dark:text-white">Document public</span>
             </label>
 
             {/* ISO Controls */}
             <div className="space-y-2">
-              <label className="block text-[13px] font-semibold text-navy dark:text-white">Contrôles de sécurité</label>
+              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Contrôles de sécurité</label>
               <div className="flex flex-wrap gap-1.5 min-h-[32px]">
                 {selectedControls.map((ctrlId) => {
                   const ctrl = isoControls.find((c) => c.id === ctrlId);
@@ -282,7 +282,7 @@ export default function EditDocumentPage() {
                 placeholder="Rechercher un contrôle ISO..."
                 value={controlSearch}
                 onChange={(e) => setControlSearch(e.target.value)}
-                className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-navy dark:text-white placeholder:text-taupe focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-seal-navy dark:text-white placeholder:text-seal-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
               {controlSearch && (
                 <div className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 divide-y divide-gray-100 dark:divide-slate-700">
@@ -296,8 +296,8 @@ export default function EditDocumentPage() {
                       }}
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800 text-sm"
                     >
-                      <span className="font-mono font-semibold text-navy dark:text-white">{ctrl.code}</span>
-                      <span className="text-taupe dark:text-slate-400 ml-2">{ctrl.titleFr || ctrl.title}</span>
+                      <span className="font-mono font-semibold text-seal-navy dark:text-white">{ctrl.code}</span>
+                      <span className="text-seal-gray-500 dark:text-slate-400 ml-2">{ctrl.titleFr || ctrl.title}</span>
                     </button>
                   ))}
                 </div>
@@ -306,7 +306,7 @@ export default function EditDocumentPage() {
 
             {/* New version upload */}
             <div className="border-t border-gray-100 dark:border-slate-700 pt-4">
-              <h3 className="text-sm font-semibold text-navy dark:text-white mb-2">
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white mb-2">
                 <Upload className="inline h-4 w-4 mr-1" />
                 Nouvelle version (optionnel)
               </h3>
@@ -345,17 +345,17 @@ export default function EditDocumentPage() {
           {/* Side-by-side preview */}
           <div className="space-y-4">
             <Card>
-              <CardHeader><h3 className="text-sm font-semibold text-navy dark:text-white">Version actuelle</h3></CardHeader>
+              <CardHeader><h3 className="text-sm font-semibold text-seal-navy dark:text-white">Version actuelle</h3></CardHeader>
               <CardContent className="text-xs space-y-2">
-                <div><span className="text-taupe dark:text-slate-400">Version :</span> <span className="text-navy dark:text-white font-semibold">{doc?.currentVersion?.versionNumber || '1.0'}</span></div>
-                <div><span className="text-taupe dark:text-slate-400">Statut :</span> <Badge variant={doc?.status === 'APPROVED' ? 'approved' : doc?.status === 'DRAFT' ? 'draft' : 'info'}>{doc?.status || 'N/A'}</Badge></div>
-                <div><span className="text-taupe dark:text-slate-400">Classification :</span> <span className={`font-semibold ${
+                <div><span className="text-seal-gray-500 dark:text-slate-400">Version :</span> <span className="text-seal-navy dark:text-white font-semibold">{doc?.currentVersion?.versionNumber || '1.0'}</span></div>
+                <div><span className="text-seal-gray-500 dark:text-slate-400">Statut :</span> <Badge variant={doc?.status === 'APPROVED' ? 'approved' : doc?.status === 'DRAFT' ? 'draft' : 'info'}>{doc?.status || 'N/A'}</Badge></div>
+                <div><span className="text-seal-gray-500 dark:text-slate-400">Classification :</span> <span className={`font-semibold ${
                   watch('classification') === 'PUBLIC' ? 'text-emerald-600' :
                   watch('classification') === 'CONFIDENTIEL' ? 'text-amber-600' :
                   watch('classification') === 'SECRET' ? 'text-red-600' : 'text-blue-600'
                 }`}>{watch('classification') || doc?.classification || 'INTERNE'}</span></div>
-                <div><span className="text-taupe dark:text-slate-400">Référence :</span> <span className="font-mono">{doc?.reference || 'N/A'}</span></div>
-                <div><span className="text-taupe dark:text-slate-400">Propriétaire :</span> {doc?.owner?.firstName} {doc?.owner?.lastName}</div>
+                <div><span className="text-seal-gray-500 dark:text-slate-400">Référence :</span> <span className="font-mono">{doc?.reference || 'N/A'}</span></div>
+                <div><span className="text-seal-gray-500 dark:text-slate-400">Propriétaire :</span> {doc?.owner?.firstName} {doc?.owner?.lastName}</div>
               </CardContent>
             </Card>
 

@@ -187,19 +187,19 @@ export default function AlertsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="border-l-4 border-l-[#cc0000] bg-red-50/50 dark:bg-red-900/10 shadow-sm rounded-xl"><CardContent className="py-3 px-4">
           <p className="text-2xl font-medium text-red-600 dark:text-red-400 tabular-nums">{alertStats.p1}</p>
-          <p className="text-[11px] text-taupe dark:text-slate-400">Critiques (P1)</p>
+          <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Critiques (P1)</p>
         </CardContent></Card>
         <Card className="border-l-4 border-l-[#892034] bg-amber-50/50 dark:bg-amber-900/10 shadow-sm rounded-xl"><CardContent className="py-3 px-4">
           <p className="text-2xl font-medium text-seal-bordeaux dark:text-red-300 tabular-nums">{alertStats.p2}</p>
-          <p className="text-[11px] text-taupe dark:text-slate-400">Majeures (P2)</p>
+          <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Majeures (P2)</p>
         </CardContent></Card>
         <Card className="border-l-4 border-l-[#296DC1] bg-blue-50/50 dark:bg-blue-900/10 shadow-sm rounded-xl"><CardContent className="py-3 px-4">
           <p className="text-2xl font-medium text-seal-blue dark:text-blue-400 tabular-nums">{alertStats.p3}</p>
-          <p className="text-[11px] text-taupe dark:text-slate-400">Mineures (P3)</p>
+          <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Mineures (P3)</p>
         </CardContent></Card>
         <Card className="shadow-sm rounded-xl"><CardContent className="py-3 px-4">
-          <p className="text-2xl font-medium text-navy dark:text-white tabular-nums">{alertStats.read}/{alertStats.total}</p>
-          <p className="text-[11px] text-taupe dark:text-slate-400">Lues</p>
+          <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">{alertStats.read}/{alertStats.total}</p>
+          <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Lues</p>
         </CardContent></Card>
       </div>
 
@@ -209,33 +209,33 @@ export default function AlertsPage() {
           <CardContent className="py-4">
             <div className="flex items-center gap-2 mb-3">
               <Shield className="h-5 w-5 text-indigo-600" />
-              <h3 className="font-semibold text-navy dark:text-white text-sm">Accusés de lecture - Vue admin</h3>
+              <h3 className="font-semibold text-seal-navy dark:text-white text-sm">Accusés de lecture - Vue admin</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
               <div>
-                <p className="text-lg font-medium text-navy dark:text-white">{readRateStats.totalActive}</p>
-                <p className="text-[10px] text-taupe dark:text-slate-400">Alertes actives</p>
+                <p className="text-lg font-medium text-seal-navy dark:text-white">{readRateStats.totalActive}</p>
+                <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">Alertes actives</p>
               </div>
               <div>
-                <p className="text-lg font-medium text-navy dark:text-white">
+                <p className="text-lg font-medium text-seal-navy dark:text-white">
                   {readRateStats.readRatePercent}%
                 </p>
-                <p className="text-[10px] text-taupe dark:text-slate-400">
+                <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                   Taux de lecture ({readRateStats.totalReaders}/{readRateStats.totalActiveUsers} utilisateurs)
                 </p>
               </div>
               <div>
-                <p className="text-lg font-medium text-navy dark:text-white">
+                <p className="text-lg font-medium text-seal-navy dark:text-white">
                   {readRateStats.nonReadersOfCritical.length}
                 </p>
-                <p className="text-[10px] text-taupe dark:text-slate-400">
+                <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                   N&apos;ont pas lu la dernière P1
                 </p>
               </div>
             </div>
             {readRateStats.latestCriticalAlert && readRateStats.nonReadersOfCritical.length > 0 && (
               <details className="text-xs">
-                <summary className="cursor-pointer text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white transition-colors">
+                <summary className="cursor-pointer text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white transition-colors">
                   Utilisateurs n&apos;ayant pas lu &laquo; {readRateStats.latestCriticalAlert.title} &raquo; ({readRateStats.nonReadersOfCritical.length})
                 </summary>
                 <div className="mt-2 max-h-40 overflow-y-auto space-y-1 pl-2 border-l-2 border-red-200 dark:border-red-800">
@@ -243,7 +243,7 @@ export default function AlertsPage() {
                     <div key={u.id} className="flex items-center gap-2 text-[11px] text-gray-700 dark:text-slate-300">
                       <span className="h-1.5 w-1.5 rounded-full bg-red-400 flex-shrink-0" />
                       <span>{u.firstName} {u.lastName}</span>
-                      <span className="text-taupe dark:text-slate-500">({u.email})</span>
+                      <span className="text-seal-gray-500 dark:text-slate-500">({u.email})</span>
                     </div>
                   ))}
                 </div>
@@ -256,7 +256,7 @@ export default function AlertsPage() {
               </p>
             )}
             {!readRateStats.latestCriticalAlert && (
-              <p className="text-xs text-taupe dark:text-slate-400">Aucune alerte P1 active</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Aucune alerte P1 active</p>
             )}
           </CardContent>
         </Card>
@@ -278,8 +278,8 @@ export default function AlertsPage() {
             aria-label={`Filtrer par ${tab.label}`}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition focus-visible:ring-2 focus-visible:ring-primary ${
               severityFilter === tab.value
-                ? (tab.color || 'bg-navy text-white dark:bg-slate-600')
-                : 'bg-gray-100 text-taupe dark:bg-slate-800 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                ? (tab.color || 'bg-seal-navy text-white dark:bg-slate-600')
+                : 'bg-gray-100 text-seal-gray-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
             }`}
           >
             {tab.label}
@@ -290,8 +290,8 @@ export default function AlertsPage() {
           onClick={() => setHideExpired(!hideExpired)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition ${
             hideExpired
-              ? 'bg-navy text-white dark:bg-slate-600'
-              : 'bg-gray-100 text-taupe dark:bg-slate-800 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+              ? 'bg-seal-navy text-white dark:bg-slate-600'
+              : 'bg-gray-100 text-seal-gray-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
           }`}
         >
           <EyeOff className="h-3 w-3" />
@@ -342,7 +342,7 @@ export default function AlertsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <Badge variant={cfg.badge as 'error' | 'warning' | 'info'}>{cfg.label}</Badge>
-                        <h3 className="font-semibold text-navy dark:text-white text-sm">{alert.title}</h3>
+                        <h3 className="font-semibold text-seal-navy dark:text-white text-sm">{alert.title}</h3>
                         {!alert.isRead && (
                           <span className="inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white">Non lu</span>
                         )}
@@ -350,7 +350,7 @@ export default function AlertsPage() {
                         {!alert.isActive && <Badge variant="draft">Inactive</Badge>}
                       </div>
                       <div className="text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap">{alert.content}</div>
-                      <div className="flex items-center gap-4 mt-3 text-[10px] text-taupe dark:text-slate-400">
+                      <div className="flex items-center gap-4 mt-3 text-[10px] text-seal-gray-500 dark:text-slate-400">
                         <span>{alert.author.firstName} {alert.author.lastName}</span>
                         <span title={formatDateTime(alert.createdAt)}>{timeAgo(alert.createdAt)}</span>
                         <span>{alert._count.reads} lecture{alert._count.reads !== 1 ? 's' : ''}</span>
@@ -377,7 +377,7 @@ export default function AlertsPage() {
       <Dialog open={showCreate} onClose={() => setShowCreate(false)} title="Nouvelle alerte de sécurité">
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-navy dark:text-white mb-1.5">Criticité</label>
+            <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1.5">Criticité</label>
             <div className="flex gap-2">
               {[
                 { value: 'P1', label: 'P1 Critique', dot: 'bg-red-500' },
@@ -390,7 +390,7 @@ export default function AlertsPage() {
                   onClick={() => setForm({ ...form, severity: opt.value })}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition ${
                     form.severity === opt.value
-                      ? 'border-navy bg-navy/5 dark:border-slate-400 dark:bg-slate-700 font-medium'
+                      ? 'border-seal-navy bg-seal-navy/5 dark:border-slate-400 dark:bg-slate-700 font-medium'
                       : 'border-gray-200 dark:border-slate-600 hover:border-gray-300'
                   }`}
                 >

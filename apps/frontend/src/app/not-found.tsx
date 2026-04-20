@@ -12,23 +12,23 @@ export default function NotFound() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#004469]/5 via-white to-[#F68D2E]/5 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="text-center px-6">
         <OmnitechLogo size="lg" variant="icon" className="mx-auto mb-6" />
-        <h1 className="text-8xl font-semibold text-navy/20 dark:text-white/10">404</h1>
-        <h2 className="text-xl font-semibold text-navy dark:text-white -mt-4">Page introuvable</h2>
-        <p className="mt-3 text-sm text-taupe dark:text-slate-400 max-w-sm mx-auto">
+        <h1 className="text-8xl font-semibold text-seal-navy/20 dark:text-white/10">404</h1>
+        <h2 className="text-xl font-semibold text-seal-navy dark:text-white -mt-4">Page introuvable</h2>
+        <p className="mt-3 text-sm text-seal-gray-500 dark:text-slate-400 max-w-sm mx-auto">
           La page que vous recherchez n&apos;existe pas ou a été déplacée.
           Vérifiez l&apos;URL ou retournez au tableau de bord.
         </p>
         <div className="flex items-center justify-center gap-3 mt-8">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-sm font-semibold text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-sm font-semibold text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
           >
             <ArrowLeft className="h-4 w-4" />
             Page précédente
           </button>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-xl bg-navy px-6 py-3 text-sm font-semibold text-white hover:bg-navy/90 transition-all hover:shadow-lg hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 rounded-xl bg-seal-navy px-6 py-3 text-sm font-semibold text-white hover:bg-seal-navy/90 transition-all hover:shadow-lg hover:-translate-y-0.5"
           >
             Tableau de bord
           </Link>

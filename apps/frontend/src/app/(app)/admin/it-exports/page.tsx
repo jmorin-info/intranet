@@ -264,10 +264,10 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
           <div>
-            <h2 className="text-lg font-medium text-navy dark:text-white">
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white">
               Ajouter un export {category.label}
             </h2>
-            <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
               {category.iso ? `ISO 27001 — ${category.iso}` : 'Export libre'}
             </p>
           </div>
@@ -276,7 +276,7 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
             className="rounded-full p-1 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
             aria-label="Fermer"
           >
-            <X className="h-5 w-5 text-taupe dark:text-slate-400" />
+            <X className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
           </button>
         </div>
 
@@ -284,17 +284,17 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
           <div className="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 px-4 py-3">
             <FileText className="h-8 w-8 text-primary flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-navy dark:text-white truncate">
+              <p className="text-sm font-medium text-seal-navy dark:text-white truncate">
                 {file.name}
               </p>
-              <p className="text-xs text-taupe dark:text-slate-400">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                 {formatSize(file.size)}
               </p>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-navy dark:text-slate-200 mb-1">
+            <label className="block text-xs font-medium text-seal-navy dark:text-slate-200 mb-1">
               Période de référence
             </label>
             <input
@@ -302,15 +302,15 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
               value={reportPeriod}
               onChange={(e) => setReportPeriod(e.target.value)}
               placeholder="Ex : 2026-04, Q2-2026, mensuel"
-              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-taupe dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
             />
-            <p className="text-[10px] text-taupe dark:text-slate-500 mt-1">
+            <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-1">
               Utilisé pour le classement et les filtres.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-navy dark:text-slate-200 mb-1">
+            <label className="block text-xs font-medium text-seal-navy dark:text-slate-200 mb-1">
               Description (facultatif)
             </label>
             <textarea
@@ -318,7 +318,7 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Contexte, version, commentaires…"
-              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-taupe dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
             />
           </div>
         </div>
@@ -397,12 +397,12 @@ function VeeamReportWidget() {
       <Card>
         <CardContent className="py-6">
           <div className="flex items-start gap-3">
-            <Database className="h-8 w-8 text-taupe dark:text-slate-500 flex-shrink-0 mt-0.5" />
+            <Database className="h-8 w-8 text-seal-gray-500 dark:text-slate-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-navy dark:text-white">
+              <p className="text-sm font-medium text-seal-navy dark:text-white">
                 Aucun rapport Veeam disponible
               </p>
-              <p className="text-xs text-taupe dark:text-slate-400 mt-1">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
                 Uploadez un fichier JSON via le drag-and-drop ci-dessous pour
                 alimenter le dashboard. Le script{' '}
                 <code className="font-mono text-[11px] bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
@@ -425,10 +425,10 @@ function VeeamReportWidget() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-6 w-6 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-navy dark:text-white">
+              <p className="text-sm font-medium text-seal-navy dark:text-white">
                 Rapport Veeam présent mais non parsable
               </p>
-              <p className="text-xs text-taupe dark:text-slate-400 mt-1">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
                 Le fichier <span className="font-mono">{report.originalName}</span>{' '}
                 existe mais n&apos;a pas pu être décodé en JSON valide.
                 Vérifiez le format produit par le script PowerShell.
@@ -464,7 +464,7 @@ function VeeamReportWidget() {
               <Database className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-navy dark:text-white">
+              <h2 className="text-base font-semibold text-seal-navy dark:text-white">
                 Dernier rapport Veeam
                 {report.reportPeriod && (
                   <span className="ml-2 text-primary">
@@ -472,7 +472,7 @@ function VeeamReportWidget() {
                   </span>
                 )}
               </h2>
-              <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
                 Généré {formatDateTime(report.generatedAt)}
                 {report.generatedOn && ` sur ${report.generatedOn}`}
                 {report.generatedBy && ` par ${report.generatedBy}`}
@@ -544,18 +544,18 @@ function VeeamReportWidget() {
         {/* Secondary metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div className="rounded-lg bg-gray-50 dark:bg-slate-800/50 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500">
+            <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
               Jobs actifs
             </p>
-            <p className="text-sm font-semibold text-navy dark:text-white mt-0.5">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white mt-0.5">
               {totalJobs}
             </p>
           </div>
           <div className="rounded-lg bg-gray-50 dark:bg-slate-800/50 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500">
+            <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
               Volume sauvegardé
             </p>
-            <p className="text-sm font-semibold text-navy dark:text-white mt-0.5">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white mt-0.5">
               {totalBackedUpGB.toLocaleString('fr-FR', {
                 maximumFractionDigits: 2,
               })}{' '}
@@ -563,18 +563,18 @@ function VeeamReportWidget() {
             </p>
           </div>
           <div className="rounded-lg bg-gray-50 dark:bg-slate-800/50 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500">
+            <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
               Durée moyenne
             </p>
-            <p className="text-sm font-semibold text-navy dark:text-white mt-0.5">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white mt-0.5">
               {summary.averageDurationMinutes ?? 0} min
             </p>
           </div>
           <div className="rounded-lg bg-gray-50 dark:bg-slate-800/50 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500">
+            <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
               Tests de restore
             </p>
-            <p className="text-sm font-semibold text-navy dark:text-white mt-0.5">
+            <p className="text-sm font-semibold text-seal-navy dark:text-white mt-0.5">
               {restoreOk} / {restoreCount}
             </p>
           </div>
@@ -607,12 +607,12 @@ function VeeamReportWidget() {
         {/* Jobs table */}
         {report.jobs.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-navy dark:text-white uppercase tracking-wider mb-2">
+            <p className="text-xs font-semibold text-seal-navy dark:text-white uppercase tracking-wider mb-2">
               Jobs ({report.jobsCount})
             </p>
             <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700">
               <table className="w-full text-xs">
-                <thead className="bg-gray-50 dark:bg-slate-800/60 text-taupe dark:text-slate-400">
+                <thead className="bg-gray-50 dark:bg-slate-800/60 text-seal-gray-500 dark:text-slate-400">
                   <tr>
                     <th className="text-left px-3 py-2 font-medium">Nom</th>
                     <th className="text-left px-3 py-2 font-medium">Type</th>
@@ -632,7 +632,7 @@ function VeeamReportWidget() {
                           ? 'text-amber-600 dark:text-amber-400'
                           : result === 'Failed'
                             ? 'text-red-600 dark:text-red-400'
-                            : 'text-taupe dark:text-slate-500';
+                            : 'text-seal-gray-500 dark:text-slate-500';
                     const rate = job.successRate ?? 0;
                     const rateClass =
                       rate >= 95
@@ -645,7 +645,7 @@ function VeeamReportWidget() {
                         key={`${job.name}-${idx}`}
                         className="hover:bg-gray-50 dark:hover:bg-slate-800/40"
                       >
-                        <td className="px-3 py-2 font-medium text-navy dark:text-white">
+                        <td className="px-3 py-2 font-medium text-seal-navy dark:text-white">
                           {job.name}
                           {job.isEnabled === false && (
                             <span className="ml-2 text-[10px] text-red-600 dark:text-red-400 font-normal">
@@ -653,7 +653,7 @@ function VeeamReportWidget() {
                             </span>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-taupe dark:text-slate-400">
+                        <td className="px-3 py-2 text-seal-gray-500 dark:text-slate-400">
                           {job.type || '—'}
                         </td>
                         <td className={`px-3 py-2 font-medium ${resultClass}`}>
@@ -664,13 +664,13 @@ function VeeamReportWidget() {
                         >
                           {rate}%
                         </td>
-                        <td className="px-3 py-2 text-right text-taupe dark:text-slate-400">
+                        <td className="px-3 py-2 text-right text-seal-gray-500 dark:text-slate-400">
                           {(job.lastDataSizeGB ?? 0).toLocaleString('fr-FR', {
                             maximumFractionDigits: 2,
                           })}{' '}
                           Go
                         </td>
-                        <td className="px-3 py-2 text-right text-taupe dark:text-slate-400">
+                        <td className="px-3 py-2 text-right text-seal-gray-500 dark:text-slate-400">
                           {job.lastDurationMinutes ?? 0} min
                         </td>
                       </tr>
@@ -680,7 +680,7 @@ function VeeamReportWidget() {
               </table>
             </div>
             {report.jobsCount > report.jobs.length && (
-              <p className="text-[10px] text-taupe dark:text-slate-500 mt-2 text-right">
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-2 text-right">
                 Affichage de {report.jobs.length} jobs sur {report.jobsCount}.
                 Téléchargez le JSON brut pour la liste complète.
               </p>
@@ -819,7 +819,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-2 text-sm text-taupe dark:text-slate-400 hover:text-primary transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-seal-gray-500 dark:text-slate-400 hover:text-primary transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Retour aux catégories
@@ -836,10 +836,10 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
               <Icon className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-medium text-navy dark:text-white">
+              <h2 className="text-xl font-medium text-seal-navy dark:text-white">
                 {category.label}
               </h2>
-              <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
                 {category.description}
               </p>
             </div>
@@ -871,15 +871,15 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
             >
               <Upload
                 className={`h-7 w-7 ${
-                  isDragActive ? 'text-primary' : 'text-taupe dark:text-slate-400'
+                  isDragActive ? 'text-primary' : 'text-seal-gray-500 dark:text-slate-400'
                 }`}
               />
             </div>
             <div>
-              <p className="text-sm font-medium text-navy dark:text-white">
+              <p className="text-sm font-medium text-seal-navy dark:text-white">
                 Glissez vos fichiers ici ou cliquez pour parcourir
               </p>
-              <p className="text-xs text-taupe dark:text-slate-400 mt-1">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
                 {ALLOWED_EXTENSIONS.join(', ')} — max 200 Mo
               </p>
             </div>
@@ -898,23 +898,23 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
         <CardContent className="py-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex-1 min-w-[200px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-taupe dark:text-slate-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-seal-gray-500 dark:text-slate-500" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Rechercher un fichier, tag, description…"
-                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-navy dark:text-white placeholder:text-taupe dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
               />
             </div>
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-taupe dark:text-slate-500" />
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-seal-gray-500 dark:text-slate-500" />
               <input
                 type="text"
                 value={periodFilter}
                 onChange={(e) => setPeriodFilter(e.target.value)}
                 placeholder="Période (ex : 2026-04)"
-                className="pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-navy dark:text-white placeholder:text-taupe dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                className="pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
               />
             </div>
           </div>
@@ -947,10 +947,10 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-[200px]">
-                    <p className="text-sm font-medium text-navy dark:text-white truncate">
+                    <p className="text-sm font-medium text-seal-navy dark:text-white truncate">
                       {item.originalName}
                     </p>
-                    <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
                       {formatSize(item.fileSize)} · {formatDateTime(item.createdAt)}
                       {item.uploadedBy && (
                         <>
@@ -960,7 +960,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
                       )}
                     </p>
                     {item.description && (
-                      <p className="text-xs text-taupe dark:text-slate-500 mt-1 truncate">
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-500 mt-1 truncate">
                         {item.description}
                       </p>
                     )}
@@ -971,7 +971,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleDownload(item)}
-                      className="p-2 rounded-lg hover:bg-primary/10 text-taupe dark:text-slate-400 hover:text-primary transition-colors"
+                      className="p-2 rounded-lg hover:bg-primary/10 text-seal-gray-500 dark:text-slate-400 hover:text-primary transition-colors"
                       title="Télécharger"
                       aria-label="Télécharger"
                     >
@@ -980,7 +980,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
                     {canDelete && (
                       <button
                         onClick={() => handleDelete(item)}
-                        className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-taupe dark:text-slate-400 hover:text-red-600 transition-colors"
+                        className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-seal-gray-500 dark:text-slate-400 hover:text-red-600 transition-colors"
                         title="Supprimer"
                         aria-label="Supprimer"
                       >
@@ -1085,31 +1085,31 @@ export default function ItExportsPage() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <ClipboardCheck className="h-7 w-7 text-primary" />
             Exports IT &amp; Conformité
           </h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             Dépôt centralisé des preuves d&apos;audit pour la certification ISO 27001:2022.
           </p>
         </div>
         {canViewStats && stats && (
-          <div className="flex items-center gap-6 text-xs text-taupe dark:text-slate-400">
+          <div className="flex items-center gap-6 text-xs text-seal-gray-500 dark:text-slate-400">
             <div>
               <p className="text-[10px] uppercase tracking-wider">Total exports</p>
-              <p className="text-lg font-medium text-navy dark:text-white">
+              <p className="text-lg font-medium text-seal-navy dark:text-white">
                 {globalCount}
               </p>
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-wider">Volume</p>
-              <p className="text-lg font-medium text-navy dark:text-white">
+              <p className="text-lg font-medium text-seal-navy dark:text-white">
                 {formatSize(globalSize)}
               </p>
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-wider">Dernier dépôt</p>
-              <p className="text-lg font-medium text-navy dark:text-white">
+              <p className="text-lg font-medium text-seal-navy dark:text-white">
                 {formatDate(stats.totals.lastUploadAt)}
               </p>
             </div>
@@ -1148,24 +1148,24 @@ export default function ItExportsPage() {
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-navy dark:text-white truncate group-hover:text-primary transition-colors">
+                    <p className="text-sm font-medium text-seal-navy dark:text-white truncate group-hover:text-primary transition-colors">
                       {cat.label}
                     </p>
                     {cat.iso && (
-                      <p className="text-[10px] text-taupe dark:text-slate-500 mt-0.5 truncate">
+                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5 truncate">
                         ISO {cat.iso}
                       </p>
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-taupe dark:text-slate-400 line-clamp-2 mb-4 min-h-[32px]">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mb-4 min-h-[32px]">
                   {cat.description}
                 </p>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-0.5 text-taupe dark:text-slate-400 font-medium">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-0.5 text-seal-gray-500 dark:text-slate-400 font-medium">
                     {count} export{count > 1 ? 's' : ''}
                   </span>
-                  <span className="text-taupe dark:text-slate-500">
+                  <span className="text-seal-gray-500 dark:text-slate-500">
                     {lastUpload ? formatDate(lastUpload) : 'Vide'}
                   </span>
                 </div>
@@ -1176,7 +1176,7 @@ export default function ItExportsPage() {
       )}
 
       {!canUpload && (
-        <p className="text-xs text-taupe dark:text-slate-500 text-center">
+        <p className="text-xs text-seal-gray-500 dark:text-slate-500 text-center">
           Seuls les administrateurs peuvent déposer de nouveaux exports.
         </p>
       )}

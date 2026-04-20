@@ -50,20 +50,20 @@ export function SystemHealthCompact() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Activity className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-navy dark:text-white">Santé système</h3>
+          <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Santé système</h3>
         </div>
         <Link
           href="/admin/system-health"
-          className="text-[11px] text-taupe dark:text-slate-400 hover:text-primary flex items-center gap-1"
+          className="text-[11px] text-seal-gray-500 dark:text-slate-400 hover:text-primary flex items-center gap-1"
         >
           Voir détails <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
 
       {status === 'error' ? (
-        <p className="text-xs text-taupe dark:text-slate-500">Statut indisponible</p>
+        <p className="text-xs text-seal-gray-500 dark:text-slate-500">Statut indisponible</p>
       ) : !data ? (
-        <p className="text-xs text-taupe dark:text-slate-500">Chargement…</p>
+        <p className="text-xs text-seal-gray-500 dark:text-slate-500">Chargement…</p>
       ) : (
         <div className="flex items-center gap-3">
           <span
@@ -71,10 +71,10 @@ export function SystemHealthCompact() {
             aria-label={`Statut : ${globalStatus}`}
           />
           <div className="flex-1">
-            <p className="text-sm font-medium text-navy dark:text-white tabular-nums">
+            <p className="text-sm font-medium text-seal-navy dark:text-white tabular-nums">
               {upCount}/{SERVICES.length} services UP
             </p>
-            <p className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500">
+            <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
               {globalStatus === 'ok' ? 'Opérationnel' : globalStatus === 'degraded' ? 'Dégradé' : 'Incident'}
             </p>
           </div>

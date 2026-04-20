@@ -117,7 +117,7 @@ function getGamificationLevel(quizCount: number): { label: string; icon: typeof 
   if (quizCount > 10) return { label: 'Champion OMNITECH', icon: Trophy, color: 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' };
   if (quizCount >= 6) return { label: 'Expert cyber', icon: Star, color: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700' };
   if (quizCount >= 3) return { label: 'Sensibilisé', icon: Shield, color: 'text-seal-blue bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' };
-  return { label: 'Débutant', icon: BookOpen, color: 'text-taupe bg-gray-50 dark:bg-slate-800 border-gray-300 dark:border-slate-600' };
+  return { label: 'Débutant', icon: BookOpen, color: 'text-seal-gray-500 bg-gray-50 dark:bg-slate-800 border-gray-300 dark:border-slate-600' };
 }
 
 const MEDAL_ICONS = ['🥇', '🥈', '🥉'] as const;
@@ -303,7 +303,7 @@ function CreateCampaignDialog({ open, onClose, onCreated, initialData }: CreateC
 
         <div className="border-t border-gray-200 dark:border-slate-700 pt-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-navy dark:text-white">Questions ({questions.length})</p>
+            <p className="text-sm font-semibold text-seal-navy dark:text-white">Questions ({questions.length})</p>
             <Button size="sm" variant="outline" onClick={addQuestion}>
               <Plus className="h-3 w-3 mr-1" /> Ajouter
             </Button>
@@ -312,7 +312,7 @@ function CreateCampaignDialog({ open, onClose, onCreated, initialData }: CreateC
           {questions.map((q, qi) => (
             <div key={q.id} className="border rounded-lg p-3 mb-3 dark:border-slate-700 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-taupe dark:text-slate-400">Question {qi + 1}</span>
+                <span className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Question {qi + 1}</span>
                 {questions.length > 1 && (
                   <button onClick={() => removeQuestion(qi)} className="text-red-500 hover:text-red-700">
                     <Trash2 className="h-3.5 w-3.5" />
@@ -606,11 +606,11 @@ export default function QuizPage() {
         {/* Header */}
         <div className="flex items-start justify-between animate-fade-in-up">
           <div>
-            <h1 className="text-2xl font-medium text-navy dark:text-white flex items-center gap-2">
+            <h1 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
               <GraduationCap className="h-7 w-7 text-primary" aria-hidden="true" />
               {t('quiz.campaigns')}
             </h1>
-            <p className="text-sm text-taupe dark:text-slate-400 mt-1 max-w-2xl">
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1 max-w-2xl">
               Les campagnes de quiz permettent à OMNITECH SECURITY de mesurer et d&apos;entretenir la vigilance de chaque collaborateur face aux risques cyber. Choisissez une campagne active et testez vos connaissances en sécurité de l&apos;information, conformité RGPD et bonnes pratiques du quotidien.
             </p>
             {/* Gamification level badge */}
@@ -633,26 +633,26 @@ export default function QuizPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Card className="stagger-item">
               <CardContent className="py-3 text-center">
-                <p className="text-2xl font-medium text-navy dark:text-white">{stats.participationRate}%</p>
-                <p className="text-xs text-taupe dark:text-slate-400">Participation</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.participationRate}%</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Participation</p>
               </CardContent>
             </Card>
             <Card className="stagger-item">
               <CardContent className="py-3 text-center">
                 <p className="text-2xl font-medium text-primary">{stats.participants}/{stats.totalUsers}</p>
-                <p className="text-xs text-taupe dark:text-slate-400">Participants</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Participants</p>
               </CardContent>
             </Card>
             <Card className="stagger-item">
               <CardContent className="py-3 text-center">
-                <p className="text-2xl font-medium text-navy dark:text-white">{stats.averageScore}%</p>
-                <p className="text-xs text-taupe dark:text-slate-400">Score moyen</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.averageScore}%</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Score moyen</p>
               </CardContent>
             </Card>
             <Card className="stagger-item">
               <CardContent className="py-3 text-center">
                 <p className="text-2xl font-medium text-emerald-600">{stats.passingRate}%</p>
-                <p className="text-xs text-taupe dark:text-slate-400">Taux de réussite</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Taux de réussite</p>
               </CardContent>
             </Card>
           </div>
@@ -673,17 +673,17 @@ export default function QuizPage() {
                     <Shuffle className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-navy dark:text-white group-hover:text-primary transition-colors">
+                    <h3 className="text-sm font-medium text-seal-navy dark:text-white group-hover:text-primary transition-colors">
                       Quiz par défaut
                     </h3>
-                    <p className="text-xs text-taupe dark:text-slate-400 mt-0.5 line-clamp-2">
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2">
                       Questions aléatoires sur la sécurité de l&apos;information
                     </p>
                   </div>
                 </div>
               </CardHeader>
               <CardFooter className="pt-0">
-                <div className="flex items-center gap-3 text-xs text-taupe dark:text-slate-400 flex-wrap">
+                <div className="flex items-center gap-3 text-xs text-seal-gray-500 dark:text-slate-400 flex-wrap">
                   <span className="flex items-center gap-1">
                     <BookOpen className="h-3.5 w-3.5" /> 20 {t('quiz.questions')}
                   </span>
@@ -709,9 +709,9 @@ export default function QuizPage() {
             {campaigns.length === 0 && (
               <Card className="border-2 border-dashed border-gray-200 dark:border-slate-700 shadow-none flex items-center justify-center">
                 <CardContent className="py-8 text-center">
-                  <GraduationCap className="h-8 w-8 text-taupe/30 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-taupe dark:text-slate-400">Aucune campagne de quiz pour le moment</p>
-                  <p className="text-xs text-taupe/70 dark:text-slate-500 mt-1 max-w-xs mx-auto">
+                  <GraduationCap className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-seal-gray-500 dark:text-slate-400">Aucune campagne de quiz pour le moment</p>
+                  <p className="text-xs text-seal-gray-500/70 dark:text-slate-500 mt-1 max-w-xs mx-auto">
                     Les campagnes de sensibilisation à la cybersécurité créées par les administrateurs apparaîtront ici.
                   </p>
                 </CardContent>
@@ -739,7 +739,7 @@ export default function QuizPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-medium text-navy dark:text-white group-hover:text-primary transition-colors truncate">
+                          <h3 className="text-sm font-medium text-seal-navy dark:text-white group-hover:text-primary transition-colors truncate">
                             {campaign.title}
                           </h3>
                           {campaign.isActive ? (
@@ -752,7 +752,7 @@ export default function QuizPage() {
                           )}
                         </div>
                         {campaign.description && (
-                          <p className="text-xs text-taupe dark:text-slate-400 mt-0.5 line-clamp-2">
+                          <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2">
                             {campaign.description}
                           </p>
                         )}
@@ -767,14 +767,14 @@ export default function QuizPage() {
                           <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                             <Award className="h-3 w-3" /> Déjà complété
                           </span>
-                          <span className="text-taupe dark:text-slate-400">{Math.round((completed.score / completed.total) * 100)}%</span>
+                          <span className="text-seal-gray-500 dark:text-slate-400">{Math.round((completed.score / completed.total) * 100)}%</span>
                         </div>
                         <div className="h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                           <div className="h-full rounded-full bg-emerald-500 transition-all duration-300" style={{ width: `${Math.round((completed.score / completed.total) * 100)}%` }} />
                         </div>
                       </div>
                     )}
-                    <div className="flex items-center gap-3 text-xs text-taupe dark:text-slate-400 flex-wrap">
+                    <div className="flex items-center gap-3 text-xs text-seal-gray-500 dark:text-slate-400 flex-wrap">
                       <span className={`flex items-center gap-1 ${questionCount === 0 ? 'text-amber-500 font-semibold' : ''}`}>
                         <BookOpen className="h-3.5 w-3.5" /> {questionCount === 0 ? 'Aucune question' : `${questionCount} question${questionCount > 1 ? 's' : ''}`}
                       </span>
@@ -823,7 +823,7 @@ export default function QuizPage() {
         {leaderboard.length > 0 && (
           <Card className="animate-fade-in-up">
             <CardHeader>
-              <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
                 Classement global
               </h3>
@@ -848,11 +848,11 @@ export default function QuizPage() {
                         }`}
                       >
                         <span className="text-2xl">{MEDAL_ICONS[podiumIdx]}</span>
-                        <p className="text-xs font-semibold text-navy dark:text-white mt-1 truncate">
+                        <p className="text-xs font-semibold text-seal-navy dark:text-white mt-1 truncate">
                           {entry.user.firstName} {entry.user.lastName}
                         </p>
-                        <p className="text-lg font-bold text-navy dark:text-white">{pct}%</p>
-                        <p className="text-[10px] text-taupe dark:text-slate-400">{entry.score}/{entry.total}</p>
+                        <p className="text-lg font-bold text-seal-navy dark:text-white">{pct}%</p>
+                        <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{entry.score}/{entry.total}</p>
                       </div>
                     );
                   })}
@@ -867,16 +867,16 @@ export default function QuizPage() {
                       key={entry.user.id}
                       className="flex items-center gap-3 py-2 border-b border-gray-100 dark:border-slate-700 last:border-0"
                     >
-                      <span className="text-sm font-semibold w-6 text-center text-taupe dark:text-slate-400">
+                      <span className="text-sm font-semibold w-6 text-center text-seal-gray-500 dark:text-slate-400">
                         {rank}
                       </span>
-                      <span className="text-sm font-medium text-navy dark:text-white flex-1">
+                      <span className="text-sm font-medium text-seal-navy dark:text-white flex-1">
                         {entry.user.firstName} {entry.user.lastName}
                       </span>
                       <Badge variant={entry.score / entry.total >= 0.7 ? 'success' : 'warning'}>
                         {Math.round((entry.score / entry.total) * 100)}%
                       </Badge>
-                      <span className="text-xs text-taupe dark:text-slate-400">
+                      <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                         {entry.score}/{entry.total}
                       </span>
                     </div>
@@ -891,7 +891,7 @@ export default function QuizPage() {
         {myResults.length > 0 && (
           <Card className="animate-fade-in-up">
             <CardHeader>
-              <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                 <History className="h-5 w-5 text-primary" />
                 Mon historique
               </h3>
@@ -910,16 +910,16 @@ export default function QuizPage() {
                       ) : (
                         <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
                       )}
-                      <span className="text-sm font-medium text-navy dark:text-white flex-1 truncate">
+                      <span className="text-sm font-medium text-seal-navy dark:text-white flex-1 truncate">
                         {r.campaignTitle}
                       </span>
                       <Badge variant={r.passed ? 'success' : 'warning'}>
                         {r.percentage}%
                       </Badge>
-                      <span className="text-xs text-taupe dark:text-slate-400">
+                      <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                         {r.score}/{r.total}
                       </span>
-                      <span className="text-[10px] text-taupe dark:text-slate-400 hidden sm:inline">
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 hidden sm:inline">
                         {date.toLocaleDateString('fr-FR')}
                       </span>
                     </div>
@@ -974,7 +974,7 @@ export default function QuizPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-medium text-navy dark:text-white flex items-center gap-2">
+          <h2 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
             <GraduationCap className="h-7 w-7 text-primary" aria-hidden="true" />
             {activeCampaign?.title ?? 'Quiz'}
           </h2>
@@ -993,10 +993,10 @@ export default function QuizPage() {
           <Card className="animate-fade-in-up">
             <CardContent className="py-8 text-center">
               <GraduationCap className="h-16 w-16 text-primary mx-auto mb-4" />
-              <h2 className="text-xl font-medium text-navy dark:text-white mb-2">
+              <h2 className="text-xl font-medium text-seal-navy dark:text-white mb-2">
                 Prêt pour le quiz ?
               </h2>
-              <p className="text-sm text-taupe dark:text-slate-400 mb-6">
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-6">
                 {questions.length} question{questions.length > 1 ? 's' : ''}.
                 Vous devez obtenir au moins {passingThreshold}% pour réussir.
               </p>
@@ -1010,7 +1010,7 @@ export default function QuizPage() {
           {leaderboard.length > 0 && (
             <Card className="animate-fade-in-up">
               <CardHeader>
-                <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-yellow-500" />
                   Classement
                 </h3>
@@ -1023,15 +1023,15 @@ export default function QuizPage() {
                       className="flex items-center gap-3 py-2 border-b border-gray-100 dark:border-slate-700 last:border-0"
                     >
                       <span className="text-sm font-semibold w-6 text-center">
-                        {idx < 3 ? MEDAL_ICONS[idx] : <span className="text-taupe dark:text-slate-400">{idx + 1}</span>}
+                        {idx < 3 ? MEDAL_ICONS[idx] : <span className="text-seal-gray-500 dark:text-slate-400">{idx + 1}</span>}
                       </span>
-                      <span className="text-sm font-medium text-navy dark:text-white flex-1">
+                      <span className="text-sm font-medium text-seal-navy dark:text-white flex-1">
                         {entry.user.firstName} {entry.user.lastName}
                       </span>
                       <Badge variant={entry.score / entry.total >= 0.7 ? 'success' : 'warning'}>
                         {Math.round((entry.score / entry.total) * 100)}%
                       </Badge>
-                      <span className="text-xs text-taupe dark:text-slate-400">
+                      <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                         {entry.score}/{entry.total}
                       </span>
                     </div>
@@ -1048,7 +1048,7 @@ export default function QuizPage() {
         <>
           {/* Progress bar */}
           <div className="space-y-1">
-            <div className="flex justify-between text-xs text-taupe dark:text-slate-400">
+            <div className="flex justify-between text-xs text-seal-gray-500 dark:text-slate-400">
               <span>Question {currentIndex + 1} / {questions.length}</span>
               <span>{Math.round(progress)}%</span>
             </div>
@@ -1070,7 +1070,7 @@ export default function QuizPage() {
                     ? 'bg-primary text-white'
                     : answeredCategories.has(cat)
                     ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400'
+                    : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400'
                 }`}
               >
                 {answeredCategories.has(cat) && <CheckCircle2 className="h-3 w-3" />}
@@ -1084,7 +1084,7 @@ export default function QuizPage() {
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="info">{questions[currentIndex]!.category}</Badge>
               </div>
-              <h2 className="text-lg font-medium text-navy dark:text-white">
+              <h2 className="text-lg font-medium text-seal-navy dark:text-white">
                 {questions[currentIndex]!.question}
               </h2>
             </CardHeader>
@@ -1120,7 +1120,7 @@ export default function QuizPage() {
                         <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-current text-xs font-semibold flex-shrink-0">
                           {String.fromCharCode(65 + idx)}
                         </span>
-                        <span className="text-sm text-navy dark:text-white">{option}</span>
+                        <span className="text-sm text-seal-navy dark:text-white">{option}</span>
                         {showExplanation && isCorrect && (
                           <CheckCircle2 className="h-5 w-5 text-green-500 ml-auto flex-shrink-0" />
                         )}
@@ -1169,10 +1169,10 @@ export default function QuizPage() {
               ) : (
                 <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
               )}
-              <h2 className="text-xl font-medium text-navy dark:text-white mb-2">
+              <h2 className="text-xl font-medium text-seal-navy dark:text-white mb-2">
                 {result.percentage >= 80 ? 'Bravo !' : result.passed ? 'Quiz réussi' : 'Quiz terminé'}
               </h2>
-              <p className="text-sm text-taupe dark:text-slate-400 mb-4">
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">
                 {result.passed
                   ? `Vous avez réussi le quiz « ${activeCampaign?.title} ».`
                   : `Vous n'avez pas atteint le score minimum de ${passingThreshold}%. N'hésitez pas à réessayer.`}
@@ -1190,8 +1190,8 @@ export default function QuizPage() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-semibold text-navy dark:text-white">{result.percentage}%</span>
-                    <span className="text-xs text-taupe dark:text-slate-400">{result.score}/{result.total}</span>
+                    <span className="text-3xl font-semibold text-seal-navy dark:text-white">{result.percentage}%</span>
+                    <span className="text-xs text-seal-gray-500 dark:text-slate-400">{result.score}/{result.total}</span>
                   </div>
                 </div>
               </div>
@@ -1218,15 +1218,15 @@ export default function QuizPage() {
               {/* Category breakdown */}
               {Object.keys(categoryScores).length > 0 && (
                 <div className="mt-6 text-left max-w-md mx-auto">
-                  <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-3 text-center">Résultats par catégorie</p>
+                  <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-3 text-center">Résultats par catégorie</p>
                   <div className="space-y-3">
                     {Object.entries(categoryScores).map(([cat, { correct, total }]) => {
                       const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
                       return (
                         <div key={cat}>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold text-navy dark:text-white">{cat}</span>
-                            <span className="text-xs text-taupe dark:text-slate-400">{correct}/{total} ({pct}%)</span>
+                            <span className="text-xs font-semibold text-seal-navy dark:text-white">{cat}</span>
+                            <span className="text-xs text-seal-gray-500 dark:text-slate-400">{correct}/{total} ({pct}%)</span>
                           </div>
                           <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div
@@ -1244,7 +1244,7 @@ export default function QuizPage() {
               {/* Per-question review */}
               {questions.length > 0 && (
                 <div className="mt-6 text-left max-w-lg mx-auto">
-                  <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-3 text-center">Revue des reponses</p>
+                  <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-3 text-center">Revue des reponses</p>
                   <div className="space-y-3">
                     {questions.map((q, qi) => {
                       const userAnswer = answers[q.id];
@@ -1258,16 +1258,16 @@ export default function QuizPage() {
                               <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
                             )}
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-navy dark:text-white">{qi + 1}. {q.question}</p>
+                              <p className="text-xs font-medium text-seal-navy dark:text-white">{qi + 1}. {q.question}</p>
                               {!isCorrect && (
                                 <p className="text-[11px] mt-1">
                                   <span className="text-red-500 line-through">{q.options[userAnswer ?? 0]}</span>
-                                  <span className="text-taupe dark:text-slate-400 mx-1">→</span>
+                                  <span className="text-seal-gray-500 dark:text-slate-400 mx-1">→</span>
                                   <span className="text-emerald-600 dark:text-emerald-400 font-medium">{q.options[q.correctIndex]}</span>
                                 </p>
                               )}
                               {q.explanation && (
-                                <p className="text-[10px] text-taupe dark:text-slate-500 mt-1 italic">{q.explanation}</p>
+                                <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-1 italic">{q.explanation}</p>
                               )}
                             </div>
                           </div>
@@ -1303,7 +1303,7 @@ export default function QuizPage() {
           {leaderboard.length > 0 && (
             <Card className="animate-fade-in-up">
               <CardHeader>
-                <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-yellow-500" />
                   Classement
                 </h3>
@@ -1316,15 +1316,15 @@ export default function QuizPage() {
                       className="flex items-center gap-3 py-2 border-b border-gray-100 dark:border-slate-700 last:border-0"
                     >
                       <span className="text-sm font-semibold w-6 text-center">
-                        {idx < 3 ? MEDAL_ICONS[idx] : <span className="text-taupe dark:text-slate-400">{idx + 1}</span>}
+                        {idx < 3 ? MEDAL_ICONS[idx] : <span className="text-seal-gray-500 dark:text-slate-400">{idx + 1}</span>}
                       </span>
-                      <span className="text-sm font-medium text-navy dark:text-white flex-1">
+                      <span className="text-sm font-medium text-seal-navy dark:text-white flex-1">
                         {entry.user.firstName} {entry.user.lastName}
                       </span>
                       <Badge variant={entry.score / entry.total >= 0.7 ? 'success' : 'warning'}>
                         {Math.round((entry.score / entry.total) * 100)}%
                       </Badge>
-                      <span className="text-xs text-taupe dark:text-slate-400">
+                      <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                         {entry.score}/{entry.total}
                       </span>
                     </div>

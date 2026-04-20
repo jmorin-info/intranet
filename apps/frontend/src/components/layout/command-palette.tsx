@@ -423,7 +423,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       >
         {/* Input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-slate-700">
-          <Search className="h-5 w-5 text-taupe dark:text-slate-400 flex-shrink-0" />
+          <Search className="h-5 w-5 text-seal-gray-500 dark:text-slate-400 flex-shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -431,10 +431,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher ou exécuter une action…"
             aria-label="Champ de recherche de la command palette"
-            className="flex-1 bg-transparent text-sm text-navy dark:text-white placeholder:text-taupe dark:placeholder:text-slate-500 outline-none"
+            className="flex-1 bg-transparent text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 outline-none"
             onKeyDown={(e) => handleKeyDown(e as unknown as React.KeyboardEvent<HTMLDivElement>)}
           />
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono text-taupe dark:text-slate-500">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono text-seal-gray-500 dark:text-slate-500">
             esc
           </kbd>
         </div>
@@ -443,8 +443,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         <div ref={listRef} className="max-h-[60vh] overflow-y-auto py-2">
           {flat.length === 0 ? (
             <div className="text-center py-10 space-y-3">
-              <p className="text-sm text-taupe dark:text-slate-400">
-                Aucun résultat pour <span className="font-semibold text-navy dark:text-white">&quot;{query}&quot;</span>
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400">
+                Aucun résultat pour <span className="font-semibold text-seal-navy dark:text-white">&quot;{query}&quot;</span>
               </p>
               {query.length >= 3 && (
                 <button
@@ -463,10 +463,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           ) : (
             sections.map((sec) => (
               <div key={sec.id} className="mb-1">
-                <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-taupe dark:text-slate-500 flex items-center gap-1.5">
+                <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 flex items-center gap-1.5">
                   {sec.id === 'recent' && <History className="h-3 w-3" />}
                   {sec.label}
-                  <span className="text-[9px] text-taupe/70 dark:text-slate-600">({sec.items.length})</span>
+                  <span className="text-[9px] text-seal-gray-500/70 dark:text-slate-600">({sec.items.length})</span>
                 </p>
                 {sec.items.map((it) => {
                   const entry = flat.find((f) => f.item.id === it.id && f.section.id === sec.id);
@@ -489,18 +489,18 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                       <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${
                         isSelected ? 'bg-primary/20 dark:bg-primary/25' : 'bg-gray-100 dark:bg-slate-800'
                       }`}>
-                        <Icon className={`h-4 w-4 ${isSelected ? 'text-primary' : 'text-taupe dark:text-slate-400'}`} />
+                        <Icon className={`h-4 w-4 ${isSelected ? 'text-primary' : 'text-seal-gray-500 dark:text-slate-400'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : 'text-navy dark:text-white'}`}>
+                        <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : 'text-seal-navy dark:text-white'}`}>
                           <Highlighted text={it.label} query={query} />
                         </p>
                         {it.href && (
-                          <p className="text-[10px] text-taupe dark:text-slate-500 truncate">{it.href}</p>
+                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">{it.href}</p>
                         )}
                       </div>
                       {it.shortcut && (
-                        <kbd className="hidden sm:inline-flex items-center rounded border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono text-taupe dark:text-slate-400 flex-shrink-0">
+                        <kbd className="hidden sm:inline-flex items-center rounded border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono text-seal-gray-500 dark:text-slate-400 flex-shrink-0">
                           {it.shortcut}
                         </kbd>
                       )}
@@ -519,7 +519,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 border-t border-gray-100 dark:border-slate-700 flex items-center gap-3 text-[10px] text-taupe dark:text-slate-500 bg-gray-50/50 dark:bg-slate-900/60">
+        <div className="px-4 py-2 border-t border-gray-100 dark:border-slate-700 flex items-center gap-3 text-[10px] text-seal-gray-500 dark:text-slate-500 bg-gray-50/50 dark:bg-slate-900/60">
           <span className="flex items-center gap-1">
             <kbd className="px-1 py-0.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded font-mono">↑↓</kbd>
             naviguer

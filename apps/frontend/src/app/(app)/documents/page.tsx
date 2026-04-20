@@ -118,15 +118,15 @@ const DocumentCard = React.memo(function DocumentCard({
               </span>
             )}
           </div>
-          <span className="flex items-center gap-1 text-[10px] text-taupe dark:text-slate-500 whitespace-nowrap">
+          <span className="flex items-center gap-1 text-[10px] text-seal-gray-500 dark:text-slate-500 whitespace-nowrap">
             <Clock className="h-2.5 w-2.5" />
             {formatRelativeTime(doc.updatedAt)}
           </span>
         </div>
-        <p className="text-xs font-mono text-taupe dark:text-slate-500 mb-0.5">{doc.reference}</p>
-        <h3 className="text-sm font-medium text-navy dark:text-white line-clamp-2 mb-2">{doc.title}</h3>
+        <p className="text-xs font-mono text-seal-gray-500 dark:text-slate-500 mb-0.5">{doc.reference}</p>
+        <h3 className="text-sm font-medium text-seal-navy dark:text-white line-clamp-2 mb-2">{doc.title}</h3>
         {doc.description && (
-          <p className="text-xs text-taupe dark:text-slate-400 line-clamp-2 mb-3">{doc.description}</p>
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mb-3">{doc.description}</p>
         )}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
@@ -137,7 +137,7 @@ const DocumentCard = React.memo(function DocumentCard({
                   size="sm"
                   className="h-5 w-5 text-[8px] flex-shrink-0"
                 />
-                <span className="text-[10px] text-taupe dark:text-slate-500">
+                <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">
                   {doc.owner.firstName} {doc.owner.lastName}
                 </span>
               </>
@@ -145,12 +145,12 @@ const DocumentCard = React.memo(function DocumentCard({
           </div>
           <div className="flex items-center gap-1">
             {doc.isoControls && doc.isoControls.length > 0 && (
-              <span className="text-[9px] text-taupe dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+              <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                 {doc.isoControls.length} ISO
               </span>
             )}
             {doc._count?.versions && doc._count.versions > 1 && (
-              <span className="text-[9px] text-taupe dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+              <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                 v{doc._count.versions}
               </span>
             )}
@@ -201,7 +201,7 @@ function getValidityInfo(nextReviewDate: string | null | undefined): ValidityInf
   if (!nextReviewDate) {
     return {
       label: 'Permanent',
-      className: 'bg-gray-100 text-taupe dark:bg-slate-800 dark:text-slate-400',
+      className: 'bg-gray-100 text-seal-gray-500 dark:bg-slate-800 dark:text-slate-400',
     };
   }
   const diffMs = new Date(nextReviewDate).getTime() - Date.now();
@@ -235,7 +235,7 @@ const STATUS_TAB_DEFS: Array<{
   color: string;
   statuses: DocumentStatus[] | null;
 }> = [
-  { key: 'all', label: 'Tous', color: 'border-taupe text-taupe', statuses: null },
+  { key: 'all', label: 'Tous', color: 'border-seal-gray-500 text-seal-gray-500', statuses: null },
   {
     key: 'drafts',
     label: 'Brouillons',
@@ -267,7 +267,7 @@ const STATUS_TAB_DEFS: Array<{
   {
     key: 'archived',
     label: 'Archives',
-    color: 'border-gray-400 text-taupe',
+    color: 'border-gray-400 text-seal-gray-500',
     statuses: [DocumentStatus.ARCHIVED],
   },
 ];
@@ -584,7 +584,7 @@ function DocumentsContent() {
           {selectedIds.has(doc.id) ? (
             <CheckSquare className="h-4 w-4 text-primary" />
           ) : (
-            <Square className="h-4 w-4 text-taupe/40 dark:text-slate-500" />
+            <Square className="h-4 w-4 text-seal-gray-500/40 dark:text-slate-500" />
           )}
         </button>
       ),
@@ -595,7 +595,7 @@ function DocumentsContent() {
       sortable: true,
       className: 'w-36',
       render: (doc) => (
-        <span className="font-mono text-xs text-navy dark:text-white font-semibold">{doc.reference}</span>
+        <span className="font-mono text-xs text-seal-navy dark:text-white font-semibold">{doc.reference}</span>
       ),
     },
     {
@@ -604,7 +604,7 @@ function DocumentsContent() {
       sortable: true,
       render: (doc) => (
         <div className="min-w-0" title={doc.description || doc.title}>
-          <p className="text-sm font-semibold text-navy dark:text-white truncate max-w-xs">{doc.title}</p>
+          <p className="text-sm font-semibold text-seal-navy dark:text-white truncate max-w-xs">{doc.title}</p>
           <div className="flex gap-1 mt-1 flex-wrap">
             {doc.isoControls?.slice(0, 3).map(({ isoControl }) => (
               <IsoControlBadge
@@ -656,7 +656,7 @@ function DocumentsContent() {
             size="sm"
             className="h-6 w-6 text-[10px] flex-shrink-0"
           />
-          <span className="text-sm text-taupe dark:text-slate-400 whitespace-nowrap">
+          <span className="text-sm text-seal-gray-500 dark:text-slate-400 whitespace-nowrap">
             {doc.owner.firstName} {doc.owner.lastName}
           </span>
         </div>
@@ -667,7 +667,7 @@ function DocumentsContent() {
       header: 'Modifié',
       sortable: true,
       render: (doc) => (
-        <span className="text-xs text-taupe dark:text-slate-400 whitespace-nowrap">
+        <span className="text-xs text-seal-gray-500 dark:text-slate-400 whitespace-nowrap">
           {formatRelativeTime(doc.updatedAt)}
         </span>
       ),
@@ -698,7 +698,7 @@ function DocumentsContent() {
             onClick={(e) => { e.stopPropagation(); router.push(`/documents/${doc.id}`); }}
             title="Ouvrir"
             aria-label="Ouvrir le document"
-            className="rounded p-1 text-taupe hover:bg-gray-100 hover:text-primary dark:hover:bg-slate-700 transition"
+            className="rounded p-1 text-seal-gray-500 hover:bg-gray-100 hover:text-primary dark:hover:bg-slate-700 transition"
           >
             <Eye className="h-3.5 w-3.5" />
           </button>
@@ -723,7 +723,7 @@ function DocumentsContent() {
             }}
             title="Télécharger"
             aria-label="Télécharger le document"
-            className="rounded p-1 text-taupe hover:bg-gray-100 hover:text-primary dark:hover:bg-slate-700 transition"
+            className="rounded p-1 text-seal-gray-500 hover:bg-gray-100 hover:text-primary dark:hover:bg-slate-700 transition"
           >
             <Download className="h-3.5 w-3.5" />
           </button>
@@ -738,7 +738,7 @@ function DocumentsContent() {
             }}
             title="Copier le lien"
             aria-label="Copier le lien du document"
-            className="rounded p-1 text-taupe hover:bg-gray-100 hover:text-primary dark:hover:bg-slate-700 transition"
+            className="rounded p-1 text-seal-gray-500 hover:bg-gray-100 hover:text-primary dark:hover:bg-slate-700 transition"
           >
             <Link2 className="h-3.5 w-3.5" />
           </button>
@@ -774,7 +774,7 @@ function DocumentsContent() {
                       className={`px-3 py-1.5 text-xs rounded font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                         viewMode === mode
                           ? 'bg-primary text-white shadow-sm'
-                          : 'text-taupe dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                          : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
                       }`}
                     >
                       {labels[mode]}
@@ -837,45 +837,45 @@ function DocumentsContent() {
       {isAdmin && docStats && uiVisibility.analyticsWidgets && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Card><CardContent className="py-3">
-            <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-2">Par catégorie</p>
+            <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-2">Par catégorie</p>
             <div className="space-y-1">
               {docStats.byCategory?.slice(0, 5).map((c: any) => (
                 <div key={c.category} className="flex items-center gap-2 text-xs">
-                  <span className="w-20 text-taupe dark:text-slate-400 truncate">{c.category}</span>
+                  <span className="w-20 text-seal-gray-500 dark:text-slate-400 truncate">{c.category}</span>
                   <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full">
                     <div className="h-full bg-primary rounded-full" style={{ width: `${(c.count / docStats.total) * 100}%` }} />
                   </div>
-                  <span className="text-navy dark:text-white font-semibold w-6 text-right">{c.count}</span>
+                  <span className="text-seal-navy dark:text-white font-semibold w-6 text-right">{c.count}</span>
                 </div>
               ))}
             </div>
           </CardContent></Card>
           <Card><CardContent className="py-3">
-            <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-2">Par statut</p>
+            <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-2">Par statut</p>
             <div className="space-y-1">
               {docStats.byStatus?.map((s: any) => (
                 <div key={s.status} className="flex items-center gap-2 text-xs">
-                  <span className="w-20 text-taupe dark:text-slate-400 truncate">{s.status}</span>
+                  <span className="w-20 text-seal-gray-500 dark:text-slate-400 truncate">{s.status}</span>
                   <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full">
                     <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.count / docStats.total) * 100}%` }} />
                   </div>
-                  <span className="text-navy dark:text-white font-semibold w-6 text-right">{s.count}</span>
+                  <span className="text-seal-navy dark:text-white font-semibold w-6 text-right">{s.count}</span>
                 </div>
               ))}
             </div>
           </CardContent></Card>
           <Card><CardContent className="py-3">
-            <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-2">Par classification</p>
+            <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-2">Par classification</p>
             <div className="space-y-1">
               {docStats.byClassification?.map((c: any) => {
                 const colors: Record<string, string> = { SECRET: 'bg-red-500', CONFIDENTIEL: 'bg-amber-500', INTERNE: 'bg-blue-500', PUBLIC: 'bg-emerald-500' };
                 return (
                   <div key={c.classification} className="flex items-center gap-2 text-xs">
-                    <span className="w-20 text-taupe dark:text-slate-400 truncate">{c.classification}</span>
+                    <span className="w-20 text-seal-gray-500 dark:text-slate-400 truncate">{c.classification}</span>
                     <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full">
                       <div className={`h-full ${colors[c.classification] || 'bg-gray-400'} rounded-full`} style={{ width: `${(c.count / docStats.total) * 100}%` }} />
                     </div>
-                    <span className="text-navy dark:text-white font-semibold w-6 text-right">{c.count}</span>
+                    <span className="text-seal-navy dark:text-white font-semibold w-6 text-right">{c.count}</span>
                   </div>
                 );
               })}
@@ -963,21 +963,21 @@ function DocumentsContent() {
                 }
               />
               <div className="space-y-1">
-                <label className="block text-[13px] font-semibold text-navy dark:text-white">Date début</label>
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Date début</label>
                 <input
                   type="date"
                   value={filters.dateFrom || ''}
                   onChange={(e) => setFilters({ dateFrom: e.target.value || undefined, page: 1 })}
-                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-navy dark:text-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-navy dark:text-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-[13px] font-semibold text-navy dark:text-white">Date fin</label>
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Date fin</label>
                 <input
                   type="date"
                   value={filters.dateTo || ''}
                   onChange={(e) => setFilters({ dateTo: e.target.value || undefined, page: 1 })}
-                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-navy dark:text-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-navy dark:text-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -987,10 +987,10 @@ function DocumentsContent() {
 
       {/* Classification quick filter pills */}
       <div className="flex gap-1.5 flex-wrap items-center">
-        <span className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500 font-semibold mr-1">Classification</span>
+        <span className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 font-semibold mr-1">Classification</span>
         <button
           onClick={() => setFilters({ classification: undefined, page: 1 })}
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${!filters.classification ? 'bg-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${!filters.classification ? 'bg-seal-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
         >
           Toutes
         </button>
@@ -1010,7 +1010,7 @@ function DocumentsContent() {
             className={`rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 ${c.ring} ${
               filters.classification === c.value
                 ? `${c.bg} text-white`
-                : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'
             }`}
           >
             <span className={`h-2 w-2 rounded-full ${c.bg} ${filters.classification === c.value ? 'bg-white/60' : ''}`} />
@@ -1023,7 +1023,7 @@ function DocumentsContent() {
       <div className="flex gap-1.5 flex-wrap items-center">
         <button
           onClick={() => { setMyDocsOnly(!myDocsOnly); setFilters({ page: 1 }); }}
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${myDocsOnly ? 'bg-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${myDocsOnly ? 'bg-seal-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
         >
           <User className="h-3 w-3" />
           Mes documents
@@ -1031,7 +1031,7 @@ function DocumentsContent() {
         <span className="text-gray-300 dark:text-slate-600">|</span>
         <button
           onClick={() => { setFilters({ category: undefined, page: 1 }); }}
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${!filters.category ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${!filters.category ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
         >
           Tous
         </button>
@@ -1039,7 +1039,7 @@ function DocumentsContent() {
           <button
             key={cat}
             onClick={() => setFilters({ category: filters.category === cat ? undefined : cat as DocumentCategory, page: 1 })}
-            className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${filters.category === cat ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${filters.category === cat ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
           >
             {DOCUMENT_CATEGORY_LABELS[cat as keyof typeof DOCUMENT_CATEGORY_LABELS] || cat}
           </button>
@@ -1104,7 +1104,7 @@ function DocumentsContent() {
                 className={`inline-flex items-center gap-1.5 rounded-t-lg border-b-2 px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                   active
                     ? `${tab.color} bg-white dark:bg-slate-800`
-                    : 'border-transparent text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                    : 'border-transparent text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -1117,7 +1117,7 @@ function DocumentsContent() {
         </div>
         <div className="flex items-center gap-2">
           <div className="inline-flex items-center gap-1 rounded-btn border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1">
-            <ArrowUpDown className="h-3 w-3 text-taupe" />
+            <ArrowUpDown className="h-3 w-3 text-seal-gray-500" />
             <select
               aria-label="Trier les documents"
               value={`${filters.sortBy || 'updatedAt'}:${filters.sortOrder || 'desc'}`}
@@ -1125,7 +1125,7 @@ function DocumentsContent() {
                 const [sortBy, sortOrder] = e.target.value.split(':');
                 setFilters({ sortBy, sortOrder: sortOrder as 'asc' | 'desc', page: 1 });
               }}
-              className="bg-transparent text-xs text-navy dark:text-white focus:outline-none"
+              className="bg-transparent text-xs text-seal-navy dark:text-white focus:outline-none"
             >
               <option value="updatedAt:desc">Récemment modifiés</option>
               <option value="createdAt:desc">Récemment créés</option>
@@ -1138,7 +1138,7 @@ function DocumentsContent() {
             type="button"
             onClick={() => setShowShortcutsHelp(s => !s)}
             title="Raccourcis clavier (?)"
-            className="rounded p-1.5 text-taupe hover:bg-gray-100 dark:hover:bg-slate-700 transition"
+            className="rounded p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition"
           >
             <Keyboard className="h-3.5 w-3.5" />
           </button>
@@ -1147,7 +1147,7 @@ function DocumentsContent() {
 
       {/* Aide raccourcis clavier */}
       {showShortcutsHelp && (
-        <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/60 p-3 text-xs flex flex-wrap gap-x-6 gap-y-1 text-taupe dark:text-slate-400">
+        <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/60 p-3 text-xs flex flex-wrap gap-x-6 gap-y-1 text-seal-gray-500 dark:text-slate-400">
           <span><kbd className="font-mono text-[10px] bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded px-1.5 py-0.5">N</kbd> Nouveau document</span>
           <span><kbd className="font-mono text-[10px] bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded px-1.5 py-0.5">F</kbd> Focus recherche</span>
           <span><kbd className="font-mono text-[10px] bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded px-1.5 py-0.5">G</kbd>+<kbd className="font-mono text-[10px] bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded px-1.5 py-0.5">T</kbd> Vue tableau</span>
@@ -1159,7 +1159,7 @@ function DocumentsContent() {
 
       {/* Indicateur de pagination detaille */}
       {docs?.meta && docs.meta.total > 0 && (
-        <div className="flex items-center justify-between text-[11px] text-taupe dark:text-slate-500">
+        <div className="flex items-center justify-between text-[11px] text-seal-gray-500 dark:text-slate-500">
           <span>
             {(() => {
               const { page, limit, total } = docs.meta;
@@ -1196,7 +1196,7 @@ function DocumentsContent() {
       {fetchError && !loading && (
         <Card className="border-l-4 border-l-red-400">
           <CardContent className="py-6 text-center">
-            <p className="text-sm text-taupe dark:text-slate-400">Impossible de charger les documents.</p>
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">Impossible de charger les documents.</p>
             <Button variant="outline" className="mt-3" onClick={fetchDocuments}>Réessayer</Button>
           </CardContent>
         </Card>
@@ -1223,14 +1223,14 @@ function DocumentsContent() {
           <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 dark:bg-slate-800/50 rounded-t-lg border-b border-gray-100 dark:border-slate-700">
             <button
               onClick={toggleSelectAll}
-              className="flex items-center gap-2 p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition text-xs text-taupe dark:text-slate-400 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex items-center gap-2 p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition text-xs text-seal-gray-500 dark:text-slate-400 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {allSelected ? (
                 <CheckSquare className="h-3.5 w-3.5 text-primary" />
               ) : someSelected ? (
                 <MinusSquare className="h-3.5 w-3.5 text-primary" />
               ) : (
-                <Square className="h-3.5 w-3.5 text-taupe/40 dark:text-slate-500" />
+                <Square className="h-3.5 w-3.5 text-seal-gray-500/40 dark:text-slate-500" />
               )}
               {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
             </button>
@@ -1256,7 +1256,7 @@ function DocumentsContent() {
             setFilters({ sortBy: field, sortOrder: newOrder, page: 1 });
           }}
           emptyMessage={hasFilters ? "Aucun document ne correspond \u00e0 ces crit\u00e8res. Ajustez vos filtres ou lancez une nouvelle recherche." : "Aucun document pour le moment. Cr\u00e9ez-en un pour d\u00e9marrer."}
-          emptyIcon={<FileText className="h-12 w-12 text-taupe/30 dark:text-slate-600" />}
+          emptyIcon={<FileText className="h-12 w-12 text-seal-gray-500/30 dark:text-slate-600" />}
         />
         </div>
       )}
@@ -1291,12 +1291,12 @@ function DocumentsContent() {
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] text-taupe dark:text-slate-500 whitespace-nowrap">
+                    <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 whitespace-nowrap">
                       {formatRelativeTime(doc.updatedAt)}
                     </span>
                   </div>
-                  <p className="text-xs font-mono text-taupe dark:text-slate-500 mb-0.5">{doc.reference}</p>
-                  <h3 className="text-sm font-medium text-navy dark:text-white line-clamp-2 mb-2">{doc.title}</h3>
+                  <p className="text-xs font-mono text-seal-gray-500 dark:text-slate-500 mb-0.5">{doc.reference}</p>
+                  <h3 className="text-sm font-medium text-seal-navy dark:text-white line-clamp-2 mb-2">{doc.title}</h3>
                   {(() => {
                     const info = getValidityInfo(doc.nextReviewDate);
                     return (
@@ -1306,24 +1306,24 @@ function DocumentsContent() {
                     );
                   })()}
                   {doc.description && (
-                    <p className="text-xs text-taupe dark:text-slate-400 line-clamp-2 mb-3">{doc.description}</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mb-3">{doc.description}</p>
                   )}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       {doc.owner && (
-                        <span className="text-[10px] text-taupe dark:text-slate-500">
+                        <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">
                           {doc.owner.firstName} {doc.owner.lastName}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-1">
                       {doc.isoControls && doc.isoControls.length > 0 && (
-                        <span className="text-[9px] text-taupe dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                        <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                           {doc.isoControls.length} ISO
                         </span>
                       )}
                       {doc._count?.versions && doc._count.versions > 1 && (
-                        <span className="text-[9px] text-taupe dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                        <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                           v{doc._count.versions}
                         </span>
                       )}
@@ -1376,7 +1376,7 @@ function DocumentsContent() {
       {/* Pagination pour vue cartes */}
       {viewMode === 'cards' && docs?.meta && docs.meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <span className="text-xs text-taupe dark:text-slate-400">
+          <span className="text-xs text-seal-gray-500 dark:text-slate-400">
             Page {docs.meta.page} / {docs.meta.totalPages} — {docs.meta.total} documents
           </span>
           <div className="flex gap-2">
@@ -1554,7 +1554,7 @@ function DocumentKanbanBoard({ documents, loading, isAdmin, onStatusChange, onCa
             }`}
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-navy dark:text-white">{col.label}</h3>
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">{col.label}</h3>
               <Badge variant="navy">{colDocs.length}</Badge>
             </div>
 
@@ -1582,22 +1582,22 @@ function DocumentKanbanBoard({ documents, loading, isAdmin, onStatusChange, onCa
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-1.5">
                         {isAdmin && (
-                          <GripVertical className="h-3 w-3 text-taupe/30 group-hover:text-taupe/60 flex-shrink-0" />
+                          <GripVertical className="h-3 w-3 text-seal-gray-500/30 group-hover:text-seal-gray-500/60 flex-shrink-0" />
                         )}
                         <Badge variant={categoryBadgeVariant(doc.category)} className="text-[9px]">
                           {DOCUMENT_CATEGORY_LABELS[doc.category as DocumentCategory] || doc.category}
                         </Badge>
                       </div>
-                      <span className="text-[10px] text-taupe font-mono">{doc.reference}</span>
+                      <span className="text-[10px] text-seal-gray-500 font-mono">{doc.reference}</span>
                     </div>
-                    <p className="text-xs font-semibold text-navy dark:text-white line-clamp-2 group-hover:text-primary transition-colors">
+                    <p className="text-xs font-semibold text-seal-navy dark:text-white line-clamp-2 group-hover:text-primary transition-colors">
                       {doc.title}
                     </p>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50 dark:border-slate-700/50">
-                      <p className="text-[10px] text-taupe dark:text-slate-400">
+                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                         {doc.owner.firstName} {doc.owner.lastName}
                       </p>
-                      <span className="text-[10px] text-taupe dark:text-slate-400">
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                         {formatRelativeTime(doc.updatedAt)}
                       </span>
                     </div>
@@ -1605,7 +1605,7 @@ function DocumentKanbanBoard({ documents, loading, isAdmin, onStatusChange, onCa
                 );
               })}
               {colDocs.length === 0 && !isOver && (
-                <p className="text-xs text-taupe dark:text-slate-500 text-center py-8">Aucun document</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-500 text-center py-8">Aucun document</p>
               )}
             </div>
           </div>

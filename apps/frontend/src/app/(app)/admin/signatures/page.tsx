@@ -146,11 +146,11 @@ export default function AdminSignaturesPage() {
         <div className="space-y-4">
           {/* Document select */}
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Document</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Document</label>
             <select
               value={selectedDocVersionId}
               onChange={(e) => setSelectedDocVersionId(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">-- Choisir un document approuve --</option>
               {documents.map((d) => (
@@ -163,7 +163,7 @@ export default function AdminSignaturesPage() {
 
           {/* Signers multi-select */}
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">
               Signataires ({selectedSigners.length} sélectionné{selectedSigners.length > 1 ? 's' : ''})
             </label>
             {/* Selected chips */}
@@ -185,13 +185,13 @@ export default function AdminSignaturesPage() {
             )}
             {/* Search input */}
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-taupe" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-seal-gray-500" />
               <input
                 type="text"
                 value={signerSearch}
                 onChange={(e) => setSignerSearch(e.target.value)}
                 placeholder="Rechercher un collaborateur..."
-                className="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 pl-9 pr-3 py-2 text-sm text-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 pl-9 pr-3 py-2 text-sm text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             {/* User list */}
@@ -203,15 +203,15 @@ export default function AdminSignaturesPage() {
                     key={u.id}
                     type="button"
                     onClick={() => setSelectedSigners(prev => isSelected ? prev.filter(s => s !== u.id) : [...prev, u.id])}
-                    className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between transition-colors ${isSelected ? 'bg-primary/5 text-primary' : 'text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                    className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between transition-colors ${isSelected ? 'bg-primary/5 text-primary' : 'text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                   >
-                    <span>{u.firstName} {u.lastName} <span className="text-xs text-taupe dark:text-slate-400">({u.email})</span></span>
+                    <span>{u.firstName} {u.lastName} <span className="text-xs text-seal-gray-500 dark:text-slate-400">({u.email})</span></span>
                     {isSelected && <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />}
                   </button>
                 );
               })}
               {filteredUsers.length === 0 && (
-                <p className="text-xs text-taupe dark:text-slate-400 text-center py-3">Aucun utilisateur trouve</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-3">Aucun utilisateur trouve</p>
               )}
             </div>
           </div>
@@ -235,7 +235,7 @@ export default function AdminSignaturesPage() {
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {([
-          { key: 'ALL' as const, label: t('signatures.total'), icon: FileText, color: 'text-navy dark:text-white', bg: 'bg-gray-100 dark:bg-slate-800' },
+          { key: 'ALL' as const, label: t('signatures.total'), icon: FileText, color: 'text-seal-navy dark:text-white', bg: 'bg-gray-100 dark:bg-slate-800' },
           { key: 'PENDING' as const, label: t('signatures.pending'), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/30' },
           { key: 'SIGNED' as const, label: t('signatures.signed'), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
           { key: 'REJECTED' as const, label: t('signatures.rejected'), icon: XCircle, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/30' },
@@ -250,8 +250,8 @@ export default function AdminSignaturesPage() {
                 <div className={`h-10 w-10 rounded-xl ${stat.bg} flex items-center justify-center mb-2`}>
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
-                <p className="text-2xl font-medium text-navy dark:text-white">{counts[stat.key]}</p>
-                <p className="text-xs text-taupe dark:text-slate-400">{stat.label}</p>
+                <p className="text-2xl font-medium text-seal-navy dark:text-white">{counts[stat.key]}</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">{stat.label}</p>
               </CardContent>
             </Card>
           </button>
@@ -264,10 +264,10 @@ export default function AdminSignaturesPage() {
           <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
           <div className="flex-1">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-navy dark:text-white">
+              <span className="text-xs font-semibold text-seal-navy dark:text-white">
                 Taux de completion : {requests.length > 0 ? Math.round((counts.SIGNED / requests.length) * 100) : 0}%
               </span>
-              <span className="text-[10px] text-taupe dark:text-slate-400">
+              <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                 {counts.SIGNED} signees / {requests.length} total
                 {counts.PENDING > 0 && ` — ${counts.PENDING} en attente`}
                 {counts.REJECTED > 0 && ` — ${counts.REJECTED} refusees`}
@@ -303,7 +303,7 @@ export default function AdminSignaturesPage() {
       <Card className="mb-4">
         <CardContent className="py-3 flex items-center gap-3">
           <div className="h-2 w-2 rounded-full bg-emerald-500" />
-          <p className="text-xs text-taupe dark:text-slate-400">
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400">
             DocuSeal connecté — <a href={process.env.NEXT_PUBLIC_DOCUSEAL_URL || 'http://localhost:7000'} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Ouvrir DocuSeal</a>
           </p>
         </CardContent>
@@ -336,13 +336,13 @@ export default function AdminSignaturesPage() {
       <div className="flex items-center gap-2">
         <button
           onClick={() => setViewMode('list')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${viewMode === 'list' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'}`}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${viewMode === 'list' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'}`}
         >
           Liste
         </button>
         <button
           onClick={() => setViewMode('timeline')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${viewMode === 'timeline' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'}`}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${viewMode === 'timeline' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'}`}
         >
           Timeline
         </button>
@@ -351,7 +351,7 @@ export default function AdminSignaturesPage() {
       {/* Signatures list */}
       <Card>
         <CardHeader>
-          <h2 className="font-semibold text-navy dark:text-white">
+          <h2 className="font-semibold text-seal-navy dark:text-white">
             {filter === 'ALL' ? t('signatures.allRequests') : filter === 'PENDING' ? t('signatures.pendingRequests') : filter === 'SIGNED' ? t('signatures.signedRequests') : t('signatures.rejectedRequests')}
             {' '}({filtered.length})
           </h2>
@@ -375,18 +375,18 @@ export default function AdminSignaturesPage() {
                     <div className="flex items-center justify-between mb-1">
                       <Link
                         href={`/documents/${req.documentVersion.document.id}`}
-                        className="text-sm font-semibold text-navy dark:text-white hover:text-primary transition-colors"
+                        className="text-sm font-semibold text-seal-navy dark:text-white hover:text-primary transition-colors"
                       >
                         {req.documentVersion.document.title}
                       </Link>
                       <SignatureBadge status={req.status as 'PENDING' | 'SIGNED' | 'REJECTED' | 'EXPIRED'} />
                     </div>
-                    <p className="text-xs text-taupe dark:text-slate-400">
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                       <span className="font-mono">{req.documentVersion.document.reference}</span>
                       {` — ${t('signatures.signer')} : `}
                       {req.signer.firstName} {req.signer.lastName}
                     </p>
-                    <p className="text-[10px] text-taupe dark:text-slate-500 mt-1">
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-1">
                       {formatDateTime(req.createdAt)}
                       {req.signedAt && ` — Signe le ${formatDateTime(req.signedAt)}`}
                     </p>
@@ -416,16 +416,16 @@ export default function AdminSignaturesPage() {
                   <div className="flex-1 min-w-0">
                     <Link
                       href={`/documents/${req.documentVersion.document.id}`}
-                      className="text-sm font-semibold text-navy dark:text-white hover:text-primary transition-colors"
+                      className="text-sm font-semibold text-seal-navy dark:text-white hover:text-primary transition-colors"
                     >
                       {req.documentVersion.document.title}
                     </Link>
-                    <p className="text-xs text-taupe dark:text-slate-400">
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                       <span className="font-mono">{req.documentVersion.document.reference}</span>
                       {` — ${t('signatures.signer')} : `}
                       {req.signer.firstName} {req.signer.lastName}
                     </p>
-                    <p className="text-xs text-taupe dark:text-slate-400">
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                       {t('signatures.requestedBy')} {req.requestedBy.firstName} {req.requestedBy.lastName}
                       {` ${t('signatures.on')} `}{formatDateTime(req.createdAt)}
                     </p>
@@ -444,7 +444,7 @@ export default function AdminSignaturesPage() {
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <SignatureBadge status={req.status as 'PENDING' | 'SIGNED' | 'REJECTED' | 'EXPIRED'} />
                     {req.signedAt && (
-                      <span className="text-xs text-taupe dark:text-slate-400">
+                      <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                         {formatDateTime(req.signedAt)}
                       </span>
                     )}

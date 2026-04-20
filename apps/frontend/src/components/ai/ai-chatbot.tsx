@@ -356,14 +356,14 @@ export function AIChatbot() {
             <Bot className="h-4 w-4 text-[#004469] dark:text-blue-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-navy dark:text-white">Assistant OMNITECH</h3>
-            <p className="text-[10px] text-taupe dark:text-slate-500">{moduleLabel(module)}</p>
+            <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Assistant OMNITECH</h3>
+            <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">{moduleLabel(module)}</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setShowActions(!showActions)}
-            className={`p-1.5 rounded-lg transition ${showActions ? 'bg-[#004469]/10 text-[#004469] dark:bg-blue-900/30 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-taupe'}`}
+            className={`p-1.5 rounded-lg transition ${showActions ? 'bg-[#004469]/10 text-[#004469] dark:bg-blue-900/30 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500'}`}
             title="Actions rapides"
           >
             <Zap className="h-3.5 w-3.5" />
@@ -371,7 +371,7 @@ export function AIChatbot() {
           {messages.length > 0 && (
             <button
               onClick={clearHistory}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-taupe hover:text-red-500 transition"
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 hover:text-red-500 transition"
               title="Effacer l'historique"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -379,7 +379,7 @@ export function AIChatbot() {
           )}
           <button
             onClick={close}
-            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-taupe transition"
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 transition"
           >
             <X className="h-4 w-4" />
           </button>
@@ -389,7 +389,7 @@ export function AIChatbot() {
       {/* Context Actions Panel */}
       {showActions && contextActions.length > 0 && (
         <div className="border-b border-gray-100 dark:border-slate-800 px-4 py-3 bg-gray-50/50 dark:bg-slate-800/50">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-taupe dark:text-slate-500 mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 mb-2">
             Actions disponibles · {pageContext.intent}
           </p>
           <div className="space-y-1">
@@ -408,14 +408,14 @@ export function AIChatbot() {
                   <Zap className="h-3.5 w-3.5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium text-navy dark:text-white truncate">{action.label}</p>
-                  <p className="text-[10px] text-taupe dark:text-slate-500 truncate">{action.description}</p>
+                  <p className="text-[12px] font-medium text-seal-navy dark:text-white truncate">{action.label}</p>
+                  <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">{action.description}</p>
                 </div>
               </button>
             ))}
           </div>
           {pageContext.helpText && (
-            <p className="mt-2 text-[10px] text-taupe/70 dark:text-slate-600 italic">
+            <p className="mt-2 text-[10px] text-seal-gray-500/70 dark:text-slate-600 italic">
               💡 {pageContext.helpText}
             </p>
           )}
@@ -427,10 +427,10 @@ export function AIChatbot() {
         {messages.length === 0 && !loading && (
           <div className="text-center py-6">
             <Sparkles className="h-8 w-8 text-[#F68D2E] mx-auto mb-3" />
-            <p className="text-sm font-medium text-navy dark:text-white mb-1">
+            <p className="text-sm font-medium text-seal-navy dark:text-white mb-1">
               Bonjour{user?.firstName ? ` ${user.firstName}` : ''} !
             </p>
-            <p className="text-xs text-taupe dark:text-slate-400 mb-4">
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-4">
               Je suis votre assistant. Posez-moi une question ou choisissez une suggestion.
             </p>
             <div className="flex flex-wrap gap-1.5 justify-center">
@@ -438,7 +438,7 @@ export function AIChatbot() {
                 <button
                   key={s}
                   onClick={() => handleSend(s)}
-                  className="rounded-full border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 py-1.5 text-[11px] font-medium text-navy dark:text-slate-300 hover:border-[#004469] hover:text-[#004469] dark:hover:border-blue-400 dark:hover:text-blue-400 transition"
+                  className="rounded-full border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 py-1.5 text-[11px] font-medium text-seal-navy dark:text-slate-300 hover:border-[#004469] hover:text-[#004469] dark:hover:border-blue-400 dark:hover:text-blue-400 transition"
                 >
                   {s}
                 </button>
@@ -453,7 +453,7 @@ export function AIChatbot() {
               className={`max-w-[85%] rounded-xl px-3 py-2 text-[13px] leading-relaxed ${
                 msg.role === 'user'
                   ? 'bg-[#004469] text-white rounded-br-sm'
-                  : 'bg-gray-50 dark:bg-slate-800 text-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-sm'
+                  : 'bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-sm'
               }`}
             >
               {msg.content.split('\n').map((line, i) => {
@@ -508,7 +508,7 @@ export function AIChatbot() {
             <button
               key={s}
               onClick={() => handleSend(s)}
-              className="rounded-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-2.5 py-1 text-[10px] text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white transition"
+              className="rounded-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-2.5 py-1 text-[10px] text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white transition"
             >
               {s}
             </button>
@@ -526,7 +526,7 @@ export function AIChatbot() {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder="Posez une question..."
-            className="flex-1 bg-transparent text-sm text-navy dark:text-white placeholder-taupe/50 dark:placeholder-slate-500 focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-seal-navy dark:text-white placeholder-taupe/50 dark:placeholder-slate-500 focus:outline-none"
             disabled={loading}
           />
           <button

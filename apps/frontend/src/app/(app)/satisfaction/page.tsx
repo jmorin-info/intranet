@@ -76,11 +76,11 @@ function NpsGauge({ score }: { score: number }) {
           }}
         />
         {/* Needle */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom w-0.5 h-12 rounded-full bg-navy dark:bg-white transition-transform duration-700"
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom w-0.5 h-12 rounded-full bg-seal-navy dark:bg-white transition-transform duration-700"
           style={{ transform: `translateX(-50%) rotate(${(pct / 100) * 180 - 90}deg)` }} />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-2.5 w-2.5 rounded-full bg-navy dark:bg-white" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-2.5 w-2.5 rounded-full bg-seal-navy dark:bg-white" />
       </div>
-      <span className="text-lg font-bold text-navy dark:text-white">{clamped > 0 ? '+' : ''}{clamped}</span>
+      <span className="text-lg font-bold text-seal-navy dark:text-white">{clamped > 0 ? '+' : ''}{clamped}</span>
       <span className="text-[10px] font-medium" style={{ color }}>{label}</span>
     </div>
   );
@@ -97,7 +97,7 @@ function StarDistribution({ distribution }: { distribution: Array<{ value: numbe
         const pct = total > 0 ? (count / total) * 100 : 0;
         return (
           <div key={n} className="flex items-center gap-2 text-xs">
-            <span className="w-4 text-right text-taupe dark:text-slate-400 font-medium">{n}</span>
+            <span className="w-4 text-right text-seal-gray-500 dark:text-slate-400 font-medium">{n}</span>
             <Star className="h-3 w-3 text-amber-400 fill-amber-400 flex-shrink-0" />
             <div className="flex-1 h-3 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
               <div
@@ -105,8 +105,8 @@ function StarDistribution({ distribution }: { distribution: Array<{ value: numbe
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="w-8 text-right text-taupe dark:text-slate-400 tabular-nums">{count}</span>
-            <span className="w-10 text-right text-[10px] text-taupe dark:text-slate-500">{pct > 0 ? `${Math.round(pct)}%` : ''}</span>
+            <span className="w-8 text-right text-seal-gray-500 dark:text-slate-400 tabular-nums">{count}</span>
+            <span className="w-10 text-right text-[10px] text-seal-gray-500 dark:text-slate-500">{pct > 0 ? `${Math.round(pct)}%` : ''}</span>
           </div>
         );
       })}
@@ -129,40 +129,40 @@ function SurveyPreview({ title, description, questions, anonymous }: {
         <Eye className="h-4 w-4 text-primary" />
         <span className="text-xs font-semibold text-primary uppercase tracking-wide">Apercu du questionnaire</span>
       </div>
-      <h4 className="text-sm font-medium text-navy dark:text-white">{title || 'Sans titre'}</h4>
-      {description && <p className="text-xs text-taupe dark:text-slate-400">{description}</p>}
+      <h4 className="text-sm font-medium text-seal-navy dark:text-white">{title || 'Sans titre'}</h4>
+      {description && <p className="text-xs text-seal-gray-500 dark:text-slate-400">{description}</p>}
       {anonymous && <Badge variant="info">Anonyme</Badge>}
       {validQs.length === 0 ? (
-        <p className="text-xs text-taupe dark:text-slate-400 italic">Aucune question renseignee</p>
+        <p className="text-xs text-seal-gray-500 dark:text-slate-400 italic">Aucune question renseignee</p>
       ) : (
         <ol className="space-y-2">
           {validQs.map((q, i) => (
             <li key={i} className="rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3">
               <div className="flex items-start justify-between gap-2">
-                <span className="text-xs text-navy dark:text-white font-medium">
+                <span className="text-xs text-seal-navy dark:text-white font-medium">
                   {i + 1}. {q.label}
                   {q.isRequired && <span className="text-red-500 ml-0.5">*</span>}
                 </span>
                 <Badge variant="info" className="text-[9px] flex-shrink-0">{typeLabels[q.type] ?? q.type}</Badge>
               </div>
-              {q.description && <p className="text-[10px] text-taupe mt-1">{q.description}</p>}
+              {q.description && <p className="text-[10px] text-seal-gray-500 mt-1">{q.description}</p>}
               {q.type === 'rating' && (
                 <div className="flex gap-1 mt-1.5">{[1, 2, 3, 4, 5].map(n => <Star key={n} className="h-4 w-4 text-gray-300 dark:text-slate-600" />)}</div>
               )}
               {q.type === 'choice' && q.options.filter(o => o.trim()).length > 0 && (
                 <div className="mt-1.5 space-y-1">{q.options.filter(o => o.trim()).map((o, j) => (
-                  <div key={j} className="flex items-center gap-2 text-[10px] text-taupe"><span className="h-2.5 w-2.5 rounded-full border border-gray-300" />{o}</div>
+                  <div key={j} className="flex items-center gap-2 text-[10px] text-seal-gray-500"><span className="h-2.5 w-2.5 rounded-full border border-gray-300" />{o}</div>
                 ))}</div>
               )}
               {q.type === 'scale' && (
                 <div className="flex gap-0.5 mt-1.5">{Array.from({ length: 10 }, (_, k) => (
-                  <div key={k} className="h-5 w-5 rounded bg-gray-100 dark:bg-slate-700 text-[8px] flex items-center justify-center text-taupe">{k + 1}</div>
+                  <div key={k} className="h-5 w-5 rounded bg-gray-100 dark:bg-slate-700 text-[8px] flex items-center justify-center text-seal-gray-500">{k + 1}</div>
                 ))}</div>
               )}
               {q.type === 'yesno' && (
                 <div className="flex gap-2 mt-1.5">
-                  <span className="text-[10px] px-2 py-0.5 rounded border border-gray-200 text-taupe">Oui</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded border border-gray-200 text-taupe">Non</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded border border-gray-200 text-seal-gray-500">Oui</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded border border-gray-200 text-seal-gray-500">Non</span>
                 </div>
               )}
             </li>
@@ -384,11 +384,11 @@ export default function SatisfactionPage() {
 
     return (
       <div key={q.id} className="space-y-2">
-        <label className="block text-sm font-medium text-navy dark:text-white">
+        <label className="block text-sm font-medium text-seal-navy dark:text-white">
           {q.label}
           {q.isRequired && <span className="text-red-500 ml-0.5">*</span>}
         </label>
-        {q.description && <p className="text-xs text-taupe dark:text-slate-400">{q.description}</p>}
+        {q.description && <p className="text-xs text-seal-gray-500 dark:text-slate-400">{q.description}</p>}
 
         {q.type === 'rating' && (
           <div className="flex gap-1.5 py-1">
@@ -405,7 +405,7 @@ export default function SatisfactionPage() {
         {q.type === 'text' && (
           <textarea value={value} onChange={e => setValue(e.target.value)}
             placeholder="Votre réponse..."
-            className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-navy dark:text-white px-3 py-2 min-h-[80px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-3 py-2 min-h-[80px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
         )}
 
         {q.type === 'choice' && (() => {
@@ -417,7 +417,7 @@ export default function SatisfactionPage() {
                   <input type="radio" name={`q-${q.id}`} value={opt} checked={value === opt}
                     onChange={() => setValue(opt)}
                     className="h-4 w-4 text-primary border-gray-300 focus:ring-primary" />
-                  <span className="text-sm text-navy dark:text-white">{opt}</span>
+                  <span className="text-sm text-seal-navy dark:text-white">{opt}</span>
                 </label>
               ))}
             </div>
@@ -426,7 +426,7 @@ export default function SatisfactionPage() {
 
         {q.type === 'scale' && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-taupe">1</span>
+            <span className="text-xs text-seal-gray-500">1</span>
             <div className="flex gap-1">
               {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
                 <button key={n} type="button" onClick={() => setValue(String(n))}
@@ -435,13 +435,13 @@ export default function SatisfactionPage() {
                       ? 'bg-primary text-white scale-110'
                       : parseInt(value) >= n
                         ? 'bg-primary/20 text-primary'
-                        : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-400 hover:bg-gray-200'
+                        : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
                   }`}>
                   {n}
                 </button>
               ))}
             </div>
-            <span className="text-xs text-taupe">10</span>
+            <span className="text-xs text-seal-gray-500">10</span>
           </div>
         )}
 
@@ -450,7 +450,7 @@ export default function SatisfactionPage() {
             {[{ v: 'Oui', color: 'bg-emerald-50 border-emerald-300 text-emerald-700' }, { v: 'Non', color: 'bg-red-50 border-red-300 text-red-700' }].map(opt => (
               <button key={opt.v} type="button" onClick={() => setValue(opt.v)}
                 className={`flex-1 py-2.5 rounded-lg border text-sm font-medium transition ${
-                  value === opt.v ? opt.color : 'border-gray-200 dark:border-slate-600 text-taupe dark:text-slate-400 hover:bg-gray-50'
+                  value === opt.v ? opt.color : 'border-gray-200 dark:border-slate-600 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50'
                 }`}>
                 {opt.v}
               </button>
@@ -465,8 +465,8 @@ export default function SatisfactionPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-medium text-navy dark:text-white">{t('satisfaction.title')}</h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">{t('satisfaction.subtitle')}</p>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('satisfaction.title')}</h1>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{t('satisfaction.subtitle')}</p>
         </div>
         {isAdmin && (
           <Button onClick={() => setShowCreate(true)}>
@@ -485,8 +485,8 @@ export default function SatisfactionPage() {
                   <Star className="h-6 w-6 text-amber-500 fill-amber-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{stats.globalAverage.toFixed(1)}</p>
-                  <p className="text-xs text-taupe dark:text-slate-400">Note moyenne</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.globalAverage.toFixed(1)}</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">Note moyenne</p>
                 </div>
               </CardContent>
             </Card>
@@ -496,8 +496,8 @@ export default function SatisfactionPage() {
                   <BarChart3 className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{stats.totalSurveys}</p>
-                  <p className="text-xs text-taupe dark:text-slate-400">Enquetes</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.totalSurveys}</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">Enquetes</p>
                 </div>
               </CardContent>
             </Card>
@@ -507,8 +507,8 @@ export default function SatisfactionPage() {
                   <MessageSquare className="h-6 w-6 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{stats.totalResponses}</p>
-                  <p className="text-xs text-taupe dark:text-slate-400">Reponses</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.totalResponses}</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">Reponses</p>
                 </div>
               </CardContent>
             </Card>
@@ -518,8 +518,8 @@ export default function SatisfactionPage() {
                   <Users className="h-6 w-6 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-medium text-navy dark:text-white">{stats.totalResponses > 0 ? Math.round((stats.totalResponses / Math.max(1, stats.totalSurveys)) * 10) / 10 : 0}</p>
-                  <p className="text-xs text-taupe dark:text-slate-400">Moy. reponses/enquete</p>
+                  <p className="text-2xl font-medium text-seal-navy dark:text-white">{stats.totalResponses > 0 ? Math.round((stats.totalResponses / Math.max(1, stats.totalSurveys)) * 10) / 10 : 0}</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">Moy. reponses/enquete</p>
                 </div>
               </CardContent>
             </Card>
@@ -530,18 +530,18 @@ export default function SatisfactionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger-item">
               <Card>
                 <CardContent className="py-4">
-                  <h4 className="text-xs font-semibold text-navy dark:text-white uppercase tracking-wide mb-3">Score NPS estime</h4>
+                  <h4 className="text-xs font-semibold text-seal-navy dark:text-white uppercase tracking-wide mb-3">Score NPS estime</h4>
                   <div className="flex justify-center">
                     <NpsGauge score={Math.round((stats.globalAverage - 3) * 50)} />
                   </div>
-                  <p className="text-[10px] text-center text-taupe dark:text-slate-500 mt-2">
+                  <p className="text-[10px] text-center text-seal-gray-500 dark:text-slate-500 mt-2">
                     Base sur la note moyenne ({stats.globalAverage.toFixed(1)}/5) de {stats.totalResponses} reponses
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="py-4">
-                  <h4 className="text-xs font-semibold text-navy dark:text-white uppercase tracking-wide mb-3">Repartition globale par enquete</h4>
+                  <h4 className="text-xs font-semibold text-seal-navy dark:text-white uppercase tracking-wide mb-3">Repartition globale par enquete</h4>
                   <div className="space-y-2">
                     {stats.surveys.filter(s => s.responses > 0).slice(0, 6).map(s => {
                       const maxR = Math.max(1, ...stats.surveys.map(x => x.responses));
@@ -549,8 +549,8 @@ export default function SatisfactionPage() {
                       return (
                         <div key={s.id} className="space-y-0.5">
                           <div className="flex items-center justify-between text-[10px]">
-                            <span className="text-navy dark:text-white font-medium truncate mr-2">{s.title}</span>
-                            <span className="text-taupe dark:text-slate-400 flex-shrink-0 tabular-nums">
+                            <span className="text-seal-navy dark:text-white font-medium truncate mr-2">{s.title}</span>
+                            <span className="text-seal-gray-500 dark:text-slate-400 flex-shrink-0 tabular-nums">
                               {s.responses} rep. &middot; {s.avg.toFixed(1)}/5
                             </span>
                           </div>
@@ -584,7 +584,7 @@ export default function SatisfactionPage() {
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
               statusFilter === chip.value
                 ? 'bg-primary text-white'
-                : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
             }`}
           >
             {chip.label}
@@ -624,18 +624,18 @@ export default function SatisfactionPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className="text-sm font-medium text-navy dark:text-white">{survey.title}</h3>
+                      <h3 className="text-sm font-medium text-seal-navy dark:text-white">{survey.title}</h3>
                       {survey.isActive ? <Badge variant="approved">Active</Badge> : <Badge variant="draft">Terminée</Badge>}
                       {survey.isAnonymous && <Badge variant="info">Anonyme</Badge>}
                       {survey.expiresAt && (
-                        <span className="text-[10px] text-taupe dark:text-slate-500 flex items-center gap-1">
+                        <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-1">
                           <Calendar className="h-3 w-3" /> {new Date(survey.expiresAt).toLocaleDateString('fr-FR')}
                         </span>
                       )}
                     </div>
-                    {survey.description && <p className="text-xs text-taupe dark:text-slate-400">{survey.description}</p>}
+                    {survey.description && <p className="text-xs text-seal-gray-500 dark:text-slate-400">{survey.description}</p>}
                     <div className="flex items-center gap-3 mt-2">
-                      <span className="text-[10px] text-taupe dark:text-slate-400 flex items-center gap-1">
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 flex items-center gap-1">
                         <MessageSquare className="h-3 w-3" /> {survey._count.responses} réponse{survey._count.responses !== 1 ? 's' : ''}
                       </span>
                       {isAdmin && (
@@ -655,11 +655,11 @@ export default function SatisfactionPage() {
                       return (
                         <div className="mt-2.5">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] text-taupe dark:text-slate-400 flex items-center gap-1">
+                            <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 flex items-center gap-1">
                               <Users className="h-3 w-3" />
                               {rate}% des collaborateurs ont répondu
                             </span>
-                            <span className="text-[10px] text-taupe dark:text-slate-500">{responses}/{totalUsers}</span>
+                            <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{responses}/{totalUsers}</span>
                           </div>
                           <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div
@@ -705,12 +705,12 @@ export default function SatisfactionPage() {
                     <div className="space-y-5">
                       {/* Global stats summary */}
                       <div className="flex items-center gap-6 text-sm">
-                        <span className="text-taupe dark:text-slate-400">
-                          <strong className="text-navy dark:text-white">{surveyResults[survey.id].stats.totalResponses}</strong> réponse{surveyResults[survey.id].stats.totalResponses !== 1 ? 's' : ''}
+                        <span className="text-seal-gray-500 dark:text-slate-400">
+                          <strong className="text-seal-navy dark:text-white">{surveyResults[survey.id].stats.totalResponses}</strong> réponse{surveyResults[survey.id].stats.totalResponses !== 1 ? 's' : ''}
                         </span>
                         {surveyResults[survey.id].stats.averageRating > 0 && (
-                          <span className="text-taupe dark:text-slate-400">
-                            Note moy. <strong className="text-navy dark:text-white">{surveyResults[survey.id].stats.averageRating}/5</strong>
+                          <span className="text-seal-gray-500 dark:text-slate-400">
+                            Note moy. <strong className="text-seal-navy dark:text-white">{surveyResults[survey.id].stats.averageRating}/5</strong>
                           </span>
                         )}
                       </div>
@@ -718,8 +718,8 @@ export default function SatisfactionPage() {
                       {/* Per-question results */}
                       {surveyResults[survey.id].questionResults?.map((qr: any) => (
                         <div key={qr.questionId} className="rounded-lg border border-gray-200 dark:border-slate-700 p-3 bg-white dark:bg-slate-800 space-y-2">
-                          <p className="text-xs font-medium text-navy dark:text-white">{qr.label}</p>
-                          <p className="text-[10px] text-taupe dark:text-slate-500">{qr.aggregation.total} réponse{qr.aggregation.total !== 1 ? 's' : ''}</p>
+                          <p className="text-xs font-medium text-seal-navy dark:text-white">{qr.label}</p>
+                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">{qr.aggregation.total} réponse{qr.aggregation.total !== 1 ? 's' : ''}</p>
 
                           {/* Rating: donut chart */}
                           {qr.type === 'rating' && qr.aggregation.distribution && (
@@ -741,7 +741,7 @@ export default function SatisfactionPage() {
                                       strokeDasharray={dashArray} transform={`rotate(${rotation} 60 60)`} />;
                                   });
                                 })()}
-                                <text x="60" y="56" textAnchor="middle" fontSize="20" fontWeight="700" fill="currentColor" className="text-navy dark:text-white">{qr.aggregation.average}</text>
+                                <text x="60" y="56" textAnchor="middle" fontSize="20" fontWeight="700" fill="currentColor" className="text-seal-navy dark:text-white">{qr.aggregation.average}</text>
                                 <text x="60" y="72" textAnchor="middle" fontSize="10" fill="#9ca3af">/5</text>
                               </svg>
                               <div className="flex-1 space-y-1">
@@ -752,12 +752,12 @@ export default function SatisfactionPage() {
                                   const pct = total > 0 ? (count / total) * 100 : 0;
                                   return (
                                     <div key={n} className="flex items-center gap-2 text-[10px]">
-                                      <span className="w-3 text-right text-taupe dark:text-slate-400">{n}</span>
+                                      <span className="w-3 text-right text-seal-gray-500 dark:text-slate-400">{n}</span>
                                       <Star className="h-2.5 w-2.5 text-amber-400 fill-amber-400" />
                                       <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                         <div className="h-full bg-amber-400 rounded-full" style={{ width: `${Math.max(pct, 0)}%` }} />
                                       </div>
-                                      <span className="w-6 text-right text-taupe dark:text-slate-400">{count}</span>
+                                      <span className="w-6 text-right text-seal-gray-500 dark:text-slate-400">{count}</span>
                                     </div>
                                   );
                                 })}
@@ -768,7 +768,7 @@ export default function SatisfactionPage() {
                           {/* Scale: bar chart */}
                           {qr.type === 'scale' && qr.aggregation.distribution && (
                             <div className="space-y-1">
-                              <p className="text-[10px] text-taupe dark:text-slate-400 mb-1">Moyenne : <strong>{qr.aggregation.average}/10</strong></p>
+                              <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mb-1">Moyenne : <strong>{qr.aggregation.average}/10</strong></p>
                               <svg viewBox="0 0 300 80" className="w-full h-16">
                                 {(() => {
                                   const maxCount = Math.max(1, ...qr.aggregation.distribution.map((d: any) => d.count));
@@ -800,8 +800,8 @@ export default function SatisfactionPage() {
                                 return (
                                   <div key={i}>
                                     <div className="flex items-center justify-between text-[10px] mb-0.5">
-                                      <span className="text-navy dark:text-white font-medium truncate mr-2">{c.label}</span>
-                                      <span className="text-taupe dark:text-slate-400 flex-shrink-0">{c.count} ({Math.round(pct)}%)</span>
+                                      <span className="text-seal-navy dark:text-white font-medium truncate mr-2">{c.label}</span>
+                                      <span className="text-seal-gray-500 dark:text-slate-400 flex-shrink-0">{c.count} ({Math.round(pct)}%)</span>
                                     </div>
                                     <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                       <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(pct, 1)}%`, backgroundColor: colors[i % colors.length] }} />
@@ -816,10 +816,10 @@ export default function SatisfactionPage() {
                           {qr.type === 'text' && qr.aggregation.texts && (
                             <div className="max-h-40 overflow-y-auto space-y-1.5">
                               {qr.aggregation.texts.length === 0 ? (
-                                <p className="text-[10px] text-taupe dark:text-slate-500 italic">Aucune réponse texte</p>
+                                <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 italic">Aucune réponse texte</p>
                               ) : (
                                 qr.aggregation.texts.map((t: string, i: number) => (
-                                  <div key={i} className="text-xs text-navy dark:text-slate-300 bg-gray-50 dark:bg-slate-900 rounded p-2 border-l-2 border-primary/40">
+                                  <div key={i} className="text-xs text-seal-navy dark:text-slate-300 bg-gray-50 dark:bg-slate-900 rounded p-2 border-l-2 border-primary/40">
                                     {t}
                                   </div>
                                 ))
@@ -850,7 +850,7 @@ export default function SatisfactionPage() {
                                   strokeDasharray={dashArray} transform={`rotate(${rotation} 60 60)`} />;
                               });
                             })()}
-                            <text x="60" y="56" textAnchor="middle" fontSize="20" fontWeight="700" fill="currentColor" className="text-navy dark:text-white">{surveyResults[survey.id].stats.averageRating}</text>
+                            <text x="60" y="56" textAnchor="middle" fontSize="20" fontWeight="700" fill="currentColor" className="text-seal-navy dark:text-white">{surveyResults[survey.id].stats.averageRating}</text>
                             <text x="60" y="72" textAnchor="middle" fontSize="10" fill="#9ca3af">/5</text>
                           </svg>
                           <div className="flex-1 space-y-1">
@@ -861,12 +861,12 @@ export default function SatisfactionPage() {
                               const pct = total > 0 ? (count / total) * 100 : 0;
                               return (
                                 <div key={n} className="flex items-center gap-2 text-[10px]">
-                                  <span className="w-3 text-right text-taupe dark:text-slate-400">{n}</span>
+                                  <span className="w-3 text-right text-seal-gray-500 dark:text-slate-400">{n}</span>
                                   <Star className="h-2.5 w-2.5 text-amber-400 fill-amber-400" />
                                   <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                     <div className="h-full bg-amber-400 rounded-full" style={{ width: `${Math.max(pct, 0)}%` }} />
                                   </div>
-                                  <span className="w-6 text-right text-taupe dark:text-slate-400">{count}</span>
+                                  <span className="w-6 text-right text-seal-gray-500 dark:text-slate-400">{count}</span>
                                 </div>
                               );
                             })}
@@ -890,7 +890,7 @@ export default function SatisfactionPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[13px] font-medium text-navy dark:text-white mb-1">Date d&apos;expiration</label>
+              <label className="block text-[13px] font-medium text-seal-navy dark:text-white mb-1">Date d&apos;expiration</label>
               <input type="date" value={formExpiry} onChange={e => setFormExpiry(e.target.value)}
                 aria-label="Date d'expiration"
                 className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
@@ -899,7 +899,7 @@ export default function SatisfactionPage() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={formAnonymous} onChange={e => setFormAnonymous(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                <span className="text-sm text-navy dark:text-white">Réponses anonymes</span>
+                <span className="text-sm text-seal-navy dark:text-white">Réponses anonymes</span>
               </label>
             </div>
           </div>
@@ -907,15 +907,15 @@ export default function SatisfactionPage() {
           {/* Questions builder */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-[13px] font-medium text-navy dark:text-white">Questions</label>
+              <label className="text-[13px] font-medium text-seal-navy dark:text-white">Questions</label>
               <Button variant="outline" size="sm" onClick={addQuestion}><Plus className="h-3 w-3" /> Question</Button>
             </div>
             <div className="space-y-3">
               {formQuestions.map((q, idx) => (
                 <div key={idx} className="rounded-lg border border-gray-200 dark:border-slate-700 p-3 space-y-2 bg-gray-50/50 dark:bg-slate-800/50">
                   <div className="flex items-center gap-2">
-                    <GripVertical className="h-4 w-4 text-taupe/30 flex-shrink-0" />
-                    <span className="text-xs font-medium text-taupe dark:text-slate-400 w-6">{idx + 1}.</span>
+                    <GripVertical className="h-4 w-4 text-seal-gray-500/30 flex-shrink-0" />
+                    <span className="text-xs font-medium text-seal-gray-500 dark:text-slate-400 w-6">{idx + 1}.</span>
                     <input value={q.label} onChange={e => updateQuestion(idx, 'label', e.target.value)}
                       placeholder="Intitulé de la question"
                       aria-label={`Question ${idx + 1} - intitulé`}
@@ -957,7 +957,7 @@ export default function SatisfactionPage() {
                     <label className="flex items-center gap-1.5 cursor-pointer">
                       <input type="checkbox" checked={q.isRequired} onChange={e => updateQuestion(idx, 'isRequired', e.target.checked)}
                         className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary" />
-                      <span className="text-[10px] text-taupe dark:text-slate-400">Obligatoire</span>
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">Obligatoire</span>
                     </label>
                   </div>
                 </div>
@@ -1010,7 +1010,7 @@ export default function SatisfactionPage() {
         {respondingSurvey && (
           <div className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
             {respondingSurvey.description && (
-              <p className="text-sm text-taupe dark:text-slate-400 bg-gray-50 dark:bg-slate-800 rounded-lg p-3">
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 rounded-lg p-3">
                 {respondingSurvey.description}
               </p>
             )}
@@ -1022,7 +1022,7 @@ export default function SatisfactionPage() {
                 </div>
               ))
             ) : (
-              <div className="text-center py-6 text-sm text-taupe">
+              <div className="text-center py-6 text-sm text-seal-gray-500">
                 <p>Cette enquête ne contient pas encore de questions.</p>
               </div>
             )}

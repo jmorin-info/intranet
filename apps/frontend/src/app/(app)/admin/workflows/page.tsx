@@ -165,12 +165,12 @@ export default function WorkflowsAdminPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-slate-700">
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Nom</th>
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Catégorie</th>
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Étapes</th>
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Instances</th>
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Défaut</th>
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Actif</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Nom</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Catégorie</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Étapes</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Instances</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Défaut</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Actif</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
@@ -187,15 +187,15 @@ export default function WorkflowsAdminPage() {
                         {wf.name}
                       </Link>
                       {wf.description ? (
-                        <div className="text-xs text-taupe dark:text-slate-400">
+                        <div className="text-xs text-seal-gray-500 dark:text-slate-400">
                           {wf.description}
                         </div>
                       ) : null}
                     </td>
-                    <td className="p-3 text-navy dark:text-slate-200">
+                    <td className="p-3 text-seal-navy dark:text-slate-200">
                       {CATEGORY_LABELS[wf.documentCategory ?? 'ALL']}
                     </td>
-                    <td className="p-3 text-navy dark:text-slate-200">
+                    <td className="p-3 text-seal-navy dark:text-slate-200">
                       <span>{wf.steps.length}</span>
                       {wf.steps.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
@@ -203,18 +203,18 @@ export default function WorkflowsAdminPage() {
                             .sort((a, b) => a.order - b.order)
                             .map((step, idx) => (
                               <span key={step.id} className="inline-flex items-center text-[10px]">
-                                <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 font-medium">
+                                <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 font-medium">
                                   {step.name}
                                 </span>
                                 {idx < wf.steps.length - 1 && (
-                                  <span className="mx-0.5 text-taupe dark:text-slate-500">→</span>
+                                  <span className="mx-0.5 text-seal-gray-500 dark:text-slate-500">→</span>
                                 )}
                               </span>
                             ))}
                         </div>
                       )}
                     </td>
-                    <td className="p-3 text-navy dark:text-slate-200">
+                    <td className="p-3 text-seal-navy dark:text-slate-200">
                       {wf._count?.instances ?? 0}
                     </td>
                     <td className="p-3">
@@ -252,7 +252,7 @@ export default function WorkflowsAdminPage() {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+              <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                 Nom *
               </label>
               <input
@@ -264,7 +264,7 @@ export default function WorkflowsAdminPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+              <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                 Description
               </label>
               <textarea
@@ -277,7 +277,7 @@ export default function WorkflowsAdminPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-navy dark:text-white mb-1">
+              <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
                 Catégorie de document
               </label>
               <select

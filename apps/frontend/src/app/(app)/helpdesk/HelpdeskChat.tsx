@@ -393,7 +393,7 @@ export function HelpdeskChat() {
     <div className="space-y-6">
       {/* Search bar */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-taupe dark:text-slate-500" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-seal-gray-500 dark:text-slate-500" />
         <input
           type="text"
           value={searchQuery}
@@ -406,13 +406,13 @@ export function HelpdeskChat() {
             }
           }}
           placeholder="Rechercher dans la base de connaissances..."
-          className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 pl-12 pr-4 py-3.5 text-sm text-navy dark:text-white placeholder:text-taupe dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
+          className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 pl-12 pr-4 py-3.5 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
         />
       </div>
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-sm font-semibold text-navy dark:text-white mb-3 uppercase tracking-wide">Actions rapides</h2>
+        <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-3 uppercase tracking-wide">Actions rapides</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {quickActions.map((action) => (
             <Link
@@ -430,9 +430,9 @@ export function HelpdeskChat() {
       {/* FAQ Section */}
       {filteredFaq.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-navy dark:text-white mb-3 uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-seal-navy dark:text-white mb-3 uppercase tracking-wide">
             Questions fréquentes
-            <span className="ml-2 text-xs font-normal text-taupe dark:text-slate-400">
+            <span className="ml-2 text-xs font-normal text-seal-gray-500 dark:text-slate-400">
               ({filteredFaq.length} article{filteredFaq.length > 1 ? 's' : ''})
             </span>
           </h2>
@@ -448,8 +448,8 @@ export function HelpdeskChat() {
                     <HelpCircle className="h-4 w-4 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-navy dark:text-white line-clamp-2">{article.question}</p>
-                    <p className="text-xs text-taupe dark:text-slate-400 mt-1 line-clamp-2">{article.answer.substring(0, 100)}...</p>
+                    <p className="text-sm font-medium text-seal-navy dark:text-white line-clamp-2">{article.question}</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1 line-clamp-2">{article.answer.substring(0, 100)}...</p>
                   </div>
                 </div>
               </button>
@@ -554,10 +554,10 @@ export function HelpdeskChat() {
                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${confidenceLabel(msg.ragScore).color}`}>
                             {confidenceLabel(msg.ragScore).text} ({msg.ragScore}%)
                           </span>
-                          <span className="text-[10px] text-taupe dark:text-slate-500">Source : base de connaissances</span>
+                          <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">Source : base de connaissances</span>
                         </div>
                       )}
-                      <p className={`text-sm whitespace-pre-wrap ${msg.role === 'assistant' ? 'text-navy dark:text-white' : ''}`}>{msg.content}</p>
+                      <p className={`text-sm whitespace-pre-wrap ${msg.role === 'assistant' ? 'text-seal-navy dark:text-white' : ''}`}>{msg.content}</p>
                       {msg.actions && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {msg.actions.map((a, j) => a.href ? (
@@ -573,12 +573,12 @@ export function HelpdeskChat() {
                           ) : null)}
                         </div>
                       )}
-                      <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-white/50' : 'text-taupe/70 dark:text-slate-500'}`}>{formatTime(msg.timestamp)}</p>
+                      <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-white/50' : 'text-seal-gray-500/70 dark:text-slate-500'}`}>{formatTime(msg.timestamp)}</p>
                     </div>
                     {/* Suggested follow-up questions */}
                     {msg.suggestions && msg.suggestions.length > 0 && i === messages.length - 1 && (
                       <div className="space-y-1.5" style={{ animation: 'helpdeskSlideIn 0.5s ease-out 0.2s both' }}>
-                        <p className="text-[10px] text-taupe dark:text-slate-500 font-medium uppercase tracking-wide">Questions similaires</p>
+                        <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 font-medium uppercase tracking-wide">Questions similaires</p>
                         {msg.suggestions.map((sq, si) => (
                           <button
                             key={si}
@@ -592,7 +592,7 @@ export function HelpdeskChat() {
                                 setIsTyping(false);
                               }, 500);
                             }}
-                            className="block w-full text-left px-3 py-2 rounded-lg bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 text-xs text-navy dark:text-white hover:border-primary/30 hover:bg-primary/5 transition-all duration-200"
+                            className="block w-full text-left px-3 py-2 rounded-lg bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 text-xs text-seal-navy dark:text-white hover:border-primary/30 hover:bg-primary/5 transition-all duration-200"
                           >
                             {sq}
                           </button>
@@ -603,12 +603,12 @@ export function HelpdeskChat() {
                     {msg.role === 'assistant' && i > 0 && (
                       <div className="flex items-center gap-2 pt-1" style={{ animation: 'helpdeskSlideIn 0.5s ease-out 0.3s both' }}>
                         {feedback[i] ? (
-                          <p className="text-[10px] text-taupe dark:text-slate-500 italic">
+                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 italic">
                             {feedback[i] === 'helpful' ? 'Merci pour votre retour !' : 'Retour enregistré — pensez à créer un ticket si nécessaire.'}
                           </p>
                         ) : (
                           <>
-                            <p className="text-[10px] text-taupe dark:text-slate-500 font-medium">Cette réponse vous a aidé ?</p>
+                            <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 font-medium">Cette réponse vous a aidé ?</p>
                             <button
                               onClick={() => handleFeedback(i, 'helpful')}
                               className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition"
@@ -637,11 +637,11 @@ export function HelpdeskChat() {
               ))}
               {messages.length <= 1 && knowledgeBase.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs text-taupe dark:text-slate-400 text-center mb-3">Questions fréquentes :</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center mb-3">Questions fréquentes :</p>
                   {knowledgeBase.slice(0, 5).map((article, i) => (
                     <button key={i}
                       onClick={() => { setInput(article.question); }}
-                      className="w-full text-left p-2 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-primary/5 transition text-xs text-navy dark:text-white">
+                      className="w-full text-left p-2 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-primary/5 transition text-xs text-seal-navy dark:text-white">
                       {article.question}
                     </button>
                   ))}
@@ -669,7 +669,7 @@ export function HelpdeskChat() {
                   placeholder={t('helpdesk.placeholder')}
                   rows={2}
                   autoFocus
-                  className="flex-1 rounded-xl border border-gray-300 dark:border-slate-600 px-4 py-3 text-sm bg-white dark:bg-slate-800 text-navy dark:text-white placeholder:text-taupe focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none shadow-sm transition-all duration-200"
+                  className="flex-1 rounded-xl border border-gray-300 dark:border-slate-600 px-4 py-3 text-sm bg-white dark:bg-slate-800 text-seal-navy dark:text-white placeholder:text-seal-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none shadow-sm transition-all duration-200"
                 />
                 <Button onClick={handleSend} disabled={!input.trim()} className="h-[52px] px-5 rounded-xl shadow-sm">
                   <Send className="h-4 w-4" />

@@ -223,7 +223,7 @@ export default function AdAuditPage() {
           <>
             <label className="cursor-pointer">
               <input type="file" className="hidden" accept=".json,.txt,.csv" onChange={handleFileUpload} />
-              <span className="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+              <span className="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 <Upload className="h-4 w-4" />
                 Importer un rapport
               </span>
@@ -240,10 +240,10 @@ export default function AdAuditPage() {
       {!report && !loading && history.length === 0 && (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="py-4">
-            <h3 className="text-sm font-medium text-navy dark:text-white mb-2 flex items-center gap-2">
+            <h3 className="text-sm font-medium text-seal-navy dark:text-white mb-2 flex items-center gap-2">
               <Info className="h-4 w-4 text-primary" /> Guide d&apos;utilisation
             </h3>
-            <div className="text-xs text-taupe dark:text-slate-400 space-y-1">
+            <div className="text-xs text-seal-gray-500 dark:text-slate-400 space-y-1">
               <p><strong>Scan rapide :</strong> Analyse les données de l&apos;intranet (MFA, départements, chartes, veille...)</p>
               <p><strong>Rapport PS1 :</strong> Lancez <code className="bg-gray-100 dark:bg-slate-700 px-1.5 py-0.5 rounded font-mono">AD-ISO27001-Report-v5.ps1</code> sur le DC, puis importez le fichier <code className="bg-gray-100 dark:bg-slate-700 px-1.5 py-0.5 rounded font-mono">*.intranet.json</code></p>
               <p><strong>Auto-upload :</strong> Ajoutez <code className="bg-gray-100 dark:bg-slate-700 px-1.5 py-0.5 rounded font-mono">-IntranetApiUrl &quot;https://intranet.omnitech-security.fr/api&quot;</code> pour envoyer automatiquement</p>
@@ -285,7 +285,7 @@ export default function AdAuditPage() {
               { label: 'Conformes', value: report.summary.pass, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
               { label: 'Avertissements', value: report.summary.warning, icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/30' },
               { label: 'Non conformes', value: report.summary.fail, icon: XCircle, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/30' },
-              { label: 'Total', value: report.summary.total, icon: ShieldAlert, color: 'text-navy dark:text-white', bg: 'bg-navy/10 dark:bg-slate-700' },
+              { label: 'Total', value: report.summary.total, icon: ShieldAlert, color: 'text-seal-navy dark:text-white', bg: 'bg-seal-navy/10 dark:bg-slate-700' },
             ].map(kpi => (
               <Card key={kpi.label}>
                 <CardContent className="flex items-center gap-3 py-4">
@@ -294,7 +294,7 @@ export default function AdAuditPage() {
                   </div>
                   <div>
                     <p className={`text-xl font-medium ${kpi.color}`}>{kpi.value}</p>
-                    <p className="text-[10px] text-taupe dark:text-slate-400">{kpi.label}</p>
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{kpi.label}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -305,16 +305,16 @@ export default function AdAuditPage() {
                 <div className="flex flex-col gap-1.5 w-full">
                   <div className="flex items-center gap-2 text-xs">
                     <Server className="h-3 w-3 text-blue-500" />
-                    <span className="text-taupe dark:text-slate-400">AD</span>
-                    <span className="font-medium text-navy dark:text-white ml-auto">{report.checks.filter(c => c.source === 'ad').length}</span>
+                    <span className="text-seal-gray-500 dark:text-slate-400">AD</span>
+                    <span className="font-medium text-seal-navy dark:text-white ml-auto">{report.checks.filter(c => c.source === 'ad').length}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <Globe className="h-3 w-3 text-primary" />
-                    <span className="text-taupe dark:text-slate-400">Intranet</span>
-                    <span className="font-medium text-navy dark:text-white ml-auto">{report.checks.filter(c => c.source === 'intranet').length}</span>
+                    <span className="text-seal-gray-500 dark:text-slate-400">Intranet</span>
+                    <span className="font-medium text-seal-navy dark:text-white ml-auto">{report.checks.filter(c => c.source === 'intranet').length}</span>
                   </div>
                   {report.adDomain && (
-                    <p className="text-[9px] text-taupe dark:text-slate-500 mt-0.5 truncate" title={report.adDomain}>{report.adDomain}</p>
+                    <p className="text-[9px] text-seal-gray-500 dark:text-slate-500 mt-0.5 truncate" title={report.adDomain}>{report.adDomain}</p>
                   )}
                 </div>
               </CardContent>
@@ -325,7 +325,7 @@ export default function AdAuditPage() {
           <Card>
             <CardContent className="py-3">
               <div className="flex items-center gap-3 flex-wrap">
-                <button onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-1.5 text-xs font-medium text-taupe dark:text-slate-400">
+                <button onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-1.5 text-xs font-medium text-seal-gray-500 dark:text-slate-400">
                   <Filter className="h-3.5 w-3.5" /> Filtres
                   {showFilters ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                 </button>
@@ -337,7 +337,7 @@ export default function AdAuditPage() {
                     { value: 'pass', label: 'Conformes' },
                   ].map(f => (
                     <button key={f.value} onClick={() => setFilterStatus(f.value)}
-                      className={`px-3 py-1 text-xs font-medium rounded-full transition ${filterStatus === f.value ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300'}`}>
+                      className={`px-3 py-1 text-xs font-medium rounded-full transition ${filterStatus === f.value ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300'}`}>
                       {f.label}
                     </button>
                   ))}
@@ -350,7 +350,7 @@ export default function AdAuditPage() {
                       { value: 'intranet', label: 'Intranet' },
                     ].map(f => (
                       <button key={f.value} onClick={() => setFilterSource(f.value)}
-                        className={`px-3 py-1 text-xs font-medium rounded-full transition ${filterSource === f.value ? 'bg-navy text-white dark:bg-slate-500' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300'}`}>
+                        className={`px-3 py-1 text-xs font-medium rounded-full transition ${filterSource === f.value ? 'bg-seal-navy text-white dark:bg-slate-500' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300'}`}>
                         {f.value === 'ad' && <Server className="h-3 w-3 inline mr-1" />}
                         {f.value === 'intranet' && <Globe className="h-3 w-3 inline mr-1" />}
                         {f.label}
@@ -359,7 +359,7 @@ export default function AdAuditPage() {
                   </div>
                 )}
                 <div className="ml-auto flex items-center gap-2">
-                  <span className="text-[10px] text-taupe dark:text-slate-400">{filteredChecks.length} contrôle(s)</span>
+                  <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">{filteredChecks.length} contrôle(s)</span>
                   <Button size="sm" variant="outline" onClick={exportCSV}>
                     <Download className="h-3 w-3" /> CSV
                   </Button>
@@ -372,8 +372,8 @@ export default function AdAuditPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-medium text-navy dark:text-white">Points de contrôle</h2>
-                <p className="text-xs text-taupe dark:text-slate-400">
+                <h2 className="text-lg font-medium text-seal-navy dark:text-white">Points de contrôle</h2>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                   {new Date(report.generatedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
@@ -393,7 +393,7 @@ export default function AdAuditPage() {
                         className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
                       >
                         <div className="flex items-center gap-3">
-                          <h3 className="text-sm font-medium text-navy dark:text-white">{category}</h3>
+                          <h3 className="text-sm font-medium text-seal-navy dark:text-white">{category}</h3>
                           <div className="flex items-center gap-1.5">
                             {catPass > 0 && <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">{catPass} OK</span>}
                             {catWarn > 0 && <span className="text-[10px] font-medium text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">{catWarn} WARN</span>}
@@ -405,7 +405,7 @@ export default function AdAuditPage() {
                           <div className="w-20 h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${checks.length > 0 ? (catPass / checks.length) * 100 : 0}%` }} />
                           </div>
-                          {isExpanded ? <ChevronUp className="h-4 w-4 text-taupe" /> : <ChevronDown className="h-4 w-4 text-taupe" />}
+                          {isExpanded ? <ChevronUp className="h-4 w-4 text-seal-gray-500" /> : <ChevronDown className="h-4 w-4 text-seal-gray-500" />}
                         </div>
                       </button>
                       {isExpanded && (
@@ -415,7 +415,7 @@ export default function AdAuditPage() {
                               {statusIcon(check.status)}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-medium text-navy dark:text-white">{check.name}</span>
+                                  <span className="text-sm font-medium text-seal-navy dark:text-white">{check.name}</span>
                                   {statusBadge(check.status)}
                                   {check.isoControl && (
                                     <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded">
@@ -423,12 +423,12 @@ export default function AdAuditPage() {
                                     </span>
                                   )}
                                   {check.source && (
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded ${check.source === 'ad' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-taupe dark:bg-slate-700 dark:text-slate-400'}`}>
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded ${check.source === 'ad' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-seal-gray-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                                       {check.source === 'ad' ? 'AD' : 'Intranet'}
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">{check.description}</p>
+                                <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{check.description}</p>
                                 {check.recommendation && check.status !== 'pass' && (
                                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 bg-amber-50/50 dark:bg-amber-900/10 px-2 py-1 rounded">
                                     {check.recommendation}
@@ -450,7 +450,7 @@ export default function AdAuditPage() {
           {recommendations.length > 0 && (
             <Card className="border-amber-200 dark:border-amber-800">
               <CardHeader>
-                <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
+                <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
                   <Info className="h-5 w-5 text-amber-500" />
                   Plan d&apos;action ({recommendations.length})
                 </h2>
@@ -468,14 +468,14 @@ export default function AdAuditPage() {
                         {statusIcon(check.status)}
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-navy dark:text-white">{check.name}</span>
+                            <span className="font-medium text-seal-navy dark:text-white">{check.name}</span>
                             {check.isoControl && (
                               <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                                 {check.isoControl}
                               </span>
                             )}
                           </div>
-                          <p className="text-taupe dark:text-slate-400 mt-0.5">{check.recommendation}</p>
+                          <p className="text-seal-gray-500 dark:text-slate-400 mt-0.5">{check.recommendation}</p>
                         </div>
                       </li>
                     ))}
@@ -490,8 +490,8 @@ export default function AdAuditPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium text-navy dark:text-white flex items-center gap-2">
-              <Clock className="h-5 w-5 text-taupe" />
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
+              <Clock className="h-5 w-5 text-seal-gray-500" />
               Historique des audits
             </h2>
             <Button variant="outline" size="sm" onClick={() => api.get('/ad-audit/history').then(r => setHistory(r.data || []))}>
@@ -501,7 +501,7 @@ export default function AdAuditPage() {
         </CardHeader>
         <CardContent>
           {history.length === 0 ? (
-            <p className="text-sm text-taupe dark:text-slate-400 text-center py-8">
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">
               Aucun audit précédent. Lancez un scan rapide pour commencer.
             </p>
           ) : (
@@ -509,13 +509,13 @@ export default function AdAuditPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-slate-700 text-left">
-                    <th className="py-2 px-3 font-medium text-taupe dark:text-slate-400">Date</th>
-                    <th className="py-2 px-3 font-medium text-taupe dark:text-slate-400">Score</th>
-                    <th className="py-2 px-3 font-medium text-taupe dark:text-slate-400">OK</th>
-                    <th className="py-2 px-3 font-medium text-taupe dark:text-slate-400">Avert.</th>
-                    <th className="py-2 px-3 font-medium text-taupe dark:text-slate-400">Échecs</th>
-                    <th className="py-2 px-3 font-medium text-taupe dark:text-slate-400">Sources</th>
-                    <th className="py-2 px-3 font-medium text-taupe dark:text-slate-400">Sévérité</th>
+                    <th className="py-2 px-3 font-medium text-seal-gray-500 dark:text-slate-400">Date</th>
+                    <th className="py-2 px-3 font-medium text-seal-gray-500 dark:text-slate-400">Score</th>
+                    <th className="py-2 px-3 font-medium text-seal-gray-500 dark:text-slate-400">OK</th>
+                    <th className="py-2 px-3 font-medium text-seal-gray-500 dark:text-slate-400">Avert.</th>
+                    <th className="py-2 px-3 font-medium text-seal-gray-500 dark:text-slate-400">Échecs</th>
+                    <th className="py-2 px-3 font-medium text-seal-gray-500 dark:text-slate-400">Sources</th>
+                    <th className="py-2 px-3 font-medium text-seal-gray-500 dark:text-slate-400">Sévérité</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -526,7 +526,7 @@ export default function AdAuditPage() {
                     const diff = prevScore != null ? m.overallScore - prevScore : null;
                     return (
                       <tr key={item.id} className="border-b border-gray-50 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/30">
-                        <td className="py-2 px-3 text-navy dark:text-white">
+                        <td className="py-2 px-3 text-seal-navy dark:text-white">
                           {new Date(item.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="py-2 px-3">
@@ -540,7 +540,7 @@ export default function AdAuditPage() {
                         <td className="py-2 px-3 text-emerald-600">{m.pass}</td>
                         <td className="py-2 px-3 text-amber-600">{m.warning}</td>
                         <td className="py-2 px-3 text-red-500">{m.fail}</td>
-                        <td className="py-2 px-3 text-xs text-taupe dark:text-slate-400">
+                        <td className="py-2 px-3 text-xs text-seal-gray-500 dark:text-slate-400">
                           {m.adChecks ? `AD:${m.adChecks}` : ''}{m.adChecks && m.dbChecks ? ' + ' : ''}{m.dbChecks ? `Intranet:${m.dbChecks}` : ''}
                           {!m.adChecks && !m.dbChecks && `${m.total}`}
                         </td>

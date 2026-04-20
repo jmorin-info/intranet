@@ -84,7 +84,7 @@ export function BookmarkButton({ type, id, title, href, className = '' }: Bookma
         className={`h-4 w-4 transition ${
           active
             ? 'fill-amber-400 text-amber-400'
-            : 'text-taupe dark:text-slate-400 hover:text-amber-400'
+            : 'text-seal-gray-500 dark:text-slate-400 hover:text-amber-400'
         }`}
       />
     </button>

@@ -86,7 +86,7 @@ export default function TipsPage() {
                     className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                       active
                         ? 'bg-primary text-white shadow-sm'
-                        : 'bg-gray-100 text-taupe hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-300'
+                        : 'bg-gray-100 text-seal-gray-500 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-300'
                     }`}
                     type="button"
                   >
@@ -129,10 +129,10 @@ export default function TipsPage() {
                   {TIP_CATEGORY_LABELS[tipOfTheDay.category]}
                 </span>
               </div>
-              <h3 className="mt-1 text-base font-semibold text-navy dark:text-white">
+              <h3 className="mt-1 text-base font-semibold text-seal-navy dark:text-white">
                 {tipOfTheDay.title}
               </h3>
-              <p className="mt-1 text-sm leading-relaxed text-taupe dark:text-slate-400">
+              <p className="mt-1 text-sm leading-relaxed text-seal-gray-500 dark:text-slate-400">
                 {tipOfTheDay.body}
               </p>
             </div>
@@ -143,8 +143,8 @@ export default function TipsPage() {
       {visible.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <Lightbulb className="mx-auto h-10 w-10 text-taupe/40" />
-            <p className="mt-3 text-sm text-taupe dark:text-slate-400">
+            <Lightbulb className="mx-auto h-10 w-10 text-seal-gray-500/40" />
+            <p className="mt-3 text-sm text-seal-gray-500 dark:text-slate-400">
               Aucune astuce ne correspond à votre recherche.
             </p>
             <Button
@@ -188,10 +188,10 @@ export default function TipsPage() {
                           {TIP_CATEGORY_LABELS[tip.category]}
                         </span>
                       </div>
-                      <h3 className="mt-2 text-sm font-semibold text-navy dark:text-white">
+                      <h3 className="mt-2 text-sm font-semibold text-seal-navy dark:text-white">
                         {tip.title}
                       </h3>
-                      <p className="mt-1 text-xs leading-relaxed text-taupe dark:text-slate-400">
+                      <p className="mt-1 text-xs leading-relaxed text-seal-gray-500 dark:text-slate-400">
                         {tip.body}
                       </p>
                       {tip.link && (

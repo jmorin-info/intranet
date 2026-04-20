@@ -144,7 +144,7 @@ export default function ProceduresPage() {
             <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md transition ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-navy dark:text-white' : 'text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white'}`}
+                className={`p-1.5 rounded-md transition ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-seal-navy dark:text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'}`}
                 title="Vue grille"
             aria-label="Afficher en vue grille"
           >
@@ -152,7 +152,7 @@ export default function ProceduresPage() {
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`p-1.5 rounded-md transition ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-navy dark:text-white' : 'text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white'}`}
+            className={`p-1.5 rounded-md transition ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-seal-navy dark:text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'}`}
             title="Vue liste"
             aria-label="Afficher en vue liste"
           >
@@ -197,12 +197,12 @@ export default function ProceduresPage() {
       {/* Domain stats bar */}
       {!loading && domainStats.length > 0 && (
         <div className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-4 py-2.5 overflow-x-auto">
-          <BarChart3 className="h-4 w-4 text-taupe dark:text-slate-400 flex-shrink-0" />
-          <span className="text-xs font-semibold text-taupe dark:text-slate-400 flex-shrink-0">Par type :</span>
+          <BarChart3 className="h-4 w-4 text-seal-gray-500 dark:text-slate-400 flex-shrink-0" />
+          <span className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 flex-shrink-0">Par type :</span>
           {domainStats.map(([label, count]) => (
             <span
               key={label}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-slate-800 text-xs font-medium text-navy dark:text-white flex-shrink-0"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-slate-800 text-xs font-medium text-seal-navy dark:text-white flex-shrink-0"
             >
               {label}
               <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded-full text-[10px] font-semibold">{count}</span>
@@ -262,10 +262,10 @@ export default function ProceduresPage() {
                         {getFileIcon(proc.currentVersion?.fileType)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-navy dark:text-white line-clamp-2">
+                        <p className="text-sm font-semibold text-seal-navy dark:text-white line-clamp-2">
                           {proc.title}
                         </p>
-                        <p className="text-xs font-mono text-taupe dark:text-slate-400 mt-0.5">
+                        <p className="text-xs font-mono text-seal-gray-500 dark:text-slate-400 mt-0.5">
                           {proc.reference}
                         </p>
                       </div>
@@ -293,7 +293,7 @@ export default function ProceduresPage() {
                         <Badge variant={getCategoryBadgeVariant(proc.category)}>
                           {DOCUMENT_CATEGORY_LABELS[proc.category as DocumentCategory]}
                         </Badge>
-                        <span className="text-[10px] text-taupe dark:text-slate-400" title={t('procedures.updated')}>
+                        <span className="text-[10px] text-seal-gray-500 dark:text-slate-400" title={t('procedures.updated')}>
                           {t('procedures.updated')} {formatDate(proc.updatedAt)}
                         </span>
                       </div>
@@ -301,7 +301,7 @@ export default function ProceduresPage() {
                         <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary/10 text-primary text-[8px] font-semibold flex-shrink-0">
                           {`${proc.owner.firstName[0] || ''}${proc.owner.lastName[0] || ''}`.toUpperCase()}
                         </span>
-                        <span className="text-[10px] text-taupe dark:text-slate-500 truncate">
+                        <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">
                           {proc.owner.firstName} {proc.owner.lastName}
                         </span>
                       </div>
@@ -312,9 +312,9 @@ export default function ProceduresPage() {
                 {/* Hover preview tooltip */}
                 {hoveredId === proc.id && proc.description && (
                   <div className="absolute z-20 left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-600 p-3 pointer-events-none">
-                    <p className="text-xs font-semibold text-navy dark:text-white mb-1">{proc.title}</p>
+                    <p className="text-xs font-semibold text-seal-navy dark:text-white mb-1">{proc.title}</p>
                     <p className="text-[11px] text-gray-600 dark:text-slate-300 leading-relaxed">{proc.description}</p>
-                    <p className="text-[10px] text-taupe dark:text-slate-500 mt-2">
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-2">
                       Dernière mise à jour : {formatDate(proc.updatedAt)}
                     </p>
                     <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-white dark:bg-slate-800 border-b border-r border-gray-200 dark:border-slate-600 rotate-45 -mt-1" />
@@ -335,8 +335,8 @@ export default function ProceduresPage() {
                     {getFileIcon(proc.currentVersion?.fileType)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-white truncate">{proc.title}</p>
-                    <p className="text-xs text-taupe dark:text-slate-400 font-mono">{proc.reference}</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">{proc.title}</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 font-mono">{proc.reference}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {getClassificationBadge(proc.classification)}
@@ -356,7 +356,7 @@ export default function ProceduresPage() {
                       {`${proc.owner.firstName[0] || ''}${proc.owner.lastName[0] || ''}`.toUpperCase()}
                     </span>
                   </div>
-                  <span className="text-[10px] text-taupe dark:text-slate-400 flex-shrink-0 w-20 text-right">
+                  <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 flex-shrink-0 w-20 text-right">
                     {formatDate(proc.updatedAt)}
                   </span>
                 </div>

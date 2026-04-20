@@ -18,7 +18,7 @@ const badgeVariants = cva(
         warning: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800',
         error: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
         primary: 'bg-primary-light text-primary-dark border-primary/30 dark:bg-primary/15 dark:text-primary dark:border-primary/40',
-        navy: 'bg-navy/10 text-navy border-navy/20 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
+        navy: 'bg-seal-navy/10 text-seal-navy border-seal-navy/20 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
         // === Variantes PANTONE OMNITECH SECURITY (charte SEAL System) ===
         'seal-orange': 'bg-[#F9964A]/10 text-[#c46714] border-[#F9964A]/30 dark:bg-[#F9964A]/20 dark:text-[#FBC078] dark:border-[#F9964A]/40',
         'seal-blue': 'bg-[#296DC1]/10 text-[#1e5494] border-[#296DC1]/30 dark:bg-[#296DC1]/20 dark:text-[#7eb0ec] dark:border-[#296DC1]/40',

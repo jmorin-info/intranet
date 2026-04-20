@@ -32,7 +32,7 @@ export function AIControlToggle() {
 
   return (
     <div className="inline-flex items-center gap-1.5">
-      <Sparkles className={`h-3 w-3 flex-shrink-0 ${mode !== 'OFF' ? 'text-primary' : 'text-taupe/40'}`} />
+      <Sparkles className={`h-3 w-3 flex-shrink-0 ${mode !== 'OFF' ? 'text-primary' : 'text-seal-gray-500/40'}`} />
       <div className="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-0.5">
         {(['OFF', 'ASSISTED', 'AUTO', 'AGGRESSIVE'] as AIMode[]).map(m => (
           <button
@@ -46,7 +46,7 @@ export function AIControlToggle() {
                   : m === 'AGGRESSIVE'
                     ? 'bg-red-500 text-white'
                     : 'bg-primary text-white'
-                : 'text-taupe/60 dark:text-slate-500 hover:text-taupe dark:hover:text-slate-300'
+                : 'text-seal-gray-500/60 dark:text-slate-500 hover:text-seal-gray-500 dark:hover:text-slate-300'
             }`}
           >
             {MODE_LABELS[m]}

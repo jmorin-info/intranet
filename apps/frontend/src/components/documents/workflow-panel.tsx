@@ -9,7 +9,7 @@
  *  2) Instance active → timeline verticale des étapes, décisions, et boutons
  *     Approuver/Rejeter pour l'approbateur de l'étape courante.
  *
- * Conventions : classes seal-* / text-navy / dark:text-white.
+ * Conventions : classes seal-* / text-seal-navy / dark:text-white.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -292,12 +292,12 @@ export function WorkflowPanel({
     return (
       <Card className="shadow-sm rounded-xl">
         <CardHeader>
-          <h3 className="text-sm font-medium text-navy dark:text-white">
+          <h3 className="text-sm font-medium text-seal-navy dark:text-white">
             Workflow d'approbation
           </h3>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2 text-taupe dark:text-slate-400 text-sm">
+          <div className="flex items-center gap-2 text-seal-gray-500 dark:text-slate-400 text-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
             Chargement…
           </div>
@@ -314,7 +314,7 @@ export function WorkflowPanel({
       <Card className="shadow-sm rounded-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-navy dark:text-white">
+            <h3 className="text-sm font-medium text-seal-navy dark:text-white">
               Workflow : {instance.workflow.name}
             </h3>
             <Badge variant={statusVariant(instance.status)}>
@@ -384,15 +384,15 @@ export function WorkflowPanel({
                     )}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-navy dark:text-white">
+                    <p className="text-sm font-medium text-seal-navy dark:text-white">
                       {step.order}. {step.name}
                     </p>
-                    <p className="text-xs text-taupe dark:text-slate-400">
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                       Approbateur : {approverLabel}
                       {step.mode !== 'SINGLE' && ` — ${step.mode}`}
                     </p>
                     {result?.decidedBy && result.decidedAt && (
-                      <p className="text-[11px] text-taupe dark:text-slate-500">
+                      <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">
                         Décidé par {result.decidedBy.firstName}{' '}
                         {result.decidedBy.lastName} le{' '}
                         {new Date(result.decidedAt).toLocaleString('fr-FR')}
@@ -414,7 +414,7 @@ export function WorkflowPanel({
             isCurrentApprover &&
             currentStepResult?.decision === 'PENDING' && (
               <div className="mt-4 border-t pt-3 border-gray-200 dark:border-slate-700">
-                <p className="text-xs font-medium text-navy dark:text-white mb-2">
+                <p className="text-xs font-medium text-seal-navy dark:text-white mb-2">
                   Votre décision
                 </p>
                 <MentionTextarea
@@ -453,28 +453,28 @@ export function WorkflowPanel({
   return (
     <Card className="shadow-sm rounded-xl">
       <CardHeader>
-        <h3 className="text-sm font-medium text-navy dark:text-white">
+        <h3 className="text-sm font-medium text-seal-navy dark:text-white">
           Workflow d'approbation
         </h3>
       </CardHeader>
       <CardContent>
         {!canStartWorkflow ? (
-          <p className="text-sm text-taupe dark:text-slate-400">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">
             Aucun workflow en cours pour ce document.
           </p>
         ) : templates.length === 0 ? (
-          <p className="text-sm text-taupe dark:text-slate-400">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">
             Aucun workflow template disponible
             {documentCategory ? ` pour la catégorie ${documentCategory}` : ''}.
           </p>
         ) : (
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-navy dark:text-white">
+              <label className="text-xs font-medium text-seal-navy dark:text-white">
                 Workflow à démarrer
               </label>
               <select
-                className="mt-1 w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm text-navy dark:text-white"
+                className="mt-1 w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm text-seal-navy dark:text-white"
                 value={selectedTemplateId}
                 onChange={(e) => setSelectedTemplateId(e.target.value)}
               >
@@ -486,7 +486,7 @@ export function WorkflowPanel({
                 ))}
               </select>
               {selectedTemplate?.description && (
-                <p className="mt-1 text-xs text-taupe dark:text-slate-400">
+                <p className="mt-1 text-xs text-seal-gray-500 dark:text-slate-400">
                   {selectedTemplate.description}
                 </p>
               )}
@@ -494,7 +494,7 @@ export function WorkflowPanel({
 
             {selectedTemplate && selectedTemplate.steps.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-navy dark:text-white">
+                <p className="text-xs font-medium text-seal-navy dark:text-white">
                   Approbateurs par étape
                 </p>
                 {selectedTemplate.steps.map((step, stepIdx) => {
@@ -520,7 +520,7 @@ export function WorkflowPanel({
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-navy dark:text-white">
+                          <p className="text-xs font-semibold text-seal-navy dark:text-white">
                             {step.name}
                             {step.mode !== 'SINGLE' && (
                               <span className="ml-1 text-[10px] text-amber-600 font-medium">
@@ -528,12 +528,12 @@ export function WorkflowPanel({
                               </span>
                             )}
                           </p>
-                          <p className="text-[10px] text-taupe dark:text-slate-500 mt-0.5 leading-snug">
+                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5 leading-snug">
                             {stepDescriptions[step.mode] || stepDescriptions.SINGLE}
                             {step.slaHours ? ` Delai : ${step.slaHours}h.` : ''}
                           </p>
                           <select
-                            className="mt-1.5 w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-xs text-navy dark:text-white"
+                            className="mt-1.5 w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-xs text-seal-navy dark:text-white"
                             value={overrides[step.id] || ''}
                             onChange={(e) =>
                               setOverrides((prev) => ({

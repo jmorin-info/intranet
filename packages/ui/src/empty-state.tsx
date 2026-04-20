@@ -9,8 +9,8 @@ const iconMap: Record<EmptyStateType, { icon: React.ReactNode; bg: string }> = {
   users: { icon: <Users className="h-10 w-10 text-violet-400/60" />, bg: 'bg-violet-50 dark:bg-violet-900/20' },
   news: { icon: <Newspaper className="h-10 w-10 text-[#F68D2E]/50" />, bg: 'bg-[#F68D2E]/5 dark:bg-orange-900/20' },
   notifications: { icon: <Bell className="h-10 w-10 text-blue-400/50" />, bg: 'bg-blue-50 dark:bg-blue-900/20' },
-  search: { icon: <Search className="h-10 w-10 text-taupe/40" />, bg: 'bg-gray-100 dark:bg-slate-800' },
-  general: { icon: <FolderOpen className="h-10 w-10 text-taupe/40" />, bg: 'bg-gray-100 dark:bg-slate-800' },
+  search: { icon: <Search className="h-10 w-10 text-seal-gray-500/40" />, bg: 'bg-gray-100 dark:bg-slate-800' },
+  general: { icon: <FolderOpen className="h-10 w-10 text-seal-gray-500/40" />, bg: 'bg-gray-100 dark:bg-slate-800' },
   success: { icon: <CheckCircle2 className="h-10 w-10 text-emerald-500" />, bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
   tickets: { icon: <TicketIcon className="h-10 w-10 text-amber-400/60" />, bg: 'bg-amber-50 dark:bg-amber-900/20' },
 };
@@ -41,9 +41,9 @@ export function EmptyState({
         <div className={cn('rounded-2xl p-5 mb-5 ring-1 ring-black/5 dark:ring-white/5', bg)}>
           {icon}
         </div>
-        <h3 className="text-lg font-semibold text-navy dark:text-white">{title}</h3>
+        <h3 className="text-lg font-semibold text-seal-navy dark:text-white">{title}</h3>
         {description && (
-          <p className="mt-2 text-sm text-taupe dark:text-slate-400 text-center max-w-sm leading-relaxed">{description}</p>
+          <p className="mt-2 text-sm text-seal-gray-500 dark:text-slate-400 text-center max-w-sm leading-relaxed">{description}</p>
         )}
         {action && <div className="mt-5">{action}</div>}
       </div>

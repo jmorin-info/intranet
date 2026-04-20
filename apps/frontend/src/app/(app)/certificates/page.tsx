@@ -209,11 +209,11 @@ export default function MyCertificatesPage() {
                 <CardContent className="py-5 px-5 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-semibold text-navy dark:text-white line-clamp-2">
+                      <h3 className="text-sm font-semibold text-seal-navy dark:text-white line-clamp-2">
                         {cert.name}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <p className="text-xs text-taupe dark:text-slate-400">
+                        <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                           {cert.certType}
                         </p>
                         {(cert.certType ?? '').toLowerCase().includes('knowbe4') && (
@@ -229,7 +229,7 @@ export default function MyCertificatesPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 text-xs text-taupe dark:text-slate-400">
+                  <div className="space-y-1.5 text-xs text-seal-gray-500 dark:text-slate-400">
                     <div className="flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
                       <span>Obtenu le {formatDate(cert.obtainedAt)}</span>
@@ -280,7 +280,7 @@ export default function MyCertificatesPage() {
                     })()}
                   </div>
                   {!cert.fileUrl && (cert.certType ?? '').toLowerCase() !== 'knowbe4' && (
-                    <p className="text-[10px] text-taupe dark:text-slate-500 mt-2 italic">
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-2 italic">
                       Aucun fichier attache — contactez votre administrateur.
                     </p>
                   )}
@@ -332,11 +332,11 @@ export default function MyCertificatesPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[13px] font-semibold text-navy dark:text-white">
+            <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
               Fichier justificatif (PDF, image)
             </label>
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1.5 cursor-pointer rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-taupe dark:text-slate-400 hover:border-primary transition-colors">
+              <label className="flex items-center gap-1.5 cursor-pointer rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-gray-500 dark:text-slate-400 hover:border-primary transition-colors">
                 <Upload className="h-4 w-4" />
                 {formFile ? formFile.name : 'Choisir un fichier'}
                 <input

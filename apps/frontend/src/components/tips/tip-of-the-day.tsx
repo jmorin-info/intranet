@@ -189,7 +189,7 @@ export function TipOfTheDay() {
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-navy dark:text-white">
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
                 Astuce du jour
               </h3>
               {current.category && (
@@ -200,14 +200,14 @@ export function TipOfTheDay() {
                   {TIP_CATEGORY_LABELS[current.category] ?? current.category}
                 </span>
               )}
-              <span className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500">
+              <span className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500">
                 {index + 1}/{tips.length}
               </span>
             </div>
-            <p className="mt-1 text-sm font-medium text-navy/90 dark:text-slate-200">
+            <p className="mt-1 text-sm font-medium text-seal-navy/90 dark:text-slate-200">
               {current.title}
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-taupe dark:text-slate-400 line-clamp-3">
+            <p className="mt-1 text-xs leading-relaxed text-seal-gray-500 dark:text-slate-400 line-clamp-3">
               {current.body}
             </p>
             {current.link && (
@@ -242,7 +242,7 @@ export function TipOfTheDay() {
               </Button>
               <Link
                 href="/tips"
-                className="ml-auto text-[11px] font-semibold text-taupe hover:text-primary dark:text-slate-400"
+                className="ml-auto text-[11px] font-semibold text-seal-gray-500 hover:text-primary dark:text-slate-400"
               >
                 Voir toutes les astuces
               </Link>

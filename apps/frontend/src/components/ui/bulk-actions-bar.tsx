@@ -41,7 +41,7 @@ export function BulkActionsBar({
       aria-label="Actions groupées"
       className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 animate-in slide-in-from-bottom-4 fade-in duration-200"
     >
-      <div className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-navy dark:bg-slate-900 px-5 py-3 text-white shadow-2xl ring-1 ring-primary/30 backdrop-blur-sm">
+      <div className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-seal-navy dark:bg-slate-900 px-5 py-3 text-white shadow-2xl ring-1 ring-primary/30 backdrop-blur-sm">
         <span className="text-sm font-semibold whitespace-nowrap">
           {displayLabel}
         </span>

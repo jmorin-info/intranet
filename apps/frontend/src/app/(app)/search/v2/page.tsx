@@ -51,7 +51,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
 };
 
 const TYPE_ICON_COLOR: Record<string, string> = {
-  document: 'text-navy dark:text-blue-400',
+  document: 'text-seal-navy dark:text-blue-400',
   ticket: 'text-violet-500',
   wiki: 'text-emerald-500',
   news: 'text-blue-500',
@@ -196,10 +196,10 @@ export default function SearchV2Page() {
   }, [data, periodRange]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900 text-navy dark:text-white p-6 animate-fade-in-up">
+    <div className="min-h-screen bg-white dark:bg-slate-900 text-seal-navy dark:text-white p-6 animate-fade-in-up">
       <div className="max-w-5xl mx-auto">
         <header className="mb-6">
-          <h1 className="text-3xl font-bold seal-text-navy dark:text-white">
+          <h1 className="text-3xl font-bold text-seal-navy dark:text-white">
             Recherche fédérée
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -214,7 +214,7 @@ export default function SearchV2Page() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher dans tout l'intranet... (appuyez sur / pour focus)"
-            className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             autoFocus
           />
         </div>
@@ -297,7 +297,7 @@ export default function SearchV2Page() {
 
             {groups.map((group) => {
               const GroupIcon = TYPE_ICON[group.hitType] ?? FileText;
-              const iconColor = TYPE_ICON_COLOR[group.hitType] ?? 'text-navy';
+              const iconColor = TYPE_ICON_COLOR[group.hitType] ?? 'text-seal-navy';
               return (
                 <section key={group.uid}>
                   <h2 className="text-xl font-semibold mb-3 border-b border-slate-200 dark:border-slate-700 pb-2 flex items-center gap-2">
@@ -310,7 +310,7 @@ export default function SearchV2Page() {
                   <ul className="space-y-3">
                     {group.hits.map((hit) => {
                       const HitIcon = TYPE_ICON[hit.type] ?? FileText;
-                      const hitIconColor = TYPE_ICON_COLOR[hit.type] ?? 'text-navy';
+                      const hitIconColor = TYPE_ICON_COLOR[hit.type] ?? 'text-seal-navy';
                       return (
                         <li
                           key={hit.id}
@@ -323,7 +323,7 @@ export default function SearchV2Page() {
                             <div className="flex items-start gap-3">
                               <HitIcon className={`h-5 w-5 flex-shrink-0 mt-0.5 ${hitIconColor}`} />
                               <div className="flex-1 min-w-0">
-                                <h3 className="font-medium text-navy dark:text-white">
+                                <h3 className="font-medium text-seal-navy dark:text-white">
                                   <Spotlight text={hit.title} query={debounced} />
                                 </h3>
                                 {hit.content && (

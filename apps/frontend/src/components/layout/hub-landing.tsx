@@ -41,7 +41,7 @@ export function HubLanding({ title, subtitle, accent, variant, icon: HeaderIcon,
           <HeaderIcon className="h-7 w-7" />
         </span>
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-navy dark:text-white" style={{ color: 'var(--tw-text-opacity,1) ' }}>
+          <h1 className="text-2xl md:text-3xl font-semibold text-seal-navy dark:text-white" style={{ color: 'var(--tw-text-opacity,1) ' }}>
             {title}
           </h1>
           <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">{subtitle}</p>
@@ -64,7 +64,7 @@ export function HubLanding({ title, subtitle, accent, variant, icon: HeaderIcon,
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold text-navy dark:text-white truncate">
+                        <h3 className="text-sm font-semibold text-seal-navy dark:text-white truncate">
                           {card.title}
                         </h3>
                         {card.badge !== undefined && card.badge !== 0 && (

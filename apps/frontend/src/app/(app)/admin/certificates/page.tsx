@@ -504,7 +504,7 @@ export default function AdminCertificatesPage() {
       key: 'name',
       header: 'Formation',
       render: (cert) => (
-        <span className="font-medium text-navy dark:text-white">{cert.name}</span>
+        <span className="font-medium text-seal-navy dark:text-white">{cert.name}</span>
       ),
     },
     {
@@ -647,7 +647,7 @@ export default function AdminCertificatesPage() {
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {([
-          { label: 'Total', value: stats.total, icon: FileText, color: 'text-navy dark:text-white', bg: 'bg-gray-100 dark:bg-slate-800' },
+          { label: 'Total', value: stats.total, icon: FileText, color: 'text-seal-navy dark:text-white', bg: 'bg-gray-100 dark:bg-slate-800' },
           { label: 'Valides', value: stats.valid, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
           { label: 'Expires', value: stats.expired, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/30' },
           { label: 'Expirent dans 30j', value: stats.expiringIn30Days, icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/30' },
@@ -657,8 +657,8 @@ export default function AdminCertificatesPage() {
               <div className={`h-10 w-10 rounded-xl ${stat.bg} flex items-center justify-center mb-2`}>
                 <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
-              <p className="text-2xl font-medium text-navy dark:text-white">{stat.value}</p>
-              <p className="text-xs text-taupe dark:text-slate-400">{stat.label}</p>
+              <p className="text-2xl font-medium text-seal-navy dark:text-white">{stat.value}</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">{stat.label}</p>
             </CardContent>
           </Card>
         ))}
@@ -667,7 +667,7 @@ export default function AdminCertificatesPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-taupe" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-seal-gray-500" />
           <Input
             placeholder="Rechercher..."
             value={searchQuery}
@@ -731,7 +731,7 @@ export default function AdminCertificatesPage() {
         <div className="space-y-4">
           {/* Internal / External toggle */}
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Type de titulaire</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Type de titulaire</label>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -739,7 +739,7 @@ export default function AdminCertificatesPage() {
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   !formIsExternal
                     ? 'bg-primary text-white border-primary'
-                    : 'bg-white dark:bg-slate-800 text-taupe dark:text-slate-400 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                    : 'bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
                 }`}
               >
                 Interne
@@ -750,7 +750,7 @@ export default function AdminCertificatesPage() {
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   formIsExternal
                     ? 'bg-primary text-white border-primary'
-                    : 'bg-white dark:bg-slate-800 text-taupe dark:text-slate-400 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                    : 'bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
                 }`}
               >
                 Externe
@@ -761,7 +761,7 @@ export default function AdminCertificatesPage() {
           {/* User select (internal) */}
           {!formIsExternal && (
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Utilisateur</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Utilisateur</label>
               <Select
                 value={formUserId}
                 onChange={(e) => setFormUserId(e.target.value)}
@@ -776,7 +776,7 @@ export default function AdminCertificatesPage() {
           {/* External person select */}
           {formIsExternal && (
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Personne externe</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Personne externe</label>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <Select
@@ -800,7 +800,7 @@ export default function AdminCertificatesPage() {
 
           {/* Training name */}
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Nom de la formation *</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Nom de la formation *</label>
             <Input
               value={formName}
               onChange={(e) => setFormTrainingName(e.target.value)}
@@ -810,7 +810,7 @@ export default function AdminCertificatesPage() {
 
           {/* Certification type with suggestions */}
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Type de certification *</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Type de certification *</label>
             <Input
               value={formCertType}
               onChange={(e) => setFormCertType(e.target.value)}
@@ -827,7 +827,7 @@ export default function AdminCertificatesPage() {
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Date d&apos;obtention *</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Date d&apos;obtention *</label>
               <Input
                 type="date"
                 value={formObtainedAt}
@@ -835,7 +835,7 @@ export default function AdminCertificatesPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Date d&apos;expiration</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Date d&apos;expiration</label>
               <Input
                 type="date"
                 value={formExpiresAt}
@@ -846,11 +846,11 @@ export default function AdminCertificatesPage() {
 
           {/* File upload */}
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Fichier (PDF/image)</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Fichier (PDF/image)</label>
             <div className="flex items-center gap-2">
               <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
-                <Upload className="h-4 w-4 text-taupe" />
-                <span className="text-sm text-taupe dark:text-slate-400">
+                <Upload className="h-4 w-4 text-seal-gray-500" />
+                <span className="text-sm text-seal-gray-500 dark:text-slate-400">
                   {formFile ? formFile.name : 'Choisir un fichier'}
                 </span>
                 <input
@@ -865,13 +865,13 @@ export default function AdminCertificatesPage() {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Notes</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Notes</label>
             <textarea
               value={formNotes}
               onChange={(e) => setFormNotes(e.target.value)}
               placeholder="Notes optionnelles..."
               rows={3}
-              className="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              className="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
             />
           </div>
 
@@ -897,20 +897,20 @@ export default function AdminCertificatesPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Prenom *</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Prenom *</label>
               <Input value={newExtFirstName} onChange={(e) => setNewExtFirstName(e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Nom *</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Nom *</label>
               <Input value={newExtLastName} onChange={(e) => setNewExtLastName(e.target.value)} />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Entreprise *</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Entreprise *</label>
             <Input value={newExtCompany} onChange={(e) => setNewExtCompany(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Email</label>
+            <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Email</label>
             <Input type="email" value={newExtEmail} onChange={(e) => setNewExtEmail(e.target.value)} />
           </div>
           <div className="flex justify-end gap-3 pt-2">
@@ -938,26 +938,26 @@ export default function AdminCertificatesPage() {
       {/* ----------------------------------------------------------------- */}
 
       <div className="mt-10 space-y-4">
-        <h2 className="text-lg font-semibold text-navy dark:text-white">Personnes externes</h2>
+        <h2 className="text-lg font-semibold text-seal-navy dark:text-white">Personnes externes</h2>
         {externalPersons.length === 0 ? (
-          <p className="text-sm text-taupe dark:text-slate-400">Aucune personne externe enregistree.</p>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucune personne externe enregistree.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-slate-700">
-                  <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Nom</th>
-                  <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Entreprise</th>
-                  <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Email</th>
-                  <th className="text-right px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Nom</th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Entreprise</th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Email</th>
+                  <th className="text-right px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                 {externalPersons.map((ep) => (
                   <tr key={ep.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-4 py-3 text-navy dark:text-white">{ep.firstName} {ep.lastName}</td>
-                    <td className="px-4 py-3 text-taupe dark:text-slate-400">{ep.company}</td>
-                    <td className="px-4 py-3 text-taupe dark:text-slate-400">{ep.email || '—'}</td>
+                    <td className="px-4 py-3 text-seal-navy dark:text-white">{ep.firstName} {ep.lastName}</td>
+                    <td className="px-4 py-3 text-seal-gray-500 dark:text-slate-400">{ep.company}</td>
+                    <td className="px-4 py-3 text-seal-gray-500 dark:text-slate-400">{ep.email || '—'}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" onClick={() => setEditingExternal({ ...ep })}>
@@ -992,14 +992,14 @@ export default function AdminCertificatesPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Prenom</label>
+                <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Prenom</label>
                 <Input
                   value={editingExternal.firstName}
                   onChange={(e) => setEditingExternal({ ...editingExternal, firstName: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Nom</label>
+                <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Nom</label>
                 <Input
                   value={editingExternal.lastName}
                   onChange={(e) => setEditingExternal({ ...editingExternal, lastName: e.target.value })}
@@ -1007,14 +1007,14 @@ export default function AdminCertificatesPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Entreprise</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Entreprise</label>
               <Input
                 value={editingExternal.company}
                 onChange={(e) => setEditingExternal({ ...editingExternal, company: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Email</label>
+              <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1.5">Email</label>
               <Input
                 type="email"
                 value={editingExternal.email || ''}
@@ -1048,7 +1048,7 @@ export default function AdminCertificatesPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-blue-500" />
-            <h2 className="text-lg font-semibold text-navy dark:text-white">KnowBe4</h2>
+            <h2 className="text-lg font-semibold text-seal-navy dark:text-white">KnowBe4</h2>
           </div>
           {!kb4NotConfigured && (
             <Button onClick={handleKB4Sync} loading={kb4Syncing} disabled={kb4Syncing}>
@@ -1070,10 +1070,10 @@ export default function AdminCertificatesPage() {
               <div className="flex items-start gap-3">
                 <Info className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-navy dark:text-white">
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">
                     KnowBe4 non configure
                   </p>
-                  <p className="text-xs text-taupe dark:text-slate-400 mt-1">
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
                     Le token API KnowBe4 n&apos;est pas configure. Rendez-vous dans la configuration pour ajouter vos identifiants.
                   </p>
                   <a
@@ -1095,25 +1095,25 @@ export default function AdminCertificatesPage() {
                 <CardContent className="py-5">
                   <div className="flex items-center gap-2 mb-3">
                     <ShieldCheck className="h-4 w-4 text-blue-500" />
-                    <h3 className="text-sm font-semibold text-navy dark:text-white">Compte KnowBe4</h3>
+                    <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Compte KnowBe4</h3>
                     <Badge variant="info">Connecté</Badge>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase">Nom</p>
-                      <p className="text-sm font-medium text-navy dark:text-white mt-0.5">{kb4Account.name}</p>
+                      <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase">Nom</p>
+                      <p className="text-sm font-medium text-seal-navy dark:text-white mt-0.5">{kb4Account.name}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase">Type</p>
-                      <p className="text-sm font-medium text-navy dark:text-white mt-0.5">{kb4Account.type}</p>
+                      <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase">Type</p>
+                      <p className="text-sm font-medium text-seal-navy dark:text-white mt-0.5">{kb4Account.type}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase">Sieges</p>
-                      <p className="text-sm font-medium text-navy dark:text-white mt-0.5">{kb4Account.number_of_seats}</p>
+                      <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase">Sieges</p>
+                      <p className="text-sm font-medium text-seal-navy dark:text-white mt-0.5">{kb4Account.number_of_seats}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase">Fin abonnement</p>
-                      <p className="text-sm font-medium text-navy dark:text-white mt-0.5">
+                      <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase">Fin abonnement</p>
+                      <p className="text-sm font-medium text-seal-navy dark:text-white mt-0.5">
                         {kb4Account.subscription_end_date
                           ? formatDate(kb4Account.subscription_end_date)
                           : 'N/A'}
@@ -1127,29 +1127,29 @@ export default function AdminCertificatesPage() {
             {/* KB4 Campaigns table */}
             <Card className="shadow-sm rounded-xl">
               <CardContent className="py-5">
-                <h3 className="text-sm font-semibold text-navy dark:text-white mb-3">Campagnes de formation</h3>
+                <h3 className="text-sm font-semibold text-seal-navy dark:text-white mb-3">Campagnes de formation</h3>
                 {kb4Campaigns.length === 0 ? (
-                  <p className="text-sm text-taupe dark:text-slate-400 text-center py-4">Aucune campagne KnowBe4 trouvee.</p>
+                  <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-4">Aucune campagne KnowBe4 trouvee.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-slate-700">
-                          <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Nom</th>
-                          <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Statut</th>
-                          <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Modules</th>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Nom</th>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Statut</th>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Modules</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                         {kb4Campaigns.map((campaign) => (
                           <tr key={campaign.campaign_id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                            <td className="px-4 py-3 text-navy dark:text-white font-medium">{campaign.name}</td>
+                            <td className="px-4 py-3 text-seal-navy dark:text-white font-medium">{campaign.name}</td>
                             <td className="px-4 py-3">
                               <Badge variant={campaign.status === 'Closed' ? 'draft' : campaign.status === 'Active' ? 'success' : 'warning'}>
                                 {campaign.status}
                               </Badge>
                             </td>
-                            <td className="px-4 py-3 text-taupe dark:text-slate-400">
+                            <td className="px-4 py-3 text-seal-gray-500 dark:text-slate-400">
                               {campaign.modules?.length ?? 0}
                             </td>
                           </tr>

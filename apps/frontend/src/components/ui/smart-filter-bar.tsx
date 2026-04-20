@@ -66,14 +66,14 @@ export function SmartFilterBar({
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 120)}
           placeholder={placeholder}
-          className="flex-1 bg-transparent text-sm outline-none text-navy dark:text-white placeholder:text-taupe/60 dark:placeholder:text-slate-500"
+          className="flex-1 bg-transparent text-sm outline-none text-seal-navy dark:text-white placeholder:text-seal-gray-500/60 dark:placeholder:text-slate-500"
           aria-label="Recherche intelligente"
         />
         {raw && (
           <button
             type="button"
             onClick={() => setRaw('')}
-            className="flex-shrink-0 rounded-md p-1 text-taupe hover:bg-gray-100 dark:hover:bg-slate-800"
+            className="flex-shrink-0 rounded-md p-1 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800"
             aria-label="Effacer"
           >
             <X className="h-3.5 w-3.5" />
@@ -104,7 +104,7 @@ export function SmartFilterBar({
                 e.preventDefault();
                 setRaw(s);
               }}
-              className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 text-[11px] text-taupe dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition"
+              className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 text-[11px] text-seal-gray-500 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition"
             >
               <Sparkles className="h-3 w-3" />
               {s}

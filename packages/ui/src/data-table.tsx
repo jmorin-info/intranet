@@ -54,7 +54,7 @@ const DataTableRow = React.memo(function DataTableRow<T extends object>({
       onClick={() => onRowClick?.(item)}
     >
       {columns.map((col) => (
-        <td key={col.key} className={cn('px-4 py-3.5 text-navy dark:text-slate-200', col.className)}>
+        <td key={col.key} className={cn('px-4 py-3.5 text-seal-navy dark:text-slate-200', col.className)}>
           {col.render
             ? col.render(item)
             : ((item as Record<string, unknown>)[col.key] as React.ReactNode)}
@@ -81,7 +81,7 @@ export function DataTable<T extends object>({
   onRowClick,
 }: DataTableProps<T>) {
   const getSortIcon = (key: string) => {
-    if (sortBy !== key) return <ArrowUpDown className="h-3.5 w-3.5 text-taupe" />;
+    if (sortBy !== key) return <ArrowUpDown className="h-3.5 w-3.5 text-seal-gray-500" />;
     return sortOrder === 'asc' ? (
       <ArrowUp className="h-3.5 w-3.5 text-primary" />
     ) : (
@@ -99,7 +99,7 @@ export function DataTable<T extends object>({
                 <th
                   key={col.key}
                   className={cn(
-                    'px-4 py-3 text-left text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500',
+                    'px-4 py-3 text-left text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500',
                     'sticky top-0 bg-white dark:bg-slate-900 z-10',
                     col.sortable && 'cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors',
                     col.className,
@@ -131,7 +131,7 @@ export function DataTable<T extends object>({
             ) : data.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-12 text-center">
-                  <div className="flex flex-col items-center gap-2 text-taupe dark:text-slate-400">
+                  <div className="flex flex-col items-center gap-2 text-seal-gray-500 dark:text-slate-400">
                     {emptyIcon}
                     <p>{emptyMessage}</p>
                   </div>
@@ -154,7 +154,7 @@ export function DataTable<T extends object>({
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/30 px-4 py-3">
-          <span className="text-xs text-taupe dark:text-slate-400">
+          <span className="text-xs text-seal-gray-500 dark:text-slate-400">
             {total !== undefined ? `${total} resultats` : `Page ${page} sur ${totalPages}`}
           </span>
           <div className="flex items-center gap-1">
@@ -176,7 +176,7 @@ export function DataTable<T extends object>({
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="px-3 py-1 text-sm font-semibold text-navy dark:text-white rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 tabular-nums">
+            <span className="px-3 py-1 text-sm font-semibold text-seal-navy dark:text-white rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 tabular-nums">
               {page} / {totalPages}
             </span>
             <Button

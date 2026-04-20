@@ -368,9 +368,9 @@ export default function VeillePage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold text-navy dark:text-white">Résumé hebdomadaire</h2>
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white">Résumé hebdomadaire</h2>
               {weeklySummary && (
-                <span className="text-[10px] text-taupe dark:text-slate-400 ml-auto">
+                <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 ml-auto">
                   {new Date(weeklySummary.weekStart).toLocaleDateString('fr-FR')} — {new Date(weeklySummary.weekEnd).toLocaleDateString('fr-FR')}
                 </span>
               )}
@@ -387,8 +387,8 @@ export default function VeillePage() {
                 {/* Total + severity pills */}
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl font-medium text-navy dark:text-white">{weeklySummary.total}</span>
-                    <span className="text-xs text-taupe dark:text-slate-400">alertes cette semaine</span>
+                    <span className="text-2xl font-medium text-seal-navy dark:text-white">{weeklySummary.total}</span>
+                    <span className="text-xs text-seal-gray-500 dark:text-slate-400">alertes cette semaine</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(sev => {
@@ -412,18 +412,18 @@ export default function VeillePage() {
                 {/* Top 5 critical items */}
                 {weeklySummary.top5Critical.length > 0 && (
                   <div>
-                    <p className="text-[11px] font-semibold text-taupe dark:text-slate-400 uppercase mb-1.5">Top alertes critiques</p>
+                    <p className="text-[11px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1.5">Top alertes critiques</p>
                     <div className="space-y-1.5">
                       {weeklySummary.top5Critical.map(item => (
                         <div key={item.id} className="flex items-start gap-2 rounded-lg border border-red-100 dark:border-red-900/40 bg-red-50/50 dark:bg-red-900/10 px-3 py-2">
                           <AlertOctagon className="h-3.5 w-3.5 text-red-500 mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-navy dark:text-white line-clamp-1">{item.title}</p>
+                            <p className="text-xs font-semibold text-seal-navy dark:text-white line-clamp-1">{item.title}</p>
                             <div className="flex items-center gap-2 mt-0.5">
                               {item.cveId && (
                                 <span className="text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 rounded">{item.cveId}</span>
                               )}
-                              <span className="text-[10px] text-taupe dark:text-slate-500">{item.sourceName}</span>
+                              <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{item.sourceName}</span>
                               <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline ml-auto">
                                 Voir <ExternalLink className="h-2.5 w-2.5" />
                               </a>
@@ -438,10 +438,10 @@ export default function VeillePage() {
                 {/* Products affected */}
                 {weeklySummary.productsAffected.length > 0 && (
                   <div>
-                    <p className="text-[11px] font-semibold text-taupe dark:text-slate-400 uppercase mb-1.5">Produits du parc affectés</p>
+                    <p className="text-[11px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1.5">Produits du parc affectés</p>
                     <div className="flex flex-wrap gap-1.5">
                       {weeklySummary.productsAffected.map(product => (
-                        <span key={product} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-navy/10 text-navy dark:bg-blue-900/30 dark:text-blue-300">
+                        <span key={product} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-seal-navy/10 text-seal-navy dark:bg-blue-900/30 dark:text-blue-300">
                           {product}
                         </span>
                       ))}
@@ -450,11 +450,11 @@ export default function VeillePage() {
                 )}
 
                 {weeklySummary.total === 0 && (
-                  <p className="text-xs text-taupe dark:text-slate-400 text-center py-2">Aucune alerte recens\u00e9e cette semaine. La prochaine collecte mettra \u00e0 jour ce r\u00e9sum\u00e9.</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-2">Aucune alerte recens\u00e9e cette semaine. La prochaine collecte mettra \u00e0 jour ce r\u00e9sum\u00e9.</p>
                 )}
               </div>
             ) : (
-              <p className="text-xs text-taupe dark:text-slate-400 text-center py-2">Résumé indisponible.</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-2">Résumé indisponible.</p>
             )}
           </CardContent>
         </Card>
@@ -464,20 +464,20 @@ export default function VeillePage() {
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="shadow-sm rounded-xl"><CardContent className="py-3 px-4 flex items-center gap-3">
-            <Rss className="h-5 w-5 text-navy dark:text-blue-400" />
-            <div><p className="text-[11px] text-taupe dark:text-slate-400">Total</p><p className="text-xl font-medium text-navy dark:text-white">{stats.total}</p></div>
+            <Rss className="h-5 w-5 text-seal-navy dark:text-blue-400" />
+            <div><p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Total</p><p className="text-xl font-medium text-seal-navy dark:text-white">{stats.total}</p></div>
           </CardContent></Card>
           <Card className="shadow-sm rounded-xl"><CardContent className="py-3 px-4 flex items-center gap-3">
             <AlertOctagon className="h-5 w-5 text-red-500" />
-            <div><p className="text-[11px] text-taupe dark:text-slate-400">Critiques</p><p className="text-xl font-medium text-red-600">{stats.bySeverity?.CRITICAL || 0}</p></div>
+            <div><p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Critiques</p><p className="text-xl font-medium text-red-600">{stats.bySeverity?.CRITICAL || 0}</p></div>
           </CardContent></Card>
           <Card className="shadow-sm rounded-xl"><CardContent className="py-3 px-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <div><p className="text-[11px] text-taupe dark:text-slate-400">Non traites</p><p className="text-xl font-medium text-amber-600">{stats.unprocessed}</p></div>
+            <div><p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Non traites</p><p className="text-xl font-medium text-amber-600">{stats.unprocessed}</p></div>
           </CardContent></Card>
           <Card className="shadow-sm rounded-xl"><CardContent className="py-3 px-4 flex items-center gap-3">
             <Calendar className="h-5 w-5 text-seal-blue" />
-            <div><p className="text-[11px] text-taupe dark:text-slate-400">Derniere collecte</p><p className="text-sm font-medium text-seal-blue">{stats.lastCollect ? formatRelativeTime(stats.lastCollect) : 'Jamais'}</p></div>
+            <div><p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Derniere collecte</p><p className="text-sm font-medium text-seal-blue">{stats.lastCollect ? formatRelativeTime(stats.lastCollect) : 'Jamais'}</p></div>
           </CardContent></Card>
         </div>
       )}
@@ -485,7 +485,7 @@ export default function VeillePage() {
       {/* Severity distribution */}
       {stats && stats.bySeverity && (
         <Card><CardContent className="py-3">
-          <p className="text-xs font-semibold text-taupe dark:text-slate-400 mb-2">Répartition par sévérité</p>
+          <p className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-2">Répartition par sévérité</p>
           <div className="flex gap-1 h-6 rounded-full overflow-hidden">
             {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(sev => {
               const count = stats.bySeverity![sev] || 0;
@@ -494,7 +494,7 @@ export default function VeillePage() {
               return pct > 0 ? <div key={sev} className={`${colors[sev]} transition-all`} style={{ width: `${Math.max(pct, 5)}%` }} title={`${sev}: ${count}`} /> : null;
             })}
           </div>
-          <div className="flex justify-between mt-1 text-[10px] text-taupe dark:text-slate-500">
+          <div className="flex justify-between mt-1 text-[10px] text-seal-gray-500 dark:text-slate-500">
             {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(sev => (
               <span key={sev}>{sev}: {stats.bySeverity![sev] || 0}</span>
             ))}
@@ -508,7 +508,7 @@ export default function VeillePage() {
           <button
             onClick={() => setSeverityFilter(null)}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-              !severityFilter ? 'bg-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'
+              !severityFilter ? 'bg-seal-navy text-white dark:bg-primary' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'
             }`}
           >
             Toutes ({items.length})
@@ -561,10 +561,10 @@ export default function VeillePage() {
               onClick={() => setSourcesOpen(o => !o)}
             >
               <div className="flex items-center gap-2">
-                <Rss className="h-4 w-4 text-navy dark:text-blue-400" />
-                <span className="text-sm font-semibold text-navy dark:text-white">Gérer les sources RSS</span>
+                <Rss className="h-4 w-4 text-seal-navy dark:text-blue-400" />
+                <span className="text-sm font-semibold text-seal-navy dark:text-white">Gérer les sources RSS</span>
               </div>
-              {sourcesOpen ? <ChevronUp className="h-4 w-4 text-taupe dark:text-slate-400" /> : <ChevronDown className="h-4 w-4 text-taupe dark:text-slate-400" />}
+              {sourcesOpen ? <ChevronUp className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" /> : <ChevronDown className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />}
             </button>
 
             {sourcesOpen && (
@@ -582,7 +582,7 @@ export default function VeillePage() {
                     {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-10 animate-pulse rounded bg-gray-100 dark:bg-slate-800" />)}
                   </div>
                 ) : sources.length === 0 ? (
-                  <p className="text-xs text-taupe dark:text-slate-400 text-center py-4">
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-4">
                     Aucune source configurée. Cliquez sur &laquo;&nbsp;Charger les sources par défaut&nbsp;&raquo; pour commencer.
                   </p>
                 ) : (
@@ -590,12 +590,12 @@ export default function VeillePage() {
                     {sources.map(source => (
                       <div key={source.id} className={`flex items-center gap-3 px-3 py-2.5 ${source.isActive ? '' : 'opacity-50 bg-gray-50 dark:bg-slate-800/50'}`}>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-navy dark:text-white truncate">{source.name}</p>
-                          <p className="text-[11px] text-taupe dark:text-slate-400 truncate">{source.url}</p>
+                          <p className="text-sm font-medium text-seal-navy dark:text-white truncate">{source.name}</p>
+                          <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 truncate">{source.url}</p>
                         </div>
                         <button
                           onClick={() => handleToggleSource(source)}
-                          className="flex-shrink-0 text-taupe hover:text-primary dark:text-slate-400 dark:hover:text-blue-400 transition"
+                          className="flex-shrink-0 text-seal-gray-500 hover:text-primary dark:text-slate-400 dark:hover:text-blue-400 transition"
                           title={source.isActive ? 'Désactiver' : 'Activer'}
                           aria-label={source.isActive ? 'Désactiver la source' : 'Activer la source'}
                         >
@@ -623,7 +623,7 @@ export default function VeillePage() {
                     placeholder="Nom de la source"
                     value={newSourceName}
                     onChange={e => setNewSourceName(e.target.value)}
-                    className="flex-1 min-w-[140px] rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm px-3 py-1.5 text-navy dark:text-white placeholder:text-taupe dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 min-w-[140px] rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm px-3 py-1.5 text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
                   <input
@@ -631,7 +631,7 @@ export default function VeillePage() {
                     placeholder="https://example.com/feed.xml"
                     value={newSourceUrl}
                     onChange={e => setNewSourceUrl(e.target.value)}
-                    className="flex-[2] min-w-[200px] rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm px-3 py-1.5 text-navy dark:text-white placeholder:text-taupe dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-[2] min-w-[200px] rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm px-3 py-1.5 text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
                   <Button type="submit" loading={addingSource} size="sm">
@@ -691,12 +691,12 @@ export default function VeillePage() {
                 >
                   <CardHeader>
                     <div className="flex items-start gap-3">
-                      <Newspaper className="h-5 w-5 text-navy dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                      <Newspaper className="h-5 w-5 text-seal-navy dark:text-blue-400 flex-shrink-0 mt-0.5" />
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-semibold text-navy dark:text-white line-clamp-2">{bulletin.title}</h3>
+                        <h3 className="text-sm font-semibold text-seal-navy dark:text-white line-clamp-2">{bulletin.title}</h3>
                         <div className="flex items-center gap-1.5 mt-2">
-                          <Calendar className="h-3 w-3 text-taupe dark:text-slate-400" />
-                          <span className="text-[11px] text-taupe dark:text-slate-400">
+                          <Calendar className="h-3 w-3 text-seal-gray-500 dark:text-slate-400" />
+                          <span className="text-[11px] text-seal-gray-500 dark:text-slate-400">
                             {formatDate(bulletin.weekStart)} — {formatDate(bulletin.weekEnd)}
                           </span>
                         </div>
@@ -713,7 +713,7 @@ export default function VeillePage() {
                       )}
                     </div>
                     {bulletin.publishedAt && (
-                      <p className="text-[10px] text-taupe dark:text-slate-500 mt-2">
+                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-2">
                         Publié le {formatDate(bulletin.publishedAt)}
                       </p>
                     )}
@@ -731,9 +731,9 @@ export default function VeillePage() {
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <h2 className="text-lg font-medium text-navy dark:text-white">{selectedBulletin.title}</h2>
+                        <h2 className="text-lg font-medium text-seal-navy dark:text-white">{selectedBulletin.title}</h2>
                         <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs text-taupe dark:text-slate-400">
+                          <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                             {formatDate(selectedBulletin.weekStart)} — {formatDate(selectedBulletin.weekEnd)}
                           </span>
                           <Badge variant="navy">{selectedBulletin.itemCount} alerte{selectedBulletin.itemCount > 1 ? 's' : ''}</Badge>
@@ -756,7 +756,7 @@ export default function VeillePage() {
                     />
                     {/* Linked veille items */}
                     <div className="mt-6 pt-4 border-t border-gray-200 dark:border-slate-700">
-                      <h3 className="text-sm font-semibold text-navy dark:text-white mb-3">Alertes liées ({bulletinItems.length})</h3>
+                      <h3 className="text-sm font-semibold text-seal-navy dark:text-white mb-3">Alertes liées ({bulletinItems.length})</h3>
                       {bulletinItemsLoading ? (
                         <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded bg-gray-100 dark:bg-slate-800" />)}</div>
                       ) : bulletinItems.length > 0 ? (
@@ -765,11 +765,11 @@ export default function VeillePage() {
                             <details key={item.id} className="group rounded-lg border border-gray-200 dark:border-slate-700">
                               <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800">
                                 {severityIcon(item.severity)}
-                                <span className="text-xs font-semibold text-navy dark:text-white flex-1 line-clamp-1">{item.title}</span>
+                                <span className="text-xs font-semibold text-seal-navy dark:text-white flex-1 line-clamp-1">{item.title}</span>
                                 {severityBadge(item.severity)}
                                 {item.cveId && <Badge variant="error">{item.cveId}</Badge>}
                               </summary>
-                              <div className="px-3 pb-3 text-xs text-taupe dark:text-slate-400">
+                              <div className="px-3 pb-3 text-xs text-seal-gray-500 dark:text-slate-400">
                                 {item.description && <p className="mb-1">{item.description}</p>}
                                 <div className="flex items-center gap-3 mt-1">
                                   <span>{formatDate(item.publishedAt)}</span>
@@ -782,7 +782,7 @@ export default function VeillePage() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs text-taupe dark:text-slate-400 text-center py-2">Aucune alerte liée trouvée</p>
+                        <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-2">Aucune alerte liée trouvée</p>
                       )}
                     </div>
                   </CardContent>
@@ -818,10 +818,10 @@ export default function VeillePage() {
                         {item.cveId && <Badge variant="error">{item.cveId}</Badge>}
                         <Badge variant="navy">{item.sourceName}</Badge>
                       </div>
-                      <h3 className="text-sm font-semibold text-navy dark:text-white line-clamp-1">{item.title}</h3>
-                      {item.description && <p className="text-xs text-taupe dark:text-slate-400 line-clamp-1 mt-0.5">{item.description}</p>}
+                      <h3 className="text-sm font-semibold text-seal-navy dark:text-white line-clamp-1">{item.title}</h3>
+                      {item.description && <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-1 mt-0.5">{item.description}</p>}
                       <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[10px] text-taupe dark:text-slate-500">{formatDate(item.publishedAt)}</span>
+                        <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">{formatDate(item.publishedAt)}</span>
                         <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline">
                           Voir <ExternalLink className="h-3 w-3" />
                         </a>
@@ -862,7 +862,7 @@ export default function VeillePage() {
                 { id: 'all', label: 'Tout' },
               ] as const).map(p => (
                 <button key={p.id} onClick={() => setPeriod(p.id)}
-                  className={`px-2.5 py-1 text-[11px] rounded font-semibold transition ${period === p.id ? 'bg-primary text-white' : 'text-taupe hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
+                  className={`px-2.5 py-1 text-[11px] rounded font-semibold transition ${period === p.id ? 'bg-primary text-white' : 'text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
                   {p.label}
                 </button>
               ))}
@@ -873,7 +873,7 @@ export default function VeillePage() {
             <div className="flex gap-1.5 flex-wrap mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
               <button
                 onClick={() => setThemeFilter('')}
-                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${!themeFilter ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${!themeFilter ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
               >
                 Tous ({items.length})
               </button>
@@ -881,7 +881,7 @@ export default function VeillePage() {
                 <button
                   key={theme}
                   onClick={() => setThemeFilter(themeFilter === theme ? '' : theme)}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${themeFilter === theme ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${themeFilter === theme ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
                 >
                   {theme} ({count})
                 </button>
@@ -890,10 +890,10 @@ export default function VeillePage() {
           )}
           {/* Product filter */}
           <div className="flex gap-1.5 flex-wrap mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
-            <Filter className="h-3.5 w-3.5 text-taupe dark:text-slate-400 mt-0.5" />
+            <Filter className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-400 mt-0.5" />
             <button
               onClick={() => setProductFilter('')}
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${!productFilter ? 'bg-navy text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${!productFilter ? 'bg-seal-navy text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
             >
               Tous produits
             </button>
@@ -907,7 +907,7 @@ export default function VeillePage() {
                 <button
                   key={prod}
                   onClick={() => setProductFilter(productFilter === prod ? '' : prod)}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${productFilter === prod ? 'bg-navy text-white' : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200'}`}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${productFilter === prod ? 'bg-seal-navy text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200'}`}
                 >
                   {prod} ({count})
                 </button>
@@ -967,10 +967,10 @@ export default function VeillePage() {
                       {item.isProcessed && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
                     </div>
                     <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
-                      className="text-sm font-medium text-navy dark:text-white hover:text-primary transition duration-200 line-clamp-1 block">
+                      className="text-sm font-medium text-seal-navy dark:text-white hover:text-primary transition duration-200 line-clamp-1 block">
                       {item.title}
                     </a>
-                    <div className="flex items-center gap-2 mt-1 text-[11px] text-taupe dark:text-slate-500">
+                    <div className="flex items-center gap-2 mt-1 text-[11px] text-seal-gray-500 dark:text-slate-500">
                       <span>{formatRelativeTime(item.publishedAt)}</span>
                       {item.acks.length > 0 && item.acks.map(ack => (
                         <span key={ack.user.id} className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400">
@@ -987,7 +987,7 @@ export default function VeillePage() {
                         <CheckCircle2 className="h-4 w-4" />
                       </button>
                       <button onClick={() => handleAck(item.id, 'NOT_APPLICABLE')}
-                        className="p-1.5 rounded-lg text-taupe hover:bg-gray-100 dark:hover:bg-slate-700 transition duration-200"
+                        className="p-1.5 rounded-lg text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition duration-200"
                         title="Non applicable">
                         <X className="h-4 w-4" />
                       </button>
