@@ -67,4 +67,16 @@ export class MeilisearchController {
   async stats() {
     return this.meili.stats();
   }
+
+  /**
+   * Healthcheck Meilisearch — utilise par /admin/system-health et la bannière
+   * portail pour afficher le statut "Recherche fédérée" en live.
+   * Path historique conserve : /search/v2/health.
+   * GET /search/v2/health
+   */
+  @Get('v2/health')
+  @UseGuards(JwtAuthGuard)
+  async healthV2() {
+    return this.meili.isHealthy();
+  }
 }
