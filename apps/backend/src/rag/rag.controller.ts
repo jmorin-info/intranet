@@ -148,7 +148,21 @@ export class RagController {
     return this.ragService.getStats();
   }
 
-  /** Submit feedback (thumbs up/down) for a RAG query. */
+  /**
+   * Submit feedback (thumbs up/down) for a RAG query.
+   *
+   * Feature 4 (P1.9 polish) : le champ `feedback` peut désormais contenir
+   * soit un commentaire texte libre (retro-compat), soit une chaîne JSON
+   * du shape `{"reason": "<categorie>", "comment": "<texte>", "v": 1}`.
+   * On ne fait pas de migration Prisma — on réutilise la colonne existante
+   * pour rester rétro-compatible et éviter un schema change pour 1 champ.
+   *
+   * Les catégories valides côté front sont standardisées
+   * (cf. `apps/frontend/src/components/chatbot/feedback-validation.ts`).
+   * Le backend accepte tout JSON valide, mais impose :
+   *   - taille max 1000 chars (garde-fou DB + abus)
+   *   - si JSON, la clé `reason` (string ≤ 64 chars) et `comment` (string ≤ 500 chars)
+   */
   @Post(':id/feedback')
   async feedback(
     @Param('id', ParseUUIDPipe) id: string,
@@ -159,6 +173,37 @@ export class RagController {
     // Validate rating
     if (rating === undefined || rating === null || ![-1, 0, 1].includes(rating)) {
       throw new BadRequestException('rating must be -1, 0, or 1');
+    }
+
+    // Validate feedback payload (text or JSON)
+    if (feedback !== undefined && feedback !== null) {
+      if (typeof feedback !== 'string') {
+        throw new BadRequestException('feedback must be a string');
+      }
+      if (feedback.length > 1000) {
+        throw new BadRequestException('feedback must be ≤ 1000 characters');
+      }
+      // If it looks like JSON, soft-validate shape
+      if (feedback.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(feedback);
+          if (parsed.reason && typeof parsed.reason !== 'string') {
+            throw new BadRequestException('feedback.reason must be a string');
+          }
+          if (parsed.reason && parsed.reason.length > 64) {
+            throw new BadRequestException('feedback.reason too long');
+          }
+          if (parsed.comment && typeof parsed.comment !== 'string') {
+            throw new BadRequestException('feedback.comment must be a string');
+          }
+          if (parsed.comment && parsed.comment.length > 500) {
+            throw new BadRequestException('feedback.comment too long');
+          }
+        } catch (err) {
+          if (err instanceof BadRequestException) throw err;
+          // Not valid JSON — still accept as free text (retro-compat)
+        }
+      }
     }
 
     // Verify the query log exists
