@@ -34,7 +34,7 @@ const PAGES_TO_AUDIT = [
   '/directory',
   '/helpdesk',
   '/admin/compliance',
-  '/admin/audit-log',
+  '/admin/audit',
   '/admin/departments',
   '/admin/users/import',
   '/admin/access-reviews',

@@ -1585,7 +1585,7 @@ export default function DashboardPage() {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <h3 className="text-sm font-semibold text-navy dark:text-white">{t('dashboard.recentActivity')}</h3>
-                          <Link href="/admin/audit-log" className="text-xs text-primary hover:underline flex items-center gap-1">
+                          <Link href="/admin/audit" className="text-xs text-primary hover:underline flex items-center gap-1">
                             Voir tout <ArrowRight className="h-3 w-3" />
                           </Link>
                         </div>

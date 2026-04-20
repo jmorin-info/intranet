@@ -154,7 +154,7 @@ async function generateResponse(
   if (isAdmin && (q.includes('audit') || q.includes('journal') || q.includes('trace'))) {
     return {
       content: 'Le **journal d\'audit** (ISO 27001 A.8.15) enregistre toutes les actions : connexions, modifications, créations, suppressions. Filtrez par sévérité, action ou utilisateur pour investiguer.',
-      actions: [{ label: 'Journal d\'audit', href: '/admin/audit-log' }, { label: 'Timeline audit', href: '/admin/audit-timeline' }],
+      actions: [{ label: 'Journal d\'audit', href: '/admin/audit?tab=log' }, { label: 'Timeline audit', href: '/admin/audit?tab=timeline' }],
     };
   }
 

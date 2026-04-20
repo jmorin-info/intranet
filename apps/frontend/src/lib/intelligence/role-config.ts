@@ -13,7 +13,7 @@ const ROLE_CONFIGS: Record<string, RoleConfig> = {
     dashboardPriority: ['security', 'compliance', 'system', 'users', 'documents'],
     quickActions: [
       { label: 'Santé système', href: '/admin/system-health', icon: 'HeartPulse' },
-      { label: 'Journal d\'audit', href: '/admin/audit-log', icon: 'ClipboardList' },
+      { label: 'Journal d\'audit', href: '/admin/audit', icon: 'ClipboardList' },
       { label: 'Utilisateurs', href: '/admin/users', icon: 'Users' },
       { label: 'Conformité', href: '/admin/compliance', icon: 'ShieldCheck' },
     ],
