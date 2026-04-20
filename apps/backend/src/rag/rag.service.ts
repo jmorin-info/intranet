@@ -35,6 +35,8 @@ interface RagSource {
   title: string;
   snippet: string;
   score: number;
+  /** Classification RBAC (PUBLIC | INTERNE | CONFIDENTIEL | SECRET) si connue. */
+  classification?: string;
 }
 
 interface RagAnswer {
@@ -224,6 +226,7 @@ export class RagService {
               const n = await this.indexSource('DOCUMENT', doc.id, text, {
                 title: doc.title,
                 reference: doc.reference,
+                classification: doc.classification,
               });
               indexed.DOCUMENT += n;
             }
@@ -520,6 +523,7 @@ export class RagService {
       title: (chunk.metadata as any)?.title ?? chunk.sourceId,
       snippet: this.buildSnippet(chunk.content, terms),
       score: maxScore > 0 ? score / maxScore : 0,
+      classification: (chunk.metadata as any)?.classification,
     }));
   }
 
@@ -586,6 +590,7 @@ export class RagService {
         title: r.metadata?.title ?? r.sourceId,
         snippet: this.buildSnippet(r.content, this.tokenizeQuery(query)),
         score: parseFloat(r.similarity) || 0,
+        classification: r.metadata?.classification,
       }));
     } catch (err) {
       this.logger.error({
