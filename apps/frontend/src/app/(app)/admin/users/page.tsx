@@ -499,9 +499,9 @@ export default function AdminUsersPage() {
               {u.firstName} {u.lastName}
             </p>
             {u.jobTitle && (
-              <p className="text-[11px] text-taupe dark:text-slate-500 truncate">{u.jobTitle}</p>
+              <p className="text-[11px] text-seal-gray-500 dark:text-slate-500 truncate">{u.jobTitle}</p>
             )}
-            <p className="text-xs text-taupe dark:text-slate-400 truncate">{u.email}</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">{u.email}</p>
           </div>
         </div>
       ),
@@ -524,7 +524,7 @@ export default function AdminUsersPage() {
         const primary = u.department?.name;
         const secondaryCount = u.departmentMemberships?.length ?? 0;
         if (!primary && secondaryCount === 0) {
-          return <span className="text-xs text-taupe dark:text-slate-500">&mdash;</span>;
+          return <span className="text-xs text-seal-gray-500 dark:text-slate-500">&mdash;</span>;
         }
         return (
           <div className="flex items-center gap-1">
@@ -560,7 +560,7 @@ export default function AdminUsersPage() {
       header: 'Derni\u00e8re connexion',
       sortable: true,
       render: (u) => (
-        <span className="text-xs text-taupe dark:text-slate-400">
+        <span className="text-xs text-seal-gray-500 dark:text-slate-400">
           {u.lastLoginAt ? formatRelativeTime(u.lastLoginAt) : 'Jamais connect\u00e9'}
         </span>
       ),
@@ -573,42 +573,42 @@ export default function AdminUsersPage() {
         <div className="flex items-center gap-0.5">
           <button
             onClick={() => { setEditRoleUser(u); setEditRoleValue(u.role); }}
-            className="rounded-lg p-1.5 text-taupe hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
             title="Modifier le r\u00f4le"
           >
             <Shield className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => { setEditDeptUser(u); setEditDeptValue(u.department?.id ?? ''); }}
-            className="rounded-lg p-1.5 text-taupe hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
             title="Modifier le d\u00e9partement"
           >
             <Building2 className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => openSpaceAccess(u)}
-            className="rounded-lg p-1.5 text-taupe hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
             title="G\u00e9rer les acc\u00e8s espaces"
           >
             <Lock className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => setResetPasswordUser(u)}
-            className="rounded-lg p-1.5 text-taupe hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
             title="R\u00e9initialiser le mot de passe"
           >
             <Key className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => setResetMfaUser(u)}
-            className="rounded-lg p-1.5 text-taupe hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
+            className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white"
             title="R\u00e9initialiser MFA"
           >
             <Smartphone className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => setToggleActiveUser(u)}
-            className={`rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 ${u.isActive ? 'text-taupe hover:text-amber-600' : 'text-taupe hover:text-emerald-600'}`}
+            className={`rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 ${u.isActive ? 'text-seal-gray-500 hover:text-amber-600' : 'text-seal-gray-500 hover:text-emerald-600'}`}
             title={u.isActive ? 'D\u00e9sactiver le compte' : 'R\u00e9activer le compte'}
           >
             {u.isActive ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
@@ -616,7 +616,7 @@ export default function AdminUsersPage() {
           {isSuperAdmin && (
             <button
               onClick={() => setDeleteUser(u)}
-              className="rounded-lg p-1.5 text-taupe hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600"
+              className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600"
               title="Supprimer d\u00e9finitivement"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -688,7 +688,7 @@ export default function AdminUsersPage() {
               />
             </div>
             <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-taupe dark:text-slate-400">
+              <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                 {mfaStats.withoutMfa} utilisateur{mfaStats.withoutMfa !== 1 ? 's' : ''} sans MFA
               </span>
               <Button size="sm" variant="outline" onClick={handleEnforceMfa}>
@@ -707,7 +707,7 @@ export default function AdminUsersPage() {
                   <RefreshCw className="h-4 w-4 text-primary" />
                   <span className="text-sm font-semibold text-navy dark:text-white">Synchronisation LDAP</span>
                 </div>
-                <p className="text-xs text-taupe dark:text-slate-400">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                   {ldapSyncTime
                     ? `Derni\u00e8re synchronisation : ${formatRelativeTime(ldapSyncTime)}`
                     : 'Aucune synchronisation r\u00e9cente'}
@@ -760,7 +760,7 @@ export default function AdminUsersPage() {
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 !roleFilter
                   ? 'bg-primary text-white'
-                  : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                  : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
               }`}
             >
               Tous
@@ -772,7 +772,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                   roleFilter === role
                     ? 'bg-primary text-white'
-                    : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                    : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
                 }`}
               >
                 {USER_ROLE_LABELS[role]}
@@ -836,7 +836,7 @@ export default function AdminUsersPage() {
               className="rounded border-gray-300 dark:border-slate-600 text-primary focus:ring-primary/20"
               aria-label="S\u00e9lectionner tous les utilisateurs de la page"
             />
-            <span className="text-xs text-taupe dark:text-slate-400">
+            <span className="text-xs text-seal-gray-500 dark:text-slate-400">
               S\u00e9lectionner tout ({users.length})
             </span>
           </div>
@@ -855,7 +855,7 @@ export default function AdminUsersPage() {
           total={total}
           onPageChange={setPage}
           emptyMessage="Aucun utilisateur trouv\u00e9"
-          emptyIcon={<Users className="h-12 w-12 text-taupe dark:text-slate-500" />}
+          emptyIcon={<Users className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />}
         />
       </div>
 
@@ -977,11 +977,11 @@ export default function AdminUsersPage() {
       >
         <div className="space-y-2">
           {spaceAccessLoading ? (
-            <div className="py-8 text-center text-sm text-taupe dark:text-slate-400">
+            <div className="py-8 text-center text-sm text-seal-gray-500 dark:text-slate-400">
               Chargement des acc\u00e8s\u2026
             </div>
           ) : spaceAccessList.length === 0 ? (
-            <div className="py-8 text-center text-sm text-taupe dark:text-slate-400">
+            <div className="py-8 text-center text-sm text-seal-gray-500 dark:text-slate-400">
               Aucun espace configur\u00e9
             </div>
           ) : (
@@ -992,7 +992,7 @@ export default function AdminUsersPage() {
               >
                 <div>
                   <p className="text-sm font-semibold text-navy dark:text-white">{space.label}</p>
-                  <p className="text-xs text-taupe dark:text-slate-400 font-mono">{space.module}</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 font-mono">{space.module}</p>
                 </div>
                 <button
                   onClick={() => handleToggleSpaceAccess(space.module, !space.enabled)}

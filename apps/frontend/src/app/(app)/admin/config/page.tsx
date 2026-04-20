@@ -647,11 +647,11 @@ export default function AdminConfigPage() {
           ) : systemInfo ? (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
-                <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mb-1">Version</p>
+                <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Version</p>
                 <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.version || 'N/A'}</p>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
-                <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mb-1">Base de données</p>
+                <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Base de données</p>
                 <div className="flex items-center gap-1.5">
                   {systemInfo.database === 'OK' || systemInfo.database === 'connected' ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -662,7 +662,7 @@ export default function AdminConfigPage() {
                 </div>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
-                <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mb-1">Redis</p>
+                <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Redis</p>
                 <div className="flex items-center gap-1.5">
                   {systemInfo.redis === 'OK' || systemInfo.redis === 'connected' ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -673,19 +673,19 @@ export default function AdminConfigPage() {
                 </div>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
-                <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mb-1">Utilisateurs</p>
+                <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Utilisateurs</p>
                 <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.totalUsers ?? 'N/A'}</p>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
-                <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mb-1">Documents</p>
+                <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Documents</p>
                 <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.totalDocuments ?? 'N/A'}</p>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
-                <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mb-1">Uptime</p>
+                <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Uptime</p>
                 <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.uptime || 'N/A'}</p>
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
-                <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mb-1">Mémoire</p>
+                <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">Mémoire</p>
                 <p className="text-sm font-semibold text-navy dark:text-white">{systemInfo.memoryUsage || 'N/A'}</p>
               </div>
             </div>
@@ -704,7 +704,7 @@ export default function AdminConfigPage() {
         <CardContent>
           {/* Create form */}
           <div className="mb-6 rounded-lg border border-gray-200 dark:border-slate-700 p-4 space-y-3">
-            <h3 className="text-xs font-semibold text-taupe dark:text-slate-400 uppercase">Nouvelle bannière</h3>
+            <h3 className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase">Nouvelle bannière</h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <Input
                 label="Titre"
@@ -719,7 +719,7 @@ export default function AdminConfigPage() {
                 placeholder="Contenu du message"
               />
               <div>
-                <label className="block text-xs font-semibold text-taupe dark:text-slate-400 mb-1.5">Niveau</label>
+                <label className="block text-xs font-semibold text-seal-gray-500 dark:text-slate-400 mb-1.5">Niveau</label>
                 <select
                   aria-label="Niveau de la bannière"
                   className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-navy dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
@@ -752,7 +752,7 @@ export default function AdminConfigPage() {
               ))}
             </div>
           ) : banners.length === 0 ? (
-            <p className="text-sm text-taupe dark:text-slate-400 text-center py-4">Aucune bannière</p>
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-4">Aucune bannière</p>
           ) : (
             <div className="space-y-2">
               {banners.map((b) => {
@@ -768,19 +768,19 @@ export default function AdminConfigPage() {
                     </Badge>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-navy dark:text-white truncate">{b.title}</p>
-                      <p className="text-xs text-taupe dark:text-slate-400 truncate">{b.message}</p>
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">{b.message}</p>
                     </div>
                     {!b.isActive && (
                       <Badge variant="draft">Inactive</Badge>
                     )}
                     {b.expiresAt && (
-                      <span className="text-[10px] text-taupe dark:text-slate-400">
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                         Exp: {new Date(b.expiresAt).toLocaleDateString('fr-FR')}
                       </span>
                     )}
                     <button
                       onClick={() => handleToggleBanner(b.id, b.isActive)}
-                      className="text-taupe hover:text-navy dark:hover:text-white transition-colors"
+                      className="text-seal-gray-500 hover:text-navy dark:hover:text-white transition-colors"
                       title={b.isActive ? 'Désactiver' : 'Activer'}
                       aria-label={b.isActive ? 'Désactiver le bandeau' : 'Activer le bandeau'}
                     >
@@ -788,7 +788,7 @@ export default function AdminConfigPage() {
                     </button>
                     <button
                       onClick={() => handleDeleteBanner(b.id)}
-                      className="text-taupe hover:text-red-500 transition-colors"
+                      className="text-seal-gray-500 hover:text-red-500 transition-colors"
                       title="Supprimer"
                       aria-label="Supprimer le bandeau"
                     >
@@ -816,7 +816,7 @@ export default function AdminConfigPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-xs text-taupe dark:text-slate-400 mb-4">
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-4">
             Moteur de recherche federee pour l&apos;intranet. Indexe les documents, tickets, wiki et actualites.
           </p>
 
@@ -831,7 +831,7 @@ export default function AdminConfigPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
               {Object.entries(meiliStats.indexes).map(([name, count]) => (
                 <div key={name} className="rounded-xl border border-gray-200 dark:border-slate-700 p-3">
-                  <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mb-1">
+                  <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">
                     {name === 'wiki' ? 'Wiki' : name === 'documents' ? 'Documents' : name === 'news' ? 'Actualites' : name === 'tickets' ? 'Tickets' : name}
                   </p>
                   <div className="flex items-center gap-1.5">
@@ -897,7 +897,7 @@ export default function AdminConfigPage() {
                 <currentGroup.icon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                 <div>
                   <h3 className="text-sm font-semibold text-navy dark:text-white">{currentGroup.label}</h3>
-                  <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">{currentGroup.description}</p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{currentGroup.description}</p>
                 </div>
               </div>
               {currentGroup.healthKey && serviceHealthMap[currentGroup.healthKey] && (() => {
@@ -937,7 +937,7 @@ export default function AdminConfigPage() {
                       <Mail className="h-6 w-6 text-navy dark:text-white" />
                       <div>
                         <h3 className="text-sm font-semibold text-navy dark:text-white">Configuration SMTP</h3>
-                        <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">
+                        <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
                           Paramètres du serveur de messagerie pour l&apos;envoi de notifications par email
                         </p>
                       </div>
@@ -972,7 +972,7 @@ export default function AdminConfigPage() {
                             <def.icon className="h-6 w-6 text-navy dark:text-white" />
                             <div>
                               <h3 className="text-sm font-semibold text-navy dark:text-white">{def.label}</h3>
-                              <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">{def.description}</p>
+                              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{def.description}</p>
                             </div>
                           </div>
                           {testResult && (
@@ -997,7 +997,7 @@ export default function AdminConfigPage() {
                                   <div className="flex items-center justify-between">
                                     <div>
                                       <p className="text-xs font-semibold text-navy dark:text-white">{field.label}</p>
-                                      <p className="text-sm text-taupe dark:text-slate-400 mt-1 font-mono tracking-widest">********</p>
+                                      <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1 font-mono tracking-widest">********</p>
                                     </div>
                                     <Button
                                       variant="outline"
@@ -1029,7 +1029,7 @@ export default function AdminConfigPage() {
                                     <button
                                       type="button"
                                       onClick={() => setShowPasswords((prev) => ({ ...prev, [field.key]: !passwordVisible }))}
-                                      className="absolute right-3 top-1/2 -translate-y-1/2 text-taupe hover:text-navy dark:hover:text-white transition-colors"
+                                      className="absolute right-3 top-1/2 -translate-y-1/2 text-seal-gray-500 hover:text-navy dark:hover:text-white transition-colors"
                                       title={passwordVisible ? 'Masquer' : 'Afficher'}
                                     >
                                       {passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -1095,7 +1095,7 @@ export default function AdminConfigPage() {
                         <h3 className="text-sm font-semibold text-navy dark:text-white">
                           Authentification LDAP Active Directory
                         </h3>
-                        <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">
+                        <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
                           {ldapEnabled
                             ? 'LDAPS est actif — les utilisateurs s\'authentifient via Active Directory avec fallback local'
                             : 'LDAPS est désactivé — authentification locale uniquement'}
@@ -1118,8 +1118,8 @@ export default function AdminConfigPage() {
                   </div>
                   {/* Last LDAP sync time — always shown */}
                   <div className="mt-3 flex items-center gap-2 rounded-md bg-white/60 dark:bg-slate-700/50 px-3 py-2 border border-gray-200 dark:border-slate-600">
-                    <RefreshCw className="h-3.5 w-3.5 text-taupe dark:text-slate-400" />
-                    <span className="text-xs text-taupe dark:text-slate-400">
+                    <RefreshCw className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-400" />
+                    <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                       Dernière synchronisation LDAP :{' '}
                       <span className="font-semibold text-navy dark:text-white">
                         {lastSyncTimes?.ldap
@@ -1296,7 +1296,7 @@ export default function AdminConfigPage() {
                       <div key={key} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700 p-4">
                         <div>
                           <p className="text-sm font-semibold text-navy dark:text-white">{key}</p>
-                          {description && <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">{description}</p>}
+                          {description && <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{description}</p>}
                         </div>
                         <button
                           onClick={async () => {
@@ -1338,8 +1338,8 @@ export default function AdminConfigPage() {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-semibold text-navy dark:text-white">{key}</p>
-                            {description && <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">{description}</p>}
-                            <p className="text-sm text-taupe dark:text-slate-400 mt-1 font-mono tracking-widest">••••••••</p>
+                            {description && <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{description}</p>}
+                            <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1 font-mono tracking-widest">••••••••</p>
                           </div>
                           <Button
                             variant="outline"
@@ -1379,7 +1379,7 @@ export default function AdminConfigPage() {
         {Object.keys(changes).length > 0 && (
           <CardFooter>
             <div className="flex items-center justify-between">
-              <p className="text-xs text-taupe dark:text-slate-400">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                 {Object.keys(changes).length} paramètre{Object.keys(changes).length > 1 ? 's' : ''} modifié{Object.keys(changes).length > 1 ? 's' : ''}
               </p>
               <div className="flex gap-3">
@@ -1405,7 +1405,7 @@ export default function AdminConfigPage() {
               <div className="space-y-2 mb-4">
                 {Object.entries(changes).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between text-xs py-1 border-b border-gray-100 dark:border-slate-700">
-                    <span className="text-taupe dark:text-slate-400 font-mono">{key}</span>
+                    <span className="text-seal-gray-500 dark:text-slate-400 font-mono">{key}</span>
                     <span className="text-navy dark:text-white font-semibold truncate ml-2 max-w-[200px]">
                       {key.includes('password') || key.includes('secret') || key.includes('api_key') ? '••••••••' : String(value)}
                     </span>
@@ -1432,7 +1432,7 @@ export default function AdminConfigPage() {
                 <ShieldCheck className="h-5 w-5 text-navy dark:text-blue-400" />
                 <h2 className="text-sm font-semibold text-navy dark:text-white">Matrice des accès</h2>
               </div>
-              <p className="text-xs text-taupe dark:text-slate-400 mt-1">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
                 Cliquez sur une cellule pour modifier les permissions par role et module
               </p>
             </div>
@@ -1516,7 +1516,7 @@ export default function AdminConfigPage() {
                           </Badge>
                         </div>
                       </td>
-                      <td className="py-2.5 pr-4 text-[10px] text-taupe dark:text-slate-400 leading-snug">
+                      <td className="py-2.5 pr-4 text-[10px] text-seal-gray-500 dark:text-slate-400 leading-snug">
                         {ACCESS_ROLE_DESCRIPTIONS[role] || ''}
                       </td>
                       {ACCESS_MODULES.map((mod) => {
@@ -1553,27 +1553,27 @@ export default function AdminConfigPage() {
 
           {/* Legende */}
           <div className="mt-4 pt-3 border-t border-gray-100 dark:border-slate-700">
-            <h4 className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mb-2.5">Légende</h4>
+            <h4 className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-2.5">Légende</h4>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30">
                   <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                 </span>
-                <span className="text-[11px] text-taupe dark:text-slate-400">Accès autorisé (cliquer pour retirer)</span>
+                <span className="text-[11px] text-seal-gray-500 dark:text-slate-400">Accès autorisé (cliquer pour retirer)</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 dark:bg-red-900/10">
                   <X className="h-3 w-3 text-red-300 dark:text-red-500/50" />
                 </span>
-                <span className="text-[11px] text-taupe dark:text-slate-400">Accès refusé (cliquer pour autoriser)</span>
+                <span className="text-[11px] text-seal-gray-500 dark:text-slate-400">Accès refusé (cliquer pour autoriser)</span>
               </div>
               <div className="flex items-center gap-2">
                 <Shield className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-[11px] text-taupe dark:text-slate-400">Niveau administrateur (lignes surlignees)</span>
+                <span className="text-[11px] text-seal-gray-500 dark:text-slate-400">Niveau administrateur (lignes surlignees)</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-taupe dark:text-slate-400 border-b border-dotted border-taupe/30 cursor-help">Module</span>
-                <span className="text-[11px] text-taupe dark:text-slate-400">Survoler pour voir la description</span>
+                <span className="text-[11px] text-seal-gray-500 dark:text-slate-400 border-b border-dotted border-seal-gray-500/30 cursor-help">Module</span>
+                <span className="text-[11px] text-seal-gray-500 dark:text-slate-400">Survoler pour voir la description</span>
               </div>
             </div>
           </div>
@@ -1620,7 +1620,7 @@ export default function AdminConfigPage() {
       {Object.keys(changes).length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-lg">
           <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-            <p className="text-sm text-taupe dark:text-slate-400">
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">
               <span className="font-semibold text-navy dark:text-white">{Object.keys(changes).length}</span> paramètre{Object.keys(changes).length > 1 ? 's' : ''} modifié{Object.keys(changes).length > 1 ? 's' : ''} — pensez à sauvegarder
             </p>
             <div className="flex items-center gap-3">

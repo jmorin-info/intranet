@@ -190,7 +190,7 @@ export default function DarkModeAuditPage() {
             <Moon className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-medium text-navy dark:text-white">Audit dark mode</h1>
           </div>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             Détecte les éléments avec fond clair sans variante <code>dark:</code> (heuristique luminance &gt; 0.9).
           </p>
         </div>

@@ -658,7 +658,7 @@ export default function AdminCertificatesPage() {
                 <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
               <p className="text-2xl font-medium text-navy dark:text-white">{stat.value}</p>
-              <p className="text-xs text-taupe dark:text-slate-400">{stat.label}</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">{stat.label}</p>
             </CardContent>
           </Card>
         ))}
@@ -667,7 +667,7 @@ export default function AdminCertificatesPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-taupe" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-seal-gray-500" />
           <Input
             placeholder="Rechercher..."
             value={searchQuery}
@@ -739,7 +739,7 @@ export default function AdminCertificatesPage() {
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   !formIsExternal
                     ? 'bg-primary text-white border-primary'
-                    : 'bg-white dark:bg-slate-800 text-taupe dark:text-slate-400 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                    : 'bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
                 }`}
               >
                 Interne
@@ -750,7 +750,7 @@ export default function AdminCertificatesPage() {
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   formIsExternal
                     ? 'bg-primary text-white border-primary'
-                    : 'bg-white dark:bg-slate-800 text-taupe dark:text-slate-400 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                    : 'bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
                 }`}
               >
                 Externe
@@ -849,8 +849,8 @@ export default function AdminCertificatesPage() {
             <label className="block text-sm font-semibold text-navy dark:text-white mb-1.5">Fichier (PDF/image)</label>
             <div className="flex items-center gap-2">
               <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
-                <Upload className="h-4 w-4 text-taupe" />
-                <span className="text-sm text-taupe dark:text-slate-400">
+                <Upload className="h-4 w-4 text-seal-gray-500" />
+                <span className="text-sm text-seal-gray-500 dark:text-slate-400">
                   {formFile ? formFile.name : 'Choisir un fichier'}
                 </span>
                 <input
@@ -940,24 +940,24 @@ export default function AdminCertificatesPage() {
       <div className="mt-10 space-y-4">
         <h2 className="text-lg font-semibold text-navy dark:text-white">Personnes externes</h2>
         {externalPersons.length === 0 ? (
-          <p className="text-sm text-taupe dark:text-slate-400">Aucune personne externe enregistree.</p>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucune personne externe enregistree.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-slate-700">
-                  <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Nom</th>
-                  <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Entreprise</th>
-                  <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Email</th>
-                  <th className="text-right px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Nom</th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Entreprise</th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Email</th>
+                  <th className="text-right px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                 {externalPersons.map((ep) => (
                   <tr key={ep.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-4 py-3 text-navy dark:text-white">{ep.firstName} {ep.lastName}</td>
-                    <td className="px-4 py-3 text-taupe dark:text-slate-400">{ep.company}</td>
-                    <td className="px-4 py-3 text-taupe dark:text-slate-400">{ep.email || '—'}</td>
+                    <td className="px-4 py-3 text-seal-gray-500 dark:text-slate-400">{ep.company}</td>
+                    <td className="px-4 py-3 text-seal-gray-500 dark:text-slate-400">{ep.email || '—'}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" onClick={() => setEditingExternal({ ...ep })}>
@@ -1073,7 +1073,7 @@ export default function AdminCertificatesPage() {
                   <p className="text-sm font-semibold text-navy dark:text-white">
                     KnowBe4 non configure
                   </p>
-                  <p className="text-xs text-taupe dark:text-slate-400 mt-1">
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
                     Le token API KnowBe4 n&apos;est pas configure. Rendez-vous dans la configuration pour ajouter vos identifiants.
                   </p>
                   <a
@@ -1100,19 +1100,19 @@ export default function AdminCertificatesPage() {
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase">Nom</p>
+                      <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase">Nom</p>
                       <p className="text-sm font-medium text-navy dark:text-white mt-0.5">{kb4Account.name}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase">Type</p>
+                      <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase">Type</p>
                       <p className="text-sm font-medium text-navy dark:text-white mt-0.5">{kb4Account.type}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase">Sieges</p>
+                      <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase">Sieges</p>
                       <p className="text-sm font-medium text-navy dark:text-white mt-0.5">{kb4Account.number_of_seats}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase">Fin abonnement</p>
+                      <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase">Fin abonnement</p>
                       <p className="text-sm font-medium text-navy dark:text-white mt-0.5">
                         {kb4Account.subscription_end_date
                           ? formatDate(kb4Account.subscription_end_date)
@@ -1129,15 +1129,15 @@ export default function AdminCertificatesPage() {
               <CardContent className="py-5">
                 <h3 className="text-sm font-semibold text-navy dark:text-white mb-3">Campagnes de formation</h3>
                 {kb4Campaigns.length === 0 ? (
-                  <p className="text-sm text-taupe dark:text-slate-400 text-center py-4">Aucune campagne KnowBe4 trouvee.</p>
+                  <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-4">Aucune campagne KnowBe4 trouvee.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-slate-700">
-                          <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Nom</th>
-                          <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Statut</th>
-                          <th className="text-left px-4 py-2 text-xs font-semibold text-taupe dark:text-slate-400 uppercase tracking-wider">Modules</th>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Nom</th>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Statut</th>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 uppercase tracking-wider">Modules</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
@@ -1149,7 +1149,7 @@ export default function AdminCertificatesPage() {
                                 {campaign.status}
                               </Badge>
                             </td>
-                            <td className="px-4 py-3 text-taupe dark:text-slate-400">
+                            <td className="px-4 py-3 text-seal-gray-500 dark:text-slate-400">
                               {campaign.modules?.length ?? 0}
                             </td>
                           </tr>

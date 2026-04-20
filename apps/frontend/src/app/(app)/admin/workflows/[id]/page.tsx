@@ -280,7 +280,7 @@ export default function WorkflowDetailPage() {
           {wf.steps.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 animate-fade-in-up">
               <div className="rounded-2xl p-5 mb-4 bg-gray-100 dark:bg-slate-800 ring-1 ring-black/5 dark:ring-white/5">
-                <Plus className="h-8 w-8 text-taupe/40" />
+                <Plus className="h-8 w-8 text-seal-gray-500/40" />
               </div>
               <p className="text-sm font-medium text-navy dark:text-white mb-1">
                 Aucune étape définie

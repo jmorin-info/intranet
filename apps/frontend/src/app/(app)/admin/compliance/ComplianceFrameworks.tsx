@@ -256,7 +256,7 @@ export function ComplianceFrameworks() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-medium text-navy dark:text-white">Référentiels de conformité</h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             Gestion des référentiels ISO 27001, NIST CSF, NIS2, ANSSI et autres cadres de conformité
           </p>
         </div>
@@ -337,14 +337,14 @@ export function ComplianceFrameworks() {
                         {fw.isActive ? 'Actif' : 'Inactif'}
                       </Badge>
                     </div>
-                    <p className="text-xs text-taupe dark:text-slate-400 mb-2">
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-2">
                       Version {fw.version}
                     </p>
                     <p className="text-sm text-gray-700 dark:text-slate-300 line-clamp-2">
                       {fw.description}
                     </p>
                     <div className="flex items-center gap-4 mt-3">
-                      <div className="flex items-center gap-1.5 text-xs text-taupe dark:text-slate-400">
+                      <div className="flex items-center gap-1.5 text-xs text-seal-gray-500 dark:text-slate-400">
                         <Shield className="h-3.5 w-3.5" />
                         <span className="font-semibold text-navy dark:text-white">{fw._count.controls}</span> contrôles
                       </div>
@@ -370,8 +370,8 @@ export function ComplianceFrameworks() {
                   {/* Expand icon */}
                   <div className="flex-shrink-0 mt-1">
                     {isExpanded
-                      ? <ChevronDown className="h-5 w-5 text-taupe dark:text-slate-400" />
-                      : <ChevronRight className="h-5 w-5 text-taupe dark:text-slate-400" />
+                      ? <ChevronDown className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
+                      : <ChevronRight className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
                     }
                   </div>
                 </div>
@@ -392,7 +392,7 @@ export function ComplianceFrameworks() {
                             <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                               <div className={`h-full rounded-full ${barColor} transition-all duration-500`} style={{ width: `${pct}%` }} />
                             </div>
-                            <p className="text-[10px] text-taupe dark:text-slate-400 mt-1">
+                            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mt-1">
                               {stats.covered}/{stats.total} couverts ({pct}%)
                             </p>
                           </div>
@@ -405,10 +405,10 @@ export function ComplianceFrameworks() {
                   {!detail ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                      <span className="ml-3 text-sm text-taupe dark:text-slate-400">Chargement des contrôles...</span>
+                      <span className="ml-3 text-sm text-seal-gray-500 dark:text-slate-400">Chargement des contrôles...</span>
                     </div>
                   ) : detail.controls.length === 0 ? (
-                    <p className="text-sm text-taupe dark:text-slate-400 text-center py-8">
+                    <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">
                       Aucun contrôle dans ce référentiel.
                     </p>
                   ) : (
@@ -434,10 +434,10 @@ export function ComplianceFrameworks() {
                                     {ctrl.titleFr || ctrl.title}
                                   </p>
                                   {ctrl.titleFr && ctrl.title !== ctrl.titleFr && (
-                                    <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">{ctrl.title}</p>
+                                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{ctrl.title}</p>
                                   )}
                                   {ctrl.description && (
-                                    <p className="text-xs text-taupe dark:text-slate-400 mt-1 line-clamp-2">{ctrl.description}</p>
+                                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1 line-clamp-2">{ctrl.description}</p>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0">

@@ -186,7 +186,7 @@ export function ComplianceControls() {
         <div>
           <span className="text-sm text-navy dark:text-white">{c.titleFr || c.title}</span>
           {c.titleFr && (
-            <span className="block text-xs text-taupe dark:text-slate-400">{c.title}</span>
+            <span className="block text-xs text-seal-gray-500 dark:text-slate-400">{c.title}</span>
           )}
         </div>
       ),
@@ -250,7 +250,7 @@ export function ComplianceControls() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-medium text-navy dark:text-white">{t('isoControls.title')}</h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             {t('isoControls.subtitle')}
           </p>
         </div>
@@ -331,13 +331,13 @@ export function ComplianceControls() {
         <div className="inline-flex rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
           <button
             onClick={() => setViewGrouped(false)}
-            className={`px-3 py-1.5 text-xs font-medium transition-colors duration-200 ${!viewGrouped ? 'bg-primary text-white' : 'text-taupe dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+            className={`px-3 py-1.5 text-xs font-medium transition-colors duration-200 ${!viewGrouped ? 'bg-primary text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
           >
             Table
           </button>
           <button
             onClick={() => setViewGrouped(true)}
-            className={`px-3 py-1.5 text-xs font-medium transition-colors duration-200 ${viewGrouped ? 'bg-primary text-white' : 'text-taupe dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+            className={`px-3 py-1.5 text-xs font-medium transition-colors duration-200 ${viewGrouped ? 'bg-primary text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
           >
             Par domaine
           </button>
@@ -367,12 +367,12 @@ export function ComplianceControls() {
                     })}
                     className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors duration-200"
                   >
-                    {isCollapsed ? <ChevronRight className="h-4 w-4 text-taupe" /> : <ChevronDown className="h-4 w-4 text-taupe" />}
+                    {isCollapsed ? <ChevronRight className="h-4 w-4 text-seal-gray-500" /> : <ChevronDown className="h-4 w-4 text-seal-gray-500" />}
                     <Badge variant={domainColor(domainKey) as 'primary' | 'info' | 'warning' | 'navy'}>{domainKey}</Badge>
                     <span className="text-sm font-medium text-navy dark:text-white">
                       {domainOptions.find(d => d.value === domainKey)?.label || domainKey}
                     </span>
-                    <span className="ml-auto text-xs text-taupe dark:text-slate-400">{coveredCount}/{items.length} couverts</span>
+                    <span className="ml-auto text-xs text-seal-gray-500 dark:text-slate-400">{coveredCount}/{items.length} couverts</span>
                     <div className="w-16 h-1.5 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                       <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${items.length > 0 ? (coveredCount / items.length) * 100 : 0}%` }} />
                     </div>
@@ -419,7 +419,7 @@ export function ComplianceControls() {
         keyExtractor={(c) => c.id}
         loading={loading}
         emptyMessage={t('isoControls.empty')}
-        emptyIcon={<Shield className="h-12 w-12 text-taupe dark:text-slate-500" />}
+        emptyIcon={<Shield className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />}
       />
       )}
 

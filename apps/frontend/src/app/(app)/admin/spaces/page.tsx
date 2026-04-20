@@ -193,7 +193,7 @@ export default function SpacesAdminPage() {
           <h1 className="text-2xl font-medium text-navy dark:text-white flex items-center gap-2">
             <Layers className="h-6 w-6" /> Espaces & modules
           </h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             Activez ou désactivez chaque module pour l&apos;ensemble de
             l&apos;organisation, pour un rôle spécifique ou pour un département.
           </p>
@@ -232,10 +232,10 @@ export default function SpacesAdminPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-slate-700">
-                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Module</th>
-                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-center px-3 py-3 text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Global</th>
+                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Module</th>
+                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-center px-3 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Global</th>
                     {roleColumns.map((r) => (
-                      <th key={r} className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-center px-2 py-3 text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500 whitespace-nowrap">
+                      <th key={r} className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-center px-2 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500 whitespace-nowrap">
                         {r.replace('_', ' ')}
                       </th>
                     ))}
@@ -259,7 +259,7 @@ export default function SpacesAdminPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-[11px] text-taupe dark:text-slate-400 font-mono mt-0.5">
+                        <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 font-mono mt-0.5">
                           {mod.code}
                         </p>
                       </td>
@@ -294,18 +294,18 @@ export default function SpacesAdminPage() {
                   <h2 className="text-sm font-semibold text-navy dark:text-white">
                     Accès par département
                   </h2>
-                  <p className="text-[11px] text-taupe dark:text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5">
                     Une règle départementale surpasse la règle globale. Un rôle reste prioritaire.
                   </p>
                 </div>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-slate-700">
-                      <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500">Module</th>
+                      <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Module</th>
                       {departments.map((d) => (
                         <th
                           key={d.id}
-                          className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-center px-2 py-3 text-[10px] uppercase tracking-widest font-medium text-taupe dark:text-slate-500 whitespace-nowrap"
+                          className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-center px-2 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500 whitespace-nowrap"
                           title={d.code}
                         >
                           {d.name}
@@ -341,7 +341,7 @@ export default function SpacesAdminPage() {
             </Card>
           )}
 
-          <p className="text-xs text-taupe dark:text-slate-400 italic">
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400 italic">
             Priorité des règles : Rôle &gt; Département &gt; Global. Un module sans
             règle explicite est actif par défaut.
           </p>

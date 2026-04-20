@@ -180,19 +180,19 @@ export default function AdminExternalAccessPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card><CardContent className="py-3 px-4 flex items-center gap-3">
           <UserCheck className="h-5 w-5 text-emerald-500" />
-          <div><p className="text-xs text-taupe dark:text-slate-400">Actifs</p><p className="text-xl font-medium text-emerald-600">{activeAccesses.length}</p></div>
+          <div><p className="text-xs text-seal-gray-500 dark:text-slate-400">Actifs</p><p className="text-xl font-medium text-emerald-600">{activeAccesses.length}</p></div>
         </CardContent></Card>
         <Card><CardContent className="py-3 px-4 flex items-center gap-3">
           <Clock className="h-5 w-5 text-orange-500" />
-          <div><p className="text-xs text-taupe dark:text-slate-400">Expirent &lt; 30j</p><p className="text-xl font-medium text-orange-600">{expiringSoonCount}</p></div>
+          <div><p className="text-xs text-seal-gray-500 dark:text-slate-400">Expirent &lt; 30j</p><p className="text-xl font-medium text-orange-600">{expiringSoonCount}</p></div>
         </CardContent></Card>
         <Card><CardContent className="py-3 px-4 flex items-center gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-500" />
-          <div><p className="text-xs text-taupe dark:text-slate-400">Revue requise</p><p className="text-xl font-medium text-amber-600">{dueReview.length}</p></div>
+          <div><p className="text-xs text-seal-gray-500 dark:text-slate-400">Revue requise</p><p className="text-xl font-medium text-amber-600">{dueReview.length}</p></div>
         </CardContent></Card>
         <Card><CardContent className="py-3 px-4 flex items-center gap-3">
           <UserX className="h-5 w-5 text-red-500" />
-          <div><p className="text-xs text-taupe dark:text-slate-400">Révoqués</p><p className="text-xl font-medium text-red-600">{revokedAccesses.length}</p></div>
+          <div><p className="text-xs text-seal-gray-500 dark:text-slate-400">Révoqués</p><p className="text-xl font-medium text-red-600">{revokedAccesses.length}</p></div>
         </CardContent></Card>
       </div>
 
@@ -204,11 +204,11 @@ export default function AdminExternalAccessPage() {
               <h3 className="font-semibold text-navy dark:text-white">Nouveau prestataire</h3>
               <div className="flex gap-1 border rounded-lg p-0.5 dark:border-slate-700">
                 <button onClick={() => setCreateMode('new')}
-                  className={`px-3 py-1 text-xs rounded font-semibold transition ${createMode === 'new' ? 'bg-primary text-white' : 'text-taupe'}`}>
+                  className={`px-3 py-1 text-xs rounded font-semibold transition ${createMode === 'new' ? 'bg-primary text-white' : 'text-seal-gray-500'}`}>
                   Créer un compte
                 </button>
                 <button onClick={() => setCreateMode('existing')}
-                  className={`px-3 py-1 text-xs rounded font-semibold transition ${createMode === 'existing' ? 'bg-primary text-white' : 'text-taupe'}`}>
+                  className={`px-3 py-1 text-xs rounded font-semibold transition ${createMode === 'existing' ? 'bg-primary text-white' : 'text-seal-gray-500'}`}>
                   Compte existant
                 </button>
               </div>
@@ -218,32 +218,32 @@ export default function AdminExternalAccessPage() {
             {createMode === 'new' ? (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400">Email</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Email</label>
                   <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                     type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="prenom.nom@entreprise.fr" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400">Prénom</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Prénom</label>
                   <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                     value={newFirstName} onChange={e => setNewFirstName(e.target.value)} placeholder="Jean" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400">Nom</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Nom</label>
                   <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                     value={newLastName} onChange={e => setNewLastName(e.target.value)} placeholder="DUPONT" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400">Société</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Société</label>
                   <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                     value={grantCompany} onChange={e => setGrantCompany(e.target.value)} placeholder="CHEOPS Technology" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400">Réf. contrat</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Réf. contrat</label>
                   <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                     value={grantContract} onChange={e => setGrantContract(e.target.value)} placeholder="CTR-2026-001" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400">Expiration</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Expiration</label>
                   <input type="date" className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                     value={grantExpiry} onChange={e => setGrantExpiry(e.target.value)} />
                 </div>
@@ -252,12 +252,12 @@ export default function AdminExternalAccessPage() {
               /* Existing form for linking existing account */
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400">User ID du prestataire</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">User ID du prestataire</label>
                   <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                     value={grantUserId} onChange={e => setGrantUserId(e.target.value)} placeholder="UUID du compte" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400">Société</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400">Société</label>
                   <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                     value={grantCompany} onChange={e => setGrantCompany(e.target.value)} />
                 </div>
@@ -310,8 +310,8 @@ export default function AdminExternalAccessPage() {
                   Ce mot de passe ne sera plus affiché. Notez-le et transmettez-le de manière sécurisée.
                 </p>
                 <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-3 font-mono text-sm space-y-1">
-                  <div><span className="text-taupe dark:text-slate-400">Email :</span> <span className="text-navy dark:text-white font-semibold">{createdCredentials.email}</span></div>
-                  <div><span className="text-taupe dark:text-slate-400">Mot de passe :</span> <span className="text-navy dark:text-white font-semibold">{createdCredentials.password}</span></div>
+                  <div><span className="text-seal-gray-500 dark:text-slate-400">Email :</span> <span className="text-navy dark:text-white font-semibold">{createdCredentials.email}</span></div>
+                  <div><span className="text-seal-gray-500 dark:text-slate-400">Mot de passe :</span> <span className="text-navy dark:text-white font-semibold">{createdCredentials.password}</span></div>
                 </div>
                 <div className="flex gap-2 mt-3">
                   <Button size="sm" variant="outline" onClick={() => {
@@ -342,7 +342,7 @@ export default function AdminExternalAccessPage() {
               <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
               <div>
                 <h3 className="font-semibold text-navy dark:text-white text-sm">Revue mensuelle requise</h3>
-                <p className="text-xs text-taupe dark:text-slate-400 mt-1">
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
                   {dueReview.length} accès n&apos;ont pas été révisés depuis plus de 30 jours (obligation RSSI — revue mensuelle)
                 </p>
                 <div className="flex gap-2 mt-2 flex-wrap">
@@ -390,7 +390,7 @@ export default function AdminExternalAccessPage() {
                         )}
                         {isOverdue(access) && !isExpired(access) && <Badge variant="warning">Revue requise</Badge>}
                       </div>
-                      <div className="flex items-center gap-4 mt-1 text-[10px] text-taupe dark:text-slate-400">
+                      <div className="flex items-center gap-4 mt-1 text-[10px] text-seal-gray-500 dark:text-slate-400">
                         <span>Accorde : {formatDate(access.accessGrantedAt)}</span>
                         {access.accessExpiresAt && (
                           <span className={expiryInfo?.colorClass || ''}>
@@ -427,7 +427,7 @@ export default function AdminExternalAccessPage() {
               <CardContent className="py-2">
                 <div className="flex items-center gap-3 text-sm">
                   <UserX className="h-4 w-4 text-red-400" />
-                  <span className="text-taupe">{access.companyName} — {access.user.firstName} {access.user.lastName}</span>
+                  <span className="text-seal-gray-500">{access.companyName} — {access.user.firstName} {access.user.lastName}</span>
                   {access.contractRef && <Badge variant="navy">{access.contractRef}</Badge>}
                   <Badge variant="error">Révoqué</Badge>
                 </div>

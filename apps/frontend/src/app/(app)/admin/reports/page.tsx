@@ -185,7 +185,7 @@ export default function AdminReportsPage() {
     <div className="space-y-6">
       <div className="animate-fade-in-up">
         <h1 className="text-2xl font-medium text-navy dark:text-white">{t('reports.title')}</h1>
-        <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+        <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
           {t('reports.subtitle')}
         </p>
       </div>
@@ -211,7 +211,7 @@ export default function AdminReportsPage() {
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
                 <p className="text-2xl font-medium text-navy dark:text-white">{stat.value}</p>
-                <p className="text-xs text-taupe dark:text-slate-400">{stat.label}</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">{stat.label}</p>
                 {stat.label === 'Taux de conformité' && typeof stat.numValue === 'number' && (
                   <div className="mt-2 h-1.5 w-full rounded-full bg-gray-100 dark:bg-slate-700 overflow-hidden">
                     <div
@@ -234,7 +234,7 @@ export default function AdminReportsPage() {
             <Clock className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm font-semibold text-navy dark:text-white">Rapports automatiques</p>
-              <p className="text-xs text-taupe dark:text-slate-400">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                 Rapport hebdomadaire : chaque lundi à 7h (envoyé aux ADMIN/SUPER_ADMIN) —
                 Rapport mensuel RSSI : 1er du mois à 8h (envoyé aux SUPER_ADMIN)
               </p>
@@ -270,7 +270,7 @@ export default function AdminReportsPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-taupe dark:text-slate-400 mt-1">{t(report.descriptionKey)}</p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">{t(report.descriptionKey)}</p>
                     {hasBeenGenerated && (
                       <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#006233]/5 dark:bg-[#006233]/10 px-2.5 py-1 border border-[#006233]/10">
                         <Clock className="h-3 w-3 text-[#006233]" />

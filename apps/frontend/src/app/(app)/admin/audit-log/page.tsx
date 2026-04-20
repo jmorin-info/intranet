@@ -136,7 +136,7 @@ export default function AdminAuditLogPage() {
   };
 
   const actionIcon = (a: string) => {
-    const cls = 'h-4 w-4 text-taupe dark:text-slate-400';
+    const cls = 'h-4 w-4 text-seal-gray-500 dark:text-slate-400';
     if (a === 'LOGIN') return <LogIn className={cls} />;
     if (a === 'LOGOUT') return <LogOut className={cls} />;
     if (a === 'LOGIN_FAILED') return <XCircle className="h-4 w-4 text-[#892034]" />;
@@ -269,7 +269,7 @@ export default function AdminAuditLogPage() {
       key: 'resourceType',
       header: t('auditLog.header.resource'),
       render: (e) => (
-        <div className="text-xs text-taupe dark:text-slate-400">
+        <div className="text-xs text-seal-gray-500 dark:text-slate-400">
           <span className="font-semibold">{e.resourceType}</span>
           {e.resourceId && <span className="font-mono ml-1">#{e.resourceId.slice(0, 8)}</span>}
         </div>
@@ -280,7 +280,7 @@ export default function AdminAuditLogPage() {
       header: t('auditLog.header.ip'),
       className: 'w-32',
       render: (e) => (
-        <span className="text-xs font-mono text-taupe dark:text-slate-400">{e.ipAddress}</span>
+        <span className="text-xs font-mono text-seal-gray-500 dark:text-slate-400">{e.ipAddress}</span>
       ),
     },
   ], [t]);
@@ -296,7 +296,7 @@ export default function AdminAuditLogPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs text-taupe dark:text-slate-400">{t('audit.live')}</span>
+              <span className="text-xs text-seal-gray-500 dark:text-slate-400">{t('audit.live')}</span>
             </div>
             <Button
               variant={autoRefresh ? 'primary' : 'outline'}
@@ -337,7 +337,7 @@ export default function AdminAuditLogPage() {
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                 isActive
                   ? 'bg-primary text-white shadow-sm'
-                  : 'bg-white dark:bg-slate-800 text-taupe dark:text-slate-400 border border-gray-200 dark:border-slate-700 hover:border-primary/50 hover:text-primary'
+                  : 'bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 border border-gray-200 dark:border-slate-700 hover:border-primary/50 hover:text-primary'
               }`}
             >
               <Icon className="h-3 w-3" />
@@ -365,7 +365,7 @@ export default function AdminAuditLogPage() {
             </div>
             <div className="flex flex-col sm:flex-row sm:items-end gap-3 flex-wrap">
               <div>
-                <label className="text-[10px] font-semibold text-taupe dark:text-slate-400 block mb-1">Date début</label>
+                <label className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">Date début</label>
                 <input
                   type="date"
                   value={exportDateFrom}
@@ -374,7 +374,7 @@ export default function AdminAuditLogPage() {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-semibold text-taupe dark:text-slate-400 block mb-1">Date fin</label>
+                <label className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">Date fin</label>
                 <input
                   type="date"
                   value={exportDateTo}
@@ -390,13 +390,13 @@ export default function AdminAuditLogPage() {
               </Button>
               <button
                 onClick={() => setShowExportPanel(false)}
-                className="text-xs text-taupe hover:text-navy dark:hover:text-white transition-colors ml-auto"
+                className="text-xs text-seal-gray-500 hover:text-navy dark:hover:text-white transition-colors ml-auto"
               >
                 Fermer
               </button>
             </div>
             {!exportDateFrom && !exportDateTo && (
-              <p className="text-[10px] text-taupe dark:text-slate-500 mt-2">
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-2">
                 Sans dates, l&apos;export inclura les 5000 entrées les plus récentes.
               </p>
             )}
@@ -447,14 +447,14 @@ export default function AdminAuditLogPage() {
               className="w-full sm:w-52"
             />
             <div className="flex items-center gap-2 flex-wrap">
-              <Calendar className="h-4 w-4 text-taupe dark:text-slate-400 hidden sm:block" />
+              <Calendar className="h-4 w-4 text-seal-gray-500 dark:text-slate-400 hidden sm:block" />
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
                 className="text-xs border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-navy dark:text-white w-full sm:w-auto"
               />
-              <span className="text-xs text-taupe dark:text-slate-400 hidden sm:inline">—</span>
+              <span className="text-xs text-seal-gray-500 dark:text-slate-400 hidden sm:inline">—</span>
               <input
                 type="date"
                 value={dateTo}
@@ -479,13 +479,13 @@ export default function AdminAuditLogPage() {
         <div className="inline-flex rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
           <button
             onClick={() => setViewMode('table')}
-            className={`px-3 py-1.5 text-xs font-medium transition-colors duration-200 ${viewMode === 'table' ? 'bg-primary text-white' : 'text-taupe dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+            className={`px-3 py-1.5 text-xs font-medium transition-colors duration-200 ${viewMode === 'table' ? 'bg-primary text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
           >
             Table
           </button>
           <button
             onClick={() => setViewMode('timeline')}
-            className={`px-3 py-1.5 text-xs font-medium transition-colors duration-200 ${viewMode === 'timeline' ? 'bg-primary text-white' : 'text-taupe dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+            className={`px-3 py-1.5 text-xs font-medium transition-colors duration-200 ${viewMode === 'timeline' ? 'bg-primary text-white' : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
           >
             Timeline
           </button>
@@ -519,7 +519,7 @@ export default function AdminAuditLogPage() {
                       </div>
                       {/* Timestamp */}
                       <div className="flex-shrink-0 w-24 hidden sm:block">
-                        <p className="text-[10px] font-mono text-taupe dark:text-slate-400">{formatRelativeTime(entry.createdAt)}</p>
+                        <p className="text-[10px] font-mono text-seal-gray-500 dark:text-slate-400">{formatRelativeTime(entry.createdAt)}</p>
                       </div>
                       {/* Action badge */}
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 max-w-[120px] truncate ${severityBadgeClass(entry.severity)}`}>
@@ -530,11 +530,11 @@ export default function AdminAuditLogPage() {
                         {entry.user ? `${entry.user.firstName} ${entry.user.lastName}` : entry.userId.slice(0, 8)}
                       </span>
                       {/* Resource */}
-                      <span className="text-[10px] text-taupe dark:text-slate-400 truncate hidden lg:inline">
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 truncate hidden lg:inline">
                         {entry.resourceType}{entry.resourceId ? ` #${entry.resourceId.slice(0, 8)}` : ''}
                       </span>
                       {/* IP */}
-                      <span className="ml-auto text-[10px] font-mono text-taupe dark:text-slate-400 flex-shrink-0 hidden sm:inline">
+                      <span className="ml-auto text-[10px] font-mono text-seal-gray-500 dark:text-slate-400 flex-shrink-0 hidden sm:inline">
                         {entry.ipAddress}
                       </span>
                     </div>
@@ -545,7 +545,7 @@ export default function AdminAuditLogPage() {
             {/* Pagination for timeline */}
             {entries && entries.meta.totalPages > 1 && (
               <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-slate-700">
-                <span className="text-xs text-taupe dark:text-slate-400">{entries.meta.total} entrees</span>
+                <span className="text-xs text-seal-gray-500 dark:text-slate-400">{entries.meta.total} entrees</span>
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>{t('audit.prev')}</Button>
                   <span className="text-xs text-navy dark:text-white font-medium">{page} / {entries.meta.totalPages}</span>
@@ -566,7 +566,7 @@ export default function AdminAuditLogPage() {
         total={entries?.meta.total}
         onPageChange={setPage}
         emptyMessage={t('auditLog.empty')}
-        emptyIcon={<ClipboardList className="h-12 w-12 text-taupe dark:text-slate-500" />}
+        emptyIcon={<ClipboardList className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />}
       />
       )}
     </div>

@@ -227,22 +227,22 @@ export function CompliancePlanning() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-medium text-navy dark:text-white">Planning de conformité</h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
             Suivi des tâches récurrentes ISO 27001, NIS2 et ANSSI — PSSI, audits, revues et formations
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 border rounded-lg p-0.5 dark:border-slate-700">
             <button onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'list' ? 'bg-primary text-white' : 'text-taupe hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
+              className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'list' ? 'bg-primary text-white' : 'text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
               Liste
             </button>
             <button onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'kanban' ? 'bg-primary text-white' : 'text-taupe hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
+              className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'kanban' ? 'bg-primary text-white' : 'text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
               Kanban
             </button>
             <button onClick={() => setViewMode('timeline')}
-              className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'timeline' ? 'bg-primary text-white' : 'text-taupe hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
+              className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'timeline' ? 'bg-primary text-white' : 'text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
               Calendrier
             </button>
           </div>
@@ -278,31 +278,31 @@ export function CompliancePlanning() {
         <Card>
           <CardContent className="py-3">
             <p className="text-2xl font-medium text-navy dark:text-white">{stats.total}</p>
-            <p className="text-xs text-taupe dark:text-slate-400">Total</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400">Total</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-3">
             <p className="text-2xl font-medium text-gray-600 dark:text-slate-300">{stats.todo}</p>
-            <p className="text-xs text-taupe dark:text-slate-400">A faire</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400">A faire</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-3">
             <p className="text-2xl font-medium text-blue-600">{stats.inProgress}</p>
-            <p className="text-xs text-taupe dark:text-slate-400">En cours</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400">En cours</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-3">
             <p className="text-2xl font-medium text-emerald-600">{stats.completed}</p>
-            <p className="text-xs text-taupe dark:text-slate-400">Terminés</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400">Terminés</p>
           </CardContent>
         </Card>
         <Card className={stats.overdue > 0 ? 'border-l-4 border-l-red-500' : ''}>
           <CardContent className="py-3">
             <p className="text-2xl font-medium text-red-600">{stats.overdue}</p>
-            <p className="text-xs text-taupe dark:text-slate-400">En retard</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400">En retard</p>
           </CardContent>
         </Card>
       </div>
@@ -322,7 +322,7 @@ export function CompliancePlanning() {
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
               statusFilter === tab.value
                 ? 'bg-navy text-white dark:bg-slate-600'
-                : 'bg-gray-100 text-taupe dark:bg-slate-800 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                : 'bg-gray-100 text-seal-gray-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
             }`}
           >
             {tab.label}
@@ -408,7 +408,7 @@ export function CompliancePlanning() {
                         {task.description && (
                           <p className="text-xs text-gray-600 dark:text-slate-400 mb-1">{task.description}</p>
                         )}
-                        <div className="flex items-center gap-4 mt-2 text-[10px] text-taupe dark:text-slate-400">
+                        <div className="flex items-center gap-4 mt-2 text-[10px] text-seal-gray-500 dark:text-slate-400">
                           {task.nextDueDate && (
                             <span className={`flex items-center gap-1 ${overdue ? 'text-[#892034] dark:text-red-400 font-semibold' : ''}`}>
                               <Calendar className="h-3 w-3" />
@@ -667,7 +667,7 @@ function ComplianceKanbanBoard({ tasks, allTasks, loading, isAdmin, onStatusChan
                   >
                     <div className="flex items-center gap-1.5 mb-1.5">
                       {isAdmin && (
-                        <GripVertical className="h-3 w-3 text-taupe/30 group-hover:text-taupe/60 flex-shrink-0" />
+                        <GripVertical className="h-3 w-3 text-seal-gray-500/30 group-hover:text-seal-gray-500/60 flex-shrink-0" />
                       )}
                       {overdue && <AlertTriangle className="h-3 w-3 text-red-500 flex-shrink-0" />}
                       {overdue && (
@@ -691,7 +691,7 @@ function ComplianceKanbanBoard({ tasks, allTasks, loading, isAdmin, onStatusChan
                       )}
                     </div>
                     {task.nextDueDate && (
-                      <div className={`flex items-center gap-1 text-[10px] ${overdue ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-taupe dark:text-slate-400'}`}>
+                      <div className={`flex items-center gap-1 text-[10px] ${overdue ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-seal-gray-500 dark:text-slate-400'}`}>
                         <Calendar className="h-3 w-3" />
                         {formatDate(task.nextDueDate)}
                       </div>
@@ -700,7 +700,7 @@ function ComplianceKanbanBoard({ tasks, allTasks, loading, isAdmin, onStatusChan
                 );
               })}
               {colTasks.length === 0 && !isOver && (
-                <p className="text-xs text-taupe dark:text-slate-500 text-center py-8">Aucune tâche</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-500 text-center py-8">Aucune tâche</p>
               )}
             </div>
           </div>
@@ -821,7 +821,7 @@ function ComplianceTimeline({ tasks, loading }: ComplianceTimelineProps) {
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setYearOffset(prev => prev - 1)}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-taupe hover:bg-gray-100 dark:hover:bg-slate-700 transition"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition"
           >
             <ChevronLeft className="h-4 w-4" /> Precedent
           </button>
@@ -830,7 +830,7 @@ function ComplianceTimeline({ tasks, loading }: ComplianceTimelineProps) {
           </h3>
           <button
             onClick={() => setYearOffset(prev => prev + 1)}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-taupe hover:bg-gray-100 dark:hover:bg-slate-700 transition"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition"
           >
             Suivant <ChevronRight className="h-4 w-4" />
           </button>
@@ -841,7 +841,7 @@ function ComplianceTimeline({ tasks, loading }: ComplianceTimelineProps) {
           <div className="min-w-[900px]">
             {/* Month headers */}
             <div className="grid grid-cols-[220px_repeat(12,1fr)] gap-0 mb-1">
-              <div className="px-2 py-1.5 text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase">
+              <div className="px-2 py-1.5 text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase">
                 Tache
               </div>
               {months.map((m, i) => (
@@ -850,7 +850,7 @@ function ComplianceTimeline({ tasks, loading }: ComplianceTimelineProps) {
                   className={`px-1 py-1.5 text-center text-[10px] font-semibold uppercase transition-colors ${
                     m.isCurrent
                       ? 'text-primary bg-primary/5 dark:bg-primary/10 rounded-t-lg'
-                      : 'text-taupe dark:text-slate-400'
+                      : 'text-seal-gray-500 dark:text-slate-400'
                   }`}
                 >
                   {m.label}
@@ -940,11 +940,11 @@ function ComplianceTimeline({ tasks, loading }: ComplianceTimelineProps) {
 
         {/* Legend */}
         <div className="flex flex-wrap items-center gap-4 mt-4 pt-3 border-t border-gray-100 dark:border-slate-700">
-          <span className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase">Legende :</span>
+          <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase">Legende :</span>
           {Object.entries(TIMELINE_STATUS_COLORS).map(([status, colors]) => (
             <div key={status} className="flex items-center gap-1.5">
               <div className={`w-3 h-3 rounded-sm border ${colors.bg} ${colors.border}`} />
-              <span className="text-[10px] text-taupe dark:text-slate-400">
+              <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                 {STATUS_CONFIG[status]?.label || status}
               </span>
             </div>
@@ -953,7 +953,7 @@ function ComplianceTimeline({ tasks, loading }: ComplianceTimelineProps) {
             <div className="w-3 h-3 rounded-sm border border-dashed border-gray-300 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center">
               <Repeat className="h-2 w-2 text-gray-400" />
             </div>
-            <span className="text-[10px] text-taupe dark:text-slate-400">Recurrence</span>
+            <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">Recurrence</span>
           </div>
         </div>
       </CardContent>

@@ -220,7 +220,7 @@ export default function LdapPendingPage() {
             className={`px-4 py-2 text-xs font-semibold transition-colors border-b-2 ${
               statusFilter === s
                 ? 'border-primary text-primary'
-                : 'border-transparent text-taupe dark:text-slate-400 hover:text-navy dark:hover:text-white'
+                : 'border-transparent text-seal-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-white'
             }`}
           >
             {s === 'PENDING'
@@ -267,7 +267,7 @@ export default function LdapPendingPage() {
                       <h3 className="text-lg font-semibold text-navy dark:text-white">
                         {item.firstName} {item.lastName}
                       </h3>
-                      <span className="text-xs text-taupe dark:text-slate-500">{item.email}</span>
+                      <span className="text-xs text-seal-gray-500 dark:text-slate-500">{item.email}</span>
                       <span
                         className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold ${
                           item.status === 'PENDING'
@@ -282,7 +282,7 @@ export default function LdapPendingPage() {
                         {item.status}
                       </span>
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-taupe dark:text-slate-400">
+                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-seal-gray-500 dark:text-slate-400">
                       {item.jobTitle && (
                         <span className="flex items-center gap-1">
                           <Briefcase className="h-3 w-3" />
@@ -318,7 +318,7 @@ export default function LdapPendingPage() {
                 {isPending && (
                   <div className="mt-4 flex items-end gap-3 flex-wrap pt-3 border-t border-amber-200 dark:border-amber-900/40">
                     <div className="flex-1 min-w-[180px]">
-                      <label className="block text-[10px] uppercase font-semibold text-taupe dark:text-slate-500 mb-1">
+                      <label className="block text-[10px] uppercase font-semibold text-seal-gray-500 dark:text-slate-500 mb-1">
                         Département
                       </label>
                       <select
@@ -340,7 +340,7 @@ export default function LdapPendingPage() {
                       </select>
                     </div>
                     <div className="flex-1 min-w-[180px]">
-                      <label className="block text-[10px] uppercase font-semibold text-taupe dark:text-slate-500 mb-1">
+                      <label className="block text-[10px] uppercase font-semibold text-seal-gray-500 dark:text-slate-500 mb-1">
                         Rôle
                       </label>
                       <select
@@ -400,7 +400,7 @@ export default function LdapPendingPage() {
             <h3 className="text-lg font-semibold text-navy dark:text-white mb-2">
               Motif du rejet
             </h3>
-            <p className="text-xs text-taupe dark:text-slate-400 mb-3">
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">
               Précisez pourquoi cet utilisateur ne doit pas être créé. Cette raison est enregistrée
               dans le journal d'audit.
             </p>
@@ -414,7 +414,7 @@ export default function LdapPendingPage() {
             <div className="flex justify-end gap-2 mt-4">
               <button
                 onClick={() => setRejectingId(null)}
-                className="px-4 py-2 rounded-lg text-sm text-taupe dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                className="px-4 py-2 rounded-lg text-sm text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
               >
                 Annuler
               </button>

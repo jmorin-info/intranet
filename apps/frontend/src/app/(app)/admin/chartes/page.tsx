@@ -196,12 +196,12 @@ export default function AdminChartesPage() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-medium text-taupe">Titre</label>
+                <label className="text-xs font-medium text-seal-gray-500">Titre</label>
                 <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white" value={createTitle}
                   onChange={e => setCreateTitle(e.target.value)} placeholder="Ex : PSSI, Charte informatique, Politique de sécurité..." />
               </div>
               <div>
-                <label className="text-xs font-medium text-taupe">Slug</label>
+                <label className="text-xs font-medium text-seal-gray-500">Slug</label>
                 <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white" value={createSlug}
                   onChange={e => setCreateSlug(e.target.value)} placeholder="charte-utilisation-si" />
               </div>
@@ -219,12 +219,12 @@ export default function AdminChartesPage() {
         <Card>
           <CardHeader><h3 className="font-medium text-navy dark:text-white">Importer une charte depuis un document existant</h3></CardHeader>
           <CardContent>
-            <p className="text-xs text-taupe dark:text-slate-400 mb-3">
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">
               Sélectionnez un document approuvé (politique, procédure...) pour le transformer en charte obligatoire.
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-medium text-taupe dark:text-slate-400">Document source</label>
+                <label className="text-xs font-medium text-seal-gray-500 dark:text-slate-400">Document source</label>
                 <select className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                   value={selectedDocId} onChange={e => {
                     setSelectedDocId(e.target.value);
@@ -238,7 +238,7 @@ export default function AdminChartesPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-taupe dark:text-slate-400">Slug (identifiant URL)</label>
+                <label className="text-xs font-medium text-seal-gray-500 dark:text-slate-400">Slug (identifiant URL)</label>
                 <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                   value={importSlug} onChange={e => setImportSlug(e.target.value)} placeholder="politique-securite" />
               </div>
@@ -295,10 +295,10 @@ export default function AdminChartesPage() {
                           {activeVersion && (
                             <Badge variant="primary">v{activeVersion.versionNumber}</Badge>
                           )}
-                          <span className="text-[10px] text-taupe">{charte._count.signatures} signature(s)</span>
+                          <span className="text-[10px] text-seal-gray-500">{charte._count.signatures} signature(s)</span>
                         </div>
                         {activeVersion?.changeLog && (
-                          <p className="text-xs text-taupe mt-1">Changements : {activeVersion.changeLog}</p>
+                          <p className="text-xs text-seal-gray-500 mt-1">Changements : {activeVersion.changeLog}</p>
                         )}
                         {/* Signature progress bar */}
                         {totalUsers > 0 && (
@@ -311,7 +311,7 @@ export default function AdminChartesPage() {
                               return (
                                 <div>
                                   <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-xs text-taupe dark:text-slate-400">
+                                    <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                                       {signed} / {total} collaborateurs ont signe ({pct}%)
                                     </p>
                                     {allSigned && (
@@ -367,19 +367,19 @@ export default function AdminChartesPage() {
                                   <div key={v.id} className="relative">
                                     <div className="absolute -left-[17px] top-1 h-2.5 w-2.5 rounded-full border-2 border-primary bg-white dark:bg-slate-900" />
                                     <div className="flex items-center gap-2">
-                                      <span className={`text-xs font-medium ${vi === 0 ? 'text-navy dark:text-white' : 'text-taupe dark:text-slate-400'}`}>
+                                      <span className={`text-xs font-medium ${vi === 0 ? 'text-navy dark:text-white' : 'text-seal-gray-500 dark:text-slate-400'}`}>
                                         v{v.versionNumber}
                                       </span>
                                       {v.isActive && <Badge variant="approved" className="text-[8px]">Active</Badge>}
                                       {v.publishedAt && (
-                                        <span className="text-[10px] text-taupe dark:text-slate-500 flex items-center gap-1">
+                                        <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-1">
                                           <Clock className="h-2.5 w-2.5" />
                                           {formatDate(v.publishedAt)}
                                         </span>
                                       )}
                                     </div>
                                     {v.changeLog && (
-                                      <p className="text-[10px] text-taupe dark:text-slate-500 mt-0.5">{v.changeLog}</p>
+                                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5">{v.changeLog}</p>
                                     )}
                                   </div>
                                 ))}
@@ -416,18 +416,18 @@ export default function AdminChartesPage() {
                       <h4 className="text-sm font-medium text-navy dark:text-white mb-3">Uploader une nouvelle version PDF</h4>
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <label className="text-xs font-medium text-taupe">Fichier PDF</label>
+                          <label className="text-xs font-medium text-seal-gray-500">Fichier PDF</label>
                           <input type="file" accept=".pdf" className="w-full mt-1 text-sm"
                             onChange={e => setUploadFile(e.target.files?.[0] || null)} />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-taupe">N° version</label>
+                          <label className="text-xs font-medium text-seal-gray-500">N° version</label>
                           <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                             value={uploadVersion} onChange={e => setUploadVersion(e.target.value)}
                             placeholder="2.0" />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-taupe">Changelog</label>
+                          <label className="text-xs font-medium text-seal-gray-500">Changelog</label>
                           <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                             value={uploadChangeLog} onChange={e => setUploadChangeLog(e.target.value)}
                             placeholder="Mise à jour politique..." />
@@ -476,7 +476,7 @@ export default function AdminChartesPage() {
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                           <div>
-                            <p className="text-xs text-taupe">Ont signé</p>
+                            <p className="text-xs text-seal-gray-500">Ont signé</p>
                             <p className="text-2xl font-medium text-emerald-600">{compliance.signed.length}</p>
                           </div>
                         </div>
@@ -485,7 +485,7 @@ export default function AdminChartesPage() {
                         <div className="flex items-center gap-2">
                           <XCircle className="h-5 w-5 text-red-500" />
                           <div>
-                            <p className="text-xs text-taupe">N&apos;ont PAS signé</p>
+                            <p className="text-xs text-seal-gray-500">N&apos;ont PAS signé</p>
                             <p className="text-2xl font-medium text-red-600">{compliance.unsigned.length}</p>
                           </div>
                         </div>
@@ -500,7 +500,7 @@ export default function AdminChartesPage() {
                             <div key={u.id} className="flex items-center gap-2 text-sm py-1 px-2 bg-red-50 dark:bg-red-900/20 rounded">
                               <XCircle className="h-3 w-3 text-red-500" />
                               <span className="font-medium">{u.firstName} {u.lastName}</span>
-                              <span className="text-taupe text-xs">{u.email}</span>
+                              <span className="text-seal-gray-500 text-xs">{u.email}</span>
                             </div>
                           ))}
                         </div>
@@ -516,9 +516,9 @@ export default function AdminChartesPage() {
                               <div className="flex items-center gap-2">
                                 <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                                 <span className="font-medium">{u.firstName} {u.lastName}</span>
-                                <span className="text-taupe text-xs">{u.email}</span>
+                                <span className="text-seal-gray-500 text-xs">{u.email}</span>
                               </div>
-                              <span className="text-[10px] text-taupe">{formatDate(u.signedAt)}</span>
+                              <span className="text-[10px] text-seal-gray-500">{formatDate(u.signedAt)}</span>
                             </div>
                           ))}
                         </div>

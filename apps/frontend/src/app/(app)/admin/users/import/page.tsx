@@ -125,17 +125,17 @@ export default function ImportUsersPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-medium text-navy dark:text-white">Importer des utilisateurs (CSV)</h1>
-          <p className="text-sm text-taupe dark:text-slate-400 mt-1">Import en masse via fichier CSV</p>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">Import en masse via fichier CSV</p>
         </div>
       </div>
 
       {/* Steps indicator */}
       <div className="flex items-center gap-2 text-sm">
-        <span className={step === 'upload' ? 'text-primary font-semibold' : 'text-taupe'}>1. Upload</span>
-        <span className="text-taupe">/</span>
-        <span className={step === 'review' ? 'text-primary font-semibold' : 'text-taupe'}>2. Validation</span>
-        <span className="text-taupe">/</span>
-        <span className={step === 'done' ? 'text-primary font-semibold' : 'text-taupe'}>3. Resultat</span>
+        <span className={step === 'upload' ? 'text-primary font-semibold' : 'text-seal-gray-500'}>1. Upload</span>
+        <span className="text-seal-gray-500">/</span>
+        <span className={step === 'review' ? 'text-primary font-semibold' : 'text-seal-gray-500'}>2. Validation</span>
+        <span className="text-seal-gray-500">/</span>
+        <span className={step === 'done' ? 'text-primary font-semibold' : 'text-seal-gray-500'}>3. Resultat</span>
       </div>
 
       {/* Template download */}
@@ -167,16 +167,16 @@ export default function ImportUsersPage() {
               {validating ? (
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                  <p className="text-sm text-taupe">Validation en cours...</p>
+                  <p className="text-sm text-seal-gray-500">Validation en cours...</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-3">
-                  <Upload className="h-10 w-10 text-taupe dark:text-slate-400" />
+                  <Upload className="h-10 w-10 text-seal-gray-500 dark:text-slate-400" />
                   <div>
                     <p className="text-sm text-navy dark:text-white">
                       {isDragActive ? 'Deposez le fichier ici' : 'Glissez-deposez un fichier CSV ou cliquez pour parcourir'}
                     </p>
-                    <p className="text-xs text-taupe mt-1">CSV uniquement, 5 Mo maximum</p>
+                    <p className="text-xs text-seal-gray-500 mt-1">CSV uniquement, 5 Mo maximum</p>
                   </div>
                 </div>
               )}
@@ -195,7 +195,7 @@ export default function ImportUsersPage() {
                 <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
                 <div>
                   <p className="text-2xl font-medium text-navy dark:text-white">{validRows.length}</p>
-                  <p className="text-xs text-taupe">Lignes valides</p>
+                  <p className="text-xs text-seal-gray-500">Lignes valides</p>
                 </div>
               </CardContent>
             </Card>
@@ -204,7 +204,7 @@ export default function ImportUsersPage() {
                 <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
                 <div>
                   <p className="text-2xl font-medium text-navy dark:text-white">{errors.length}</p>
-                  <p className="text-xs text-taupe">Erreurs</p>
+                  <p className="text-xs text-seal-gray-500">Erreurs</p>
                 </div>
               </CardContent>
             </Card>
@@ -221,12 +221,12 @@ export default function ImportUsersPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-slate-700">
-                        <th className="text-left py-2 px-3 text-taupe font-medium">Email</th>
-                        <th className="text-left py-2 px-3 text-taupe font-medium">Prenom</th>
-                        <th className="text-left py-2 px-3 text-taupe font-medium">Nom</th>
-                        <th className="text-left py-2 px-3 text-taupe font-medium">Role</th>
-                        <th className="text-left py-2 px-3 text-taupe font-medium">Département</th>
-                        <th className="text-left py-2 px-3 text-taupe font-medium">Poste</th>
+                        <th className="text-left py-2 px-3 text-seal-gray-500 font-medium">Email</th>
+                        <th className="text-left py-2 px-3 text-seal-gray-500 font-medium">Prenom</th>
+                        <th className="text-left py-2 px-3 text-seal-gray-500 font-medium">Nom</th>
+                        <th className="text-left py-2 px-3 text-seal-gray-500 font-medium">Role</th>
+                        <th className="text-left py-2 px-3 text-seal-gray-500 font-medium">Département</th>
+                        <th className="text-left py-2 px-3 text-seal-gray-500 font-medium">Poste</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -236,14 +236,14 @@ export default function ImportUsersPage() {
                           <td className="py-2 px-3 text-navy dark:text-white">{row.firstName}</td>
                           <td className="py-2 px-3 text-navy dark:text-white">{row.lastName}</td>
                           <td className="py-2 px-3"><Badge>{row.role}</Badge></td>
-                          <td className="py-2 px-3 text-taupe">{row.department || '-'}</td>
-                          <td className="py-2 px-3 text-taupe">{row.jobTitle || '-'}</td>
+                          <td className="py-2 px-3 text-seal-gray-500">{row.department || '-'}</td>
+                          <td className="py-2 px-3 text-seal-gray-500">{row.jobTitle || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   {validRows.length > 50 && (
-                    <p className="text-xs text-taupe mt-2">... et {validRows.length - 50} autres lignes</p>
+                    <p className="text-xs text-seal-gray-500 mt-2">... et {validRows.length - 50} autres lignes</p>
                   )}
                 </div>
               </CardContent>
@@ -261,9 +261,9 @@ export default function ImportUsersPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-slate-700">
-                        <th className="text-left py-2 px-3 text-taupe font-medium">Ligne</th>
-                        <th className="text-left py-2 px-3 text-taupe font-medium">Champ</th>
-                        <th className="text-left py-2 px-3 text-taupe font-medium">Erreur</th>
+                        <th className="text-left py-2 px-3 text-seal-gray-500 font-medium">Ligne</th>
+                        <th className="text-left py-2 px-3 text-seal-gray-500 font-medium">Champ</th>
+                        <th className="text-left py-2 px-3 text-seal-gray-500 font-medium">Erreur</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -306,15 +306,15 @@ export default function ImportUsersPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="text-center p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
                   <p className="text-3xl font-semibold text-emerald-600">{result.created}</p>
-                  <p className="text-xs text-taupe mt-1">Comptes crees</p>
+                  <p className="text-xs text-seal-gray-500 mt-1">Comptes crees</p>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20">
                   <p className="text-3xl font-semibold text-amber-600">{result.skipped}</p>
-                  <p className="text-xs text-taupe mt-1">Ignores (doublons)</p>
+                  <p className="text-xs text-seal-gray-500 mt-1">Ignores (doublons)</p>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-red-50 dark:bg-red-900/20">
                   <p className="text-3xl font-semibold text-red-600">{result.errors.length}</p>
-                  <p className="text-xs text-taupe mt-1">Erreurs</p>
+                  <p className="text-xs text-seal-gray-500 mt-1">Erreurs</p>
                 </div>
               </div>
               {result.errors.length > 0 && (
