@@ -115,7 +115,7 @@ function WidgetShell({ children }: { children: React.ReactNode }) {
     <Card>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-navy dark:text-white flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" />
             Indicateurs SMSI
           </h3>

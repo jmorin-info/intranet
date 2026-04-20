@@ -189,7 +189,7 @@ export function TipOfTheDay() {
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-navy dark:text-white">
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
                 Astuce du jour
               </h3>
               {current.category && (
@@ -204,7 +204,7 @@ export function TipOfTheDay() {
                 {index + 1}/{tips.length}
               </span>
             </div>
-            <p className="mt-1 text-sm font-medium text-navy/90 dark:text-slate-200">
+            <p className="mt-1 text-sm font-medium text-seal-navy/90 dark:text-slate-200">
               {current.title}
             </p>
             <p className="mt-1 text-xs leading-relaxed text-seal-gray-500 dark:text-slate-400 line-clamp-3">

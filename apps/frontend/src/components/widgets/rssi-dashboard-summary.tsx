@@ -75,9 +75,9 @@ interface KpiCard {
 /** Classes Tailwind par tonalité (cohérentes avec la charte SEAL) */
 const toneStyles: Record<KpiCard['tone'], { bg: string; icon: string; ring: string }> = {
   navy: {
-    bg: 'bg-navy/5 dark:bg-slate-800/60',
-    icon: 'text-navy dark:text-blue-300',
-    ring: 'ring-navy/10',
+    bg: 'bg-seal-navy/5 dark:bg-slate-800/60',
+    icon: 'text-seal-navy dark:text-blue-300',
+    ring: 'ring-seal-navy/10',
   },
   red: {
     bg: 'bg-red-50 dark:bg-red-900/20',
@@ -278,7 +278,7 @@ export function RssiDashboardSummary() {
                   </div>
                   <p
                     className={`text-2xl font-medium tabular-nums ${
-                      c.barPct != null ? thresholdColor(c.barPct) : 'text-navy dark:text-white'
+                      c.barPct != null ? thresholdColor(c.barPct) : 'text-seal-navy dark:text-white'
                     } ${c.urgent ? 'badge-pulse' : ''}`}
                   >
                     {c.value}

@@ -93,7 +93,7 @@ export function UXCommandCenter() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-navy dark:text-white">UX Intelligence</h3>
+          <h3 className="text-sm font-semibold text-seal-navy dark:text-white">UX Intelligence</h3>
           <Badge variant="navy">{totalEvents} events</Badge>
         </div>
         <button
@@ -174,7 +174,7 @@ export function UXCommandCenter() {
                         {Math.round(insight.confidence * 100)}%
                       </span>
                     </div>
-                    <p className="text-xs text-navy dark:text-white font-medium">{insight.description}</p>
+                    <p className="text-xs text-seal-navy dark:text-white font-medium">{insight.description}</p>
                     <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-1 flex items-center gap-1">
                       <TrendingDown className="h-3 w-3" />
                       {insight.recommendation}

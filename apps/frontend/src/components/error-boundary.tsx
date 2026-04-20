@@ -52,7 +52,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <Card className="max-w-md w-full">
             <CardContent className="py-8 text-center">
               <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-navy dark:text-white mb-2">
+              <h2 className="text-lg font-semibold text-seal-navy dark:text-white mb-2">
                 Une erreur est survenue
               </h2>
               <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-1">

@@ -144,7 +144,7 @@ export function AnnotationsDrawer() {
       >
         <MessageCircle className="h-5 w-5" />
         {count > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-navy text-white text-[10px] font-bold flex items-center justify-center shadow">
+          <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-seal-navy text-white text-[10px] font-bold flex items-center justify-center shadow">
             {count > 99 ? '99+' : count}
           </span>
         )}
@@ -167,7 +167,7 @@ export function AnnotationsDrawer() {
                 <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500">
                   Annotations
                 </p>
-                <h2 className="text-sm font-medium text-navy dark:text-white truncate max-w-[240px]">
+                <h2 className="text-sm font-medium text-seal-navy dark:text-white truncate max-w-[240px]">
                   {pathname}
                 </h2>
               </div>
@@ -197,7 +197,7 @@ export function AnnotationsDrawer() {
                       <div className="h-6 w-6 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
                         {a.authorInitials}
                       </div>
-                      <span className="text-xs font-semibold text-navy dark:text-white truncate">
+                      <span className="text-xs font-semibold text-seal-navy dark:text-white truncate">
                         {a.author}
                       </span>
                     </div>
@@ -210,7 +210,7 @@ export function AnnotationsDrawer() {
                       <Trash2 className="h-3 w-3" />
                     </button>
                   </div>
-                  <p className="text-xs text-navy dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                  <p className="text-xs text-seal-navy dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
                     {a.body}
                   </p>
                   <p className="text-[10px] text-seal-gray-500/70 dark:text-slate-500 mt-1.5">
@@ -228,7 +228,7 @@ export function AnnotationsDrawer() {
                 onKeyDown={handleKey}
                 placeholder="Ajoutez une annotation…"
                 rows={3}
-                className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-navy dark:text-white placeholder:text-seal-gray-500/60 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 resize-none"
+                className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-seal-navy dark:text-white placeholder:text-seal-gray-500/60 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 resize-none"
                 aria-label="Nouvelle annotation"
               />
               <div className="flex items-center justify-between mt-2">

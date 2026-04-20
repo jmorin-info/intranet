@@ -28,7 +28,7 @@ export function AIExplainabilityHints() {
         >
           <Sparkles className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-semibold text-navy dark:text-white">{msg.message}</p>
+            <p className="text-[11px] font-semibold text-seal-navy dark:text-white">{msg.message}</p>
             <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{msg.reason}</p>
           </div>
           <button

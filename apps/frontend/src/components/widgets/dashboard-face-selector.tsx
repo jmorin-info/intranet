@@ -139,7 +139,7 @@ export function DashboardFaceSelector({ value, onChange }: DashboardFaceSelector
                 </div>
                 <span
                   className={`text-xs font-semibold ${
-                    active ? 'text-primary' : 'text-navy dark:text-white'
+                    active ? 'text-primary' : 'text-seal-navy dark:text-white'
                   }`}
                 >
                   {face.label}

@@ -20,14 +20,14 @@ export function LuccaWidget() {
     <div>
       <div className="flex items-center gap-2 mb-3">
         <Briefcase className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-navy dark:text-white text-sm">Espace RH — Lucca</h3>
+        <h3 className="font-semibold text-seal-navy dark:text-white text-sm">Espace RH — Lucca</h3>
       </div>
 
       {deptInfo && (
         <div className="flex items-center gap-3 rounded-lg bg-primary/5 dark:bg-primary/10 p-3 mb-3">
           <Users className="h-5 w-5 text-primary" />
           <div>
-            <p className="text-xs font-semibold text-navy dark:text-white">Mon équipe — {deptInfo.name}</p>
+            <p className="text-xs font-semibold text-seal-navy dark:text-white">Mon équipe — {deptInfo.name}</p>
             <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{deptInfo.userCount} collaborateur{deptInfo.userCount > 1 ? 's' : ''}</p>
           </div>
         </div>
@@ -42,7 +42,7 @@ export function LuccaWidget() {
         >
           <Calendar className="h-5 w-5 text-blue-500" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-primary transition-colors">Congés & Absences</p>
+            <p className="text-sm font-semibold text-seal-navy dark:text-white group-hover:text-primary transition-colors">Congés & Absences</p>
             <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">Consulter le solde, poser un congé</p>
           </div>
           <ExternalLink className="h-4 w-4 text-seal-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -55,7 +55,7 @@ export function LuccaWidget() {
         >
           <Briefcase className="h-5 w-5 text-emerald-500" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-primary transition-colors">Feuille de temps</p>
+            <p className="text-sm font-semibold text-seal-navy dark:text-white group-hover:text-primary transition-colors">Feuille de temps</p>
             <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">Saisir les heures travaillées</p>
           </div>
           <ExternalLink className="h-4 w-4 text-seal-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />

@@ -18,7 +18,7 @@ export function MyNotificationsWidget() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-navy dark:text-white">Notifications</h3>
+          <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Notifications</h3>
           {unreadCount > 0 && (
             <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[10px] font-bold rounded-full bg-red-500 text-white">
               {unreadCount > 99 ? '99+' : unreadCount}
@@ -56,7 +56,7 @@ export function MyNotificationsWidget() {
               >
                 <div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-navy dark:text-white group-hover:text-primary truncate">
+                  <p className="text-xs font-medium text-seal-navy dark:text-white group-hover:text-primary truncate">
                     {n.title}
                   </p>
                   {n.body && (

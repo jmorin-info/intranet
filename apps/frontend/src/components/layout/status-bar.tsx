@@ -109,7 +109,7 @@ function StatusBarPopover({ title, count, footer, children }: StatusBarPopoverPr
       }
     >
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-slate-800">
-        <h3 className="text-[13px] font-semibold text-navy dark:text-white truncate">{title}</h3>
+        <h3 className="text-[13px] font-semibold text-seal-navy dark:text-white truncate">{title}</h3>
         {typeof count === 'number' && (
           <span className="text-[11px] font-semibold text-seal-gray-500 dark:text-slate-400 tabular-nums">
             {count}
@@ -447,7 +447,7 @@ export function StatusBar() {
                       >
                         <AlertCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-[12px] font-semibold text-navy dark:text-white line-clamp-1">
+                          <p className="text-[12px] font-semibold text-seal-navy dark:text-white line-clamp-1">
                             {inc.title}
                           </p>
                           {inc.createdAt && (
@@ -503,7 +503,7 @@ export function StatusBar() {
                         : 'bg-gray-400')
                     }
                   />
-                  <span className="text-[12px] font-semibold text-navy dark:text-white">
+                  <span className="text-[12px] font-semibold text-seal-navy dark:text-white">
                     {health === 'ok'
                       ? 'Tous les services opérationnels'
                       : health === 'degraded'
@@ -630,7 +630,7 @@ export function StatusBar() {
                       >
                         <Workflow className="h-3.5 w-3.5 text-seal-blue dark:text-seal-orange flex-shrink-0 mt-0.5" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-[12px] font-semibold text-navy dark:text-white line-clamp-1">
+                          <p className="text-[12px] font-semibold text-seal-navy dark:text-white line-clamp-1">
                             {w.title || w.name || 'Workflow'}
                           </p>
                           {w.createdAt && (

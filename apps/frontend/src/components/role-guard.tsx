@@ -28,7 +28,7 @@ export function RoleGuard({ minRole, children }: RoleGuardProps) {
         <Card className="max-w-md w-full">
           <CardContent className="py-10 text-center">
             <ShieldAlert className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-navy dark:text-white mb-2">
+            <h2 className="text-lg font-semibold text-seal-navy dark:text-white mb-2">
               Accès restreint
             </h2>
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">

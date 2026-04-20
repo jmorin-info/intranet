@@ -89,10 +89,10 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
               value={pageInput !== '' ? pageInput : pageNumber}
               onChange={(e) => setPageInput(e.target.value.replace(/\D/g, ''))}
               onBlur={handlePageInputSubmit}
-              className="w-12 rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-1 py-0.5 text-center text-sm text-navy dark:text-white"
+              className="w-12 rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-1 py-0.5 text-center text-sm text-seal-navy dark:text-white"
               aria-label="Numéro de page"
             />
-            <span className="text-sm text-navy dark:text-white">
+            <span className="text-sm text-seal-navy dark:text-white">
               / {numPages || '—'}
             </span>
           </form>
@@ -126,7 +126,7 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Rechercher…"
-              className="pl-7 pr-2 py-1 w-40 rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs text-navy dark:text-white focus:outline-none focus:ring-1 focus:ring-primary"
+              className="pl-7 pr-2 py-1 w-40 rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs text-seal-navy dark:text-white focus:outline-none focus:ring-1 focus:ring-primary"
               aria-label="Rechercher dans le document"
             />
           </div>

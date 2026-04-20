@@ -36,14 +36,14 @@ export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDial
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-slate-800 flex-shrink-0">
                 <Icon className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
               </div>
-              <span className="flex-1 text-sm font-medium text-navy dark:text-white">
+              <span className="flex-1 text-sm font-medium text-seal-navy dark:text-white">
                 {shortcut.label}
               </span>
               <div className="flex items-center gap-1">
                 {shortcut.keys.map((key, i) => (
                   <React.Fragment key={key}>
                     {i > 0 && <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">+</span>}
-                    <kbd className="inline-flex items-center justify-center min-w-[24px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 text-[11px] font-mono font-semibold text-navy dark:text-slate-300">
+                    <kbd className="inline-flex items-center justify-center min-w-[24px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 text-[11px] font-mono font-semibold text-seal-navy dark:text-slate-300">
                       {key}
                     </kbd>
                   </React.Fragment>

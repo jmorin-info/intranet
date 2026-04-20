@@ -215,7 +215,7 @@ export function FocusMode() {
         className="fixed top-3 left-1/2 -translate-x-1/2 z-[10001] flex items-center gap-2 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-xl border border-gray-200 dark:border-slate-700 px-3 py-1.5 backdrop-blur-sm animate-[fadeIn_0.1s_ease-out]"
       >
         <Focus className="h-4 w-4 text-primary" />
-        <span className="text-xs font-semibold text-navy dark:text-white">
+        <span className="text-xs font-semibold text-seal-navy dark:text-white">
           {mode === 'page' ? 'Focus page' : 'Focus élément'}
         </span>
         {mode === 'element' && (

@@ -431,7 +431,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher ou exécuter une action…"
             aria-label="Champ de recherche de la command palette"
-            className="flex-1 bg-transparent text-sm text-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 outline-none"
+            className="flex-1 bg-transparent text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 outline-none"
             onKeyDown={(e) => handleKeyDown(e as unknown as React.KeyboardEvent<HTMLDivElement>)}
           />
           <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono text-seal-gray-500 dark:text-slate-500">
@@ -444,7 +444,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           {flat.length === 0 ? (
             <div className="text-center py-10 space-y-3">
               <p className="text-sm text-seal-gray-500 dark:text-slate-400">
-                Aucun résultat pour <span className="font-semibold text-navy dark:text-white">&quot;{query}&quot;</span>
+                Aucun résultat pour <span className="font-semibold text-seal-navy dark:text-white">&quot;{query}&quot;</span>
               </p>
               {query.length >= 3 && (
                 <button
@@ -492,7 +492,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                         <Icon className={`h-4 w-4 ${isSelected ? 'text-primary' : 'text-seal-gray-500 dark:text-slate-400'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : 'text-navy dark:text-white'}`}>
+                        <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : 'text-seal-navy dark:text-white'}`}>
                           <Highlighted text={it.label} query={query} />
                         </p>
                         {it.href && (

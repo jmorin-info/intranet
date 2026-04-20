@@ -69,7 +69,7 @@ const ROWS: RowDef[] = [
 ];
 
 const TONE_CLASSES: Record<RowDef['tone'], { icon: string; value: string }> = {
-  navy: { icon: 'text-navy bg-navy/10', value: 'text-navy' },
+  navy: { icon: 'text-seal-navy bg-seal-navy/10', value: 'text-seal-navy' },
   amber: { icon: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30', value: 'text-amber-600' },
   orange: { icon: 'text-primary bg-primary/10', value: 'text-primary' },
   bordeaux: { icon: 'text-[#892034] bg-[#892034]/10', value: 'text-[#892034]' },
@@ -111,7 +111,7 @@ export function GedDashboardWidget() {
               <FileText className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-navy dark:text-white">Ma GED</h3>
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Ma GED</h3>
               <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                 {loading ? '…' : `${totalActions} action${totalActions > 1 ? 's' : ''} requise${totalActions > 1 ? 's' : ''}`}
               </p>
@@ -147,7 +147,7 @@ export function GedDashboardWidget() {
                       <span className={`flex h-6 w-6 items-center justify-center rounded ${tone.icon}`}>
                         <Icon className="h-3.5 w-3.5" />
                       </span>
-                      <span className="text-xs text-navy dark:text-slate-200">{row.label}</span>
+                      <span className="text-xs text-seal-navy dark:text-slate-200">{row.label}</span>
                     </span>
                     <span className={`text-sm font-semibold ${value > 0 ? tone.value : 'text-gray-300 dark:text-slate-600'}`}>
                       {value}

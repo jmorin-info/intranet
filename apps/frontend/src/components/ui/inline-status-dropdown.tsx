@@ -96,7 +96,7 @@ export function InlineStatusDropdown({
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm transition hover:bg-gray-50 dark:hover:bg-slate-800"
               >
                 {ActionIcon && <ActionIcon className={`h-3.5 w-3.5 ${action.iconColor || 'text-seal-gray-500'}`} />}
-                <span className="text-navy dark:text-white">{action.label}</span>
+                <span className="text-seal-navy dark:text-white">{action.label}</span>
               </button>
             );
           })}

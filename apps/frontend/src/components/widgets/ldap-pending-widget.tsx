@@ -39,7 +39,7 @@ export function LdapPendingWidget() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <UserPlus className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-navy dark:text-white">Validation LDAP</h3>
+          <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Validation LDAP</h3>
         </div>
         {count > 0 && (
           <Link

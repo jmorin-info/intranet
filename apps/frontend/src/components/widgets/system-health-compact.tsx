@@ -50,7 +50,7 @@ export function SystemHealthCompact() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Activity className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-navy dark:text-white">Santé système</h3>
+          <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Santé système</h3>
         </div>
         <Link
           href="/admin/system-health"
@@ -71,7 +71,7 @@ export function SystemHealthCompact() {
             aria-label={`Statut : ${globalStatus}`}
           />
           <div className="flex-1">
-            <p className="text-sm font-medium text-navy dark:text-white tabular-nums">
+            <p className="text-sm font-medium text-seal-navy dark:text-white tabular-nums">
               {upCount}/{SERVICES.length} services UP
             </p>
             <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">

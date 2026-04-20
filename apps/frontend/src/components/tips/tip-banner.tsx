@@ -264,9 +264,9 @@ export function TipBanner({ context, role }: TipBannerProps) {
         ${slideIn ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}
       `}
     >
-      <div className="rounded-xl border border-navy/10 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+      <div className="rounded-xl border border-seal-navy/10 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
         {/* Header bar */}
-        <div className="flex items-center justify-between rounded-t-xl bg-navy px-4 py-2.5 dark:bg-slate-800">
+        <div className="flex items-center justify-between rounded-t-xl bg-seal-navy px-4 py-2.5 dark:bg-slate-800">
           <div className="flex items-center gap-2">
             <IconComp className="h-4 w-4 text-orange-400" />
             <span className="text-xs font-semibold uppercase tracking-wide text-white/80">
@@ -289,7 +289,7 @@ export function TipBanner({ context, role }: TipBannerProps) {
               <IconComp className="h-5 w-5 text-orange-500" />
             </div>
             <div className="min-w-0">
-              <h4 className="text-sm font-semibold text-navy dark:text-white">{tip.title}</h4>
+              <h4 className="text-sm font-semibold text-seal-navy dark:text-white">{tip.title}</h4>
               <p className="mt-1 text-xs leading-relaxed text-gray-600 dark:text-slate-400">
                 {tip.body}
               </p>
@@ -308,7 +308,7 @@ export function TipBanner({ context, role }: TipBannerProps) {
           {tips.length > 1 && (
             <button
               onClick={handleNext}
-              className="flex items-center gap-1 rounded-md bg-navy/5 px-3 py-1.5 text-xs font-semibold text-navy transition-colors hover:bg-navy/10 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
+              className="flex items-center gap-1 rounded-md bg-seal-navy/5 px-3 py-1.5 text-xs font-semibold text-seal-navy transition-colors hover:bg-seal-navy/10 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
             >
               Suivant
               <ChevronRight className="h-3.5 w-3.5" />

@@ -364,7 +364,7 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-start justify-center bg-navy/60 backdrop-blur-sm p-4 pt-[10vh] animate-in fade-in duration-150"
+      className="fixed inset-0 z-[100] flex items-start justify-center bg-seal-navy/60 backdrop-blur-sm p-4 pt-[10vh] animate-in fade-in duration-150"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -384,7 +384,7 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Posez une question sur vos documents…"
-              className="flex-1 bg-transparent outline-none text-base text-navy dark:text-white placeholder:text-gray-400"
+              className="flex-1 bg-transparent outline-none text-base text-seal-navy dark:text-white placeholder:text-gray-400"
               disabled={loading}
               autoFocus
             />
@@ -414,12 +414,12 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
             <div className="px-5 py-5 border-b border-gray-200 dark:border-slate-700">
               <div className="text-xs uppercase font-semibold text-seal-gray-500 mb-2">Réponse</div>
               {displayed ? (
-                <div className="text-sm leading-relaxed text-navy dark:text-slate-100">
+                <div className="text-sm leading-relaxed text-seal-navy dark:text-slate-100">
                   <span dangerouslySetInnerHTML={{ __html: displayedHtml }} />
                   {isStreaming && <span className="inline-block w-1.5 h-4 bg-seal-blue animate-pulse ml-0.5" />}
                 </div>
               ) : (
-                <div className="text-sm leading-relaxed text-navy dark:text-slate-100 whitespace-pre-wrap">
+                <div className="text-sm leading-relaxed text-seal-navy dark:text-slate-100 whitespace-pre-wrap">
                   {loading ? 'Recherche en cours…' : ''}
                 </div>
               )}
@@ -530,7 +530,7 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
                     <button
                       type="button"
                       onClick={() => handleHistoryPick(h)}
-                      className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-navy dark:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800/60 transition-colors"
+                      className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-seal-navy dark:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <Search className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                       <span className="truncate">{h}</span>

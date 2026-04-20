@@ -270,7 +270,7 @@ export function OnboardingTour() {
                 </p>
                 <h2
                   id="onboarding-title"
-                  className="mt-1 text-lg font-semibold text-navy dark:text-white"
+                  className="mt-1 text-lg font-semibold text-seal-navy dark:text-white"
                 >
                   {current.title}
                 </h2>

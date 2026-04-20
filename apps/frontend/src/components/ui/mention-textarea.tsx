@@ -173,7 +173,7 @@ export function MentionTextarea({
         disabled={disabled}
         className={
           className ||
-          'w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-seal-gray-500/60 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50'
+          'w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500/60 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50'
         }
       />
       {popupOpen && (users.length > 0 || loading) && (
@@ -193,7 +193,7 @@ export function MentionTextarea({
                 className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition ${
                   i === selectedIdx
                     ? 'bg-primary/10 text-primary'
-                    : 'text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
+                    : 'text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-[10px] font-semibold text-primary flex-shrink-0">

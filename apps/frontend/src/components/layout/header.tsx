@@ -216,13 +216,13 @@ export function Header() {
 
   // Accent color per current hub for the last breadcrumb crumb.
   const lastAccentClass = useMemo(() => {
-    if (!hub) return 'text-navy dark:text-white';
+    if (!hub) return 'text-seal-navy dark:text-white';
     switch (hub.accent) {
       case 'blue': return 'text-seal-blue dark:text-seal-blue';
       case 'bordeaux': return 'text-seal-bordeaux dark:text-seal-bordeaux';
       case 'orange': return 'text-seal-orange dark:text-seal-orange';
       case 'navy':
-      default: return 'text-navy dark:text-white';
+      default: return 'text-seal-navy dark:text-white';
     }
   }, [hub]);
 
@@ -477,7 +477,7 @@ export function Header() {
                     role="menuitem"
                     onClick={() => { setActiveSpace(null); setShowSpaceMenu(false); }}
                     className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-slate-800 ${
-                      !activeSpaceId ? 'text-seal-blue dark:text-seal-orange font-semibold' : 'text-navy dark:text-slate-200'
+                      !activeSpaceId ? 'text-seal-blue dark:text-seal-orange font-semibold' : 'text-seal-navy dark:text-slate-200'
                     }`}
                   >
                     <Layers className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-400" />
@@ -490,7 +490,7 @@ export function Header() {
                       role="menuitem"
                       onClick={() => { setActiveSpace(space.id); setShowSpaceMenu(false); }}
                       className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-slate-800 ${
-                        activeSpaceId === space.id ? 'text-seal-blue dark:text-seal-orange font-semibold' : 'text-navy dark:text-slate-200'
+                        activeSpaceId === space.id ? 'text-seal-blue dark:text-seal-orange font-semibold' : 'text-seal-navy dark:text-slate-200'
                       }`}
                     >
                       <span
@@ -565,7 +565,7 @@ export function Header() {
                         href={action.href}
                         role="menuitem"
                         onClick={() => setShowCreateMenu(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
+                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-seal-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
                       >
                         <Icon className="h-4 w-4 text-seal-blue dark:text-seal-orange" />
                         {action.label}
@@ -611,7 +611,7 @@ export function Header() {
               className="header-dropdown-in absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden z-50"
             >
               <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-navy dark:text-white">Notifications</h3>
+                <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Notifications</h3>
                 <Link
                   href="/notifications"
                   className="text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
@@ -636,7 +636,7 @@ export function Header() {
                       <div className={`h-2 w-2 rounded-full ${!n.isRead ? 'bg-primary' : 'bg-transparent'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-navy dark:text-white line-clamp-1">{n.title}</p>
+                      <p className="text-xs font-semibold text-seal-navy dark:text-white line-clamp-1">{n.title}</p>
                       {n.body && <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 line-clamp-1 mt-0.5">{n.body}</p>}
                       <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-1">{formatRelativeTime(n.createdAt)}</p>
                     </div>
@@ -690,7 +690,7 @@ export function Header() {
               />
             </span>
             <span className="hidden sm:flex flex-col items-start leading-tight">
-              <span className="text-[13px] font-semibold text-navy dark:text-white">
+              <span className="text-[13px] font-semibold text-seal-navy dark:text-white">
                 {user.firstName}
               </span>
               {roleLabel && (
@@ -711,7 +711,7 @@ export function Header() {
               className="header-dropdown-in absolute right-0 top-full mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl py-1 z-50"
             >
               <div className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700">
-                <p className="text-sm font-semibold text-navy dark:text-white truncate">{user.firstName} {user.lastName}</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">{user.firstName} {user.lastName}</p>
                 <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 truncate">{user.email}</p>
                 {lastLoginAt && (
                   <p className="text-[10px] text-seal-gray-500/70 dark:text-slate-500 mt-1">
@@ -723,7 +723,7 @@ export function Header() {
                 <Link
                   href="/profile"
                   role="menuitem"
-                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
+                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-seal-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
                   onClick={() => setShowUserMenu(false)}
                 >
                   <User className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
@@ -733,7 +733,7 @@ export function Header() {
                   <Link
                     href="/admin/config"
                     role="menuitem"
-                    className="flex items-center gap-2.5 px-4 py-2 text-sm text-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
+                    className="flex items-center gap-2.5 px-4 py-2 text-sm text-seal-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
                     onClick={() => setShowUserMenu(false)}
                   >
                     <Settings className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
@@ -744,7 +744,7 @@ export function Header() {
               <Link
                 href="/welcome"
                 role="menuitem"
-                className="flex items-center gap-2.5 px-4 py-2 text-sm text-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
+                className="flex items-center gap-2.5 px-4 py-2 text-sm text-seal-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
                 onClick={() => setShowUserMenu(false)}
               >
                 <ExternalLink className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />

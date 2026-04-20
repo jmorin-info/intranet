@@ -70,7 +70,7 @@ export function DocsDueReviewWidget() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-navy dark:text-white">À revoir</h3>
+          <h3 className="text-sm font-semibold text-seal-navy dark:text-white">À revoir</h3>
           <span className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500">A.5.1</span>
         </div>
         <Link
@@ -102,7 +102,7 @@ export function DocsDueReviewWidget() {
                   className="group flex items-center justify-between gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-slate-800/60"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-navy dark:text-white group-hover:text-primary truncate">
+                    <p className="text-xs font-medium text-seal-navy dark:text-white group-hover:text-primary truncate">
                       {d.title}
                     </p>
                     <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">

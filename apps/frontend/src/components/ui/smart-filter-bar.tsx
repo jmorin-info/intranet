@@ -66,7 +66,7 @@ export function SmartFilterBar({
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 120)}
           placeholder={placeholder}
-          className="flex-1 bg-transparent text-sm outline-none text-navy dark:text-white placeholder:text-seal-gray-500/60 dark:placeholder:text-slate-500"
+          className="flex-1 bg-transparent text-sm outline-none text-seal-navy dark:text-white placeholder:text-seal-gray-500/60 dark:placeholder:text-slate-500"
           aria-label="Recherche intelligente"
         />
         {raw && (

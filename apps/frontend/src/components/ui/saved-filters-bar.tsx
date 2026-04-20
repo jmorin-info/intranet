@@ -140,7 +140,7 @@ export function SavedFiltersBar({ module, currentFilters, onApplyFilter }: Saved
             onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setShowPrompt(false); setNewName(''); } }}
             placeholder="Nom de la vue..."
             autoFocus
-            className="h-7 w-36 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-navy dark:text-white px-3 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="h-7 w-36 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-navy dark:text-white px-3 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <button
             onClick={handleSave}
