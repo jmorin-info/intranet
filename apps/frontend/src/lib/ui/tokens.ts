@@ -38,12 +38,12 @@ export const radius = {
 // ── Typography (Tailwind class compositions) ───────────────────────
 
 export const typography = {
-  pageTitle: 'text-xl md:text-2xl font-semibold text-navy dark:text-white',
-  sectionTitle: 'text-sm font-semibold text-navy dark:text-white',
+  pageTitle: 'text-xl md:text-2xl font-semibold text-seal-navy dark:text-white',
+  sectionTitle: 'text-sm font-semibold text-seal-navy dark:text-white',
   body: 'text-sm text-seal-gray-500 dark:text-slate-300',
   caption: 'text-xs text-seal-gray-500 dark:text-slate-400',
   micro: 'text-[10px] text-seal-gray-500/60 dark:text-slate-500',
-  mono: 'font-mono text-xs text-navy dark:text-white',
+  mono: 'font-mono text-xs text-seal-navy dark:text-white',
   label: 'text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500/60 dark:text-slate-500',
 } as const;
 
