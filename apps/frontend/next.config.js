@@ -31,6 +31,9 @@ const nextConfig = {
       { source: '/admin/iso-controls', destination: '/admin/compliance?tab=controls', permanent: true },
       { source: '/admin/frameworks', destination: '/admin/compliance?tab=frameworks', permanent: true },
       { source: '/selfservice', destination: '/helpdesk?tab=selfservice', permanent: true },
+      // Fusion audit-log + audit-timeline → /admin/audit (onglets)
+      { source: '/admin/audit-log', destination: '/admin/audit?tab=log', permanent: true },
+      { source: '/admin/audit-timeline', destination: '/admin/audit?tab=timeline', permanent: true },
     ];
   },
 };
