@@ -536,6 +536,14 @@ export default function DocumentDetailPage() {
           toast.success('Accuse enregistre');
           setHasAcknowledged(true);
           break;
+        case 'force-approve':
+          await api.post(`/documents/${doc.id}/force-approve`, { makePermanent: false });
+          toast.success('Document publie directement (workflow court-circuite)');
+          break;
+        case 'force-approve-permanent':
+          await api.post(`/documents/${doc.id}/force-approve`, { makePermanent: true });
+          toast.success('Document publie + marque permanent (aucune date de revue)');
+          break;
       }
       // Refresh document with flatten
       const { data: refreshed } = await api.get(`/documents/${doc.id}`);
@@ -838,12 +846,50 @@ export default function DocumentDetailPage() {
                   {transitions.length > 0 && <ChevronDown className={`h-3 w-3 text-seal-gray-500 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />}
                 </button>
                 {statusDropdownOpen && (
-                  <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1 animate-fade-in-up">
+                  <div className="absolute left-0 top-full mt-1 z-50 w-64 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1 animate-fade-in-up">
                     {doc.status === 'DRAFT' && transitions.includes('IN_REVIEW' as never) && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); handleAction('submit-review'); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                         <Eye className="h-3.5 w-3.5 text-blue-500" />
                         <span className="text-seal-navy dark:text-white">Soumettre en revue</span>
                       </button>
+                    )}
+                    {/* ADMIN+ shortcut : forcer approbation sur doc existant
+                        (bypass workflow, pour docs permanents ou refus de
+                        passer par la revue). */}
+                    {user && isRoleAtLeast(user.role, UserRole.ADMIN) && doc.status !== 'APPROVED' && doc.status !== 'OBSOLETE' && doc.status !== 'ARCHIVED' && (
+                      <>
+                        <div className="my-1 border-t border-gray-100 dark:border-slate-800" />
+                        <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-seal-gray-500 font-semibold">
+                          Actions admin
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStatusDropdownOpen(false);
+                            if (confirm('Publier ce document directement ? Les workflows pending seront annulés.')) {
+                              handleAction('force-approve');
+                            }
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 text-amber-600" />
+                          <span className="text-seal-navy dark:text-white">Publier directement</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStatusDropdownOpen(false);
+                            if (confirm('Publier + marquer permanent ? La date de revue sera supprimée.')) {
+                              handleAction('force-approve-permanent');
+                            }
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"
+                        >
+                          <Shield className="h-3.5 w-3.5 text-amber-600" />
+                          <span className="text-seal-navy dark:text-white">Publier + permanent</span>
+                        </button>
+                        <div className="my-1 border-t border-gray-100 dark:border-slate-800" />
+                      </>
                     )}
                     {doc.status === 'IN_REVIEW' && transitions.includes('REVIEW_APPROVED' as never) && (
                       <button
