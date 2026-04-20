@@ -102,7 +102,7 @@ export function FeedbackPanel({ onSubmit, onCancel }: FeedbackPanelProps) {
       <div className="flex items-start justify-between gap-2">
         <p
           id={`${groupId}-title`}
-          className="text-xs font-semibold text-navy dark:text-white"
+          className="text-xs font-semibold text-seal-navy dark:text-white"
         >
           Qu&apos;est-ce qui n&apos;allait pas ?
         </p>
@@ -123,7 +123,7 @@ export function FeedbackPanel({ onSubmit, onCancel }: FeedbackPanelProps) {
           {FEEDBACK_REASONS.map((r, i) => (
             <label
               key={r.value}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs text-navy hover:bg-white dark:text-slate-100 dark:hover:bg-slate-900"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs text-seal-navy hover:bg-white dark:text-slate-100 dark:hover:bg-slate-900"
             >
               <input
                 ref={i === 0 ? firstRadioRef : undefined}
@@ -161,7 +161,7 @@ export function FeedbackPanel({ onSubmit, onCancel }: FeedbackPanelProps) {
           }
           rows={2}
           maxLength={COMMENT_MAX_LENGTH}
-          className="w-full resize-none rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-navy placeholder:text-gray-400 focus:border-seal-blue focus:outline-none focus:ring-1 focus:ring-seal-blue/40 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
+          className="w-full resize-none rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-seal-navy placeholder:text-gray-400 focus:border-seal-blue focus:outline-none focus:ring-1 focus:ring-seal-blue/40 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
           aria-label="Commentaire libre sur la réponse"
         />
         <div className="mt-0.5 flex items-center justify-between">

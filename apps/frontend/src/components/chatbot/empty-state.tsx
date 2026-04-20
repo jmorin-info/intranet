@@ -37,7 +37,7 @@ export function EmptyState({ departmentName, firstName, onPick }: EmptyStateProp
           <Sparkles className="h-5 w-5" aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-navy dark:text-white">
+          <p className="text-sm font-semibold text-seal-navy dark:text-white">
             {greeting}, que puis-je chercher pour vous ?
           </p>
           <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">
@@ -48,7 +48,7 @@ export function EmptyState({ departmentName, firstName, onPick }: EmptyStateProp
       </div>
 
       <div className="mt-4">
-        <p className="mb-2 text-xs uppercase font-semibold text-taupe">
+        <p className="mb-2 text-xs uppercase font-semibold text-seal-gray-500">
           Questions suggérées
           {departmentName && (
             <span className="ml-1 normal-case text-gray-400 dark:text-slate-500">
@@ -62,7 +62,7 @@ export function EmptyState({ departmentName, firstName, onPick }: EmptyStateProp
               <button
                 type="button"
                 onClick={() => onPick(s.question)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-navy hover:border-seal-blue hover:bg-seal-blue/5 hover:text-seal-blue dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-seal-blue dark:hover:bg-seal-blue/10 transition-colors focus:outline-none focus:ring-2 focus:ring-seal-blue/40"
+                className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-seal-navy hover:border-seal-blue hover:bg-seal-blue/5 hover:text-seal-blue dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-seal-blue dark:hover:bg-seal-blue/10 transition-colors focus:outline-none focus:ring-2 focus:ring-seal-blue/40"
                 aria-label={`Poser la question : ${s.question}`}
                 title={s.question}
               >
@@ -98,7 +98,7 @@ export function EmptyState({ departmentName, firstName, onPick }: EmptyStateProp
           >
             <ul className="space-y-2">
               {TUTORIAL_TIPS.map((tip) => (
-                <li key={tip.title} className="text-xs text-navy dark:text-slate-100">
+                <li key={tip.title} className="text-xs text-seal-navy dark:text-slate-100">
                   <strong className="text-seal-blue">{tip.title}.</strong>{' '}
                   <span className="text-gray-600 dark:text-slate-400">{tip.detail}</span>
                 </li>

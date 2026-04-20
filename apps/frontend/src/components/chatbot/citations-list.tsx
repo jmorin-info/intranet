@@ -20,7 +20,7 @@ export function CitationsList({ citations }: CitationsListProps) {
 
   return (
     <div className="px-5 py-4 border-b border-gray-200 dark:border-slate-700">
-      <div className="text-xs uppercase font-semibold text-taupe mb-2">
+      <div className="text-xs uppercase font-semibold text-seal-gray-500 mb-2">
         Sources ({citations.length})
       </div>
       <div className="flex flex-wrap gap-2">

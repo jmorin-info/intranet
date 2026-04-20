@@ -348,7 +348,7 @@ export function AuditTimelineView() {
             fetchPage(1, false);
             fetchStats();
           }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
         >
           <RefreshCw className="h-3.5 w-3.5" /> Rafraîchir
         </button>
@@ -365,7 +365,7 @@ export function AuditTimelineView() {
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as PeriodKey)}
-              className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-navy dark:text-white"
+              className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-seal-navy dark:text-white"
             >
               {PERIODS.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -410,7 +410,7 @@ export function AuditTimelineView() {
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
               placeholder="LOGIN_FAILED, LDAP_, INCIDENT_…"
-              className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-navy dark:text-white"
+              className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-seal-navy dark:text-white"
             />
           </div>
         </div>
@@ -419,7 +419,7 @@ export function AuditTimelineView() {
         {stats && !statsError && (
           <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-100 dark:border-slate-800">
             <span className="text-xs text-gray-600 dark:text-slate-400">
-              Total : <strong className="text-navy dark:text-white">{stats.total}</strong>
+              Total : <strong className="text-seal-navy dark:text-white">{stats.total}</strong>
             </span>
             <span className="text-xs text-gray-600 dark:text-slate-400">
               CRITICAL : <strong className="text-red-600 dark:text-red-400">{stats.bySeverity.CRITICAL ?? 0}</strong>
@@ -428,7 +428,7 @@ export function AuditTimelineView() {
               WARN : <strong className="text-amber-600 dark:text-amber-400">{stats.bySeverity.WARN ?? 0}</strong>
             </span>
             <span className="text-xs text-gray-600 dark:text-slate-400">
-              Échecs login : <strong className="text-navy dark:text-white">{stats.failedLogins}</strong>
+              Échecs login : <strong className="text-seal-navy dark:text-white">{stats.failedLogins}</strong>
             </span>
           </div>
         )}
@@ -457,7 +457,7 @@ export function AuditTimelineView() {
             {grouped.map(([day, dayEvents]) => (
               <div key={day}>
                 <div className="sticky top-0 z-10 bg-gray-50 dark:bg-slate-950 py-2 mb-3">
-                  <h2 className="text-sm font-semibold text-navy dark:text-white capitalize">
+                  <h2 className="text-sm font-semibold text-seal-navy dark:text-white capitalize">
                     {formatDateFR(day + 'T00:00:00Z')}
                     <span className="ml-2 text-xs font-normal text-gray-500 dark:text-slate-500">
                       ({dayEvents.length} événement{dayEvents.length > 1 ? 's' : ''})
@@ -483,7 +483,7 @@ export function AuditTimelineView() {
                                 >
                                   {e.severity}
                                 </span>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded bg-navy/10 dark:bg-slate-800 text-[11px] font-mono text-navy dark:text-white">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded bg-seal-navy/10 dark:bg-slate-800 text-[11px] font-mono text-seal-navy dark:text-white">
                                   {e.action}
                                 </span>
                                 <span className="text-[11px] text-gray-500 dark:text-slate-500">
@@ -511,7 +511,7 @@ export function AuditTimelineView() {
                                 onClick={() =>
                                   setExpanded((prev) => ({ ...prev, [e.id]: !prev[e.id] }))
                                 }
-                                className="inline-flex items-center gap-1 text-[11px] text-navy dark:text-slate-300 hover:underline"
+                                className="inline-flex items-center gap-1 text-[11px] text-seal-navy dark:text-slate-300 hover:underline"
                               >
                                 {isOpen ? (
                                   <ChevronDown className="h-3 w-3" />
@@ -544,7 +544,7 @@ export function AuditTimelineView() {
               type="button"
               onClick={loadMore}
               disabled={loadingMore}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-50"
             >
               {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
               Charger 50 événements de plus

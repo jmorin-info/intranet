@@ -170,7 +170,7 @@ export function CitationChip({ citation, index, onOpenChange }: CitationChipProp
                   <ClassificationBadge level={citation.classification} size="xs" />
                 )}
               </div>
-              <div className="mt-0.5 text-sm font-semibold text-navy dark:text-white truncate">
+              <div className="mt-0.5 text-sm font-semibold text-seal-navy dark:text-white truncate">
                 {title}
               </div>
             </div>
