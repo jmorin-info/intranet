@@ -109,7 +109,7 @@ export function InstallPrompt() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-navy dark:text-white">Installer OMNITECH</p>
-          <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
             Installez l&apos;application pour un acces rapide depuis votre ecran d&apos;accueil.
           </p>
           <div className="flex items-center gap-2 mt-3">
@@ -123,7 +123,7 @@ export function InstallPrompt() {
             <button
               type="button"
               onClick={dismiss}
-              className="text-xs font-medium px-3 py-1.5 rounded-md text-taupe dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+              className="text-xs font-medium px-3 py-1.5 rounded-md text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
             >
               Plus tard
             </button>
@@ -132,7 +132,7 @@ export function InstallPrompt() {
         <button
           type="button"
           onClick={dismiss}
-          className="text-taupe dark:text-slate-500 hover:text-navy dark:hover:text-white p-1 -mr-1 -mt-1"
+          className="text-seal-gray-500 dark:text-slate-500 hover:text-navy dark:hover:text-white p-1 -mr-1 -mt-1"
           aria-label="Fermer"
         >
           <X className="h-4 w-4" />

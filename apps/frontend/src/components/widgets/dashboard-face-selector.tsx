@@ -108,7 +108,7 @@ interface DashboardFaceSelectorProps {
 export function DashboardFaceSelector({ value, onChange }: DashboardFaceSelectorProps) {
   return (
     <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
-      <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">
+      <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">
         Face du tableau de bord
       </p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -132,7 +132,7 @@ export function DashboardFaceSelector({ value, onChange }: DashboardFaceSelector
                   className={`h-7 w-7 rounded-lg flex items-center justify-center ${
                     active
                       ? 'bg-primary text-white'
-                      : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400'
+                      : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -145,7 +145,7 @@ export function DashboardFaceSelector({ value, onChange }: DashboardFaceSelector
                   {face.label}
                 </span>
               </div>
-              <p className="text-[10px] text-taupe dark:text-slate-500 leading-tight">
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 leading-tight">
                 {face.description}
               </p>
               {active && (

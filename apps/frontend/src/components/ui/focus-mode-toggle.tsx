@@ -18,7 +18,7 @@ export function FocusModeToggle() {
         (isFocus
           ? 'text-seal-blue dark:text-seal-orange bg-seal-blue/10 dark:bg-seal-orange/10 ' +
             'hover:bg-seal-blue/20 dark:hover:bg-seal-orange/20'
-          : 'text-taupe dark:text-slate-400 ' +
+          : 'text-seal-gray-500 dark:text-slate-400 ' +
             'hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-blue dark:hover:text-seal-orange')
       }
       title={isFocus ? 'Quitter le mode focus' : 'Mode focus : une tache, zero distraction'}

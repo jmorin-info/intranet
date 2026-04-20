@@ -54,16 +54,16 @@ export function SystemHealthCompact() {
         </div>
         <Link
           href="/admin/system-health"
-          className="text-[11px] text-taupe dark:text-slate-400 hover:text-primary flex items-center gap-1"
+          className="text-[11px] text-seal-gray-500 dark:text-slate-400 hover:text-primary flex items-center gap-1"
         >
           Voir détails <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
 
       {status === 'error' ? (
-        <p className="text-xs text-taupe dark:text-slate-500">Statut indisponible</p>
+        <p className="text-xs text-seal-gray-500 dark:text-slate-500">Statut indisponible</p>
       ) : !data ? (
-        <p className="text-xs text-taupe dark:text-slate-500">Chargement…</p>
+        <p className="text-xs text-seal-gray-500 dark:text-slate-500">Chargement…</p>
       ) : (
         <div className="flex items-center gap-3">
           <span
@@ -74,7 +74,7 @@ export function SystemHealthCompact() {
             <p className="text-sm font-medium text-navy dark:text-white tabular-nums">
               {upCount}/{SERVICES.length} services UP
             </p>
-            <p className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-500">
+            <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
               {globalStatus === 'ok' ? 'Opérationnel' : globalStatus === 'degraded' ? 'Dégradé' : 'Incident'}
             </p>
           </div>

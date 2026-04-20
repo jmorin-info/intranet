@@ -412,7 +412,7 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
           {/* Réponse en cours de stream */}
           {(answer || loading) && (
             <div className="px-5 py-5 border-b border-gray-200 dark:border-slate-700">
-              <div className="text-xs uppercase font-semibold text-taupe mb-2">Réponse</div>
+              <div className="text-xs uppercase font-semibold text-seal-gray-500 mb-2">Réponse</div>
               {displayed ? (
                 <div className="text-sm leading-relaxed text-navy dark:text-slate-100">
                   <span dangerouslySetInnerHTML={{ __html: displayedHtml }} />
@@ -489,7 +489,7 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
           {/* Sources */}
           {sources.length > 0 && (
             <div className="px-5 py-4 border-b border-gray-200 dark:border-slate-700">
-              <div className="text-xs uppercase font-semibold text-taupe mb-2">
+              <div className="text-xs uppercase font-semibold text-seal-gray-500 mb-2">
                 Sources ({sources.length})
               </div>
               <ul className="space-y-2">
@@ -521,7 +521,7 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
           {/* Historique */}
           {!answer && !loading && history.length > 0 && (
             <div className="px-5 py-4">
-              <div className="text-xs uppercase font-semibold text-taupe mb-2">
+              <div className="text-xs uppercase font-semibold text-seal-gray-500 mb-2">
                 Questions récentes
               </div>
               <ul className="space-y-1">

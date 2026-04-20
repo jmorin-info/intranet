@@ -19,7 +19,7 @@ interface EntityBreadcrumbProps {
  */
 export function EntityBreadcrumb({ module, href, current }: EntityBreadcrumbProps) {
   return (
-    <nav className="flex items-center gap-1.5 text-xs text-taupe dark:text-slate-400">
+    <nav className="flex items-center gap-1.5 text-xs text-seal-gray-500 dark:text-slate-400">
       <Link href={href} className="hover:text-navy dark:hover:text-white transition-colors">
         {module}
       </Link>

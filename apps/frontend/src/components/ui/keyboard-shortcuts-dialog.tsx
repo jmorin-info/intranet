@@ -34,7 +34,7 @@ export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDial
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800/60 transition-colors"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-slate-800 flex-shrink-0">
-                <Icon className="h-4 w-4 text-taupe dark:text-slate-400" />
+                <Icon className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
               </div>
               <span className="flex-1 text-sm font-medium text-navy dark:text-white">
                 {shortcut.label}
@@ -42,7 +42,7 @@ export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDial
               <div className="flex items-center gap-1">
                 {shortcut.keys.map((key, i) => (
                   <React.Fragment key={key}>
-                    {i > 0 && <span className="text-[10px] text-taupe dark:text-slate-500">+</span>}
+                    {i > 0 && <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">+</span>}
                     <kbd className="inline-flex items-center justify-center min-w-[24px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 text-[11px] font-mono font-semibold text-navy dark:text-slate-300">
                       {key}
                     </kbd>
@@ -54,7 +54,7 @@ export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDial
         })}
       </div>
       <div className="mt-4 pt-3 border-t border-gray-100 dark:border-slate-700">
-        <p className="text-[11px] text-taupe dark:text-slate-500 text-center">
+        <p className="text-[11px] text-seal-gray-500 dark:text-slate-500 text-center">
           Appuyez sur <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-[10px] font-mono font-semibold">Esc</kbd> pour fermer
         </p>
       </div>

@@ -35,10 +35,10 @@ export function ClockWidget() {
           {hours}
           <span className="animate-pulse">:</span>
           {minutes}
-          <span className="text-lg text-taupe dark:text-slate-400 ml-0.5">:{seconds}</span>
+          <span className="text-lg text-seal-gray-500 dark:text-slate-400 ml-0.5">:{seconds}</span>
         </p>
         <p className="text-sm text-navy/80 dark:text-slate-300 capitalize mt-0.5">{dateStr}</p>
-        <p className="text-[10px] text-taupe dark:text-slate-500 flex items-center gap-1 mt-0.5">
+        <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-1 mt-0.5">
           <Globe className="h-3 w-3" /> {timezone}
         </p>
       </div>

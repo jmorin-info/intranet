@@ -121,7 +121,7 @@ export function AISuggestionBar({ suggestions }: AISuggestionBarProps) {
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        className="ml-auto p-1 rounded text-taupe/50 hover:text-taupe hover:bg-gray-100 dark:hover:bg-slate-700 transition flex-shrink-0"
+        className="ml-auto p-1 rounded text-seal-gray-500/50 hover:text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex-shrink-0"
         aria-label="Masquer"
       >
         <X className="h-3 w-3" />

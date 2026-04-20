@@ -29,11 +29,11 @@ export function AIExplainabilityHints() {
           <Sparkles className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-semibold text-navy dark:text-white">{msg.message}</p>
-            <p className="text-[10px] text-taupe dark:text-slate-400">{msg.reason}</p>
+            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{msg.reason}</p>
           </div>
           <button
             onClick={() => dismiss(msg.id)}
-            className="p-0.5 rounded text-taupe/40 hover:text-taupe transition flex-shrink-0"
+            className="p-0.5 rounded text-seal-gray-500/40 hover:text-seal-gray-500 transition flex-shrink-0"
           >
             <X className="h-3 w-3" />
           </button>

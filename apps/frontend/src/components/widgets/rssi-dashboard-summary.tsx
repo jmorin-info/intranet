@@ -134,7 +134,7 @@ export function RssiDashboardSummary() {
       <Card>
         <CardContent className="py-8 text-center">
           <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-3" />
-          <p className="text-sm text-taupe dark:text-slate-400 mb-3">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-3">
             Impossible de charger les indicateurs RSSI.
           </p>
           <Button size="sm" variant="secondary" onClick={load}>
@@ -237,10 +237,10 @@ export function RssiDashboardSummary() {
       {/* Entête + bouton vue détaillée */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500">
+          <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500">
             Vue RSSI consolidée
           </p>
-          <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
             Snapshot généré {new Date(data.generatedAt).toLocaleTimeString('fr-FR')}
           </p>
         </div>
@@ -272,7 +272,7 @@ export function RssiDashboardSummary() {
                     <div className="h-8 w-8 rounded-lg bg-white/70 dark:bg-slate-900/50 flex items-center justify-center">
                       <Icon className={`h-4 w-4 ${s.icon}`} />
                     </div>
-                    <p className="text-[11px] text-taupe dark:text-slate-400 truncate">
+                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 truncate">
                       {c.label}
                     </p>
                   </div>
@@ -289,7 +289,7 @@ export function RssiDashboardSummary() {
                     </div>
                   )}
                   {c.sub && (
-                    <p className="text-[10px] text-taupe/80 dark:text-slate-500 mt-0.5">
+                    <p className="text-[10px] text-seal-gray-500/80 dark:text-slate-500 mt-0.5">
                       {c.sub}
                     </p>
                   )}

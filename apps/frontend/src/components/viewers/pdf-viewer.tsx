@@ -41,7 +41,7 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-12 text-sm text-taupe">
+      <div className="flex items-center justify-center py-12 text-sm text-seal-gray-500">
         Impossible de charger l&apos;apercu PDF
       </div>
     );
@@ -109,7 +109,7 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
           </Button>
           {numPages > 0 && (
             <span
-              className="hidden sm:inline text-[10px] text-taupe dark:text-slate-400 ml-1"
+              className="hidden sm:inline text-[10px] text-seal-gray-500 dark:text-slate-400 ml-1"
               aria-live="polite"
             >
               {progressPct}%
@@ -120,7 +120,7 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
         {/* Search (visual only, react-pdf text layer disabled) */}
         <div className="hidden md:flex items-center gap-1.5">
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-taupe dark:text-slate-400" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-400" />
             <input
               type="search"
               value={searchTerm}
@@ -147,7 +147,7 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
           </Button>
           <button
             onClick={() => setScale(1)}
-            className="text-xs text-taupe dark:text-slate-400 w-12 text-center hover:text-primary transition-colors"
+            className="text-xs text-seal-gray-500 dark:text-slate-400 w-12 text-center hover:text-primary transition-colors"
             title="Réinitialiser le zoom"
             aria-label="Réinitialiser le zoom"
           >

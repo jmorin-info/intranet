@@ -173,13 +173,13 @@ export function MentionTextarea({
         disabled={disabled}
         className={
           className ||
-          'w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-taupe/60 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50'
+          'w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-seal-gray-500/60 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50'
         }
       />
       {popupOpen && (users.length > 0 || loading) && (
         <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg overflow-hidden max-h-64 overflow-y-auto">
           {loading && users.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-taupe dark:text-slate-500">Recherche…</div>
+            <div className="px-3 py-2 text-xs text-seal-gray-500 dark:text-slate-500">Recherche…</div>
           ) : (
             users.map((u, i) => (
               <button
@@ -203,7 +203,7 @@ export function MentionTextarea({
                   <span className="block font-medium truncate">
                     {u.firstName} {u.lastName}
                   </span>
-                  <span className="block text-[10px] text-taupe dark:text-slate-500 truncate">
+                  <span className="block text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">
                     {u.email} · @{toHandle(u.firstName, u.lastName)}
                   </span>
                 </span>

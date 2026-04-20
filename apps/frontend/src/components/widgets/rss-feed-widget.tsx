@@ -70,7 +70,7 @@ export function RSSFeedWidget() {
           {[1,2,3,4].map(i => <div key={i} className="h-12 rounded-lg bg-gray-100 dark:bg-slate-800 animate-pulse" />)}
         </div>
       ) : items.length === 0 ? (
-        <p className="text-xs text-taupe dark:text-slate-400 py-4 text-center">Aucune alerte de sécurité disponible</p>
+        <p className="text-xs text-seal-gray-500 dark:text-slate-400 py-4 text-center">Aucune alerte de sécurité disponible</p>
       ) : (
         <div className="space-y-1">
           {items.map((item, i) => (
@@ -94,7 +94,7 @@ export function RSSFeedWidget() {
                     </span>
                   )}
                   {item.cveId && <span className="text-[10px] font-mono text-red-500 font-semibold">{item.cveId}</span>}
-                  <ExternalLink className="h-2.5 w-2.5 text-taupe opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ExternalLink className="h-2.5 w-2.5 text-seal-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
             </a>

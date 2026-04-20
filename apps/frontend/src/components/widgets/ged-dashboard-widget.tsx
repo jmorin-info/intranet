@@ -112,7 +112,7 @@ export function GedDashboardWidget() {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-navy dark:text-white">Ma GED</h3>
-              <p className="text-[10px] text-taupe dark:text-slate-400">
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                 {loading ? '…' : `${totalActions} action${totalActions > 1 ? 's' : ''} requise${totalActions > 1 ? 's' : ''}`}
               </p>
             </div>
@@ -158,7 +158,7 @@ export function GedDashboardWidget() {
             })}
           </ul>
         ) : (
-          <p className="text-xs text-taupe dark:text-slate-400 text-center py-4">
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-4">
             GED indisponible
           </p>
         )}

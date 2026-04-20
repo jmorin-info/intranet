@@ -90,7 +90,7 @@ export function SavedFiltersBar({ module, currentFilters, onApplyFilter }: Saved
       <div className="flex items-center gap-2">
         <button
           onClick={() => setShowPrompt(true)}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-taupe dark:text-slate-400 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 transition"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 transition"
         >
           <Save className="h-3 w-3" />
           Sauvegarder la vue
@@ -101,7 +101,7 @@ export function SavedFiltersBar({ module, currentFilters, onApplyFilter }: Saved
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-[10px] font-semibold text-taupe dark:text-slate-400 uppercase mr-0.5">Mes vues</span>
+      <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mr-0.5">Mes vues</span>
 
       {savedFilters.map((filter) => (
         <button
@@ -111,7 +111,7 @@ export function SavedFiltersBar({ module, currentFilters, onApplyFilter }: Saved
             'group inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
             activeId === filter.id
               ? 'bg-primary text-white'
-              : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600',
+              : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600',
           )}
         >
           {filter.isDefault && <Star className="h-3 w-3" />}
@@ -152,7 +152,7 @@ export function SavedFiltersBar({ module, currentFilters, onApplyFilter }: Saved
           </button>
           <button
             onClick={() => { setShowPrompt(false); setNewName(''); }}
-            className="inline-flex items-center justify-center rounded-full h-6 w-6 text-taupe hover:bg-gray-200 dark:hover:bg-slate-600 transition"
+            className="inline-flex items-center justify-center rounded-full h-6 w-6 text-seal-gray-500 hover:bg-gray-200 dark:hover:bg-slate-600 transition"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -160,7 +160,7 @@ export function SavedFiltersBar({ module, currentFilters, onApplyFilter }: Saved
       ) : (
         <button
           onClick={() => setShowPrompt(true)}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-taupe dark:text-slate-400 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 transition"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-seal-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 transition"
         >
           <Save className="h-3 w-3" />
           Sauvegarder la vue

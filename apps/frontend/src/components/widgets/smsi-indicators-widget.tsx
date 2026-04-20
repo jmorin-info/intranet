@@ -93,16 +93,16 @@ function KpiCard({ label, value, target, sublabel, icon: Icon, status }: KpiCard
     <div className={`rounded-lg border px-3 py-2.5 ${CARD_BG[status]}`}>
       <div className="flex items-center gap-1.5 mb-1">
         <Icon className={`h-3.5 w-3.5 ${ICON_COLOR[status]}`} />
-        <span className="text-[10px] uppercase tracking-wider text-taupe dark:text-slate-400 truncate">
+        <span className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 truncate">
           {label}
         </span>
       </div>
       <div className="flex items-baseline gap-1">
         <span className={`text-2xl font-semibold ${ICON_COLOR[status]}`}>{value}</span>
-        {target && <span className="text-[10px] text-taupe">/ {target}</span>}
+        {target && <span className="text-[10px] text-seal-gray-500">/ {target}</span>}
       </div>
       {sublabel && (
-        <p className="text-[10px] text-taupe dark:text-slate-500 mt-0.5 truncate">
+        <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5 truncate">
           {sublabel}
         </p>
       )}
@@ -119,7 +119,7 @@ function WidgetShell({ children }: { children: React.ReactNode }) {
             <Shield className="h-4 w-4 text-primary" />
             Indicateurs SMSI
           </h3>
-          <span className="text-[10px] uppercase tracking-widest text-taupe">
+          <span className="text-[10px] uppercase tracking-widest text-seal-gray-500">
             ISO 27001
           </span>
         </div>

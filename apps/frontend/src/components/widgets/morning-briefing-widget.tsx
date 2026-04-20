@@ -67,14 +67,14 @@ export function MorningBriefingWidget({ items, loading }: MorningBriefingWidgetP
               <Icon className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500">
+              <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500">
                 {todayLabel || 'Briefing du jour'}
               </p>
               <h2 className="text-base font-medium text-navy dark:text-white truncate">
                 {greeting.label}
                 {user?.firstName ? <span className="text-primary">, {user.firstName}</span> : null}
               </h2>
-              <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">{briefingLine}</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{briefingLine}</p>
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-1 rounded-full bg-primary/10 dark:bg-primary/20 px-2.5 py-1 text-[10px] font-semibold text-primary">

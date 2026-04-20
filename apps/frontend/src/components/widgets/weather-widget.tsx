@@ -98,7 +98,7 @@ export function WeatherWidget() {
             className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${
               i === cityIdx
                 ? 'bg-navy text-white dark:bg-blue-600'
-                : 'bg-gray-100 dark:bg-slate-700 text-taupe dark:text-slate-400 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
             }`}
           >
             <MapPin className="h-2.5 w-2.5" />
@@ -116,9 +116,9 @@ export function WeatherWidget() {
           </div>
           <div>
             <span className="text-2xl font-semibold text-navy dark:text-white">{weather.temperature}°C</span>
-            <p className="text-xs text-taupe dark:text-slate-400">{weather.description}</p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400">{weather.description}</p>
           </div>
-          <div className="flex gap-3 ml-auto text-[10px] text-taupe dark:text-slate-500">
+          <div className="flex gap-3 ml-auto text-[10px] text-seal-gray-500 dark:text-slate-500">
             <span className="flex items-center gap-0.5"><Wind className="h-3 w-3" />{weather.windSpeed} km/h</span>
             <span className="flex items-center gap-0.5"><Droplets className="h-3 w-3" />{weather.humidity}%</span>
           </div>
@@ -134,7 +134,7 @@ export function WeatherWidget() {
               const Icon = getWeatherIcon(f.code);
               return (
                 <div key={f.date} className="text-center">
-                  <p className="text-[10px] text-taupe dark:text-slate-500 uppercase mb-1">{formatDay(f.date)}</p>
+                  <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 uppercase mb-1">{formatDay(f.date)}</p>
                   <Icon className="h-4 w-4 text-blue-500 mx-auto mb-1" />
                   <p className="text-[11px] font-medium text-navy dark:text-white tabular-nums">
                     {f.tMin}° / {f.tMax}°

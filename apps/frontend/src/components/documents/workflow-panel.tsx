@@ -297,7 +297,7 @@ export function WorkflowPanel({
           </h3>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2 text-taupe dark:text-slate-400 text-sm">
+          <div className="flex items-center gap-2 text-seal-gray-500 dark:text-slate-400 text-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
             Chargement…
           </div>
@@ -387,12 +387,12 @@ export function WorkflowPanel({
                     <p className="text-sm font-medium text-navy dark:text-white">
                       {step.order}. {step.name}
                     </p>
-                    <p className="text-xs text-taupe dark:text-slate-400">
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                       Approbateur : {approverLabel}
                       {step.mode !== 'SINGLE' && ` — ${step.mode}`}
                     </p>
                     {result?.decidedBy && result.decidedAt && (
-                      <p className="text-[11px] text-taupe dark:text-slate-500">
+                      <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">
                         Décidé par {result.decidedBy.firstName}{' '}
                         {result.decidedBy.lastName} le{' '}
                         {new Date(result.decidedAt).toLocaleString('fr-FR')}
@@ -459,11 +459,11 @@ export function WorkflowPanel({
       </CardHeader>
       <CardContent>
         {!canStartWorkflow ? (
-          <p className="text-sm text-taupe dark:text-slate-400">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">
             Aucun workflow en cours pour ce document.
           </p>
         ) : templates.length === 0 ? (
-          <p className="text-sm text-taupe dark:text-slate-400">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">
             Aucun workflow template disponible
             {documentCategory ? ` pour la catégorie ${documentCategory}` : ''}.
           </p>
@@ -486,7 +486,7 @@ export function WorkflowPanel({
                 ))}
               </select>
               {selectedTemplate?.description && (
-                <p className="mt-1 text-xs text-taupe dark:text-slate-400">
+                <p className="mt-1 text-xs text-seal-gray-500 dark:text-slate-400">
                   {selectedTemplate.description}
                 </p>
               )}
@@ -528,7 +528,7 @@ export function WorkflowPanel({
                               </span>
                             )}
                           </p>
-                          <p className="text-[10px] text-taupe dark:text-slate-500 mt-0.5 leading-snug">
+                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5 leading-snug">
                             {stepDescriptions[step.mode] || stepDescriptions.SINGLE}
                             {step.slaHours ? ` Delai : ${step.slaHours}h.` : ''}
                           </p>

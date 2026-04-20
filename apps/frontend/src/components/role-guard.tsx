@@ -31,7 +31,7 @@ export function RoleGuard({ minRole, children }: RoleGuardProps) {
             <h2 className="text-lg font-semibold text-navy dark:text-white mb-2">
               Accès restreint
             </h2>
-            <p className="text-sm text-taupe dark:text-slate-400 mb-4">
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">
               Vous n&apos;avez pas les permissions nécessaires pour accéder à cette page.
             </p>
             <Button variant="outline" onClick={() => router.push('/dashboard')}>

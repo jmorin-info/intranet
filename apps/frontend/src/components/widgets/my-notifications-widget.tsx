@@ -27,7 +27,7 @@ export function MyNotificationsWidget() {
         </div>
         <Link
           href="/notifications"
-          className="text-[11px] text-taupe dark:text-slate-400 hover:text-primary flex items-center gap-1"
+          className="text-[11px] text-seal-gray-500 dark:text-slate-400 hover:text-primary flex items-center gap-1"
         >
           Tout voir <ArrowRight className="h-3 w-3" />
         </Link>
@@ -36,7 +36,7 @@ export function MyNotificationsWidget() {
       {unread.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-4 text-center">
           <CheckCheck className="h-8 w-8 text-emerald-400" />
-          <p className="text-xs text-taupe dark:text-slate-500">Tout est lu — bravo !</p>
+          <p className="text-xs text-seal-gray-500 dark:text-slate-500">Tout est lu — bravo !</p>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -60,11 +60,11 @@ export function MyNotificationsWidget() {
                     {n.title}
                   </p>
                   {n.body && (
-                    <p className="text-[10px] text-taupe dark:text-slate-500 truncate">
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">
                       {n.body}
                     </p>
                   )}
-                  <p className="text-[9px] text-taupe/70 dark:text-slate-600 tabular-nums mt-0.5">
+                  <p className="text-[9px] text-seal-gray-500/70 dark:text-slate-600 tabular-nums mt-0.5">
                     {n.createdAt ? formatRelativeTime(n.createdAt) : ''}
                   </p>
                 </div>

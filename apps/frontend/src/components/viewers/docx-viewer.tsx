@@ -40,7 +40,7 @@ export function DocxViewer({ url, className }: DocxViewerProps) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-12 text-sm text-taupe">
+      <div className="flex items-center justify-center py-12 text-sm text-seal-gray-500">
         Impossible de charger l&apos;apercu DOCX
       </div>
     );

@@ -28,7 +28,7 @@ export function LuccaWidget() {
           <Users className="h-5 w-5 text-primary" />
           <div>
             <p className="text-xs font-semibold text-navy dark:text-white">Mon équipe — {deptInfo.name}</p>
-            <p className="text-[10px] text-taupe dark:text-slate-400">{deptInfo.userCount} collaborateur{deptInfo.userCount > 1 ? 's' : ''}</p>
+            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{deptInfo.userCount} collaborateur{deptInfo.userCount > 1 ? 's' : ''}</p>
           </div>
         </div>
       )}
@@ -43,9 +43,9 @@ export function LuccaWidget() {
           <Calendar className="h-5 w-5 text-blue-500" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-primary transition-colors">Congés & Absences</p>
-            <p className="text-[10px] text-taupe dark:text-slate-400">Consulter le solde, poser un congé</p>
+            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">Consulter le solde, poser un congé</p>
           </div>
-          <ExternalLink className="h-4 w-4 text-taupe opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ExternalLink className="h-4 w-4 text-seal-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
         </a>
         <a
           href={`${LUCCA_URL}#/timmi-timesheet`}
@@ -56,9 +56,9 @@ export function LuccaWidget() {
           <Briefcase className="h-5 w-5 text-emerald-500" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-navy dark:text-white group-hover:text-primary transition-colors">Feuille de temps</p>
-            <p className="text-[10px] text-taupe dark:text-slate-400">Saisir les heures travaillées</p>
+            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">Saisir les heures travaillées</p>
           </div>
-          <ExternalLink className="h-4 w-4 text-taupe opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ExternalLink className="h-4 w-4 text-seal-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
         </a>
       </div>
     </div>

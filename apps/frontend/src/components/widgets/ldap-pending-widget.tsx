@@ -32,7 +32,7 @@ export function LdapPendingWidget() {
   const contextColor =
     count === 0
       ? 'text-emerald-600 dark:text-emerald-400'
-      : 'text-taupe dark:text-slate-400';
+      : 'text-seal-gray-500 dark:text-slate-400';
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
