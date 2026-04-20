@@ -26,7 +26,7 @@ export function WorkflowTimeline({ steps, className }: WorkflowTimelineProps) {
                 'flex h-7 w-7 items-center justify-center rounded-full border-2',
                 step.status === 'completed' && 'border-emerald-500 bg-emerald-500 text-white',
                 step.status === 'current' && 'border-primary bg-primary text-white',
-                step.status === 'pending' && 'border-gray-300 bg-white text-taupe',
+                step.status === 'pending' && 'border-gray-300 bg-white text-seal-gray-500',
               )}
             >
               {step.status === 'completed' ? (
@@ -52,13 +52,13 @@ export function WorkflowTimeline({ steps, className }: WorkflowTimelineProps) {
             <p
               className={cn(
                 'text-sm font-semibold',
-                step.status === 'pending' ? 'text-taupe' : 'text-navy',
+                step.status === 'pending' ? 'text-seal-gray-500' : 'text-navy',
               )}
             >
               {step.label}
             </p>
             {(step.date || step.actor) && (
-              <p className="text-xs text-taupe mt-0.5">
+              <p className="text-xs text-seal-gray-500 mt-0.5">
                 {step.actor && <span>{step.actor}</span>}
                 {step.actor && step.date && <span> — </span>}
                 {step.date && <span>{step.date}</span>}

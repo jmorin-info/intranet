@@ -28,7 +28,7 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
             'px-4 py-2.5 text-sm font-medium transition-colors duration-200 relative whitespace-nowrap',
             activeTab === tab.id
               ? 'text-primary'
-              : 'text-taupe hover:text-navy dark:hover:text-white',
+              : 'text-seal-gray-500 hover:text-navy dark:hover:text-white',
           )}
         >
           <span className="flex items-center gap-1.5">
@@ -40,7 +40,7 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
                   'inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-medium',
                   activeTab === tab.id
                     ? 'bg-primary text-white'
-                    : 'bg-gray-100 dark:bg-slate-800 text-taupe dark:text-slate-400',
+                    : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400',
                 )}
               >
                 {tab.count}
