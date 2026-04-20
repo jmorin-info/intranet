@@ -1,6 +1,6 @@
 # SEAL Migration — Cas ambigus (Session 2+)
 
-_Généré par `scripts/seal-migrate.mjs` le 2026-04-20T13:28:40.722Z._
+_Généré par `scripts/seal-migrate.mjs` le 2026-04-20T18:22:00.253Z._
 
 Ce fichier liste toutes les occurrences **refusées** par le script de migration auto.
 Chaque ligne nécessite une décision humaine (designer / lead front) en session 2+.
