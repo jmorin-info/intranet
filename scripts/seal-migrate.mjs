@@ -36,6 +36,10 @@ const IGNORE_DIRS = new Set([
   '.claude',
 ]);
 
+// Le script lui-même contient des classes en tant que littéraux dans les tests
+// unitaires ; on l'exclut du scan pour éviter l'auto-migration.
+const SELF_EXCLUDE = new Set(['scripts/seal-migrate.mjs']);
+
 // Regex cible : classes taupe migrables ------------------------------
 // On capture :
 //   - un éventuel préfixe Tailwind (hover:, focus:, focus-visible:, dark:, group-hover:,
@@ -57,9 +61,18 @@ const TAUPE_BORDER_RE = new RegExp(
   'g',
 );
 
-// Pour l'ambigu — tout ce qui contient navy, bg-taupe, from-taupe, etc.
+// ─── Navy → seal-navy (session 2, Option B validée) ────────────────────────
+// Renommage sémantique pur : seal-navy = #004469 (identique à navy legacy).
+// Tous les utilitaires navy sont migrables en 1:1 (pas d'ambiguïté visuelle).
+const NAVY_UTIL_RE = new RegExp(
+  `(?<![\\w-])(${VARIANT_PREFIX})(text|bg|border|ring|from|to|via)-navy(\\/[0-9]{1,3})?(?![\\w-])`,
+  'g',
+);
+
+// Pour l'ambigu — tout ce qui reste (bg-taupe, from-taupe, ring-taupe).
+// Depuis session 2 : navy n'est plus ambigü (décision Option B prise).
 const AMBIGUOUS_RE = new RegExp(
-  `(?<![\\w-])((?:[a-zA-Z][a-zA-Z0-9-]*:)*)((?:text|bg|border|ring|from|to|via)-(?:navy|taupe)(?:-[a-z0-9]+)?(?:\\/[0-9]{1,3})?)(?![\\w-])`,
+  `(?<![\\w-])((?:[a-zA-Z][a-zA-Z0-9-]*:)*)((?:bg|from|to|via|ring)-taupe(?:-[a-z0-9]+)?(?:\\/[0-9]{1,3})?)(?![\\w-])`,
   'g',
 );
 
@@ -100,13 +113,21 @@ function runSelfTest() {
     ['border-taupe', 'border-seal-gray-500', 'basique border-taupe'],
     ['border-taupe/30', 'border-seal-gray-500/30', 'border avec opacity'],
     ['hover:border-taupe/50', 'hover:border-seal-gray-500/50', 'hover border opacity'],
+    // Session 2 : navy → seal-navy (Option B validée)
+    ['text-navy', 'text-seal-navy', 'navy → seal-navy basique'],
+    ['text-navy/80', 'text-seal-navy/80', 'navy opacity préservée'],
+    ['bg-navy', 'bg-seal-navy', 'bg-navy migré'],
+    ['bg-navy/10', 'bg-seal-navy/10', 'bg-navy opacity migré'],
+    ['border-navy/20', 'border-seal-navy/20', 'border-navy opacity migré'],
+    ['hover:bg-navy', 'hover:bg-seal-navy', 'hover bg-navy migré'],
+    ['from-navy', 'from-seal-navy', 'gradient from-navy migré'],
+    ['ring-navy/50', 'ring-seal-navy/50', 'ring-navy migré'],
     // Non transformations (doivent rester identiques)
-    ['text-navy', 'text-navy', 'navy non touché'],
-    ['text-navy/80', 'text-navy/80', 'navy opacity non touché'],
-    ['bg-taupe', 'bg-taupe', 'bg-taupe non touché'],
-    ['bg-navy/10', 'bg-navy/10', 'bg-navy non touché'],
+    ['bg-taupe', 'bg-taupe', 'bg-taupe non migré (session 2 scope)'],
     ['text-taupee', 'text-taupee', 'pas de faux positif sur text-taupee'],
     ['my-text-taupe', 'my-text-taupe', 'pas de match au milieu d\'un mot'],
+    ['my-text-navy', 'my-text-navy', 'pas de match navy au milieu d\'un mot'],
+    ['navy', 'navy', 'navy nu (sans préfixe) non touché'],
     // contexte dans une chaîne de classes
     [
       'flex items-center text-taupe hover:text-taupe/70 dark:text-slate-400',
@@ -138,12 +159,13 @@ function runSelfTest() {
 
   // Détection ambigü
   const ambiguousInputs = [
-    ['text-navy', true],
-    ['text-navy/80', true],
-    ['bg-navy/10', true],
+    // Session 2 : navy n'est plus ambigu (migré 1:1)
+    ['text-navy', false],
+    ['bg-navy/10', false],
+    ['from-navy', false],
+    // bg-taupe reste ambigu en session 2 (pas d'équivalent seal-gray background)
     ['bg-taupe', true],
-    ['from-navy', true],
-    ['text-taupe', true], // aussi listé (même s'il sera migré)
+    ['from-taupe', true],
     ['text-slate-400', false],
     ['bg-primary', false],
   ];
@@ -174,6 +196,9 @@ function applyMigration(src) {
     )
     .replace(TAUPE_BORDER_RE, (_m, prefix, util, opacity) =>
       `${prefix}${util}-seal-gray-500${opacity || ''}`,
+    )
+    .replace(NAVY_UTIL_RE, (_m, prefix, util, opacity) =>
+      `${prefix}${util}-seal-navy${opacity || ''}`,
     );
 }
 
@@ -213,9 +238,19 @@ function analyzeFile(abs) {
         context: line.trim().slice(0, 160),
       });
     }
+    const re3 = new RegExp(NAVY_UTIL_RE.source, 'g');
+    while ((m = re3.exec(line)) !== null) {
+      migrable.push({
+        line: i + 1,
+        col: m.index,
+        from: m[0],
+        to: `${m[1]}${m[2]}-seal-navy${m[3] || ''}`,
+        context: line.trim().slice(0, 160),
+      });
+    }
   }
 
-  // Collecte ambigus (navy* + bg-taupe + from-taupe…)
+  // Collecte ambigus (bg-taupe + from-taupe…)
   const ambiguous = [];
   const allMatches = [...src.matchAll(AMBIGUOUS_RE)];
   for (const m of allMatches) {
@@ -224,7 +259,9 @@ function analyzeFile(abs) {
     // Donc on exclut text-taupe et border-taupe (avec shade éventuelle).
     if (/^text-taupe(\/[0-9]+)?$/.test(cls)) continue;
     if (/^border-taupe(\/[0-9]+)?$/.test(cls)) continue;
-    // Le reste = ambigü (navy, bg-taupe, from-taupe, etc.)
+    // Session 2 : navy est migré, pas ambigu
+    if (/^(text|bg|border|ring|from|to|via)-navy(\/[0-9]+)?$/.test(cls)) continue;
+    // Le reste = ambigü (bg-taupe, from-taupe, etc.)
     const lineStart = src.lastIndexOf('\n', m.index) + 1;
     const lineEnd = src.indexOf('\n', m.index);
     const lineText = src.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
@@ -396,6 +433,9 @@ if (fileArg) {
   const base = scope ? resolve(ROOT, scope) : ROOT;
   targets = walk(base);
 }
+// Exclut le script lui-même du scan (ses tests unitaires contiennent des
+// littéraux `text-taupe` / `text-navy` qu'on ne doit pas migrer).
+targets = targets.filter((abs) => !SELF_EXCLUDE.has(relative(ROOT, abs)));
 
 const analyses = [];
 const allAmbiguous = [];
