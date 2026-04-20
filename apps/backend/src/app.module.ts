@@ -68,6 +68,7 @@ import { ExternalPersonsModule } from './external-persons/external-persons.modul
 import { KnowBe4Module } from './knowbe4/knowbe4.module';
 import { BackupModule } from './backup/backup.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -147,6 +148,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     KnowBe4Module,
     BackupModule,
     DashboardModule,
+    ChatModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
