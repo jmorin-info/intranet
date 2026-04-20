@@ -97,7 +97,7 @@ export default function NewInlineDocumentPage() {
             <FileText className="h-5 w-5 text-primary" />
             Nouveau document en ligne
           </h1>
-          <p className="text-sm text-taupe dark:text-slate-400">
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400">
             Rédigez directement une politique ou une procédure sans fichier
             externe. ISO 27001 A.5.1 — GED native.
           </p>

@@ -579,9 +579,9 @@ export default function DocumentDetailPage() {
 
   if (!doc || !user) return (
     <div className="max-w-5xl mx-auto py-12 text-center">
-      <FileText className="h-12 w-12 text-taupe/30 mx-auto mb-4" />
+      <FileText className="h-12 w-12 text-seal-gray-500/30 mx-auto mb-4" />
       <p className="text-lg font-medium text-navy dark:text-white">Document introuvable</p>
-      <p className="text-sm text-taupe dark:text-slate-400 mt-1">Ce document n&apos;existe pas ou vous n&apos;y avez pas accès.</p>
+      <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">Ce document n&apos;existe pas ou vous n&apos;y avez pas accès.</p>
       <Button variant="outline" className="mt-4" onClick={() => router.push('/documents')}>
         <ArrowLeft className="h-4 w-4" /> {t('documents.detail.back')}
       </Button>
@@ -793,9 +793,9 @@ export default function DocumentDetailPage() {
                 onClick={() => router.back()}
                 className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors duration-200"
               >
-                <ArrowLeft className="h-4 w-4 text-taupe dark:text-slate-400" />
+                <ArrowLeft className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
               </button>
-              <span className="font-mono text-[11px] text-taupe dark:text-slate-400">{doc.reference}</span>
+              <span className="font-mono text-[11px] text-seal-gray-500 dark:text-slate-400">{doc.reference}</span>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                 doc.classification === 'PUBLIC' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
                 doc.classification === 'CONFIDENTIEL' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
@@ -812,7 +812,7 @@ export default function DocumentDetailPage() {
                   className={`inline-flex items-center gap-1 transition ${transitions.length > 0 ? 'cursor-pointer hover:ring-2 hover:ring-primary/30 rounded-full' : 'cursor-default'}`}
                 >
                   <StatusBadge status={doc.status as 'DRAFT' | 'IN_REVIEW' | 'REVIEW_APPROVED' | 'PENDING_APPROVAL' | 'APPROVED' | 'OBSOLETE' | 'ARCHIVED'} />
-                  {transitions.length > 0 && <ChevronDown className={`h-3 w-3 text-taupe transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />}
+                  {transitions.length > 0 && <ChevronDown className={`h-3 w-3 text-seal-gray-500 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />}
                 </button>
                 {statusDropdownOpen && (
                   <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1 animate-fade-in-up">
@@ -960,7 +960,7 @@ export default function DocumentDetailPage() {
                           <button
                             key={tool.path}
                             type="button"
-                            className="w-full text-left px-3 py-2 text-xs text-taupe dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white first:rounded-t-lg last:rounded-b-lg transition-colors duration-200"
+                            className="w-full text-left px-3 py-2 text-xs text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-navy dark:hover:text-white first:rounded-t-lg last:rounded-b-lg transition-colors duration-200"
                             onClick={() => router.push(`/tools/pdf?doc=${doc.id}&version=${currentVersion.id}`)}
                           >
                             {tool.label}
@@ -1065,7 +1065,7 @@ export default function DocumentDetailPage() {
                   onChange={(e) => setAiQuestion(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !aiAnswerLoading) handleAskAi(); }}
                   placeholder="Ex: Quels sont les contrôles ISO couverts ?"
-                  className="flex-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-taupe focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="flex-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-navy dark:text-white placeholder:text-seal-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
                   disabled={aiAnswerLoading}
                 />
                 <Button
@@ -1089,7 +1089,7 @@ export default function DocumentDetailPage() {
                   <p className="text-sm leading-relaxed text-navy dark:text-slate-200 whitespace-pre-wrap">{aiAnswer}</p>
                   {aiAnswerSources.length > 0 && (
                     <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
-                      <p className="text-[10px] font-semibold text-taupe dark:text-slate-400 mb-1">Sources</p>
+                      <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 mb-1">Sources</p>
                       <div className="flex flex-wrap gap-1.5">
                         {aiAnswerSources.map((src, idx) => (
                           <span key={idx} className="text-[10px] bg-primary/10 text-primary rounded px-1.5 py-0.5">
@@ -1105,7 +1105,7 @@ export default function DocumentDetailPage() {
           )}
 
           {/* Line 3: Inline metadata */}
-          <div className="flex items-center gap-4 flex-wrap text-[11px] text-taupe dark:text-slate-400">
+          <div className="flex items-center gap-4 flex-wrap text-[11px] text-seal-gray-500 dark:text-slate-400">
             <span>
               Proprietaire : <span className="text-navy dark:text-white font-medium">{doc.owner.firstName} {doc.owner.lastName}</span>
             </span>
@@ -1169,7 +1169,7 @@ export default function DocumentDetailPage() {
 
                 {templates.length > 0 && (
                   <div className="mb-4">
-                    <label className="text-xs font-semibold text-taupe dark:text-slate-400 block mb-1">Modèle DocuSeal (optionnel)</label>
+                    <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">Modèle DocuSeal (optionnel)</label>
                     <select className="w-full rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                       value={selectedTemplate || ''} onChange={e => setSelectedTemplate(e.target.value ? Number(e.target.value) : null)}>
                       <option value="">Sans modèle</option>
@@ -1179,7 +1179,7 @@ export default function DocumentDetailPage() {
                 )}
 
                 <div className="mb-4">
-                  <label className="text-xs font-semibold text-taupe dark:text-slate-400 block mb-1">Signataire</label>
+                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">Signataire</label>
                   <select className="w-full rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                     value={selectedSigner} onChange={e => setSelectedSigner(e.target.value)}>
                     <option value="">Sélectionner...</option>
@@ -1223,7 +1223,7 @@ export default function DocumentDetailPage() {
               <p className="text-sm font-semibold text-navy dark:text-white">
                 Accusé de réception requis
               </p>
-              <p className="text-xs text-taupe dark:text-slate-400">
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                 Veuillez confirmer la lecture de ce document
               </p>
             </div>
@@ -1252,7 +1252,7 @@ export default function DocumentDetailPage() {
                             ? 'border-emerald-500 bg-emerald-500 text-white'
                             : step.status === 'current'
                             ? 'border-primary bg-primary text-white animate-pulse shadow-lg shadow-primary/30'
-                            : 'border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 text-taupe dark:text-slate-500'
+                            : 'border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-500'
                         }`}
                       >
                         {step.status === 'completed' ? (
@@ -1264,17 +1264,17 @@ export default function DocumentDetailPage() {
                         )}
                       </div>
                       <span className={`mt-1.5 text-[11px] font-medium text-center leading-tight ${
-                        step.status === 'pending' ? 'text-taupe dark:text-slate-500' : 'text-navy dark:text-white'
+                        step.status === 'pending' ? 'text-seal-gray-500 dark:text-slate-500' : 'text-navy dark:text-white'
                       }`}>
                         {step.label}
                       </span>
                       {step.actor && (
-                        <span className="text-[10px] text-taupe dark:text-slate-400 text-center mt-0.5 max-w-[90px] truncate">
+                        <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 text-center mt-0.5 max-w-[90px] truncate">
                           {step.actor}
                         </span>
                       )}
                       {step.date && (
-                        <span className="text-[10px] text-taupe dark:text-slate-500 text-center">
+                        <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 text-center">
                           {step.date}
                         </span>
                       )}
@@ -1311,7 +1311,7 @@ export default function DocumentDetailPage() {
                         </div>
                         <div>
                           <h3 className="text-base font-semibold text-navy dark:text-white">Résumé IA</h3>
-                          <p className="text-[10px] text-taupe dark:text-slate-500">Généré par l&apos;assistant OMNITECH (Ollama)</p>
+                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">Généré par l&apos;assistant OMNITECH (Ollama)</p>
                         </div>
                       </div>
                       <div className="text-sm leading-relaxed text-navy dark:text-slate-200 whitespace-pre-wrap wiki-content">
@@ -1322,23 +1322,23 @@ export default function DocumentDetailPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs text-taupe dark:text-slate-400">Responsable</p>
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-400">Responsable</p>
                       <p className="text-sm font-semibold text-navy dark:text-white">
                         {doc.owner.firstName} {doc.owner.lastName}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-taupe dark:text-slate-400">Prochaine révision</p>
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-400">Prochaine révision</p>
                       <p className="text-sm font-semibold text-navy dark:text-white">
                         {doc.nextReviewDate ? formatDate(doc.nextReviewDate) : 'Non défini'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-taupe dark:text-slate-400">Créé le</p>
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-400">Créé le</p>
                       <p className="text-sm text-navy dark:text-white">{formatDateTime(doc.createdAt)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-taupe dark:text-slate-400">Dernière modification</p>
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-400">Dernière modification</p>
                       <p className="text-sm text-navy dark:text-white">{formatDateTime(doc.updatedAt)}</p>
                     </div>
                   </div>
@@ -1368,13 +1368,13 @@ export default function DocumentDetailPage() {
                             <p className="text-sm font-semibold text-navy dark:text-white">
                               v{currentVersion.versionNumber} — {currentVersion.fileType}
                             </p>
-                            <p className="text-xs text-taupe dark:text-slate-400">
+                            <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                               {formatFileSize(currentVersion.fileSizeBytes)} — Checksum SHA-256
                             </p>
                           </div>
                         </div>
                         <div className="mt-2 rounded bg-gray-100 dark:bg-slate-800 p-2">
-                          <p className="font-mono text-[10px] text-taupe dark:text-slate-400 break-all">
+                          <p className="font-mono text-[10px] text-seal-gray-500 dark:text-slate-400 break-all">
                             <Hash className="inline h-3 w-3 mr-0.5" />
                             {currentVersion.checksum}
                           </p>
@@ -1409,7 +1409,7 @@ export default function DocumentDetailPage() {
                     ) : /\.docx?$/i.test(currentVersion.fileType || '') ? (
                       <DocxViewer url={previewUrl} />
                     ) : (
-                      <div className="flex items-center justify-center py-12 text-sm text-taupe dark:text-slate-400">
+                      <div className="flex items-center justify-center py-12 text-sm text-seal-gray-500 dark:text-slate-400">
                         <FileImage className="h-5 w-5 mr-2" />
                         Aperçu non disponible pour ce format
                       </div>
@@ -1421,12 +1421,12 @@ export default function DocumentDetailPage() {
               {activeTab === 'versions' && (
                 <div className="space-y-3">
                   {versions.length === 0 ? (
-                    <p className="text-sm text-taupe dark:text-slate-400 text-center py-8">Aucune version</p>
+                    <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">Aucune version</p>
                   ) : (
                     <>
                       {/* Barre d'action compare */}
                       <div className="flex items-center justify-between rounded-lg border border-dashed border-gray-200 dark:border-slate-700 px-3 py-2">
-                        <div className="text-xs text-taupe dark:text-slate-400">
+                        <div className="text-xs text-seal-gray-500 dark:text-slate-400">
                           {compareMode ? (
                             <span>
                               Sélectionnez <span className="font-semibold text-navy dark:text-white">deux versions</span> à comparer
@@ -1484,7 +1484,7 @@ export default function DocumentDetailPage() {
                                   ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20'
                                   : isSelected
                                     ? 'border-primary bg-primary/10 text-primary'
-                                    : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-taupe dark:text-slate-400',
+                                    : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400',
                               ].join(' ')}>
                                 {isCurrent ? (
                                   <Layers className="h-4 w-4" />
@@ -1530,11 +1530,11 @@ export default function DocumentDetailPage() {
                                           Version actuelle
                                         </span>
                                       )}
-                                      <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] text-taupe">
+                                      <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] text-seal-gray-500">
                                         {formatFileSize(version.fileSizeBytes)}
                                       </span>
                                     </div>
-                                    <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">
+                                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
                                       {version.uploadedBy.firstName} {version.uploadedBy.lastName} —{' '}
                                       {formatDateTime(version.createdAt)}
                                     </p>
@@ -1546,7 +1546,7 @@ export default function DocumentDetailPage() {
                                     <button
                                       onClick={() => copyChecksum(version.checksum)}
                                       title="Cliquer pour copier le checksum SHA-256"
-                                      className="mt-1.5 inline-flex items-center gap-1 font-mono text-[10px] text-taupe hover:text-primary transition break-all text-left"
+                                      className="mt-1.5 inline-flex items-center gap-1 font-mono text-[10px] text-seal-gray-500 hover:text-primary transition break-all text-left"
                                     >
                                       {copiedChecksum === version.checksum ? <Check className="h-3 w-3 flex-shrink-0 text-emerald-500" /> : <Hash className="h-3 w-3 flex-shrink-0" />}
                                       <span className="truncate max-w-[260px]">{version.checksum}</span>
@@ -1629,7 +1629,7 @@ export default function DocumentDetailPage() {
                   )}
 
                   {sigs.length === 0 ? (
-                    <p className="text-sm text-taupe dark:text-slate-400 text-center py-8">Aucune signature</p>
+                    <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">Aucune signature</p>
                   ) : (
                     sigs.map((sig) => (
                       <div
@@ -1641,7 +1641,7 @@ export default function DocumentDetailPage() {
                           <p className="text-sm font-semibold text-navy dark:text-white">
                             {sig.signer.firstName} {sig.signer.lastName}
                           </p>
-                          <p className="text-xs text-taupe dark:text-slate-400">
+                          <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                             Demande par {sig.requestedBy.firstName} {sig.requestedBy.lastName}
                           </p>
                           {sig.status === 'PENDING' && (
@@ -1671,7 +1671,7 @@ export default function DocumentDetailPage() {
                         </div>
                         <SignatureBadge status={sig.status as 'PENDING' | 'SIGNED' | 'REJECTED' | 'EXPIRED'} />
                         {sig.signedAt && (
-                          <span className="text-xs text-taupe dark:text-slate-400">{formatDateTime(sig.signedAt)}</span>
+                          <span className="text-xs text-seal-gray-500 dark:text-slate-400">{formatDateTime(sig.signedAt)}</span>
                         )}
                       </div>
                     ))
@@ -1682,7 +1682,7 @@ export default function DocumentDetailPage() {
               {activeTab === 'acknowledgments' && (
                 <div className="space-y-3">
                   {acks.length === 0 ? (
-                    <p className="text-sm text-taupe dark:text-slate-400 text-center py-8">Aucun accusé de réception</p>
+                    <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">Aucun accusé de réception</p>
                   ) : (
                     acks.map((ack) => (
                       <div
@@ -1695,7 +1695,7 @@ export default function DocumentDetailPage() {
                             {ack.user.firstName} {ack.user.lastName}
                           </p>
                         </div>
-                        <span className="text-xs text-taupe dark:text-slate-400">
+                        <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                           {formatDateTime(ack.acknowledgedAt)}
                         </span>
                       </div>
@@ -1720,7 +1720,7 @@ export default function DocumentDetailPage() {
                             entry.type === 'version' ? 'bg-primary text-white' :
                             entry.severity === 'CRITICAL' ? 'bg-red-500 text-white' :
                             entry.severity === 'WARN' ? 'bg-amber-500 text-white' :
-                            'bg-gray-200 dark:bg-slate-600 text-taupe dark:text-slate-400'
+                            'bg-gray-200 dark:bg-slate-600 text-seal-gray-500 dark:text-slate-400'
                           }`}>
                             {entry.type === 'version' ? <FileText className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                           </div>
@@ -1737,12 +1737,12 @@ export default function DocumentDetailPage() {
                                     {entry.action?.replace(/_/g, ' ')}
                                   </p>
                                 )}
-                                {entry.changeLog && <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">{entry.changeLog}</p>}
-                                {entry.user && <p className="text-xs text-taupe dark:text-slate-400">{entry.user.firstName} {entry.user.lastName}</p>}
+                                {entry.changeLog && <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{entry.changeLog}</p>}
+                                {entry.user && <p className="text-xs text-seal-gray-500 dark:text-slate-400">{entry.user.firstName} {entry.user.lastName}</p>}
                               </div>
                               <div className="text-right">
-                                <p className="text-xs text-taupe dark:text-slate-500">{formatDate(entry.date)}</p>
-                                {entry.fileSize && <p className="text-[10px] text-taupe dark:text-slate-500">{(entry.fileSize / 1024).toFixed(0)} Ko</p>}
+                                <p className="text-xs text-seal-gray-500 dark:text-slate-500">{formatDate(entry.date)}</p>
+                                {entry.fileSize && <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">{(entry.fileSize / 1024).toFixed(0)} Ko</p>}
                               </div>
                             </div>
                           </div>
@@ -1750,7 +1750,7 @@ export default function DocumentDetailPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-taupe dark:text-slate-400 text-center py-8">Aucun historique disponible</p>
+                    <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">Aucun historique disponible</p>
                   )}
                 </div>
               )}
@@ -1764,14 +1764,14 @@ export default function DocumentDetailPage() {
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
                         placeholder="Ajouter un commentaire..."
-                        className="w-full rounded-lg border border-gray-200 dark:border-slate-700 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white placeholder:text-taupe focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 min-h-[60px] resize-y"
+                        className="w-full rounded-lg border border-gray-200 dark:border-slate-700 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white placeholder:text-seal-gray-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 min-h-[60px] resize-y"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                             handleAddComment();
                           }
                         }}
                       />
-                      <p className="text-[10px] text-taupe dark:text-slate-500 mt-1">
+                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-1">
                         Ctrl+Entree pour envoyer
                       </p>
                     </div>
@@ -1789,8 +1789,8 @@ export default function DocumentDetailPage() {
                   {/* Comments list */}
                   {comments.length === 0 ? (
                     <div className="text-center py-8">
-                      <MessageSquare className="h-8 w-8 text-taupe/30 mx-auto mb-2" />
-                      <p className="text-sm text-taupe dark:text-slate-400">Aucun commentaire pour le moment</p>
+                      <MessageSquare className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
+                      <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucun commentaire pour le moment</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1803,7 +1803,7 @@ export default function DocumentDetailPage() {
                             <span className="text-sm font-semibold text-navy dark:text-white">
                               {c.authorName}
                             </span>
-                            <span className="text-[10px] text-taupe dark:text-slate-500">
+                            <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">
                               {formatDateTime(c.createdAt)}
                             </span>
                           </div>
@@ -1834,7 +1834,7 @@ export default function DocumentDetailPage() {
                   />
                   {canEditInline && (
                     <div className="flex items-center justify-end gap-2">
-                      <span className="text-xs text-taupe">
+                      <span className="text-xs text-seal-gray-500">
                         {inlineDirty ? 'Modifications non enregistrées' : 'À jour'}
                       </span>
                       <Button
@@ -1853,7 +1853,7 @@ export default function DocumentDetailPage() {
               {activeTab === 'iso-analysis' && isoAnalysis && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm text-taupe dark:text-slate-400">{isoAnalysis.length} contrôles identifiés</p>
+                    <p className="text-sm text-seal-gray-500 dark:text-slate-400">{isoAnalysis.length} contrôles identifiés</p>
                     <Button
                       variant="primary"
                       size="sm"
@@ -2039,15 +2039,15 @@ export default function DocumentDetailPage() {
             </CardHeader>
             <CardContent className="space-y-2.5 text-[11px]">
               <div className="flex justify-between items-start">
-                <span className="text-taupe dark:text-slate-400">Référence</span>
+                <span className="text-seal-gray-500 dark:text-slate-400">Référence</span>
                 <span className="font-mono font-semibold text-navy dark:text-white">{doc.reference}</span>
               </div>
               <div className="flex justify-between items-start">
-                <span className="text-taupe dark:text-slate-400">Catégorie</span>
+                <span className="text-seal-gray-500 dark:text-slate-400">Catégorie</span>
                 <Badge variant="navy">{DOCUMENT_CATEGORY_LABELS[doc.category as keyof typeof DOCUMENT_CATEGORY_LABELS]}</Badge>
               </div>
               <div className="flex justify-between items-start">
-                <span className="text-taupe dark:text-slate-400">Classification</span>
+                <span className="text-seal-gray-500 dark:text-slate-400">Classification</span>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                   doc.classification === 'PUBLIC' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
                   doc.classification === 'CONFIDENTIEL' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
@@ -2059,39 +2059,39 @@ export default function DocumentDetailPage() {
               </div>
               <div className="border-t border-gray-100 dark:border-slate-700 pt-2" />
               <div className="flex justify-between items-start">
-                <span className="text-taupe dark:text-slate-400">Propriétaire</span>
+                <span className="text-seal-gray-500 dark:text-slate-400">Propriétaire</span>
                 <span className="text-navy dark:text-white font-medium">{doc.owner.firstName} {doc.owner.lastName}</span>
               </div>
               {doc.reviewer && (
                 <div className="flex justify-between items-start">
-                  <span className="text-taupe dark:text-slate-400">Réviseur</span>
+                  <span className="text-seal-gray-500 dark:text-slate-400">Réviseur</span>
                   <span className="text-navy dark:text-white font-medium">{doc.reviewer.firstName} {doc.reviewer.lastName}</span>
                 </div>
               )}
               {doc.approver && (
                 <div className="flex justify-between items-start">
-                  <span className="text-taupe dark:text-slate-400">Approbateur</span>
+                  <span className="text-seal-gray-500 dark:text-slate-400">Approbateur</span>
                   <span className="text-navy dark:text-white font-medium">{doc.approver.firstName} {doc.approver.lastName}</span>
                 </div>
               )}
               <div className="border-t border-gray-100 dark:border-slate-700 pt-2" />
               <div className="flex justify-between items-start">
-                <span className="text-taupe dark:text-slate-400">Créé le</span>
+                <span className="text-seal-gray-500 dark:text-slate-400">Créé le</span>
                 <span className="text-navy dark:text-white">{formatDate(doc.createdAt)}</span>
               </div>
               <div className="flex justify-between items-start">
-                <span className="text-taupe dark:text-slate-400">Modifié le</span>
+                <span className="text-seal-gray-500 dark:text-slate-400">Modifié le</span>
                 <span className="text-navy dark:text-white">{formatDate(doc.updatedAt)}</span>
               </div>
               {doc.nextReviewDate && (
                 <div className="flex justify-between items-start">
-                  <span className="text-taupe dark:text-slate-400">Prochaine révision</span>
+                  <span className="text-seal-gray-500 dark:text-slate-400">Prochaine révision</span>
                   <span className={`font-semibold ${reviewInfo?.color || 'text-navy dark:text-white'}`}>{formatDate(doc.nextReviewDate)}</span>
                 </div>
               )}
               <div className="flex justify-between items-start">
-                <span className="text-taupe dark:text-slate-400">Visibilité</span>
-                <span className={`font-semibold ${doc.isPublic ? 'text-emerald-600 dark:text-emerald-400' : 'text-taupe dark:text-slate-400'}`}>{doc.isPublic ? 'Public' : 'Privé'}</span>
+                <span className="text-seal-gray-500 dark:text-slate-400">Visibilité</span>
+                <span className={`font-semibold ${doc.isPublic ? 'text-emerald-600 dark:text-emerald-400' : 'text-seal-gray-500 dark:text-slate-400'}`}>{doc.isPublic ? 'Public' : 'Privé'}</span>
               </div>
             </CardContent>
           </Card>
@@ -2158,7 +2158,7 @@ export default function DocumentDetailPage() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm">
                         <span className="font-semibold text-navy dark:text-white">{signed} / {total}</span>
-                        <span className="text-xs text-taupe dark:text-slate-400">{pct}% signées</span>
+                        <span className="text-xs text-seal-gray-500 dark:text-slate-400">{pct}% signées</span>
                       </div>
                       <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                         <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
@@ -2182,19 +2182,19 @@ export default function DocumentDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-taupe dark:text-slate-400">Versions</span>
+                <span className="text-xs text-seal-gray-500 dark:text-slate-400">Versions</span>
                 <span className="text-sm font-semibold text-navy dark:text-white">{versions.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-taupe dark:text-slate-400">Signatures</span>
+                <span className="text-xs text-seal-gray-500 dark:text-slate-400">Signatures</span>
                 <span className="text-sm font-semibold text-navy dark:text-white">{sigs.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-taupe dark:text-slate-400">Accusés de réception</span>
+                <span className="text-xs text-seal-gray-500 dark:text-slate-400">Accusés de réception</span>
                 <span className="text-sm font-semibold text-navy dark:text-white">{acks.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-taupe dark:text-slate-400">Contrôles ISO</span>
+                <span className="text-xs text-seal-gray-500 dark:text-slate-400">Contrôles ISO</span>
                 <span className="text-sm font-semibold text-navy dark:text-white">{isos.length}</span>
               </div>
             </CardContent>
@@ -2246,11 +2246,11 @@ export default function DocumentDetailPage() {
                     >
                       <p className="text-xs font-semibold text-navy dark:text-white line-clamp-1">{rd.title}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="font-mono text-[10px] text-taupe dark:text-slate-400">{rd.reference}</span>
+                        <span className="font-mono text-[10px] text-seal-gray-500 dark:text-slate-400">{rd.reference}</span>
                         <StatusBadge status={rd.status as 'DRAFT' | 'IN_REVIEW' | 'PENDING_APPROVAL' | 'APPROVED' | 'OBSOLETE' | 'ARCHIVED'} />
                       </div>
                       {rd.category && (
-                        <span className="text-[10px] text-taupe dark:text-slate-400 mt-1 block">
+                        <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 mt-1 block">
                           {DOCUMENT_CATEGORY_LABELS[rd.category as keyof typeof DOCUMENT_CATEGORY_LABELS] || rd.category}
                         </span>
                       )}
@@ -2260,7 +2260,7 @@ export default function DocumentDetailPage() {
                             <span key={isoControl.code} className="text-[9px] font-mono bg-primary/10 text-primary rounded px-1 py-0.5">{isoControl.code}</span>
                           ))}
                           {rd.isoControls.length > 2 && (
-                            <span className="text-[9px] text-taupe dark:text-slate-400">+{rd.isoControls.length - 2}</span>
+                            <span className="text-[9px] text-seal-gray-500 dark:text-slate-400">+{rd.isoControls.length - 2}</span>
                           )}
                         </div>
                       )}
@@ -2369,7 +2369,7 @@ export default function DocumentDetailPage() {
                   <p className="text-sm font-semibold text-navy dark:text-white">
                     Suggestions d&apos;amélioration
                   </p>
-                  <p className="text-xs text-taupe dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
                     Cochez les points à retravailler. Le rédacteur les verra dans sa notification.
                   </p>
                 </div>
@@ -2382,7 +2382,7 @@ export default function DocumentDetailPage() {
               <div className="space-y-3">
                 {suggestionsCatalog.categories.map((cat) => (
                   <div key={cat.name}>
-                    <p className="text-[10px] font-medium uppercase tracking-widest text-taupe dark:text-slate-500 mb-2">
+                    <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">
                       {cat.name}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
@@ -2408,7 +2408,7 @@ export default function DocumentDetailPage() {
                               }}
                               className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary"
                             />
-                            <span className={`text-xs leading-snug ${checked ? 'text-navy dark:text-white font-medium' : 'text-taupe dark:text-slate-400'}`}>
+                            <span className={`text-xs leading-snug ${checked ? 'text-navy dark:text-white font-medium' : 'text-seal-gray-500 dark:text-slate-400'}`}>
                               {item.label}
                             </span>
                           </label>
@@ -2422,7 +2422,7 @@ export default function DocumentDetailPage() {
           )}
 
           <div className="flex items-center justify-between gap-3 pt-2 border-t border-gray-100 dark:border-slate-700">
-            <p className="text-[11px] text-taupe dark:text-slate-500">
+            <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">
               {rejectComment.trim().length < 10
                 ? `${10 - rejectComment.trim().length} caractère(s) restant(s) avant validation`
                 : '✓ Commentaire suffisant'}

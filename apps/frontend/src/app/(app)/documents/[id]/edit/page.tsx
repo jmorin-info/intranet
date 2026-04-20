@@ -187,7 +187,7 @@ export default function EditDocumentPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
         <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800">
-          <ArrowLeft className="h-5 w-5 text-taupe dark:text-slate-400" />
+          <ArrowLeft className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
         </button>
         <h1 className="text-2xl font-medium text-navy dark:text-white">Modifier le document</h1>
         {hasChanges && (
@@ -244,7 +244,7 @@ export default function EditDocumentPage() {
                       }`}
                     >
                       <span className={`text-sm font-semibold ${cls.color}`}>{cls.label}</span>
-                      <p className="text-[11px] text-taupe dark:text-slate-400 mt-0.5">{cls.desc}</p>
+                      <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5">{cls.desc}</p>
                     </button>
                   );
                 })}
@@ -282,7 +282,7 @@ export default function EditDocumentPage() {
                 placeholder="Rechercher un contrôle ISO..."
                 value={controlSearch}
                 onChange={(e) => setControlSearch(e.target.value)}
-                className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-navy dark:text-white placeholder:text-taupe focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-navy dark:text-white placeholder:text-seal-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
               {controlSearch && (
                 <div className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 divide-y divide-gray-100 dark:divide-slate-700">
@@ -297,7 +297,7 @@ export default function EditDocumentPage() {
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800 text-sm"
                     >
                       <span className="font-mono font-semibold text-navy dark:text-white">{ctrl.code}</span>
-                      <span className="text-taupe dark:text-slate-400 ml-2">{ctrl.titleFr || ctrl.title}</span>
+                      <span className="text-seal-gray-500 dark:text-slate-400 ml-2">{ctrl.titleFr || ctrl.title}</span>
                     </button>
                   ))}
                 </div>
@@ -347,15 +347,15 @@ export default function EditDocumentPage() {
             <Card>
               <CardHeader><h3 className="text-sm font-semibold text-navy dark:text-white">Version actuelle</h3></CardHeader>
               <CardContent className="text-xs space-y-2">
-                <div><span className="text-taupe dark:text-slate-400">Version :</span> <span className="text-navy dark:text-white font-semibold">{doc?.currentVersion?.versionNumber || '1.0'}</span></div>
-                <div><span className="text-taupe dark:text-slate-400">Statut :</span> <Badge variant={doc?.status === 'APPROVED' ? 'approved' : doc?.status === 'DRAFT' ? 'draft' : 'info'}>{doc?.status || 'N/A'}</Badge></div>
-                <div><span className="text-taupe dark:text-slate-400">Classification :</span> <span className={`font-semibold ${
+                <div><span className="text-seal-gray-500 dark:text-slate-400">Version :</span> <span className="text-navy dark:text-white font-semibold">{doc?.currentVersion?.versionNumber || '1.0'}</span></div>
+                <div><span className="text-seal-gray-500 dark:text-slate-400">Statut :</span> <Badge variant={doc?.status === 'APPROVED' ? 'approved' : doc?.status === 'DRAFT' ? 'draft' : 'info'}>{doc?.status || 'N/A'}</Badge></div>
+                <div><span className="text-seal-gray-500 dark:text-slate-400">Classification :</span> <span className={`font-semibold ${
                   watch('classification') === 'PUBLIC' ? 'text-emerald-600' :
                   watch('classification') === 'CONFIDENTIEL' ? 'text-amber-600' :
                   watch('classification') === 'SECRET' ? 'text-red-600' : 'text-blue-600'
                 }`}>{watch('classification') || doc?.classification || 'INTERNE'}</span></div>
-                <div><span className="text-taupe dark:text-slate-400">Référence :</span> <span className="font-mono">{doc?.reference || 'N/A'}</span></div>
-                <div><span className="text-taupe dark:text-slate-400">Propriétaire :</span> {doc?.owner?.firstName} {doc?.owner?.lastName}</div>
+                <div><span className="text-seal-gray-500 dark:text-slate-400">Référence :</span> <span className="font-mono">{doc?.reference || 'N/A'}</span></div>
+                <div><span className="text-seal-gray-500 dark:text-slate-400">Propriétaire :</span> {doc?.owner?.firstName} {doc?.owner?.lastName}</div>
               </CardContent>
             </Card>
 
