@@ -24,6 +24,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
+import { ApiSocketIoAdapter } from './socket-io-adapter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -51,6 +52,9 @@ async function bootstrap() {
       process.exit(1);
     }
   }
+
+  // Socket.IO adapter custom pour utiliser /api/socket.io (traverse BunkerWeb)
+  app.useWebSocketAdapter(new ApiSocketIoAdapter(app));
 
   app.use(cookieParser());
 

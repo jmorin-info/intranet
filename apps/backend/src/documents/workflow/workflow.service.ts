@@ -123,6 +123,15 @@ export class WorkflowService {
       throw new BadRequestException("Aucun reviewer n'est assigné à ce document. Désignez-en un (via 'Modifier') avant de soumettre en revue.");
     }
 
+    if (!document.approverId) {
+      throw new BadRequestException(
+        "Aucun approbateur final n'est assigné à ce document. Le workflow complet "
+        + "(Rédaction → Revue → Confirmation → Approbation) exige les DEUX rôles "
+        + "avant la soumission. Modifiez le document pour désigner un approbateur "
+        + "(via 'Modifier') avant de soumettre en revue.",
+      );
+    }
+
     // Native (inline) documents store content directly; uploaded documents
     // need at least one version. Both paths require something to review.
     if (!document.currentVersionId && !document.isNative) {

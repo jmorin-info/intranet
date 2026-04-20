@@ -31,9 +31,19 @@ export class RunbooksService {
     });
   }
 
-  async findBySlug(slug: string) {
-    const runbook = await this.prisma.runbook.findUnique({ where: { slug } });
-    if (!runbook) throw new NotFoundException('Runbook not found');
+  /**
+   * Lookup intelligent : si le paramètre ressemble à un UUID on cherche par
+   * id (et on inclut les executions comme findById), sinon par slug.
+   * Le frontend passe indifféremment l'un ou l'autre selon le contexte
+   * (listing → slug, detail page → id).
+   */
+  async findBySlug(slugOrId: string) {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_RE.test(slugOrId)) {
+      return this.findById(slugOrId);
+    }
+    const runbook = await this.prisma.runbook.findUnique({ where: { slug: slugOrId } });
+    if (!runbook) throw new NotFoundException('Runbook introuvable');
     return runbook;
   }
 
@@ -42,7 +52,7 @@ export class RunbooksService {
       where: { id },
       include: { executions: { orderBy: { startedAt: 'desc' }, take: 10 } },
     });
-    if (!runbook) throw new NotFoundException('Runbook not found');
+    if (!runbook) throw new NotFoundException('Runbook introuvable');
     return runbook;
   }
 

@@ -771,6 +771,32 @@ export default function DocumentDetailPage() {
     <div className="space-y-6 animate-fade-in-up">
       <EntityBreadcrumb module="Documents" href="/documents" current={doc.reference} />
 
+      {/* Workflow alert : approbateur final manquant quand statut IN_REVIEW */}
+      {doc.status === 'IN_REVIEW' && !doc.approver && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold text-seal-navy dark:text-white">
+              Approbateur final manquant
+            </p>
+            <p className="text-seal-gray-500 dark:text-slate-300 mt-1">
+              Ce document est en revue mais n'a pas d'approbateur final assigné. Le
+              reviewer ne pourra pas valider la revue tant qu'un approbateur n'a
+              pas été désigné. Cliquez sur <strong>Modifier</strong> pour en
+              assigner un.
+            </p>
+          </div>
+          {user?.id === doc.owner?.id && (
+            <Link
+              href={`/documents/${doc.id}/edit`}
+              className="flex-shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition"
+            >
+              Modifier
+            </Link>
+          )}
+        </div>
+      )}
+
       {/* Compact header card */}
       <Card className="shadow-sm rounded-xl overflow-hidden">
         {/* Status indicator bar */}
@@ -813,9 +839,16 @@ export default function DocumentDetailPage() {
                       </button>
                     )}
                     {doc.status === 'IN_REVIEW' && transitions.includes('REVIEW_APPROVED' as never) && (
-                      <button type="button" onClick={() => { setStatusDropdownOpen(false); handleAction('approve-review'); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
+                      <button
+                        type="button"
+                        disabled={!doc.approver}
+                        onClick={() => { setStatusDropdownOpen(false); handleAction('approve-review'); }}
+                        title={!doc.approver ? "Assignez d'abord un approbateur final (bouton 'Modifier')" : undefined}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
                         <UserCheck className="h-3.5 w-3.5 text-emerald-500" />
                         <span className="text-seal-navy dark:text-white">Valider la revue</span>
+                        {!doc.approver && <span className="ml-auto text-[10px] text-seal-gray-500">(approbateur requis)</span>}
                       </button>
                     )}
                     {doc.status === 'IN_REVIEW' && (
