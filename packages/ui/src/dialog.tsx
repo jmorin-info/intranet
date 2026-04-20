@@ -72,7 +72,7 @@ export function Dialog({ open, onClose, title, description, children, className 
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
           <div>
-            <h2 id="dialog-title" className="text-lg font-semibold text-navy dark:text-white">
+            <h2 id="dialog-title" className="text-lg font-semibold text-seal-navy dark:text-white">
               {title}
             </h2>
             {description && <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5">{description}</p>}

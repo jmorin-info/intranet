@@ -11,7 +11,7 @@ const buttonVariants = cva(
         // Primary OMNITECH (#F68D2E) — bouton principal renforcé look SEAL
         primary: 'bg-[#F9964A] text-white hover:bg-[#e67d1e] active:bg-[#c46714] rounded-btn shadow-sm hover:shadow-md',
         secondary:
-          'bg-transparent border-2 border-navy text-navy hover:bg-navy hover:text-white rounded-btn',
+          'bg-transparent border-2 border-seal-navy text-seal-navy hover:bg-seal-navy hover:text-white rounded-btn',
         danger: 'bg-[#892034] text-white hover:bg-[#6f1a2a] rounded-btn shadow-sm hover:shadow-md',
         ghost: 'bg-transparent text-primary hover:bg-primary-light rounded-btn',
         outline:

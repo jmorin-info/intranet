@@ -12,7 +12,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="space-y-1">
         {label && (
-          <label htmlFor={inputId} className="block text-[13px] font-semibold text-navy dark:text-white">
+          <label htmlFor={inputId} className="block text-[13px] font-semibold text-seal-navy dark:text-white">
             {label}
             {props.required && <span className="text-red-500 ml-0.5">*</span>}
           </label>

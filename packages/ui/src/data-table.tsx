@@ -54,7 +54,7 @@ const DataTableRow = React.memo(function DataTableRow<T extends object>({
       onClick={() => onRowClick?.(item)}
     >
       {columns.map((col) => (
-        <td key={col.key} className={cn('px-4 py-3.5 text-navy dark:text-slate-200', col.className)}>
+        <td key={col.key} className={cn('px-4 py-3.5 text-seal-navy dark:text-slate-200', col.className)}>
           {col.render
             ? col.render(item)
             : ((item as Record<string, unknown>)[col.key] as React.ReactNode)}
@@ -176,7 +176,7 @@ export function DataTable<T extends object>({
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="px-3 py-1 text-sm font-semibold text-navy dark:text-white rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 tabular-nums">
+            <span className="px-3 py-1 text-sm font-semibold text-seal-navy dark:text-white rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 tabular-nums">
               {page} / {totalPages}
             </span>
             <Button

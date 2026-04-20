@@ -28,7 +28,7 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
             'px-4 py-2.5 text-sm font-medium transition-colors duration-200 relative whitespace-nowrap',
             activeTab === tab.id
               ? 'text-primary'
-              : 'text-seal-gray-500 hover:text-navy dark:hover:text-white',
+              : 'text-seal-gray-500 hover:text-seal-navy dark:hover:text-white',
           )}
         >
           <span className="flex items-center gap-1.5">

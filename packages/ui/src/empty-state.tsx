@@ -41,7 +41,7 @@ export function EmptyState({
         <div className={cn('rounded-2xl p-5 mb-5 ring-1 ring-black/5 dark:ring-white/5', bg)}>
           {icon}
         </div>
-        <h3 className="text-lg font-semibold text-navy dark:text-white">{title}</h3>
+        <h3 className="text-lg font-semibold text-seal-navy dark:text-white">{title}</h3>
         {description && (
           <p className="mt-2 text-sm text-seal-gray-500 dark:text-slate-400 text-center max-w-sm leading-relaxed">{description}</p>
         )}

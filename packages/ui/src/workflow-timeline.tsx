@@ -52,7 +52,7 @@ export function WorkflowTimeline({ steps, className }: WorkflowTimelineProps) {
             <p
               className={cn(
                 'text-sm font-semibold',
-                step.status === 'pending' ? 'text-seal-gray-500' : 'text-navy',
+                step.status === 'pending' ? 'text-seal-gray-500' : 'text-seal-navy',
               )}
             >
               {step.label}

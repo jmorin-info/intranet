@@ -14,8 +14,8 @@ export function IsoControlBadge({ code, title, onClick, className }: IsoControlB
   return (
     <Component
       className={cn(
-        'inline-flex items-center gap-1 rounded-full bg-navy/10 px-2 py-0.5 text-xs font-semibold text-navy',
-        onClick && 'cursor-pointer hover:bg-navy/20 transition-colors',
+        'inline-flex items-center gap-1 rounded-full bg-seal-navy/10 px-2 py-0.5 text-xs font-semibold text-seal-navy',
+        onClick && 'cursor-pointer hover:bg-seal-navy/20 transition-colors',
         className,
       )}
       onClick={onClick}

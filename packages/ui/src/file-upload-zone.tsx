@@ -59,7 +59,7 @@ export function FileUploadZone({
       >
         <FileText className="h-8 w-8 text-primary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-navy truncate">{selectedFile.name}</p>
+          <p className="text-sm font-semibold text-seal-navy truncate">{selectedFile.name}</p>
           <p className="text-xs text-seal-gray-500">{formatSize(selectedFile.size)}</p>
         </div>
         {onClear && (
@@ -94,7 +94,7 @@ export function FileUploadZone({
       >
         <Upload className={cn('h-8 w-8', isDragging ? 'text-primary' : 'text-seal-gray-500')} />
         <div className="text-center">
-          <p className="text-sm font-semibold text-navy dark:text-white">
+          <p className="text-sm font-semibold text-seal-navy dark:text-white">
             Glissez-deposez un fichier ici
           </p>
           <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
