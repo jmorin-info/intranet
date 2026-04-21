@@ -57,6 +57,7 @@ import {
   Headset,
   BookMarked,
   Camera,
+  Inbox,
   UserCheck2,
   Layers,
   ClipboardCheck,
@@ -530,6 +531,11 @@ export function Sidebar() {
         { label: 'Revue des acces', href: '/admin/access-reviews', icon: UserCheck2, minRole: UserRole.SUPER_ADMIN },
         { label: t('nav.chartes'), href: '/admin/chartes', icon: Shield, minRole: UserRole.ADMIN },
         { label: 'Certifications', href: '/admin/certificates', icon: Award, minRole: UserRole.ADMIN },
+        // --- Content & animation ---
+        { label: 'Contenus & animation', href: '#sep-admin-content', icon: Camera, separator: true, minRole: UserRole.ADMIN },
+        { label: 'Médiathèque', href: '/admin/media', icon: Camera, minRole: UserRole.ADMIN },
+        { label: 'Avis & enquêtes satisfaction', href: '/admin/feedback', icon: Star, minRole: UserRole.ADMIN },
+        { label: 'Espaces de ticketing', href: '/admin/ticket-spaces', icon: Inbox, minRole: UserRole.ADMIN },
         // --- Audit ---
         { label: 'Audit & reporting', href: '#sep-admin-3', icon: ClipboardList, separator: true, minRole: UserRole.ADMIN },
         { label: 'Audit (log + chronologie)', href: '/admin/audit', icon: ClipboardList, minRole: UserRole.ADMIN },
