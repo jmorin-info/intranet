@@ -859,6 +859,8 @@ export function Sidebar() {
       )}
 
       <aside
+        id="main-nav"
+        aria-label="Navigation principale"
         className={cn(
           'fixed left-0 top-0 z-50 h-screen flex',
           'transition-transform duration-200 ease-out',
@@ -867,7 +869,6 @@ export function Sidebar() {
           'lg:translate-x-0',
           mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
-        aria-label="Navigation principale"
       >
         {/* =========================================================== */}
         {/* RAIL (56px) — dégradé subtil + ombre droite pour profondeur */}

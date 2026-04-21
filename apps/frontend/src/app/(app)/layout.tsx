@@ -10,6 +10,7 @@ import { AuthProvider } from '@/components/layout/auth-provider';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
+import { SkipLinks } from '@/components/a11y/skip-links';
 import { useUIStore } from '@/stores/ui-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { usePathname } from 'next/navigation';
@@ -123,6 +124,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthProvider>
+      <SkipLinks />
       <div className="min-h-screen bg-surface">
         {/* Sidebar isolée : si elle crash, le reste de la page continue à s'afficher */}
         <ErrorBoundary fallback={
