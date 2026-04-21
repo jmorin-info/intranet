@@ -100,6 +100,7 @@ export const ROUTES: readonly RouteEntry[] = [
   { path: '/admin/ad-audit',        label: 'Audit AD',                  labelEn: 'AD Audit',              icon: 'ShieldAlert',    group: 'admin', requiredRole: 'ADMIN' as UserRole },
   { path: '/admin/it-exports',      label: 'Exports IT',                labelEn: 'IT Exports',            icon: 'ClipboardCheck', group: 'admin', requiredRole: 'ADMIN' as UserRole },
   { path: '/admin/system-health',   label: 'Sante systeme',             labelEn: 'System Health',         icon: 'Activity',       group: 'admin', requiredRole: 'ADMIN' as UserRole },
+  { path: '/admin/system-monitoring', label: 'Monitoring systeme',       labelEn: 'System Monitoring',     icon: 'Activity',       group: 'admin', requiredRole: 'ADMIN' as UserRole },
   { path: '/admin/config',          label: 'Configuration',             labelEn: 'Configuration',         icon: 'Settings',       group: 'admin', requiredRole: 'SUPER_ADMIN' as UserRole },
   { path: '/admin/spaces',          label: 'Espaces & modules',         labelEn: 'Spaces & Modules',      icon: 'Layers',         group: 'admin', requiredRole: 'SUPER_ADMIN' as UserRole },
   { path: '/admin/dark-mode-audit', label: 'Audit dark mode',           labelEn: 'Dark Mode Audit',       icon: 'Moon',           group: 'admin', requiredRole: 'ADMIN' as UserRole },

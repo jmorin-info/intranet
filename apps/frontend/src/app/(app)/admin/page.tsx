@@ -41,6 +41,7 @@ import {
   Ticket,
   MessageCircle,
   Camera,
+  Activity,
 } from 'lucide-react';
 import { Card, CardContent } from '@omnitech/ui';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
@@ -141,6 +142,7 @@ function buildSections(): AdminSection[] {
       items: [
         { title: 'Configuration', description: 'SMTP, matrice d\'accès, paramètres globaux.', href: '/admin/config', icon: Settings, minRole: UserRole.SUPER_ADMIN },
         { title: 'Santé système', description: 'Status checks, diagnostics live.', href: '/admin/system-health', icon: HeartPulse, minRole: UserRole.ADMIN },
+        { title: 'Monitoring système', description: 'CPU, RAM, disque + utilisation intranet + stockage par utilisateur.', href: '/admin/system-monitoring', icon: Activity, minRole: UserRole.ADMIN },
         { title: 'Spaces & modules', description: 'Activation des modules par espace.', href: '/admin/spaces', icon: Layers, minRole: UserRole.SUPER_ADMIN },
         { title: 'Espaces de ticketing', description: 'Workspaces ticketing + gestion des membres (user/rôle/dept).', href: '/admin/ticket-spaces', icon: Ticket, minRole: UserRole.ADMIN },
         { title: 'Certificats', description: 'Attestations formation / habilitation.', href: '/admin/certificates', icon: Award, minRole: UserRole.ADMIN },
