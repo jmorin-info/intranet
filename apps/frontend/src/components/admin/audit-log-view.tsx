@@ -90,6 +90,7 @@ export function AuditLogView({ renderToolbar }: AuditLogViewProps = {}) {
   const [search, setSearch] = useState('');
   const [severity, setSeverity] = useState('');
   const [action, setAction] = useState('');
+  const [bulkOnly, setBulkOnly] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
@@ -104,6 +105,7 @@ export function AuditLogView({ renderToolbar }: AuditLogViewProps = {}) {
       if (debouncedSearch) params.search = debouncedSearch;
       if (severity) params.severity = severity;
       if (action) params.action = action;
+      if (bulkOnly) params.bulk = 'true';
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
       const { data } = await api.get('/audit', { params });
@@ -113,7 +115,7 @@ export function AuditLogView({ renderToolbar }: AuditLogViewProps = {}) {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, severity, action, dateFrom, dateTo]);
+  }, [page, debouncedSearch, severity, action, bulkOnly, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchLogs();
@@ -228,6 +230,7 @@ export function AuditLogView({ renderToolbar }: AuditLogViewProps = {}) {
       if (exportDateTo) params.dateTo = exportDateTo;
       if (severity) params.severity = severity;
       if (action) params.action = action;
+      if (bulkOnly) params.bulk = 'true';
       const { data } = await api.get('/audit', { params });
       const allEntries: AuditEntry[] = data?.data || [];
       if (allEntries.length === 0) { toast.error('Aucune entrée à exporter pour cette période'); setExporting(false); return; }
@@ -474,9 +477,18 @@ export function AuditLogView({ renderToolbar }: AuditLogViewProps = {}) {
                 className="text-xs border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-seal-navy dark:text-white w-full sm:w-auto"
               />
             </div>
-            {(action || dateFrom || dateTo || severity || search) && (
+            <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-xs text-seal-navy dark:text-white whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={bulkOnly}
+                onChange={(e) => { setBulkOnly(e.target.checked); setPage(1); }}
+                className="h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-600 text-primary focus:ring-primary"
+              />
+              Actions en masse uniquement
+            </label>
+            {(action || dateFrom || dateTo || severity || search || bulkOnly) && (
               <button
-                onClick={() => { setSearch(''); setSeverity(''); setAction(''); setDateFrom(''); setDateTo(''); setPage(1); }}
+                onClick={() => { setSearch(''); setSeverity(''); setAction(''); setBulkOnly(false); setDateFrom(''); setDateTo(''); setPage(1); }}
                 className="text-xs text-primary hover:underline whitespace-nowrap"
               >
                 {t('auditLog.resetFilters')}
