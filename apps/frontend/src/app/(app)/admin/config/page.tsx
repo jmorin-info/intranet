@@ -111,7 +111,8 @@ const ACCESS_MODULES = [
   'Documents', 'Procédures', 'Tickets', 'News', 'Wiki', 'Veille', 'Incidents',
   'Quiz', 'Satisfaction', 'Helpdesk', 'Files', 'Signatures', 'Certificats',
   'Annuaire', 'Calendrier', 'Timeline', 'Chartes', 'Alertes', 'Runbooks',
-  'Outils PDF', 'Recherche', 'KnowBe4', 'Conformité', 'Workflows', 'Admin',
+  'Outils PDF', 'Recherche', 'KnowBe4', 'Conformité', 'Workflows',
+  'Médiathèque', 'Avis & satisfaction', 'Monitoring', 'Admin',
 ] as const;
 
 const ACCESS_MODULE_DESCRIPTIONS: Record<string, string> = {
@@ -139,17 +140,21 @@ const ACCESS_MODULE_DESCRIPTIONS: Record<string, string> = {
   KnowBe4: 'Intégration KnowBe4 : sync formations, campagnes, certificats',
   'Conformité': 'Module conformité ISO 27001 : contrôles, couverture, planning',
   Workflows: 'Workflows d\'approbation configurables (ISO 27001 A.5.1)',
+  'Médiathèque': 'Galerie photos & vidéos gérée par l\'équipe Marketing (canManageMedia requis pour upload)',
+  'Avis & satisfaction': 'Modération des témoignages collaborateurs + enquêtes de satisfaction',
+  Monitoring: 'Monitoring système (CPU/RAM/disque) + utilisation intranet + stockage par utilisateur',
   Admin: 'Administration système : configuration, utilisateurs, rôles et paramètres',
 };
 
 const ACCESS_ROLES = [
-  'SUPER_ADMIN', 'ADMIN', 'DIRECTION', 'REVIEWER', 'AUDITEUR', 'COLLABORATEUR', 'PRESTATAIRE',
+  'SUPER_ADMIN', 'ADMIN', 'DIRECTION', 'MANAGER', 'REVIEWER', 'AUDITEUR', 'COLLABORATEUR', 'PRESTATAIRE',
 ] as const;
 
 const ACCESS_ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
   ADMIN: 'Administrateur',
   DIRECTION: 'Direction',
+  MANAGER: 'Manager',
   REVIEWER: 'Réviseur',
   AUDITEUR: 'Auditeur',
   COLLABORATEUR: 'Collaborateur',
@@ -160,6 +165,7 @@ const ACCESS_ROLE_DESCRIPTIONS: Record<string, string> = {
   SUPER_ADMIN: 'Accès total au système, gestion de tous les paramètres et utilisateurs',
   ADMIN: 'Administration courante, gestion des utilisateurs et de la configuration',
   DIRECTION: 'Supervision stratégique, accès à tous les modules sauf administration',
+  MANAGER: 'Encadrement intermédiaire : gestion d\'espaces ticketing, publication runbooks, validation 1er niveau',
   REVIEWER: 'Revue et validation des documents, accès étendu en lecture',
   AUDITEUR: 'Accès en lecture pour audit et conformité, sans modification',
   COLLABORATEUR: 'Accès standard aux outils collaboratifs du quotidien',
@@ -171,10 +177,11 @@ const ADMIN_LEVEL_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'DIRECTION']);
 const ACCESS_MATRIX: Record<string, Set<string>> = {
   SUPER_ADMIN: new Set(ACCESS_MODULES),
   ADMIN: new Set(ACCESS_MODULES),
-  DIRECTION: new Set(['Documents', 'Procédures', 'Tickets', 'News', 'Wiki', 'Veille', 'Incidents', 'Quiz', 'Satisfaction', 'Helpdesk', 'Files', 'Signatures', 'Certificats', 'Annuaire', 'Calendrier', 'Timeline', 'Chartes', 'Alertes', 'Runbooks', 'Recherche', 'Conformité']),
-  REVIEWER: new Set(['Documents', 'Procédures', 'Tickets', 'News', 'Wiki', 'Veille', 'Incidents', 'Quiz', 'Satisfaction', 'Helpdesk', 'Files', 'Signatures', 'Certificats', 'Annuaire', 'Calendrier', 'Timeline', 'Chartes', 'Alertes', 'Runbooks', 'Recherche']),
-  AUDITEUR: new Set(['Documents', 'Procédures', 'Tickets', 'News', 'Wiki', 'Veille', 'Incidents', 'Quiz', 'Satisfaction', 'Files', 'Certificats', 'Annuaire', 'Calendrier', 'Timeline', 'Chartes', 'Alertes', 'Recherche', 'Conformité']),
-  COLLABORATEUR: new Set(['Documents', 'Procédures', 'Tickets', 'News', 'Wiki', 'Veille', 'Quiz', 'Satisfaction', 'Helpdesk', 'Files', 'Signatures', 'Certificats', 'Annuaire', 'Calendrier', 'Timeline', 'Chartes', 'Alertes', 'Recherche', 'Outils PDF']),
+  DIRECTION: new Set(['Documents', 'Procédures', 'Tickets', 'News', 'Wiki', 'Veille', 'Incidents', 'Quiz', 'Satisfaction', 'Helpdesk', 'Files', 'Signatures', 'Certificats', 'Annuaire', 'Calendrier', 'Timeline', 'Chartes', 'Alertes', 'Runbooks', 'Recherche', 'Conformité', 'Médiathèque', 'Avis & satisfaction', 'Monitoring']),
+  MANAGER: new Set(['Documents', 'Procédures', 'Tickets', 'News', 'Wiki', 'Veille', 'Incidents', 'Quiz', 'Satisfaction', 'Helpdesk', 'Files', 'Signatures', 'Certificats', 'Annuaire', 'Calendrier', 'Timeline', 'Chartes', 'Alertes', 'Runbooks', 'Outils PDF', 'Recherche', 'Médiathèque']),
+  REVIEWER: new Set(['Documents', 'Procédures', 'Tickets', 'News', 'Wiki', 'Veille', 'Incidents', 'Quiz', 'Satisfaction', 'Helpdesk', 'Files', 'Signatures', 'Certificats', 'Annuaire', 'Calendrier', 'Timeline', 'Chartes', 'Alertes', 'Runbooks', 'Recherche', 'Médiathèque']),
+  AUDITEUR: new Set(['Documents', 'Procédures', 'Tickets', 'News', 'Wiki', 'Veille', 'Incidents', 'Quiz', 'Satisfaction', 'Files', 'Certificats', 'Annuaire', 'Calendrier', 'Timeline', 'Chartes', 'Alertes', 'Recherche', 'Conformité', 'Médiathèque']),
+  COLLABORATEUR: new Set(['Documents', 'Procédures', 'Tickets', 'News', 'Wiki', 'Veille', 'Quiz', 'Satisfaction', 'Helpdesk', 'Files', 'Signatures', 'Certificats', 'Annuaire', 'Calendrier', 'Timeline', 'Chartes', 'Alertes', 'Recherche', 'Outils PDF', 'Médiathèque']),
   PRESTATAIRE: new Set(['Documents', 'Tickets', 'Files', 'Signatures', 'Certificats', 'Helpdesk']),
 };
 
@@ -1507,9 +1514,11 @@ export default function AdminConfigPage() {
                                   ? 'warning'
                                   : role === 'DIRECTION'
                                     ? 'primary'
-                                    : role === 'REVIEWER'
-                                      ? 'info'
-                                      : 'navy'
+                                    : role === 'MANAGER'
+                                      ? 'primary'
+                                      : role === 'REVIEWER'
+                                        ? 'info'
+                                        : 'navy'
                             }
                           >
                             {ACCESS_ROLE_LABELS[role]}

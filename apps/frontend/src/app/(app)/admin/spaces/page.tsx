@@ -33,6 +33,7 @@ const ROLES = [
   'SUPER_ADMIN',
   'ADMIN',
   'DIRECTION',
+  'MANAGER',
   'REVIEWER',
   'AUDITEUR',
   'COLLABORATEUR',
