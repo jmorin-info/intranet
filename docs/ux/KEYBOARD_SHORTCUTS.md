@@ -40,6 +40,7 @@ Pattern vim-like : presser `g` puis la lettre dans les 1500 ms qui suivent.
 |---|---|
 | `?` | Afficher la modal d'aide raccourcis |
 | `Alt+S` | Sauter au contenu principal (pattern sites gouvernementaux FR) |
+| `Alt+A` | Sauter aux actions de la page (barre d'actions dans le header) |
 | `Tab` | Parcourir les skip-links (visibles uniquement au focus) |
 | `Escape` | Fermer modales / annuler séquences |
 
