@@ -2,10 +2,25 @@
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { usePathname } from 'next/navigation';
+import { toast } from 'sonner';
 import { Button } from '@omnitech/ui';
-import { ChevronRight, ChevronLeft, X, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
+import {
+  ChevronRight,
+  ChevronLeft,
+  X,
+  ArrowRight,
+  CheckCircle2,
+  Sparkles,
+  Target,
+  SkipForward,
+} from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
-import { getOnboardingSteps, type OnboardingStepData } from './onboarding/onboarding-steps';
+import {
+  getOnboardingSteps,
+  type OnboardingStepData,
+  type OnboardingStepChallenge,
+} from './onboarding/onboarding-steps';
 import { MiniMockup } from './onboarding/mini-mockup';
 
 /* ------------------------------------------------------------------ */
@@ -13,7 +28,60 @@ import { MiniMockup } from './onboarding/mini-mockup';
 /* ------------------------------------------------------------------ */
 
 const STORAGE_KEY = 'onboarding_completed';
+const CHALLENGES_KEY = 'onboarding_challenges_completed';
 const RESTART_EVENT = 'omnitech:onboarding:restart';
+
+/* ------------------------------------------------------------------ */
+/*  Challenge matching helpers                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Compare une combinaison clavier attendue ("Control+Shift+k") à un KeyboardEvent.
+ * Case-insensitive, ordre des modifiers indifférent.
+ */
+function matchKeyboardCombo(expected: string, e: KeyboardEvent): boolean {
+  const parts = expected
+    .toLowerCase()
+    .split('+')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const wantCtrl = parts.includes('control') || parts.includes('ctrl');
+  const wantShift = parts.includes('shift');
+  const wantAlt = parts.includes('alt');
+  const wantMeta = parts.includes('meta') || parts.includes('cmd');
+  const mainKey = parts.find(
+    (p) => !['control', 'ctrl', 'shift', 'alt', 'meta', 'cmd'].includes(p),
+  );
+  if (!mainKey) return false;
+
+  // On accepte Ctrl *ou* Meta (Mac) dès qu'on attend Control, cohérent avec Ctrl+K/⌘K.
+  const ctrlOk = wantCtrl ? e.ctrlKey || e.metaKey : !e.ctrlKey && !e.metaKey;
+  const shiftOk = wantShift ? e.shiftKey : !e.shiftKey;
+  const altOk = wantAlt ? e.altKey : !e.altKey;
+  const metaOk = wantMeta ? e.metaKey || e.ctrlKey : true; // déjà couvert par ctrlOk
+  const keyOk = e.key.toLowerCase() === mainKey;
+  return ctrlOk && shiftOk && altOk && metaOk && keyOk;
+}
+
+function loadCompletedChallenges(): Set<number> {
+  try {
+    const raw = localStorage.getItem(CHALLENGES_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((n): n is number => typeof n === 'number'));
+  } catch {
+    return new Set();
+  }
+}
+
+function persistCompletedChallenges(set: Set<number>): void {
+  try {
+    localStorage.setItem(CHALLENGES_KEY, JSON.stringify(Array.from(set)));
+  } catch {
+    /* ignore quota */
+  }
+}
 
 /**
  * Relance la visite guidée de l'intranet. Peut être appelée depuis n'importe
@@ -22,6 +90,7 @@ const RESTART_EVENT = 'omnitech:onboarding:restart';
 export function restartOnboardingTour() {
   try {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(CHALLENGES_KEY);
   } catch {
     /* ignore quota */
   }
@@ -72,11 +141,13 @@ function useHighlightRect(selector: string | undefined): DOMRect | null {
 
 export function OnboardingTour() {
   const user = useAuthStore((s) => s.user);
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
   const [isAnimating, setIsAnimating] = useState(false);
+  const [challengeCompleted, setChallengeCompleted] = useState<Set<number>>(() => new Set());
 
   // Steps personnalisés selon le rôle de l'utilisateur connecté.
   // Si user pas encore chargé, tours par défaut (COLLABORATEUR) — sera
@@ -88,6 +159,9 @@ export function OnboardingTour() {
 
   useEffect(() => {
     setMounted(true);
+    // Hydrate les défis déjà validés lors d'une session précédente (si l'user
+    // ferme le tour et le relance, il garde sa progression).
+    setChallengeCompleted(loadCompletedChallenges());
     try {
       const done = localStorage.getItem(STORAGE_KEY);
       if (done !== 'true') {
@@ -105,11 +179,20 @@ export function OnboardingTour() {
     function onRestart() {
       setStep(0);
       setDirection('next');
+      setChallengeCompleted(new Set());
       setOpen(true);
     }
     window.addEventListener(RESTART_EVENT, onRestart);
     return () => window.removeEventListener(RESTART_EVENT, onRestart);
   }, []);
+
+  // Résolution de l'étape courante + état du défi associé.
+  // Déclaré AVANT le useEffect de raccourcis clavier car ce dernier s'appuie
+  // sur `hasPendingChallenge` pour ne pas swallow la touche du défi.
+  const current = steps[step];
+  const challenge: OnboardingStepChallenge | undefined = current?.challenge;
+  const isChallengeDone = challengeCompleted.has(step);
+  const hasPendingChallenge = Boolean(challenge && !isChallengeDone);
 
   // Raccourcis clavier : ← Prev, → Next, Enter Next, Esc Close.
   // N'interfère pas avec les inputs (les CTA ouvrent nouvel onglet, le tour
@@ -122,6 +205,9 @@ export function OnboardingTour() {
         setDirection('prev');
         setStep((s) => (s > 0 ? s - 1 : s));
       } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        // Ne pas swallow la touche si elle correspond au défi en cours
+        // (on laisse l'event se propager pour l'app + le détecteur).
+        if (hasPendingChallenge) return;
         e.preventDefault();
         setDirection('next');
         setStep((s) => {
@@ -140,10 +226,67 @@ export function OnboardingTour() {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, steps.length]);
+  }, [open, steps.length, hasPendingChallenge]);
 
-  const current = steps[step];
   const highlight = useHighlightRect(open ? current?.highlight : undefined);
+
+  // Helper : marque un défi comme validé + persiste + toast.
+  const completeChallenge = useCallback(
+    (stepIdx: number, label?: string) => {
+      setChallengeCompleted((prev) => {
+        if (prev.has(stepIdx)) return prev;
+        const next = new Set(prev);
+        next.add(stepIdx);
+        persistCompletedChallenges(next);
+        return next;
+      });
+      toast.success(label ?? 'Défi validé !');
+    },
+    [],
+  );
+
+  // Détecteur clavier : valide un challenge `keyboard` si la combinaison matche.
+  useEffect(() => {
+    if (!open || !challenge || isChallengeDone) return;
+    if (challenge.kind !== 'keyboard' || !challenge.keys) return;
+    const expected = challenge.keys;
+    const currentStep = step;
+    const successLabel = challenge.successLabel;
+    function onKey(e: KeyboardEvent) {
+      if (matchKeyboardCombo(expected, e)) {
+        completeChallenge(currentStep, successLabel);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, challenge, isChallengeDone, step, completeChallenge]);
+
+  // Détecteur route : valide un challenge `visitRoute` quand pathname matche.
+  useEffect(() => {
+    if (!open || !challenge || isChallengeDone) return;
+    if (challenge.kind !== 'visitRoute' || !challenge.route) return;
+    if (pathname === challenge.route || pathname?.startsWith(challenge.route + '/')) {
+      completeChallenge(step, challenge.successLabel);
+    }
+  }, [open, challenge, isChallengeDone, pathname, step, completeChallenge]);
+
+  // Détecteur clic : valide un challenge `clickSelector` quand l'user clique
+  // sur un élément matching le selector (ou un descendant).
+  useEffect(() => {
+    if (!open || !challenge || isChallengeDone) return;
+    if (challenge.kind !== 'clickSelector' || !challenge.selector) return;
+    const selector = challenge.selector;
+    const currentStep = step;
+    const successLabel = challenge.successLabel;
+    function onClick(e: MouseEvent) {
+      const target = e.target as Element | null;
+      if (target && typeof target.closest === 'function' && target.closest(selector)) {
+        completeChallenge(currentStep, successLabel);
+      }
+    }
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+  }, [open, challenge, isChallengeDone, step, completeChallenge]);
 
   const finish = useCallback(() => {
     try {
@@ -319,6 +462,47 @@ export function OnboardingTour() {
               </ul>
             )}
 
+            {/* Encart défi interactif — visible tant qu'il n'est pas validé,
+                remplacé par un badge vert dès qu'il l'est. */}
+            {challenge && !isChallengeDone && (
+              <div
+                className="mt-4 flex items-center gap-3 rounded-xl border border-[#F9964A]/30 bg-[#F9964A]/10 px-4 py-3"
+                role="status"
+                aria-live="polite"
+              >
+                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#F9964A]/20">
+                  <Target className="h-4 w-4 text-[#F9964A] animate-pulse" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#F9964A]">
+                    Défi interactif
+                  </p>
+                  <p className="mt-0.5 text-sm font-medium text-seal-navy dark:text-white">
+                    {challenge.label}
+                  </p>
+                </div>
+              </div>
+            )}
+            {challenge && isChallengeDone && (
+              <div
+                className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 dark:border-emerald-700 dark:bg-emerald-900/30"
+                role="status"
+                aria-live="polite"
+              >
+                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500/20">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
+                    Défi validé
+                  </p>
+                  <p className="mt-0.5 text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                    {challenge.successLabel ?? 'Continuez quand vous voulez.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* CTA "Essayer maintenant" — s'ouvre dans un NOUVEL ONGLET pour
                 que la visite guidée reste active sur l'onglet d'origine.
                 L'utilisateur peut tester la feature puis revenir au tour. */}
@@ -364,10 +548,31 @@ export function OnboardingTour() {
                 </Button>
               )}
             </div>
-            <Button variant="primary" size="sm" onClick={handleNext} className="gap-1">
-              {isLast ? 'Terminé' : 'Suivant'}
-              {!isLast && <ChevronRight className="h-4 w-4" />}
-            </Button>
+            <div className="flex items-center gap-2">
+              {hasPendingChallenge && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNext}
+                  className="gap-1 text-xs text-seal-gray-500 dark:text-slate-400"
+                  title="Avancer sans compléter le défi"
+                >
+                  <SkipForward className="h-3.5 w-3.5" />
+                  Passer ce défi
+                </Button>
+              )}
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={hasPendingChallenge ? undefined : handleNext}
+                disabled={hasPendingChallenge}
+                className="gap-1"
+                title={hasPendingChallenge ? 'Complétez le défi pour continuer' : undefined}
+              >
+                {isLast ? 'Terminé' : 'Suivant'}
+                {!isLast && <ChevronRight className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
         </div>
 
