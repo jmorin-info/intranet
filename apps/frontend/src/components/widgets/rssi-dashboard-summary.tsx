@@ -226,7 +226,7 @@ export function RssiDashboardSummary() {
       label: 'Audit 24h',
       value: data.audit.eventsLast24h,
       sub: `${data.audit.failedLoginsLast24h} logins échoués`,
-      href: '/admin/audit-log',
+      href: '/admin/audit?tab=log',
       icon: Activity,
       tone: data.audit.failedLoginsLast24h > 5 ? 'amber' : 'navy',
     },
