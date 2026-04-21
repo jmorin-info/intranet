@@ -51,7 +51,9 @@ import {
   MessageSquare,
   X,
   ChevronDown,
+  Sparkles,
 } from 'lucide-react';
+import { SubmitTestimonialDialog } from '@/components/testimonials/submit-dialog';
 
 interface ApiError {
   message?: string;
@@ -243,6 +245,7 @@ export default function ProfilePage() {
   const [departments, setDepartments] = useState<DepartmentInfo[]>([]);
   const unreadNotifCount = useNotificationStore((s) => s.unreadCount);
   const [chartes, setChartes] = useState<CharteStatus[]>([]);
+  const [testimonialDialogOpen, setTestimonialDialogOpen] = useState(false);
   const [quizHistory, setQuizHistory] = useState<{ bestScore: number; bestTotal: number; lastDate: string; rank: number; totalParticipants: number } | null>(null);
   const [notifPrefs, setNotifPrefs] = useState<{
     emailDocuments: boolean;
@@ -801,6 +804,33 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Témoignage — CTA discret */}
+      <Card className="border-dashed border-[#F9964A]/30 bg-gradient-to-br from-[#F9964A]/5 to-transparent">
+        <CardContent className="py-4 flex items-center gap-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F9964A]/15 flex-shrink-0">
+            <Sparkles className="h-5 w-5 text-[#F9964A]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Partagez votre expérience</h3>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
+              L&apos;intranet vous aide au quotidien ? Dites-le en une phrase — après modération, votre témoignage apparaîtra sur le portail public.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setTestimonialDialogOpen(true)}
+            className="text-xs font-semibold text-[#F9964A] hover:text-[#e67d1e] whitespace-nowrap"
+          >
+            Partager →
+          </button>
+        </CardContent>
+      </Card>
+
+      <SubmitTestimonialDialog
+        open={testimonialDialogOpen}
+        onClose={() => setTestimonialDialogOpen(false)}
+      />
 
       {/* Chartes status */}
       {chartes.length > 0 && (

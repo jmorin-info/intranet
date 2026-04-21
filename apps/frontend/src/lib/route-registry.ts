@@ -91,6 +91,7 @@ export const ROUTES: readonly RouteEntry[] = [
   { path: '/admin/access-reviews',  label: 'Revue des acces',           labelEn: 'Access Reviews',        icon: 'UserCheck2',     group: 'admin', requiredRole: 'SUPER_ADMIN' as UserRole },
   { path: '/admin/chartes',         label: 'Gestion des chartes',       labelEn: 'Charter Management',    icon: 'Shield',         group: 'admin', requiredRole: 'ADMIN' as UserRole },
   { path: '/admin/certificates',    label: 'Certifications',            labelEn: 'Certificates',          icon: 'Award',          group: 'admin', requiredRole: 'ADMIN' as UserRole },
+  { path: '/admin/testimonials',    label: 'Témoignages',               labelEn: 'Testimonials',          icon: 'MessageCircle',  group: 'admin', requiredRole: 'ADMIN' as UserRole },
   { path: '/admin/audit',           label: 'Audit',                     labelEn: 'Audit',                 icon: 'ClipboardList',  group: 'admin', requiredRole: 'ADMIN' as UserRole },
   { path: '/admin/reports',         label: 'Rapports',                  labelEn: 'Reports',               icon: 'BarChart3',      group: 'admin', requiredRole: 'ADMIN' as UserRole },
   { path: '/admin/ad-audit',        label: 'Audit AD',                  labelEn: 'AD Audit',              icon: 'ShieldAlert',    group: 'admin', requiredRole: 'ADMIN' as UserRole },

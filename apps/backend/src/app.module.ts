@@ -70,6 +70,7 @@ import { BackupModule } from './backup/backup.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ChatModule } from './chat/chat.module';
 import { TicketSpacesModule } from './ticket-spaces/ticket-spaces.module';
+import { TestimonialsModule } from './testimonials/testimonials.module';
 
 @Module({
   imports: [
@@ -151,6 +152,7 @@ import { TicketSpacesModule } from './ticket-spaces/ticket-spaces.module';
     DashboardModule,
     ChatModule,
     TicketSpacesModule,
+    TestimonialsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

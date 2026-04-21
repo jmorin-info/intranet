@@ -70,6 +70,7 @@ export default function WelcomePage() {
   const [news, setNews] = useState<PublicNews[]>([]);
   const [docs, setDocs] = useState<PublicDoc[]>([]);
   const [alerts, setAlerts] = useState<Array<{title: string; severity: string; sourceUrl?: string; cveId?: string | null; sourceName?: string}>>([]);
+  const [testimonials, setTestimonials] = useState<{ visible: boolean; items: Array<{ id: string; quote: string; department: string | null }> }>({ visible: false, items: [] });
   const [loaded, setLoaded] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openDialog, setOpenDialog] = useState<DialogKey>(null);
@@ -96,6 +97,10 @@ export default function WelcomePage() {
       setDocs(docsData?.data || []);
       setLoaded(true);
     }).catch(console.error);
+    fetch(`${API}/testimonials/approved`, opts)
+      .then(r => r.json())
+      .then(d => setTestimonials({ visible: !!d?.visible, items: d?.items || [] }))
+      .catch(console.error);
     fetch(`${API}/public/veille?limit=5`, opts)
       .then(r => r.json())
       .then(d => setAlerts(
@@ -410,6 +415,35 @@ export default function WelcomePage() {
           </div>
         </div>
       </section>
+
+      {/* TÉMOIGNAGES (affiché uniquement si au moins 3 approuvés) */}
+      {testimonials.visible && testimonials.items.length >= 3 && (
+        <section className="py-16 bg-gray-50 dark:bg-slate-800/50">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl font-semibold text-[#004469] dark:text-white">Ce qu&apos;en disent nos collaborateurs</h2>
+              <p className="text-sm text-[#837274] dark:text-slate-400 mt-2">Témoignages authentiques soumis et modérés par nos équipes</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {testimonials.items.slice(0, 6).map((t) => (
+                <div
+                  key={t.id}
+                  className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 p-5 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <p className="text-sm text-[#004469] dark:text-white leading-relaxed italic">
+                    «&nbsp;{t.quote}&nbsp;»
+                  </p>
+                  {t.department && (
+                    <p className="text-xs text-[#837274] dark:text-slate-400 mt-3 font-semibold">
+                      — {t.department}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* SERVICES */}
       <section id="services" className="max-w-7xl mx-auto px-4 sm:px-6 py-16">

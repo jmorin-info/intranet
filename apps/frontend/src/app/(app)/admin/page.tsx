@@ -39,6 +39,7 @@ import {
   Globe2,
   UserCog,
   Ticket,
+  MessageCircle,
 } from 'lucide-react';
 import { Card, CardContent } from '@omnitech/ui';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
@@ -139,6 +140,7 @@ function buildSections(): AdminSection[] {
         { title: 'Santé système', description: 'Status checks, diagnostics live.', href: '/admin/system-health', icon: HeartPulse, minRole: UserRole.ADMIN },
         { title: 'Spaces & modules', description: 'Activation des modules par espace.', href: '/admin/spaces', icon: Layers, minRole: UserRole.SUPER_ADMIN },
         { title: 'Espaces de ticketing', description: 'Workspaces ticketing + gestion des membres (user/rôle/dept).', href: '/admin/ticket-spaces', icon: Ticket, minRole: UserRole.ADMIN },
+        { title: 'Témoignages', description: 'Modérer les témoignages collaborateurs avant publication sur /welcome.', href: '/admin/testimonials', icon: MessageCircle, minRole: UserRole.ADMIN },
         { title: 'Certificats', description: 'Attestations formation / habilitation.', href: '/admin/certificates', icon: Award, minRole: UserRole.ADMIN },
       ],
     },
