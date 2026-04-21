@@ -1,0 +1,187 @@
+'use client';
+
+import React, { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { toast } from 'sonner';
+import { Button, Skeleton, EmptyState, Badge } from '@omnitech/ui';
+import { ArrowLeft, Video, Image as ImageIcon, Download, UserCircle, Calendar, Settings2 } from 'lucide-react';
+import { useAuthStore } from '@/stores/auth-store';
+import { isRoleAtLeast, UserRole } from '@omnitech/shared';
+import { api } from '@/lib/api';
+import { MediaLightbox, type LightboxItem } from '@/components/media/media-lightbox';
+import { formatRelativeTime } from '@/lib/utils';
+
+interface AlbumDetail {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  visibility: 'INTERNAL' | 'DEPARTMENT' | 'PRIVATE';
+  createdAt: string;
+  createdBy: { id: string; firstName: string; lastName: string; email: string };
+  department: { id: string; name: string } | null;
+  items: LightboxItem[];
+  _count: { items: number };
+}
+
+export default function AlbumDetailPage() {
+  const params = useParams();
+  const slug = params?.slug as string;
+  const user = useAuthStore((s) => s.user);
+  const [album, setAlbum] = useState<AlbumDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const canManage = Boolean(
+    user && (isRoleAtLeast(user.role, UserRole.ADMIN) || (user as { canManageMedia?: boolean }).canManageMedia),
+  );
+
+  const load = useCallback(async () => {
+    if (!slug) return;
+    setLoading(true);
+    try {
+      const { data } = await api.get<AlbumDetail>(`/media/albums/${slug}`);
+      setAlbum(data);
+    } catch {
+      toast.error('Album introuvable ou accès refusé.');
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const openLightbox = (idx: number) => setLightboxIndex(idx);
+  const closeLightbox = () => setLightboxIndex(null);
+  const nextLightbox = () => setLightboxIndex((i) => (i !== null && album && i < album.items.length - 1 ? i + 1 : i));
+  const prevLightbox = () => setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-7xl space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-40 w-full" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <Skeleton key={i} className="aspect-square rounded-xl" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (!album) {
+    return (
+      <div className="mx-auto max-w-4xl">
+        <EmptyState title="Album introuvable" description="L'album n'existe pas ou vous n'y avez pas accès." />
+        <div className="text-center mt-4">
+          <Link href="/media"><Button variant="outline"><ArrowLeft className="h-4 w-4 mr-1" />Retour à la médiathèque</Button></Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl">
+      {/* Back link */}
+      <Link
+        href="/media"
+        className="inline-flex items-center gap-1.5 text-sm text-seal-gray-500 dark:text-slate-400 hover:text-[#F9964A] mb-4 transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" /> Retour à la médiathèque
+      </Link>
+
+      {/* Header */}
+      <header className="mb-8">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl font-semibold text-seal-navy dark:text-white leading-tight">
+              {album.title}
+            </h1>
+            {album.description && (
+              <p className="mt-2 text-sm text-seal-gray-500 dark:text-slate-400 max-w-3xl leading-relaxed">
+                {album.description}
+              </p>
+            )}
+            <div className="flex items-center gap-4 mt-3 text-[12px] text-seal-gray-500 dark:text-slate-500 flex-wrap">
+              <span className="flex items-center gap-1">
+                <UserCircle className="h-3.5 w-3.5" />
+                {album.createdBy.firstName} {album.createdBy.lastName}
+              </span>
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                {formatRelativeTime(album.createdAt)}
+              </span>
+              <Badge variant="info" className="text-[10px]">
+                {album._count.items} média{album._count.items !== 1 ? 's' : ''}
+              </Badge>
+              {album.department && (
+                <Badge variant="info" className="text-[10px]">{album.department.name}</Badge>
+              )}
+            </div>
+          </div>
+          {canManage && (
+            <Link href={`/admin/media/albums/${album.id}`}>
+              <Button variant="outline" className="gap-1.5">
+                <Settings2 className="h-4 w-4" /> Gérer cet album
+              </Button>
+            </Link>
+          )}
+        </div>
+      </header>
+
+      {/* Media grid — masonry via CSS columns */}
+      {album.items.length === 0 ? (
+        <EmptyState title="Album vide" description="Aucun média n'a encore été ajouté à cet album." />
+      ) : (
+        <div className="columns-2 md:columns-3 lg:columns-4 gap-3 space-y-3">
+          {album.items.map((item, idx) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => openLightbox(idx)}
+              className="block w-full break-inside-avoid rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-800 group relative shadow-sm hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#F9964A]"
+              aria-label={`Ouvrir ${item.title ?? 'le média'}`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.thumbnailUrl}
+                alt={item.title ?? ''}
+                className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+              />
+              {item.type === 'VIDEO' && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-12 w-12 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Video className="h-5 w-5 text-white fill-white" />
+                  </div>
+                </div>
+              )}
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                <div className="text-left">
+                  {item.title && (
+                    <p className="text-xs font-semibold text-white line-clamp-1">{item.title}</p>
+                  )}
+                  <p className="text-[10px] text-white/70 flex items-center gap-1 mt-0.5">
+                    {item.type === 'VIDEO' ? <Video className="h-2.5 w-2.5" /> : <ImageIcon className="h-2.5 w-2.5" />}
+                    {item.uploadedBy.firstName} {item.uploadedBy.lastName}
+                  </p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {lightboxIndex !== null && album.items.length > 0 && (
+        <MediaLightbox
+          items={album.items}
+          currentIndex={lightboxIndex}
+          onClose={closeLightbox}
+          onNext={nextLightbox}
+          onPrev={prevLightbox}
+        />
+      )}
+    </div>
+  );
+}

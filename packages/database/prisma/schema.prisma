@@ -248,6 +248,11 @@ model User {
   // === Testimonials === 2026-04-21
   testimonialsSubmitted     Testimonial[]            @relation("TestimonialSubmitter")
   testimonialsApproved      Testimonial[]            @relation("TestimonialApprover")
+  // === Médiathèque === 2026-04-21
+  canManageMedia            Boolean                  @default(false)
+  mediaAlbumsCreated        MediaAlbum[]             @relation("MediaAlbumCreator")
+  mediaItemsUploaded        MediaItem[]              @relation("MediaItemUploader")
+  mediaDownloads            MediaItemDownload[]      @relation("MediaDownloader")
 
   @@index([departmentId])
   @@index([role])
@@ -301,6 +306,8 @@ model Department {
   calendarEvents    CalendarEvent[]  @relation("CalendarEventDept")
   // === NEW MODELS 2026-04-13 === Approval workflows
   workflowStepsDept WorkflowStep[]   @relation("StepDept")
+  // === Médiathèque === 2026-04-21
+  mediaAlbums       MediaAlbum[]
 }
 
 model UserDepartment {
@@ -1838,4 +1845,84 @@ model Testimonial {
   @@index([isApproved, approvedAt])
   @@index([submittedById])
   @@index([submittedAt])
+}
+
+// =============================================================================
+// Médiathèque — galerie photos/vidéos gérée par l'équipe Marketing
+// =============================================================================
+// Accessible à tous les collaborateurs authentifiés (consult + download).
+// Upload / gestion réservés aux users avec canManageMedia = true (ou ADMIN).
+// Pas de carousel PUBLIC sur /welcome — consultation nécessite auth.
+
+enum MediaVisibility {
+  INTERNAL    // tout collaborateur authentifié
+  DEPARTMENT  // membres d'un département spécifique
+  PRIVATE     // seulement créateur + admins
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model MediaAlbum {
+  id           String          @id @default(uuid())
+  title        String
+  slug         String          @unique
+  description  String?
+  coverItemId  String?
+  visibility   MediaVisibility @default(INTERNAL)
+  departmentId String?
+  createdById  String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  items     MediaItem[]    @relation("AlbumItems")
+  createdBy User           @relation("MediaAlbumCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  department Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  coverItem MediaItem?     @relation("AlbumCover", fields: [coverItemId], references: [id], onDelete: SetNull)
+
+  @@index([visibility, createdAt])
+  @@index([createdById])
+  @@index([slug])
+}
+
+model MediaItem {
+  id            String    @id @default(uuid())
+  albumId       String
+  type          MediaType
+  fileUrl       String
+  thumbnailUrl  String
+  posterUrl     String?   // vidéos : frame extraite (null tant que ffmpeg absent)
+  width         Int?
+  height        Int?
+  durationSec   Int?      // vidéos uniquement
+  fileSizeBytes BigInt    // BigInt pour supporter > 2 Go
+  mimeType      String
+  title         String?
+  description   String?
+  tags          String[]  @default([])
+  uploadedById  String
+  createdAt     DateTime  @default(now())
+
+  album      MediaAlbum          @relation("AlbumItems", fields: [albumId], references: [id], onDelete: Cascade)
+  uploadedBy User                @relation("MediaItemUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  coverOf    MediaAlbum[]        @relation("AlbumCover")
+  downloads  MediaItemDownload[]
+
+  @@index([albumId, createdAt])
+  @@index([uploadedById])
+}
+
+model MediaItemDownload {
+  id           String   @id @default(uuid())
+  itemId       String
+  userId       String
+  downloadedAt DateTime @default(now())
+
+  item MediaItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user User      @relation("MediaDownloader", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([userId, downloadedAt])
 }

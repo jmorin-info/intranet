@@ -40,6 +40,7 @@ import {
   UserCog,
   Ticket,
   MessageCircle,
+  Camera,
 } from 'lucide-react';
 import { Card, CardContent } from '@omnitech/ui';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
@@ -125,6 +126,7 @@ function buildSections(): AdminSection[] {
         { title: 'Signatures', description: 'Dashboard signatures DocuSeal.', href: '/admin/signatures', icon: PenLine, minRole: UserRole.ADMIN },
         { title: 'Workflows d\'approbation', description: 'Documents en revue.', href: '/admin/workflows', icon: Layers, minRole: UserRole.REVIEWER },
         { title: 'Avis & enquêtes satisfaction', description: 'Modération des témoignages collaborateurs + résultats des enquêtes de satisfaction + création de nouvelles enquêtes.', href: '/admin/feedback', icon: MessageCircle, minRole: UserRole.ADMIN },
+        { title: 'Médiathèque', description: 'Albums photos & vidéos, gestion visibilité, analytics téléchargements.', href: '/admin/media', icon: Camera, minRole: UserRole.ADMIN },
         { title: 'Rapports', description: 'Exports analytiques.', href: '/admin/reports', icon: BarChart3, minRole: UserRole.ADMIN },
         { title: 'Exports IT', description: 'Veeam et autres sources infra.', href: '/admin/it-exports', icon: ClipboardCheck, minRole: UserRole.ADMIN },
         { title: 'Sauvegardes', description: 'Jobs de backup planifiés.', href: '/admin/backups', icon: HardDrive, minRole: UserRole.SUPER_ADMIN },
