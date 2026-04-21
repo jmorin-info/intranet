@@ -877,12 +877,36 @@ export default function DashboardPage() {
 
         if (!hasActions && !actionsLoaded && !myTasks) return null;
 
-        if (!hasActions && (actionsLoaded || myTasks)) return (
-          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/10 px-4 py-3">
-            <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-            <p className="text-sm text-emerald-700 dark:text-emerald-300">Tout est à jour — aucune action en attente</p>
-          </div>
-        );
+        if (!hasActions && (actionsLoaded || myTasks)) {
+          const hour = new Date().getHours();
+          const greet =
+            hour < 6 ? 'Bonne nuit' :
+            hour < 12 ? 'Bonne matinée' :
+            hour < 18 ? 'Bon après-midi' :
+            'Bonne soirée';
+          return (
+            <Card className="border-l-4 border-l-emerald-400 bg-gradient-to-r from-emerald-50/60 to-transparent dark:from-emerald-900/10">
+              <CardContent className="py-5">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white">
+                      {greet}{user?.firstName ? `, ${user.firstName}` : ''} — tout est à jour !
+                    </p>
+                    <p className="mt-0.5 text-xs text-seal-gray-500 dark:text-slate-400">
+                      Aucune action en attente de votre part. Profitez de ce moment pour explorer la veille, rédiger une procédure ou consulter un wiki.
+                    </p>
+                  </div>
+                  <span className="hidden sm:inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                    À jour
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        }
 
         return (
         <div>
