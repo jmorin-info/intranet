@@ -53,7 +53,6 @@ import {
   AlertCircle,
   Star,
   ArrowRight,
-  List,
   CheckCircle2,
   LayoutGrid,
   FolderOpen,
@@ -82,6 +81,7 @@ import { useTranslation } from '@/lib/i18n';
 import { formatRelativeTime } from '@/lib/utils';
 import DOMPurify from 'dompurify';
 import { BookmarkButton } from '@/components/bookmark-button';
+import { WikiOutline, extractOutline } from '@/components/wiki/wiki-outline';
 
 type WikiVisibility = 'PRIVATE' | 'DEPARTMENT' | 'ROLE' | 'PUBLIC';
 
@@ -534,8 +534,6 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
   const [readingSize, setReadingSize] = useState<ReadingSize>('md');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
-  const [activeTocId, setActiveTocId] = useState<string | null>(null);
-  const [tocDrawerOpen, setTocDrawerOpen] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [feedbackState, setFeedbackState] = useState<Record<string, 'up' | 'down' | null>>({});
   const [feedbackCounts, setFeedbackCounts] = useState<Record<string, { up: number; down: number }>>({});
@@ -599,7 +597,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
     }
   }, [viewingPage]);
 
-  // Reading progress + scroll spy
+  // Reading progress (scroll spy is handled by the WikiOutline component)
   useEffect(() => {
     if (!viewingPage) return;
     const onScroll = () => {
@@ -610,14 +608,6 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
       const scrolled = Math.min(Math.max(-rect.top, 0), Math.max(total, 1));
       const pct = total > 0 ? (scrolled / total) * 100 : 0;
       setReadingProgress(Math.max(0, Math.min(100, pct)));
-
-      // Scroll spy
-      const headings = el.querySelectorAll<HTMLElement>('h1[id], h2[id], h3[id]');
-      let current: string | null = null;
-      headings.forEach((h) => {
-        if (h.getBoundingClientRect().top - 120 <= 0) current = h.id;
-      });
-      if (current) setActiveTocId(current);
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -660,13 +650,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
     toast.success('Merci pour votre retour');
   };
 
-  const scrollToHeading = (id: string) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const y = el.getBoundingClientRect().top + window.scrollY - 96;
-    window.scrollTo({ top: y, behavior: 'smooth' });
-    setTocDrawerOpen(false);
-  };
+  // (scroll-to-heading handled internally by WikiOutline component)
 
   const copyShareLink = async () => {
     if (!viewingPage) return;
@@ -2015,14 +1999,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
       viewingPage.editLockUserId !== user?.id;
 
     const rawHtml = DOMPurify.sanitize(viewingPage.content || '');
-    const tocEntries: Array<{ id: string; text: string; level: number }> = [];
-    let idx = 0;
-    const withIds = rawHtml.replace(/<h([1-3])([^>]*)>([\s\S]*?)<\/h\1>/gi, (_m, lvl: string, attrs: string, inner: string) => {
-      const text = inner.replace(/<[^>]+>/g, '').trim();
-      const id = `wiki-h-${idx++}`;
-      tocEntries.push({ id, text, level: parseInt(lvl, 10) });
-      return `<h${lvl}${attrs} id="${id}">${inner}</h${lvl}>`;
-    });
+    const { html: withIds, entries: tocEntries } = extractOutline(rawHtml);
 
     const readingTime = computeReadingTime(viewingPage.content || '');
     const categoryColor = getCategoryColor(viewingPage.category);
@@ -2247,40 +2224,8 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
-                  {/* Mobile TOC drawer toggle */}
-                  {tocEntries.length >= 2 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setTocDrawerOpen((v) => !v)}
-                      className="lg:hidden"
-                    >
-                      <List className="h-4 w-4" /> Sommaire
-                    </Button>
-                  )}
                 </div>
               </header>
-
-              {/* Mobile TOC drawer */}
-              {tocDrawerOpen && tocEntries.length >= 2 && (
-                <div className="lg:hidden mb-6 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 mb-2">
-                    Sur cette page
-                  </p>
-                  <nav className="space-y-0.5">
-                    {tocEntries.map((e) => (
-                      <button
-                        key={e.id}
-                        onClick={() => scrollToHeading(e.id)}
-                        className={`wiki-toc-item w-full text-left ${activeTocId === e.id ? 'is-active' : ''}`}
-                        style={e.level === 3 ? { paddingLeft: 24 } : { paddingLeft: 12 }}
-                      >
-                        {e.text}
-                      </button>
-                    ))}
-                  </nav>
-                </div>
-              )}
 
               {/* Article body */}
               <div
@@ -2540,30 +2485,14 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               )}
             </article>
 
-            {/* Right column: TOC + floating actions */}
+            {/* Sticky outline (>= 1280px) + mobile drawer fallback */}
+            {!zenMode && (
+              <WikiOutline entries={tocEntries} articleRef={articleRef} />
+            )}
+
+            {/* Right column: floating actions (visible from lg upwards) */}
             <aside className={`hidden lg:block w-60 flex-shrink-0 ${zenMode ? '!hidden' : ''}`}>
               <div className="sticky top-20 space-y-4">
-                {tocEntries.length >= 2 && (
-                  <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 mb-2 px-2">
-                      Sur cette page
-                    </p>
-                    <nav className="space-y-0.5">
-                      {tocEntries.map((e) => (
-                        <button
-                          key={e.id}
-                          onClick={() => scrollToHeading(e.id)}
-                          className={`wiki-toc-item w-full text-left truncate ${activeTocId === e.id ? 'is-active' : ''}`}
-                          style={e.level === 3 ? { paddingLeft: 24 } : { paddingLeft: 12 }}
-                          title={e.text}
-                        >
-                          {e.text}
-                        </button>
-                      ))}
-                    </nav>
-                  </div>
-                )}
-
                 {/* Actions bar */}
                 <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 flex flex-col">
                   <button
