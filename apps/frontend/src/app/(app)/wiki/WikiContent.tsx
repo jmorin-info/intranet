@@ -5,9 +5,6 @@ import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import {
-  Card,
-  CardContent,
-  CardHeader,
   Badge,
   SearchInput,
   EmptyState,
@@ -3085,8 +3082,8 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           )}
         </div>
       ) : listViewMode === 'grid' ? (
-        /* ===== GRID VIEW ===== */
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        /* ===== GRID VIEW ===== Notion-like responsive cards */
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {sorted.map((page) => {
             const isOwner = user && page.author.id === user.id;
             const canEditPage =
@@ -3102,109 +3099,129 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               page.editLockUserId !== user?.id;
             const catColor = getCategoryColor(page.category);
             const CardCatIcon = getCategoryIcon(page.category);
+            const excerpt = page.content ? stripHtml(page.content) : '';
             return (
-              <Card
+              <article
                 key={page.id}
-                hoverable
-                className="stagger-item group cursor-pointer shadow-sm rounded-xl border-t-[3px] overflow-hidden"
-                style={{ borderTopColor: catColor }}
                 onClick={() => handleViewPage(page.slug)}
+                className="stagger-item group relative flex flex-col cursor-pointer rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-[#F9964A]/60 focus-within:border-[#F9964A]/60"
               >
-                <CardContent className="p-5">
+                {/* Top color band (category accent) */}
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 top-0 h-1"
+                  style={{ background: catColor }}
+                />
+
+                <div className="flex-1 p-5 pt-6">
+                  {/* Header: icon + title */}
                   <div className="flex items-start gap-3">
                     <div
-                      className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      className="h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
                       style={{ background: `${catColor}18`, color: catColor }}
                     >
                       <CardCatIcon className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-medium text-seal-navy dark:text-white text-[15px] truncate">
-                          {highlightText(page.title, search)}
-                        </h3>
-                        {isNewArticle(page.createdAt) && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F9964A]/15 text-[#c46714] border border-[#F9964A]/30 dark:bg-[#F9964A]/20 dark:text-[#FBC078] dark:border-[#F9964A]/40">
-                            Nouveau
+                      <h3 className="text-[15px] font-semibold leading-snug text-seal-navy dark:text-white line-clamp-2 group-hover:text-[#F9964A] transition-colors">
+                        {highlightText(page.title, search)}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1 text-[11px] text-seal-gray-500 dark:text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <span className="h-4 w-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[8px] font-bold">
+                            {page.author.firstName[0]}{page.author.lastName[0]}
                           </span>
-                        )}
-                        {lockActive && (
-                          <Badge variant="warning">
-                            <Lock className="h-3 w-3" /> Verrouillée
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                        {page.category && (
-                          <Badge variant="navy">{page.category}</Badge>
-                        )}
-                        {(() => {
-                          const src = getImportSource(page.category);
-                          return src ? (
-                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium tracking-wide ${
-                              src === 'Notion'
-                                ? 'bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400'
-                                : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
-                            }`}>
-                              {src}
-                            </span>
-                          ) : null;
-                        })()}
-                        <Badge variant={VISIBILITY_BADGE[pageVisibility]}>
-                          {VISIBILITY_LABELS[pageVisibility]}
-                        </Badge>
-                      </div>
-                      {/* Content preview with highlight */}
-                      {page.content && (
-                        <p className="text-xs text-seal-gray-500 dark:text-slate-500 mt-2 line-clamp-2 leading-relaxed">
-                          {highlightText(
-                            stripHtml(page.content).slice(0, 120) + (stripHtml(page.content).length > 120 ? '...' : ''),
-                            search,
-                          )}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-3 mt-2.5 text-[10px] text-seal-gray-500 dark:text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {page.author.firstName} {page.author.lastName}
+                          <span className="truncate max-w-[8rem]">
+                            {page.author.firstName} {page.author.lastName}
+                          </span>
                         </span>
-                        <span className="flex items-center gap-1">
+                        <span aria-hidden="true">·</span>
+                        <span className="flex items-center gap-1 whitespace-nowrap">
                           <Clock className="h-3 w-3" />
                           {formatRelativeTime(page.updatedAt)}
                         </span>
                       </div>
                     </div>
                   </div>
-                  {canEditPage && (
-                    <div className="flex items-center gap-2 mt-3 pt-2 border-t border-gray-100 dark:border-slate-700">
+
+                  {/* Excerpt — 2 lines */}
+                  {excerpt && (
+                    <p className="text-[12.5px] leading-relaxed text-seal-gray-500 dark:text-slate-400 mt-3 line-clamp-2">
+                      {highlightText(
+                        excerpt.slice(0, 160) + (excerpt.length > 160 ? '…' : ''),
+                        search,
+                      )}
+                    </p>
+                  )}
+
+                  {/* Badges row (tags / visibility / status) */}
+                  <div className="flex items-center gap-1.5 mt-4 flex-wrap">
+                    {page.category && (
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ color: catColor, background: `${catColor}15` }}
+                      >
+                        {page.category}
+                      </span>
+                    )}
+                    {(() => {
+                      const src = getImportSource(page.category);
+                      return src ? (
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium tracking-wide ${
+                          src === 'Notion'
+                            ? 'bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400'
+                            : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
+                        }`}>
+                          {src}
+                        </span>
+                      ) : null;
+                    })()}
+                    <Badge variant={VISIBILITY_BADGE[pageVisibility]}>
+                      {VISIBILITY_LABELS[pageVisibility]}
+                    </Badge>
+                    {isNewArticle(page.createdAt) && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F9964A]/15 text-[#c46714] border border-[#F9964A]/30 dark:bg-[#F9964A]/20 dark:text-[#FBC078] dark:border-[#F9964A]/40">
+                        Nouveau
+                      </span>
+                    )}
+                    {lockActive && (
+                      <Badge variant="warning">
+                        <Lock className="h-3 w-3" /> Verrouillée
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer action bar */}
+                {canEditPage && (
+                  <div className="flex items-center gap-2 px-5 py-2 border-t border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEdit(page);
+                      }}
+                      disabled={!!lockActive}
+                    >
+                      <Edit className="h-3 w-3" /> {t('wiki.edit')}
+                    </Button>
+                    {(isSuperAdmin || isOwner) && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleOpenEdit(page);
+                          handleDelete(page);
                         }}
-                        disabled={!!lockActive}
+                        className="text-red-500 hover:text-red-600"
                       >
-                        <Edit className="h-3 w-3" /> {t('wiki.edit')}
+                        <Trash2 className="h-3 w-3" />
                       </Button>
-                      {(isSuperAdmin || isOwner) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(page);
-                          }}
-                          className="text-red-500 hover:text-red-600"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    )}
+                  </div>
+                )}
+              </article>
             );
           })}
         </div>
