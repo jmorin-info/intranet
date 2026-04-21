@@ -32,6 +32,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { useTestimonialTrigger } from '@/hooks/use-testimonial-trigger';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -362,6 +363,7 @@ function CreateCampaignDialog({ open, onClose, onCreated, initialData }: CreateC
 // ---------------------------------------------------------------------------
 
 export default function QuizPage() {
+  const { maybePrompt: maybePromptTestimonial } = useTestimonialTrigger();
   const { t } = useTranslation();
   const user = useAuthStore(s => s.user);
   const isAdmin = user && isRoleAtLeast(user.role, UserRole.ADMIN);
@@ -547,6 +549,10 @@ export default function QuizPage() {
           campaignTitle: activeCampaign?.title,
         });
         setResult(data);
+        // Action positive : quiz à 100% → prompt témoignage (1/5)
+        if (data?.percentage >= 100) {
+          maybePromptTestimonial('quiz_perfect_score');
+        }
         loadLeaderboard();
         // Reload personal results for gamification level update
         api.get('/quiz/my-results?limit=100').then(({ data: results }) => {

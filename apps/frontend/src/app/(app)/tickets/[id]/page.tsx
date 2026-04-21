@@ -12,6 +12,7 @@ import {
 } from '@omnitech/ui';
 import { formatDateTime, getInitials, formatRelativeTime } from '@/lib/utils';
 import { MentionTextarea } from '@/components/ui/mention-textarea';
+import { useTestimonialTrigger } from '@/hooks/use-testimonial-trigger';
 import { EntityBreadcrumb } from '@/components/ui/entity-breadcrumb';
 import { eventBus, createEvent } from '@/lib/events';
 import {
@@ -132,6 +133,7 @@ export default function TicketDetailPage() {
   const router = useRouter();
   const user = useAuthStore(s => s.user);
   const { t } = useTranslation();
+  const { maybePrompt: maybePromptTestimonial } = useTestimonialTrigger();
   const [ticket, setTicket] = useState<TicketDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState('');
@@ -287,6 +289,10 @@ export default function TicketDetailPage() {
       toast.success(t('tickets.detail.statusSuccess'));
       const { data } = await api.get(`/tickets/${ticket.id}`);
       setTicket(data);
+      // Action positive : ticket fermé par le créateur → prompt témoignage (1/5)
+      if ((newStatus === 'RESOLVED' || newStatus === 'CLOSED') && user && ticket.creator.id === user.id) {
+        maybePromptTestimonial('ticket_closed');
+      }
     } catch { toast.error(t('tickets.detail.statusError')); }
   };
 

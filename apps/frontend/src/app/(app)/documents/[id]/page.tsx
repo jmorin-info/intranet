@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTestimonialTrigger } from '@/hooks/use-testimonial-trigger';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -239,6 +240,7 @@ export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const user = useAuthStore(s => s.user);
+  const { maybePrompt: maybePromptTestimonial } = useTestimonialTrigger();
   const decrementPendingCount = useDocumentStore(s => s.decrementPendingCount);
 
   const handleDownload = async (url: string, filename: string, inline = false) => {
@@ -597,6 +599,8 @@ export default function DocumentDetailPage() {
           await api.post(`/documents/${doc.id}/approve`);
           decrementPendingCount();
           toast.success('Document approuve');
+          // Action positive : doc approuvé → prompt témoignage (1/5)
+          maybePromptTestimonial('document_approved');
           break;
         case 'reject-review':
           if (!rejectComment.trim() || rejectComment.trim().length < 10) { setShowRejectDialog('reject-review'); return; }
