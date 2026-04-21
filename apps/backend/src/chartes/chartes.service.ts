@@ -18,9 +18,12 @@ export class ChartesService {
     private readonly storage: StorageService,
   ) {}
 
-  // List all chartes with their active version and signature count
-  async findAll(activeOnly = true) {
-    return this.prisma.charte.findMany({
+  // List all chartes with their active version and signature count.
+  // Si `userId` est fourni, on rajoute `signedAt` (date de signature par cet
+  // utilisateur sur la version active) afin que le frontend (ex: page profil)
+  // puisse afficher "Signée" vs "À signer" sans devoir croiser deux endpoints.
+  async findAll(activeOnly = true, userId?: string) {
+    const chartes = await this.prisma.charte.findMany({
       where: activeOnly ? { isActive: true } : {},
       include: {
         versions: {
@@ -31,6 +34,29 @@ export class ChartesService {
         _count: { select: { signatures: true } },
       },
       orderBy: { createdAt: 'desc' },
+    });
+
+    if (!userId) return chartes;
+
+    // Second query : pour chaque charte, récupère la signature éventuelle de
+    // l'utilisateur courant sur la version active. On évite l'include
+    // conditionnel (typing Prisma compliqué) par une requête dédiée.
+    const activeVersionIds = chartes
+      .map((c) => c.versions[0]?.id)
+      .filter((id): id is string => typeof id === 'string');
+
+    const signatures = activeVersionIds.length
+      ? await this.prisma.charteSignature.findMany({
+          where: { userId, charteVersionId: { in: activeVersionIds } },
+          select: { charteVersionId: true, signedAt: true },
+        })
+      : [];
+    const signedByVersion = new Map(signatures.map((s) => [s.charteVersionId, s.signedAt]));
+
+    return chartes.map((c) => {
+      const activeVersionId = c.versions[0]?.id;
+      const signedAt = activeVersionId ? signedByVersion.get(activeVersionId) ?? null : null;
+      return { ...c, signedAt };
     });
   }
 
@@ -278,9 +304,9 @@ export class ChartesService {
   }
 
   // Admin: get all signatures for a charte with version info
-  async getSignatures(charteId: string, versionId?: string) {
+  async getSignatures(charteId: string, charteVersionId?: string) {
     const where: any = { charteId };
-    if (versionId) where.charteVersionId = versionId;
+    if (charteVersionId) where.charteVersionId = charteVersionId;
 
     return this.prisma.charteSignature.findMany({
       where,

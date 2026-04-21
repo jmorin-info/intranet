@@ -106,26 +106,21 @@ export default function WelcomePage() {
   const [chartesSigned, setChartesSigned] = useState<boolean>(false);
   const [chartesLoaded, setChartesLoaded] = useState(false);
 
-  // Fetch charter signature status
+  // Fetch charter signature status. Le backend renvoie { allSigned: boolean }
+  // — PAS un array. Avant ce fix, la réponse (non-array) retombait sur le else
+  // → chartesSigned restait à false même si toutes les chartes étaient signées.
   useEffect(() => {
-    api.get('/chartes/status')
-      .then((r) => {
-        // Consider chartes done if all required chartes are signed
-        const data = r.data;
-        if (Array.isArray(data)) {
-          const allSigned = data.length > 0 && data.every((c: { signed?: boolean }) => c.signed);
-          setChartesSigned(allSigned);
-        } else {
-          setChartesSigned(false);
-        }
-      })
+    api.get<{ allSigned: boolean }>('/chartes/status')
+      .then((r) => setChartesSigned(r.data?.allSigned === true))
       .catch(() => setChartesSigned(false))
       .finally(() => setChartesLoaded(true));
   }, []);
 
-  // Compute step completion
+  // Compute step completion. Le profil est considéré complet si au moins
+  // l'avatar OU le téléphone est renseigné (on évite de pénaliser les users
+  // qui ont complété certaines infos mais pas l'avatar, par exemple).
   const stepStatus: Record<string, boolean> = {
-    profile: !!user?.avatarUrl,
+    profile: !!user?.avatarUrl || !!user?.phone,
     mfa: !!user?.mfaEnabled,
     spaces: false, // always todo — exploratory
     chartes: chartesSigned,

@@ -22,8 +22,11 @@ export class ChartesController {
   ) {}
 
   @Get()
-  findAll() {
-    return this.chartesService.findAll();
+  findAll(@CurrentUser() user: RequestUser) {
+    // On passe userId pour que chaque charte embarque `signedAt` (date de
+    // signature par l'utilisateur courant) — évite l'affichage "À signer"
+    // erroné dans /profile quand la charte est déjà signée.
+    return this.chartesService.findAll(true, user.id);
   }
 
   @Get('unsigned')

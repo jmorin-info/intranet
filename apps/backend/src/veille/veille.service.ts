@@ -11,27 +11,56 @@ interface RSSItem {
   source: string;
 }
 
-// Sources RSS sélectionnées pour pertinence OMNITECH Security (intégrateur
-// sécurité physique + cyber, parc Fortinet/VMware/Veeam/Microsoft) et veille
-// cyber métier. L'ordre compte : sources institutionnelles d'abord (plus
-// fiables), puis éditeurs/CVE, puis presse spécialisée entreprise.
+// Sources RSS sélectionnées pour couvrir l'ensemble du périmètre d'OMNITECH
+// Security (intégrateur sécurité physique + cyber + conformité + IA) :
+//   - Cyber : CERT-FR, ANSSI, CISA, CVE, presse
+//   - Conformité : NIS2, DORA, RGPD (EDPB, CNIL)
+//   - Sécurité physique : videosurveillance, contrôle d'accès
+//   - IA : AI Act, ENISA AI security, NIST AI RMF
+// L'ordre compte : autorités d'abord, puis presse spécialisée métier.
 const RSS_FEEDS = [
-  // --- Sources institutionnelles FR/EU (autorité : ANSSI, CERT-FR) ---
+  // --- Autorités FR (ANSSI, CNIL) ---
   { name: 'CERT-FR Alertes', url: 'https://www.cert.ssi.gouv.fr/alerte/feed/' },
   { name: 'CERT-FR Avis', url: 'https://www.cert.ssi.gouv.fr/avis/feed/' },
   { name: 'CERT-FR CTI', url: 'https://www.cert.ssi.gouv.fr/cti/feed/' },
   { name: 'ANSSI', url: 'https://cyber.gouv.fr/feed/actualites/rss.xml' },
+  { name: 'CNIL', url: 'https://www.cnil.fr/fr/flux-rss' },
 
-  // --- CISA (US, équivalent ANSSI : KEV = Known Exploited Vulnerabilities) ---
+  // --- Autorités UE / US (conformité : NIS2, DORA, AI Act) ---
+  { name: 'ENISA', url: 'https://www.enisa.europa.eu/media/news-items/news-wires/RSS' },
   { name: 'CISA Alerts', url: 'https://www.cisa.gov/cybersecurity-advisories/all.xml' },
+  { name: 'EDPB', url: 'https://edpb.europa.eu/news/news_en/rss.xml' },
 
-  // --- Bases CVE (priorisation patch management ISO 27001 A.8.8) ---
+  // --- CVE / Patch management (ISO 27001 A.8.8) ---
   { name: 'CVE Feed', url: 'https://cvefeed.io/rssfeed/latest.xml' },
 
-  // --- Presse cybersécurité entreprise (qualité éditoriale confirmée) ---
+  // --- Presse cybersécurité entreprise ---
   { name: 'BleepingComputer', url: 'https://www.bleepingcomputer.com/feed/' },
   { name: 'SANS ISC', url: 'https://isc.sans.edu/rssfeed.xml' },
   { name: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews' },
+
+  // --- Sécurité physique / vidéosurveillance / contrôle d'accès ---
+  { name: 'IFSEC Insider', url: 'https://www.ifsecglobal.com/feed/' },
+  { name: 'Security Magazine', url: 'https://www.securitymagazine.com/rss/topic/2236-cyber-security-news' },
+
+  // --- IA / conformité AI Act ---
+  { name: 'NIST Cybersecurity', url: 'https://www.nist.gov/news-events/cybersecurity/rss.xml' },
+];
+
+// Mots-clés supplémentaires pour taguer/prioriser la veille selon les sujets
+// OMNITECH (vidéosurveillance, NIS2, IA, contrôle d'accès…). Utilisés dans
+// l'analyse de pertinence (VeilleItem.description) pour flaguer la sévérité
+// lorsqu'un produit/sujet du parc est mentionné.
+const OMNITECH_TOPICS = [
+  // Réglementaire
+  'nis2', 'nis 2', 'dora', 'rgpd', 'gdpr', 'ai act', 'ia act',
+  // Sécurité physique
+  'vidéosurveillance', 'videosurveillance', 'cctv', 'caméra ip', 'camera ip',
+  'contrôle d\'accès', 'controle d\'acces', 'badge', 'biométrie', 'biometrie',
+  'intrusion', 'alarme',
+  // IA / cybersec IA
+  'intelligence artificielle', 'llm', 'chatbot', 'deepfake', 'prompt injection',
+  'ai security', 'adversarial', 'model poisoning',
 ];
 
 // Parc OMNITECH — produits à surveiller (ISO 27001 A.5.7)
@@ -316,11 +345,16 @@ export class VeilleService {
   }
 
   /**
-   * Check if a veille item concerns a product in OMNITECH's parc
+   * Check if a veille item concerns a product in OMNITECH's parc OR a topic
+   * directly pertinent pour l'activité d'OMNITECH (sécurité physique, NIS2,
+   * vidéosurveillance, IA, conformité RGPD/AI Act…).
    */
   isRelevantToParc(text: string): boolean {
     const t = text.toLowerCase();
-    return OMNITECH_PRODUCTS.some(p => t.includes(p));
+    return (
+      OMNITECH_PRODUCTS.some((p) => t.includes(p)) ||
+      OMNITECH_TOPICS.some((topic) => t.includes(topic))
+    );
   }
 
   // --- Weekly Bulletin ---
