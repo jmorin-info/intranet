@@ -7,7 +7,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { TICKET_TEMPLATES } from './ticket-templates.constants';
-import { BulkStatusDto } from '../common/dto/bulk-ids.dto';
+import { BulkAssignDto, BulkStatusDto } from '../common/dto/bulk-ids.dto';
 import { rowsToCsv, csvFilename, CsvColumn } from '../common/utils/csv-export';
 import { RequestUser } from '../common/interfaces';
 import { UserRole } from '../common/enums';
@@ -220,6 +220,19 @@ export class TicketsController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.ticketsService.bulkUpdateStatus(dto.ids, dto.status, user);
+  }
+
+  /**
+   * Bulk reassign tickets (max 100). `assigneeId = null` unassigns.
+   * ISO 27001 A.5.10 — controlled bulk modification with audit trail.
+   */
+  @Post('bulk/assign')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.REVIEWER)
+  bulkAssign(
+    @Body() dto: BulkAssignDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ticketsService.bulkAssign(dto.ids, dto.assigneeId ?? null, user);
   }
 
   @Get(':id')

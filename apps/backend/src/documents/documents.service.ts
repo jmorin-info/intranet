@@ -1058,6 +1058,113 @@ export class DocumentsService {
     return { deleted: result.count };
   }
 
+  /**
+   * Bulk archive (status = ARCHIVED). ADMIN/SUPER_ADMIN only.
+   * ISO 27001 A.5.10 — controlled bulk modification with audit trail.
+   */
+  async bulkArchive(ids: string[], currentUser: RequestUser) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('Aucun identifiant fourni');
+    }
+    if (ids.length > 100) {
+      throw new BadRequestException("Trop d'identifiants (max 100)");
+    }
+
+    const existing = await this.prisma.document.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+      select: { id: true, title: true, reference: true, status: true },
+    });
+
+    if (existing.length === 0) return { updated: 0 };
+
+    const existingIds = existing.map((d) => d.id);
+    const result = await this.prisma.document.updateMany({
+      where: { id: { in: existingIds } },
+      data: { status: 'ARCHIVED' },
+    });
+
+    for (const doc of existing) {
+      await this.auditService.log({
+        userId: currentUser.id,
+        action: 'DOCUMENT_ARCHIVED',
+        resourceType: 'Document',
+        resourceId: doc.id,
+        severity: 'INFO',
+        metadata: {
+          title: doc.title,
+          reference: doc.reference,
+          previousStatus: doc.status,
+          bulk: true,
+          batchSize: existing.length,
+        },
+      });
+    }
+
+    this.logger.log(
+      `Bulk archive: ${result.count} documents by user ${currentUser.id}`,
+    );
+
+    return { updated: result.count };
+  }
+
+  /**
+   * Bulk reclassify. ADMIN/SUPER_ADMIN only.
+   * ISO 27001 A.5.12 — information classification change with audit trail.
+   */
+  async bulkClassify(
+    ids: string[],
+    classification: string,
+    currentUser: RequestUser,
+  ) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('Aucun identifiant fourni');
+    }
+    if (ids.length > 100) {
+      throw new BadRequestException("Trop d'identifiants (max 100)");
+    }
+    const ALLOWED = ['PUBLIC', 'INTERNE', 'CONFIDENTIEL', 'SECRET'];
+    if (!ALLOWED.includes(classification)) {
+      throw new BadRequestException(`Classification invalide: ${classification}`);
+    }
+
+    const existing = await this.prisma.document.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+      select: { id: true, title: true, reference: true, classification: true },
+    });
+
+    if (existing.length === 0) return { updated: 0 };
+
+    const existingIds = existing.map((d) => d.id);
+    const result = await this.prisma.document.updateMany({
+      where: { id: { in: existingIds } },
+      data: { classification },
+    });
+
+    for (const doc of existing) {
+      await this.auditService.log({
+        userId: currentUser.id,
+        action: 'DOCUMENT_CLASSIFICATION_CHANGED',
+        resourceType: 'Document',
+        resourceId: doc.id,
+        severity: 'WARN',
+        metadata: {
+          title: doc.title,
+          reference: doc.reference,
+          from: doc.classification,
+          to: classification,
+          bulk: true,
+          batchSize: existing.length,
+        },
+      });
+    }
+
+    this.logger.log(
+      `Bulk classify (${classification}): ${result.count} documents by user ${currentUser.id}`,
+    );
+
+    return { updated: result.count };
+  }
+
   async uploadVersion(
     documentId: string,
     file: Express.Multer.File,

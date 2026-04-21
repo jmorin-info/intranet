@@ -39,7 +39,7 @@ import {
 } from '@omnitech/ui';
 import type { Column } from '@omnitech/ui';
 import { formatDate, formatRelativeTime, getInitials } from '@/lib/utils';
-import { Plus, FileText, Download, Filter, X, User, Clock, Eye, FileCheck, GripVertical, Trash2, FileDown, CheckSquare, Square, MinusSquare, Link2, ArrowUpDown, Keyboard, AlertTriangle } from 'lucide-react';
+import { Plus, FileText, Download, Filter, X, User, Clock, Eye, FileCheck, GripVertical, Trash2, FileDown, CheckSquare, Square, MinusSquare, Link2, ArrowUpDown, Keyboard, AlertTriangle, Archive, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/layout/page-header';
@@ -498,6 +498,46 @@ function DocumentsContent() {
     } finally {
       setBulkDeleting(false);
       setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    if (selectedDocs.length === 0) return;
+    if (!confirm(`Archiver ${selectedDocs.length} document${selectedDocs.length > 1 ? 's' : ''} ?`)) return;
+    try {
+      const { data } = await api.post<{ updated: number }>('/documents/bulk/archive', {
+        ids: selectedDocs.map(d => d.id),
+      });
+      toast.success(`${data.updated} document${data.updated > 1 ? 's archivés' : ' archivé'}`);
+      setSelectedIds(new Set());
+      fetchDocuments();
+    } catch {
+      toast.error("Erreur d'archivage");
+    }
+  };
+
+  const handleBulkClassify = async () => {
+    if (selectedDocs.length === 0) return;
+    const choice = prompt(
+      'Nouvelle classification (PUBLIC / INTERNE / CONFIDENTIEL / SECRET) :',
+      'INTERNE',
+    );
+    if (!choice) return;
+    const value = choice.trim().toUpperCase();
+    if (!['PUBLIC', 'INTERNE', 'CONFIDENTIEL', 'SECRET'].includes(value)) {
+      toast.error('Classification invalide');
+      return;
+    }
+    try {
+      const { data } = await api.post<{ updated: number }>('/documents/bulk/classify', {
+        ids: selectedDocs.map(d => d.id),
+        classification: value,
+      });
+      toast.success(`Classification mise à jour sur ${data.updated} document${data.updated > 1 ? 's' : ''}`);
+      setSelectedIds(new Set());
+      fetchDocuments();
+    } catch {
+      toast.error('Erreur de classification');
     }
   };
 
@@ -1185,9 +1225,11 @@ function DocumentsContent() {
           selectedCount={selectedIds.size}
           onClearSelection={() => setSelectedIds(new Set())}
           actions={[
-            { label: 'Supprimer la selection', icon: Trash2, variant: 'destructive', onClick: () => setShowDeleteConfirm(true) },
+            { label: 'Archiver', icon: Archive, onClick: handleBulkArchive },
+            { label: 'Classification', icon: ShieldCheck, onClick: handleBulkClassify },
             { label: 'Exporter en CSV', icon: FileDown, onClick: handleExportCSV },
             { label: 'Télécharger', icon: Download, onClick: handleBulkDownload },
+            { label: 'Supprimer', icon: Trash2, variant: 'destructive', onClick: () => setShowDeleteConfirm(true) },
           ]}
         />
       )}

@@ -16,6 +16,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
+import { api } from '@/lib/api';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import {
   LayoutDashboard, FileText, Ticket, Newspaper, Rss, BookOpen, Search,
@@ -30,7 +31,7 @@ import {
 
 // ─────────────────────────── Types ───────────────────────────
 
-type CategoryId = 'recent' | 'pages' | 'actions' | 'shortcuts' | 'admin' | 'help';
+type CategoryId = 'recent' | 'content' | 'pages' | 'actions' | 'shortcuts' | 'admin' | 'help';
 
 interface CommandItem {
   id: string;
@@ -52,6 +53,7 @@ interface CategoryDef {
 
 const CATEGORIES: CategoryDef[] = [
   { id: 'recent',    label: 'Récent' },
+  { id: 'content',   label: 'Contenu' },
   { id: 'pages',     label: 'Pages' },
   { id: 'actions',   label: 'Actions' },
   { id: 'shortcuts', label: 'Raccourcis clavier' },
@@ -137,14 +139,72 @@ interface CommandPaletteProps {
   onClose: () => void;
 }
 
+interface ContentHit {
+  id: string;
+  title: string;
+  url: string;
+  type: 'document' | 'ticket' | 'wiki' | 'news';
+  reference?: string | null;
+}
+
+const CONTENT_ICONS: Record<ContentHit['type'], React.ElementType> = {
+  document: FileText,
+  ticket: Ticket,
+  wiki: BookOpen,
+  news: Newspaper,
+};
+
+function buildHitHref(hit: ContentHit): string {
+  if (hit.url) return hit.url;
+  switch (hit.type) {
+    case 'document': return `/documents/${hit.id}`;
+    case 'ticket': return `/tickets/${hit.id}`;
+    case 'wiki': return `/wiki/${hit.id}`;
+    case 'news': return `/news/${hit.id}`;
+  }
+}
+
 export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const router = useRouter();
   const user = useAuthStore(s => s.user); const logout = useAuthStore(s => s.logout);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [recentIds, setRecentIds] = useState<string[]>([]);
+  const [contentHits, setContentHits] = useState<ContentHit[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Debounced backend search (Meilisearch) when query is long enough
+  useEffect(() => {
+    if (!isOpen) return;
+    const q = query.trim();
+    if (q.length < 3) {
+      setContentHits([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await api.get<{
+          results: { documents: ContentHit[]; tickets: ContentHit[]; wiki: ContentHit[]; news: ContentHit[] };
+        }>('/search/global', { params: { q, limit: 4 } });
+        if (cancelled) return;
+        const merged: ContentHit[] = [
+          ...(data.results.documents || []),
+          ...(data.results.wiki || []),
+          ...(data.results.tickets || []),
+          ...(data.results.news || []),
+        ].slice(0, 12);
+        setContentHits(merged);
+      } catch {
+        if (!cancelled) setContentHits([]);
+      }
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, isOpen]);
 
   // Load recent from localStorage on open
   useEffect(() => {
@@ -284,6 +344,17 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     items: CommandItem[];
   }
 
+  const contentItems: CommandItem[] = useMemo(() => {
+    return contentHits.map((h) => ({
+      id: `content:${h.type}:${h.id}`,
+      label: h.title || h.reference || '(sans titre)',
+      description: h.reference ?? undefined,
+      icon: CONTENT_ICONS[h.type] ?? FileText,
+      category: 'content' as const,
+      href: buildHitHref(h),
+    }));
+  }, [contentHits]);
+
   const sections: Section[] = useMemo(() => {
     if (query.trim()) {
       // groupé par catégorie dans l'ordre CATEGORIES
@@ -293,6 +364,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         arr.push(it);
         byCat.set(it.category, arr);
       });
+      if (contentItems.length) {
+        byCat.set('content', contentItems);
+      }
       return CATEGORIES
         .map((c) => ({ id: c.id, label: c.label, items: byCat.get(c.id) || [] }))
         .filter((s) => s.items.length > 0);
@@ -308,7 +382,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       if (items.length) out.push({ id: c.id, label: c.label, items });
     });
     return out;
-  }, [query, flatRanked, recentIds, allCommands]);
+  }, [query, flatRanked, recentIds, allCommands, contentItems]);
 
   // ── Flatten for keyboard nav ──
   const flat: { section: Section; item: CommandItem; index: number }[] = useMemo(() => {

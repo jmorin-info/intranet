@@ -10,7 +10,7 @@ import { UserRole, USER_ROLE_LABELS, isRoleAtLeast } from '@omnitech/shared';
 import { useDebounce } from '@/hooks/use-debounce';
 import { formatRelativeTime } from '@/lib/utils';
 import { PageHeader } from '@/components/layout/page-header';
-import { ExportButton } from '@/components/ui/export-button';
+import { ExportCsvButton } from '@/components/ui/export-csv-button';
 import {
   Card,
   CardContent,
@@ -643,19 +643,14 @@ export default function AdminUsersPage() {
         hub="admin"
         actions={
           <>
-            <ExportButton
+            <ExportCsvButton
+              endpoint="/users/export/csv"
               filename="utilisateurs"
-              rows={(users || []) as unknown as Array<Record<string, unknown>>}
-              columns={[
-                { header: 'Pr\u00e9nom', accessor: (r: any) => r?.firstName || '' },
-                { header: 'Nom', accessor: (r: any) => r?.lastName || '' },
-                { header: 'Email', accessor: (r: any) => r?.email || '' },
-                { header: 'R\u00f4le', accessor: (r: any) => USER_ROLE_LABELS[r?.role as UserRole] || r?.role || '' },
-                { header: 'D\u00e9partement', accessor: (r: any) => r?.department?.name || '' },
-                { header: 'Statut', accessor: (r: any) => r?.isActive ? 'Actif' : 'Inactif' },
-                { header: 'MFA', accessor: (r: any) => r?.mfaEnabled ? 'Oui' : 'Non' },
-                { header: 'Derni\u00e8re connexion', accessor: (r: any) => r?.lastLoginAt || 'Jamais' },
-              ]}
+              params={{
+                ...(roleFilter ? { role: roleFilter } : {}),
+                ...(departmentFilter ? { departmentId: departmentFilter } : {}),
+                ...(search ? { search } : {}),
+              }}
             />
             <Link href="/admin/users/import">
               <Button variant="outline">

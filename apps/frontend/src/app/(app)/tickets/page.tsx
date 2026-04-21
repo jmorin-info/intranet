@@ -734,34 +734,36 @@ export default function TicketsPage() {
   const handleBulkStatusChange = async () => {
     if (!bulkNewStatus || selectedIds.size === 0) return;
     try {
-      await Promise.all(
-        Array.from(selectedIds).map(id => api.patch(`/tickets/${id}`, { status: bulkNewStatus })),
-      );
-      toast.success('Statut mis à jour');
+      const { data } = await api.post<{ updated: number }>('/tickets/bulk/status', {
+        ids: Array.from(selectedIds),
+        status: bulkNewStatus,
+      });
+      toast.success(`Statut mis à jour sur ${data.updated} ticket${data.updated > 1 ? 's' : ''}`);
       setSelectedIds(new Set());
       setShowBulkStatus(false);
       setBulkNewStatus('');
       fetchTickets();
       refreshStatusCounts();
     } catch (err) {
-      toast.error('Erreur de mise a jour');
+      toast.error('Erreur de mise à jour');
     }
   };
 
   const handleBulkAssign = async () => {
     if (!bulkAssigneeId || selectedIds.size === 0) return;
     try {
-      await Promise.all(
-        Array.from(selectedIds).map(id => api.patch(`/tickets/${id}`, { assigneeId: bulkAssigneeId })),
-      );
-      toast.success('Tickets assignes');
+      const { data } = await api.post<{ updated: number }>('/tickets/bulk/assign', {
+        ids: Array.from(selectedIds),
+        assigneeId: bulkAssigneeId,
+      });
+      toast.success(`${data.updated} ticket${data.updated > 1 ? 's assignés' : ' assigné'}`);
       setSelectedIds(new Set());
       setShowBulkAssign(false);
       setBulkAssigneeId('');
       fetchTickets();
       refreshStatusCounts();
     } catch (err) {
-      toast.error('Erreur d\'assignation');
+      toast.error("Erreur d'assignation");
     }
   };
 
