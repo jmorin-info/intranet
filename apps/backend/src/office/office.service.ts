@@ -306,11 +306,24 @@ export class OfficeService {
     const isOwner = document.ownerId === currentUser.id;
     const isReviewer = document.reviewerId === currentUser.id;
     const isAdmin = roleLevel >= ROLE_HIERARCHY[UserRole.ADMIN];
+    // Règles d'édition :
+    //   - DRAFT / IN_REVIEW : éditable par owner, reviewer, admin (flux normal)
+    //   - APPROVED : éditable par owner ou admin uniquement. Chaque save crée
+    //     une version MINEURE (1.1, 1.2…) qui préserve la traçabilité ISO.
+    //     Le statut reste APPROVED (living document) et l'approbateur est
+    //     notifié. Les acknowledgments antérieurs sont préservés (preuve de
+    //     communication de la version N au temps T).
+    //   - OBSOLETE / ARCHIVED : lecture seule — il faut d'abord réouvrir
+    //     (`POST /documents/:id/reopen`).
+    const isEditableStatus =
+      document.status === 'DRAFT' ||
+      document.status === 'IN_REVIEW' ||
+      (document.status === 'APPROVED' && (isOwner || isAdmin));
     const canEdit =
       mode === 'edit' &&
       isFormatEditable &&
       (isOwner || isReviewer || isAdmin) &&
-      ['DRAFT', 'IN_REVIEW'].includes(document.status);
+      isEditableStatus;
 
     // Token d'accès signé pour que OnlyOffice puisse télécharger le fichier
     const accessToken = this.generateFileAccessToken(
@@ -704,9 +717,15 @@ export class OfficeService {
       const isOwner = doc.ownerId === userId;
       const isReviewer = doc.reviewerId === userId;
       const isAdmin = roleLevel >= ROLE_HIERARCHY[UserRole.ADMIN];
+      // Mêmes règles que dans getEditorConfig() : APPROVED éditable par
+      // owner/admin (minor version bump), OBSOLETE/ARCHIVED exige réouverture.
+      const isEditableStatus =
+        doc.status === 'DRAFT' ||
+        doc.status === 'IN_REVIEW' ||
+        (doc.status === 'APPROVED' && (isOwner || isAdmin));
       const stillCanEdit =
         (isOwner || isReviewer || isAdmin) &&
-        ['DRAFT', 'IN_REVIEW'].includes(doc.status) &&
+        isEditableStatus &&
         !doc.deletedAt;
       if (!stillCanEdit) {
         this.logger.warn(
@@ -853,9 +872,14 @@ export class OfficeService {
       );
 
       // BUG FIX #6 — Audit trail explicite.
+      // Les modifications post-APPROVED sont loguées en WARN (traçabilité
+      // conformité : un doc publié qui change doit être visible dans l'audit).
+      const isPostApprovalEdit = doc.status === 'APPROVED';
       await this.audit?.log({
         userId,
-        action: 'DOCUMENT_VERSION_CREATED_VIA_OFFICE',
+        action: isPostApprovalEdit
+          ? 'DOCUMENT_VERSION_CREATED_VIA_OFFICE_POST_APPROVAL'
+          : 'DOCUMENT_VERSION_CREATED_VIA_OFFICE',
         resourceType: 'Document',
         resourceId: documentId,
         metadata: {
@@ -865,11 +889,38 @@ export class OfficeService {
           newVersionNumber,
           bytes: buffer.length,
           checksum: newChecksum,
-          changeLog: 'Modifié via éditeur OnlyOffice',
+          changeLog: isPostApprovalEdit
+            ? `Modifié via OnlyOffice après approbation (version mineure ${newVersionNumber})`
+            : 'Modifié via éditeur OnlyOffice',
           onlyOfficeStatus: status,
+          docStatus: doc.status,
+          isPostApprovalEdit,
         },
-        severity: 'INFO',
+        severity: isPostApprovalEdit ? 'WARN' : 'INFO',
       });
+
+      // Si édition post-approval, notifier l'approbateur original (pour info
+      // — il peut demander une revue formelle si le changement est substantiel)
+      if (isPostApprovalEdit && doc.approverId && doc.approverId !== userId) {
+        try {
+          await this.prisma.notification.create({
+            data: {
+              userId: doc.approverId,
+              type: 'DOC_PUBLISHED',
+              title: `Document modifié après approbation : ${doc.title}`,
+              body: `${doc.reference} a été mis à jour (v${newVersionNumber}) après avoir été publié. Vérifiez que le changement ne remet pas en cause l'approbation.`,
+              resourceType: 'Document',
+              resourceId: documentId,
+            },
+          });
+        } catch (notifErr) {
+          this.logger.warn(
+            `OnlyOffice: échec notification approbateur post-approval: ${
+              notifErr instanceof Error ? notifErr.message : notifErr
+            }`,
+          );
+        }
+      }
 
       // BUG FIX #7 — Notifier le reviewer (si défini et différent de l'auteur)
       // qu'une nouvelle version est disponible. Best-effort — un échec de
