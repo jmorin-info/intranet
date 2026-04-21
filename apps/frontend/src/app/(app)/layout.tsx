@@ -9,7 +9,9 @@ import { BannerBar } from '@/components/layout/banner-bar';
 import { AuthProvider } from '@/components/layout/auth-provider';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { useUIStore } from '@/stores/ui-store';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 const FocusMode = dynamic(() => import('@/components/layout/focus-mode').then(m => ({ default: m.FocusMode })), { ssr: false });
@@ -45,6 +47,7 @@ const HUB_SHORTCUTS: Record<string, string> = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const sidebarOpen = useUIStore(s => s.sidebarOpen);
   const router = useRouter();
+  const pathname = usePathname();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   const handleGlobalKeyDown = useCallback(
@@ -120,7 +123,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Header />
           </ErrorBoundary>
           <OfflineIndicator />
-          <main className="p-4 lg:p-6 pb-20 lg:pb-6 animate-[fadeIn_0.25s_ease-out]">
+          {/* Breadcrumbs globaux — masqués sur /dashboard (racine) */}
+          {pathname && pathname !== '/dashboard' && (
+            <div className="px-4 lg:px-6 pt-3">
+              <Breadcrumbs />
+            </div>
+          )}
+          <main id="main-content" className="p-4 lg:p-6 pb-20 lg:pb-6 animate-[fadeIn_0.25s_ease-out]">
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
         </div>
