@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Query, Body, Res, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -7,6 +8,7 @@ import { VeilleService } from './veille.service';
 import { RequestUser } from '../common/interfaces';
 import { UserRole } from '../common/enums';
 import { safeParseInt } from '../common/validation-helpers';
+import { rowsToCsv, csvFilename, CsvColumn } from '../common/utils/csv-export';
 
 @Controller('veille')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -34,6 +36,61 @@ export class VeilleController {
   @Roles(UserRole.ADMIN)
   getStats() {
     return this.veilleService.getStats();
+  }
+
+  /**
+   * CSV export of the filtered veille list (max 10 000 rows).
+   * ISO 27001 A.5.10 — export contrôlé (traçabilité + anti-injection).
+   */
+  @Get('export/csv')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.REVIEWER)
+  async exportCsv(
+    @Query('isProcessed') isProcessed: string,
+    @Query('search') search: string,
+    @Query('dateFrom') dateFrom: string,
+    @Res() res: Response,
+  ) {
+    const result = await this.veilleService.findAll({
+      isProcessed: isProcessed === 'true' ? true : isProcessed === 'false' ? false : undefined,
+      search,
+      page: 1,
+      limit: 10000,
+      dateFrom,
+    });
+    const rows = (result as any)?.data ?? [];
+
+    type VeilleRow = {
+      title: string;
+      sourceName: string;
+      cveId: string | null;
+      severity: string | null;
+      publishedAt: Date | string;
+      isProcessed: boolean;
+      sourceUrl: string;
+    };
+
+    const columns: CsvColumn<VeilleRow>[] = [
+      { header: 'Titre', accessor: (r) => r.title },
+      { header: 'Source', accessor: (r) => r.sourceName },
+      { header: 'CVE', accessor: (r) => r.cveId ?? '' },
+      { header: 'Sévérité', accessor: (r) => r.severity ?? '' },
+      { header: 'Publié le', accessor: (r) => r.publishedAt },
+      { header: 'Traité', accessor: (r) => r.isProcessed },
+      { header: 'URL', accessor: (r) => r.sourceUrl },
+    ];
+
+    const csv = rowsToCsv<VeilleRow>(
+      rows as VeilleRow[],
+      columns,
+      'Veille cybersécurité',
+    );
+
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${csvFilename('veille')}"`,
+      'Cache-Control': 'private, no-store',
+    });
+    res.send(csv);
   }
 
   @Get('weekly-summary')
