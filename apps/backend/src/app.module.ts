@@ -72,6 +72,7 @@ import { ChatModule } from './chat/chat.module';
 import { TicketSpacesModule } from './ticket-spaces/ticket-spaces.module';
 import { TestimonialsModule } from './testimonials/testimonials.module';
 import { MediaModule } from './media/media.module';
+import { SystemMonitoringModule } from './system-monitoring/system-monitoring.module';
 
 @Module({
   imports: [
@@ -155,6 +156,7 @@ import { MediaModule } from './media/media.module';
     TicketSpacesModule,
     TestimonialsModule,
     MediaModule,
+    SystemMonitoringModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
