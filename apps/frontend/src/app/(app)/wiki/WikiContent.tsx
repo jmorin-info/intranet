@@ -83,6 +83,11 @@ import DOMPurify from 'dompurify';
 import { BookmarkButton } from '@/components/bookmark-button';
 import { WikiOutline, extractOutline } from '@/components/wiki/wiki-outline';
 import { WikiBacklinks } from '@/components/wiki/wiki-backlinks';
+import {
+  WikiSlashMenu,
+  useSlashMenu,
+  type SlashCommand,
+} from '@/components/wiki/wiki-slash-menu';
 
 type WikiVisibility = 'PRIVATE' | 'DEPARTMENT' | 'ROLE' | 'PUBLIC';
 
@@ -986,7 +991,53 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
     setMentionQuery('');
   }, []);
 
+  // Track content in a ref to avoid re-renders that reset the cursor
+  const editorContentRef = useRef(formData.content);
+  const editorInitializedRef = useRef(false);
+
+  /**
+   * Replace the `/query` trigger (inside the current text node) with the
+   * HTML snippet coming from a slash command. Keeps cursor placement sane
+   * and synchronises the editor content state.
+   */
+  const insertSlashCommand = useCallback((cmd: SlashCommand, query: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    // Locate and remove the `/query` trigger in the current selection's
+    // text node. We use the live selection rather than the trigger ref to
+    // avoid stale references if React re-rendered the tree.
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const node = range.startContainer;
+    if (node.nodeType === Node.TEXT_NODE) {
+      const caret = range.startOffset;
+      const text = node.textContent ?? '';
+      const triggerLen = query.length + 1; // `/` + query
+      const start = Math.max(0, caret - triggerLen);
+      if (text.slice(start, caret) === `/${query}`) {
+        node.textContent = text.slice(0, start) + text.slice(caret);
+        const newRange = document.createRange();
+        newRange.setStart(node, start);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+      }
+    }
+
+    editor.focus();
+    document.execCommand('insertHTML', false, cmd.html);
+    editorContentRef.current = editor.innerHTML;
+    setFormData((f) => ({ ...f, content: editor.innerHTML }));
+  }, []);
+
+  const slashMenu = useSlashMenu({ editorRef, onInsert: insertSlashCommand });
+
   const handleEditorKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Slash menu navigation / selection takes precedence when it's open.
+    if (slashMenu.onKeyDown(e)) return;
+
     // Mention dropdown navigation
     if (showMentionDropdown && mentionResults.length > 0) {
       if (e.key === 'ArrowDown') {
@@ -1031,11 +1082,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
     if (e.key === 'Escape' && isEditorFullscreen) {
       setIsEditorFullscreen(false);
     }
-  }, [showMentionDropdown, mentionResults, mentionIndex, insertMention, saveSelection, isEditorFullscreen]);
-
-  // Track content in a ref to avoid re-renders that reset the cursor
-  const editorContentRef = useRef(formData.content);
-  const editorInitializedRef = useRef(false);
+  }, [slashMenu, showMentionDropdown, mentionResults, mentionIndex, insertMention, saveSelection, isEditorFullscreen]);
 
   // Initialize editor content when form opens (without dangerouslySetInnerHTML)
   useEffect(() => {
@@ -1053,6 +1100,8 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
   const handleEditorInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
     const html = (e.target as HTMLDivElement).innerHTML;
     editorContentRef.current = html;
+    // Detect `/` slash-command trigger (non-blocking — it co-exists with @mentions)
+    slashMenu.onInput();
     // Detect @mention
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
@@ -1079,7 +1128,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
       setShowMentionDropdown(false);
       setMentionQuery('');
     }
-  }, [searchMentions]);
+  }, [searchMentions, slashMenu]);
 
   const handleViewPage = async (slug: string) => {
     try {
@@ -1951,11 +2000,13 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   )}
                 </div>
               )}
+              {/* Slash command menu (Notion-style) */}
+              <WikiSlashMenu state={slashMenu.state} onSelect={slashMenu.select} />
             </div>
             {/* Word & character count */}
             <div className="flex justify-between items-center mt-1">
               <span className="text-[10px] text-seal-gray-500/60 dark:text-slate-600">
-                Glissez une image pour l&apos;insérer {'\u2022'} Ctrl+K lien {'\u2022'} Ctrl+Shift+1/2/3 titres
+                Glissez une image pour l&apos;insérer {'\u2022'} Ctrl+K lien {'\u2022'} Ctrl+Shift+1/2/3 titres {'\u2022'} / commandes
               </span>
               <span className="text-[11px] text-seal-gray-500 dark:text-slate-500">
                 {editorWordCount} mot{editorWordCount !== 1 ? 's' : ''} {'\u2022'} {editorPlainText.length} car.
