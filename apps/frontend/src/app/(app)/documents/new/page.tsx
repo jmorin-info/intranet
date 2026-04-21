@@ -844,7 +844,7 @@ export default function NewDocumentPage() {
                     ) : file.type.includes('sheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls') ? (
                       <FileSpreadsheet className="h-8 w-8 text-green-500" />
                     ) : (
-                      <File className="h-8 w-8 text-gray-400" />
+                      <File className="h-8 w-8 text-gray-400 dark:text-slate-500" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">

@@ -1594,7 +1594,7 @@ export default function TicketsPage() {
                   {form.priority === 'CRITICAL' && <AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />}
                   {form.priority === 'HIGH' && <Clock className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />}
                   {form.priority === 'MEDIUM' && <Clock className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />}
-                  {form.priority === 'LOW' && <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />}
+                  {form.priority === 'LOW' && <Clock className="h-3.5 w-3.5 text-gray-400 dark:text-slate-500 flex-shrink-0" />}
                   <div>
                     <p className="text-[11px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 font-medium">SLA</p>
                     <p className={`text-xs font-medium ${

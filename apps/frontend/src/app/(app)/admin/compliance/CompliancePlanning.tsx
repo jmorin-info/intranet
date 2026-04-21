@@ -951,7 +951,7 @@ function ComplianceTimeline({ tasks, loading }: ComplianceTimelineProps) {
           ))}
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm border border-dashed border-gray-300 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center">
-              <Repeat className="h-2 w-2 text-gray-400" />
+              <Repeat className="h-2 w-2 text-gray-400 dark:text-slate-500" />
             </div>
             <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">Recurrence</span>
           </div>

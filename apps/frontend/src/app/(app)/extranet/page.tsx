@@ -184,7 +184,7 @@ export default function ExtranetPage() {
                           ? 'bg-gray-100 dark:bg-gray-800'
                           : 'bg-primary/10'
                       }`}>
-                        <Users className={`h-5 w-5 ${isExpiredOrRevoked ? 'text-gray-400' : 'text-primary'}`} />
+                        <Users className={`h-5 w-5 ${isExpiredOrRevoked ? 'text-gray-400 dark:text-slate-500' : 'text-primary'}`} />
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-medium text-seal-navy dark:text-white text-sm truncate">{access.name}</h3>
