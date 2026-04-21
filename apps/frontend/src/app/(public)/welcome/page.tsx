@@ -11,7 +11,7 @@ import { useTranslation } from '@/lib/i18n';
 import {
   Shield, FileText, Newspaper, Users, ArrowRight, ArrowLeft, Lock, CheckCircle2,
   Rss, Ticket, Star, BookOpen, Eye, ExternalLink, BadgeCheck, ChevronRight, Pin,
-  MessageCircle, LogIn, Layout, Share2, Bell, BarChart3, UserCheck, AlertTriangle,
+  LogIn, Layout, Share2, Bell, BarChart3, UserCheck, AlertTriangle,
   X, Camera, Monitor, Cpu, Download,
 } from 'lucide-react';
 
@@ -36,13 +36,6 @@ function AnimatedCounter({ value, duration = 1500 }: { value: number; duration?:
   }, [value, duration]);
   return <span>{count}</span>;
 }
-
-const TESTIMONIALS = [
-  { quote: "L'intranet nous permet de gagner un temps considérable sur la gestion documentaire.", author: 'Direction' },
-  { quote: "Les tickets IT sont traités beaucoup plus rapidement qu'avant.", author: 'Service Commercial' },
-  { quote: "La veille cybersécurité intégrée nous aide à rester informés des menaces en temps réel.", author: 'Équipe Sécurité' },
-  { quote: "Le wiki interne a transformé notre partage de connaissances entre équipes.", author: 'Service Technique' },
-];
 
 /* ── Lightweight modal dialog ── */
 function InfoDialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
@@ -70,64 +63,6 @@ function InfoDialog({ open, onClose, title, children }: { open: boolean; onClose
 }
 
 type DialogKey = 'iso' | 'seal' | 'sfpi' | 'access' | 'video' | 'hyper' | null;
-
-function TestimonialsSection() {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % TESTIMONIALS.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <section className="py-16 bg-gray-50 dark:bg-slate-800/50">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl font-semibold text-[#004469] dark:text-white">Ce qu&apos;en disent nos équipes</h2>
-          <p className="text-sm text-[#837274] dark:text-slate-400 mt-2">Témoignages de collaborateurs</p>
-        </div>
-        <div className="relative overflow-hidden" style={{ minHeight: '140px' }}>
-          {TESTIMONIALS.map((t, i) => (
-            <div
-              key={i}
-              className="absolute inset-0 flex items-center justify-center px-4 transition-all duration-700 ease-in-out"
-              style={{
-                opacity: activeIndex === i ? 1 : 0,
-                transform: activeIndex === i ? 'translateY(0)' : 'translateY(12px)',
-                pointerEvents: activeIndex === i ? 'auto' : 'none',
-              }}
-            >
-              <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 p-8 max-w-2xl w-full relative shadow-sm">
-                <MessageCircle className="h-8 w-8 text-[#F68D2E]/20 absolute top-4 right-4" />
-                <p className="text-base text-[#004469] dark:text-white leading-relaxed italic text-center">
-                  &laquo;&nbsp;{t.quote}&nbsp;&raquo;
-                </p>
-                <p className="text-sm text-[#837274] dark:text-slate-400 mt-4 font-semibold text-center">
-                  — {t.author}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-        {/* Dots indicator */}
-        <div className="flex items-center justify-center gap-2 mt-6">
-          {TESTIMONIALS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveIndex(i)}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                activeIndex === i ? 'w-6 bg-[#F68D2E]' : 'w-2 bg-[#837274]/30 hover:bg-[#837274]/50'
-              }`}
-              aria-label={`Témoignage ${i + 1}`}
-            />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -475,9 +410,6 @@ export default function WelcomePage() {
           </div>
         </div>
       </section>
-
-      {/* TEMOIGNAGES */}
-      <TestimonialsSection />
 
       {/* SERVICES */}
       <section id="services" className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
