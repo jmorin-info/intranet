@@ -61,6 +61,33 @@ export type MockupKey =
   | 'access-review'
   | 'admin-hub';
 
+/**
+ * Défi interactif attaché à une étape d'onboarding.
+ *
+ * Permet de transformer une slide passive en micro-exercice que l'utilisateur
+ * doit accomplir pour "valider" l'étape (ex. presser Ctrl+K, cliquer un lien,
+ * visiter une route). Reste 100% optionnel : un bouton "Passer le défi" est
+ * disponible pour ne jamais bloquer la progression.
+ */
+export interface OnboardingStepChallenge {
+  /** Type de défi.
+   * - `keyboard`     : l'utilisateur doit presser une combinaison de touches.
+   * - `visitRoute`   : l'utilisateur doit naviguer vers un chemin (pathname).
+   * - `clickSelector`: l'utilisateur doit cliquer sur un élément matching le selector.
+   */
+  kind: 'keyboard' | 'visitRoute' | 'clickSelector';
+  /** Pour `keyboard` : combinaison attendue, ex "Control+k" ou "Control+Shift+k". Case-insensitive. */
+  keys?: string;
+  /** Pour `visitRoute` : chemin à visiter (pathname), ex "/media". Valide si user clique sur un Link vers ce path. */
+  route?: string;
+  /** Pour `clickSelector` : selector CSS de l'élément à cliquer, ex "[data-quick-search]". */
+  selector?: string;
+  /** Libellé affiché à l'utilisateur pour le guider. */
+  label: string;
+  /** Libellé quand le défi est validé. */
+  successLabel?: string;
+}
+
 export interface OnboardingStepData {
   icon: ComponentType<{ className?: string }>;
   title: string;
@@ -69,6 +96,8 @@ export interface OnboardingStepData {
   mockupKey?: MockupKey;
   highlight?: string;
   cta?: { label: string; href: string };
+  /** Défi interactif optionnel qui transforme la slide en micro-exercice. */
+  challenge?: OnboardingStepChallenge;
 }
 
 // ============================================================================
@@ -112,6 +141,12 @@ export const COMMON_STEPS: OnboardingStepData[] = [
       'Tapez un titre de page, nom de collègue, référence document',
       'Flèches pour naviguer, Entrée pour valider',
     ],
+    challenge: {
+      kind: 'keyboard',
+      keys: 'Control+k',
+      label: 'Appuyez sur Ctrl+K pour ouvrir la palette',
+      successLabel: 'Palette ouverte — bien joué !',
+    },
   },
   {
     icon: MessageSquare,
@@ -124,6 +159,12 @@ export const COMMON_STEPS: OnboardingStepData[] = [
       'Il cite ses sources — vérifiez toujours les liens',
       'Disponible 24/7, aucune donnée ne sort du réseau interne',
     ],
+    challenge: {
+      kind: 'keyboard',
+      keys: 'Control+Shift+k',
+      label: 'Appuyez sur Ctrl+Shift+K pour ouvrir l\'assistant IA',
+      successLabel: 'Assistant IA invoqué — parfait !',
+    },
   },
   {
     icon: User,
@@ -138,6 +179,12 @@ export const COMMON_STEPS: OnboardingStepData[] = [
       'Chartes à signer : rapide, une seule fois',
     ],
     cta: { label: 'Compléter mon profil', href: '/profile' },
+    challenge: {
+      kind: 'clickSelector',
+      selector: 'header [data-user-menu], header [aria-label*="profil" i]',
+      label: 'Cliquez sur votre menu utilisateur dans l\'en-tête',
+      successLabel: 'Menu utilisateur trouvé !',
+    },
   },
 ];
 
@@ -413,6 +460,12 @@ const COLLABORATEUR_STEPS: OnboardingStepData[] = [
       'Commentaires avec l\'agent assigné',
     ],
     cta: { label: 'Créer un ticket', href: '/tickets' },
+    challenge: {
+      kind: 'visitRoute',
+      route: '/tickets',
+      label: 'Cliquez sur le lien Tickets dans la barre latérale',
+      successLabel: 'Hub Tickets repéré !',
+    },
   },
   {
     icon: BookOpen,
