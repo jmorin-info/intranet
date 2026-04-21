@@ -80,6 +80,7 @@ import DOMPurify from 'dompurify';
 import { BookmarkButton } from '@/components/bookmark-button';
 import { WikiOutline, extractOutline } from '@/components/wiki/wiki-outline';
 import { WikiBacklinks } from '@/components/wiki/wiki-backlinks';
+import { CategoryDndView } from '@/components/wiki/category-dnd-view';
 import {
   WikiSlashMenu,
   useSlashMenu,
@@ -3239,75 +3240,31 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           })}
         </div>
       ) : (
-        /* ===== CATEGORY ACCORDION VIEW ===== */
-        <div className="space-y-3">
-          {groupedByCategory.map(([cat, catPages]) => {
-            const isExpanded = expandedAccordions[cat] ?? true;
-            const catColor = getCategoryColor(cat === 'Sans catégorie' ? null : cat);
-            const CatIcon = getCategoryIcon(cat === 'Sans catégorie' ? null : cat);
-            return (
-              <div
-                key={cat}
-                className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden"
-              >
-                {/* Accordion header */}
-                <button
-                  onClick={() => toggleAccordion(cat)}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <div
-                    className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: `${catColor}15`, color: catColor }}
-                  >
-                    <CatIcon className="h-4 w-4" />
-                  </div>
-                  <span className="flex-1 text-left text-sm font-semibold text-seal-navy dark:text-white">
-                    {cat}
-                  </span>
-                  <span className="text-[11px] text-seal-gray-500 dark:text-slate-500 font-medium mr-2">
-                    {catPages.length} article{catPages.length !== 1 ? 's' : ''}
-                  </span>
-                  <ChevronDown
-                    className={`h-4 w-4 text-seal-gray-500 dark:text-slate-400 transition-transform duration-200 ${
-                      isExpanded ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                {/* Accordion body */}
-                {isExpanded && (
-                  <div className="border-t border-gray-100 dark:border-slate-700 divide-y divide-gray-50 dark:divide-slate-800">
-                    {catPages.map((page) => (
-                      <button
-                        key={page.id}
-                        onClick={() => handleViewPage(page.slug)}
-                        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors text-left group"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-seal-navy dark:text-white group-hover:text-primary transition-colors truncate">
-                            {highlightText(page.title, search)}
-                          </p>
-                          <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-3 mt-0.5">
-                            <span className="flex items-center gap-1">
-                              <span className="h-4 w-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[8px] font-bold">
-                                {page.author.firstName[0]}{page.author.lastName[0]}
-                              </span>
-                              {page.author.firstName} {page.author.lastName}
-                            </span>
-                            <span className="flex items-center gap-0.5">
-                              <Clock className="h-2.5 w-2.5" />
-                              {formatRelativeTime(page.updatedAt)}
-                            </span>
-                          </p>
-                        </div>
-                        <ChevronRight className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-500 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        /* ===== CATEGORY ACCORDION VIEW avec drag-and-drop =====
+           Les articles peuvent être déplacés entre catégories en les glissant
+           via le handle (GripVertical). Le drop sur une autre section déclenche
+           un PATCH /wiki/:id { category }. Nécessite droit d'édition. */
+        <CategoryDndView
+          groupedByCategory={groupedByCategory}
+          expandedAccordions={expandedAccordions}
+          toggleAccordion={toggleAccordion}
+          onViewPage={handleViewPage}
+          canEdit={(page) => {
+            const isOwner = user && page.author && ('id' in page.author) && (page.author as { id: string }).id === user.id;
+            return Boolean(isAdmin || isOwner);
+          }}
+          formatRelativeTime={formatRelativeTime}
+          getCategoryColor={getCategoryColor}
+          getCategoryIcon={getCategoryIcon}
+          highlightText={highlightText}
+          search={search}
+          onMoveArticle={async (articleId, targetCategory) => {
+            // Backend accepte category='' pour remettre à null
+            await api.patch(`/wiki/${articleId}`, { category: targetCategory || null });
+            // Recharger la liste pour refléter le changement
+            await fetchPages();
+          }}
+        />
       )}
         </div>
       </div>
