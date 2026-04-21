@@ -91,7 +91,7 @@ export const ROUTES: readonly RouteEntry[] = [
   { path: '/admin/access-reviews',  label: 'Revue des acces',           labelEn: 'Access Reviews',        icon: 'UserCheck2',     group: 'admin', requiredRole: 'SUPER_ADMIN' as UserRole },
   { path: '/admin/chartes',         label: 'Gestion des chartes',       labelEn: 'Charter Management',    icon: 'Shield',         group: 'admin', requiredRole: 'ADMIN' as UserRole },
   { path: '/admin/certificates',    label: 'Certifications',            labelEn: 'Certificates',          icon: 'Award',          group: 'admin', requiredRole: 'ADMIN' as UserRole },
-  { path: '/admin/testimonials',    label: 'Témoignages (modération)',  labelEn: 'Testimonials',          icon: 'MessageCircle',  group: 'admin', requiredRole: 'ADMIN' as UserRole },
+  { path: '/admin/feedback',        label: 'Avis & enquêtes satisfaction', labelEn: 'Feedback',          icon: 'MessageCircle',  group: 'admin', requiredRole: 'ADMIN' as UserRole },
   { path: '/testimonials',          label: 'Mon avis sur l\'intranet',   labelEn: 'My Feedback',           icon: 'MessageCircle',  group: 'mySpace' },
   { path: '/admin/audit',           label: 'Audit',                     labelEn: 'Audit',                 icon: 'ClipboardList',  group: 'admin', requiredRole: 'ADMIN' as UserRole },
   { path: '/admin/reports',         label: 'Rapports',                  labelEn: 'Reports',               icon: 'BarChart3',      group: 'admin', requiredRole: 'ADMIN' as UserRole },

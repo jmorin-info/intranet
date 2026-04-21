@@ -124,7 +124,7 @@ function buildSections(): AdminSection[] {
         { title: 'Chartes', description: 'Versionning + campagnes de signature.', href: '/admin/chartes', icon: Shield, minRole: UserRole.ADMIN },
         { title: 'Signatures', description: 'Dashboard signatures DocuSeal.', href: '/admin/signatures', icon: PenLine, minRole: UserRole.ADMIN },
         { title: 'Workflows d\'approbation', description: 'Documents en revue.', href: '/admin/workflows', icon: Layers, minRole: UserRole.REVIEWER },
-        { title: 'Modération témoignages', description: 'Avis collaborateurs sur l\'intranet — relire avant publication sur /welcome.', href: '/admin/testimonials', icon: MessageCircle, minRole: UserRole.ADMIN },
+        { title: 'Avis & enquêtes satisfaction', description: 'Modération des témoignages collaborateurs + résultats des enquêtes de satisfaction + création de nouvelles enquêtes.', href: '/admin/feedback', icon: MessageCircle, minRole: UserRole.ADMIN },
         { title: 'Rapports', description: 'Exports analytiques.', href: '/admin/reports', icon: BarChart3, minRole: UserRole.ADMIN },
         { title: 'Exports IT', description: 'Veeam et autres sources infra.', href: '/admin/it-exports', icon: ClipboardCheck, minRole: UserRole.ADMIN },
         { title: 'Sauvegardes', description: 'Jobs de backup planifiés.', href: '/admin/backups', icon: HardDrive, minRole: UserRole.SUPER_ADMIN },
