@@ -33,6 +33,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UserRole } from '../common/enums';
 import { RequestUser } from '../common/interfaces';
+import { rowsToCsv, csvFilename, CsvColumn } from '../common/utils/csv-export';
 
 const AVATAR_STORAGE_PATH = path.resolve(process.cwd(), '..', '..', 'storage', 'avatars');
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -83,6 +84,60 @@ export class UsersController {
       },
       { role, departmentId, search },
     );
+  }
+
+  /**
+   * CSV export of filtered users list (max 10 000 rows). Admin only.
+   * ISO 27001 A.5.10 — export controlé (traçabilité + anti-injection).
+   */
+  @Get('export/csv')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async exportCsv(
+    @Query('role') role: string,
+    @Query('departmentId') departmentId: string,
+    @Query('search') search: string,
+    @Res() res: Response,
+  ) {
+    const result = await this.usersService.findAll(
+      { page: 1, limit: 10000 },
+      { role, departmentId, search },
+    );
+    const rows = (result as any)?.data ?? [];
+
+    type UserRow = {
+      firstName: string;
+      lastName: string;
+      email: string;
+      role: string;
+      jobTitle?: string | null;
+      phone?: string | null;
+      isActive: boolean;
+      department?: { name: string } | null;
+      createdAt: Date | string;
+      lastLoginAt?: Date | string | null;
+    };
+
+    const columns: CsvColumn<UserRow>[] = [
+      { header: 'Prénom', accessor: (u) => u.firstName },
+      { header: 'Nom', accessor: (u) => u.lastName },
+      { header: 'Email', accessor: (u) => u.email },
+      { header: 'Rôle', accessor: (u) => u.role },
+      { header: 'Département', accessor: (u) => u.department?.name ?? '' },
+      { header: 'Fonction', accessor: (u) => u.jobTitle ?? '' },
+      { header: 'Téléphone', accessor: (u) => u.phone ?? '' },
+      { header: 'Actif', accessor: (u) => u.isActive },
+      { header: 'Créé le', accessor: (u) => u.createdAt },
+      { header: 'Dernière connexion', accessor: (u) => u.lastLoginAt ?? '' },
+    ];
+
+    const csv = rowsToCsv<UserRow>(rows as UserRow[], columns, 'Utilisateurs');
+
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${csvFilename('utilisateurs')}"`,
+      'Cache-Control': 'private, no-store',
+    });
+    res.send(csv);
   }
 
   @Get('me/activity-summary')
