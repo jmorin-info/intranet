@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import {
   Inbox, Monitor, Briefcase, Shield, Plus, Trash2, UserPlus, UserMinus,
-  ArrowLeft, Edit3, X, Check, Users, Tag, Building2,
+  ArrowLeft, Edit3, X, Check, Users, Tag, Building2, Settings2, Save, Clock,
 } from 'lucide-react';
 import {
   Card, CardContent, CardHeader, Button, Input, Textarea, Badge, EmptyState, Skeleton,
@@ -26,6 +26,26 @@ interface Member {
   createdAt: string;
 }
 
+interface Subcategory {
+  value: string;
+  label: string;
+  color?: string;
+}
+
+interface SpaceConfig {
+  subcategories?: Subcategory[];
+  defaultPriority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  requireDescription?: boolean;
+  requireAttachment?: boolean;
+}
+
+interface SlaConfig {
+  CRITICAL?: number;
+  HIGH?: number;
+  MEDIUM?: number;
+  LOW?: number;
+}
+
 interface Space {
   id: string;
   name: string;
@@ -35,8 +55,29 @@ interface Space {
   color: string | null;
   isDefault: boolean;
   isActive: boolean;
+  allowedCategories?: string[];
+  slaConfig?: SlaConfig | null;
+  config?: SpaceConfig | null;
   members?: Member[];
 }
+
+const GLOBAL_CATEGORIES = [
+  { value: 'INCIDENT', label: 'Incident' },
+  { value: 'REQUEST', label: 'Demande' },
+  { value: 'ACCESS', label: 'Accès' },
+  { value: 'HARDWARE', label: 'Matériel' },
+  { value: 'SOFTWARE', label: 'Logiciel' },
+  { value: 'NETWORK', label: 'Réseau' },
+  { value: 'SECURITY', label: 'Sécurité' },
+  { value: 'OTHER', label: 'Autre' },
+];
+
+const SLA_DEFAULTS: Record<string, SlaConfig> = {
+  general: { CRITICAL: 4, HIGH: 24, MEDIUM: 72, LOW: 168 },
+  it: { CRITICAL: 2, HIGH: 8, MEDIUM: 48, LOW: 120 },
+  securite: { CRITICAL: 1, HIGH: 4, MEDIUM: 24, LOW: 72 },
+  'services-generaux': { CRITICAL: 8, HIGH: 48, MEDIUM: 120, LOW: 240 },
+};
 
 interface UserLite {
   id: string;
@@ -86,6 +127,14 @@ export default function TicketSpacesAdminPage() {
   const [memberPermission, setMemberPermission] = useState<Permission>('CREATOR');
   const [addingMember, setAddingMember] = useState(false);
 
+  // Space config state (edited from the Configuration panel)
+  const [draftAllowed, setDraftAllowed] = useState<string[]>([]);
+  const [draftSla, setDraftSla] = useState<SlaConfig>({});
+  const [draftSubcats, setDraftSubcats] = useState<Subcategory[]>([]);
+  const [newSubcatValue, setNewSubcatValue] = useState('');
+  const [newSubcatLabel, setNewSubcatLabel] = useState('');
+  const [savingConfig, setSavingConfig] = useState(false);
+
   const loadSpaces = useCallback(async () => {
     setLoading(true);
     try {
@@ -130,6 +179,63 @@ export default function TicketSpacesAdminPage() {
   useEffect(() => {
     if (selectedId) loadMembers(selectedId);
   }, [selectedId, loadMembers]);
+
+  // Sync config editor state when a different space is selected or after reload.
+  useEffect(() => {
+    if (!selectedSpace) return;
+    setDraftAllowed(selectedSpace.allowedCategories ?? []);
+    setDraftSla((selectedSpace.slaConfig as SlaConfig) ?? {});
+    setDraftSubcats(((selectedSpace.config as SpaceConfig)?.subcategories) ?? []);
+    setNewSubcatValue('');
+    setNewSubcatLabel('');
+  }, [selectedSpace]);
+
+  const handleSaveConfig = useCallback(async () => {
+    if (!selectedSpace) return;
+    setSavingConfig(true);
+    try {
+      await api.patch(`/ticket-spaces/${selectedSpace.id}`, {
+        allowedCategories: draftAllowed,
+        slaConfig: Object.keys(draftSla).length > 0 ? draftSla : null,
+        config: {
+          ...(selectedSpace.config ?? {}),
+          subcategories: draftSubcats,
+        },
+      });
+      toast.success('Configuration enregistrée');
+      await loadMembers(selectedSpace.id);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Erreur enregistrement');
+    } finally {
+      setSavingConfig(false);
+    }
+  }, [selectedSpace, draftAllowed, draftSla, draftSubcats, loadMembers]);
+
+  const toggleAllowedCategory = (cat: string) => {
+    setDraftAllowed((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
+    );
+  };
+
+  const addSubcategory = () => {
+    const v = newSubcatValue.trim().toLowerCase().replace(/\s+/g, '-');
+    const l = newSubcatLabel.trim();
+    if (!v || !l) {
+      toast.error('Code et libellé requis');
+      return;
+    }
+    if (draftSubcats.some((s) => s.value === v)) {
+      toast.error('Code déjà existant');
+      return;
+    }
+    setDraftSubcats([...draftSubcats, { value: v, label: l }]);
+    setNewSubcatValue('');
+    setNewSubcatLabel('');
+  };
+
+  const removeSubcategory = (value: string) => {
+    setDraftSubcats(draftSubcats.filter((s) => s.value !== value));
+  };
 
   const handleCreate = async () => {
     const name = createName.trim();
@@ -331,6 +437,151 @@ export default function TicketSpacesAdminPage() {
                     )}
                   </div>
                 </CardHeader>
+              </Card>
+
+              {/* Configuration de l'espace (catégories / SLA / sous-catégories) */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
+                      <Settings2 className="h-4 w-4" />
+                      Configuration de l&apos;espace
+                    </h3>
+                    <Button
+                      size="sm"
+                      onClick={handleSaveConfig}
+                      loading={savingConfig}
+                      disabled={savingConfig}
+                    >
+                      <Save className="h-3.5 w-3.5 mr-1" /> Enregistrer
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-seal-gray-500 mt-1">
+                    Seuls les managers de cet espace (et les administrateurs) peuvent modifier ces paramètres.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {/* Allowed categories */}
+                  <div>
+                    <label className="text-xs font-medium text-seal-navy dark:text-white flex items-center gap-1.5 mb-2">
+                      <Tag className="h-3.5 w-3.5" /> Catégories autorisées
+                    </label>
+                    <p className="text-[11px] text-seal-gray-500 mb-2">
+                      Cochez les catégories disponibles à la création de ticket dans cet espace. Si tout est décoché, toutes les catégories sont autorisées.
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {GLOBAL_CATEGORIES.map((c) => {
+                        const checked = draftAllowed.includes(c.value);
+                        return (
+                          <label
+                            key={c.value}
+                            className={`flex items-center gap-2 p-2 rounded border cursor-pointer text-xs transition ${
+                              checked
+                                ? 'border-seal-orange bg-seal-orange/5'
+                                : 'border-gray-200 dark:border-slate-700 hover:border-seal-orange/50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleAllowedCategory(c.value)}
+                              className="h-3.5 w-3.5"
+                            />
+                            <span className="text-seal-navy dark:text-white">{c.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* SLA config */}
+                  <div>
+                    <label className="text-xs font-medium text-seal-navy dark:text-white flex items-center gap-1.5 mb-2">
+                      <Clock className="h-3.5 w-3.5" /> SLA de résolution (en heures)
+                    </label>
+                    <p className="text-[11px] text-seal-gray-500 mb-2">
+                      Temps maximum avant résolution attendu par priorité. Laisser vide pour utiliser les SLA globaux par défaut.
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map((prio) => (
+                        <div key={prio}>
+                          <label className="text-[10px] uppercase font-semibold text-seal-gray-500">
+                            {prio}
+                          </label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={draftSla[prio] ?? ''}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const num = raw === '' ? undefined : parseInt(raw, 10);
+                              setDraftSla((prev) => ({
+                                ...prev,
+                                [prio]: num,
+                              }));
+                            }}
+                            placeholder={String(SLA_DEFAULTS.general?.[prio] ?? '')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Subcategories */}
+                  <div>
+                    <label className="text-xs font-medium text-seal-navy dark:text-white flex items-center gap-1.5 mb-2">
+                      <Tag className="h-3.5 w-3.5" /> Sous-catégories spécifiques à cet espace
+                    </label>
+                    <p className="text-[11px] text-seal-gray-500 mb-2">
+                      Classifications métier propres à cet espace : &quot;RMA&quot;, &quot;Déploiement&quot; pour l&apos;IT ; &quot;Congés&quot;, &quot;Paie&quot; pour les RH ; etc. Affichées dans le formulaire de création de ticket de l&apos;espace.
+                    </p>
+                    <div className="space-y-1.5">
+                      {draftSubcats.length === 0 && (
+                        <p className="text-[11px] text-seal-gray-500 italic py-2">Aucune sous-catégorie définie.</p>
+                      )}
+                      {draftSubcats.map((s) => (
+                        <div
+                          key={s.value}
+                          className="flex items-center gap-2 p-2 rounded border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50"
+                        >
+                          <code className="text-[11px] font-mono text-seal-orange bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded">
+                            {s.value}
+                          </code>
+                          <span className="text-sm text-seal-navy dark:text-white flex-1">{s.label}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeSubcategory(s.value)}
+                            aria-label="Retirer"
+                            className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 flex items-end gap-2">
+                      <div className="w-36">
+                        <label className="text-[10px] uppercase font-semibold text-seal-gray-500">Code</label>
+                        <Input
+                          value={newSubcatValue}
+                          onChange={(e) => setNewSubcatValue(e.target.value)}
+                          placeholder="rma"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] uppercase font-semibold text-seal-gray-500">Libellé</label>
+                        <Input
+                          value={newSubcatLabel}
+                          onChange={(e) => setNewSubcatLabel(e.target.value)}
+                          placeholder="Retour matériel (RMA)"
+                        />
+                      </div>
+                      <Button size="sm" onClick={addSubcategory}>
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
               </Card>
 
               {/* Membres */}

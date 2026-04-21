@@ -185,6 +185,8 @@ export class TicketSpacesService {
         ...(dto.color !== undefined ? { color: dto.color } : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         ...(dto.allowedCategories !== undefined ? { allowedCategories: dto.allowedCategories } : {}),
+        ...(dto.slaConfig !== undefined ? { slaConfig: dto.slaConfig as Prisma.InputJsonValue | Prisma.NullTypes.JsonNull } : {}),
+        ...(dto.config !== undefined ? { config: dto.config as Prisma.InputJsonValue | Prisma.NullTypes.JsonNull } : {}),
       },
     });
 

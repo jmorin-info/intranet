@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateSpaceDto {
   @IsString()
@@ -67,4 +67,25 @@ export class UpdateSpaceDto {
   @IsArray()
   @IsString({ each: true })
   allowedCategories?: string[];
+
+  /**
+   * Override des SLA globaux pour cet espace (en heures, par priorité).
+   * Exemple : { CRITICAL: 2, HIGH: 8, MEDIUM: 48, LOW: 120 } pour l'IT.
+   * Si null → utilise les SLA globaux par défaut.
+   */
+  @IsOptional()
+  @IsObject()
+  slaConfig?: Record<string, number> | null;
+
+  /**
+   * Configuration métier spécifique à l'espace. Peut contenir :
+   *   - subcategories: Array<{ value, label, color?, icon? }> — sous-catégories
+   *     custom (ex: IT a RMA, Déploiement, Support N1 ; RH a Congés, Paie)
+   *   - defaultPriority: TicketPriority par défaut à la création
+   *   - requireDescription, requireAttachment: booleans
+   *   - customFields: Array<{ name, type, required, options? }>
+   */
+  @IsOptional()
+  @IsObject()
+  config?: Record<string, unknown> | null;
 }
