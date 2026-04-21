@@ -16,6 +16,8 @@ export const AVAILABLE_MODULES = [
   { code: 'certificates', label: 'Certifications de formation' },
   { code: 'calendar', label: 'Calendrier' },
   { code: 'mfa', label: 'MFA / 2FA' },
+  { code: 'media', label: 'Médiathèque (photos & vidéos)' },
+  { code: 'testimonials', label: 'Avis / témoignages intranet' },
   // Travail & Connaissance
   { code: 'documents', label: 'GED Documents' },
   { code: 'procedures', label: 'Procédures' },
@@ -27,7 +29,7 @@ export const AVAILABLE_MODULES = [
   { code: 'search', label: 'Recherche globale' },
   { code: 'quiz', label: 'Quiz sécurité' },
   { code: 'satisfaction', label: 'Enquêtes de satisfaction' },
-  { code: 'tools-pdf', label: 'Outils PDF' },
+  { code: 'tools', label: 'Outils PDF' },
   // Sécurité & Conformité
   { code: 'helpdesk', label: 'Support IT / Chatbot IA' },
   { code: 'veille', label: 'Veille cyber' },
@@ -42,6 +44,10 @@ export const AVAILABLE_MODULES = [
   { code: 'it-exports', label: 'Exports IT & Conformité' },
   // Transversal
   { code: 'timeline', label: 'Timeline unifiée' },
+  { code: 'changelog', label: "Journal des nouveautés" },
+  { code: 'tips', label: 'Astuces & raccourcis' },
+  { code: 'getting-started', label: "Guide d'accueil" },
+  { code: 'extranet', label: 'Portail prestataires' },
   { code: 'annotations', label: 'Annotations collaboratives' },
 ] as const;
 
