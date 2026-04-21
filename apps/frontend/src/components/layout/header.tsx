@@ -744,6 +744,15 @@ export function Header() {
                 )}
               </div>
               <Link
+                href="/testimonials"
+                role="menuitem"
+                className="flex items-center gap-2.5 px-4 py-2 text-sm text-seal-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
+                onClick={() => setShowUserMenu(false)}
+              >
+                <Sparkles className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
+                Partager mon avis
+              </Link>
+              <Link
                 href="/welcome"
                 role="menuitem"
                 className="flex items-center gap-2.5 px-4 py-2 text-sm text-seal-navy dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
