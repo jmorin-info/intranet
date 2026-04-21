@@ -15,13 +15,34 @@ import {
   Command,
   StickyNote,
   BookOpen,
+  MessageSquare,
+  FileCheck,
+  Ticket,
+  ClipboardList,
+  Shield,
+  LayoutDashboard,
+  Star,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
-/*  Storage key                                                        */
+/*  Storage key + events                                               */
 /* ------------------------------------------------------------------ */
 
 const STORAGE_KEY = 'onboarding_completed';
+const RESTART_EVENT = 'omnitech:onboarding:restart';
+
+/**
+ * Relance la visite guidée de l'intranet. Peut être appelée depuis n'importe
+ * quel composant (menu utilisateur, page d'aide, etc.).
+ */
+export function restartOnboardingTour() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore quota */
+  }
+  window.dispatchEvent(new CustomEvent(RESTART_EVENT));
+}
 
 /* ------------------------------------------------------------------ */
 /*  Steps                                                              */
@@ -40,55 +61,101 @@ const STEPS: Step[] = [
     icon: Sparkles,
     title: 'Bienvenue sur l\'intranet OMNITECH',
     description:
-      'Votre espace de travail centralisé : documents, tickets, conformité, veille et sécurité. Ce petit tour dure environ une minute.',
+      'Votre espace de travail centralisé : documents, tickets, wiki, runbooks, veille cyber, conformité ISO 27001 et chatbot IA. Ce tour guidé dure environ 2 minutes — vous pouvez le quitter à tout moment.',
   },
   {
     icon: Search,
     title: 'Barre latérale et navigation',
     description:
-      'La sidebar regroupe tous les modules : Documents, Tickets, Wiki, Veille, Incidents, etc. Cliquez sur un hub pour accéder au domaine correspondant.',
+      'La sidebar regroupe tous les modules de l\'intranet : Documents, Tickets, Wiki, Runbooks, Veille, Incidents, Administration. Cliquez sur un élément pour accéder au module correspondant. La sidebar s\'adapte à votre rôle — vous ne voyez que les modules auxquels vous avez accès.',
     highlight: 'aside, nav[role="navigation"]',
   },
   {
     icon: Command,
-    title: 'Palette de commandes (\u2318K)',
+    title: 'Palette de commandes (Ctrl+K)',
     description:
-      'Appuyez sur Ctrl+K (ou \u2318K sur Mac) à tout moment pour ouvrir la palette de commandes. Recherchez une page, un document ou un collègue instantanément sans quitter le clavier.',
+      'Appuyez sur Ctrl+K (ou \u2318K sur Mac) à tout moment pour ouvrir la palette. Recherchez une page, un document, un collègue ou une procédure instantanément sans quitter le clavier. Idéal pour naviguer vite.',
     highlight: 'header [aria-label*="recherche" i], header [data-quick-search]',
   },
   {
-    icon: User,
-    title: 'Votre profil',
+    icon: MessageSquare,
+    title: 'Chatbot IA — Assistant intelligent',
     description:
-      'Complétez votre profil (photo, téléphone, compétences) pour faciliter la collaboration. Activez la 2FA depuis Mon espace > MFA pour renforcer la sécurité de votre compte.',
-    highlight: 'header [data-user-menu], header [aria-label*="profil" i]',
+      'Appuyez sur Ctrl+Shift+K pour ouvrir l\'assistant IA, ou cliquez sur la pastille flottante en bas à droite. Il répond aux questions sur les documents, le wiki et les procédures OMNITECH en s\'appuyant sur notre base de connaissances interne (RAG).',
+  },
+  {
+    icon: LayoutDashboard,
+    title: 'Tableau de bord personnalisable',
+    description:
+      'Votre dashboard est votre cockpit quotidien : tâches, actions requises, indicateurs, veille. Vous pouvez réorganiser les widgets via Paramètres du dashboard, et choisir un "profil" adapté à votre métier (Direction, RSSI, IT, Collaborateur).',
+  },
+  {
+    icon: FileCheck,
+    title: 'Documents et workflow d\'approbation',
+    description:
+      'Les documents suivent un workflow contrôlé : Brouillon → En revue → Approuvé → Publié. Le relecteur et l\'approbateur sont choisis par type de document. Les documents permanents n\'ont pas de date de revue — utile pour les chartes et règlements.',
+    highlight: 'aside a[href*="documents"], nav a[href*="documents"]',
+  },
+  {
+    icon: Ticket,
+    title: 'Tickets et espaces de travail',
+    description:
+      'Les tickets sont organisés par espaces (IT, Sécurité, Services Généraux, Général). Chaque espace a ses propres catégories, son SLA et ses membres. Depuis le hub Tickets, choisissez l\'espace, puis créez votre demande. Les managers d\'espace peuvent gérer les membres et la configuration.',
+    highlight: 'aside a[href*="tickets"], nav a[href*="tickets"]',
   },
   {
     icon: BookOpen,
     title: 'Wiki et base de connaissances',
     description:
-      'Le Wiki centralise les procédures, runbooks et la documentation interne. Créez et éditez des articles en Markdown avec un historique complet des révisions.',
+      'Le Wiki centralise les articles, procédures et la documentation interne. Éditeur riche (Markdown + mise en forme visuelle), historique complet, catégories par domaine. Le chatbot IA s\'appuie sur le wiki pour répondre à vos questions.',
     highlight: 'aside a[href*="wiki"], nav a[href*="wiki"]',
   },
   {
-    icon: Bell,
-    title: 'Vos notifications',
+    icon: ClipboardList,
+    title: 'Runbooks — procédures pas-à-pas',
     description:
-      'Les notifications importantes — documents à signer, tickets assignés, alertes sécurité — s\'affichent ici. Un badge orange signale les éléments non lus.',
+      'Les runbooks sont des procédures opérationnelles exécutables : création compte AD, déploiement poste, gestion incident sécurité, restauration Veeam, etc. Cochez chaque étape au fur et à mesure, l\'historique d\'exécution est conservé pour audit.',
+    highlight: 'aside a[href*="runbooks"], nav a[href*="runbooks"]',
+  },
+  {
+    icon: Shield,
+    title: 'Veille cybersécurité',
+    description:
+      'Flux en temps réel des alertes CERT-FR, ANSSI, CISA, CVE et presse spécialisée, filtré sur le parc OMNITECH (Fortinet, VMware, Microsoft, Veeam…). Acquittez les alertes avec une action : Patché, Non applicable, Risque accepté. Cohérent avec ISO 27001 A.5.7 (threat intelligence).',
+    highlight: 'aside a[href*="veille"], nav a[href*="veille"]',
+  },
+  {
+    icon: Bell,
+    title: 'Notifications',
+    description:
+      'Documents à signer, tickets assignés, alertes sécurité, mentions dans les commentaires : tout arrive ici. Un badge orange indique les éléments non lus. Vous pouvez aussi recevoir les notifications par email selon vos préférences.',
     highlight: 'header [aria-label*="notification" i]',
   },
   {
-    icon: StickyNote,
-    title: 'Annotations et commentaires',
+    icon: User,
+    title: 'Votre profil et la sécurité (MFA)',
     description:
-      'Ajoutez des annotations sur les documents et laissez des commentaires sur les tickets. Les mentions (@collègue) envoient une notification directe au destinataire.',
+      'Complétez votre profil (photo, téléphone, compétences) pour faciliter la collaboration. Activez l\'authentification à deux facteurs (MFA) depuis Mon espace > MFA. Obligatoire pour les rôles sensibles (DIRECTION, ADMIN, RSSI).',
+    highlight: 'header [data-user-menu], header [aria-label*="profil" i]',
+  },
+  {
+    icon: StickyNote,
+    title: 'Annotations et collaboration',
+    description:
+      'Ajoutez des annotations sur les documents, commentez les tickets, mentionnez un collègue avec @prenom pour lui envoyer une notification directe. Toutes les interactions sont horodatées et restent accessibles pour audit.',
     highlight: '[data-annotations], [data-comments-section]',
+  },
+  {
+    icon: Star,
+    title: 'Enquêtes de satisfaction',
+    description:
+      'De temps en temps, l\'intranet vous proposera de répondre à une courte enquête pour améliorer vos outils de travail. Participez ! Vos retours pilotent directement les prochaines évolutions.',
   },
   {
     icon: Lightbulb,
     title: 'Besoin d\'aide ?',
     description:
-      'Consultez le Guide de démarrage dans le menu Aide, l\'astuce du jour sur votre tableau de bord, ou appuyez sur ? pour voir tous les raccourcis clavier. Bonne exploration !',
+      'Astuce du jour sur votre dashboard (navigation Précédente/Suivante), Guide de démarrage dans le menu Aide, raccourcis clavier avec la touche "?" et bien sûr le chatbot IA qui connait toute la doc OMNITECH. Bonne exploration !',
     highlight: '#tip-of-the-day',
   },
 ];
@@ -154,6 +221,17 @@ export function OnboardingTour() {
     } catch {
       /* ignore */
     }
+  }, []);
+
+  // Re-open the tour when explicitly restarted (via restartOnboardingTour()).
+  useEffect(() => {
+    function onRestart() {
+      setStep(0);
+      setDirection('next');
+      setOpen(true);
+    }
+    window.addEventListener(RESTART_EVENT, onRestart);
+    return () => window.removeEventListener(RESTART_EVENT, onRestart);
   }, []);
 
   const current = STEPS[step];

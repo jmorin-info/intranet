@@ -46,7 +46,7 @@ const RssiDashboardSummary = dynamic(() => import('@/components/widgets/rssi-das
 import {
   FileText, CheckCircle2, AlertTriangle, Eye, UserCheck, ArrowRight,
   PenLine, ShieldCheck, Ticket, Rss, Clock, Settings, Activity, ClipboardList,
-  UserCircle, FolderSearch, ShieldAlert, Newspaper, X, Sparkles, BookOpen, Bell,
+  UserCircle, ShieldAlert, Newspaper, X, Sparkles, BookOpen, Bell,
   Star, Brain, MessageSquare, ScrollText, Lightbulb, Trophy, RefreshCw,
   Workflow, UserPlus, TrendingUp, TrendingDown, Minus,
 } from 'lucide-react';
@@ -336,11 +336,6 @@ export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
-
-  const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return !!localStorage.getItem('welcome_dismissed');
-  });
 
   const [onboardingDismissed, setOnboardingDismissed] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -823,47 +818,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Welcome card for first-time users */}
-      {(() => {
-        // Show for users created in the last 48 hours
-        const isNewUser = user?.createdAt
-          ? (Date.now() - new Date(user.createdAt).getTime()) < 86400000 * 2
-          : false;
-        if (welcomeDismissed || !isNewUser || loading) return null;
-        const quickActions = [
-          { icon: UserCircle, label: 'Compléter mon profil', desc: 'Ajoutez votre photo et vos informations', href: '/profile', color: 'bg-primary/10 text-primary' },
-          { icon: FolderSearch, label: 'Explorer les documents', desc: 'Découvrez la base documentaire', href: '/documents', color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30' },
-          { icon: ShieldAlert, label: 'Faire le quiz sécurité', desc: 'Testez vos connaissances', href: '/quiz', color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30' },
-          { icon: Newspaper, label: 'Voir les actualités', desc: 'Restez informé', href: '/news', color: 'bg-violet-50 text-violet-600 dark:bg-violet-900/30' },
-        ];
-        return (
-          <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-seal-navy to-primary/60 p-5">
-            <button
-              onClick={() => { localStorage.setItem('welcome_dismissed', '1'); setWelcomeDismissed(true); }}
-              className="absolute top-3 right-3 p-1.5 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-              aria-label="Fermer le bandeau de bienvenue"
-              title="Fermer"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <h2 className="text-lg font-normal text-white mb-1">Bienvenue sur l&apos;intranet OMNITECH, {user?.firstName}&nbsp;!</h2>
-            <p className="text-sm text-white/80 mb-4">Retrouvez ici vos documents, tickets IT, conformité ISO 27001 et outils de collaboration au quotidien.</p>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {quickActions.map(({ icon: Icon, label, desc, href, color }) => (
-                <Link key={href} href={href}>
-                  <div className="p-3 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 transition-all group cursor-pointer">
-                    <div className={`h-9 w-9 rounded-lg ${color} flex items-center justify-center mb-2`}>
-                      <Icon className="h-4.5 w-4.5" />
-                    </div>
-                    <p className="text-sm font-semibold text-white group-hover:text-white/90 transition-colors">{label}</p>
-                    <p className="text-[11px] text-white/70 mt-0.5">{desc}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
+      {/* Welcome card retirée 2026-04-21 : redondante avec OnboardingTour
+         (modal tour de 15 étapes lancé au premier login). Les quick actions
+         sont désormais présentées dans le tour lui-même. */}
 
       {/* MorningBriefing removed — same data shown by ActionsRequises pills below */}
 
