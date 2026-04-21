@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, Button } from '@omnitech/ui';
-import { Lightbulb, ChevronRight, Check, ArrowRight } from 'lucide-react';
+import { Lightbulb, ChevronLeft, ChevronRight, Check, ArrowRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import {
   STATIC_TIPS,
@@ -158,6 +158,17 @@ export function TipOfTheDay() {
     }
   }, [index, tips.length]);
 
+  const prev = useCallback(() => {
+    if (tips.length === 0) return;
+    const n = (index - 1 + tips.length) % tips.length;
+    setIndex(n);
+    try {
+      localStorage.setItem(INDEX_KEY, String(n));
+    } catch {
+      /* ignore */
+    }
+  }, [index, tips.length]);
+
   const markSeen = useCallback(() => {
     if (!current) return;
     const updated = new Set(seen);
@@ -223,8 +234,19 @@ export function TipOfTheDay() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={prev}
+                className="gap-1"
+                disabled={tips.length <= 1}
+                aria-label="Afficher l'astuce précédente"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" /> Précédente
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={next}
                 className="gap-1"
+                disabled={tips.length <= 1}
                 aria-label="Afficher l'astuce suivante"
               >
                 Suivante <ChevronRight className="h-3.5 w-3.5" />

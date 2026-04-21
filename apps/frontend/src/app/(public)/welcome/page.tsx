@@ -134,7 +134,7 @@ export default function WelcomePage() {
   const [info, setInfo] = useState<PublicInfo | null>(null);
   const [news, setNews] = useState<PublicNews[]>([]);
   const [docs, setDocs] = useState<PublicDoc[]>([]);
-  const [alerts, setAlerts] = useState<Array<{title: string; severity: string}>>([]);
+  const [alerts, setAlerts] = useState<Array<{title: string; severity: string; sourceUrl?: string; cveId?: string | null; sourceName?: string}>>([]);
   const [loaded, setLoaded] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openDialog, setOpenDialog] = useState<DialogKey>(null);
@@ -163,7 +163,15 @@ export default function WelcomePage() {
     }).catch(console.error);
     fetch(`${API}/public/veille?limit=5`, opts)
       .then(r => r.json())
-      .then(d => setAlerts(d?.data || []))
+      .then(d => setAlerts(
+        (d?.data || []).map((v: { title: string; severity: string; sourceUrl?: string; cveId?: string | null; sourceName?: string }) => ({
+          title: v.title,
+          severity: v.severity,
+          sourceUrl: v.sourceUrl,
+          cveId: v.cveId,
+          sourceName: v.sourceName,
+        })),
+      ))
       .catch(console.error);
   }, []);
 
@@ -382,14 +390,27 @@ export default function WelcomePage() {
             </div>
             <div className="overflow-hidden flex-1">
               <div className="animate-marquee whitespace-nowrap">
-                {[...alerts, ...alerts].map((a, i) => (
-                  <span key={i} className="inline-block mx-8 text-sm text-white/70">
-                    <span className={`font-semibold ${a.severity === 'CRITICAL' || a.severity === 'HIGH' ? 'text-red-400' : a.severity === 'MEDIUM' ? 'text-amber-400' : 'text-blue-400'}`}>
-                      [{a.severity || 'INFO'}]
-                    </span>{' '}
-                    {a.title}
-                  </span>
-                ))}
+                {[...alerts, ...alerts].map((a, i) => {
+                  const href = a.cveId
+                    ? `https://nvd.nist.gov/vuln/detail/${a.cveId}`
+                    : a.sourceUrl || '/veille';
+                  const isExternal = href.startsWith('http');
+                  return (
+                    <a
+                      key={i}
+                      href={href}
+                      target={isExternal ? '_blank' : undefined}
+                      rel={isExternal ? 'noopener noreferrer' : undefined}
+                      className="inline-block mx-8 text-sm text-white/70 hover:text-white transition-colors hover:underline"
+                      title={isExternal ? 'Ouvrir la source' : 'Voir la veille'}
+                    >
+                      <span className={`font-semibold ${a.severity === 'CRITICAL' || a.severity === 'HIGH' ? 'text-red-400' : a.severity === 'MEDIUM' ? 'text-amber-400' : 'text-blue-400'}`}>
+                        [{a.severity || 'INFO'}]
+                      </span>{' '}
+                      {a.title}
+                    </a>
+                  );
+                })}
               </div>
             </div>
           </div>

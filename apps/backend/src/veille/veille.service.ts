@@ -11,17 +11,27 @@ interface RSSItem {
   source: string;
 }
 
+// Sources RSS sélectionnées pour pertinence OMNITECH Security (intégrateur
+// sécurité physique + cyber, parc Fortinet/VMware/Veeam/Microsoft) et veille
+// cyber métier. L'ordre compte : sources institutionnelles d'abord (plus
+// fiables), puis éditeurs/CVE, puis presse spécialisée entreprise.
 const RSS_FEEDS = [
-  // Sources institutionnelles FR
+  // --- Sources institutionnelles FR/EU (autorité : ANSSI, CERT-FR) ---
   { name: 'CERT-FR Alertes', url: 'https://www.cert.ssi.gouv.fr/alerte/feed/' },
   { name: 'CERT-FR Avis', url: 'https://www.cert.ssi.gouv.fr/avis/feed/' },
   { name: 'CERT-FR CTI', url: 'https://www.cert.ssi.gouv.fr/cti/feed/' },
-  // Sources internationales CVE
-  { name: 'CVE Feed', url: 'https://cvefeed.io/rssfeed/latest.xml' },
-  // Presse spécialisée cybersécurité
-  { name: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews' },
-  { name: 'BleepingComputer', url: 'https://www.bleepingcomputer.com/feed/' },
   { name: 'ANSSI', url: 'https://cyber.gouv.fr/feed/actualites/rss.xml' },
+
+  // --- CISA (US, équivalent ANSSI : KEV = Known Exploited Vulnerabilities) ---
+  { name: 'CISA Alerts', url: 'https://www.cisa.gov/cybersecurity-advisories/all.xml' },
+
+  // --- Bases CVE (priorisation patch management ISO 27001 A.8.8) ---
+  { name: 'CVE Feed', url: 'https://cvefeed.io/rssfeed/latest.xml' },
+
+  // --- Presse cybersécurité entreprise (qualité éditoriale confirmée) ---
+  { name: 'BleepingComputer', url: 'https://www.bleepingcomputer.com/feed/' },
+  { name: 'SANS ISC', url: 'https://isc.sans.edu/rssfeed.xml' },
+  { name: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews' },
 ];
 
 // Parc OMNITECH — produits à surveiller (ISO 27001 A.5.7)
