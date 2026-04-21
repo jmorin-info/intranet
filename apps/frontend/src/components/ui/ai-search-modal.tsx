@@ -272,11 +272,12 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
     try {
       // Try SSE streaming first
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      // NEXT_PUBLIC_API_URL ends in /api — backend routes are mounted under /api/v1.
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/?$/, '/api/v1');
       const controller = new AbortController();
       abortRef.current = controller;
 
-      const sseRes = await fetch(`${baseUrl}/api/rag/ask-stream`, {
+      const sseRes = await fetch(`${baseUrl}/rag/ask-stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
