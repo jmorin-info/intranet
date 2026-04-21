@@ -3,6 +3,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, Download, User as UserIcon, Calendar } from 'lucide-react';
+import { withAuthToken } from '@/lib/media-url';
 
 export interface LightboxItem {
   id: string;
@@ -74,7 +75,7 @@ export function MediaLightbox({ items, currentIndex, onClose, onNext, onPrev }: 
         </div>
         <div className="flex items-center gap-2">
           <a
-            href={`${current.fileUrl.replace('/file', '/download')}`}
+            href={withAuthToken(current.fileUrl.replace('/file', '/download'))}
             className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 text-xs font-semibold transition-colors"
             title="Télécharger"
           >
@@ -115,7 +116,7 @@ export function MediaLightbox({ items, currentIndex, onClose, onNext, onPrev }: 
         {current.type === 'IMAGE' ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={current.fileUrl}
+            src={withAuthToken(current.fileUrl)}
             alt={current.title ?? ''}
             className="max-h-full max-w-full object-contain shadow-2xl"
             draggable={false}
@@ -123,8 +124,8 @@ export function MediaLightbox({ items, currentIndex, onClose, onNext, onPrev }: 
         ) : (
           <video
             key={current.id}
-            src={current.fileUrl}
-            poster={current.thumbnailUrl}
+            src={withAuthToken(current.fileUrl)}
+            poster={withAuthToken(current.thumbnailUrl)}
             controls
             autoPlay
             className="max-h-full max-w-full shadow-2xl"

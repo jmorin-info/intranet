@@ -9,6 +9,7 @@ import { ArrowLeft, Video, Image as ImageIcon, Download, UserCircle, Calendar, S
 import { useAuthStore } from '@/stores/auth-store';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { api } from '@/lib/api';
+import { withAuthToken } from '@/lib/media-url';
 import { MediaLightbox, type LightboxItem } from '@/components/media/media-lightbox';
 import { formatRelativeTime } from '@/lib/utils';
 
@@ -144,7 +145,7 @@ export default function AlbumDetailPage() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={item.thumbnailUrl}
+                src={withAuthToken(item.thumbnailUrl)}
                 alt={item.title ?? ''}
                 className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                 loading="lazy"
