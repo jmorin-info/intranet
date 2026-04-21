@@ -1045,7 +1045,7 @@ export default function DocumentDetailPage() {
                     )}
                     {transitions.includes('ARCHIVED' as never) && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); setShowArchiveDialog(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
-                        <ArrowLeftRight className="h-3.5 w-3.5 text-gray-400" />
+                        <ArrowLeftRight className="h-3.5 w-3.5 text-gray-400 dark:text-slate-500" />
                         <span className="text-seal-navy dark:text-white">Archiver</span>
                       </button>
                     )}

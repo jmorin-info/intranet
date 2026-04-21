@@ -312,7 +312,7 @@ export default function VeillePage() {
       case 'CRITICAL': return <AlertOctagon className="h-4 w-4 text-red-500" />;
       case 'HIGH': return <AlertTriangle className="h-4 w-4 text-amber-500" />;
       case 'MEDIUM': return <Info className="h-4 w-4 text-blue-500" />;
-      default: return <Shield className="h-4 w-4 text-gray-400" />;
+      default: return <Shield className="h-4 w-4 text-gray-400 dark:text-slate-500" />;
     }
   };
 

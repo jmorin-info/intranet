@@ -16,7 +16,7 @@ import {
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { useNotificationStore } from '@/stores/notification-store';
-import { Card, CardContent, Button, Badge } from '@omnitech/ui';
+import { Card, CardContent, Button, Badge, EmptyState } from '@omnitech/ui';
 import { formatRelativeTime } from '@/lib/utils';
 
 type TimelineKind = 'news' | 'notification' | 'document';
@@ -249,12 +249,11 @@ export default function TimelinePage() {
       )}
 
       {!loading && filtered.length === 0 && (
-        <Card>
-          <CardContent className="py-10 text-center">
-            <Clock className="h-8 w-8 text-seal-gray-500/40 dark:text-slate-600 mx-auto mb-2" />
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucun évènement à afficher.</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          type="general"
+          title="Aucun évènement à afficher"
+          description="Votre activité et celle de votre équipe apparaîtront ici dès les premières publications."
+        />
       )}
 
       <div className="space-y-6">

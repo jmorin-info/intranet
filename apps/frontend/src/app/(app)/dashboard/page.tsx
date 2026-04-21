@@ -14,7 +14,7 @@ import { useUIVisibility } from '@/lib/ui-os/execution';
 import { AIControlToggle } from '@/components/ai/ai-control-toggle';
 import { AIExplainabilityHints } from '@/components/ai/ai-explainability-hints';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
-import { Card, CardContent, CardHeader, StatusBadge, Skeleton, Badge, Button } from '@omnitech/ui';
+import { Card, CardContent, CardHeader, StatusBadge, Skeleton, Badge, Button, EmptyState } from '@omnitech/ui';
 import { SkeletonGrid } from '@/components/ui/skeleton-grid';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 import { ClockWidget } from '@/components/widgets/clock-widget';
@@ -252,11 +252,11 @@ function PrestataireDashboard() {
             ))}
           </div>
         ) : (
-          <Card><CardContent className="py-6 text-center">
-            <Ticket className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucun ticket pour le moment</p>
-            <p className="text-xs text-seal-gray-500/70 dark:text-slate-500 mt-1">Vos demandes de support apparaîtront ici</p>
-          </CardContent></Card>
+          <EmptyState
+            type="tickets"
+            title="Aucun ticket pour le moment"
+            description="Vos demandes de support apparaîtront ici."
+          />
         )}
       </div>
 
@@ -279,11 +279,11 @@ function PrestataireDashboard() {
             ))}
           </div>
         ) : (
-          <Card><CardContent className="py-6 text-center">
-            <FileText className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucun document contractuel</p>
-            <p className="text-xs text-seal-gray-500/70 dark:text-slate-500 mt-1">Les documents liés à votre contrat apparaîtront ici</p>
-          </CardContent></Card>
+          <EmptyState
+            type="documents"
+            title="Aucun document contractuel"
+            description="Les documents liés à votre contrat apparaîtront ici."
+          />
         )}
       </div>
     </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, Badge } from '@omnitech/ui';
+import { Card, CardContent, CardHeader, Badge, EmptyState } from '@omnitech/ui';
 import { Sparkles, TrendingUp, Calendar, Tag, Shield, ScrollText, Brain, Search, MessageSquare, LayoutDashboard, Award, GitBranch, Clock, RefreshCw } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/layout/page-header';
@@ -73,11 +73,11 @@ export default function ChangelogPage() {
           <RefreshCw className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : entries.length === 0 ? (
-        <Card>
-          <CardContent>
-            <p className="text-center text-sm text-muted-foreground py-8">Aucune entrée dans le changelog.</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          type="general"
+          title="Aucune entrée dans le changelog"
+          description="L'historique des changements de l'intranet apparaîtra ici."
+        />
       ) : (
         /* Timeline verticale */
         <div className="relative">

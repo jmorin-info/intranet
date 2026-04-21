@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useTranslation } from '@/lib/i18n';
 import { UserRole, isRoleAtLeast } from '@omnitech/shared';
 import {
-  Card, CardContent, CardHeader, Badge, SearchInput, Button,
+  Card, CardContent, CardHeader, Badge, SearchInput, Button, EmptyState,
 } from '@omnitech/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { ExternalLink, Search, Shield, Clock, UserX, Users, AlertTriangle } from 'lucide-react';
@@ -161,15 +161,11 @@ export default function ExtranetPage() {
 
       {/* Empty state */}
       {!loading && filteredAccesses.length === 0 && (
-        <Card className="shadow-sm rounded-xl">
-          <CardContent className="p-12 text-center">
-            <Search className="h-12 w-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
-            <p className="text-lg font-semibold text-seal-navy dark:text-white">Aucun accès prestataire</p>
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-              {search ? 'Aucun r\u00e9sultat pour cette recherche' : 'Aucun acc\u00e8s extranet configur\u00e9'}
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          type={search ? 'search' : 'users'}
+          title="Aucun accès prestataire"
+          description={search ? 'Aucun résultat pour cette recherche.' : 'Aucun accès extranet configuré pour le moment.'}
+        />
       )}
 
       {/* Access cards */}
@@ -188,7 +184,7 @@ export default function ExtranetPage() {
                           ? 'bg-gray-100 dark:bg-gray-800'
                           : 'bg-primary/10'
                       }`}>
-                        <Users className={`h-5 w-5 ${isExpiredOrRevoked ? 'text-gray-400' : 'text-primary'}`} />
+                        <Users className={`h-5 w-5 ${isExpiredOrRevoked ? 'text-gray-400 dark:text-slate-500' : 'text-primary'}`} />
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-medium text-seal-navy dark:text-white text-sm truncate">{access.name}</h3>

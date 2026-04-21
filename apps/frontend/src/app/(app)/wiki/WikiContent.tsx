@@ -1845,7 +1845,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                         onClick={() => { execCmd('hiliteColor', c.value); setShowHighlightPicker(false); }}
                         className="w-6 h-6 rounded border border-gray-200 dark:border-slate-600 hover:scale-110 transition-transform"
                         style={{ backgroundColor: c.value === 'transparent' ? '#f3f4f6' : c.value }}
-                      >{c.value === 'transparent' ? <X className="h-3 w-3 mx-auto text-gray-400" /> : null}</button>
+                      >{c.value === 'transparent' ? <X className="h-3 w-3 mx-auto text-gray-400 dark:text-slate-500" /> : null}</button>
                     ))}
                   </div>
                 )}

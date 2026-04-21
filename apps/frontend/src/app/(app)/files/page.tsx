@@ -40,7 +40,7 @@ function getFileIcon(name: string) {
   if (['mp4', 'avi', 'mkv', 'mov', 'wmv'].includes(ext || '')) return <FileVideo className="h-4 w-4 text-pink-500" />;
   if (['mp3', 'wav', 'ogg', 'flac', 'aac'].includes(ext || '')) return <FileAudio className="h-4 w-4 text-teal-500" />;
   if (['ts', 'tsx', 'js', 'jsx', 'py', 'sh', 'json', 'xml', 'html', 'css', 'sql', 'yaml', 'yml'].includes(ext || '')) return <FileCode className="h-4 w-4 text-cyan-500" />;
-  if (['txt', 'md', 'log', 'rtf'].includes(ext || '')) return <FileText className="h-4 w-4 text-gray-500" />;
+  if (['txt', 'md', 'log', 'rtf'].includes(ext || '')) return <FileText className="h-4 w-4 text-gray-500 dark:text-slate-400" />;
   return <File className="h-4 w-4 text-seal-gray-500" />;
 }
 

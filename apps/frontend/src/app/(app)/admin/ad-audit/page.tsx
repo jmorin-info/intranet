@@ -9,6 +9,7 @@ import {
   Badge,
   Button,
   Skeleton,
+  EmptyState,
 } from '@omnitech/ui';
 import {
   ShieldAlert,
@@ -501,9 +502,11 @@ export default function AdAuditPage() {
         </CardHeader>
         <CardContent>
           {history.length === 0 ? (
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">
-              Aucun audit précédent. Lancez un scan rapide pour commencer.
-            </p>
+            <EmptyState
+              type="general"
+              title="Aucun audit précédent"
+              description="Lancez un scan rapide pour commencer à tracer la posture Active Directory."
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

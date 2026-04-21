@@ -360,9 +360,9 @@ export default function TicketDetailPage() {
                       >
                         {s === 'OPEN' && <Circle className="h-3.5 w-3.5 text-blue-500" />}
                         {s === 'IN_PROGRESS' && <Clock className="h-3.5 w-3.5 text-amber-500" />}
-                        {s === 'WAITING' && <Timer className="h-3.5 w-3.5 text-gray-400" />}
+                        {s === 'WAITING' && <Timer className="h-3.5 w-3.5 text-gray-400 dark:text-slate-500" />}
                         {s === 'RESOLVED' && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
-                        {s === 'CLOSED' && <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />}
+                        {s === 'CLOSED' && <CheckCircle2 className="h-3.5 w-3.5 text-gray-400 dark:text-slate-500" />}
                         <span className="text-seal-navy dark:text-white">{statusLabel[s] || s}</span>
                         {active && <CheckCircle2 className="h-3 w-3 ml-auto text-primary" />}
                       </button>
