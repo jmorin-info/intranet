@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -275,6 +275,9 @@ export default function DocumentDetailPage() {
   }, []);
   const [showObsoleteDialog, setShowObsoleteDialog] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [uploadingVersion, setUploadingVersion] = useState(false);
+  const [reopening, setReopening] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [showRejectDialog, setShowRejectDialog] = useState<'reject-review' | 'reject-direction' | null>(null);
   const [rejectComment, setRejectComment] = useState('');
   const [rejectSuggestions, setRejectSuggestions] = useState<Set<string>>(new Set());
@@ -371,6 +374,77 @@ export default function DocumentDetailPage() {
     }
   };
 
+  // Extrait en fonction nommée pour pouvoir rafraîchir après upload/reopen
+  // sans dupliquer la logique de chargement.
+  const refreshDocument = useCallback(async (): Promise<void> => {
+    try {
+      const { data } = await api.get(`/documents/${id}`);
+      const allSignatures = (data.versions || []).flatMap(
+        (v: { signatureRequests?: SignatureData[] }) => v.signatureRequests || [],
+      );
+      data.signatureRequests = allSignatures;
+      setDoc(data);
+      if (data?.isNative) {
+        setInlineContent(data.content || '');
+        setInlineDirty(false);
+      }
+      if (user) {
+        setHasAcknowledged(
+          data.acknowledgments?.some(
+            (a: { user?: { id?: string } }) => a.user?.id === user.id,
+          ) || false,
+        );
+      }
+    } catch {
+      toast.error('Document introuvable');
+      router.push('/documents');
+    } finally {
+      setLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id]);
+
+  const handleUploadVersion = async (file: File) => {
+    if (!file || !id) return;
+    setUploadingVersion(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('changeLog', 'Upload depuis la page document');
+      await api.post(`/documents/${id}/versions`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      toast.success('Version uploadée');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      await refreshDocument();
+    } catch (err: unknown) {
+      const msg = err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        : null;
+      toast.error(msg || 'Erreur upload');
+    } finally {
+      setUploadingVersion(false);
+    }
+  };
+
+  const handleReopen = async () => {
+    if (!id) return;
+    if (!confirm('Réouvrir ce document le repassera en brouillon. Le workflow de revue devra être relancé. Continuer ?')) return;
+    setReopening(true);
+    try {
+      await api.post(`/documents/${id}/reopen`);
+      toast.success('Document réouvert (statut Brouillon)');
+      await refreshDocument();
+    } catch (err: unknown) {
+      const msg = err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        : null;
+      toast.error(msg || 'Erreur réouverture');
+    } finally {
+      setReopening(false);
+    }
+  };
+
   useEffect(() => {
     async function fetchDocument() {
       try {
@@ -419,14 +493,14 @@ export default function DocumentDetailPage() {
   useEffect(() => {
     if (autoSwitchedPreview) return;
     if (!doc) return;
-    const firstVersion = versions[0];
+    const firstVersion = doc.versions?.[0];
     if (!firstVersion) return;
     const isPdfOrDocx = /\.(pdf|docx?)$/i.test(firstVersion.fileType || '');
     if (isPdfOrDocx && !doc.isNative && activeTab === 'details') {
       setActiveTab('preview');
       setAutoSwitchedPreview(true);
     }
-  }, [doc, versions, activeTab, autoSwitchedPreview]);
+  }, [doc, activeTab, autoSwitchedPreview]);
 
   useEffect(() => {
     if (activeTab === 'signatures' && docusealTemplates.length === 0) {
@@ -1330,6 +1404,58 @@ export default function DocumentDetailPage() {
             </div>
           )}
 
+      {/* Banner DRAFT sans version : incite à uploader le fichier */}
+      {canEdit && doc.status === 'DRAFT' && versions.length === 0 && (
+        <div className="flex items-center justify-between rounded-xl border-2 border-dashed border-[#F9964A] bg-[#F9964A]/5 p-4">
+          <div className="flex items-center gap-3">
+            <FileText className="h-5 w-5 text-[#F9964A]" />
+            <div>
+              <p className="text-sm font-semibold text-seal-navy dark:text-white">
+                Brouillon sans contenu
+              </p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                Uploadez un fichier pour commencer la rédaction. Tant qu&apos;il n&apos;y a pas de version, le document reste en brouillon et n&apos;est pas publiable.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => {
+              setActiveTab('versions');
+              setTimeout(() => fileInputRef.current?.click(), 100);
+            }}
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            Uploader un fichier
+          </Button>
+        </div>
+      )}
+
+      {/* Banner ARCHIVED / OBSOLETE : permet de réouvrir en brouillon pour
+          produire une nouvelle version (cas : document périmé à mettre à jour). */}
+      {canEdit && (doc.status === 'ARCHIVED' || doc.status === 'OBSOLETE') && (
+        <div className="flex items-center justify-between rounded-xl border border-gray-300 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 p-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-[#892034]" />
+            <div>
+              <p className="text-sm font-semibold text-seal-navy dark:text-white">
+                Document {doc.status === 'OBSOLETE' ? 'obsolète' : 'archivé'}
+              </p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                Réouvrez le document pour le repasser en brouillon et produire une nouvelle version. L&apos;historique et la référence sont préservés.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleReopen}
+            loading={reopening}
+            disabled={reopening}
+          >
+            Réouvrir en brouillon
+          </Button>
+        </div>
+      )}
+
       {/* Acknowledgment banner */}
       {showAckBanner && (
         <div className="flex items-center justify-between rounded-card border-2 border-primary bg-primary-light p-4">
@@ -1536,8 +1662,52 @@ export default function DocumentDetailPage() {
 
               {activeTab === 'versions' && (
                 <div className="space-y-3">
+                  {/* Upload zone : toujours visible si l'utilisateur peut éditer.
+                      Pour un DRAFT sans version, devient la zone principale
+                      d'ajout de contenu. Pour les docs avec versions, permet
+                      d'ajouter une nouvelle version (1.1, 1.2...). */}
+                  {canEdit && doc.status !== 'ARCHIVED' && doc.status !== 'OBSOLETE' && (
+                    <div className="rounded-xl border-2 border-dashed border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800/40 p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-[#F9964A]/15 flex items-center justify-center flex-shrink-0">
+                          <FileText className="h-5 w-5 text-[#F9964A]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-seal-navy dark:text-white">
+                            {versions.length === 0 ? 'Uploader le fichier du document' : 'Ajouter une nouvelle version'}
+                          </p>
+                          <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5">
+                            {versions.length === 0
+                              ? 'Ce brouillon n\'a pas encore de contenu. Déposez un fichier pour démarrer.'
+                              : 'Incrémente automatiquement la version (1.1, 1.2…). Le hash SHA-256 est calculé à l\'upload.'}
+                          </p>
+                        </div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.docx,.doc,.xlsx,.xls,.md,.txt,.png,.jpg,.jpeg,.webp"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleUploadVersion(file);
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => fileInputRef.current?.click()}
+                          loading={uploadingVersion}
+                          disabled={uploadingVersion}
+                        >
+                          Choisir un fichier
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   {versions.length === 0 ? (
-                    <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">Aucune version</p>
+                    !canEdit && (
+                      <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">Aucune version</p>
+                    )
                   ) : (
                     <>
                       {/* Barre d'action compare */}

@@ -202,6 +202,21 @@ export class DocumentsController {
   }
 
   /**
+   * Réouvre un document ARCHIVED ou OBSOLETE en le remettant en DRAFT.
+   * Utilisé quand il faut produire une nouvelle version d'un document qui
+   * était archivé ou marqué obsolète. Le propriétaire ou un ADMIN peut le faire.
+   * Après réouverture, un nouvel upload de version peut être effectué via
+   * /documents/:id/versions, et le workflow repartira à zéro.
+   */
+  @Post(':id/reopen')
+  async reopen(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.documentsService.reopenDocument(id, user);
+  }
+
+  /**
    * Create a document authored inline (HTML content directly in the intranet,
    * no file upload). ISO 27001 A.5.1 — full GED traceability.
    */

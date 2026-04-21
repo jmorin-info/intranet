@@ -622,6 +622,92 @@ export class DocumentsService {
     return updated;
   }
 
+  /**
+   * Réouvre un document ARCHIVED ou OBSOLETE en remettant status à DRAFT.
+   * Cas d'usage : produire une nouvelle version d'un document périmé sans
+   * en créer un nouveau (préserve l'historique de versions et la référence).
+   *
+   * Accès : propriétaire du document OU ADMIN+. Annule les workflows pending
+   * (si quelqu'un avait tenté de réactiver le doc différemment en //). L'étape
+   * suivante côté utilisateur est d'uploader une nouvelle version via
+   * POST /documents/:id/versions, puis de relancer le workflow de revue.
+   */
+  async reopenDocument(id: string, user: RequestUser) {
+    const doc = await this.prisma.document.findUnique({ where: { id } });
+    if (!doc || doc.deletedAt) {
+      throw new NotFoundException('Document introuvable');
+    }
+
+    const isAdmin = ROLE_HIERARCHY[user.role as UserRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
+    const isOwner = doc.ownerId === user.id;
+    if (!isAdmin && !isOwner) {
+      throw new ForbiddenException(
+        'Seuls le propriétaire du document ou un administrateur peut le réouvrir.',
+      );
+    }
+
+    if (doc.status !== 'ARCHIVED' && doc.status !== 'OBSOLETE') {
+      throw new BadRequestException(
+        `Impossible de réouvrir un document en statut "${doc.status}". Seuls les documents archivés ou obsolètes peuvent être réouverts.`,
+      );
+    }
+
+    // Annule d'éventuels workflows pending (rare, mais sécuritaire)
+    const pendingInstances = await this.prisma.approvalInstance.findMany({
+      where: { documentId: id, status: 'PENDING' },
+      select: { id: true },
+    });
+    if (pendingInstances.length > 0) {
+      const instanceIds = pendingInstances.map((i) => i.id);
+      await this.prisma.$transaction([
+        this.prisma.approvalInstance.updateMany({
+          where: { id: { in: instanceIds } },
+          data: { status: 'CANCELLED', completedAt: new Date() },
+        }),
+        this.prisma.approvalStepInstance.updateMany({
+          where: { instanceId: { in: instanceIds }, decision: 'PENDING' },
+          data: {
+            decision: 'REJECTED',
+            decidedAt: new Date(),
+            comment: 'Document réouvert — workflow annulé',
+          },
+        }),
+      ]);
+    }
+
+    const updated = await this.prisma.document.update({
+      where: { id },
+      data: { status: 'DRAFT' },
+      include: {
+        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
+        reviewer: { select: { id: true, firstName: true, lastName: true, email: true } },
+        approver: { select: { id: true, firstName: true, lastName: true, email: true } },
+        isoControls: { include: { isoControl: true } },
+      },
+    });
+
+    await this.auditService.log({
+      userId: user.id,
+      action: 'DOCUMENT_REOPENED',
+      resourceType: 'Document',
+      resourceId: id,
+      severity: 'INFO',
+      metadata: {
+        title: doc.title,
+        reference: doc.reference,
+        fromStatus: doc.status,
+        cancelledWorkflows: pendingInstances.length,
+      },
+    });
+
+    this.logger.log(
+      `reopen doc ${id} by ${user.id} (${doc.status} → DRAFT, ${pendingInstances.length} workflow(s) annulé(s))`,
+    );
+
+    this.invalidateStatsCaches();
+    return updated;
+  }
+
   async createInline(dto: CreateDocumentDto, userId: string) {
     const reference = await this.generateReference(
       dto.category,
