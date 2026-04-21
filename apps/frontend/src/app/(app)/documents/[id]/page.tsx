@@ -808,8 +808,8 @@ export default function DocumentDetailPage() {
     ...(doc.isNative ? [{ id: 'inline-edit', label: 'Éditer en ligne', icon: <PenLine className="h-3.5 w-3.5" /> }] : []),
     { id: 'details', label: 'Détails', icon: <FileText className="h-3.5 w-3.5" /> },
     { id: 'versions', label: 'Versions', count: versions.length, icon: <Layers className="h-3.5 w-3.5" /> },
-    { id: 'signatures', label: 'Signatures', count: sigs?.length || 0, icon: <PenLine className="h-3.5 w-3.5" /> },
-    { id: 'acknowledgments', label: 'Accusés', count: acks.length, icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+    { id: 'signatures', label: 'Signatures électroniques', count: sigs?.length || 0, icon: <PenLine className="h-3.5 w-3.5" /> },
+    { id: 'acknowledgments', label: 'Lectures confirmées', count: acks.length, icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
     { id: 'history', label: 'Historique', icon: <History className="h-3.5 w-3.5" /> },
     { id: 'comments', label: 'Commentaires', count: comments.length, icon: <MessageSquare className="h-3.5 w-3.5" /> },
     ...(isoAnalysis ? [{ id: 'iso-analysis', label: 'Analyse ISO', count: isoAnalysis.length, icon: <Shield className="h-3.5 w-3.5" /> }] : []),
@@ -1022,7 +1022,7 @@ export default function DocumentDetailPage() {
                     {doc.status === 'PENDING_APPROVAL' && transitions.includes('APPROVED' as never) && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); handleAction('approve-direction'); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        <span className="text-seal-navy dark:text-white">Approuver</span>
+                        <span className="text-seal-navy dark:text-white">Approuver (Direction)</span>
                       </button>
                     )}
                     {doc.status === 'PENDING_APPROVAL' && (
@@ -1464,23 +1464,27 @@ export default function DocumentDetailPage() {
         </div>
       )}
 
-      {/* Acknowledgment banner */}
+      {/* Acknowledgment banner : confirmation de LECTURE (≠ approbation workflow
+          faite par la Direction, ≠ signature électronique DocuSeal). Wording
+          revu 2026-04-21 : "J'ai lu et approuvé" prêtait à confusion avec
+          l'approbation formelle — remplacé par "Je confirme avoir lu". */}
       {showAckBanner && (
         <div className="flex items-center justify-between rounded-card border-2 border-primary bg-primary-light p-4">
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm font-semibold text-seal-navy dark:text-white">
-                Accusé de réception requis
+                Confirmation de lecture requise
               </p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                Veuillez confirmer la lecture de ce document
+                Ce document vous a été adressé — confirmez simplement que vous en avez pris connaissance.
+                Cela n&apos;a aucune valeur d&apos;approbation formelle ni de signature électronique.
               </p>
             </div>
           </div>
           <Button onClick={() => handleAction('acknowledge')} loading={actionLoading}>
             <CheckCircle2 className="h-4 w-4" />
-            J&apos;ai lu et approuvé
+            Je confirme avoir lu
           </Button>
         </div>
       )}
@@ -1992,7 +1996,7 @@ export default function DocumentDetailPage() {
               {activeTab === 'acknowledgments' && (
                 <div className="space-y-3">
                   {acks.length === 0 ? (
-                    <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">Aucun accusé de réception</p>
+                    <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">Aucune lecture confirmée pour l&apos;instant</p>
                   ) : (
                     acks.map((ack) => (
                       <div
@@ -2498,11 +2502,11 @@ export default function DocumentDetailPage() {
                 <span className="text-sm font-semibold text-seal-navy dark:text-white">{versions.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-seal-gray-500 dark:text-slate-400">Signatures</span>
+                <span className="text-xs text-seal-gray-500 dark:text-slate-400">Signatures électroniques</span>
                 <span className="text-sm font-semibold text-seal-navy dark:text-white">{sigs.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-seal-gray-500 dark:text-slate-400">Accusés de réception</span>
+                <span className="text-xs text-seal-gray-500 dark:text-slate-400">Lectures confirmées</span>
                 <span className="text-sm font-semibold text-seal-navy dark:text-white">{acks.length}</span>
               </div>
               <div className="flex items-center justify-between">
