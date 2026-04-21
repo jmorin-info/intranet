@@ -15,7 +15,7 @@ import { StorageService } from '../storage/storage.service';
 import { CreateDocumentDto, UpdateInlineContentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { DocumentFiltersDto } from './dto/document-filters.dto';
-import { BulkIdsDto } from '../common/dto/bulk-ids.dto';
+import { BulkClassificationDto, BulkIdsDto } from '../common/dto/bulk-ids.dto';
 import { rowsToCsv, csvFilename, CsvColumn } from '../common/utils/csv-export';
 import { RequestUser } from '../common/interfaces';
 import { UserRole, ROLE_HIERARCHY } from '../common/enums';
@@ -147,6 +147,29 @@ export class DocumentsController {
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   bulkDelete(@Body() dto: BulkIdsDto, @CurrentUser() user: RequestUser) {
     return this.documentsService.bulkSoftDelete(dto.ids, user);
+  }
+
+  /**
+   * Bulk archive (set status = ARCHIVED) — ADMIN / SUPER_ADMIN only.
+   * ISO 27001 A.5.10 — controlled bulk modification with audit trail.
+   */
+  @Post('bulk/archive')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  bulkArchive(@Body() dto: BulkIdsDto, @CurrentUser() user: RequestUser) {
+    return this.documentsService.bulkArchive(dto.ids, user);
+  }
+
+  /**
+   * Bulk reclassify — ADMIN / SUPER_ADMIN only.
+   * ISO 27001 A.5.12 — information classification change with audit trail.
+   */
+  @Post('bulk/classify')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  bulkClassify(
+    @Body() dto: BulkClassificationDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.documentsService.bulkClassify(dto.ids, dto.classification, user);
   }
 
   @Get(':id/history')

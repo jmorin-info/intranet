@@ -678,6 +678,72 @@ export class TicketsService {
   }
 
   /**
+   * Bulk reassign tickets. `assigneeId = null` unassigns.
+   * ISO 27001 A.5.10 — controlled bulk modification with audit trail.
+   */
+  async bulkAssign(
+    ids: string[],
+    assigneeId: string | null,
+    currentUser: RequestUser,
+  ) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('Aucun identifiant fourni');
+    }
+    if (ids.length > 100) {
+      throw new BadRequestException("Trop d'identifiants (max 100)");
+    }
+
+    if (assigneeId) {
+      const assignee = await this.prisma.user.findUnique({
+        where: { id: assigneeId },
+        select: { id: true, isActive: true },
+      });
+      if (!assignee) throw new BadRequestException('Assignee introuvable');
+      if (!assignee.isActive) {
+        throw new BadRequestException('Assignee inactif');
+      }
+    }
+
+    const existing = await this.repo.findManyRaw(
+      { id: { in: ids } },
+      { id: true, reference: true, assigneeId: true },
+    );
+
+    if (existing.length === 0) return { updated: 0 };
+
+    const existingIds = existing.map((t) => t.id);
+    const result = await this.repo.updateMany(
+      { id: { in: existingIds } },
+      { assigneeId },
+    );
+
+    for (const ticket of existing) {
+      await this.audit.log({
+        userId: currentUser.id,
+        action: assigneeId ? 'TICKET_ASSIGNED' : 'TICKET_UNASSIGNED',
+        resourceType: 'Ticket',
+        resourceId: ticket.id,
+        severity: 'INFO',
+        metadata: {
+          reference: ticket.reference,
+          from: ticket.assigneeId,
+          to: assigneeId,
+          bulk: true,
+          batchSize: existing.length,
+        },
+      });
+    }
+
+    this.logger.log(
+      `Bulk assign (${assigneeId ?? 'unassign'}): ${result.count} tickets by user ${currentUser.id}`,
+    );
+
+    this.invalidateDashboardCache();
+
+    return { updated: result.count };
+  }
+
+  /**
    * Hard-delete a ticket and its related comments.
    * ADMIN/SUPER_ADMIN only. ISO 27001 A.5.10 — controlled deletion with audit trail.
    */
