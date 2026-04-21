@@ -17,6 +17,7 @@ import { slugify, generateUniqueSlug } from '../common/utils/slugify';
 import { MentionsService } from '../mentions/mentions.service';
 import { RagService } from '../rag/rag.service';
 import { MeilisearchService, MeiliDocument } from '../search/meilisearch.service';
+import { CacheService } from '../common/cache/cache.service';
 import {
   CreateWikiPageDto,
   UpdateWikiPageDto,
@@ -38,6 +39,7 @@ export class WikiService {
     @Optional() private readonly mentions?: MentionsService,
     @Optional() private readonly rag?: RagService,
     @Optional() private readonly meili?: MeilisearchService,
+    @Optional() private readonly cache?: CacheService,
   ) {}
 
   /** Génère un slug unique depuis un titre (fallback si non fourni par user). */
@@ -409,6 +411,9 @@ export class WikiService {
     // Index the new page for Meilisearch (non-blocking).
     this.indexForMeili(page);
 
+    // New content may introduce new backlinks — invalidate cache.
+    this.invalidateBacklinkCache();
+
     return page;
   }
 
@@ -518,6 +523,11 @@ export class WikiService {
     // Re-index updated content for Meilisearch (non-blocking).
     this.indexForMeili(updated);
 
+    // Backlink graph may have changed if content or slug was edited.
+    if (data.content !== undefined || data.slug !== undefined) {
+      this.invalidateBacklinkCache();
+    }
+
     return updated;
   }
 
@@ -534,6 +544,9 @@ export class WikiService {
     // Désindexation complète
     void this.meili?.deleteDocument('wiki', id);
     void this.rag?.removeFromIndex('WIKI' as never, id).catch(() => undefined);
+
+    // Removing a page can change backlinks of others; clear the cache.
+    this.invalidateBacklinkCache();
 
     return deleted;
   }
@@ -711,6 +724,182 @@ export class WikiService {
       })),
       total,
     };
+  }
+
+  /**
+   * Find articles that link to the given wiki page (i.e. "cited in").
+   *
+   * Matches three link shapes inside the content:
+   *   - Wiki-style double-bracket links:   `[[slug]]` or `[[Titre|slug]]`
+   *   - Direct path links:                  `/wiki/slug` (any attribute)
+   *   - Markdown links:                     `[text](/wiki/slug)`
+   *
+   * Results are filtered by the caller's visibility. Scans are cached in
+   * Redis for 5 minutes to keep the endpoint responsive.
+   */
+  async findBacklinks(id: string, user: RequestUser) {
+    const page = await this.prisma.wikiPage.findUnique({ where: { id } });
+    if (!page) throw new NotFoundException('Wiki page not found');
+    if (!this.canView(page, user)) {
+      throw new ForbiddenException('You cannot access this wiki page');
+    }
+
+    const slug = page.slug;
+    const cacheKey = `wiki:backlinks:${id}:${slug}`;
+
+    // Scan (fire cache-aside). The cached value contains the raw candidate
+    // list; per-user visibility filtering happens after retrieval so the
+    // cache can be shared across users.
+    type CandidateRow = {
+      id: string;
+      title: string;
+      slug: string;
+      category: string | null;
+      updatedAt: string;
+      authorId: string;
+      visibility: string;
+      ownerDepartmentId: string | null;
+      allowedRoles: string[];
+      collaborators: string[];
+      excerpt: string;
+    };
+
+    const candidates = this.cache
+      ? await this.cache.wrap<CandidateRow[]>(cacheKey, 300, () =>
+          this.scanBacklinkCandidates(id, slug),
+        )
+      : await this.scanBacklinkCandidates(id, slug);
+
+    // Visibility filter — run each candidate through canView.
+    const visible = candidates.filter((c) => this.canView(c, user));
+
+    return {
+      count: visible.length,
+      items: visible.map((c) => ({
+        id: c.id,
+        title: c.title,
+        slug: c.slug,
+        category: c.category,
+        excerpt: c.excerpt,
+        updatedAt: c.updatedAt,
+      })),
+    };
+  }
+
+  /**
+   * Low-level scan that parses wiki content for links to a given slug / id.
+   * Returns candidate rows with enough metadata to perform visibility
+   * checks without touching the DB again.
+   */
+  private async scanBacklinkCandidates(
+    selfId: string,
+    slug: string,
+  ): Promise<
+    Array<{
+      id: string;
+      title: string;
+      slug: string;
+      category: string | null;
+      updatedAt: string;
+      authorId: string;
+      visibility: string;
+      ownerDepartmentId: string | null;
+      allowedRoles: string[];
+      collaborators: string[];
+      excerpt: string;
+    }>
+  > {
+    const rows = await this.prisma.wikiPage.findMany({
+      where: {
+        id: { not: selfId },
+        isPublished: true,
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        content: true,
+        category: true,
+        authorId: true,
+        visibility: true,
+        ownerDepartmentId: true,
+        allowedRoles: true,
+        collaborators: true,
+        updatedAt: true,
+      },
+    });
+
+    const escapedSlug = slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Matches:
+    //   [[slug]]          or [[Title|slug]]
+    //   /wiki/slug        (href or plain path — bounded by non-slug chars)
+    //   [text](/wiki/slug)  (markdown link targeting the slug)
+    const patterns = [
+      new RegExp(`\\[\\[(?:[^\\]|]*\\|)?${escapedSlug}\\s*\\]\\]`, 'i'),
+      new RegExp(`/wiki/${escapedSlug}(?=[^A-Za-z0-9_-]|$)`, 'i'),
+    ];
+
+    const matches: Array<{
+      id: string;
+      title: string;
+      slug: string;
+      category: string | null;
+      updatedAt: string;
+      authorId: string;
+      visibility: string;
+      ownerDepartmentId: string | null;
+      allowedRoles: string[];
+      collaborators: string[];
+      excerpt: string;
+    }> = [];
+
+    for (const r of rows) {
+      const content = r.content ?? '';
+      if (!patterns.some((p) => p.test(content))) continue;
+
+      // Build an excerpt around the first match.
+      const plain = this.stripHtml(content).replace(/\s+/g, ' ').trim();
+      const idx = patterns.reduce<number>((acc, p) => {
+        if (acc >= 0) return acc;
+        const m = p.exec(plain);
+        return m ? m.index : -1;
+      }, -1);
+      const snippet =
+        idx >= 0
+          ? plain.slice(Math.max(0, idx - 80), Math.min(plain.length, idx + 160))
+          : plain.slice(0, 200);
+      const excerpt =
+        (idx > 80 ? '…' : '') +
+        snippet +
+        (plain.length > (idx >= 0 ? idx + 160 : 200) ? '…' : '');
+
+      matches.push({
+        id: r.id,
+        title: r.title,
+        slug: r.slug,
+        category: r.category,
+        updatedAt: r.updatedAt.toISOString(),
+        authorId: r.authorId,
+        visibility: r.visibility ?? 'PUBLIC',
+        ownerDepartmentId: r.ownerDepartmentId,
+        allowedRoles: r.allowedRoles ?? [],
+        collaborators: r.collaborators ?? [],
+        excerpt,
+      });
+    }
+
+    return matches;
+  }
+
+  /**
+   * Invalidate backlink caches. Called after any update/create/delete that
+   * might change link relationships. Scoped to the target page pattern.
+   */
+  private invalidateBacklinkCache(): void {
+    if (!this.cache) return;
+    void this.cache.del('wiki:backlinks:*').catch(() => {
+      /* noop — cache invalidation is best-effort */
+    });
   }
 
   async restoreVersion(

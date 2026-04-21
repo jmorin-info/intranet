@@ -82,6 +82,7 @@ import { formatRelativeTime } from '@/lib/utils';
 import DOMPurify from 'dompurify';
 import { BookmarkButton } from '@/components/bookmark-button';
 import { WikiOutline, extractOutline } from '@/components/wiki/wiki-outline';
+import { WikiBacklinks } from '@/components/wiki/wiki-backlinks';
 
 type WikiVisibility = 'PRIVATE' | 'DEPARTMENT' | 'ROLE' | 'PUBLIC';
 
@@ -2412,6 +2413,12 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   </div>
                 )}
               </div>
+
+              {/* Backlinks — "Cité dans N articles" */}
+              <WikiBacklinks
+                pageId={viewingPage.id}
+                onNavigate={(slug) => handleViewPage(slug)}
+              />
 
               {/* Related / recent articles */}
               {related.length > 0 && (

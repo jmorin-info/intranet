@@ -138,6 +138,18 @@ export class WikiController {
     return this.wikiService.releaseEditLock(id, user);
   }
 
+  /**
+   * List articles that link to the given page (backlinks / "cited in").
+   * Response shape: `{ count, items: Array<{ id, title, slug, category, excerpt, updatedAt }> }`
+   */
+  @Get(':id/backlinks')
+  async getBacklinks(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.wikiService.findBacklinks(id, user);
+  }
+
   @Get(':id/versions')
   async getVersions(
     @Param('id', ParseUUIDPipe) id: string,
