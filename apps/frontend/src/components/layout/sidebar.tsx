@@ -21,6 +21,7 @@ import { api } from '@/lib/api';
 import { features } from '@/lib/features';
 import { useAuthStore } from '@/stores/auth-store';
 import { useNotificationStore } from '@/stores/notification-store';
+import { useSidebarCounters } from '@/hooks/use-sidebar-counters';
 import { useUIStore } from '@/stores/ui-store';
 import { useHealthStore } from '@/stores/health-store';
 import { useAdminCountsStore } from '@/stores/admin-counts-store';
@@ -352,6 +353,7 @@ export function Sidebar() {
   const router = useRouter();
   const user = useAuthStore(s => s.user); const logout = useAuthStore(s => s.logout);
   const { unreadCount } = useNotificationStore();
+  const counters = useSidebarCounters();
   const {
     sidebarOpen,
     toggleSidebar,
@@ -460,7 +462,8 @@ export function Sidebar() {
         { label: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard },
         { label: t('nav.notifications'), href: '/notifications', icon: Bell, badge: unreadCount || undefined },
         { label: t('nav.profile'), href: '/profile', icon: User },
-        { label: t('nav.tickets'), href: '/tickets', icon: Ticket },
+        { label: t('nav.tickets'), href: '/tickets', icon: Ticket,
+          badge: counters.myActiveTickets > 0 ? counters.myActiveTickets : undefined, badgeTone: 'amber' },
         { label: t('nav.mySignatures'), href: '/signatures', icon: PenLine },
         { label: 'Mes certifications', href: '/certificates', icon: Award },
         { label: t('nav.calendar'), href: '/calendar', icon: Calendar },
@@ -502,7 +505,8 @@ export function Sidebar() {
       shortcutKey: '3',
       items: [
         { label: t('nav.veille'), href: '/veille', icon: Rss, minRole: UserRole.REVIEWER },
-        { label: 'Incidents', href: '/incidents', icon: ShieldAlert, minRole: UserRole.COLLABORATEUR },
+        { label: 'Incidents', href: '/incidents', icon: ShieldAlert, minRole: UserRole.COLLABORATEUR,
+          badge: counters.criticalIncidents > 0 ? counters.criticalIncidents : undefined, badgeTone: 'red' },
         { label: t('nav.alerts'), href: '/alerts', icon: AlertTriangle, minRole: UserRole.COLLABORATEUR },
         { label: t('nav.helpdesk'), href: '/helpdesk', icon: Headset },
         { label: t('nav.chartes'), href: '/admin/chartes', icon: BookOpen },
@@ -859,6 +863,8 @@ export function Sidebar() {
       )}
 
       <aside
+        id="main-nav"
+        aria-label="Navigation principale"
         className={cn(
           'fixed left-0 top-0 z-50 h-screen flex',
           'transition-transform duration-200 ease-out',
@@ -867,7 +873,6 @@ export function Sidebar() {
           'lg:translate-x-0',
           mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
-        aria-label="Navigation principale"
       >
         {/* =========================================================== */}
         {/* RAIL (56px) — dégradé subtil + ombre droite pour profondeur */}
