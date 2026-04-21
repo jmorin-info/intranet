@@ -509,7 +509,9 @@ export function Sidebar() {
           badge: counters.criticalIncidents > 0 ? counters.criticalIncidents : undefined, badgeTone: 'red' },
         { label: t('nav.alerts'), href: '/alerts', icon: AlertTriangle, minRole: UserRole.COLLABORATEUR },
         { label: t('nav.helpdesk'), href: '/helpdesk', icon: Headset },
-        { label: t('nav.chartes'), href: '/admin/chartes', icon: BookOpen },
+        // Chartes: retiré de Security car doublon avec Admin hub (même URL, même RBAC ADMIN).
+        // Les chartes en attente de signature s'affichent déjà automatiquement en modal
+        // bloquant sur connexion via la route /chartes publique (outside /app).
       ],
     },
     {
