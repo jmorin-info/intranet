@@ -8,6 +8,7 @@ import {
 import { MediaAlbum, MediaItem, MediaType, MediaVisibility, Prisma } from '@prisma/client';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { spawn } from 'child_process';
 import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -294,9 +295,18 @@ export class MediaService {
         this.logger.warn(`Thumbnail génération échouée pour ${file.originalname} : ${err}`);
       }
     } else {
-      // Vidéo MVP : vignette générique (fichier SVG noir avec play icon, partagé)
-      // ffmpeg à installer pour Phase 2 (extraction poster frame)
-      await this.ensureVideoPlaceholderThumb(thumbPath);
+      // Vidéo : extraction d'un poster via ffmpeg si disponible, sinon
+      // fallback sur un placeholder SVG générique.
+      const posterOk = await this.extractVideoPoster(originalPath, thumbPath);
+      if (!posterOk) {
+        await this.ensureVideoPlaceholderThumb(thumbPath);
+      }
+      // Récupération de la durée pour stocker en DB (durationSec)
+      const duration = await this.probeVideoDuration(originalPath);
+      if (duration) {
+        // On met à jour un peu plus bas après le create
+        (file as Express.Multer.File & { __durationSec?: number }).__durationSec = duration;
+      }
     }
 
     // URLs servies par le backend (route media/items/:id/file et /thumb)
@@ -311,7 +321,7 @@ export class MediaService {
         thumbnailUrl,
         width: width ?? null,
         height: height ?? null,
-        durationSec: null, // vidéos : ffmpeg required
+        durationSec: (file as Express.Multer.File & { __durationSec?: number }).__durationSec ?? null,
         fileSizeBytes: BigInt(file.size),
         mimeType: mime,
         title: null,
@@ -357,12 +367,76 @@ export class MediaService {
 
   private async ensureVideoPlaceholderThumb(destPath: string): Promise<void> {
     // Crée un placeholder WebP noir 600x600 avec triangle play-icon blanc.
-    // Généré à la volée avec sharp (SVG overlay).
+    // Utilisé en fallback si ffmpeg indisponible ou échoue sur le poster.
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
       <rect width="600" height="600" fill="#1a202c"/>
       <polygon points="240,190 420,300 240,410" fill="#ffffff" opacity="0.9"/>
     </svg>`;
     await sharp(Buffer.from(svg)).webp({ quality: 82 }).toFile(destPath);
+  }
+
+  /**
+   * Extrait une frame de la vidéo à t=1s comme poster et la convertit en
+   * WebP 600px (crop cover). Nécessite ffmpeg dans $PATH. Retourne true
+   * si le poster a été généré avec succès, false sinon (caller fera un
+   * fallback sur le placeholder SVG).
+   */
+  private async extractVideoPoster(videoPath: string, destWebpPath: string): Promise<boolean> {
+    const tmpJpg = `${destWebpPath}.frame.jpg`;
+    const ok = await new Promise<boolean>((resolve) => {
+      const ff = spawn(
+        'ffmpeg',
+        ['-y', '-ss', '00:00:01', '-i', videoPath, '-vframes', '1', '-q:v', '2', tmpJpg],
+        { stdio: ['ignore', 'ignore', 'pipe'] },
+      );
+      let stderr = '';
+      ff.stderr?.on('data', (d: Buffer) => { stderr += d.toString(); });
+      ff.on('error', () => resolve(false));
+      ff.on('close', (code) => {
+        if (code !== 0) {
+          this.logger.warn(`ffmpeg poster extract exit=${code} stderr=${stderr.slice(-300)}`);
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      });
+      setTimeout(() => { ff.kill('SIGKILL'); resolve(false); }, 30_000); // 30s timeout
+    });
+
+    if (!ok) return false;
+
+    try {
+      await sharp(tmpJpg)
+        .resize(THUMB_SIZE, THUMB_SIZE, { fit: 'cover', position: 'attention' })
+        .webp({ quality: 82 })
+        .toFile(destWebpPath);
+      return true;
+    } catch (err) {
+      this.logger.warn(`sharp resize poster échoué : ${err}`);
+      return false;
+    } finally {
+      await fs.rm(tmpJpg, { force: true }).catch(() => { /* ignore */ });
+    }
+  }
+
+  /** Probe la durée d'une vidéo (secondes, arrondi entier) via ffprobe. */
+  private async probeVideoDuration(videoPath: string): Promise<number | null> {
+    return new Promise<number | null>((resolve) => {
+      const ff = spawn(
+        'ffprobe',
+        ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', videoPath],
+        { stdio: ['ignore', 'pipe', 'ignore'] },
+      );
+      let stdout = '';
+      ff.stdout?.on('data', (d: Buffer) => { stdout += d.toString(); });
+      ff.on('error', () => resolve(null));
+      ff.on('close', (code) => {
+        if (code !== 0) return resolve(null);
+        const parsed = parseFloat(stdout.trim());
+        resolve(Number.isFinite(parsed) ? Math.round(parsed) : null);
+      });
+      setTimeout(() => { ff.kill('SIGKILL'); resolve(null); }, 10_000);
+    });
   }
 
   async getItemFilePath(itemId: string, user: RequestUser, kind: 'file' | 'thumb'): Promise<{ path: string; mime: string }> {

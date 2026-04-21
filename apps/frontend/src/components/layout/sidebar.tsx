@@ -56,6 +56,7 @@ import {
   Calendar,
   Headset,
   BookMarked,
+  Camera,
   UserCheck2,
   Layers,
   ClipboardCheck,
@@ -478,6 +479,7 @@ export function Sidebar() {
         { label: t('nav.news'), href: '/news', icon: Newspaper },
         { label: t('nav.wiki'), href: '/wiki', icon: BookMarked },
         { label: 'Runbooks', href: '/runbooks', icon: BookOpen },
+        { label: 'Médiathèque', href: '/media', icon: Camera },
         { label: t('nav.directory'), href: '/directory', icon: Users },
         { label: t('nav.networkFiles'), href: '/files', icon: HardDrive },
         { label: t('nav.search'), href: '/search', icon: Search },
@@ -868,20 +870,22 @@ export function Sidebar() {
             'flex-col items-center py-3',
           )}
         >
-          {/* Logo — rail version (icône seule, blanc) */}
+          {/* Logo — rail version (icône seule, blanc) — taille maximale dans
+              le rail de 56px pour être visible sans déborder. */}
           <Link
             href="/dashboard"
             aria-label="Accueil OMNITECH"
-            className="flex h-11 w-11 items-center justify-center rounded-xl mb-3 hover:bg-white/10 transition-all duration-200 ring-1 ring-white/5 hover:ring-[#F9964A]/40"
+            className="flex h-13 w-13 items-center justify-center rounded-xl mb-3 hover:bg-white/10 transition-all duration-200 ring-1 ring-white/5 hover:ring-[#F9964A]/40"
+            style={{ height: 52, width: 52 }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-icon-white.png"
               alt="OMNITECH"
-              width={44}
-              height={44}
+              width={52}
+              height={52}
               className="object-contain drop-shadow-sm"
-              style={{ width: 44, height: 44 }}
+              style={{ width: 52, height: 52 }}
             />
           </Link>
 
