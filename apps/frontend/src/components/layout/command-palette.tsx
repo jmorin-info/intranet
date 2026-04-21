@@ -132,6 +132,64 @@ function Highlighted({ text, query }: { text: string; query: string }) {
   return <>{parts}</>;
 }
 
+/**
+ * Highlight word-based : surligne chaque mot de la query (≥ 2 chars,
+ * insensible aux accents/casse) là où il apparaît réellement dans le texte.
+ * Plus adapté aux résultats Meilisearch que le highlight subsequence.
+ */
+function HighlightedWords({ text, query }: { text: string; query: string }) {
+  const words = query
+    .trim()
+    .split(/\s+/)
+    .map((w) => normalize(w))
+    .filter((w) => w.length >= 2);
+  if (words.length === 0) return <>{text}</>;
+
+  const nText = normalize(text);
+  // Collect all match ranges on the normalized string
+  type Range = { start: number; end: number };
+  const ranges: Range[] = [];
+  for (const w of words) {
+    let from = 0;
+    while (from <= nText.length - w.length) {
+      const idx = nText.indexOf(w, from);
+      if (idx < 0) break;
+      ranges.push({ start: idx, end: idx + w.length });
+      from = idx + w.length;
+    }
+  }
+  if (ranges.length === 0) return <>{text}</>;
+
+  // Merge overlapping ranges
+  ranges.sort((a, b) => a.start - b.start);
+  const merged: Range[] = [];
+  for (const r of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && r.start <= last.end) {
+      last.end = Math.max(last.end, r.end);
+    } else {
+      merged.push({ ...r });
+    }
+  }
+
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+  merged.forEach((r, i) => {
+    if (r.start > cursor) parts.push(text.slice(cursor, r.start));
+    parts.push(
+      <mark
+        key={`hl-${i}`}
+        className="bg-primary/20 text-primary font-semibold rounded px-0.5"
+      >
+        {text.slice(r.start, r.end)}
+      </mark>,
+    );
+    cursor = r.end;
+  });
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return <>{parts}</>;
+}
+
 // ─────────────────────────── Component ───────────────────────────
 
 interface CommandPaletteProps {
@@ -567,7 +625,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : 'text-seal-navy dark:text-white'}`}>
-                          <Highlighted text={it.label} query={query} />
+                          {it.category === 'content' ? (
+                            <HighlightedWords text={it.label} query={query} />
+                          ) : (
+                            <Highlighted text={it.label} query={query} />
+                          )}
                         </p>
                         {it.href && (
                           <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">{it.href}</p>

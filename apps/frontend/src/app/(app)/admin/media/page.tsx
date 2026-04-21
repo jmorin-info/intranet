@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { api } from '@/lib/api';
+import { withAuthToken } from '@/lib/media-url';
 import { formatRelativeTime } from '@/lib/utils';
 
 interface Album {
@@ -183,7 +184,7 @@ export default function AdminMediaPage() {
                   <div className="h-16 w-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-slate-800">
                     {a.coverItem ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={a.coverItem.thumbnailUrl} alt={a.title} className="h-full w-full object-cover" />
+                      <img src={withAuthToken(a.coverItem.thumbnailUrl)} alt={a.title} className="h-full w-full object-cover" />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center">
                         <ImageIcon className="h-6 w-6 text-seal-gray-500" />

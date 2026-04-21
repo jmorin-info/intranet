@@ -9,6 +9,7 @@ import {
   ArrowLeft, Upload, Image as ImageIcon, Video, Trash2, Star, Edit3, Save, X,
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { withAuthToken } from '@/lib/media-url';
 import { formatRelativeTime } from '@/lib/utils';
 
 interface Item {
@@ -85,7 +86,9 @@ export default function AdminAlbumPage() {
         const formData = new FormData();
         formData.append('file', file);
         await api.post(`/media/albums/${albumId}/items`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          // Ne PAS forcer Content-Type : axios doit le générer avec le boundary
+          // multipart auto depuis FormData. Forcer "multipart/form-data" sans
+          // boundary casse le parsing côté Multer (Request body empty).
           onUploadProgress: (e) => {
             const total = e.total;
             if (typeof total === 'number' && total > 0) {
@@ -261,7 +264,7 @@ export default function AdminAlbumPage() {
                   className="relative rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-800 group border border-gray-200 dark:border-slate-700"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.thumbnailUrl} alt={item.title ?? ''} className="w-full aspect-square object-cover" />
+                  <img src={withAuthToken(item.thumbnailUrl)} alt={item.title ?? ''} className="w-full aspect-square object-cover" />
                   {item.type === 'VIDEO' && (
                     <div className="absolute top-2 right-2 rounded-full bg-black/60 p-1">
                       <Video className="h-3 w-3 text-white" />

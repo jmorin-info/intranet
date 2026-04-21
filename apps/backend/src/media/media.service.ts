@@ -243,13 +243,17 @@ export class MediaService {
     albumId: string,
     file: Express.Multer.File,
   ): Promise<MediaItem> {
+    this.logger.log(
+      `Media upload attempt: user=${user.id} role=${user.role} album=${albumId} ` +
+      `file=${file?.originalname} mime=${file?.mimetype} size=${file?.size}`,
+    );
     await this.assertCanManage(user);
 
     const album = await this.prisma.mediaAlbum.findUnique({ where: { id: albumId } });
     if (!album) throw new NotFoundException('Album introuvable.');
 
     if (!file || !file.buffer) {
-      throw new BadRequestException('Aucun fichier reçu.');
+      throw new BadRequestException('Aucun fichier reçu (le champ "file" est vide ou le multipart est malformé).');
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {
       throw new BadRequestException(`Fichier trop volumineux (max ${MAX_FILE_SIZE_BYTES / (1024 * 1024 * 1024)} Go).`);
@@ -259,7 +263,9 @@ export class MediaService {
     let type: MediaType;
     if (IMAGE_MIMES.has(mime)) type = 'IMAGE';
     else if (VIDEO_MIMES.has(mime)) type = 'VIDEO';
-    else throw new BadRequestException(`Type de fichier non autorisé : ${mime}`);
+    else throw new BadRequestException(
+      `Type de fichier non autorisé : ${mime}. Images acceptées: JPEG/PNG/WebP/GIF/AVIF. Vidéos: MP4/WebM/MOV/MKV.`,
+    );
 
     // Préparation dossier
     const albumDir = path.join(MEDIA_ROOT, 'albums', albumId);

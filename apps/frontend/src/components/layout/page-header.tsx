@@ -69,7 +69,11 @@ export function PageHeader({
             )}
           </div>
         </div>
-        {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
+        {actions && (
+          <div id="page-actions" className="flex items-center gap-2 flex-wrap">
+            {actions}
+          </div>
+        )}
       </div>
       {meta && <div className="mt-4">{meta}</div>}
     </header>

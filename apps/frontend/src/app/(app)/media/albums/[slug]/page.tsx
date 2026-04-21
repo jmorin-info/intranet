@@ -9,6 +9,7 @@ import { ArrowLeft, Video, Image as ImageIcon, Download, UserCircle, Calendar, S
 import { useAuthStore } from '@/stores/auth-store';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { api } from '@/lib/api';
+import { withAuthToken } from '@/lib/media-url';
 import { MediaLightbox, type LightboxItem } from '@/components/media/media-lightbox';
 import { formatRelativeTime } from '@/lib/utils';
 
@@ -19,7 +20,7 @@ interface AlbumDetail {
   description: string | null;
   visibility: 'INTERNAL' | 'DEPARTMENT' | 'PRIVATE';
   createdAt: string;
-  createdBy: { id: string; firstName: string; lastName: string; email: string };
+  createdBy: { id: string; firstName: string; lastName: string; email: string } | null;
   department: { id: string; name: string } | null;
   items: LightboxItem[];
   _count: { items: number };
@@ -105,7 +106,9 @@ export default function AlbumDetailPage() {
             <div className="flex items-center gap-4 mt-3 text-[12px] text-seal-gray-500 dark:text-slate-500 flex-wrap">
               <span className="flex items-center gap-1">
                 <UserCircle className="h-3.5 w-3.5" />
-                {album.createdBy.firstName} {album.createdBy.lastName}
+                {album.createdBy
+                  ? `${album.createdBy.firstName} ${album.createdBy.lastName}`
+                  : 'Auteur inconnu'}
               </span>
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
@@ -144,7 +147,7 @@ export default function AlbumDetailPage() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={item.thumbnailUrl}
+                src={withAuthToken(item.thumbnailUrl)}
                 alt={item.title ?? ''}
                 className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                 loading="lazy"
@@ -164,7 +167,9 @@ export default function AlbumDetailPage() {
                   )}
                   <p className="text-[10px] text-white/70 flex items-center gap-1 mt-0.5">
                     {item.type === 'VIDEO' ? <Video className="h-2.5 w-2.5" /> : <ImageIcon className="h-2.5 w-2.5" />}
-                    {item.uploadedBy.firstName} {item.uploadedBy.lastName}
+                    {item.uploadedBy
+                      ? `${item.uploadedBy.firstName} ${item.uploadedBy.lastName}`
+                      : 'Auteur inconnu'}
                   </p>
                 </div>
               </div>

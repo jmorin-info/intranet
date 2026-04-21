@@ -42,26 +42,42 @@ function SkipLink({ href, children }: SkipLinkProps) {
  * Doit être placé AVANT tout autre contenu tabable.
  */
 export function SkipLinks() {
-  // Alt+S → saute au contenu principal (focus + scroll)
+  // Détecte à chaque changement de route si `#page-actions` existe côté DOM
+  // afin d'afficher (ou pas) le skip-link "Aller aux actions".
+  const [hasActions, setHasActions] = React.useState(false);
+
   useEffect(() => {
-    function handleAltS(e: KeyboardEvent) {
-      if (!e.altKey || e.key.toLowerCase() !== 's') return;
+    const check = () => setHasActions(!!document.getElementById('page-actions'));
+    check();
+    // MutationObserver : certaines pages rendent leur header après un fetch
+    const obs = new MutationObserver(check);
+    obs.observe(document.body, { childList: true, subtree: true });
+    return () => obs.disconnect();
+  }, []);
+
+  // Raccourcis Alt+S (contenu) / Alt+A (actions) : saute au focus
+  useEffect(() => {
+    function handleAltKey(e: KeyboardEvent) {
+      if (!e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key !== 's' && key !== 'a') return;
       // Ne pas déclencher dans un champ de saisie
       const target = e.target as HTMLElement | null;
       if (target) {
         const tag = target.tagName.toLowerCase();
         if (tag === 'input' || tag === 'textarea' || target.isContentEditable) return;
       }
-      const main = document.getElementById('main-content');
-      if (main) {
+      const targetId = key === 's' ? 'main-content' : 'page-actions';
+      const el = document.getElementById(targetId);
+      if (el) {
         e.preventDefault();
-        main.setAttribute('tabindex', '-1');
-        main.focus({ preventScroll: false });
-        main.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.setAttribute('tabindex', '-1');
+        el.focus({ preventScroll: false });
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
-    window.addEventListener('keydown', handleAltS);
-    return () => window.removeEventListener('keydown', handleAltS);
+    window.addEventListener('keydown', handleAltKey);
+    return () => window.removeEventListener('keydown', handleAltKey);
   }, []);
 
   return (
@@ -70,6 +86,7 @@ export function SkipLinks() {
       className="skip-links"
     >
       <SkipLink href="#main-content">Aller au contenu principal</SkipLink>
+      {hasActions && <SkipLink href="#page-actions">Aller aux actions</SkipLink>}
       <SkipLink href="#main-nav">Aller à la navigation</SkipLink>
       <SkipLink href="#main-footer">Aller au pied de page</SkipLink>
     </nav>

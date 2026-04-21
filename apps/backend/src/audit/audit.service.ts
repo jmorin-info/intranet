@@ -96,6 +96,7 @@ export class AuditService {
     dateFrom?: Date;
     dateTo?: Date;
     severity?: string;
+    bulk?: boolean;
     page?: number;
     limit?: number;
   }) {
@@ -109,6 +110,14 @@ export class AuditService {
       if (validSeverities.includes(filters.severity)) {
         where.severity = filters.severity;
       }
+    }
+
+    // Filtre bulk=true : toutes les opérations en masse estampillent
+    // `metadata.bulk = true` + `metadata.batchSize` (voir tickets/documents
+    // bulk services). Permet aux admins de retrouver rapidement les actions
+    // groupées dans le journal ISO 27001 A.5.36.
+    if (filters?.bulk) {
+      where.metadata = { path: ['bulk'], equals: true };
     }
 
     if (filters?.dateFrom || filters?.dateTo) {

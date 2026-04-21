@@ -12,7 +12,18 @@ interface ModuleDef {
   code: string;
   label: string;
   alwaysOn?: boolean;
+  section?: string;
 }
+
+const SECTION_LABELS: Record<string, string> = {
+  monEspace: 'Mon espace',
+  work: 'Travail & connaissance',
+  security: 'Sécurité & conformité',
+  admin: 'Administration',
+  transverse: 'Transversal',
+};
+
+const SECTION_ORDER = ['monEspace', 'work', 'security', 'admin', 'transverse'];
 
 interface SpaceConfig {
   id: string;
@@ -186,6 +197,24 @@ export default function SpacesAdminPage() {
 
   const roleColumns = useMemo(() => ROLES as readonly RoleKey[], []);
 
+  /** Modules groupés par section (dans l'ordre canonique). */
+  const modulesBySection = useMemo(() => {
+    const map = new Map<string, ModuleDef[]>();
+    for (const mod of modules) {
+      const sec = mod.section ?? 'transverse';
+      const list = map.get(sec) ?? [];
+      list.push(mod);
+      map.set(sec, list);
+    }
+    return SECTION_ORDER
+      .map((sec) => ({ section: sec, label: SECTION_LABELS[sec] ?? sec, modules: map.get(sec) ?? [] }))
+      .filter((g) => g.modules.length > 0);
+  }, [modules]);
+
+  // Colspan for section headers = 1 (label column) + 1 (global) + N roles
+  const sectionColspan = 2 + roleColumns.length;
+  const deptColspan = 1 + departments.length;
+
   return (
     <div className="space-y-6">
       <AdminGroupTabs group="config" />
@@ -243,44 +272,59 @@ export default function SpacesAdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                  {modules.map((mod) => (
-                    <tr
-                      key={mod.code}
-                      className="even:bg-gray-50/50 dark:even:bg-slate-800/30 hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-seal-navy dark:text-white">
-                            {mod.label}
+                  {modulesBySection.map((group) => (
+                    <React.Fragment key={group.section}>
+                      <tr className="bg-seal-navy/5 dark:bg-slate-800/60">
+                        <td
+                          colSpan={sectionColspan}
+                          className="px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-seal-navy dark:text-slate-300"
+                        >
+                          {group.label}
+                          <span className="ml-2 text-[10px] font-normal text-seal-gray-500 dark:text-slate-500">
+                            ({group.modules.length})
                           </span>
-                          {mod.alwaysOn && (
-                            <Badge variant="navy" className="gap-1">
-                              <Lock className="h-3 w-3" />
-                              Obligatoire
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 font-mono mt-0.5">
-                          {mod.code}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        <ToggleCell
-                          enabled={isEnabled(mod.code, 'GLOBAL')}
-                          disabled={mod.alwaysOn}
-                          onClick={() => toggle(mod.code, 'GLOBAL')}
-                        />
-                      </td>
-                      {roleColumns.map((r) => (
-                        <td key={r} className="px-2 py-3 text-center">
-                          <ToggleCell
-                            enabled={isEnabled(mod.code, `ROLE:${r}`)}
-                            disabled={mod.alwaysOn}
-                            onClick={() => toggle(mod.code, `ROLE:${r}`)}
-                          />
                         </td>
+                      </tr>
+                      {group.modules.map((mod) => (
+                        <tr
+                          key={mod.code}
+                          className="even:bg-gray-50/50 dark:even:bg-slate-800/30 hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-seal-navy dark:text-white">
+                                {mod.label}
+                              </span>
+                              {mod.alwaysOn && (
+                                <Badge variant="navy" className="gap-1">
+                                  <Lock className="h-3 w-3" />
+                                  Obligatoire
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 font-mono mt-0.5">
+                              {mod.code}
+                            </p>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <ToggleCell
+                              enabled={isEnabled(mod.code, 'GLOBAL')}
+                              disabled={mod.alwaysOn}
+                              onClick={() => toggle(mod.code, 'GLOBAL')}
+                            />
+                          </td>
+                          {roleColumns.map((r) => (
+                            <td key={r} className="px-2 py-3 text-center">
+                              <ToggleCell
+                                enabled={isEnabled(mod.code, `ROLE:${r}`)}
+                                disabled={mod.alwaysOn}
+                                onClick={() => toggle(mod.code, `ROLE:${r}`)}
+                              />
+                            </td>
+                          ))}
+                        </tr>
                       ))}
-                    </tr>
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
@@ -315,26 +359,38 @@ export default function SpacesAdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                    {modules.map((mod) => (
-                      <tr
-                        key={mod.code}
-                        className="even:bg-gray-50/50 dark:even:bg-slate-800/30 hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors"
-                      >
-                        <td className="px-4 py-3">
-                          <span className="font-semibold text-seal-navy dark:text-white">
-                            {mod.label}
-                          </span>
-                        </td>
-                        {departments.map((d) => (
-                          <td key={d.id} className="px-2 py-3 text-center">
-                            <ToggleCell
-                              enabled={isEnabled(mod.code, `DEPT:${d.id}`)}
-                              disabled={mod.alwaysOn}
-                              onClick={() => toggle(mod.code, `DEPT:${d.id}`)}
-                            />
+                    {modulesBySection.map((group) => (
+                      <React.Fragment key={group.section}>
+                        <tr className="bg-seal-navy/5 dark:bg-slate-800/60">
+                          <td
+                            colSpan={deptColspan}
+                            className="px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-seal-navy dark:text-slate-300"
+                          >
+                            {group.label}
                           </td>
+                        </tr>
+                        {group.modules.map((mod) => (
+                          <tr
+                            key={mod.code}
+                            className="even:bg-gray-50/50 dark:even:bg-slate-800/30 hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors"
+                          >
+                            <td className="px-4 py-3">
+                              <span className="font-semibold text-seal-navy dark:text-white">
+                                {mod.label}
+                              </span>
+                            </td>
+                            {departments.map((d) => (
+                              <td key={d.id} className="px-2 py-3 text-center">
+                                <ToggleCell
+                                  enabled={isEnabled(mod.code, `DEPT:${d.id}`)}
+                                  disabled={mod.alwaysOn}
+                                  onClick={() => toggle(mod.code, `DEPT:${d.id}`)}
+                                />
+                              </td>
+                            ))}
+                          </tr>
                         ))}
-                      </tr>
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>

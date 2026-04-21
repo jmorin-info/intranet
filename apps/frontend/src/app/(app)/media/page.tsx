@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { useAuthStore } from '@/stores/auth-store';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { api } from '@/lib/api';
+import { withAuthToken } from '@/lib/media-url';
 import { formatRelativeTime } from '@/lib/utils';
 
 interface Album {
@@ -123,7 +124,7 @@ export default function MediaPage() {
                     {album.coverItem ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={album.coverItem.thumbnailUrl}
+                        src={withAuthToken(album.coverItem.thumbnailUrl)}
                         alt={album.title}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                         loading="lazy"

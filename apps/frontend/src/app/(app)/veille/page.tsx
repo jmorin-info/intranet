@@ -14,7 +14,7 @@ import {
   Shield, AlertTriangle, ExternalLink, CheckCircle2, RefreshCw, Rss, AlertOctagon, Info, Filter, Newspaper, X, Sparkles, Calendar, ChevronDown, ChevronUp, Trash2, ToggleLeft, ToggleRight, Plus,
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
-import { ExportButton } from '@/components/ui/export-button';
+import { ExportCsvButton } from '@/components/ui/export-csv-button';
 import { useTranslation } from '@/lib/i18n';
 
 interface VeilleItem {
@@ -334,19 +334,15 @@ export default function VeillePage() {
         hub="security"
         actions={
           <>
-            <ExportButton
+            <ExportCsvButton
+              endpoint="/veille/export/csv"
               filename="veille"
-              reportName="Veille cybersécurité"
-              rows={(filteredItems || []) as unknown as Array<Record<string, unknown>>}
-              columns={[
-                { header: 'Titre', accessor: (r: Record<string, unknown>) => String((r as unknown as VeilleItem).title || '') },
-                { header: 'Source', accessor: (r: Record<string, unknown>) => String((r as unknown as VeilleItem).sourceName || '') },
-                { header: 'CVE', accessor: (r: Record<string, unknown>) => String((r as unknown as VeilleItem).cveId || '') },
-                { header: 'Severite', accessor: (r: Record<string, unknown>) => String((r as unknown as VeilleItem).severity || '') },
-                { header: 'Publie le', accessor: (r: Record<string, unknown>) => (r as unknown as VeilleItem).publishedAt || '' },
-                { header: 'Traite', accessor: (r: Record<string, unknown>) => (r as unknown as VeilleItem).isProcessed },
-                { header: 'URL', accessor: (r: Record<string, unknown>) => String((r as unknown as VeilleItem).sourceUrl || '') },
-              ]}
+              params={{
+                ...(filter !== '' ? { isProcessed: filter } : {}),
+                ...(search ? { search } : {}),
+                ...(period === 'week' ? { dateFrom: new Date(Date.now() - 7 * 86400000).toISOString() } : {}),
+                ...(period === 'month' ? { dateFrom: new Date(Date.now() - 30 * 86400000).toISOString() } : {}),
+              }}
             />
             {isAdmin && (
               <>

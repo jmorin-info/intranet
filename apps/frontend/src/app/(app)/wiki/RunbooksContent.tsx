@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
@@ -494,6 +495,11 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
                     <Button size="sm" onClick={() => handleExecute(rb)}>
                       <Play className="h-3 w-3" /> {t('runbooks.execute')}
                     </Button>
+                    <Link href={`/runbooks/${rb.slug}`}>
+                      <Button size="sm" variant="outline" className="w-full">
+                        <ChevronRight className="h-3 w-3" /> Ouvrir
+                      </Button>
+                    </Link>
                     {isAdmin && (
                       <Button size="sm" variant="ghost" onClick={() => openEdit(rb)}>
                         <Edit className="h-3 w-3" /> Editer
