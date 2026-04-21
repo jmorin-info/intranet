@@ -464,10 +464,11 @@ export default function TicketSpacesAdminPage() {
                   {/* Allowed categories */}
                   <div>
                     <label className="text-xs font-medium text-seal-navy dark:text-white flex items-center gap-1.5 mb-2">
-                      <Tag className="h-3.5 w-3.5" /> Catégories autorisées
+                      <Tag className="h-3.5 w-3.5" /> Catégories génériques autorisées
                     </label>
                     <p className="text-[11px] text-seal-gray-500 mb-2">
-                      Cochez les catégories disponibles à la création de ticket dans cet espace. Si tout est décoché, toutes les catégories sont autorisées.
+                      Cochez les catégories standards disponibles dans cet espace. Si tout est décoché, toutes les catégories sont autorisées.
+                      Pour ajouter des catégories <strong>spécifiques à votre métier</strong> (RMA, Congés, Conformité…), utilisez la section &quot;Catégories personnalisées&quot; ci-dessous.
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {GLOBAL_CATEGORIES.map((c) => {
@@ -527,17 +528,20 @@ export default function TicketSpacesAdminPage() {
                     </div>
                   </div>
 
-                  {/* Subcategories */}
+                  {/* Custom categories (subcategories) */}
                   <div>
                     <label className="text-xs font-medium text-seal-navy dark:text-white flex items-center gap-1.5 mb-2">
-                      <Tag className="h-3.5 w-3.5" /> Sous-catégories spécifiques à cet espace
+                      <Plus className="h-3.5 w-3.5" /> Catégories personnalisées de cet espace
                     </label>
                     <p className="text-[11px] text-seal-gray-500 mb-2">
-                      Classifications métier propres à cet espace : &quot;RMA&quot;, &quot;Déploiement&quot; pour l&apos;IT ; &quot;Congés&quot;, &quot;Paie&quot; pour les RH ; etc. Affichées dans le formulaire de création de ticket de l&apos;espace.
+                      Créez vos propres catégories métier : &quot;RMA&quot;, &quot;Déploiement&quot; pour l&apos;IT ;
+                      &quot;Congés&quot;, &quot;Paie&quot; pour les RH ; &quot;Conformité&quot;, &quot;Audit&quot; pour la Sécurité.
+                      Elles s&apos;afficheront dans le formulaire de création de ticket de cet espace,
+                      en complément des catégories génériques cochées ci-dessus.
                     </p>
                     <div className="space-y-1.5">
                       {draftSubcats.length === 0 && (
-                        <p className="text-[11px] text-seal-gray-500 italic py-2">Aucune sous-catégorie définie.</p>
+                        <p className="text-[11px] text-seal-gray-500 italic py-2">Aucune catégorie personnalisée pour l&apos;instant — ajoutez-en une ci-dessous.</p>
                       )}
                       {draftSubcats.map((s) => (
                         <div

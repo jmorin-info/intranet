@@ -878,10 +878,10 @@ export function Sidebar() {
             <img
               src="/logo-icon-white.png"
               alt="OMNITECH"
-              width={36}
-              height={36}
+              width={44}
+              height={44}
               className="object-contain drop-shadow-sm"
-              style={{ width: 36, height: 36 }}
+              style={{ width: 44, height: 44 }}
             />
           </Link>
 
@@ -1009,8 +1009,8 @@ export function Sidebar() {
                 <img
                   src="/logo-full-white.png"
                   alt="OMNITECH Security"
-                  className="h-6 w-auto object-contain drop-shadow-sm"
-                  style={{ height: 24 }}
+                  className="h-10 w-auto object-contain drop-shadow-sm"
+                  style={{ height: 40 }}
                 />
               </Link>
 
