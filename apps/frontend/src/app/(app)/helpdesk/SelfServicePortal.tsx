@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { Card, CardContent, CardHeader, Badge, Button } from '@omnitech/ui';
+import { Card, CardContent, CardHeader, Badge, Button, EmptyState } from '@omnitech/ui';
 import {
   HelpCircle, Key, Wifi, Monitor, Printer, Mail, Shield, ChevronRight,
   CheckCircle2, AlertTriangle, Clock, Ticket, Lock, Download, Zap, RefreshCw,
@@ -408,10 +408,11 @@ export function SelfServicePortal() {
           const q = faqSearch.toLowerCase();
           return g.title.toLowerCase().includes(q) || g.desc.toLowerCase().includes(q) || g.steps.some(s => s.toLowerCase().includes(q));
         }).length === 0 && (
-          <div className="text-center py-6">
-            <HelpCircle className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400">Aucun guide ne correspond \u00e0 \u00ab\u00a0{faqSearch}\u00a0\u00bb. Essayez un autre terme ou cr\u00e9ez un ticket pour obtenir de l\u2019aide.</p>
-          </div>
+          <EmptyState
+            type="search"
+            title="Aucun guide trouvé"
+            description={`Aucun guide ne correspond à « ${faqSearch} ». Essayez un autre terme ou créez un ticket pour obtenir de l'aide.`}
+          />
         )}
         {/* CTA: not found? create a ticket */}
         <Card className="mt-6 border-dashed border-2 border-primary/30 bg-primary/5 dark:bg-primary/10">

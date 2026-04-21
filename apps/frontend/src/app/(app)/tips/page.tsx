@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Card, CardContent, Button, SearchInput } from '@omnitech/ui';
+import { Card, CardContent, Button, SearchInput, EmptyState } from '@omnitech/ui';
 import { Lightbulb, ArrowRight, Star } from 'lucide-react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/layout/page-header';
@@ -141,16 +141,14 @@ export default function TipsPage() {
       </Card>
 
       {visible.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Lightbulb className="mx-auto h-10 w-10 text-seal-gray-500/40" />
-            <p className="mt-3 text-sm text-seal-gray-500 dark:text-slate-400">
-              Aucune astuce ne correspond à votre recherche.
-            </p>
+        <EmptyState
+          type="search"
+          title="Aucune astuce trouvée"
+          description="Aucune astuce ne correspond à votre recherche. Essayez un autre terme ou réinitialisez les filtres."
+          action={(
             <Button
               variant="outline"
               size="sm"
-              className="mt-4"
               onClick={() => {
                 setQuery('');
                 setCategory('all');
@@ -158,8 +156,8 @@ export default function TipsPage() {
             >
               Réinitialiser les filtres
             </Button>
-          </CardContent>
-        </Card>
+          )}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((tip, idx) => {

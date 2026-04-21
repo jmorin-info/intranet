@@ -14,6 +14,7 @@ import { FileText, BookOpen, Newspaper, Ticket } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { formatRelativeTime } from '@/lib/utils';
+import { EmptyState } from '@omnitech/ui';
 import { Spotlight } from '@/components/ui/spotlight';
 import { SmartFilterBar } from '@/components/ui/smart-filter-bar';
 import type { SmartFilter } from '@/lib/smart-filter';
@@ -267,9 +268,11 @@ export default function SearchV2Page() {
 
         {/* État : aucun résultat */}
         {!loading && !error && debounced && data && data.total === 0 && (
-          <div className="py-16 text-center text-slate-500 dark:text-slate-400">
-            Aucun résultat pour <strong>&ldquo;{debounced}&rdquo;</strong>.
-          </div>
+          <EmptyState
+            type="search"
+            title="Aucun résultat"
+            description={`Aucun contenu ne correspond à « ${debounced} ». Essayez un terme plus court ou vérifiez l'orthographe.`}
+          />
         )}
 
         {/* Did you mean hint for zero results */}

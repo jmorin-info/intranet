@@ -12,6 +12,7 @@ import {
   Select,
   Button,
   Input,
+  EmptyState,
 } from '@omnitech/ui';
 import {
   Users,
@@ -220,15 +221,11 @@ export default function ExternalContactsPage() {
 
       {/* Contacts grid */}
       {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Users className="h-12 w-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
-            <p className="text-lg font-medium text-seal-navy dark:text-white">Aucun contact trouvé</p>
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-              Essayez de modifier vos filtres de recherche.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          type="users"
+          title="Aucun contact trouvé"
+          description="Essayez de modifier vos filtres de recherche."
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((contact) => {

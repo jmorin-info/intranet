@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Database, Download, Trash2, Upload, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
+import { EmptyState } from '@omnitech/ui';
 
 interface BackupFile {
   filename: string;
@@ -229,9 +230,11 @@ export default function BackupsPage() {
             ))}
           </div>
         ) : backups.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 dark:text-slate-400">
-            Aucune sauvegarde disponible
-          </div>
+          <EmptyState
+            type="general"
+            title="Aucune sauvegarde disponible"
+            description="Les sauvegardes de base de données et de stockage apparaîtront ici dès leur création."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

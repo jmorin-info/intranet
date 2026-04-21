@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { Card, CardContent, Badge, Avatar } from '@omnitech/ui';
+import { Card, CardContent, Badge, Avatar, EmptyState } from '@omnitech/ui';
 import { Building2, Users, ChevronDown, ChevronRight, Mail, Phone, ExternalLink, GitBranchPlus } from 'lucide-react';
 import { getAvatarUrl } from '@/lib/avatar';
 import { useTranslation } from '@/lib/i18n';
@@ -319,15 +319,11 @@ export default function OrganigrammePage() {
 
       {/* Empty state */}
       {!loading && departments.length === 0 && (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Building2 className="h-12 w-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
-            <p className="text-lg font-medium text-seal-navy dark:text-white">Aucun département</p>
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-              Les départements apparaîtront ici une fois créés.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          type="users"
+          title="Aucun département"
+          description="Les départements apparaîtront ici une fois créés."
+        />
       )}
 
       {/* Tree layout */}
