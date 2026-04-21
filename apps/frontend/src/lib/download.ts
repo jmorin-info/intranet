@@ -31,7 +31,7 @@ export async function downloadDocument(
   versionId: string,
   options?: { inline?: boolean; filename?: string },
 ): Promise<void> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+  const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/api\/?$/, '/api/v1');
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '';
   const url = `${apiUrl}/documents/${documentId}/versions/${versionId}/download`;
 

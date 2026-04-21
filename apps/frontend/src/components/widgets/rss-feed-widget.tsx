@@ -12,7 +12,7 @@ interface FeedItem {
   cveId: string | null;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/api\/?$/, '/api/v1');
 
 const severityColor: Record<string, string> = {
   CRITICAL: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',

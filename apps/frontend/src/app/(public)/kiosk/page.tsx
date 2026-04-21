@@ -38,7 +38,7 @@ interface WeatherSnap {
   description: string;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || '/api';
+const API = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/api\/?$/, '/api/v1');
 
 function useClock(): string {
   const [now, setNow] = useState('');
