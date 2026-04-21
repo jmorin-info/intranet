@@ -59,7 +59,9 @@ const ALLOWED_MIME_TYPES = [
   'application/vnd.oasis.opendocument.spreadsheet',                            // .ods
   'application/vnd.oasis.opendocument.presentation',                           // .odp
   // Images
-  'image/png', 'image/jpeg',
+  'image/png', 'image/jpeg', 'image/webp', 'image/gif',
+  // Markdown + texte brut (documentation légère, procédures)
+  'text/markdown', 'text/x-markdown', 'text/plain',
 ];
 
 /**
@@ -85,9 +87,24 @@ const MAGIC_BYTES: Array<{ mime: string; bytes: number[] }> = [
   // Images
   { mime: 'image/png', bytes: [0x89, 0x50, 0x4e, 0x47] },
   { mime: 'image/jpeg', bytes: [0xff, 0xd8, 0xff] },
+  { mime: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46] }, // RIFF (WEBP container)
+  { mime: 'image/gif', bytes: [0x47, 0x49, 0x46, 0x38] }, // GIF8
+  // Markdown et texte : pas de magic bytes fiable (format texte UTF-8).
+  // Validation effectuée via taille max + MIME declaré ; bypass magic-bytes
+  // géré dans validateMagicBytes() par exclusion.
 ];
 
+// Formats sans magic bytes fiable (texte plat) — accepter tel quel
+const TEXT_MIMES_SKIP_MAGIC = new Set([
+  'text/markdown',
+  'text/x-markdown',
+  'text/plain',
+]);
+
 function validateMagicBytes(file: Express.Multer.File): boolean {
+  // Les formats texte (MD, TXT) n'ont pas de magic bytes fiables : on leur
+  // fait confiance sur le MIME type déclaré après contrôle de la taille.
+  if (TEXT_MIMES_SKIP_MAGIC.has(file.mimetype)) return true;
   const buffer = file.buffer;
   if (!buffer || buffer.length < 4) return false;
   const entry = MAGIC_BYTES.find((m) => m.mime === file.mimetype);

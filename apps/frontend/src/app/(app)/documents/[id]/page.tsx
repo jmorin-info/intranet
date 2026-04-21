@@ -70,6 +70,14 @@ import { EntityBreadcrumb } from '@/components/ui/entity-breadcrumb';
 import { eventBus, createEvent } from '@/lib/events';
 import type { DiffVersion } from '@/components/documents/version-diff';
 
+const MarkdownViewer = dynamic(
+  () => import('@/components/viewers/markdown-viewer').then((m) => m.MarkdownViewer),
+  { ssr: false },
+);
+const ImageViewer = dynamic(
+  () => import('@/components/viewers/image-viewer').then((m) => m.ImageViewer),
+  { ssr: false },
+);
 const PdfViewer = dynamic(
   () => import('@/components/viewers/pdf-viewer').then((m) => m.PdfViewer),
   {
@@ -783,7 +791,7 @@ export default function DocumentDetailPage() {
     }
   };
 
-  const canPreview = currentVersion && /\.(pdf|docx?)$/i.test(currentVersion.fileType || '');
+  const canPreview = currentVersion && /\.(pdf|docx?|md|txt|png|jpe?g|webp|gif)$/i.test(currentVersion.fileType || '');
   const previewUrl = currentVersion?.fileUrl ? (currentVersion.fileUrl.startsWith('http') ? currentVersion.fileUrl : `${process.env.NEXT_PUBLIC_API_URL || ''}${currentVersion.fileUrl.startsWith('/') ? '' : '/'}${currentVersion.fileUrl}`) : '';
   // URL for the inline viewer used in the focus reading mode
   const isPdf = currentVersion && /\.pdf$/i.test(currentVersion.fileType || '');
@@ -1643,19 +1651,35 @@ export default function DocumentDetailPage() {
                     </div>
                   )}
                   <div className="min-h-[70vh]">
-                    {/\.pdf$/i.test(currentVersion.fileType || '') ? (
-                      <PdfViewer
-                        url={previewUrl}
-                        onOpenReadingMode={() => setReadingModeOpen(true)}
-                      />
-                    ) : /\.docx?$/i.test(currentVersion.fileType || '') ? (
-                      <DocxViewer url={previewUrl} />
-                    ) : (
-                      <div className="flex items-center justify-center py-12 text-sm text-seal-gray-500 dark:text-slate-400">
-                        <FileImage className="h-5 w-5 mr-2" />
-                        Aperçu non disponible pour ce format
-                      </div>
-                    )}
+                    {(() => {
+                      const type = currentVersion.fileType || '';
+                      if (/\.pdf$/i.test(type)) {
+                        return (
+                          <PdfViewer
+                            url={previewUrl}
+                            onOpenReadingMode={() => setReadingModeOpen(true)}
+                          />
+                        );
+                      }
+                      if (/\.docx?$/i.test(type)) {
+                        return <DocxViewer url={previewUrl} />;
+                      }
+                      if (/\.(md|markdown)$/i.test(type)) {
+                        return <MarkdownViewer url={previewUrl} />;
+                      }
+                      if (/\.txt$/i.test(type)) {
+                        return <MarkdownViewer url={previewUrl} />;
+                      }
+                      if (/\.(png|jpe?g|webp|gif)$/i.test(type)) {
+                        return <ImageViewer url={previewUrl} alt={doc.title} />;
+                      }
+                      return (
+                        <div className="flex items-center justify-center py-12 text-sm text-seal-gray-500 dark:text-slate-400">
+                          <FileImage className="h-5 w-5 mr-2" />
+                          Aperçu non disponible pour ce format
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
