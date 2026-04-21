@@ -270,7 +270,7 @@ export default function WelcomePage() {
       </section>
 
       {/* SEAL System + Groupe SFPI badges */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 mt-3 relative z-10">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 mt-3 mb-10 relative z-10">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
             type="button"
@@ -317,7 +317,7 @@ export default function WelcomePage() {
 
       {/* Cyber Alert Ticker */}
       {alerts.length > 0 && (
-        <section className="bg-[#004469] dark:bg-slate-800 py-3 overflow-hidden">
+        <section className="bg-[#004469] dark:bg-slate-800 py-3 overflow-hidden mb-8">
           <div className="max-w-7xl mx-auto px-4 flex items-center gap-3">
             <div className="flex-shrink-0 flex items-center gap-2 bg-red-500/20 rounded-full px-3 py-1">
               <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
@@ -599,8 +599,8 @@ export default function WelcomePage() {
       </section>
 
       {/* METEO + FLUX RSS */}
-      <section className="bg-white dark:bg-slate-900 border-y border-gray-200/80 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+      <section className="bg-white dark:bg-slate-900 border-y border-gray-200/80 dark:border-slate-800 my-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Météo */}
             <div className="bg-[#F5F5F5] dark:bg-slate-800 rounded-xl p-6 border border-gray-100 dark:border-slate-700">

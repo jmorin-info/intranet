@@ -410,6 +410,24 @@ export default function DocumentDetailPage() {
     if (id) fetchDocument();
   }, [id, router, user]);
 
+  // Auto-bascule sur l'onglet Aperçu quand le document arrive et qu'il est
+  // visualisable (PDF/DOCX non-native). Évite à l'utilisateur de cliquer
+  // manuellement pour voir le contenu qu'il vient d'ouvrir. On ne bascule
+  // qu'une fois (transition 'details' initial → 'preview') pour respecter
+  // les choix de navigation ultérieurs.
+  const [autoSwitchedPreview, setAutoSwitchedPreview] = useState(false);
+  useEffect(() => {
+    if (autoSwitchedPreview) return;
+    if (!doc) return;
+    const firstVersion = versions[0];
+    if (!firstVersion) return;
+    const isPdfOrDocx = /\.(pdf|docx?)$/i.test(firstVersion.fileType || '');
+    if (isPdfOrDocx && !doc.isNative && activeTab === 'details') {
+      setActiveTab('preview');
+      setAutoSwitchedPreview(true);
+    }
+  }, [doc, versions, activeTab, autoSwitchedPreview]);
+
   useEffect(() => {
     if (activeTab === 'signatures' && docusealTemplates.length === 0) {
       api.get('/signatures/templates')
@@ -701,9 +719,12 @@ export default function DocumentDetailPage() {
   const canOpenReadingMode = Boolean(isPdf);
 
   const tabs = [
-    { id: 'details', label: 'Détails', icon: <FileText className="h-3.5 w-3.5" /> },
-    ...(doc.isNative ? [{ id: 'inline-edit', label: 'Éditer en ligne', icon: <PenLine className="h-3.5 w-3.5" /> }] : []),
+    // Aperçu en PREMIER quand le document est visualisable (PDF/DOCX) : pour
+    // que l'utilisateur voie directement le contenu plutôt que d'avoir à
+    // cliquer sur "Stirling PDF" (éditeur lourd) ou à changer d'onglet.
     ...(canPreview && !doc.isNative ? [{ id: 'preview', label: 'Aperçu', icon: <Eye className="h-3.5 w-3.5" /> }] : []),
+    ...(doc.isNative ? [{ id: 'inline-edit', label: 'Éditer en ligne', icon: <PenLine className="h-3.5 w-3.5" /> }] : []),
+    { id: 'details', label: 'Détails', icon: <FileText className="h-3.5 w-3.5" /> },
     { id: 'versions', label: 'Versions', count: versions.length, icon: <Layers className="h-3.5 w-3.5" /> },
     { id: 'signatures', label: 'Signatures', count: sigs?.length || 0, icon: <PenLine className="h-3.5 w-3.5" /> },
     { id: 'acknowledgments', label: 'Accusés', count: acks.length, icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
@@ -1010,11 +1031,11 @@ export default function DocumentDetailPage() {
                           variant="secondary"
                           size="sm"
                           onClick={() => router.push(`/tools/pdf?doc=${doc.id}&version=${currentVersion.id}`)}
-                          title="Stirling PDF"
+                          title="Outils PDF avancés (merge, split, OCR, compression, filigrane)"
                           className="rounded-r-none"
                         >
                           <Edit className="h-3.5 w-3.5" />
-                          Stirling PDF
+                          Outils PDF
                         </Button>
                         <Button
                           variant="secondary"
