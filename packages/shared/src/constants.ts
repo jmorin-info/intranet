@@ -36,16 +36,27 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.SUPER_ADMIN]: 'Super Administrateur',
   [UserRole.ADMIN]: 'Administrateur',
   [UserRole.DIRECTION]: 'Direction',
+  [UserRole.MANAGER]: 'Manager',
   [UserRole.REVIEWER]: 'Réviseur',
   [UserRole.COLLABORATEUR]: 'Collaborateur',
   [UserRole.AUDITEUR]: 'Auditeur',
   [UserRole.PRESTATAIRE]: 'Prestataire externe',
 };
 
+// Hiérarchie canonique des rôles — référence unique utilisée côté frontend
+// (via @omnitech/shared) ET côté backend (re-exportée depuis apps/backend/src/
+// common/enums.ts). Avant 2026-04-21 les deux côtés divergeaient (ex : AUDITEUR
+// valait 10 côté frontend et 40 côté backend) → comportements incohérents dans
+// les guards RBAC selon la surface. Unifié ici.
+//
+// MANAGER (50) : encadrement intermédiaire, au-dessus de REVIEWER mais sous
+// DIRECTION. Utilisé pour : owners d'espaces ticketing, publication runbooks,
+// validation 1er niveau documentaire.
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   [UserRole.SUPER_ADMIN]: 100,
   [UserRole.ADMIN]: 80,
   [UserRole.DIRECTION]: 60,
+  [UserRole.MANAGER]: 50,
   [UserRole.REVIEWER]: 40,
   [UserRole.COLLABORATEUR]: 20,
   [UserRole.AUDITEUR]: 10,

@@ -94,6 +94,7 @@ const ROLE_BADGE_VARIANT: Record<UserRole, string> = {
   [UserRole.SUPER_ADMIN]: 'error',
   [UserRole.ADMIN]: 'warning',
   [UserRole.DIRECTION]: 'primary',
+  [UserRole.MANAGER]: 'primary',
   [UserRole.REVIEWER]: 'info',
   [UserRole.COLLABORATEUR]: 'navy',
   [UserRole.AUDITEUR]: 'draft',
