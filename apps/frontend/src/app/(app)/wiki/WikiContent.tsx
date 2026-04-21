@@ -2181,9 +2181,11 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           <div className={`flex gap-6 ${zenMode ? 'justify-center' : ''}`}>
             {/* Main article column */}
             <article className={`flex-1 min-w-0 ${zenMode ? 'max-w-3xl' : ''}`}>
-              {/* Title + metadata header */}
-              <header className="mb-8">
-                <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <div className={zenMode ? '' : 'max-w-3xl mx-auto'}>
+              {/* Title + metadata header (Notion-like) */}
+              <header className="mb-10">
+                {/* Category chip row */}
+                <div className="flex items-center gap-2 mb-4 flex-wrap">
                   {viewingPage.category && (
                     <span
                       className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
@@ -2213,8 +2215,9 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   )}
                 </div>
 
-                <div className="flex items-start gap-2 mb-4">
-                  <h1 className="text-[34px] leading-tight font-semibold text-seal-navy dark:text-white tracking-tight flex-1 min-w-0">
+                {/* Title */}
+                <div className="flex items-start gap-3 mb-5">
+                  <h1 className="text-[38px] leading-[1.15] font-semibold text-seal-navy dark:text-white tracking-tight flex-1 min-w-0">
                     {viewingPage.title}
                   </h1>
                   <BookmarkButton
@@ -2225,54 +2228,60 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   />
                 </div>
 
-                <div className="flex items-center gap-4 flex-wrap text-[13px] text-seal-gray-500 dark:text-slate-400 pb-4 border-b border-gray-200 dark:border-slate-700">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-6 w-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold">
-                      {viewingPage.author.firstName[0]}
-                      {viewingPage.author.lastName[0]}
+                {/* Metadata + action toolbar (merged into one sticky-friendly bar) */}
+                <div className="flex items-center justify-between flex-wrap gap-3 pb-5 border-b border-gray-200 dark:border-slate-700">
+                  <div className="flex items-center gap-4 flex-wrap text-[12.5px] text-seal-gray-500 dark:text-slate-400">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-6 w-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold">
+                        {viewingPage.author.firstName[0]}
+                        {viewingPage.author.lastName[0]}
+                      </span>
+                      <span className="text-seal-navy dark:text-white font-medium">
+                        {viewingPage.author.firstName} {viewingPage.author.lastName}
+                      </span>
                     </span>
-                    {viewingPage.author.firstName} {viewingPage.author.lastName}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    Mis à jour {formatRelativeTime(viewingPage.updatedAt)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <BookOpen className="h-3.5 w-3.5" />
-                    {readingTime} min de lecture
-                  </span>
-                </div>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      {formatRelativeTime(viewingPage.updatedAt)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <BookOpen className="h-3.5 w-3.5" />
+                      {readingTime} min
+                    </span>
+                  </div>
 
-                {/* Actions row */}
-                <div className="flex items-center gap-2 mt-4 flex-wrap">
-                  <Button variant="outline" size="sm" onClick={() => openHistory(viewingPage)}>
-                    <History className="h-4 w-4" /> Historique
-                  </Button>
-                  {(isAdmin || isOwner) && (
-                    <Button variant="outline" size="sm" onClick={() => openShare(viewingPage)}>
-                      <Share2 className="h-4 w-4" /> Partager
+                  {/* Actions toolbar (compact, right-aligned) */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Button variant="ghost" size="sm" onClick={() => openHistory(viewingPage)} title="Historique">
+                      <History className="h-4 w-4" />
                     </Button>
-                  )}
-                  {canEditPage && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEdit(viewingPage)}
-                      disabled={!!lockActive}
-                    >
-                      <Edit className="h-4 w-4" /> {t('wiki.edit')}
-                    </Button>
-                  )}
-                  {(isSuperAdmin || isOwner) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(viewingPage)}
-                      className="text-red-500 hover:text-red-600 border-red-200 hover:border-red-300"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                    {(isAdmin || isOwner) && (
+                      <Button variant="ghost" size="sm" onClick={() => openShare(viewingPage)} title="Partager">
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {canEditPage && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenEdit(viewingPage)}
+                        disabled={!!lockActive}
+                      >
+                        <Edit className="h-4 w-4" /> {t('wiki.edit')}
+                      </Button>
+                    )}
+                    {(isSuperAdmin || isOwner) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(viewingPage)}
+                        className="text-red-500 hover:text-red-600"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </header>
 
@@ -2282,6 +2291,9 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                 className={`prose-reading wiki-content reading-size-${readingSize}`}
                 dangerouslySetInnerHTML={{ __html: withIds }}
               />
+
+              {/* Visual divider between content and supplementary sections */}
+              <hr className="mt-12 mb-0 border-0 border-t border-gray-200 dark:border-slate-700" />
 
               {/* Pièces jointes — positioned before feedback for visibility */}
               {(() => {
@@ -2538,6 +2550,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                   )}
                 </nav>
               )}
+              </div>
             </article>
 
             {/* Sticky outline (>= 1280px) + mobile drawer fallback */}
