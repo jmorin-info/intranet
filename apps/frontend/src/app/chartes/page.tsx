@@ -150,7 +150,7 @@ export default function ChartesWallPage() {
   const pdfFile = useMemo(() => {
     if (!currentCharte) return null;
     return {
-      url: `${process.env.NEXT_PUBLIC_API_URL || ''}/chartes/${currentCharte.id}/pdf`,
+      url: `${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/?$/, '/api/v1')}/chartes/${currentCharte.id}/pdf`,
       httpHeaders: {
         Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('accessToken') || '' : ''}`,
       },

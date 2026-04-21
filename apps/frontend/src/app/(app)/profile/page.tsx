@@ -91,7 +91,7 @@ const passwordSchema = z
 
 type PasswordForm = z.infer<typeof passwordSchema>;
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+// Note: API calls go through the axios `api` instance which resolves NEXT_PUBLIC_API_URL → /api/v1.
 
 function EditInPlaceField({ icon: Icon, label, value, onChange, placeholder }: {
   icon: React.ComponentType<{ className?: string }>;

@@ -155,7 +155,8 @@ export default function ProcedureViewerPage() {
   const handleDownload = async (url: string, filename: string, inline = false) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}${url}`, {
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/?$/, '/api/v1');
+      const response = await fetch(`${apiBase}${url}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('Download failed');
@@ -184,7 +185,8 @@ export default function ProcedureViewerPage() {
   useEffect(() => {
     if (!downloadPath) return;
     const token = localStorage.getItem('accessToken');
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}${downloadPath}`, {
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/?$/, '/api/v1');
+    fetch(`${apiBase}${downloadPath}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {

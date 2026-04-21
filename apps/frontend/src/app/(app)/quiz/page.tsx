@@ -1288,7 +1288,7 @@ export default function QuizPage() {
                 {result.passed && result.auditLogId && (
                   <Button
                     onClick={() => {
-                      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+                      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/api\/?$/, '/api/v1');
                       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '';
                       window.open(`${apiUrl}/quiz/certificate/${result.auditLogId}?token=${encodeURIComponent(token || '')}`, '_blank');
                     }}

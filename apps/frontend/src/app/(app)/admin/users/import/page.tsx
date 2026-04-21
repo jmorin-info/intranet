@@ -112,7 +112,7 @@ export default function ImportUsersPage() {
     setResult(null);
   };
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+  const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/api\/?$/, '/api/v1');
 
   return (
     <div className="space-y-6">

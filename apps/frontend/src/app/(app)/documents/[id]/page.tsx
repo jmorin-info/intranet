@@ -244,7 +244,8 @@ export default function DocumentDetailPage() {
   const handleDownload = async (url: string, filename: string, inline = false) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}${url}`, {
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/?$/, '/api/v1');
+      const response = await fetch(`${apiBase}${url}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('Download failed');
@@ -792,11 +793,12 @@ export default function DocumentDetailPage() {
   };
 
   const canPreview = currentVersion && /\.(pdf|docx?|md|txt|png|jpe?g|webp|gif)$/i.test(currentVersion.fileType || '');
-  const previewUrl = currentVersion?.fileUrl ? (currentVersion.fileUrl.startsWith('http') ? currentVersion.fileUrl : `${process.env.NEXT_PUBLIC_API_URL || ''}${currentVersion.fileUrl.startsWith('/') ? '' : '/'}${currentVersion.fileUrl}`) : '';
+  const apiV1Base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/?$/, '/api/v1');
+  const previewUrl = currentVersion?.fileUrl ? (currentVersion.fileUrl.startsWith('http') ? currentVersion.fileUrl : `${apiV1Base}${currentVersion.fileUrl.startsWith('/') ? '' : '/'}${currentVersion.fileUrl}`) : '';
   // URL for the inline viewer used in the focus reading mode
   const isPdf = currentVersion && /\.pdf$/i.test(currentVersion.fileType || '');
   const readingModePdfUrl = isPdf
-    ? `${process.env.NEXT_PUBLIC_API_URL || ''}/documents/${doc.id}/download?inline=true`
+    ? `${apiV1Base}/documents/${doc.id}/download?inline=true`
     : undefined;
   const canOpenReadingMode = Boolean(isPdf);
 
