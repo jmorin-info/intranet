@@ -182,6 +182,27 @@ export class RagService {
   }
 
   /**
+   * Removes a source from the RAG index (all its chunks).
+   * Called when a Document / WikiPage / Runbook / NewsPost is deleted
+   * or soft-deleted so it disappears from AI search results.
+   * Safe to call on a source that's not indexed (no-op).
+   */
+  async removeFromIndex(sourceType: SourceType, sourceId: string): Promise<number> {
+    const ragChunk = (this.prisma as any).ragChunk;
+    const result = await ragChunk.deleteMany({
+      where: { sourceType, sourceId },
+    }).catch((err: Error) => {
+      this.logger.warn(`rag.deindex.failed ${sourceType}/${sourceId}: ${err.message}`);
+      return { count: 0 };
+    });
+    const count = result?.count ?? 0;
+    if (count > 0) {
+      this.logger.log(`rag.deindex ${sourceType}/${sourceId} — ${count} chunks removed`);
+    }
+    return count;
+  }
+
+  /**
    * Reindex all known content sources using cursor-based pagination.
    */
   async reindexAll(): Promise<{ indexed: Record<string, number>; errors: string[] }> {

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { slugify, generateUniqueSlug } from '../common/utils/slugify';
 
 @Injectable()
 export class RunbooksService {
@@ -31,9 +32,19 @@ export class RunbooksService {
     });
   }
 
-  async findBySlug(slug: string) {
-    const runbook = await this.prisma.runbook.findUnique({ where: { slug } });
-    if (!runbook) throw new NotFoundException('Runbook not found');
+  /**
+   * Lookup intelligent : si le paramètre ressemble à un UUID on cherche par
+   * id (et on inclut les executions comme findById), sinon par slug.
+   * Le frontend passe indifféremment l'un ou l'autre selon le contexte
+   * (listing → slug, detail page → id).
+   */
+  async findBySlug(slugOrId: string) {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_RE.test(slugOrId)) {
+      return this.findById(slugOrId);
+    }
+    const runbook = await this.prisma.runbook.findUnique({ where: { slug: slugOrId } });
+    if (!runbook) throw new NotFoundException('Runbook introuvable');
     return runbook;
   }
 
@@ -42,21 +53,35 @@ export class RunbooksService {
       where: { id },
       include: { executions: { orderBy: { startedAt: 'desc' }, take: 10 } },
     });
-    if (!runbook) throw new NotFoundException('Runbook not found');
+    if (!runbook) throw new NotFoundException('Runbook introuvable');
     return runbook;
   }
 
   async create(data: {
     title: string;
-    slug: string;
+    slug?: string;
     description?: string;
     category?: string;
     content: string;
     authorId: string;
   }) {
+    // Auto-génère slug depuis titre si non fourni (ou normalise si fourni)
+    const rawSlug = typeof data.slug === 'string' ? data.slug.trim() : '';
+    const slug = rawSlug
+      ? (slugify(rawSlug, { maxLength: 120 }) || await this.autoSlug(data.title))
+      : await this.autoSlug(data.title);
+
     return this.prisma.runbook.create({
-      data: { ...data, isPublished: true },
+      data: { ...data, slug, isPublished: true },
     });
+  }
+
+  private autoSlug(title: string): Promise<string> {
+    return generateUniqueSlug(
+      title,
+      async (candidate) => !!(await this.prisma.runbook.findUnique({ where: { slug: candidate } })),
+      { maxLength: 120, fallback: 'runbook' },
+    );
   }
 
   async update(

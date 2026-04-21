@@ -108,17 +108,18 @@ export default function AdminChartesPage() {
   const handleCreate = async () => {
     const title = createTitle.trim();
     const slug = createSlug.trim();
-    if (!title || !slug) {
-      toast.error('Titre et slug requis');
+    if (!title) {
+      toast.error('Le titre est requis (le slug sera auto-généré si vide).');
       return;
     }
-    if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) {
-      toast.error('Slug invalide : minuscules, chiffres et tirets uniquement.');
+    if (slug && !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) {
+      toast.error('Slug invalide : minuscules, chiffres et tirets uniquement. Laissez vide pour auto-génération.');
       return;
     }
     setCreating(true);
     try {
-      await api.post('/chartes', { title, slug });
+      // Slug auto-généré côté backend si vide (slugify util partagée)
+      await api.post('/chartes', slug ? { title, slug } : { title });
       toast.success('Charte créée');
       setShowCreate(false);
       setCreateTitle('');
@@ -226,9 +227,11 @@ export default function AdminChartesPage() {
                   onChange={e => setCreateTitle(e.target.value)} placeholder="Ex : PSSI, Charte informatique, Politique de sécurité..." />
               </div>
               <div>
-                <label className="text-xs font-medium text-seal-gray-500">Slug</label>
+                <label className="text-xs font-medium text-seal-gray-500">
+                  Slug <span className="text-seal-gray-400">(optionnel — auto-généré depuis le titre si vide)</span>
+                </label>
                 <input className="w-full mt-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white" value={createSlug}
-                  onChange={e => setCreateSlug(e.target.value)} placeholder="charte-utilisation-si" />
+                  onChange={e => setCreateSlug(e.target.value)} placeholder="(auto-généré)" />
               </div>
             </div>
             <div className="flex gap-2 mt-4">

@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { sanitizeRichText } from '../common/sanitize';
 import { UserRole } from '../common/enums';
 import { RequestUser } from '../common/interfaces';
+import { slugify, generateUniqueSlug } from '../common/utils/slugify';
 import { MentionsService } from '../mentions/mentions.service';
 import { RagService } from '../rag/rag.service';
 import { MeilisearchService, MeiliDocument } from '../search/meilisearch.service';
@@ -38,6 +39,15 @@ export class WikiService {
     @Optional() private readonly rag?: RagService,
     @Optional() private readonly meili?: MeilisearchService,
   ) {}
+
+  /** Génère un slug unique depuis un titre (fallback si non fourni par user). */
+  private autoSlug(title: string): Promise<string> {
+    return generateUniqueSlug(
+      title,
+      async (candidate) => !!(await this.prisma.wikiPage.findUnique({ where: { slug: candidate } })),
+      { maxLength: 200, fallback: 'wiki-page' },
+    );
+  }
 
   /**
    * Push a wiki page to Meilisearch (non-blocking).
@@ -349,10 +359,16 @@ export class WikiService {
   }
 
   async create(data: CreateWikiPageDto, authorId: string) {
+    // Auto-génère le slug depuis le titre si non fourni (ou normalise si fourni)
+    const rawSlug = typeof data.slug === 'string' ? data.slug.trim() : '';
+    const slug = rawSlug
+      ? slugify(rawSlug, { maxLength: 200 }) || await this.autoSlug(data.title)
+      : await this.autoSlug(data.title);
+
     const page = await this.prisma.wikiPage.create({
       data: {
         title: sanitizeRichText(data.title),
-        slug: data.slug,
+        slug,
         content: sanitizeRichText(data.content),
         category: data.category || null,
         isPublished: data.isPublished ?? true,
@@ -507,13 +523,19 @@ export class WikiService {
 
   async delete(id: string, user: RequestUser) {
     const existing = await this.prisma.wikiPage.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Wiki page not found');
+    if (!existing) throw new NotFoundException('Page wiki introuvable');
 
     if (!isPrivilegedRole(user.role) && existing.authorId !== user.id) {
-      throw new ForbiddenException('You cannot delete this wiki page');
+      throw new ForbiddenException('Vous ne pouvez pas supprimer cette page wiki.');
     }
 
-    return this.prisma.wikiPage.delete({ where: { id } });
+    const deleted = await this.prisma.wikiPage.delete({ where: { id } });
+
+    // Désindexation complète
+    void this.meili?.deleteDocument('wiki', id);
+    void this.rag?.removeFromIndex('WIKI' as never, id).catch(() => undefined);
+
+    return deleted;
   }
 
   /**

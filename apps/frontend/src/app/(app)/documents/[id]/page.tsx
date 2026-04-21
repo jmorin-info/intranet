@@ -536,6 +536,14 @@ export default function DocumentDetailPage() {
           toast.success('Accuse enregistre');
           setHasAcknowledged(true);
           break;
+        case 'force-approve':
+          await api.post(`/documents/${doc.id}/force-approve`, { makePermanent: false });
+          toast.success('Document publie directement (workflow court-circuite)');
+          break;
+        case 'force-approve-permanent':
+          await api.post(`/documents/${doc.id}/force-approve`, { makePermanent: true });
+          toast.success('Document publie + marque permanent (aucune date de revue)');
+          break;
       }
       // Refresh document with flatten
       const { data: refreshed } = await api.get(`/documents/${doc.id}`);
@@ -635,7 +643,14 @@ export default function DocumentDetailPage() {
     },
     {
       label: 'Publié',
-      status: doc.status === 'APPROVED' ? 'current' : doc.status === 'OBSOLETE' ? 'completed' : 'pending',
+      // APPROVED = publication finale effective → étape 'completed' (vert),
+      // pas 'current' (orange clignotant). OBSOLETE reste completed par
+      // cohérence historique (le doc a bien été publié à un moment).
+      status:
+        doc.status === 'APPROVED' || doc.status === 'OBSOLETE'
+          ? 'completed'
+          : 'pending',
+      date: doc.status === 'APPROVED' ? formatDate(doc.updatedAt) : undefined,
     },
   ];
 
@@ -771,6 +786,32 @@ export default function DocumentDetailPage() {
     <div className="space-y-6 animate-fade-in-up">
       <EntityBreadcrumb module="Documents" href="/documents" current={doc.reference} />
 
+      {/* Workflow alert : approbateur final manquant quand statut IN_REVIEW */}
+      {doc.status === 'IN_REVIEW' && !doc.approver && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold text-seal-navy dark:text-white">
+              Approbateur final manquant
+            </p>
+            <p className="text-seal-gray-500 dark:text-slate-300 mt-1">
+              Ce document est en revue mais n'a pas d'approbateur final assigné. Le
+              reviewer ne pourra pas valider la revue tant qu'un approbateur n'a
+              pas été désigné. Cliquez sur <strong>Modifier</strong> pour en
+              assigner un.
+            </p>
+          </div>
+          {user?.id === doc.owner?.id && (
+            <Link
+              href={`/documents/${doc.id}/edit`}
+              className="flex-shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition"
+            >
+              Modifier
+            </Link>
+          )}
+        </div>
+      )}
+
       {/* Compact header card */}
       <Card className="shadow-sm rounded-xl overflow-hidden">
         {/* Status indicator bar */}
@@ -805,17 +846,62 @@ export default function DocumentDetailPage() {
                   {transitions.length > 0 && <ChevronDown className={`h-3 w-3 text-seal-gray-500 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />}
                 </button>
                 {statusDropdownOpen && (
-                  <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1 animate-fade-in-up">
+                  <div className="absolute left-0 top-full mt-1 z-50 w-64 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1 animate-fade-in-up">
                     {doc.status === 'DRAFT' && transitions.includes('IN_REVIEW' as never) && (
                       <button type="button" onClick={() => { setStatusDropdownOpen(false); handleAction('submit-review'); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                         <Eye className="h-3.5 w-3.5 text-blue-500" />
                         <span className="text-seal-navy dark:text-white">Soumettre en revue</span>
                       </button>
                     )}
+                    {/* ADMIN+ shortcut : forcer approbation sur doc existant
+                        (bypass workflow, pour docs permanents ou refus de
+                        passer par la revue). */}
+                    {user && isRoleAtLeast(user.role, UserRole.ADMIN) && doc.status !== 'APPROVED' && doc.status !== 'OBSOLETE' && doc.status !== 'ARCHIVED' && (
+                      <>
+                        <div className="my-1 border-t border-gray-100 dark:border-slate-800" />
+                        <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-seal-gray-500 font-semibold">
+                          Actions admin
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStatusDropdownOpen(false);
+                            if (confirm('Publier ce document directement ? Les workflows pending seront annulés.')) {
+                              handleAction('force-approve');
+                            }
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 text-amber-600" />
+                          <span className="text-seal-navy dark:text-white">Publier directement</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStatusDropdownOpen(false);
+                            if (confirm('Publier + marquer permanent ? La date de revue sera supprimée.')) {
+                              handleAction('force-approve-permanent');
+                            }
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"
+                        >
+                          <Shield className="h-3.5 w-3.5 text-amber-600" />
+                          <span className="text-seal-navy dark:text-white">Publier + permanent</span>
+                        </button>
+                        <div className="my-1 border-t border-gray-100 dark:border-slate-800" />
+                      </>
+                    )}
                     {doc.status === 'IN_REVIEW' && transitions.includes('REVIEW_APPROVED' as never) && (
-                      <button type="button" onClick={() => { setStatusDropdownOpen(false); handleAction('approve-review'); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition">
+                      <button
+                        type="button"
+                        disabled={!doc.approver}
+                        onClick={() => { setStatusDropdownOpen(false); handleAction('approve-review'); }}
+                        title={!doc.approver ? "Assignez d'abord un approbateur final (bouton 'Modifier')" : undefined}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
                         <UserCheck className="h-3.5 w-3.5 text-emerald-500" />
                         <span className="text-seal-navy dark:text-white">Valider la revue</span>
+                        {!doc.approver && <span className="ml-auto text-[10px] text-seal-gray-500">(approbateur requis)</span>}
                       </button>
                     )}
                     {doc.status === 'IN_REVIEW' && (
@@ -981,7 +1067,26 @@ export default function DocumentDetailPage() {
                 }
                 return null;
               })()}
-              <Button variant="outline" size="sm" className="no-print" onClick={() => window.print()}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="no-print"
+                onClick={() => {
+                  // Si le doc a un fichier (PDF, DOCX…) on l'ouvre dans un
+                  // nouvel onglet en mode inline : le navigateur affichera
+                  // son propre viewer avec son bouton imprimer sur le CONTENU,
+                  // pas sur la page intranet.
+                  // Pour les documents natifs inline (HTML), fallback sur
+                  // window.print() mais avec nos classes no-print pour
+                  // masquer l'UI qui n'est pas le contenu.
+                  if (currentVersion?.id) {
+                    const w = window.open(`/api/v1/documents/${doc.id}/download?inline=true`, '_blank');
+                    if (w) w.focus();
+                  } else {
+                    window.print();
+                  }
+                }}
+              >
                 <Printer className="h-3.5 w-3.5" />
                 Imprimer
               </Button>
@@ -2014,12 +2119,14 @@ export default function DocumentDetailPage() {
 
           {/* Multi-reviewer approval workflow (configurable) */}
           {currentVersion && (
+            <div id="workflow" className="scroll-mt-20">
             <WorkflowPanel
               documentId={doc.id}
               currentVersionId={currentVersion.id}
               canStartWorkflow={canEdit}
               documentCategory={doc.category}
             />
+            </div>
           )}
 
           {/* Document Metadata */}

@@ -236,6 +236,9 @@ model User {
   campaignSignatures        CampaignSignature[]      @relation("SignatureRecipient")
   // === RAG / AI Search === 2026-04-14
   ragQueries                RagQueryLog[]            @relation("RagQueryAuthor")
+  // === Chat Unified (Mission 3 Phase 1) === 2026-04-20
+  chatSessions              ChatSession[]            @relation("ChatSessionAuthor")
+  chatFeedback              ChatMessageFeedback[]    @relation("ChatFeedbackAuthor")
   // === LDAP Pending Users === 2026-04-14
   ldapPendingProcessed      LdapPendingUser[]        @relation("LdapPendingProcessor")
   // === Certifications de formation === 2026-04-16
@@ -1619,6 +1622,95 @@ model RagQueryLog {
   user User @relation("RagQueryAuthor", fields: [userId], references: [id])
 
   @@index([userId, createdAt])
+}
+
+// ============================================================
+// Chat Unified Architecture (Mission 3 Phase 1) — 2026-04-20
+// Gated by feature flag CHATBOT_UNIFIED_ENABLED (default false).
+// Coexists with RagQueryLog until Phase 3 migration.
+// ============================================================
+
+enum ChatSurface {
+  MODAL
+  FAB
+  AUTO
+}
+
+enum ChatMessageRole {
+  USER
+  ASSISTANT
+}
+
+enum ChatFeedbackRating {
+  HELPFUL
+  NOT_HELPFUL
+}
+
+enum ChatFeedbackReason {
+  WRONG_ANSWER
+  MISSING_INFO
+  OFF_TOPIC
+  TOO_LONG
+  TOO_SHORT
+  HALLUCINATION
+  OTHER
+}
+
+model ChatSession {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation("ChatSessionAuthor", fields: [userId], references: [id])
+  title           String?
+  surface         ChatSurface
+  contextUrl      String?
+  contextType     String?
+  contextEntityId String?
+  startedAt       DateTime       @default(now())
+  lastMessageAt   DateTime       @default(now())
+  archivedAt      DateTime?
+  messages        ChatMessage[]
+
+  @@index([userId, lastMessageAt])
+  @@index([userId, archivedAt])
+  @@index([surface, startedAt])
+}
+
+model ChatMessage {
+  id                  String                @id @default(cuid())
+  sessionId           String
+  session             ChatSession           @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role                ChatMessageRole
+  content             String                @db.Text
+  citations           Json?
+  retrievalConfidence Float?
+  retrievedChunkIds   String[]              @default([])
+  modelUsed           String?
+  modeUsed            String?
+  tokensIn            Int?
+  tokensOut           Int?
+  timeToFirstTokenMs  Int?
+  totalLatencyMs      Int?
+  regenerateCount     Int                   @default(0)
+  wasAborted          Boolean               @default(false)
+  createdAt           DateTime              @default(now())
+  feedback            ChatMessageFeedback?
+
+  @@index([sessionId, createdAt])
+  @@index([createdAt])
+}
+
+model ChatMessageFeedback {
+  id        String              @id @default(cuid())
+  messageId String              @unique
+  message   ChatMessage         @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User                @relation("ChatFeedbackAuthor", fields: [userId], references: [id])
+  rating    ChatFeedbackRating
+  reason    ChatFeedbackReason?
+  comment   String?             @db.Text
+  createdAt DateTime            @default(now())
+
+  @@index([rating, createdAt])
 }
 
 // ============================================================

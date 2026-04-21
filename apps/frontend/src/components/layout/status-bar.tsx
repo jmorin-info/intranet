@@ -47,11 +47,21 @@ interface IncidentLite {
   createdAt?: string;
 }
 
+/**
+ * Forme renvoyee par GET /approval-workflows/pending/me : en realite une
+ * liste d'ApprovalStepInstance (pas un workflow template). La vraie
+ * destination de clic est le document concerne (w.instance.documentId),
+ * pas /admin/workflows/:id qui attendrait un template existant.
+ */
 interface WorkflowLite {
   id: string;
   title?: string;
   name?: string;
   createdAt?: string;
+  instance?: {
+    documentId?: string;
+    workflow?: { id: string; name?: string };
+  };
 }
 
 interface HealthServiceLite {
@@ -624,7 +634,13 @@ export function StatusBar() {
                   {workflows.map((w) => (
                     <li key={w.id}>
                       <Link
-                        href={`/admin/workflows/${w.id}`}
+                        href={
+                          w.instance?.documentId
+                            ? `/documents/${w.instance.documentId}#workflow`
+                            : w.instance?.workflow?.id
+                              ? `/admin/workflows/${w.instance.workflow.id}`
+                              : '/admin/workflows'
+                        }
                         onClick={() => setOpenId(null)}
                         className="flex items-start gap-2 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                       >

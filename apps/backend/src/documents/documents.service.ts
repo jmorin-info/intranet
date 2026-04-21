@@ -22,6 +22,7 @@ import { ISO_CONTROLS_FR } from '../iso-controls/iso-controls-fr.map';
 import { sanitizePlainText } from '../common/sanitize';
 import { safeParseInt } from '../common/validation-helpers';
 import { MeilisearchService, MeiliDocument } from '../search/meilisearch.service';
+import { RagService } from '../rag/rag.service';
 
 /** Enrich any object that has nested isoControls[].isoControl with titleFr */
 function enrichIsoControls<T>(doc: T): T {
@@ -106,6 +107,7 @@ export class DocumentsService {
     private readonly notificationsService: NotificationsService,
     private readonly cacheService: CacheService,
     @Optional() private readonly meili?: MeilisearchService,
+    @Optional() private readonly rag?: RagService,
   ) {}
 
   /** Invalidate document + dashboard stats caches after mutations. */
@@ -496,6 +498,130 @@ export class DocumentsService {
    * (no file upload). Stores HTML in Document.content and flags isNative = true.
    * ISO 27001 A.5.1 — full traceability of policy drafting inside the GED.
    */
+  /**
+   * Create + publish a document in one shot (status = APPROVED, no workflow).
+   * Used for permanent / info-only docs where the 4-eyes review is irrelevant.
+   * Audit trail : logs DOCUMENT_DIRECT_PUBLISHED with WARN severity so admins
+   * can track bypasses.
+   */
+  async directPublish(dto: CreateDocumentDto, user: RequestUser) {
+    // Delegate to normal create first so references, slugs, audit trail,
+    // search indexing etc. are identical.
+    const doc = await this.create(dto, user.id);
+
+    const published = await this.prisma.document.update({
+      where: { id: doc.id },
+      data: { status: 'APPROVED' },
+      include: {
+        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
+        isoControls: { include: { isoControl: true } },
+      },
+    });
+
+    await this.auditService.log({
+      userId: user.id,
+      action: 'DOCUMENT_DIRECT_PUBLISHED',
+      resourceType: 'Document',
+      resourceId: doc.id,
+      severity: 'WARN',
+      metadata: {
+        title: doc.title,
+        reference: (doc as { reference?: string }).reference,
+        reason: 'Permanent document — workflow bypassed by admin',
+      },
+    });
+
+    this.logger.warn(
+      `Direct publish : document ${doc.id} ('${doc.title}') published by ${user.id} — workflow bypassed`,
+    );
+    return published;
+  }
+
+  /**
+   * Force-approve an existing document : set status = APPROVED, cancel any
+   * pending workflow instance, and optionally clear nextReviewDate to mark
+   * the document as permanent. ADMIN+ only.
+   *
+   * Refs: feedback user 2026-04-21 "impossible de mettre document en permanent
+   * + approuvé sans revue si déjà existant".
+   */
+  async forceApprove(
+    id: string,
+    user: RequestUser,
+    makePermanent: boolean,
+  ) {
+    const doc = await this.prisma.document.findUnique({ where: { id } });
+    if (!doc || doc.deletedAt) {
+      throw new NotFoundException('Document introuvable');
+    }
+
+    // Role check (double-guard ; le controller a déjà @Roles(ADMIN+))
+    if (ROLE_HIERARCHY[user.role as UserRole] < ROLE_HIERARCHY[UserRole.ADMIN]) {
+      throw new ForbiddenException(
+        "Seul un administrateur peut forcer l'approbation d'un document.",
+      );
+    }
+
+    // Annule les workflows pending (même logique que softDelete)
+    const pendingInstances = await this.prisma.approvalInstance.findMany({
+      where: { documentId: id, status: 'PENDING' },
+      select: { id: true },
+    });
+    if (pendingInstances.length > 0) {
+      const instanceIds = pendingInstances.map((i) => i.id);
+      await this.prisma.$transaction([
+        this.prisma.approvalInstance.updateMany({
+          where: { id: { in: instanceIds } },
+          data: { status: 'CANCELLED', completedAt: new Date() },
+        }),
+        this.prisma.approvalStepInstance.updateMany({
+          where: { instanceId: { in: instanceIds }, decision: 'PENDING' },
+          data: {
+            decision: 'REJECTED',
+            decidedAt: new Date(),
+            comment: 'Approbation forcée par un administrateur',
+          },
+        }),
+      ]);
+    }
+
+    const updated = await this.prisma.document.update({
+      where: { id },
+      data: {
+        status: 'APPROVED',
+        ...(makePermanent ? { nextReviewDate: null } : {}),
+      },
+      include: {
+        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
+        reviewer: { select: { id: true, firstName: true, lastName: true, email: true } },
+        approver: { select: { id: true, firstName: true, lastName: true, email: true } },
+        isoControls: { include: { isoControl: true } },
+      },
+    });
+
+    await this.auditService.log({
+      userId: user.id,
+      action: 'DOCUMENT_FORCE_APPROVED',
+      resourceType: 'Document',
+      resourceId: id,
+      severity: 'WARN',
+      metadata: {
+        title: doc.title,
+        reference: doc.reference,
+        fromStatus: doc.status,
+        makePermanent,
+        cancelledWorkflows: pendingInstances.length,
+      },
+    });
+
+    this.logger.warn(
+      `forceApprove doc ${id} by ${user.id} (${doc.status} → APPROVED, permanent=${makePermanent}, ${pendingInstances.length} workflow(s) annulé(s))`,
+    );
+
+    this.invalidateStatsCaches();
+    return updated;
+  }
+
   async createInline(dto: CreateDocumentDto, userId: string) {
     const reference = await this.generateReference(
       dto.category,
@@ -727,6 +853,42 @@ export class DocumentsService {
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    // Annule tous les workflows d'approbation pending pour ce document.
+    // Sinon les step-instances pending restent dans /approval-workflows/pending/me,
+    // le status-bar propose un lien '#workflow', et l'utilisateur tombe
+    // sur 404 Document introuvable (bug 2026-04-21).
+    try {
+      const pendingInstances = await this.prisma.approvalInstance.findMany({
+        where: { documentId: id, status: 'PENDING' },
+        select: { id: true },
+      });
+      if (pendingInstances.length > 0) {
+        const instanceIds = pendingInstances.map((i) => i.id);
+        await this.prisma.$transaction([
+          this.prisma.approvalInstance.updateMany({
+            where: { id: { in: instanceIds } },
+            data: { status: 'CANCELLED', completedAt: new Date() },
+          }),
+          this.prisma.approvalStepInstance.updateMany({
+            where: { instanceId: { in: instanceIds }, decision: 'PENDING' },
+            data: { decision: 'REJECTED', decidedAt: new Date(), comment: 'Document supprimé' },
+          }),
+        ]);
+        this.logger.log(
+          `softDelete doc ${id} : ${pendingInstances.length} workflow(s) pending annulé(s)`,
+        );
+      }
+    } catch (err) {
+      this.logger.warn(
+        `softDelete doc ${id} : échec annulation workflows pending — ${(err as Error).message}`,
+      );
+    }
+
+    // Désindexation complète : Meilisearch (recherche globale) + RAG
+    // (chatbot ne doit plus ressortir le contenu).
+    void this.meili?.deleteDocument('document', id);
+    void this.rag?.removeFromIndex('DOCUMENT' as never, id).catch(() => undefined);
 
     await this.auditService.log({
       userId: currentUser.id,

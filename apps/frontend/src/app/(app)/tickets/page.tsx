@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { TicketSpacesHub } from './TicketSpacesHub';
 import { api } from '@/lib/api';
 import { features } from '@/lib/features';
 import { useAuthStore } from '@/stores/auth-store';
@@ -364,7 +366,11 @@ export default function TicketsPage() {
 
   // ── Multi-space state ──────────────────────────────────────────────
   const [spaces, setSpaces] = useState<Array<{ id: string; name: string; slug: string; color?: string | null; icon?: string | null; isDefault: boolean; _count: { tickets: number } }>>([]);
-  const [activeSpaceSlug, setActiveSpaceSlug] = useState<string>(''); // '' = all spaces
+  // L'espace actif est lu depuis ?space=<slug> dans l'URL. Si absent on
+  // affiche le hub de sélection (cf. TicketSpacesHub) avant d'entrer dans
+  // la vue liste. Feedback user 2026-04-20 : "le choix de l'espace doit
+  // apparaître en amont de l'espace de ticketing".
+  const [activeSpaceSlug, setActiveSpaceSlug] = useState<string>('');
 
   // Debounced AI ticket analysis when title+description change in the create form (guarded)
   useEffect(() => {
@@ -449,7 +455,7 @@ export default function TicketsPage() {
     }
   }, [showCreate]);
 
-  // Load ticket spaces (multi-space selector)
+  // Load ticket spaces list (pour le switcher d'en-tête et le hub)
   useEffect(() => {
     api.get('/tickets/spaces')
       .then((r) => {
@@ -458,6 +464,31 @@ export default function TicketsPage() {
       })
       .catch(() => setSpaces([]));
   }, []);
+
+  // Sync activeSpaceSlug ↔ query param ?space=... Si absent → hub.
+  useEffect(() => {
+    const qp = searchParams.get('space');
+    if (qp && qp !== activeSpaceSlug) {
+      setActiveSpaceSlug(qp);
+    } else if (!qp && activeSpaceSlug) {
+      setActiveSpaceSlug('');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Helper pour changer d'espace via le switcher (réécrit l'URL)
+  const switchSpace = useCallback(
+    (slug: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (slug) params.set('space', slug);
+      else params.delete('space');
+      const query = params.toString();
+      router.push(query ? `/tickets?${query}` : '/tickets');
+      setPage(1);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [router, searchParams],
+  );
 
   // Load departments (for the filter + create form). Falls back to [] on 403/404.
   useEffect(() => {
@@ -928,6 +959,19 @@ export default function TicketsPage() {
     )},
   ];
 
+  // Si aucun espace actif dans l'URL (?space=<slug>), on affiche le hub
+  // de sélection AVANT d'entrer dans la liste des tickets. Choix produit
+  // demandé par l'user 2026-04-20 : "le choix de l'espace doit apparaître
+  // en amont". La nav redirige vers /tickets?space=<slug> qui rebascule
+  // sur la vue liste.
+  if (!activeSpaceSlug) {
+    return (
+      <AIOrchestratedLayout module="TICKETS" hints={orchestration.hints}>
+        <TicketSpacesHub />
+      </AIOrchestratedLayout>
+    );
+  }
+
   return (
     <AIOrchestratedLayout module="TICKETS" hints={orchestration.hints}>
     <div className="space-y-6">
@@ -969,40 +1013,64 @@ export default function TicketsPage() {
         }
       />
 
-      {/* Multi-space selector */}
-      {spaces.length > 1 && (
-        <div className="flex items-center gap-1.5 flex-wrap">
+      {/* Space switcher — mono-vue : un seul espace visible à la fois.
+          Le bouton '← Changer d'espace' retourne au hub de sélection. */}
+      {spaces.length > 0 && (
+        <div className="flex items-center gap-3 flex-wrap rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
           <button
-            onClick={() => { setActiveSpaceSlug(''); setPage(1); }}
-            className={`px-3 py-1.5 text-xs rounded-full font-semibold transition-all ${
-              activeSpaceSlug === ''
-                ? 'bg-seal-navy text-white dark:bg-white dark:text-seal-navy shadow-sm'
-                : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
-            }`}
+            type="button"
+            onClick={() => switchSpace('')}
+            className="flex-shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-seal-gray-500 hover:text-seal-orange transition"
+            title="Retour à la sélection d'espace"
           >
-            Tous les espaces
+            ← Changer
           </button>
-          {spaces.map((space) => (
-            <button
-              key={space.id}
-              onClick={() => { setActiveSpaceSlug(space.slug); setPage(1); }}
-              className={`px-3 py-1.5 text-xs rounded-full font-semibold transition-all flex items-center gap-1.5 ${
-                activeSpaceSlug === space.slug
-                  ? 'text-white shadow-sm'
-                  : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
-              }`}
-              style={activeSpaceSlug === space.slug && space.color ? { backgroundColor: space.color } : activeSpaceSlug === space.slug ? { backgroundColor: '#1e3a5f' } : undefined}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-xs font-semibold uppercase tracking-wide text-seal-gray-500">
+              Espace actif
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap flex-1">
+            {spaces.map((space) => {
+              const active = activeSpaceSlug === space.slug;
+              return (
+                <button
+                  key={space.id}
+                  onClick={() => switchSpace(space.slug)}
+                  className={`px-3 py-1.5 text-xs rounded-full font-semibold transition-all flex items-center gap-1.5 ${
+                    active
+                      ? 'text-white shadow-sm'
+                      : 'text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-700'
+                  }`}
+                  style={
+                    active && space.color
+                      ? { backgroundColor: space.color }
+                      : active
+                        ? { backgroundColor: '#004469' }
+                        : undefined
+                  }
+                  title={space.name}
+                >
+                  <span
+                    className="inline-block h-2 w-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: active ? 'rgba(255,255,255,0.9)' : space.color ?? '#837274' }}
+                  />
+                  {space.name}
+                  <span className={`opacity-60 tabular-nums ${active ? 'text-white/80' : ''}`}>
+                    ({space._count.tickets})
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {spaces.length > 0 && (
+            <Link
+              href="/admin/ticket-spaces"
+              className="flex-shrink-0 text-[11px] text-seal-gray-400 hover:text-seal-navy dark:hover:text-white underline decoration-dotted underline-offset-2"
             >
-              {space.color && (
-                <span
-                  className="inline-block h-2 w-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: space.color }}
-                />
-              )}
-              {space.name}
-              <span className="opacity-60 tabular-nums">({space._count.tickets})</span>
-            </button>
-          ))}
+              Gérer les espaces
+            </Link>
+          )}
         </div>
       )}
 

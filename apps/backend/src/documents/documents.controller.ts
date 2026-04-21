@@ -171,6 +171,37 @@ export class DocumentsController {
   }
 
   /**
+   * Create a document and publish it immediately (status = APPROVED) without
+   * going through the review/approval workflow. For permanent documents that
+   * don't require validation (info notes, shared references).
+   * Reserved to ADMIN+ since it bypasses the 4-eyes principle.
+   */
+  @Post('direct-publish')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DIRECTION)
+  async directPublish(
+    @Body() dto: CreateDocumentDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.documentsService.directPublish(dto, user);
+  }
+
+  /**
+   * Force-approve an EXISTING document : transitions it straight to APPROVED
+   * regardless of its current status (DRAFT / IN_REVIEW / etc.) and cancels
+   * any pending workflow. Used for permanent docs whose author missed the
+   * direct-publish checkbox at creation. ADMIN+ only, audit logged WARN.
+   */
+  @Post(':id/force-approve')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DIRECTION)
+  async forceApprove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { makePermanent?: boolean },
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.documentsService.forceApprove(id, user, body?.makePermanent ?? false);
+  }
+
+  /**
    * Create a document authored inline (HTML content directly in the intranet,
    * no file upload). ISO 27001 A.5.1 — full GED traceability.
    */

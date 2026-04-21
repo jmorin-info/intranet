@@ -439,6 +439,22 @@ export class MeilisearchService implements OnModuleInit {
   // Health / stats
   // ==========================================================================
 
+  /**
+   * Ping Meilisearch pour /search/v2/health (admin/system-health + portail).
+   * Retourne `{ ok: true }` si Meili répond, `{ ok: false }` sinon.
+   */
+  async isHealthy(): Promise<{ ok: boolean; status?: string; error?: string }> {
+    if (!this.client || !this.enabled) {
+      return { ok: false, status: 'disabled' };
+    }
+    try {
+      const res = await this.client.health();
+      return { ok: true, status: res?.status ?? 'available' };
+    } catch (err) {
+      return { ok: false, status: 'unreachable', error: (err as Error).message };
+    }
+  }
+
   async stats(): Promise<{
     available: boolean;
     enabled: boolean;

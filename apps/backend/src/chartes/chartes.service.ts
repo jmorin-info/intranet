@@ -5,6 +5,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import { slugify, generateUniqueSlug } from '../common/utils/slugify';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { StorageService } from '../storage/storage.service';
@@ -56,24 +57,40 @@ export class ChartesService {
   }
 
   // Create a new charte (admin only)
-  async create(data: { title: string; slug: string; isMandatory?: boolean; classification?: string }) {
+  // Si `slug` absent ou vide : auto-généré depuis le titre (normalisé + unique).
+  async create(data: { title: string; slug?: string; isMandatory?: boolean; classification?: string }) {
     const title = typeof data?.title === 'string' ? data.title.trim() : '';
-    const slug = typeof data?.slug === 'string' ? data.slug.trim() : '';
     if (!title) {
       throw new BadRequestException('Le titre de la charte est requis.');
     }
-    if (!slug) {
-      throw new BadRequestException('Le slug de la charte est requis.');
-    }
-    if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) {
-      throw new BadRequestException(
-        'Le slug doit être en minuscules, chiffres et tirets (ex: mon-slug).',
+
+    const rawSlug = typeof data?.slug === 'string' ? data.slug.trim() : '';
+    let slug: string;
+    if (!rawSlug) {
+      // Auto-generate depuis le titre, unique en DB
+      slug = await generateUniqueSlug(
+        title,
+        async (candidate) => !!(await this.prisma.charte.findUnique({ where: { slug: candidate } })),
+        { maxLength: 80, fallback: 'charte' },
       );
+    } else {
+      // User a fourni un slug : on le normalise et on valide
+      slug = slugify(rawSlug, { maxLength: 80 });
+      if (!slug) {
+        throw new BadRequestException(
+          'Le slug fourni est invalide (doit contenir au moins une lettre ou un chiffre).',
+        );
+      }
+      if (slug !== rawSlug.toLowerCase()) {
+        // Silent normalization: on accepte mais on indique ce qu'on a utilisé
+        // (pas d'erreur — UX plus souple)
+      }
+      const existing = await this.prisma.charte.findUnique({ where: { slug } });
+      if (existing) {
+        throw new ConflictException(`Une charte avec le slug "${slug}" existe déjà.`);
+      }
     }
-    const existing = await this.prisma.charte.findUnique({ where: { slug } });
-    if (existing) {
-      throw new ConflictException(`Une charte avec le slug "${slug}" existe déjà.`);
-    }
+
     return this.prisma.charte.create({
       data: {
         title,
@@ -277,12 +294,16 @@ export class ChartesService {
 
   async remove(charteId: string, userId: string) {
     const charte = await this.prisma.charte.findUnique({ where: { id: charteId } });
-    if (!charte) throw new NotFoundException('Charte not found');
+    if (!charte) throw new NotFoundException('Charte introuvable');
 
     // Delete all signatures, versions, then the charte
     await this.prisma.charteSignature.deleteMany({ where: { charteId } });
     await this.prisma.charteVersion.deleteMany({ where: { charteId } });
     await this.prisma.charte.delete({ where: { id: charteId } });
+
+    // Désindexation : les chartes ne sont actuellement pas dans Meilisearch
+    // ni dans le RAG (validé par l'enum RagSourceType), donc pas d'appel
+    // explicite. Si une indexation future est ajoutée, desindexer ici.
 
     await this.audit.log({
       userId,

@@ -40,6 +40,8 @@ const editSchema = z.object({
   classification: z.string().optional(),
   isPublic: z.boolean().optional(),
   nextReviewDate: z.string().optional(),
+  reviewerId: z.string().optional(),
+  approverId: z.string().optional(),
 });
 
 type EditForm = z.infer<typeof editSchema>;
@@ -49,6 +51,14 @@ interface IsoControl {
   code: string;
   title: string;
   titleFr?: string;
+}
+
+interface UserLite {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  role?: string;
 }
 
 export default function EditDocumentPage() {
@@ -74,6 +84,7 @@ export default function EditDocumentPage() {
   const [controlSearch, setControlSearch] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
   const [doc, setDoc] = useState<{ currentVersion?: { versionNumber?: string }; status?: string; reference?: string; owner?: { firstName?: string; lastName?: string }; classification?: string; domain?: string } | null>(null);
+  const [users, setUsers] = useState<UserLite[]>([]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -102,14 +113,23 @@ export default function EditDocumentPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [docRes, ctrlRes] = await Promise.all([
+        const [docRes, ctrlRes, usersRes] = await Promise.all([
           api.get(`/documents/${id}`),
           api.get('/iso-controls', { params: { limit: 100 } }),
+          // Candidats reviewer/approver : on charge un large set et on filtre par role en UI
+          api.get('/users', { params: { limit: 200 } }).catch(() => ({ data: { data: [] } })),
         ]);
         const docData = docRes.data;
         setDoc(docData);
         setIsoControls(ctrlRes.data?.data || []);
         setSelectedControls(docData.isoControls?.map((c: { isoControl: { id: string } }) => c.isoControl.id) || []);
+        setUsers(
+          Array.isArray(usersRes.data?.data)
+            ? usersRes.data.data
+            : Array.isArray(usersRes.data)
+              ? usersRes.data
+              : [],
+        );
         reset({
           title: docData.title,
           description: docData.description || '',
@@ -117,6 +137,8 @@ export default function EditDocumentPage() {
           classification: docData.classification || 'INTERNE',
           isPublic: docData.isPublic,
           nextReviewDate: docData.nextReviewDate?.split('T')[0] || '',
+          reviewerId: docData.reviewerId || '',
+          approverId: docData.approverId || '',
         });
       } catch {
         toast.error('Document introuvable');
@@ -144,10 +166,19 @@ export default function EditDocumentPage() {
   const onSubmit = async (data: EditForm) => {
     setLoading(true);
     try {
-      await api.patch(`/documents/${id}`, {
-        ...data,
+      // class-validator @IsUUID() rejette la chaîne vide. On omet le champ
+      // si vide pour laisser la valeur DB inchangée ; pour explicitement
+      // deassigner, l'user doit passer par un endpoint dédié (non implémenté
+      // actuellement — à prévoir si besoin).
+      const { reviewerId, approverId, ...rest } = data;
+      const payload: Record<string, unknown> = {
+        ...rest,
         isoControlIds: selectedControls,
-      });
+      };
+      if (reviewerId) payload.reviewerId = reviewerId;
+      if (approverId) payload.approverId = approverId;
+
+      await api.patch(`/documents/${id}`, payload);
 
       if (file) {
         const formData = new FormData();
@@ -220,6 +251,49 @@ export default function EditDocumentPage() {
                   {...register('nextReviewDate')}
                   className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-seal-navy dark:text-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
+              </div>
+            </div>
+
+            {/* Workflow : reviewer (étape revue) + approver (approbation finale) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-slate-700">
+              <div className="space-y-1">
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
+                  Reviewer <span className="text-seal-gray-400 text-[11px]">(valide la revue technique)</span>
+                </label>
+                <select
+                  {...register('reviewerId')}
+                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-seal-navy dark:text-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">— Aucun —</option>
+                  {users
+                    .filter((u) => ['REVIEWER', 'ADMIN', 'SUPER_ADMIN', 'DIRECTION'].includes(u.role || ''))
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.firstName} {u.lastName}{u.role ? ` — ${u.role}` : ''}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
+                  Approbateur final <span className="text-seal-gray-400 text-[11px]">(DIRECTION / SUPER_ADMIN)</span>
+                </label>
+                <select
+                  {...register('approverId')}
+                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-seal-navy dark:text-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">— Aucun —</option>
+                  {users
+                    .filter((u) => ['DIRECTION', 'SUPER_ADMIN'].includes(u.role || ''))
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.firstName} {u.lastName}{u.role ? ` — ${u.role}` : ''}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">
+                  Requis avant soumission en revue. Seuls DIRECTION ou SUPER_ADMIN peuvent approuver un document.
+                </p>
               </div>
             </div>
 

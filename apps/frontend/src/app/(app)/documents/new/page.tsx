@@ -204,6 +204,8 @@ export default function NewDocumentPage() {
   const [controlSearch, setControlSearch] = useState('');
   const [reviewers, setReviewers] = useState<{ id: string; firstName: string; lastName: string; role: string }[]>([]);
   const [selectedReviewerId, setSelectedReviewerId] = useState('');
+  const [isPermanent, setIsPermanent] = useState(false);
+  const [directPublish, setDirectPublish] = useState(false);
   const [classifying, setClassifying] = useState(false);
   const [autoClassifySuggestion, setAutoClassifySuggestion] = useState<{ classification?: string; category?: string } | null>(null);
   const autoClassifyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -382,12 +384,19 @@ export default function NewDocumentPage() {
   const onSubmit = async (data: DocumentForm) => {
     setLoading(true);
     try {
-      // Create document
-      const { data: doc } = await api.post('/documents', {
+      // Document permanent = pas de nextReviewDate. On le force à null pour
+      // ne pas envoyer une chaîne vide que le DTO backend refuserait.
+      const payload = {
         ...data,
         isoControlIds: selectedControls,
         ...(selectedReviewerId && { reviewerId: selectedReviewerId }),
-      });
+        ...(isPermanent ? { nextReviewDate: undefined } : {}),
+      };
+
+      // Direct-publish : endpoint dédié qui crée + met APPROVED en une
+      // transaction (admin bypass workflow, audit log WARN).
+      const endpoint = directPublish ? '/documents/direct-publish' : '/documents';
+      const { data: doc } = await api.post(endpoint, payload);
 
       // Upload file if provided
       if (file) {
@@ -399,7 +408,11 @@ export default function NewDocumentPage() {
         });
       }
 
-      toast.success(t('documents.new.success'));
+      toast.success(
+        directPublish
+          ? 'Document publié directement (workflow court-circuité)'
+          : t('documents.new.success'),
+      );
       router.push(`/documents/${doc.id}`);
     } catch (error: unknown) {
       const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || t('documents.new.error');
@@ -592,15 +605,28 @@ export default function NewDocumentPage() {
                   <div className="space-y-1">
                     <div className="flex items-center mb-1">
                       <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.nextReview')}</label>
-                      <Tooltip text="Date de la prochaine revision obligatoire du document." />
+                      <Tooltip text="Date de la prochaine révision obligatoire. Cochez 'Permanent' si le document n'a pas besoin d'être revu périodiquement." />
                     </div>
                     <input
                       type="date"
                       {...register('nextReviewDate')}
                       aria-label={t('documents.new.nextReview')}
+                      disabled={isPermanent}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full rounded-btn border border-gray-300 dark:border-slate-700 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+                      className="w-full rounded-btn border border-gray-300 dark:border-slate-700 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
+                    <label className="flex items-center gap-2 text-[11px] text-seal-gray-500 dark:text-slate-400 mt-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isPermanent}
+                        onChange={(e) => {
+                          setIsPermanent(e.target.checked);
+                          if (e.target.checked) setValue('nextReviewDate', '');
+                        }}
+                        className="h-3.5 w-3.5 rounded border-gray-300"
+                      />
+                      Document permanent (pas de date de revue)
+                    </label>
                   </div>
                   <div className="flex items-end">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -722,6 +748,31 @@ export default function NewDocumentPage() {
                   </div>
                 )}
               </div>
+
+              {/* Direct publish : ADMIN+ uniquement — bypass workflow */}
+              {user && isRoleAtLeast(user.role, UserRole.ADMIN) && (
+                <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={directPublish}
+                      onChange={(e) => setDirectPublish(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                    />
+                    <div className="flex-1">
+                      <p className="text-[13px] font-semibold text-amber-800 dark:text-amber-200">
+                        Publier directement (sans workflow de revue)
+                      </p>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
+                        Le document sera créé en statut <strong>Approuvé</strong> sans
+                        passer par les étapes Revue/Approbation. Réservé aux documents
+                        permanents (notes info, références internes). Action tracée
+                        en audit log.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* ISO Controls - full width section */}

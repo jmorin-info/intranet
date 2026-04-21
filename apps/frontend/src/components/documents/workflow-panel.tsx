@@ -18,6 +18,7 @@ import { CheckCircle2, XCircle, Clock, Loader2, PlayCircle } from 'lucide-react'
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardContent, CardHeader, Button, Badge } from '@omnitech/ui';
+import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { MentionTextarea } from '@/components/ui/mention-textarea';
 
 // ---------------------------------------------------------------------------
@@ -258,7 +259,14 @@ export function WorkflowPanel({
     if (ovMatch) return ovMatch[1] === user.id;
 
     if (step.approverUserId) return step.approverUserId === user.id;
-    if (step.approverRole) return (user as any).role === step.approverRole;
+    if (step.approverRole) {
+      // Hiérarchie des rôles : SUPER_ADMIN > ADMIN > DIRECTION > REVIEWER > ...
+      // Un SUPER_ADMIN peut valider une étape qui requiert REVIEWER, etc.
+      // (fix 2026-04-20 : auparavant comparaison stricte empêchait les
+      // rôles supérieurs de valider une étape inférieure dans la hiérarchie).
+      const userRole = (user as unknown as { role: UserRole }).role;
+      return isRoleAtLeast(userRole, step.approverRole as UserRole);
+    }
     return false;
   }, [instance, currentStepResult, user]);
 

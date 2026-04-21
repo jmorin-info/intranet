@@ -59,6 +59,9 @@ export function useSocket(): void {
 
     const socket = io(`${WS_URL}/notifications`, {
       auth: { token },
+      // Monté sur /api/socket.io côté serveur (cf. apps/backend/src/socket-io-adapter.ts)
+      // pour passer à travers le reverse proxy frontal qui ne route que /api/*.
+      path: '/api/socket.io',
       transports: ['websocket'],
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
