@@ -11,8 +11,11 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { useUIStore } from '@/stores/ui-store';
+import { useAuthStore } from '@/stores/auth-store';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { isRoleAtLeast, UserRole } from '@omnitech/shared';
+import { useKeyboardShortcuts, type KeyboardShortcutEntry } from '@/hooks/use-keyboard-shortcuts';
 
 const FocusMode = dynamic(() => import('@/components/layout/focus-mode').then(m => ({ default: m.FocusMode })), { ssr: false });
 const PushNotificationManager = dynamic(() => import('@/components/notifications/push-notification-manager').then(m => ({ default: m.PushNotificationManager })), { ssr: false });
@@ -48,7 +51,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const sidebarOpen = useUIStore(s => s.sidebarOpen);
   const router = useRouter();
   const pathname = usePathname();
+  const user = useAuthStore(s => s.user);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // Raccourcis séquentiels vim-like : `g d`, `g t`, etc.
+  // Le hook désactive automatiquement les shortcuts sur les champs de saisie
+  // et gère le timeout de 1500ms entre `g` et la seconde touche.
+  const sequentialShortcuts: KeyboardShortcutEntry[] = React.useMemo(() => [
+    { key: 'd', label: 'Tableau de bord', href: '/dashboard' },
+    { key: 't', label: 'Tickets', href: '/tickets' },
+    { key: 'w', label: 'Wiki', href: '/wiki' },
+    { key: 'm', label: 'Médiathèque', href: '/media' },
+    { key: 'n', label: 'Actualités', href: '/news' },
+    { key: 'i', label: 'Incidents', href: '/incidents' },
+    {
+      key: 'a',
+      label: 'Administration',
+      href: '/admin',
+      enabled: () => !!user && isRoleAtLeast(user.role, UserRole.ADMIN),
+    },
+  ], [user]);
+
+  useKeyboardShortcuts({
+    shortcuts: sequentialShortcuts,
+    onHelp: () => setShortcutsOpen(true),
+  });
 
   const handleGlobalKeyDown = useCallback(
     (e: KeyboardEvent) => {
