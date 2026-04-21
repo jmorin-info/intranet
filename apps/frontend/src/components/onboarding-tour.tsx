@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@omnitech/ui';
-import { ChevronRight, ChevronLeft, X, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { getOnboardingSteps, type OnboardingStepData } from './onboarding/onboarding-steps';
 import { MiniMockup } from './onboarding/mini-mockup';
@@ -111,6 +111,37 @@ export function OnboardingTour() {
     return () => window.removeEventListener(RESTART_EVENT, onRestart);
   }, []);
 
+  // Raccourcis clavier : ← Prev, → Next, Enter Next, Esc Close.
+  // N'interfère pas avec les inputs (les CTA ouvrent nouvel onglet, le tour
+  // n'a pas de champ de saisie).
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setDirection('prev');
+        setStep((s) => (s > 0 ? s - 1 : s));
+      } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        e.preventDefault();
+        setDirection('next');
+        setStep((s) => {
+          if (s >= steps.length - 1) {
+            try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
+            setOpen(false);
+            return s;
+          }
+          return s + 1;
+        });
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
+        setOpen(false);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, steps.length]);
+
   const current = steps[step];
   const highlight = useHighlightRect(open ? current?.highlight : undefined);
 
@@ -178,31 +209,58 @@ export function OnboardingTour() {
         />
       )}
 
-      {/* Modal card — élargi vers max-w-4xl + 90vh pour occuper une grande
-          partie de la fenêtre sur desktop. Le contenu overflow-y-auto pour
-          les écrans courts. */}
+      {/* Modal card — max-w-4xl + 90vh pour occuper une grande partie de la
+          fenêtre sur desktop. Le contenu overflow-y-auto pour les écrans
+          courts. Backdrop plus contrasté pour effet "visite guidée" premium. */}
       <div
-        className="relative z-10 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-slate-900"
+        className="relative z-10 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] dark:bg-slate-900 dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)]"
         style={{ animation: 'otSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
-        {/* Progress bar */}
-        <div className="h-1 overflow-hidden rounded-t-2xl bg-gray-100 dark:bg-slate-800">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-[#F9964A] to-[#004469] transition-all duration-500 ease-out"
-            style={{ width: `${((step + 1) / steps.length) * 100}%` }}
-          />
+        {/* Header — gradient + progress bar + phase indicator */}
+        <div className="relative bg-gradient-to-r from-[#004469] via-[#004469] to-[#003352] dark:from-slate-800 dark:to-slate-900 px-6 py-3">
+          {/* Progress bar intégrée au header */}
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/10">
+            <div
+              className="h-full bg-gradient-to-r from-[#F9964A] to-[#FFB874] transition-all duration-500 ease-out"
+              style={{ width: `${((step + 1) / steps.length) * 100}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F9964A]/20 flex-shrink-0">
+                <Sparkles className="h-4 w-4 text-[#F9964A]" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                  Visite guidée
+                  {user?.firstName && ` · ${user.firstName}`}
+                </p>
+                <p className="text-[11px] text-white/90 font-medium truncate">
+                  {step < 5
+                    ? 'Phase 1 · Prise en main'
+                    : step < steps.length - 1
+                    ? 'Phase 2 · Votre rôle'
+                    : 'Phase 3 · Pour aller plus loin'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-[10px] text-white/60 font-semibold tabular-nums">
+                {step + 1} / {steps.length}
+              </span>
+              <button
+                onClick={finish}
+                className="rounded-lg p-1.5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                aria-label="Fermer le tour"
+                type="button"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="p-6">
-          <button
-            onClick={finish}
-            className="absolute right-3 top-4 rounded-lg p-1.5 text-seal-gray-500 transition hover:bg-gray-100 dark:hover:bg-slate-800"
-            aria-label="Fermer le tour"
-            type="button"
-          >
-            <X className="h-4 w-4" />
-          </button>
-
           {/* Animated content area */}
           <div
             className={`transition-all duration-200 ease-out ${
@@ -311,6 +369,23 @@ export function OnboardingTour() {
               {!isLast && <ChevronRight className="h-4 w-4" />}
             </Button>
           </div>
+        </div>
+
+        {/* Footer — raccourcis clavier (aide discrète, écran ≥ md) */}
+        <div className="hidden md:flex items-center justify-center gap-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50 px-6 py-2">
+          <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-1.5">
+            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">←</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">→</kbd>
+            Naviguer
+          </span>
+          <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-1.5">
+            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">Entrée</kbd>
+            Suivant
+          </span>
+          <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-1.5">
+            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">Esc</kbd>
+            Fermer
+          </span>
         </div>
       </div>
 

@@ -534,14 +534,18 @@ const PRESTATAIRE_STEPS: OnboardingStepData[] = [
 
 const OUTRO_STEP: OnboardingStepData = {
   icon: Star,
-  title: 'Bonne exploration !',
+  title: 'Vous êtes prêt à démarrer',
   description:
-    'Vous pouvez relancer ce tour à tout moment depuis le menu utilisateur (coin supérieur droit). L\'astuce du jour sur votre dashboard vous guidera au quotidien.',
+    'Vous avez parcouru l\'essentiel de l\'intranet OMNITECH — navigation, chatbot IA, documents, tickets, wiki, runbooks, veille cyber. Les ressources ci-dessous vous accompagnent au quotidien.',
   bullets: [
-    'Relancez cette visite : menu utilisateur → "Relancer la visite guidée"',
-    'Astuces du jour : navigation Précédente/Suivante',
-    'Chatbot IA : Ctrl+Shift+K pour une réponse immédiate',
+    '🧭 Relancer ce tour : menu utilisateur → « Relancer la visite guidée »',
+    '💡 Astuces quotidiennes : widget sur votre dashboard (Précédente / Suivante)',
+    '🤖 Chatbot IA : Ctrl+Shift+K — il connaît toute la doc OMNITECH',
+    '⌨️ Palette de commandes : Ctrl+K pour tout trouver en 2 secondes',
+    '❓ Aide détaillée : `/getting-started` — guide écrit du démarrage',
+    '💬 Partager votre avis : menu utilisateur → « Partager mon avis »',
   ],
+  cta: { label: 'Accéder au guide complet', href: '/getting-started' },
 };
 
 // ============================================================================
