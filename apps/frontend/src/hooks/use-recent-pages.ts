@@ -10,21 +10,31 @@ export interface RecentPage {
 }
 
 const STORAGE_KEY = 'omnitech:recent-pages';
-const MAX_ENTRIES = 8;
+const MAX_ENTRIES = 10;
 
-// Ne pas pister ces routes (bruit ou sensibles)
 const BLOCKED_PREFIXES = [
   '/login',
   '/logout',
   '/mfa',
   '/reset-password',
+  '/forgot-password',
   '/offline',
   '/maintenance',
   '/chartes',
+  '/auth',
+  '/error',
+  '/404',
+  '/500',
+  '/not-found',
+  '/en-construction',
 ];
 
-function isBlocked(path: string): boolean {
-  return BLOCKED_PREFIXES.some((p) => path === p || path.startsWith(p + '/'));
+const BLOCKED_EXACT = new Set<string>(['/', '/dashboard']);
+
+export function isTrackablePath(path: string): boolean {
+  if (!path) return false;
+  if (BLOCKED_EXACT.has(path)) return false;
+  return !BLOCKED_PREFIXES.some((p) => path === p || path.startsWith(p + '/'));
 }
 
 function readStorage(): RecentPage[] {
@@ -43,22 +53,20 @@ function writeStorage(entries: RecentPage[]): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    window.dispatchEvent(
+      new StorageEvent('storage', { key: STORAGE_KEY, newValue: JSON.stringify(entries) }),
+    );
   } catch {
     // quota dépassé ou mode privé — silencieux
   }
 }
 
-/**
- * Enregistre automatiquement la page courante dans l'historique local
- * (localStorage, par utilisateur du navigateur). Pas d'appel réseau.
- */
 export function useTrackPageVisit(): void {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!pathname || isBlocked(pathname)) return;
+    if (!pathname || !isTrackablePath(pathname)) return;
 
-    // Titre = derniers segments lisibles du path, complétés au besoin par document.title
     const niceTitle =
       typeof document !== 'undefined' && document.title
         ? document.title.replace(/\s*[—|-]\s*OMNITECH.*$/i, '').trim()
@@ -77,9 +85,6 @@ export function useTrackPageVisit(): void {
   }, [pathname]);
 }
 
-/**
- * Retourne l'historique courant (lecture seule, réhydraté côté client).
- */
 export function useRecentPages(): RecentPage[] {
   const [pages, setPages] = useState<RecentPage[]>([]);
 
@@ -97,9 +102,4 @@ export function useRecentPages(): RecentPage[] {
 
 export function clearRecentPages(): void {
   writeStorage([]);
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(
-      new StorageEvent('storage', { key: STORAGE_KEY, newValue: '[]' }),
-    );
-  }
 }
