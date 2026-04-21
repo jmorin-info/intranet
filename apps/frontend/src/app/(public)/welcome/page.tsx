@@ -416,8 +416,9 @@ export default function WelcomePage() {
         </div>
       </section>
 
-      {/* TÉMOIGNAGES (affiché uniquement si au moins 3 approuvés) */}
-      {testimonials.visible && testimonials.items.length >= 3 && (
+      {/* TÉMOIGNAGES (affiché dès qu'il y a au moins 1 approuvé — seuil
+          défini côté backend via MIN_APPROVED_FOR_PUBLIC_DISPLAY) */}
+      {testimonials.visible && testimonials.items.length >= 1 && (
         <section className="py-16 bg-gray-50 dark:bg-slate-800/50">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-10">

@@ -12,7 +12,11 @@ import { RequestUser } from '../common/interfaces';
 import { ROLE_HIERARCHY, UserRole } from '../common/enums';
 import { SubmitTestimonialDto, RejectTestimonialDto } from './dto/submit.dto';
 
-const MIN_APPROVED_FOR_PUBLIC_DISPLAY = 3;
+// Seuil minimum d'affichage public sur /welcome. Initialement fixé à 3 pour
+// éviter l'effet "1 citation isolée qui paraît bricolée", réduit à 1 en
+// 2026-04-21 sur demande utilisateur : dès qu'un témoignage est modéré et
+// approuvé, il doit être visible (feedback immédiat pour le contributeur).
+const MIN_APPROVED_FOR_PUBLIC_DISPLAY = 1;
 const SUBMISSION_COOLDOWN_DAYS = 90;
 
 @Injectable()
