@@ -25,7 +25,7 @@ interface NewsDetail {
   category: string | null;
   isPinned: boolean;
   publishedAt: string;
-  author: { firstName: string; lastName: string };
+  author: { firstName: string; lastName: string } | null;
   _count?: { views: number };
 }
 
@@ -64,12 +64,12 @@ export default function NewsArticlePage() {
     if (slug) fetch();
   }, [slug, router]);
 
-  // Fetch related articles from the same category
+  // Fetch related articles from the same category (silencieux : la section disparaît si échec)
   useEffect(() => {
     if (post?.category) {
       api.get(`/news?limit=4&category=${post.category}`).then(r => {
         setRelated((r.data?.data || []).filter((n: { slug: string }) => n.slug !== slug).slice(0, 3));
-      }).catch(console.error);
+      }).catch(() => setRelated([]));
     }
   }, [post, slug]);
 
@@ -187,9 +187,9 @@ export default function NewsArticlePage() {
                 <div className="flex items-center gap-4 mt-3 text-sm text-seal-gray-500 dark:text-slate-400">
                   <span className="flex items-center gap-2">
                     <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex-shrink-0">
-                      {(post.author.firstName?.[0] || '').toUpperCase()}{(post.author.lastName?.[0] || '').toUpperCase()}
+                      {(post.author?.firstName?.[0] || 'A').toUpperCase()}{(post.author?.lastName?.[0] || '').toUpperCase()}
                     </span>
-                    {post.author.firstName} {post.author.lastName}
+                    {post.author ? `${post.author.firstName} ${post.author.lastName}` : 'Auteur inconnu'}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Calendar className="h-4 w-4" />

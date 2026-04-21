@@ -14,7 +14,7 @@ export interface LightboxItem {
   description: string | null;
   width: number | null;
   height: number | null;
-  uploadedBy: { firstName: string; lastName: string };
+  uploadedBy: { firstName: string; lastName: string } | null;
   createdAt: string;
 }
 

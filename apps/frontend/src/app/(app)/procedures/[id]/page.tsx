@@ -21,6 +21,7 @@ import {
   Badge,
   Skeleton,
   Tabs,
+  EmptyState,
 } from '@omnitech/ui';
 const PdfViewer = dynamic(
   () => import('@/components/viewers/pdf-viewer').then((m) => m.PdfViewer),
@@ -113,8 +114,7 @@ export default function ProcedureViewerPage() {
             .catch(() => {});
         }
       } catch {
-        toast.error(t('procedureDetail.notFound'));
-        router.push('/procedures');
+        setDoc(null);
       } finally {
         setLoading(false);
       }
@@ -209,7 +209,32 @@ export default function ProcedureViewerPage() {
     );
   }
 
-  if (!doc) return null;
+  if (!doc) {
+    return (
+      <div className="space-y-6 animate-fade-in-up">
+        <Link
+          href="/procedures"
+          className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour aux procédures
+        </Link>
+        <EmptyState
+          type="documents"
+          title="Procédure introuvable"
+          description="Cette procédure n'existe plus, a été archivée ou son document source est manquant. Revenez à la liste pour trouver ce que vous cherchez."
+          action={
+            <Link
+              href="/procedures"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition"
+            >
+              Voir toutes les procédures
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
