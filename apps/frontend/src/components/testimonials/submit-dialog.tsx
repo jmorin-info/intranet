@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button, Textarea, Input } from '@omnitech/ui';
 import { X, Send, Sparkles, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useTestimonialTrigger } from '@/hooks/use-testimonial-trigger';
 
 const MIN_LENGTH = 20;
 const MAX_LENGTH = 280;
@@ -26,6 +27,7 @@ export function SubmitTestimonialDialog({ open, onClose, onSubmitted }: SubmitTe
   const [quote, setQuote] = useState('');
   const [department, setDepartment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { markSubmitted } = useTestimonialTrigger();
 
   if (!open) return null;
 
@@ -41,6 +43,9 @@ export function SubmitTestimonialDialog({ open, onClose, onSubmitted }: SubmitTe
         department: department.trim() || undefined,
       });
       toast.success('Merci — votre témoignage sera visible après modération.');
+      // Enregistre l'horodatage de soumission pour respecter le cooldown
+      // 90j du useTestimonialTrigger (pas de re-prompt après soumission récente)
+      markSubmitted();
       setQuote('');
       setDepartment('');
       onClose();
