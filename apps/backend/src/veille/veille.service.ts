@@ -45,6 +45,19 @@ const RSS_FEEDS = [
 
   // --- IA / conformité AI Act ---
   { name: 'NIST Cybersecurity', url: 'https://www.nist.gov/news-events/cybersecurity/rss.xml' },
+
+  // --- PSIRT constructeurs (parc OMNITECH — priorisation patch management) ---
+  { name: 'Fortinet PSIRT', url: 'https://www.fortiguard.com/rss/psirt.xml' },
+  { name: 'Microsoft MSRC', url: 'https://msrc.microsoft.com/blog/feed' },
+  { name: 'VMware Security', url: 'https://www.vmware.com/security/advisories.xml' },
+  { name: 'Aruba (HPE) Security', url: 'https://www.arubanetworks.com/support-services/security-bulletins/feed/' },
+  { name: 'Cisco Security', url: 'https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml' },
+  { name: 'Veeam KB', url: 'https://www.veeam.com/blog/feed/' },
+  { name: 'HPE Security', url: 'https://support.hpe.com/hpsc/rss/servicenotifications?category=security' },
+
+  // --- Hypervision / NVR / contrôle d'accès (produits OMNITECH Security) ---
+  { name: 'Genetec Security', url: 'https://www.genetec.com/feed/news' },
+  { name: 'Milestone XProtect', url: 'https://www.milestonesys.com/feed/' },
 ];
 
 // Mots-clés supplémentaires pour taguer/prioriser la veille selon les sujets
@@ -54,27 +67,44 @@ const RSS_FEEDS = [
 const OMNITECH_TOPICS = [
   // Réglementaire
   'nis2', 'nis 2', 'dora', 'rgpd', 'gdpr', 'ai act', 'ia act',
-  // Sécurité physique
+  // Sécurité physique + hypervision
   'vidéosurveillance', 'videosurveillance', 'cctv', 'caméra ip', 'camera ip',
   'contrôle d\'accès', 'controle d\'acces', 'badge', 'biométrie', 'biometrie',
-  'intrusion', 'alarme',
+  'intrusion', 'alarme', 'hypervision', 'nvr', 'vms',
+  'genetec', 'milestone', 'xprotect', 'synergis',
   // IA / cybersec IA
   'intelligence artificielle', 'llm', 'chatbot', 'deepfake', 'prompt injection',
   'ai security', 'adversarial', 'model poisoning',
+  // Infra réseau / PSIRT (produits parc — doublon avec OMNITECH_PRODUCTS mais
+  // facilite le match quand le titre mentionne juste "Aruba ClearPass" sans
+  // "aruba" en tag explicite)
+  'aruba', 'clearpass', 'instant on', 'hpe',
 ];
 
 // Parc OMNITECH — produits à surveiller (ISO 27001 A.5.7)
 const OMNITECH_PRODUCTS = [
-  'fortigate', 'fortinet', 'forticlient', 'fortios',
-  'vmware', 'vsphere', 'esxi', 'vcenter',
-  'eset', 'nod32',
-  'windows', 'microsoft', 'exchange', 'office 365', 'azure',
-  'veeam',
-  'dell', 'hp ', 'hpe',
-  'cisco', 'meraki',
-  'sophos',
-  'acronis',
-  'postgresql', 'redis', 'nginx', 'node.js', 'nodejs',
+  // Firewall / VPN
+  'fortigate', 'fortinet', 'forticlient', 'fortios', 'fortianalyzer', 'fortimail', 'fortiweb',
+  // Virtualisation
+  'vmware', 'vsphere', 'esxi', 'vcenter', 'nsx', 'horizon',
+  // Endpoint / antivirus
+  'eset', 'nod32', 'sophos', 'defender', 'crowdstrike', 'sentinelone',
+  // Microsoft
+  'windows', 'microsoft', 'exchange', 'office 365', 'azure', 'intune', 'active directory',
+  // Backup
+  'veeam', 'veeam b&r', 'acronis',
+  // Hardware / switch / wifi
+  'dell', 'hp ', 'hpe', 'aruba', 'clearpass',
+  'cisco', 'meraki', 'catalyst',
+  // Sécurité physique / vidéosurveillance / hypervision
+  'genetec', 'security center', 'synergis',
+  'milestone', 'xprotect', 'husky',
+  'hikvision', 'dahua', 'axis camera',
+  'bosch', 'avigilon',
+  // Contrôle d'accès (cartes, lecteurs)
+  'hid', 'mifare', 'desfire',
+  // Infra backend
+  'postgresql', 'redis', 'nginx', 'node.js', 'nodejs', 'docker', 'kubernetes',
 ];
 
 @Injectable()

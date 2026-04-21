@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { Button } from '@omnitech/ui';
 import { ChevronRight, ChevronLeft, X, ArrowRight, CheckCircle2 } from 'lucide-react';
@@ -179,9 +178,11 @@ export function OnboardingTour() {
         />
       )}
 
-      {/* Modal card — élargi vs version initiale pour accueillir mockup + bullets + CTA */}
+      {/* Modal card — élargi vers max-w-4xl + 90vh pour occuper une grande
+          partie de la fenêtre sur desktop. Le contenu overflow-y-auto pour
+          les écrans courts. */}
       <div
-        className="relative z-10 w-full max-w-xl rounded-2xl bg-white shadow-2xl dark:bg-slate-900"
+        className="relative z-10 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-slate-900"
         style={{ animation: 'otSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
         {/* Progress bar */}
@@ -260,15 +261,19 @@ export function OnboardingTour() {
               </ul>
             )}
 
-            {/* CTA "Essayer maintenant" */}
+            {/* CTA "Essayer maintenant" — s'ouvre dans un NOUVEL ONGLET pour
+                que la visite guidée reste active sur l'onglet d'origine.
+                L'utilisateur peut tester la feature puis revenir au tour. */}
             {current.cta && (
-              <Link
+              <a
                 href={current.cta.href}
-                onClick={() => finish()}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#F9964A] hover:text-[#e67d1e] transition-colors"
+                target="_blank"
+                rel="noopener"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-[#F9964A]/10 hover:bg-[#F9964A]/20 px-3 py-1.5 text-xs font-semibold text-[#F9964A] transition-colors"
               >
                 {current.cta.label} <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+                <span className="ml-1 text-[9px] font-normal text-[#F9964A]/70">(nouvel onglet)</span>
+              </a>
             )}
           </div>
 
