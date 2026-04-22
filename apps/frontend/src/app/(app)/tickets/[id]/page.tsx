@@ -13,6 +13,7 @@ import {
 import { formatDateTime, getInitials, formatRelativeTime } from '@/lib/utils';
 import { MentionTextarea } from '@/components/ui/mention-textarea';
 import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 import { useTestimonialTrigger } from '@/hooks/use-testimonial-trigger';
 import { EntityBreadcrumb } from '@/components/ui/entity-breadcrumb';
 import { eventBus, createEvent } from '@/lib/events';
@@ -74,6 +75,31 @@ function tagColorDetail(tag: string): string {
   let hash = 0;
   for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) & 0xffff;
   return TAG_COLORS_DETAIL[hash % TAG_COLORS_DETAIL.length]!;
+}
+
+/**
+ * Rend le markdown inline d'un commentaire ticket (gras, italique, code, liens
+ * auto) en HTML sanitisé. On utilise `marked` en mode inline + breaks pour
+ * préserver les retours à la ligne, puis DOMPurify pour purger tout script.
+ *
+ * Idempotence : un texte sans markdown (ex. "Bonjour l'équipe") est échappé
+ * puis rendu tel quel, donc les anciens commentaires s'affichent correctement.
+ * Les mentions `@firstname.lastname` sont préservées littéralement (marked ne
+ * les transforme pas : elles sortent telles quelles et restent cliquables
+ * visuellement grâce au style inline plus bas).
+ */
+function renderCommentHtml(text: string): string {
+  if (!text) return '';
+  const raw = marked.parse(text, {
+    async: false,
+    breaks: true,
+    gfm: true,
+  });
+  const html = typeof raw === 'string' ? raw : '';
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'code', 'pre', 'a', 'ul', 'ol', 'li', 'blockquote'],
+    ALLOWED_ATTR: ['href', 'target', 'rel'],
+  });
 }
 
 interface ChecklistItem { id: string; label: string }
@@ -269,6 +295,9 @@ export default function TicketDetailPage() {
 
   const handleComment = async () => {
     if (!comment.trim() || !ticket) return;
+    // Haptic feedback (mobile) : micro-tap pour confirmer l'action d'envoi.
+    // `navigator.vibrate` est no-op sur desktop et iOS Safari.
+    try { navigator.vibrate?.(5); } catch { /* ignore */ }
     setSending(true);
     eventBus.emit(createEvent('COMMENTED', 'TICKET', ticket.id, { optimistic: true }));
     try {
@@ -672,14 +701,17 @@ export default function TicketDetailPage() {
                         </div>
                       )}
                       <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
+                        <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ticket-comment-body ${
                           c.isInternal
                             ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200'
                             : isMe
                               ? 'bg-primary text-white rounded-br-md'
                               : 'bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-bl-md'
                         }`}>
-                          <p className="whitespace-pre-wrap">{c.content}</p>
+                          <div
+                            className="whitespace-pre-wrap break-words [&_p]:m-0 [&_p+p]:mt-2 [&_code]:rounded [&_code]:bg-black/10 dark:[&_code]:bg-white/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.85em] [&_pre]:bg-black/10 dark:[&_pre]:bg-white/10 [&_pre]:rounded [&_pre]:p-2 [&_pre]:my-1 [&_a]:underline [&_a]:underline-offset-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4"
+                            dangerouslySetInnerHTML={{ __html: renderCommentHtml(c.content) }}
+                          />
                         </div>
                       </div>
                     </div>
@@ -712,9 +744,10 @@ export default function TicketDetailPage() {
                     <MentionTextarea
                       value={comment}
                       onChange={setComment}
-                      placeholder={isInternalComment ? 'Note interne... (@ pour mentionner)' : t('tickets.detail.addComment')}
+                      placeholder={isInternalComment ? 'Note interne... (@ pour mentionner, **gras**, *italique*)' : t('tickets.detail.addComment')}
                       rows={2}
-                      className={`w-full rounded-lg border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary ${isInternalComment ? 'border-amber-300 dark:border-amber-700' : 'border-gray-200 dark:border-slate-700'}`}
+                      showToolbar
+                      className={`w-full rounded-lg border bg-white dark:bg-slate-900 px-3 py-2 text-base sm:text-sm text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary ${isInternalComment ? 'border-amber-300 dark:border-amber-700' : 'border-gray-200 dark:border-slate-700'}`}
                       onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleComment(); } }}
                     />
                   </div>
@@ -722,7 +755,7 @@ export default function TicketDetailPage() {
                     onClick={handleComment}
                     loading={sending}
                     disabled={!comment.trim()}
-                    className="flex-shrink-0"
+                    className="flex-shrink-0 transition-transform active:scale-95 touch-manipulation"
                     size="sm"
                   >
                     <Send className="h-4 w-4" />

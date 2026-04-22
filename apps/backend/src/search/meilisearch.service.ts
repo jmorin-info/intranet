@@ -68,7 +68,7 @@ export interface MeiliDocument {
   id: string;
   title: string;
   content: string;
-  type: 'document' | 'ticket' | 'wiki' | 'news';
+  type: 'document' | 'ticket' | 'wiki' | 'news' | 'runbook';
   url: string;
   author?: string | null;
   authorId?: string | null;
@@ -78,6 +78,8 @@ export interface MeiliDocument {
   classification?: string | null;
   status?: string | null;
   reference?: string | null;
+  slug?: string | null;
+  summary?: string | null;
   [key: string]: unknown;
 }
 
@@ -98,10 +100,17 @@ const INDEX_WIKI = 'wiki';
 const INDEX_DOCUMENTS = 'documents';
 const INDEX_NEWS = 'news';
 const INDEX_TICKETS = 'tickets';
+const INDEX_RUNBOOKS = 'runbooks';
 
-const ALL_INDEXES = [INDEX_WIKI, INDEX_DOCUMENTS, INDEX_NEWS, INDEX_TICKETS] as const;
+const ALL_INDEXES = [
+  INDEX_WIKI,
+  INDEX_DOCUMENTS,
+  INDEX_NEWS,
+  INDEX_TICKETS,
+  INDEX_RUNBOOKS,
+] as const;
 
-const SEARCHABLE_ATTRIBUTES = ['title', 'content', 'category', 'reference'];
+const SEARCHABLE_ATTRIBUTES = ['title', 'content', 'summary', 'category', 'reference', 'tags', 'slug'];
 const FILTERABLE_ATTRIBUTES = ['category', 'status', 'classification', 'authorId', 'type'];
 
 @Injectable()
@@ -193,6 +202,11 @@ export class MeilisearchService implements OnModuleInit {
     await this.pushToIndex(INDEX_NEWS, news);
   }
 
+  async indexRunbooks(runbooks: MeiliDocument[]): Promise<void> {
+    if (!this.client || runbooks.length === 0) return;
+    await this.pushToIndex(INDEX_RUNBOOKS, runbooks);
+  }
+
   private async pushToIndex(uid: string, docs: MeiliDocument[]): Promise<void> {
     if (!this.client) return;
     try {
@@ -221,6 +235,7 @@ export class MeilisearchService implements OnModuleInit {
       case 'ticket': return INDEX_TICKETS;
       case 'wiki': return INDEX_WIKI;
       case 'news': return INDEX_NEWS;
+      case 'runbook': return INDEX_RUNBOOKS;
       case 'document':
       default: return INDEX_DOCUMENTS;
     }
@@ -303,10 +318,11 @@ export class MeilisearchService implements OnModuleInit {
     tickets: number;
     wiki: number;
     news: number;
+    runbooks: number;
   }> {
     if (!this.client) {
       this.logger.warn('reindexAll appele mais Meilisearch desactive — no-op.');
-      return { documents: 0, tickets: 0, wiki: 0, news: 0 };
+      return { documents: 0, tickets: 0, wiki: 0, news: 0, runbooks: 0 };
     }
 
     await this.ensureAllIndexes();
@@ -425,14 +441,90 @@ export class MeilisearchService implements OnModuleInit {
     }));
     await this.indexNews(newsPayload);
 
+    // Runbooks — seules les runbooks publiees sont indexees (les drafts restent
+    // hors de la recherche globale pour eviter toute fuite de contenu non pret).
+    const runbooks = await (this.prisma as any).runbook
+      ?.findMany({
+        where: { isPublished: true },
+        select: {
+          id: true, title: true, slug: true, description: true,
+          content: true, category: true, version: true,
+          authorId: true, updatedAt: true,
+        },
+      })
+      .catch((err: any) => {
+        this.logger.warn(`Lecture runbooks KO : ${err.message}`);
+        return [] as any[];
+      }) ?? [];
+
+    const runbooksPayload: MeiliDocument[] = (runbooks as any[]).map((r) =>
+      this.runbookToMeiliDocument(r),
+    );
+    await this.indexRunbooks(runbooksPayload);
+
     const summary = {
       documents: docsPayload.length,
       tickets: ticketsPayload.length,
       wiki: wikiPayload.length,
       news: newsPayload.length,
+      runbooks: runbooksPayload.length,
     };
     this.logger.log(`reindexAll termine : ${JSON.stringify(summary)}`);
     return summary;
+  }
+
+  /**
+   * Convertit un runbook Prisma en document Meilisearch.
+   * Centralise la forme du document pour que les hooks incrementaux
+   * (create/update/delete dans RunbooksService) produisent exactement le
+   * meme shape que `reindexAll()`.
+   */
+  runbookToMeiliDocument(r: {
+    id: string;
+    title: string;
+    slug?: string | null;
+    description?: string | null;
+    content?: string | null;
+    category?: string | null;
+    version?: string | null;
+    authorId?: string | null;
+    updatedAt?: Date | null;
+  }): MeiliDocument {
+    // `content` est du JSON array of steps — on le rend cherchable en
+    // concatenant les champs textuels principaux (title/label/description)
+    // s'ils existent, sinon fallback sur la chaine brute.
+    let stepsText = '';
+    if (r.content) {
+      try {
+        const parsed = JSON.parse(r.content);
+        if (Array.isArray(parsed)) {
+          stepsText = parsed
+            .map((s: any) =>
+              [s?.title, s?.label, s?.description, s?.command, s?.content]
+                .filter((v) => typeof v === 'string')
+                .join(' '),
+            )
+            .join(' ')
+            .trim();
+        }
+      } catch {
+        stepsText = r.content;
+      }
+    }
+    const summary = (r.description ?? '').slice(0, 500) || null;
+    return {
+      id: `runbook-${r.id}`,
+      title: r.title ?? '',
+      content: this.stripHtml(`${r.description ?? ''} ${stepsText}`.trim()),
+      type: 'runbook',
+      url: `/runbooks/${r.slug ?? r.id}`,
+      slug: r.slug ?? null,
+      summary,
+      authorId: r.authorId ?? null,
+      date: r.updatedAt?.toISOString?.() ?? null,
+      category: r.category ?? null,
+      tags: [r.category, r.version].filter(Boolean) as string[],
+    };
   }
 
   // ==========================================================================

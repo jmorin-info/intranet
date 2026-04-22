@@ -25,6 +25,7 @@ import {
   ExternalLink,
   ArrowRight,
   Send,
+  Settings,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { ExportButton } from '@/components/ui/export-button';
@@ -261,6 +262,12 @@ export default function NotificationsPage() {
         hub="monEspace"
         actions={
           <>
+            <Link href="/notifications/preferences">
+              <Button variant="outline">
+                <Settings className="h-4 w-4" />
+                Préférences
+              </Button>
+            </Link>
             {!loading && notifications.length > 0 && unreadCount === 0 && (
               <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-full text-xs font-semibold">
                 <CheckCheck className="h-4 w-4" />

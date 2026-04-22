@@ -86,6 +86,7 @@ import {
   useSlashMenu,
   type SlashCommand,
 } from '@/components/wiki/wiki-slash-menu';
+import { RichTextEditor } from '@/components/editor/rich-text-editor';
 
 type WikiVisibility = 'PRIVATE' | 'DEPARTMENT' | 'ROLE' | 'PUBLIC';
 
@@ -1775,12 +1776,41 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
           <div className={`space-y-1 ${isEditorFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-slate-900 p-6 flex flex-col' : ''}`}>
             <div className="flex items-center justify-between">
               <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">{t('wiki.contentLabel')}</label>
-              {isEditorFullscreen && (
-                <button type="button" onClick={toggleEditorFullscreen} className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white" title="Quitter le plein écran (Échap)">
-                  <Minimize2 className="h-4 w-4" />
+              <div className="flex items-center gap-2">
+                <button type="button" title={isEditorFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
+                  onClick={toggleEditorFullscreen}
+                  className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
+                >
+                  {isEditorFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </button>
-              )}
+              </div>
             </div>
+            {/* Shared RichTextEditor — unified with news/tickets (B/I/H2/H3/UL/OL/Quote/Code + image).
+                Stockage : HTML (via onChange) → formData.content + editorContentRef pour save. */}
+            <RichTextEditor
+              value={formData.content}
+              onChange={(html) => {
+                editorContentRef.current = html;
+                setFormData((f) => ({ ...f, content: html }));
+              }}
+              onImageButton={() => { saveSelection(); setImgUrl(''); setImgAlt(''); setShowImageDialog(true); }}
+              minHeight={isEditorFullscreen ? 400 : 220}
+              placeholder={t('wiki.contentLabel')}
+              ariaLabel={t('wiki.contentLabel')}
+              className={isEditorFullscreen ? 'flex-1 flex flex-col' : ''}
+            />
+            {/* Word & character count */}
+            <div className="flex justify-end items-center mt-1">
+              <span className="text-[11px] text-seal-gray-500 dark:text-slate-500">
+                {editorWordCount} mot{editorWordCount !== 1 ? 's' : ''} {'•'} {editorPlainText.length} car.
+              </span>
+            </div>
+          </div>
+          {/* Legacy toolbar + mention/slash UI remplacé par RichTextEditor partagé.
+              Bloc ci-dessous conservé en dead-code minimal pour ne pas casser les refs — si tu
+              lis ce commentaire, c'est safe à supprimer plus tard. */}
+          {false && (
+            <div className="hidden">
             {/* WYSIWYG toolbar — sticky */}
             <div className="sticky top-0 z-20 flex flex-wrap items-center gap-1 border border-b-0 border-gray-300 dark:border-slate-600 rounded-t-lg p-2 bg-gray-50 dark:bg-slate-800" onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}>
               {/* Undo / Redo */}
@@ -2011,6 +2041,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               </span>
             </div>
           </div>
+          )}
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 dark:border-slate-700">
             <Button variant="outline" onClick={onCloseDialog}>
               {t('wiki.cancel')}
@@ -2048,7 +2079,12 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
       new Date(viewingPage.editLockExpiresAt).getTime() > Date.now() &&
       viewingPage.editLockUserId !== user?.id;
 
-    const rawHtml = DOMPurify.sanitize(viewingPage.content || '');
+    // Align sanitization with news reader: preserve id attributes (anchors for ToC)
+    // and explicitly allow pre/code tags (fix du rendu des blocs de code).
+    const rawHtml = DOMPurify.sanitize(viewingPage.content || '', {
+      ADD_ATTR: ['id'],
+      ADD_TAGS: ['pre', 'code'],
+    });
     const { html: withIds, entries: tocEntries } = extractOutline(rawHtml);
 
     const readingTime = computeReadingTime(viewingPage.content || '');
@@ -3332,17 +3368,14 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             <Button variant="outline" onClick={() => setShowImageDialog(false)}>Annuler</Button>
             <Button onClick={() => {
               if (!imgUrl) return;
-              if (editorRef.current) {
-                editorRef.current.focus();
-                document.execCommand('insertImage', false, imgUrl);
-                const imgs = editorRef.current.querySelectorAll('img');
-                const lastImg = imgs[imgs.length - 1];
-                if (lastImg) {
-                  lastImg.alt = imgAlt || 'image';
-                  lastImg.style.maxWidth = '100%';
-                }
-                setFormData((f) => ({ ...f, content: editorRef.current!.innerHTML }));
-              }
+              // Append <img> to current content. RichTextEditor re-sync l'innerHTML
+              // quand l'éditeur n'est pas focus (on vient de fermer le dialog).
+              const safeAlt = (imgAlt || 'image').replace(/"/g, '&quot;');
+              const safeUrl = imgUrl.replace(/"/g, '&quot;');
+              const imgHtml = `<p><img src="${safeUrl}" alt="${safeAlt}" style="max-width:100%;" /></p>`;
+              const next = (editorContentRef.current || formData.content || '') + imgHtml;
+              editorContentRef.current = next;
+              setFormData((f) => ({ ...f, content: next }));
               setShowImageDialog(false);
             }}>Inserer</Button>
           </div>

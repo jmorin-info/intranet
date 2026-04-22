@@ -25,7 +25,7 @@ export class MeilisearchController {
 
   /**
    * Recherche federee multi-index.
-   * GET /search/meili?q=...&type=wiki|document|news|ticket&limit=20
+   * GET /search/meili?q=...&type=wiki|document|news|ticket|runbook&limit=20
    */
   @Get('meili')
   @UseGuards(JwtAuthGuard)
@@ -116,6 +116,7 @@ export class MeilisearchController {
       tickets: [],
       wiki: [],
       news: [],
+      runbooks: [],
     };
     let total = 0;
 

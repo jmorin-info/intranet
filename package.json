@@ -13,7 +13,9 @@
     "db:migrate": "pnpm --filter @omnitech/database migrate:dev",
     "db:seed": "pnpm --filter @omnitech/database seed",
     "clean": "turbo clean && rm -rf node_modules",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "a11y": "pa11y-ci --config .pa11yci.json",
+    "a11y:mobile": "pa11y-ci --config .pa11yci.mobile.json"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -21,6 +23,7 @@
   },
   "packageManager": "pnpm@9.15.0",
   "devDependencies": {
-    "@playwright/test": "^1.59.1"
+    "@playwright/test": "^1.59.1",
+    "pa11y-ci": "^4.1.0"
   }
 }

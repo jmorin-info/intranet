@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { Bold, Italic, Code } from 'lucide-react';
 import { useUserSearch, type SearchableUser } from '@/hooks/use-user-search';
 
 interface Props {
@@ -11,6 +12,14 @@ interface Props {
   rows?: number;
   disabled?: boolean;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  /**
+   * Affiche une mini-toolbar au-dessus de la textarea avec Bold / Italic / Code inline.
+   * Les boutons insèrent du markdown (`**X**`, `*X*`, `` `X` ``) autour de la sélection
+   * courante. Le backend préserve le texte brut ; le rendu markdown est fait côté
+   * lecture via `marked` + DOMPurify. Désactivé par défaut pour ne pas casser les
+   * autres utilisations de ce composant.
+   */
+  showToolbar?: boolean;
 }
 
 /**
@@ -46,6 +55,7 @@ export function MentionTextarea({
   rows = 4,
   disabled,
   onKeyDown: onKeyDownProp,
+  showToolbar = false,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [query, setQuery] = useState('');
@@ -155,6 +165,38 @@ export function MentionTextarea({
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [popupOpen]);
 
+  // Wrap la sélection courante avec un marker markdown (`**`, `*`, `` ` ``).
+  // Si aucune sélection : insère les markers et place le curseur au milieu pour
+  // que l'utilisateur tape directement son texte entre eux.
+  const wrapSelection = useCallback(
+    (marker: string) => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const start = ta.selectionStart ?? value.length;
+      const end = ta.selectionEnd ?? value.length;
+      const before = value.slice(0, start);
+      const selected = value.slice(start, end);
+      const after = value.slice(end);
+      const newText = `${before}${marker}${selected}${marker}${after}`;
+      onChange(newText);
+      // Repositionne le curseur : si texte sélectionné → garde la sélection
+      // entre les markers, sinon place le curseur au centre.
+      requestAnimationFrame(() => {
+        if (!textareaRef.current) return;
+        textareaRef.current.focus();
+        if (selected.length > 0) {
+          const s = start + marker.length;
+          const e = s + selected.length;
+          textareaRef.current.setSelectionRange(s, e);
+        } else {
+          const pos = start + marker.length;
+          textareaRef.current.setSelectionRange(pos, pos);
+        }
+      });
+    },
+    [value, onChange],
+  );
+
   const initials = useMemo(
     () => (u: SearchableUser) =>
       `${u.firstName?.[0] || ''}${u.lastName?.[0] || ''}`.toUpperCase() || '?',
@@ -163,6 +205,53 @@ export function MentionTextarea({
 
   return (
     <div className="relative">
+      {showToolbar && (
+        <div
+          className="flex items-center gap-1 mb-1.5 px-0.5"
+          // `mousedown preventDefault` ci-dessous évite que le clic sur un bouton
+          // vole le focus de la textarea : la sélection courante reste intacte.
+        >
+          <button
+            type="button"
+            aria-label="Gras"
+            title="Gras (**texte**)"
+            disabled={disabled}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrapSelection('**')}
+            className="inline-flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-md text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white transition-colors touch-manipulation disabled:opacity-40"
+          >
+            <Bold className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Italique"
+            title="Italique (*texte*)"
+            disabled={disabled}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrapSelection('*')}
+            className="inline-flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-md text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white transition-colors touch-manipulation disabled:opacity-40"
+          >
+            <Italic className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Code"
+            title="Code inline (`texte`)"
+            disabled={disabled}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrapSelection('`')}
+            className="inline-flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-md text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white transition-colors touch-manipulation disabled:opacity-40"
+          >
+            <Code className="h-4 w-4" />
+          </button>
+          <span
+            className="ml-auto text-[10px] text-seal-gray-500/70 dark:text-slate-500 select-none hidden sm:inline"
+            title="Markdown supporté : **gras**, *italique*, `code`, @mention"
+          >
+            Markdown supporté
+          </span>
+        </div>
+      )}
       <textarea
         ref={textareaRef}
         value={value}
@@ -173,7 +262,7 @@ export function MentionTextarea({
         disabled={disabled}
         className={
           className ||
-          'w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500/60 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50'
+          'w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-base sm:text-sm text-seal-navy dark:text-white placeholder:text-seal-gray-500/60 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50'
         }
       />
       {popupOpen && (users.length > 0 || loading) && (

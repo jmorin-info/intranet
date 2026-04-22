@@ -3,6 +3,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { NotificationsGateway } from './notifications.gateway';
+import { NotificationPreferencesController } from './notification-preferences.controller';
+import { NotificationPreferencesService } from './notification-preferences.service';
 import { PushNotificationsModule } from '../push-notifications/push-notifications.module';
 import { SmsModule } from '../sms/sms.module';
 
@@ -17,8 +19,12 @@ import { SmsModule } from '../sms/sms.module';
     PushNotificationsModule,
     SmsModule,
   ],
-  controllers: [NotificationsController],
-  providers: [NotificationsService, NotificationsGateway],
-  exports: [NotificationsService],
+  controllers: [NotificationsController, NotificationPreferencesController],
+  providers: [
+    NotificationsService,
+    NotificationsGateway,
+    NotificationPreferencesService,
+  ],
+  exports: [NotificationsService, NotificationPreferencesService],
 })
 export class NotificationsModule {}

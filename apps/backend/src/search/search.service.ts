@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RequestUser } from '../common/interfaces';
 import { UserRole, ROLE_HIERARCHY } from '../common/enums';
 
-export type SearchType = 'documents' | 'news' | 'wiki' | 'tickets' | 'all';
+export type SearchType = 'documents' | 'news' | 'wiki' | 'tickets' | 'runbooks' | 'all';
 
 @Injectable()
 export class SearchService {
@@ -26,8 +26,8 @@ export class SearchService {
       return { documents: [], news: [], meta: { total: 0, page, limit, totalPages: 0 } };
     }
 
-    const results: { documents?: any[]; news?: any[]; wiki?: any[]; tickets?: any[] } = {};
-    const counts: { documents?: number; news?: number; wiki?: number; tickets?: number } = {};
+    const results: { documents?: any[]; news?: any[]; wiki?: any[]; tickets?: any[]; runbooks?: any[] } = {};
+    const counts: { documents?: number; news?: number; wiki?: number; tickets?: number; runbooks?: number } = {};
     let totalCount = 0;
 
     const userRole = (currentUser.role || '').toUpperCase() as UserRole;
@@ -212,6 +212,50 @@ export class SearchService {
       results.tickets = ticketResults;
       counts.tickets = Number(ticketCount[0]?.count || 0);
       totalCount += counts.tickets;
+    }
+
+    // Search runbooks (title, description, content)
+    // Les runbooks sont visibles a tous les utilisateurs authentifies. Seuls
+    // les drafts (isPublished = false) sont masques — ceux-ci etant reserves
+    // aux admins qui les editent, on ne les sort pas dans la recherche globale
+    // meme pour les admins (verbe "search", pas "audit").
+    if (type === 'runbooks' || type === 'all') {
+      const runbookResults = await this.prisma.$queryRawUnsafe<any[]>(
+        `SELECT r.id, r.title, r.slug, r.description, r.category, r.version,
+                r."createdAt", r."updatedAt",
+                ts_rank(to_tsvector('french', coalesce(r.title, '') || ' ' || coalesce(r.description, '') || ' ' || coalesce(r.content, '')),
+                        plainto_tsquery('french', $1)) AS rank
+         FROM "Runbook" r
+         WHERE r."isPublished" = true
+           AND (
+             to_tsvector('french', coalesce(r.title, '') || ' ' || coalesce(r.description, '') || ' ' || coalesce(r.content, ''))
+               @@ plainto_tsquery('french', $1)
+             OR r.title ILIKE '%' || $1 || '%'
+             OR r.slug ILIKE '%' || $1 || '%'
+           )
+         ORDER BY rank DESC
+         LIMIT $2 OFFSET $3`,
+        sanitizedQuery,
+        limit,
+        offset,
+      );
+
+      const runbookCount = await this.prisma.$queryRawUnsafe<[{ count: bigint }]>(
+        `SELECT count(*)::int as count
+         FROM "Runbook" r
+         WHERE r."isPublished" = true
+           AND (
+             to_tsvector('french', coalesce(r.title, '') || ' ' || coalesce(r.description, '') || ' ' || coalesce(r.content, ''))
+               @@ plainto_tsquery('french', $1)
+             OR r.title ILIKE '%' || $1 || '%'
+             OR r.slug ILIKE '%' || $1 || '%'
+           )`,
+        sanitizedQuery,
+      );
+
+      results.runbooks = runbookResults;
+      counts.runbooks = Number(runbookCount[0]?.count || 0);
+      totalCount += counts.runbooks;
     }
 
     return {

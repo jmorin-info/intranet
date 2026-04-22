@@ -1,0 +1,32 @@
+{
+  "defaults": {
+    "standard": "WCAG2AA",
+    "timeout": 30000,
+    "wait": 1500,
+    "chromeLaunchConfig": {
+      "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+    },
+    "ignore": [
+      "notice",
+      "warning"
+    ],
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2,
+      "isMobile": true,
+      "hasTouch": true
+    }
+  },
+  "urls": [
+    "http://localhost:3001/welcome",
+    "http://localhost:3001/login",
+    "http://localhost:3001/dashboard",
+    "http://localhost:3001/documents",
+    "http://localhost:3001/tickets",
+    "http://localhost:3001/incidents",
+    "http://localhost:3001/wiki",
+    "http://localhost:3001/news",
+    "http://localhost:3001/media"
+  ]
+}

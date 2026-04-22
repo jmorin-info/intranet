@@ -27,7 +27,7 @@ export class SearchController {
       throw new BadRequestException('Search query is required');
     }
 
-    const validTypes: SearchType[] = ['documents', 'news', 'wiki', 'tickets'];
+    const validTypes: SearchType[] = ['documents', 'news', 'wiki', 'tickets', 'runbooks'];
     const searchType: SearchType = validTypes.includes(type as SearchType)
       ? (type as SearchType)
       : 'all';

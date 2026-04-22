@@ -4,6 +4,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationType } from '@prisma/client';
 import { PushNotificationsService } from '../push-notifications/push-notifications.service';
 import { SmsService } from '../sms/sms.service';
+import {
+  NotificationPreferencesService,
+  categoryFromType,
+} from './notification-preferences.service';
 
 export interface CreateNotificationParams {
   userId: string;
@@ -78,6 +82,7 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     @Optional() private readonly pushService?: PushNotificationsService,
     @Optional() private readonly smsService?: SmsService,
+    @Optional() private readonly preferencesService?: NotificationPreferencesService,
   ) {}
 
   setGateway(gateway: any) {
@@ -85,40 +90,72 @@ export class NotificationsService {
   }
 
   async create(params: CreateNotificationParams) {
-    const notification = await this.prisma.notification.create({
-      data: {
-        userId: params.userId,
-        type: params.type as NotificationType,
-        title: params.title,
-        body: params.body || null,
-        resourceType: params.resourceType || null,
-        resourceId: params.resourceId || null,
-      },
-    });
+    // Resolve category once — null means the type is not user-mutable
+    // (e.g. SECURITY_ALERT, ALERT_CRITICAL) and will bypass preferences.
+    const category = categoryFromType(params.type as string);
+    const typeStr = String(params.type);
+    // Always-send types override user preferences entirely.
+    const alwaysSend = EMAIL_ALWAYS_SEND_TYPES.has(typeStr) || category === null;
 
-    // Emit via WebSocket if gateway is available
-    if (this.gateway) {
-      try {
-        this.gateway.sendToUser(params.userId, notification);
-      } catch (error: unknown) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        this.logger.warn(`Failed to send WebSocket notification: ${err.message}`);
+    const [inAppEnabled, emailEnabled, pushEnabled] = alwaysSend
+      ? [true, true, true]
+      : await Promise.all([
+          this.preferencesService
+            ? this.preferencesService.isChannelEnabled(params.userId, 'inApp', typeStr)
+            : Promise.resolve(true),
+          this.preferencesService
+            ? this.preferencesService.isChannelEnabled(params.userId, 'email', typeStr)
+            : Promise.resolve(true),
+          this.preferencesService
+            ? this.preferencesService.isChannelEnabled(params.userId, 'push', typeStr)
+            : Promise.resolve(true),
+        ]);
+
+    // ── In-app (DB row + WebSocket) ──
+    // If the user has muted in-app for this category, skip the DB row: no bell,
+    // no unread count bump. (Backward compat: if no prefs → inAppEnabled=true.)
+    let notification: any = null;
+    if (inAppEnabled) {
+      notification = await this.prisma.notification.create({
+        data: {
+          userId: params.userId,
+          type: params.type as NotificationType,
+          title: params.title,
+          body: params.body || null,
+          resourceType: params.resourceType || null,
+          resourceId: params.resourceId || null,
+        },
+      });
+
+      if (this.gateway) {
+        try {
+          this.gateway.sendToUser(params.userId, notification);
+        } catch (error: unknown) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          this.logger.warn(`Failed to send WebSocket notification: ${err.message}`);
+        }
       }
+    } else {
+      this.logger.debug(`In-app muted for user ${params.userId}, type ${typeStr}`);
     }
 
-    // Send email notification (non-blocking)
-    this.sendEmailNotification(
-      params.userId,
-      params.title,
-      params.body || '',
-      params.resourceType,
-      params.resourceId,
-      params.type as string,
-      params.metadata,
-    ).catch((err) => { this.logger.error(`Email error: ${err}`); });
+    // ── Email (non-blocking) ──
+    if (emailEnabled) {
+      this.sendEmailNotification(
+        params.userId,
+        params.title,
+        params.body || '',
+        params.resourceType,
+        params.resourceId,
+        typeStr,
+        params.metadata,
+      ).catch((err) => { this.logger.error(`Email error: ${err}`); });
+    } else {
+      this.logger.debug(`Email muted for user ${params.userId}, type ${typeStr}`);
+    }
 
-    // Send browser push notification for high-signal events (non-blocking)
-    if (this.pushService && PUSH_WORTHY_TYPES.has(String(params.type))) {
+    // ── Browser Push (non-blocking) ──
+    if (pushEnabled && this.pushService && PUSH_WORTHY_TYPES.has(typeStr)) {
       const url = params.resourceType && params.resourceId
         ? `/${params.resourceType.toLowerCase()}s/${params.resourceId}`
         : '/notifications';
@@ -129,17 +166,18 @@ export class NotificationsService {
           icon: '/logo-icon.png',
           tag: `notif-${params.type}`,
           url,
-          requireInteraction: ['SECURITY_ALERT', 'ALERT_CRITICAL', 'REVIEW_OVERDUE'].includes(String(params.type)),
+          requireInteraction: ['SECURITY_ALERT', 'ALERT_CRITICAL', 'REVIEW_OVERDUE'].includes(typeStr),
         })
         .catch((err) => this.logger.warn(`Push send failed: ${err instanceof Error ? err.message : err}`));
     }
 
     // SMS fallback pour les alertes critiques uniquement (si OVH SMS activé)
-    // Non-bloquant, silencieux en cas d'échec.
+    // Non-bloquant, silencieux en cas d'échec — always sent for critical alerts
+    // regardless of preferences (security requirement).
     if (
       this.smsService &&
       this.smsService.isEnabled() &&
-      ['SECURITY_ALERT', 'ALERT_CRITICAL'].includes(String(params.type))
+      ['SECURITY_ALERT', 'ALERT_CRITICAL'].includes(typeStr)
     ) {
       void this.smsService
         .sendCriticalAlert(params.userId, params.title, params.body || '')
@@ -795,36 +833,50 @@ export class NotificationsService {
   async handleDailyDigestCron() {
     this.logger.log('Running daily email digest cron...');
     try {
+      const today = new Date();
+      const isMonday = today.getDay() === 1;
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-      // Find all active users with unread notifications in the last 24h
+      // Find all active users with unread notifications in the window.
+      // Weekly digest users are included only on Mondays.
       const usersWithUnread = await this.prisma.user.findMany({
         where: {
           isActive: true,
           deletedAt: null,
           notifications: {
-            some: { isRead: false, createdAt: { gte: oneDayAgo } },
+            some: { isRead: false, createdAt: { gte: sevenDaysAgo } },
           },
         },
         select: { id: true },
       });
 
       let sent = 0;
+      let skippedByPref = 0;
       for (const u of usersWithUnread) {
         try {
-          await this.sendDailyDigest(u.id);
+          // Check digest frequency — 'off' skips, 'weekly' only on Mondays, 'daily' always.
+          let freq: 'off' | 'daily' | 'weekly' = 'daily';
+          if (this.preferencesService) {
+            freq = await this.preferencesService.getDigestFrequency(u.id);
+          }
+          if (freq === 'off') { skippedByPref++; continue; }
+          if (freq === 'weekly' && !isMonday) { skippedByPref++; continue; }
+
+          const windowStart = freq === 'weekly' ? sevenDaysAgo : oneDayAgo;
+          await this.sendDailyDigest(u.id, windowStart);
           sent++;
         } catch (err) {
           this.logger.warn(`Digest failed for ${u.id}: ${err instanceof Error ? err.message : err}`);
         }
       }
-      this.logger.log(`Daily digest sent to ${sent}/${usersWithUnread.length} users`);
+      this.logger.log(`Daily digest sent to ${sent}/${usersWithUnread.length} users (skipped by pref: ${skippedByPref})`);
     } catch (err) {
       this.logger.error(`Daily digest cron error: ${err instanceof Error ? err.message : err}`);
     }
   }
 
-  async sendDailyDigest(userId: string) {
+  async sendDailyDigest(userId: string, windowStart?: Date) {
     const smtpEnabled = await this.prisma.appConfig.findFirst({ where: { key: 'smtp.enabled' } });
     if (smtpEnabled?.value === 'false') return;
 
@@ -838,16 +890,16 @@ export class NotificationsService {
     });
     if (!user) return;
 
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const since = windowStart || new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const [unreadNotifs, totalUnread] = await Promise.all([
       this.prisma.notification.findMany({
-        where: { userId, isRead: false, createdAt: { gte: oneDayAgo } },
+        where: { userId, isRead: false, createdAt: { gte: since } },
         orderBy: { createdAt: 'desc' },
         take: 10,
       }),
       this.prisma.notification.count({
-        where: { userId, isRead: false, createdAt: { gte: oneDayAgo } },
+        where: { userId, isRead: false, createdAt: { gte: since } },
       }),
     ]);
 

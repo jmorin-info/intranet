@@ -1,10 +1,47 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { slugify, generateUniqueSlug } from '../common/utils/slugify';
+import { MeilisearchService } from '../search/meilisearch.service';
 
 @Injectable()
 export class RunbooksService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(RunbooksService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly meili?: MeilisearchService,
+  ) {}
+
+  /**
+   * Pousse (ou rafraichit) un runbook dans l'index Meilisearch `runbooks`.
+   * Non-bloquant : toute erreur est loguee mais ne remonte pas a l'appelant.
+   * On n'indexe que les runbooks publies — les drafts restent hors de la
+   * recherche globale pour eviter toute fuite de contenu non pret.
+   */
+  private indexForMeili(runbook: {
+    id: string;
+    title: string;
+    slug?: string | null;
+    description?: string | null;
+    content?: string | null;
+    category?: string | null;
+    version?: string | null;
+    authorId?: string | null;
+    updatedAt?: Date | null;
+    isPublished?: boolean;
+  }): void {
+    if (!this.meili) return;
+    if (runbook.isPublished === false) {
+      // Si on republie plus tard, l'update hook reindexera ; si c'etait publie
+      // avant et qu'on repasse en draft, on le retire de l'index.
+      void this.meili.deleteDocument('runbook', runbook.id).catch(() => undefined);
+      return;
+    }
+    const doc = this.meili.runbookToMeiliDocument(runbook);
+    void this.meili.indexOne('runbook', doc).catch((err) =>
+      this.logger.warn(`Meilisearch indexation failed for runbook ${runbook.id}: ${err?.message || err}`),
+    );
+  }
 
   async findAll(filters?: { isPublished?: boolean; category?: string; search?: string }) {
     const where: any = {};
@@ -71,9 +108,14 @@ export class RunbooksService {
       ? (slugify(rawSlug, { maxLength: 120 }) || await this.autoSlug(data.title))
       : await this.autoSlug(data.title);
 
-    return this.prisma.runbook.create({
+    const created = await this.prisma.runbook.create({
       data: { ...data, slug, isPublished: true },
     });
+
+    // Index dans Meilisearch (non-bloquant).
+    this.indexForMeili(created);
+
+    return created;
   }
 
   private autoSlug(title: string): Promise<string> {
@@ -96,7 +138,23 @@ export class RunbooksService {
     },
   ) {
     await this.findById(id);
-    return this.prisma.runbook.update({ where: { id }, data });
+    const updated = await this.prisma.runbook.update({ where: { id }, data });
+
+    // Re-indexation Meilisearch : publish/unpublish gere par indexForMeili.
+    this.indexForMeili(updated);
+
+    return updated;
+  }
+
+  /**
+   * Supprime un runbook (et desindexe Meilisearch). Non exposee actuellement
+   * par le controller, mais disponible pour les flows admin / cleanup tests.
+   */
+  async delete(id: string) {
+    await this.findById(id);
+    const deleted = await this.prisma.runbook.delete({ where: { id } });
+    void this.meili?.deleteDocument('runbook', id).catch(() => undefined);
+    return deleted;
   }
 
   async startExecution(runbookId: string, executorId: string) {
