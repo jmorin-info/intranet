@@ -158,7 +158,29 @@ export default function EditNewsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <Input label="Catégorie" placeholder="Intranet, SMSI, RH..." {...register('category')} />
-              <Input label="Image de couverture (URL)" placeholder="https://..." {...register('coverImageUrl')} />
+              <div className="space-y-1">
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Image de couverture</label>
+                <label className="flex-1 cursor-pointer">
+                  <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      const fd = new FormData();
+                      fd.append('file', f);
+                      try {
+                        const { data } = await api.post('/news/upload-cover', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                        if (data.url) { setValue('coverImageUrl', data.url, { shouldDirty: true }); toast.success('Image uploadée'); }
+                      } catch { toast.error('Erreur upload image'); }
+                    }}
+                  />
+                  <span className="flex items-center justify-center gap-1.5 w-full rounded-btn border border-dashed border-gray-300 dark:border-slate-600 px-3 py-2 text-xs text-seal-gray-500 hover:border-primary hover:text-primary transition cursor-pointer">
+                    Choisir une nouvelle image
+                  </span>
+                </label>
+                {watch('coverImageUrl') && (
+                  <p className="text-[10px] text-emerald-600 truncate">{watch('coverImageUrl')}</p>
+                )}
+              </div>
             </div>
 
             {/* WYSIWYG Content editor */}
@@ -171,22 +193,31 @@ export default function EditNewsPage() {
                   { cmd: 'formatBlock:H2', label: 'H2', style: 'font-semibold' },
                   { cmd: 'formatBlock:H3', label: 'H3', style: 'font-semibold' },
                   { cmd: 'insertUnorderedList', label: '\u2022', style: 'font-semibold' },
+                  { cmd: 'insertBlockquote', label: '\u201C', style: 'font-semibold' },
+                  { cmd: 'insertCode', label: '</>', style: 'font-mono text-[10px]' },
                 ].map(({ cmd, label, style }) => (
                   <button key={cmd} type="button"
                     onClick={() => {
-                      const parts = cmd.split(':');
-                      document.execCommand(parts[0]!, false, parts[1] ?? '');
+                      if (cmd === 'insertBlockquote') {
+                        document.execCommand('insertHTML', false, '<blockquote><p>Citation</p></blockquote><p><br></p>');
+                      } else if (cmd === 'insertCode') {
+                        document.execCommand('insertHTML', false, '<pre><code>// code</code></pre><p><br></p>');
+                      } else {
+                        const parts = cmd.split(':');
+                        document.execCommand(parts[0]!, false, parts[1] ?? '');
+                      }
                       editorRef.current?.focus();
                     }}
                     className={`px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white ${style || 'font-semibold'}`}
                   >{label}</button>
                 ))}
               </div>
-              {/* Editable area */}
+              {/* Editable area — wiki-content pour rendu cohérent avec le reader
+                  (code blocks, citations, dark mode sans dépendance Typography) */}
               <div
                 ref={editorRef}
                 contentEditable
-                className="w-full min-h-[250px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"
+                className="w-full min-h-[250px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 max-w-none overflow-y-auto wiki-content"
                 onInput={(e) => setValue('content', (e.target as HTMLDivElement).innerHTML, { shouldValidate: true, shouldDirty: true })}
                 suppressContentEditableWarning
               />

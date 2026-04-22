@@ -247,11 +247,17 @@ export default function ComposeNewsPage() {
                   </label>
                 </div>
                 {watch('coverImageUrl') && (
-                  <p className="text-[10px] text-emerald-600 truncate">{watch('coverImageUrl')}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-emerald-600 truncate flex-1">{watch('coverImageUrl')}</span>
+                    <button
+                      type="button"
+                      onClick={() => setValue('coverImageUrl', '')}
+                      className="text-[10px] text-seal-gray-500 hover:text-red-500 underline"
+                    >Retirer</button>
+                  </div>
                 )}
-                <input type="text" placeholder="ou URL directe : https://..." {...register('coverImageUrl')}
-                  aria-label="URL de l'image de couverture"
-                  className="w-full rounded-btn border border-gray-300 dark:border-slate-600 px-3 py-1.5 text-xs dark:bg-slate-800 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
+                {/* input registered hidden : permet au form de tracker la valeur */}
+                <input type="hidden" {...register('coverImageUrl')} />
               </div>
             </div>
 
@@ -298,6 +304,25 @@ export default function ComposeNewsPage() {
                 ))}
                 <button
                   type="button"
+                  title="Citation"
+                  onClick={() => {
+                    document.execCommand('insertHTML', false, '<blockquote><p>Citation</p></blockquote><p><br></p>');
+                    editorRef.current?.focus();
+                  }}
+                  className="px-2 py-1 text-xs font-semibold rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
+                >“
+                </button>
+                <button
+                  type="button"
+                  title="Bloc de code"
+                  onClick={() => {
+                    document.execCommand('insertHTML', false, '<pre><code>// code</code></pre><p><br></p>');
+                    editorRef.current?.focus();
+                  }}
+                  className="px-2 py-1 text-[10px] font-mono font-semibold rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
+                >&lt;/&gt;</button>
+                <button
+                  type="button"
                   title="Insérer une image"
                   onClick={() => { setImageUrl(''); setImageAlt('image'); setShowImageDialog(true); }}
                   className="px-2 py-1 text-xs font-semibold rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
@@ -305,11 +330,12 @@ export default function ComposeNewsPage() {
                   <Image className="h-3.5 w-3.5 inline" />
                 </button>
               </div>
-              {/* Editable area */}
+              {/* Editable area — utilise .wiki-content pour un rendu cohérent
+                  (code, citations, tables) avec le reader + dark mode propre. */}
               <div
                 ref={editorRef}
                 contentEditable
-                className="w-full min-h-[200px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"
+                className="w-full min-h-[200px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 max-w-none overflow-y-auto wiki-content"
                 onInput={(e) => setValue('content', (e.target as HTMLDivElement).innerHTML, { shouldValidate: true })}
                 suppressContentEditableWarning
               />

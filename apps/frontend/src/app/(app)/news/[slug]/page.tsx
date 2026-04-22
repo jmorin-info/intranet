@@ -207,9 +207,12 @@ export default function NewsArticlePage() {
               <hr className="border-gray-100 dark:border-slate-700" />
 
               <div
-                className="prose prose-sm max-w-none prose-headings:text-seal-navy dark:prose-headings:text-white prose-a:text-primary dark:prose-p:text-slate-300 dark:prose-li:text-slate-300 dark:prose-strong:text-white"
+                className="prose-reading wiki-content max-w-none"
                 dangerouslySetInnerHTML={{
-                  __html: DOMPurify.sanitize(contentWithIds, { ADD_ATTR: ['id'] }),
+                  __html: DOMPurify.sanitize(contentWithIds, {
+                    ADD_ATTR: ['id'],
+                    ADD_TAGS: ['pre', 'code'],
+                  }),
                 }}
               />
 
