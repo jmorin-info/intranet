@@ -22,6 +22,7 @@ import dynamic from 'next/dynamic';
 import type { SmartFilter } from '@/lib/smart-filter';
 import { PageHeader } from '@/components/layout/page-header';
 import { ExportButton } from '@/components/ui/export-button';
+import { RichTextEditor } from '@/components/editor/rich-text-editor';
 import { eventBus, createEvent, useEntityEvents } from '@/lib/events';
 import { useAISuggestions } from '@/lib/ai-ux';
 import { AISuggestionBar } from '@/components/ai/ai-suggestion-bar';
@@ -1558,7 +1559,19 @@ export default function TicketsPage() {
               )}
             </div>
           )}
-          <Textarea label={t('tickets.create.descriptionLabel')} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} onKeyDown={(e: React.KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleCreate(); } }} placeholder={t('tickets.create.descriptionPlaceholder')} rows={6} className="min-h-[150px]" required />
+          <div className="space-y-1">
+            <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
+              {t('tickets.create.descriptionLabel')}
+              <span className="text-red-500 ml-0.5">*</span>
+            </label>
+            <RichTextEditor
+              value={form.description}
+              onChange={(html) => setForm({ ...form, description: html })}
+              placeholder={t('tickets.create.descriptionPlaceholder')}
+              minHeight={150}
+              ariaLabel={t('tickets.create.descriptionLabel')}
+            />
+          </div>
           {/* Category-based template hint */}
           {form.category && CATEGORY_HINTS[form.category] && (
             <div className="flex items-start gap-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-900/15 px-3 py-2.5">

@@ -12,6 +12,7 @@ import {
 } from '@omnitech/ui';
 import { formatDateTime, getInitials, formatRelativeTime } from '@/lib/utils';
 import { MentionTextarea } from '@/components/ui/mention-textarea';
+import DOMPurify from 'dompurify';
 import { useTestimonialTrigger } from '@/hooks/use-testimonial-trigger';
 import { EntityBreadcrumb } from '@/components/ui/entity-breadcrumb';
 import { eventBus, createEvent } from '@/lib/events';
@@ -445,7 +446,25 @@ export default function TicketDetailPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap">{ticket.description}</p>
+              {/* Description : HTML pour les nouveaux tickets, texte brut pour
+                  les anciens. On détecte via la présence de balises et on
+                  rend en conséquence avec le même styling que news/wiki. */}
+              {(() => {
+                const looksLikeHtml = /<\w+[\s>]/.test(ticket.description || '');
+                if (looksLikeHtml) {
+                  return (
+                    <div
+                      className="wiki-content max-w-none text-sm text-gray-700 dark:text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(ticket.description) }}
+                    />
+                  );
+                }
+                return (
+                  <p className="text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap">
+                    {ticket.description}
+                  </p>
+                );
+              })()}
               {aiSuggestion && (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 p-4">
                   <div className="flex items-center gap-2 mb-2">
