@@ -1209,33 +1209,69 @@ export class DocumentsService {
       `documents/${documentId}`,
     );
 
-    // Determine version number
+    // Règle versionning OMNITECH :
+    //   - Pas de version précédente : crée v1.0
+    //   - Brouillon (DRAFT) ET version existante : overwrite la version
+    //     courante (pas de bump — l'incrément se fera au rejet de revue pour
+    //     préserver la version rejetée)
+    //   - Toute autre transition (APPROVED, etc.) : bump majeur (1.0 → 2.0)
     const lastVersion = document.versions[0];
-    let nextVersionNumber = '1.0';
-    if (lastVersion) {
-      const parts = lastVersion.versionNumber.split('.');
-      const major = parseInt(parts[0], 10);
-      nextVersionNumber = `${major + 1}.0`;
+    const isDraftOverwrite =
+      !!lastVersion &&
+      (document.status === 'DRAFT' || document.status === 'IN_REVIEW');
+
+    let version;
+    let nextVersionNumber: string;
+
+    if (isDraftOverwrite) {
+      // Overwrite en place : update la row existante, supprime l'ancien
+      // fichier best-effort, garde le même versionNumber.
+      nextVersionNumber = lastVersion.versionNumber;
+      const oldFileUrl = lastVersion.fileUrl;
+
+      version = await this.prisma.documentVersion.update({
+        where: { id: lastVersion.id },
+        data: {
+          fileUrl,
+          fileType: file.mimetype,
+          fileSizeBytes: file.size,
+          checksum,
+          changeLog: changeLog || 'Brouillon mis à jour',
+          uploadedById: userId,
+        },
+      });
+
+      try {
+        const oldPath = this.storageService.getFilePath(oldFileUrl);
+        if (require('fs').existsSync(oldPath)) {
+          require('fs').unlinkSync(oldPath);
+        }
+      } catch (err) {
+        this.logger.warn(
+          `uploadVersion overwrite: suppression ancien fichier échouée (${oldFileUrl}): ${err}`,
+        );
+      }
+    } else {
+      nextVersionNumber = lastVersion ? `${parseInt(lastVersion.versionNumber.split('.')[0] ?? '1', 10) + 1}.0` : '1.0';
+
+      version = await this.prisma.documentVersion.create({
+        data: {
+          documentId,
+          versionNumber: nextVersionNumber,
+          fileUrl,
+          fileType: file.mimetype,
+          fileSizeBytes: file.size,
+          checksum,
+          changeLog,
+          uploadedById: userId,
+        },
+      });
+
+      await this.prisma.document.update({
+        where: { id: documentId },
+        data: { currentVersionId: version.id },
+      });
     }
-
-    const version = await this.prisma.documentVersion.create({
-      data: {
-        documentId,
-        versionNumber: nextVersionNumber,
-        fileUrl,
-        fileType: file.mimetype,
-        fileSizeBytes: file.size,
-        checksum,
-        changeLog,
-        uploadedById: userId,
-      },
-    });
-
-    // Update current version reference on document
-    await this.prisma.document.update({
-      where: { id: documentId },
-      data: { currentVersionId: version.id },
-    });
 
     await this.auditService.log({
       userId,

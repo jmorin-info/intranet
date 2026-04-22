@@ -467,12 +467,51 @@ export class WorkflowService {
 
     const enrichedComment = this.buildRejectionComment(comment, suggestions);
 
-    // Atomic: revert status + update validation request + create rejection step
+    // Versionning OMNITECH :
+    //   - Les édits de brouillon ne bumpent PAS la version (overwrite en place)
+    //   - Le rejet de revue BUMPE la version : la version rejetée reste figée
+    //     dans l'historique pour l'audit ISO, et les édits suivants vont dans
+    //     une nouvelle version mineure qui pourra elle-même être soumise
+    //     (puis rejetée ou approuvée).
+    const currentDoc = await this.prisma.document.findUnique({
+      where: { id: docId },
+      include: {
+        versions: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+    });
+    const currentVersion = currentDoc?.versions?.[0];
+
     await this.prisma.$transaction(async (tx) => {
       await tx.document.update({
         where: { id: docId },
         data: { status: 'DRAFT' },
       });
+
+      // Bump de version : clone la row courante avec un version number bumpé
+      if (currentVersion) {
+        const oldNum = currentVersion.versionNumber || '1.0';
+        const m = oldNum.match(/(\d+)(?:\.(\d+))?/);
+        const major = m ? parseInt(m[1], 10) : 1;
+        const minor = m && m[2] ? parseInt(m[2], 10) : 0;
+        const newVersionNumber = `${major}.${minor + 1}`;
+
+        const bumped = await tx.documentVersion.create({
+          data: {
+            documentId: docId,
+            versionNumber: newVersionNumber,
+            fileUrl: currentVersion.fileUrl,
+            fileType: currentVersion.fileType,
+            fileSizeBytes: currentVersion.fileSizeBytes,
+            checksum: currentVersion.checksum,
+            changeLog: `Post-rejet de revue (base v${oldNum})`,
+            uploadedById: userId,
+          },
+        });
+        await tx.document.update({
+          where: { id: docId },
+          data: { currentVersionId: bumped.id },
+        });
+      }
 
       const request = document.validationRequests[0];
       if (request) {

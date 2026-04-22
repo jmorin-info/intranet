@@ -6,6 +6,7 @@ import { AuditService } from '../audit/audit.service';
 import { UserRole, ROLE_HIERARCHY } from '../common/enums';
 import { RequestUser } from '../common/interfaces';
 import * as crypto from 'crypto';
+import * as fs from 'fs';
 
 /**
  * OnlyOffice Docs Server integration service.
@@ -887,64 +888,111 @@ export class OfficeService {
       const extension = extMatch ? extMatch[1] : 'docx';
       const mimeType = this.getMimeTypeFromExtension(extension);
 
-      // BUG FIX #10 — Parser robuste du versionNumber.
-      // Avant : `"v1.0".split('.')` → ["v1", "0"] → NaN → 0.1 (régression silencieuse).
-      // Maintenant : on extrait seulement les groupes numériques, et on gère
-      // les formats "1", "1.0", "v1.2", null/undefined.
-      const oldVersionNumber = latestVersion.versionNumber || '1.0';
-      const numMatch = oldVersionNumber.match(/(\d+)(?:\.(\d+))?/);
-      const major = numMatch ? parseInt(numMatch[1], 10) : 1;
-      const minor = numMatch && numMatch[2] ? parseInt(numMatch[2], 10) : 0;
-      const newVersionNumber = `${major}.${minor + 1}`;
+      // Règle versionning OMNITECH :
+      //   - DRAFT : on écrase la version courante (pas de bump, pas de nouvelle
+      //     row). L'incrément se fera automatiquement en cas de rejet de revue,
+      //     ce qui préserve la version rejetée pour l'audit ISO.
+      //   - APPROVED : on crée une nouvelle version mineure (traçabilité des
+      //     modifs post-approbation — les acks antérieurs restent preuve de
+      //     communication de la version N au temps T).
+      const isDraftOverwrite = doc.status === 'DRAFT' || doc.status === 'IN_REVIEW';
 
-      // BUG FIX #1 & #11 — Path de storage unique par version + timestamp.
-      // Garantit que l'upload d'une nouvelle version ne peut PAS écraser le
-      // fichier de l'ancienne (qui doit rester intacte pour l'audit ISO).
-      // Note: StorageService.upload() ajoute déjà un UUID au filename, mais
-      // on utilise un sous-dossier par version pour une traçabilité plus
-      // claire et une éventuelle future politique de rétention granulaire.
-      const uploadedFile = await this.storage.upload(
-        {
-          buffer,
-          originalname: `v${newVersionNumber}_${Date.now()}.${extension}`,
-          mimetype: mimeType,
-          size: buffer.length,
-        } as Express.Multer.File,
-        `documents/${documentId}/v${newVersionNumber}`,
-      );
+      type VersionRow = {
+        id: string;
+        documentId: string;
+        versionNumber: string;
+        fileUrl: string;
+        fileType: string;
+        fileSizeBytes: number;
+        checksum: string;
+        changeLog: string | null;
+        uploadedById: string;
+        createdAt: Date;
+      };
+      let newVersion: VersionRow;
+      let newVersionNumber: string;
 
-      // BUG FIX #9 — L'upload storage est fait AVANT le create Prisma de la
-      // nouvelle version. Si l'upload échoue (disque plein, S3 down), on sort
-      // par le catch sans laisser de row DocumentVersion orpheline pointant
-      // sur une URL inexistante. L'ancienne version reste intacte et
-      // `currentVersionId` n'a pas encore été modifié.
+      if (isDraftOverwrite) {
+        // Overwrite en place : écrit un nouveau fichier (path unique pour éviter
+        // tout risque de corruption si l'écriture échoue), met à jour la row
+        // existante, et supprime best-effort l'ancien fichier.
+        const uploadedFile = await this.storage.upload(
+          {
+            buffer,
+            originalname: `${latestVersion.versionNumber || 'v1'}_${Date.now()}.${extension}`,
+            mimetype: mimeType,
+            size: buffer.length,
+          } as Express.Multer.File,
+          `documents/${documentId}/${latestVersion.versionNumber || 'draft'}`,
+        );
 
-      // BUG FIX #2 — Atomicité Prisma : on crée la `DocumentVersion` ET on met
-      // à jour `Document.currentVersionId` dans la même transaction
-      // interactive. Si l'update échoue, le create est rollback → plus de
-      // version orpheline avec une `currentVersionId` obsolète.
-      const newVersion = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.documentVersion.create({
+        newVersionNumber = latestVersion.versionNumber;
+        const oldFileUrl = latestVersion.fileUrl;
+
+        newVersion = await this.prisma.documentVersion.update({
+          where: { id: latestVersion.id },
           data: {
-            documentId,
-            versionNumber: newVersionNumber,
             fileUrl: uploadedFile.fileUrl,
             fileType: mimeType,
             fileSizeBytes: buffer.length,
             checksum: newChecksum,
-            changeLog: 'Modifié via éditeur OnlyOffice',
+            changeLog: 'Brouillon mis à jour via éditeur OnlyOffice',
             uploadedById: userId,
           },
         });
-        await tx.document.update({
-          where: { id: documentId },
-          data: { currentVersionId: created.id },
+
+        // Nettoyage best-effort de l'ancien fichier (on a déjà sauvegardé le
+        // nouveau et mis à jour la DB : rien à rollback si ça échoue).
+        try {
+          const oldPath = this.storage.getFilePath(oldFileUrl);
+          await fs.promises.unlink(oldPath);
+        } catch (err) {
+          this.logger.warn(
+            `OnlyOffice overwrite: suppression ancien fichier échouée (${oldFileUrl}): ${err instanceof Error ? err.message : err}`,
+          );
+        }
+      } else {
+        // APPROVED → bump mineur (traçabilité ISO post-publication)
+        const oldVersionNumber = latestVersion.versionNumber || '1.0';
+        const numMatch = oldVersionNumber.match(/(\d+)(?:\.(\d+))?/);
+        const major = numMatch ? parseInt(numMatch[1], 10) : 1;
+        const minor = numMatch && numMatch[2] ? parseInt(numMatch[2], 10) : 0;
+        newVersionNumber = `${major}.${minor + 1}`;
+
+        const uploadedFile = await this.storage.upload(
+          {
+            buffer,
+            originalname: `v${newVersionNumber}_${Date.now()}.${extension}`,
+            mimetype: mimeType,
+            size: buffer.length,
+          } as Express.Multer.File,
+          `documents/${documentId}/v${newVersionNumber}`,
+        );
+
+        // Atomicité Prisma : create + update currentVersionId dans la même tx
+        newVersion = await this.prisma.$transaction(async (tx) => {
+          const created = await tx.documentVersion.create({
+            data: {
+              documentId,
+              versionNumber: newVersionNumber,
+              fileUrl: uploadedFile.fileUrl,
+              fileType: mimeType,
+              fileSizeBytes: buffer.length,
+              checksum: newChecksum,
+              changeLog: 'Modifié via éditeur OnlyOffice',
+              uploadedById: userId,
+            },
+          });
+          await tx.document.update({
+            where: { id: documentId },
+            data: { currentVersionId: created.id },
+          });
+          return created;
         });
-        return created;
-      });
+      }
 
       this.logger.log(
-        `OnlyOffice save: document ${doc.reference} → v${newVersionNumber} (${buffer.length} bytes)`,
+        `OnlyOffice save: document ${doc.reference} → ${isDraftOverwrite ? 'overwrite' : 'bump'} v${newVersionNumber} (${buffer.length} bytes)`,
       );
 
       // BUG FIX #6 — Audit trail explicite.
