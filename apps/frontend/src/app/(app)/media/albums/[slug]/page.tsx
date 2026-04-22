@@ -11,6 +11,7 @@ import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { api } from '@/lib/api';
 import { withAuthToken } from '@/lib/media-url';
 import { MediaLightbox, type LightboxItem } from '@/components/media/media-lightbox';
+import { HoverVideoPreview } from '@/components/media/hover-video-preview';
 import { formatRelativeTime } from '@/lib/utils';
 
 interface AlbumDetail {
@@ -145,19 +146,21 @@ export default function AlbumDetailPage() {
               className="block w-full break-inside-avoid rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-800 group relative shadow-sm hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#F9964A]"
               aria-label={`Ouvrir ${item.title ?? 'le média'}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={withAuthToken(item.thumbnailUrl)}
-                alt={item.title ?? ''}
-                className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-                loading="lazy"
-              />
-              {item.type === 'VIDEO' && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-12 w-12 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Video className="h-5 w-5 text-white fill-white" />
-                  </div>
-                </div>
+              {item.type === 'VIDEO' ? (
+                <HoverVideoPreview
+                  thumbnailUrl={item.thumbnailUrl}
+                  fileUrl={item.fileUrl}
+                  title={item.title}
+                  className="w-full"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={withAuthToken(item.thumbnailUrl)}
+                  alt={item.title ?? ''}
+                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
+                />
               )}
               {/* Hover overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">

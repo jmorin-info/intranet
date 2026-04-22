@@ -94,12 +94,18 @@ export class MediaService {
         coverItem: {
           select: { id: true, thumbnailUrl: true, type: true, fileUrl: true, width: true, height: true },
         },
+        items: {
+          select: { id: true, type: true, thumbnailUrl: true, fileUrl: true, width: true, height: true },
+          orderBy: { createdAt: 'desc' },
+          take: 4,
+        },
         createdBy: { select: { id: true, firstName: true, lastName: true } },
         _count: { select: { items: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
-    return albums;
+    // Renomme items → previewItems pour clarifier l'intention côté API
+    return albums.map(({ items, ...album }) => ({ ...album, previewItems: items }));
   }
 
   async getAlbumBySlug(slug: string, user: RequestUser) {
@@ -552,6 +558,48 @@ export class MediaService {
   // ========================================================================
   // Stats (analytics Marketing)
   // ========================================================================
+
+  /**
+   * Liste flat de tous les items visibles par l'utilisateur, trié par date desc.
+   * Alimente la vue "galerie" /media (onglets Toutes photos / Toutes vidéos).
+   */
+  async listAllItems(
+    user: RequestUser,
+    opts: { type?: MediaType; limit?: number; offset?: number } = {},
+  ) {
+    const albumWhere = await this.albumVisibilityFilter(user);
+    const limit = Math.min(Math.max(opts.limit ?? 60, 1), 200);
+    const offset = Math.max(opts.offset ?? 0, 0);
+
+    const where: Prisma.MediaItemWhereInput = {
+      album: albumWhere,
+      ...(opts.type ? { type: opts.type } : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.mediaItem.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+        include: {
+          album: { select: { id: true, slug: true, title: true } },
+          uploadedBy: { select: { id: true, firstName: true, lastName: true } },
+        },
+      }),
+      this.prisma.mediaItem.count({ where }),
+    ]);
+
+    return {
+      total,
+      limit,
+      offset,
+      items: items.map((it) => ({
+        ...it,
+        fileSizeBytes: it.fileSizeBytes.toString(),
+      })),
+    };
+  }
 
   async getGlobalStats(user: RequestUser) {
     await this.assertCanManage(user);

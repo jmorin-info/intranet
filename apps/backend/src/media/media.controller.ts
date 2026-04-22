@@ -8,11 +8,13 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { MediaType } from '@prisma/client';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { createReadStream, statSync } from 'fs';
@@ -60,6 +62,22 @@ export class MediaController {
   }
 
   // ---- Items ----
+
+  /** Liste flat de tous les médias visibles (vue galerie globale). */
+  @Get('items')
+  listAllItems(
+    @CurrentUser() user: RequestUser,
+    @Query('type') type?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const typeFilter = type === 'IMAGE' || type === 'VIDEO' ? (type as MediaType) : undefined;
+    return this.service.listAllItems(user, {
+      type: typeFilter,
+      limit: limit ? Number(limit) : undefined,
+      offset: offset ? Number(offset) : undefined,
+    });
+  }
 
   @Post('albums/:id/items')
   @UseInterceptors(
