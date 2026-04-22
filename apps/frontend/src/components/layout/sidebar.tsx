@@ -104,6 +104,18 @@ interface NavItem {
   statusDot?: 'ok' | 'error' | null;
 }
 
+/**
+ * Map href → date ISO de disparition du badge NEW. Les paths listés ici
+ * afficheront un petit badge « NEW » dans la sidebar jusqu'à la date
+ * indiquée (pour signaler aux utilisateurs les modules fraîchement
+ * déployés).
+ */
+const NEW_UNTIL: Record<string, string> = {
+  '/media': '2026-05-22',
+  '/runbooks': '2026-05-22',
+  '/changelog': '2026-05-22',
+};
+
 interface NavHub {
   id: string;
   label: string;
@@ -319,6 +331,14 @@ const PanelItem: React.FC<PanelItemProps> = ({
             )}
           >
             {item.badge > 99 ? '99+' : item.badge}
+          </span>
+        )}
+        {NEW_UNTIL[item.href] && new Date(NEW_UNTIL[item.href]!) > new Date() && (
+          <span
+            className="flex h-4 items-center justify-center rounded-full px-1.5 text-[9px] font-bold bg-[#F9964A] text-white tracking-wide uppercase"
+            title="Nouveau module"
+          >
+            New
           </span>
         )}
       </Link>

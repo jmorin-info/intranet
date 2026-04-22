@@ -65,6 +65,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { key: 'm', label: 'Médiathèque', href: '/media' },
     { key: 'n', label: 'Actualités', href: '/news' },
     { key: 'i', label: 'Incidents', href: '/incidents' },
+    { key: 'r', label: 'Runbooks', href: '/runbooks' },
+    { key: 'c', label: 'Changelog', href: '/changelog' },
+    { key: 's', label: 'Signatures', href: '/signatures' },
     {
       key: 'a',
       label: 'Administration',

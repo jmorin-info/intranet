@@ -342,6 +342,26 @@ export default function AdminLandingPage() {
           );
         })}
       </div>
+
+      {/* Footer admin : build version déployé — utile pour le débogage prod */}
+      <AdminBuildFooter />
+    </div>
+  );
+}
+
+function AdminBuildFooter() {
+  const version = process.env.NEXT_PUBLIC_BUILD_VERSION || 'dev';
+  return (
+    <div className="mt-12 pt-4 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between text-[11px] text-seal-gray-400 dark:text-slate-500">
+      <span>OMNITECH Intranet — Hub d&apos;administration</span>
+      <Link
+        href="/changelog"
+        className="inline-flex items-center gap-1.5 hover:text-seal-navy dark:hover:text-white transition font-mono"
+        title="Voir le changelog"
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+        build {version}
+      </Link>
     </div>
   );
 }
