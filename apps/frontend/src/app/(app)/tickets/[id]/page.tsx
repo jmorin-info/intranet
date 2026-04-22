@@ -616,7 +616,7 @@ export default function TicketDetailPage() {
             </CardHeader>
             <CardContent className="p-0">
               {/* Messages area with chat-like scroll */}
-              <div className="max-h-[500px] overflow-y-auto p-4 space-y-1 scroll-smooth">
+              <div className="max-h-[calc(100dvh-20rem)] lg:max-h-[500px] overflow-y-auto p-4 space-y-1 scroll-smooth">
                 {ticket.comments.length === 0 && (
                   <div className="text-center py-8">
                     <Send className="h-8 w-8 text-seal-gray-500/20 mx-auto mb-2" />
@@ -689,7 +689,7 @@ export default function TicketDetailPage() {
               </div>
 
               {/* Compose bar */}
-              <div className="border-t border-gray-100 dark:border-slate-700 p-3 no-print">
+              <div className="sticky bottom-0 lg:static z-10 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:pb-3 no-print">
                 {/* Internal toggle for admins */}
                 {isAdmin && (
                   <div className="flex items-center gap-2 mb-2">

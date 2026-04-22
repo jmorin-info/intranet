@@ -193,7 +193,7 @@ export default function ComposeNewsPage() {
               {...register('excerpt')}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">{t('newsCompose.label.category')}</label>
                 <input
@@ -285,7 +285,7 @@ export default function ComposeNewsPage() {
             <div className="space-y-1">
               <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">{t('newsCompose.label.content')}</label>
               {/* WYSIWYG toolbar */}
-              <div className="flex items-center gap-1 border border-b-0 border-gray-300 dark:border-slate-600 rounded-t-lg p-2 bg-gray-50 dark:bg-slate-800">
+              <div className="flex flex-wrap items-center gap-1 border border-b-0 border-gray-300 dark:border-slate-600 rounded-t-lg p-2 bg-gray-50 dark:bg-slate-800 overflow-x-auto">
                 {[
                   { cmd: 'bold', label: 'B', style: 'font-semibold', title: t('newsCompose.toolbar.bold') },
                   { cmd: 'italic', label: 'I', style: 'italic', title: t('newsCompose.toolbar.italic') },
@@ -335,7 +335,7 @@ export default function ComposeNewsPage() {
               <div
                 ref={editorRef}
                 contentEditable
-                className="w-full min-h-[200px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 max-w-none overflow-y-auto wiki-content"
+                className="w-full max-w-full min-h-[200px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 overflow-x-auto overflow-y-auto wiki-content break-words"
                 onInput={(e) => setValue('content', (e.target as HTMLDivElement).innerHTML, { shouldValidate: true })}
                 suppressContentEditableWarning
               />

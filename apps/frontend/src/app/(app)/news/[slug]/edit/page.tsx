@@ -156,7 +156,7 @@ export default function EditNewsPage() {
               {...register('excerpt')}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input label="Catégorie" placeholder="Intranet, SMSI, RH..." {...register('category')} />
               <div className="space-y-1">
                 <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Image de couverture</label>
@@ -186,7 +186,7 @@ export default function EditNewsPage() {
             {/* WYSIWYG Content editor */}
             <div className="space-y-1">
               <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Contenu</label>
-              <div className="flex items-center gap-1 border border-b-0 border-gray-300 dark:border-slate-600 rounded-t-lg p-2 bg-gray-50 dark:bg-slate-800">
+              <div className="flex flex-wrap items-center gap-1 border border-b-0 border-gray-300 dark:border-slate-600 rounded-t-lg p-2 bg-gray-50 dark:bg-slate-800 overflow-x-auto">
                 {[
                   { cmd: 'bold', label: 'B', style: 'font-semibold' },
                   { cmd: 'italic', label: 'I', style: 'italic' },
@@ -217,7 +217,7 @@ export default function EditNewsPage() {
               <div
                 ref={editorRef}
                 contentEditable
-                className="w-full min-h-[250px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 max-w-none overflow-y-auto wiki-content"
+                className="w-full max-w-full min-h-[250px] rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 overflow-x-auto overflow-y-auto wiki-content break-words"
                 onInput={(e) => setValue('content', (e.target as HTMLDivElement).innerHTML, { shouldValidate: true, shouldDirty: true })}
                 suppressContentEditableWarning
               />

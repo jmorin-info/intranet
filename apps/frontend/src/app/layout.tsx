@@ -77,7 +77,7 @@ export default function RootLayout({
           <ChunkErrorRecovery />
           {children}
           <Toaster
-            position="top-right"
+            position="top-center"
             richColors
             closeButton
             toastOptions={{ style: { fontFamily: "var(--font-body)" } }}

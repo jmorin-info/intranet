@@ -230,14 +230,14 @@ export default function EditDocumentPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="order-2 lg:order-1 lg:col-span-2">
         <Card>
           <CardContent className="space-y-4 pt-6">
             <Input label="Titre" error={errors.title?.message} {...register('title')} />
             <Textarea label="Description" {...register('description')} />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
                 label="Catégorie"
                 options={categoryOptions}
@@ -300,7 +300,7 @@ export default function EditDocumentPage() {
             {/* Classification selector with descriptions */}
             <div className="space-y-2">
               <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Classification</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {allowedClassifications.map((cls) => {
                   const currentCls = watch('classification') || 'INTERNE';
                   return (
@@ -417,7 +417,7 @@ export default function EditDocumentPage() {
           </div>
 
           {/* Side-by-side preview */}
-          <div className="space-y-4">
+          <div className="order-1 lg:order-2 space-y-4">
             <Card>
               <CardHeader><h3 className="text-sm font-semibold text-seal-navy dark:text-white">Version actuelle</h3></CardHeader>
               <CardContent className="text-xs space-y-2">

@@ -128,7 +128,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <SkipLinks />
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-dvh bg-surface">
         {/* Sidebar isolée : si elle crash, le reste de la page continue à s'afficher */}
         <ErrorBoundary fallback={
           <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-14 bg-[#002a40] items-center justify-center text-white/60 text-[10px] z-50">
@@ -161,7 +161,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Breadcrumbs />
             </div>
           )}
-          <main id="main-content" className="p-4 lg:p-6 pb-20 lg:pb-6 animate-[fadeIn_0.25s_ease-out]">
+          <main id="main-content" className="p-4 lg:p-6 pb-[calc(64px+env(safe-area-inset-bottom))] lg:pb-6 pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(1rem+env(safe-area-inset-right))] lg:pl-[calc(1.5rem+env(safe-area-inset-left))] lg:pr-[calc(1.5rem+env(safe-area-inset-right))] animate-[fadeIn_0.25s_ease-out]">
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
         </div>

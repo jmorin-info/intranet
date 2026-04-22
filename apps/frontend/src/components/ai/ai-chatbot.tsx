@@ -254,7 +254,14 @@ async function generateResponse(
   };
 }
 
-// ── Chatbot Component ──────────────────────────────────────���──────
+// ── Haptic feedback (safe local util, no cross-package dep) ───────
+function hapticTap(): void {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    try { navigator.vibrate(5); } catch { /* ignore */ }
+  }
+}
+
+// ── Chatbot Component ─────────────────────────────────────────────
 
 export function AIChatbot() {
   const { t } = useTranslation();
@@ -264,7 +271,9 @@ export function AIChatbot() {
   const { open, messages, loading, toggle, close, addMessage, setLoading, clearHistory } = useChatbotStore();
   const [input, setInput] = useState('');
   const [showActions, setShowActions] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const module = detectModule(pathname || '/');
@@ -276,21 +285,54 @@ export function AIChatbot() {
     if (pathname) trackPageView(pathname);
   }, [pathname]);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages — only if user hasn't scrolled up manually
   useEffect(() => {
-    if (scrollRef.current) {
+    if (!isAtBottom) return;
+    if (bottomAnchorRef.current) {
+      bottomAnchorRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    } else if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, loading]);
+  }, [messages.length, loading, isAtBottom]);
 
-  // Focus input when panel opens
+  // Track scroll position to decide auto-scroll behaviour
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const threshold = 60; // px slack from bottom
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+    setIsAtBottom(atBottom);
+  }, []);
+
+  // Focus input when panel opens + haptic on open + lock body scroll on mobile
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 100);
+    if (open) {
+      hapticTap();
+      setTimeout(() => inputRef.current?.focus(), 100);
+      // Mobile body scroll lock while sheet is open
+      if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = prevOverflow; };
+      }
+    }
+    return undefined;
   }, [open]);
+
+  // Close on ESC
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, close]);
 
   const handleSend = useCallback(async (text?: string) => {
     const query = (text || input).trim();
     if (!query || loading) return;
+
+    hapticTap();
+    setIsAtBottom(true); // sending a message -> user wants to see the bottom
 
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
@@ -331,12 +373,12 @@ export function AIChatbot() {
   if (!open) {
     return (
       <button
-        onClick={toggle}
-        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#004469] text-white shadow-xl hover:bg-[#003352] hover:scale-105 transition-all duration-200 group"
+        onClick={() => { hapticTap(); toggle(); }}
+        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex h-14 w-14 lg:h-12 lg:w-12 items-center justify-center rounded-full bg-[#004469] text-white shadow-xl hover:bg-[#003352] hover:scale-105 active:scale-95 transition-all duration-200 group touch-manipulation"
         title="Assistant OMNITECH"
         aria-label="Ouvrir l'assistant IA"
       >
-        <Sparkles className="h-5 w-5 group-hover:rotate-12 transition-transform" />
+        <Sparkles className="h-6 w-6 lg:h-5 lg:w-5 group-hover:rotate-12 transition-transform" />
         {messages.length > 0 && (
           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#F68D2E] text-[9px] font-bold text-white">
             {Math.min(messages.length, 9)}
@@ -346,99 +388,212 @@ export function AIChatbot() {
     );
   }
 
-  // ── Chat panel ────────────────────────────────────────────────
+  // ── Chat panel: fullscreen sheet (mobile) / floating (desktop) ─
   return (
-    <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] flex flex-col rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-200">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 px-4 py-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#004469]/10 dark:bg-[#004469]/30">
-            <Bot className="h-4 w-4 text-[#004469] dark:text-blue-400" />
+    <>
+      {/* Mobile scrim (tap to close) — hidden ≥ lg */}
+      <div
+        onClick={close}
+        aria-hidden
+        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden animate-in fade-in duration-200"
+      />
+
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Assistant OMNITECH"
+        className={[
+          // Mobile: fullscreen sheet slide-up from bottom
+          'fixed inset-0 z-50 flex flex-col bg-white dark:bg-slate-900',
+          'h-[100dvh] w-full',
+          'animate-in slide-in-from-bottom-8 fade-in duration-300',
+          // Desktop override: floating rounded panel
+          'lg:inset-auto lg:bottom-6 lg:right-6 lg:h-auto lg:w-[380px] lg:max-w-[calc(100vw-2rem)]',
+          'lg:rounded-2xl lg:border lg:border-gray-200 lg:dark:border-slate-700 lg:shadow-2xl',
+          'lg:animate-in lg:slide-in-from-bottom-4 lg:duration-200',
+        ].join(' ')}
+      >
+        {/* Header — sticky on mobile with safe-area padding */}
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-4 py-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] lg:pt-3">
+          {/* Mobile grab-handle */}
+          <div aria-hidden className="absolute left-1/2 top-1.5 -translate-x-1/2 h-1 w-10 rounded-full bg-gray-300 dark:bg-slate-700 lg:hidden" />
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex h-9 w-9 lg:h-8 lg:w-8 items-center justify-center rounded-lg bg-[#004469]/10 dark:bg-[#004469]/30 shrink-0">
+              <Bot className="h-4 w-4 text-[#004469] dark:text-blue-400" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white truncate">Assistant OMNITECH</h3>
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">{moduleLabel(module)}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-seal-navy dark:text-white">Assistant OMNITECH</h3>
-            <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">{moduleLabel(module)}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setShowActions(!showActions)}
-            className={`p-1.5 rounded-lg transition ${showActions ? 'bg-[#004469]/10 text-[#004469] dark:bg-blue-900/30 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500'}`}
-            title="Actions rapides"
-          >
-            <Zap className="h-3.5 w-3.5" />
-          </button>
-          {messages.length > 0 && (
+          <div className="flex items-center gap-1 shrink-0">
             <button
-              onClick={clearHistory}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 hover:text-red-500 transition"
-              title="Effacer l'historique"
+              onClick={() => { hapticTap(); setShowActions(!showActions); }}
+              className={`flex h-11 w-11 lg:h-8 lg:w-8 items-center justify-center rounded-lg transition active:scale-95 touch-manipulation ${showActions ? 'bg-[#004469]/10 text-[#004469] dark:bg-blue-900/30 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500'}`}
+              title="Actions rapides"
+              aria-label="Actions rapides"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Zap className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
             </button>
-          )}
-          <button
-            onClick={close}
-            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 transition"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Context Actions Panel */}
-      {showActions && contextActions.length > 0 && (
-        <div className="border-b border-gray-100 dark:border-slate-800 px-4 py-3 bg-gray-50/50 dark:bg-slate-800/50">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 mb-2">
-            Actions disponibles · {pageContext.intent}
-          </p>
-          <div className="space-y-1">
-            {contextActions.slice(0, 4).map(action => (
+            {messages.length > 0 && (
               <button
-                key={action.id}
-                onClick={() => {
-                  if (action.href) {
-                    executeAction(action, router);
-                    setTimeout(close, 150);
-                  }
-                }}
-                className="w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-white dark:hover:bg-slate-700 transition group"
+                onClick={() => { hapticTap(); clearHistory(); }}
+                className="flex h-11 w-11 lg:h-8 lg:w-8 items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 hover:text-red-500 transition active:scale-95 touch-manipulation"
+                title="Effacer l'historique"
+                aria-label="Effacer l'historique"
               >
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#004469]/10 dark:bg-[#004469]/30 text-[#004469] dark:text-blue-400 group-hover:bg-[#004469]/20 transition flex-shrink-0">
-                  <Zap className="h-3.5 w-3.5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium text-seal-navy dark:text-white truncate">{action.label}</p>
-                  <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">{action.description}</p>
-                </div>
+                <Trash2 className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
               </button>
-            ))}
+            )}
+            <button
+              onClick={close}
+              className="flex h-11 w-11 lg:h-8 lg:w-8 items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 transition active:scale-95 touch-manipulation"
+              aria-label="Fermer l'assistant"
+            >
+              <X className="h-5 w-5 lg:h-4 lg:w-4" />
+            </button>
           </div>
-          {pageContext.helpText && (
-            <p className="mt-2 text-[10px] text-seal-gray-500/70 dark:text-slate-600 italic">
-              💡 {pageContext.helpText}
-            </p>
-          )}
         </div>
-      )}
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 max-h-[400px] min-h-[200px]">
-        {messages.length === 0 && !loading && (
-          <div className="text-center py-6">
-            <Sparkles className="h-8 w-8 text-[#F68D2E] mx-auto mb-3" />
-            <p className="text-sm font-medium text-seal-navy dark:text-white mb-1">
-              Bonjour{user?.firstName ? ` ${user.firstName}` : ''} !
+        {/* Context Actions Panel */}
+        {showActions && contextActions.length > 0 && (
+          <div className="shrink-0 border-b border-gray-100 dark:border-slate-800 px-4 py-3 bg-gray-50/50 dark:bg-slate-800/50">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 mb-2">
+              Actions disponibles · {pageContext.intent}
             </p>
-            <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-4">
-              Je suis votre assistant. Posez-moi une question ou choisissez une suggestion.
-            </p>
-            <div className="flex flex-wrap gap-1.5 justify-center">
+            <div className="space-y-1">
+              {contextActions.slice(0, 4).map(action => (
+                <button
+                  key={action.id}
+                  onClick={() => {
+                    hapticTap();
+                    if (action.href) {
+                      executeAction(action, router);
+                      setTimeout(close, 150);
+                    }
+                  }}
+                  className="w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 min-h-[44px] text-left hover:bg-white dark:hover:bg-slate-700 transition group active:scale-[0.99] touch-manipulation"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#004469]/10 dark:bg-[#004469]/30 text-[#004469] dark:text-blue-400 group-hover:bg-[#004469]/20 transition flex-shrink-0">
+                    <Zap className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-seal-navy dark:text-white truncate">{action.label}</p>
+                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-500 truncate">{action.description}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+            {pageContext.helpText && (
+              <p className="mt-2 text-[10px] text-seal-gray-500/70 dark:text-slate-600 italic">
+                💡 {pageContext.helpText}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Messages — flex-1, overflow, natural mobile height */}
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 space-y-3 sm:space-y-4 lg:max-h-[400px] lg:min-h-[200px]"
+        >
+          {messages.length === 0 && !loading && (
+            <div className="flex flex-col items-center justify-center text-center py-8 sm:py-6 px-2">
+              <div className="relative mb-4">
+                <div className="absolute inset-0 animate-pulse rounded-full bg-[#F68D2E]/20 blur-xl" aria-hidden />
+                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#004469] to-[#F68D2E] shadow-lg">
+                  <Sparkles className="h-7 w-7 text-white" />
+                </div>
+              </div>
+              <p className="text-base font-semibold text-seal-navy dark:text-white mb-1">
+                Bonjour{user?.firstName ? ` ${user.firstName}` : ''} !
+              </p>
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-5 max-w-xs">
+                Je suis votre assistant. Posez-moi une question ou choisissez une suggestion.
+              </p>
+              <div className="flex flex-col gap-2 w-full max-w-sm">
+                {suggestions.map(s => (
+                  <button
+                    key={s}
+                    onClick={() => handleSend(s)}
+                    className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-4 py-3 min-h-[44px] text-sm font-medium text-seal-navy dark:text-slate-200 hover:border-[#004469] hover:text-[#004469] dark:hover:border-blue-400 dark:hover:text-blue-400 active:scale-[0.98] transition touch-manipulation text-left"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {messages.map(msg => (
+            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`max-w-[85%] sm:max-w-[75%] lg:max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed break-words [overflow-wrap:anywhere] ${
+                  msg.role === 'user'
+                    ? 'bg-[#004469] text-white rounded-br-md'
+                    : 'bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-md'
+                }`}
+              >
+                {msg.content.split('\n').map((line, i) => {
+                  // Render action links
+                  const linkMatch = line.match(/^→ \[(.+?)\]\((.+?)\)$/);
+                  if (linkMatch) {
+                    return (
+                      <Link
+                        key={i}
+                        href={linkMatch[2]!}
+                        onClick={() => { hapticTap(); setTimeout(close, 100); }}
+                        className="flex items-center gap-1.5 mt-1.5 text-xs font-medium text-[#004469] dark:text-blue-400 hover:underline active:scale-[0.98] touch-manipulation"
+                      >
+                        <ChevronDown className="h-3 w-3 rotate-[-90deg]" />
+                        {linkMatch[1]}
+                      </Link>
+                    );
+                  }
+                  // Bold markdown
+                  const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                  return (
+                    <p key={i} className={i > 0 ? 'mt-1' : ''}>
+                      {parts.map((part, j) =>
+                        part.startsWith('**') && part.endsWith('**')
+                          ? <strong key={j} className="font-semibold">{part.slice(2, -2)}</strong>
+                          : <span key={j}>{part}</span>
+                      )}
+                    </p>
+                  );
+                })}
+                <p className="mt-1.5 text-[11px] opacity-60">
+                  {new Date(msg.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div ref={bottomAnchorRef} aria-hidden />
+        </div>
+
+        {/* Horizontal-scroll quick suggestions when conversation exists */}
+        {messages.length > 0 && !loading && (
+          <div className="shrink-0 px-4 pb-2 pt-1">
+            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-4 px-4">
               {suggestions.map(s => (
                 <button
                   key={s}
                   onClick={() => handleSend(s)}
-                  className="rounded-full border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 py-1.5 text-[11px] font-medium text-seal-navy dark:text-slate-300 hover:border-[#004469] hover:text-[#004469] dark:hover:border-blue-400 dark:hover:text-blue-400 transition"
+                  className="shrink-0 rounded-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white active:scale-95 transition touch-manipulation"
                 >
                   {s}
                 </button>
@@ -447,97 +602,34 @@ export function AIChatbot() {
           </div>
         )}
 
-        {messages.map(msg => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div
-              className={`max-w-[85%] rounded-xl px-3 py-2 text-[13px] leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-[#004469] text-white rounded-br-sm'
-                  : 'bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-sm'
-              }`}
-            >
-              {msg.content.split('\n').map((line, i) => {
-                // Render action links
-                const linkMatch = line.match(/^→ \[(.+?)\]\((.+?)\)$/);
-                if (linkMatch) {
-                  return (
-                    <Link
-                      key={i}
-                      href={linkMatch[2]!}
-                      onClick={() => setTimeout(close, 100)}
-                      className="flex items-center gap-1.5 mt-1 text-xs font-medium text-[#004469] dark:text-blue-400 hover:underline"
-                    >
-                      <ChevronDown className="h-3 w-3 rotate-[-90deg]" />
-                      {linkMatch[1]}
-                    </Link>
-                  );
-                }
-                // Bold markdown
-                const parts = line.split(/(\*\*[^*]+\*\*)/g);
-                return (
-                  <p key={i} className={i > 0 ? 'mt-1' : ''}>
-                    {parts.map((part, j) =>
-                      part.startsWith('**') && part.endsWith('**')
-                        ? <strong key={j} className="font-semibold">{part.slice(2, -2)}</strong>
-                        : <span key={j}>{part}</span>
-                    )}
-                  </p>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl rounded-bl-sm px-4 py-3">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Quick suggestions when conversation exists */}
-      {messages.length > 0 && !loading && (
-        <div className="px-4 pb-2 flex flex-wrap gap-1">
-          {suggestions.slice(0, 2).map(s => (
+        {/* Input — sticky bottom with safe-area inset */}
+        <div className="shrink-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+0.625rem)] lg:pb-2.5">
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+              placeholder="Posez une question..."
+              className="flex-1 min-h-[44px] rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-[#004469] focus:bg-white dark:focus:bg-slate-900 px-3.5 text-base lg:text-sm text-seal-navy dark:text-white placeholder-taupe/50 dark:placeholder-slate-500 focus:outline-none transition touch-manipulation"
+              inputMode="text"
+              autoComplete="off"
+              autoCorrect="on"
+              enterKeyHint="send"
+              disabled={loading}
+            />
             <button
-              key={s}
-              onClick={() => handleSend(s)}
-              className="rounded-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-2.5 py-1 text-[10px] text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white transition"
+              onClick={() => handleSend()}
+              disabled={!input.trim() || loading}
+              aria-label="Envoyer le message"
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#004469] text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-[#003352] active:scale-95 transition touch-manipulation shrink-0"
             >
-              {s}
+              <Send className="h-4 w-4" />
             </button>
-          ))}
-        </div>
-      )}
-
-      {/* Input */}
-      <div className="border-t border-gray-100 dark:border-slate-800 px-3 py-2.5">
-        <div className="flex items-center gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder="Posez une question..."
-            className="flex-1 bg-transparent text-sm text-seal-navy dark:text-white placeholder-taupe/50 dark:placeholder-slate-500 focus:outline-none"
-            disabled={loading}
-          />
-          <button
-            onClick={() => handleSend()}
-            disabled={!input.trim() || loading}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#004469] text-white disabled:opacity-30 hover:bg-[#003352] transition"
-          >
-            <Send className="h-3.5 w-3.5" />
-          </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

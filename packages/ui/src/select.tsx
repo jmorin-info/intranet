@@ -43,7 +43,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId}
             className={cn(
-              'w-full appearance-none rounded-lg border border-gray-200 px-3 py-2 pr-10 text-sm bg-white transition-colors',
+              'w-full appearance-none rounded-lg border border-gray-200 px-3 py-2 pr-10 text-base sm:text-sm bg-white transition-colors touch-manipulation',
               'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
               'dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500',
               error && 'border-red-500',

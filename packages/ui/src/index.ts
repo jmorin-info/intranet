@@ -24,3 +24,4 @@ export { WorkflowTimeline } from './workflow-timeline';
 export type { WorkflowStep } from './workflow-timeline';
 export { Tabs } from './tabs';
 export { SearchInput } from './search-input';
+export * from './haptic';

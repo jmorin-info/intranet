@@ -55,7 +55,7 @@ export function Dialog({ open, onClose, title, description, children, className 
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-[5vh] pb-[5vh] animate-fade-in-scale"
+      className="fixed inset-0 z-50 flex items-end sm:items-start justify-center overflow-y-auto bg-black/50 p-0 sm:p-4 sm:pt-[5vh] sm:pb-[5vh] animate-fade-in-scale"
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
@@ -63,13 +63,15 @@ export function Dialog({ open, onClose, title, description, children, className 
       <div
         ref={panelRef}
         className={cn(
-          'bg-white dark:bg-slate-900 rounded-card shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col animate-fade-in-scale',
+          'bg-white dark:bg-slate-900 shadow-xl w-full sm:max-w-lg max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col animate-fade-in-scale',
+          'rounded-t-card rounded-b-none sm:rounded-card sm:rounded-b-card',
           className,
         )}
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
       >
+        <div className="mx-auto h-1 w-10 rounded-full bg-gray-300 dark:bg-slate-600 mt-2 mb-1 sm:hidden" aria-hidden />
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
           <div>
             <h2 id="dialog-title" className="text-lg font-semibold text-seal-navy dark:text-white">
@@ -85,7 +87,7 @@ export function Dialog({ open, onClose, title, description, children, className 
             <X className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
           </button>
         </div>
-        <div className="px-6 py-4 overflow-y-auto">{children}</div>
+        <div className="px-6 py-4 overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">{children}</div>
       </div>
     </div>
   );

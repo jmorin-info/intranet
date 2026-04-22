@@ -2,9 +2,10 @@ import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from './utils';
 import { Loader2 } from 'lucide-react';
+import { haptic, type HapticPattern } from './haptic';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 font-semibold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none',
+  'inline-flex items-center justify-center gap-2 font-semibold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none touch-manipulation select-none active:scale-[0.97] transition-transform duration-100',
   {
     variants: {
       variant: {
@@ -23,7 +24,7 @@ const buttonVariants = cva(
         'seal-green': 'bg-[#006233] text-white border-2 border-[#006233] uppercase tracking-wider rounded-seal hover:bg-transparent hover:text-[#006233] font-semibold',
       },
       size: {
-        sm: 'h-8 px-3 text-xs',
+        sm: 'h-9 px-3 text-xs',
         md: 'h-10 px-4 text-sm',
         lg: 'h-12 px-6 text-base',
         icon: 'h-10 w-10',
@@ -40,15 +41,21 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   loading?: boolean;
+  hapticPattern?: HapticPattern;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, loading, children, disabled, ...props }, ref) => {
+  ({ className, variant, size, loading, children, disabled, hapticPattern, onClick, type, ...props }, ref) => {
     return (
       <button
         ref={ref}
+        type={type ?? 'button'}
         className={cn(buttonVariants({ variant, size }), className)}
         disabled={disabled || loading}
+        onClick={(e) => {
+          if (hapticPattern) haptic(hapticPattern);
+          onClick?.(e);
+        }}
         {...props}
       >
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
