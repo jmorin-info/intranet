@@ -248,7 +248,7 @@ export class MediaService {
     user: RequestUser,
     albumId: string,
     file: Express.Multer.File,
-  ): Promise<MediaItem> {
+  ): Promise<Omit<MediaItem, 'fileSizeBytes'> & { fileSizeBytes: string }> {
     this.logger.log(
       `Media upload attempt: user=${user.id} role=${user.role} album=${albumId} ` +
       `file=${file?.originalname} mime=${file?.mimetype} size=${file?.size}`,
@@ -374,7 +374,15 @@ export class MediaService {
       severity: 'INFO',
     });
 
-    return { ...item, fileSizeBytes: item.fileSizeBytes };
+    // BigInt n'est pas sérialisable en JSON → conversion en string pour que
+    // Express ne renvoie pas 500 après un upload réussi (symptôme observé :
+    // fichier bien uploadé sur disque/DB mais toast d'erreur côté UI).
+    return {
+      ...item,
+      fileUrl: fileUrl.replace('%ID%', item.id),
+      thumbnailUrl: thumbnailUrl.replace('%ID%', item.id),
+      fileSizeBytes: item.fileSizeBytes.toString(),
+    };
   }
 
   private async ensureVideoPlaceholderThumb(destPath: string): Promise<void> {

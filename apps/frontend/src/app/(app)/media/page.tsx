@@ -314,7 +314,9 @@ function AlbumCard({ album }: { album: Album }) {
               src={withAuthToken(mosaic[0]!.thumbnailUrl)}
               alt={album.title}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.opacity = '0.25';
+              }}
             />
           )}
 
@@ -383,7 +385,7 @@ function MosaicPreview({
           src={withAuthToken(main.thumbnailUrl)}
           alt={albumTitle}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.25'; }}
         />
         {main.type === 'VIDEO' && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -408,7 +410,7 @@ function MosaicPreview({
                 alt=""
                 aria-hidden
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                loading="lazy"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.25'; }}
               />
               {item.type === 'VIDEO' && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

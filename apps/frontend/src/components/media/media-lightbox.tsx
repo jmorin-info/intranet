@@ -118,7 +118,11 @@ export function MediaLightbox({ items, currentIndex, onClose, onNext, onPrev }: 
           <img
             src={withAuthToken(current.fileUrl)}
             alt={current.title ?? ''}
-            className="max-h-full max-w-full object-contain shadow-2xl"
+            // max-h-full dépend de la hauteur calculée du parent flex, qui peut
+            // rester à 0 sur iOS Safari/Firefox au premier paint. Contournement
+            // avec des contraintes viewport explicites pour garantir le fit.
+            style={{ maxHeight: '100svh', maxWidth: '100vw' }}
+            className="max-h-[calc(100svh-8rem)] max-w-full object-contain shadow-2xl"
             draggable={false}
           />
         ) : (
@@ -128,7 +132,9 @@ export function MediaLightbox({ items, currentIndex, onClose, onNext, onPrev }: 
             poster={withAuthToken(current.thumbnailUrl)}
             controls
             autoPlay
-            className="max-h-full max-w-full shadow-2xl"
+            playsInline
+            style={{ maxHeight: '100svh', maxWidth: '100vw' }}
+            className="max-h-[calc(100svh-8rem)] max-w-full shadow-2xl"
           />
         )}
       </div>
