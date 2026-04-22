@@ -101,6 +101,26 @@ const TEXT_MIMES_SKIP_MAGIC = new Set([
   'text/plain',
 ]);
 
+/**
+ * Certains OS / navigateurs n'ont pas de mapping pour .md et envoient
+ * `application/octet-stream` ou une chaine vide. On rétro-projette sur le
+ * MIME attendu en se basant sur l'extension du nom original.
+ */
+function normalizeMimeType(file: Express.Multer.File): void {
+  const current = (file.mimetype || '').toLowerCase();
+  const ambiguous =
+    !current ||
+    current === 'application/octet-stream' ||
+    current === 'application/x-unknown';
+  if (!ambiguous) return;
+  const name = (file.originalname || '').toLowerCase();
+  if (name.endsWith('.md') || name.endsWith('.markdown')) {
+    file.mimetype = 'text/markdown';
+  } else if (name.endsWith('.txt')) {
+    file.mimetype = 'text/plain';
+  }
+}
+
 function validateMagicBytes(file: Express.Multer.File): boolean {
   // Les formats texte (MD, TXT) n'ont pas de magic bytes fiables : on leur
   // fait confiance sur le MIME type déclaré après contrôle de la taille.
@@ -1180,6 +1200,9 @@ export class DocumentsService {
       throw new NotFoundException('Document introuvable');
     }
 
+    // Normalise le MIME : certains OS envoient application/octet-stream pour
+    // les .md / .txt — on rétro-projette à partir de l'extension avant validation.
+    normalizeMimeType(file);
     // Validate MIME type
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
       throw new BadRequestException(`Type de fichier non autorisé: ${file.mimetype}`);
@@ -1360,6 +1383,8 @@ export class DocumentsService {
       );
     }
 
+    // Normalise le MIME (ex: .md → text/markdown) avant validation
+    normalizeMimeType(file);
     // MIME validation — same rules as uploadVersion
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
       throw new BadRequestException(

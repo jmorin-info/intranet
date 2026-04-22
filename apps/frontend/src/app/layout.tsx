@@ -23,10 +23,21 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <head>
         <meta name="robots" content="noindex, nofollow" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="manifest" href="/manifest.json" />
+        {/* Icons : multi-size explicit pour que Windows / macOS / iOS / Android
+            prennent le bon fichier selon le contexte (tab, taskbar, home screen).
+            ?v=3 sur chaque URL force les clients PWA à télécharger la nouvelle
+            série d'icônes OMNITECH Security après leur install précédente. */}
+        <link rel="icon" type="image/x-icon" href="/favicon.ico?v=3" sizes="any" />
+        <link rel="icon" type="image/png" href="/icon-32.png?v=3" sizes="32x32" />
+        <link rel="icon" type="image/png" href="/icon-192.png?v=3" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/icon-180.png?v=3" sizes="180x180" />
+        <link rel="manifest" href="/manifest.json?v=3" />
         <meta name="theme-color" content="#004469" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="application-name" content="OMNITECH Security" />
+        <meta name="apple-mobile-web-app-title" content="OMNITECH Security" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-TileImage" content="/icon-192.png?v=3" />
+        <meta name="msapplication-TileColor" content="#004469" />
         <script
           dangerouslySetInnerHTML={{
             __html: `try{if(localStorage.getItem('darkMode')==='true')document.documentElement.classList.add('dark')}catch(e){}`,

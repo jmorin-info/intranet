@@ -195,7 +195,7 @@ export default function WelcomePage() {
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light text-white leading-[1.1]">
                 Bienvenue sur<br />l&apos;intranet{' '}
-                <span className="text-[#F68D2E] font-semibold">OMNITECH</span>
+                <span className="text-[#F68D2E] font-semibold">OMNITECH&nbsp;Security</span>
               </h1>
               <p className="text-white/60 mt-6 text-lg sm:text-xl max-w-lg leading-relaxed">
                 Plateforme sécurisée de collaboration et de gouvernance — au service de la sûreté des sites à risques.

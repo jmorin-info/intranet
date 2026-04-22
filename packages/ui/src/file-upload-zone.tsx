@@ -16,7 +16,7 @@ interface FileUploadZoneProps {
 
 export function FileUploadZone({
   onFileSelect,
-  accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx',
+  accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.md,.txt,.png,.jpg,.jpeg,.webp,.gif',
   maxSizeMB = 50,
   selectedFile,
   onClear,
