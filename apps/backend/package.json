@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "nest build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\" --max-warnings 0 || true",
     "dev": "nest start --watch",
     "start": "node dist/main",
     "start:prod": "node dist/main",

@@ -7,7 +7,10 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
+    "typecheck": "pnpm -r run typecheck",
+    "verify": "pnpm db:generate && pnpm -r run typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "prepare": "husky || true",
     "db:generate": "pnpm --filter @omnitech/database generate",
     "db:push": "pnpm --filter @omnitech/database db:push",
     "db:migrate": "pnpm --filter @omnitech/database migrate:dev",
@@ -24,6 +27,9 @@
   "packageManager": "pnpm@9.15.0",
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "pa11y-ci": "^4.1.0"
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "pa11y-ci": "^4.1.0",
+    "prettier": "^3.8.3"
   }
 }

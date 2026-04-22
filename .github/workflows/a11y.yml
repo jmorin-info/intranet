@@ -1,0 +1,93 @@
+name: Accessibilité (Pa11y WCAG2AA)
+
+# Déclenchement :
+#   - workflow_dispatch : manuel depuis l'onglet Actions (choix de l'URL cible)
+#   - schedule          : audit automatique hebdomadaire (lundi 05:00 UTC)
+#
+# Nécessite le secret de repo : STAGING_URL (ex. https://intranet-staging.omnitech-security.fr)
+# Les routes authentifiées retourneront 302/401 : pa11y remontera donc
+# uniquement les infractions sur les pages publiques (welcome, login).
+# Pour tester les routes authentifiées, ajouter un cookie de session via
+# `actions.*.navigate` dans le JSON de config (non activé ici par défaut).
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: "URL de base (remplace STAGING_URL si fournie)"
+        required: false
+        default: ""
+      mobile:
+        description: "Lancer aussi l'audit mobile (390x844)"
+        required: false
+        type: boolean
+        default: true
+  schedule:
+    - cron: "0 5 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  pa11y:
+    name: Pa11y CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9.15.0
+
+      - name: Install root devDependencies (pa11y-ci only)
+        run: pnpm install --ignore-scripts --filter . --no-frozen-lockfile
+
+      - name: Resolve target URL
+        id: url
+        run: |
+          URL="${{ github.event.inputs.target_url }}"
+          if [ -z "$URL" ]; then URL="${{ secrets.STAGING_URL }}"; fi
+          if [ -z "$URL" ]; then
+            echo "::error::Ni inputs.target_url ni le secret STAGING_URL ne sont définis."
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Patch config with target URL
+        run: |
+          node -e "
+            const fs = require('fs');
+            const base = process.argv[1];
+            for (const file of ['.pa11yci.json', '.pa11yci.mobile.json']) {
+              const cfg = JSON.parse(fs.readFileSync(file, 'utf8'));
+              cfg.urls = cfg.urls.map(u => u.replace('http://localhost:3001', base));
+              fs.writeFileSync(file, JSON.stringify(cfg, null, 2));
+            }
+          " "${{ steps.url.outputs.url }}"
+
+      - name: Run Pa11y desktop (WCAG2AA)
+        run: pnpm a11y
+        continue-on-error: false
+
+      - name: Run Pa11y mobile (390x844)
+        if: ${{ github.event.inputs.mobile != 'false' }}
+        run: pnpm a11y:mobile
+        continue-on-error: false
+
+      - name: Upload pa11y artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa11y-results
+          path: |
+            .pa11yci.json
+            .pa11yci.mobile.json
+          retention-days: 30
