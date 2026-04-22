@@ -325,6 +325,81 @@ export class OfficeService {
       (isOwner || isReviewer || isAdmin) &&
       isEditableStatus;
 
+    // Diagnostic structuré pour l'UI : si canEdit=false, dire exactement
+    // pourquoi ET proposer une action concrète. Sans ça, OnlyOffice tombe
+    // silencieusement en mode « Download » et l'utilisateur ne comprend pas
+    // pourquoi il ne peut pas enregistrer.
+    let canEditReason: {
+      code:
+        | 'OK'
+        | 'VIEW_MODE'
+        | 'FORMAT_READONLY'
+        | 'NOT_AUTHORIZED'
+        | 'STATUS_OBSOLETE'
+        | 'STATUS_ARCHIVED'
+        | 'STATUS_APPROVED_NOT_OWNER';
+      message: string;
+      actionHint?: string;
+    };
+    if (canEdit) {
+      canEditReason = { code: 'OK', message: 'Édition autorisée.' };
+    } else if (mode !== 'edit') {
+      canEditReason = {
+        code: 'VIEW_MODE',
+        message: 'Éditeur ouvert en lecture seule (mode=view).',
+        actionHint: 'Ouvrir sans le paramètre ?mode=view pour éditer.',
+      };
+    } else if (!isFormatEditable) {
+      canEditReason = {
+        code: 'FORMAT_READONLY',
+        message: `Le format .${extension} n'est pas modifiable dans OnlyOffice.`,
+        actionHint:
+          'Uploadez une nouvelle version au format .docx / .xlsx / .pptx pour éditer en ligne.',
+      };
+    } else if (!(isOwner || isReviewer || isAdmin)) {
+      canEditReason = {
+        code: 'NOT_AUTHORIZED',
+        message:
+          "Vous n'êtes ni propriétaire, ni relecteur, ni administrateur de ce document.",
+        actionHint:
+          "Demandez au propriétaire de vous ajouter comme relecteur, ou contactez un administrateur.",
+      };
+    } else if (document.status === 'OBSOLETE') {
+      canEditReason = {
+        code: 'STATUS_OBSOLETE',
+        message: 'Ce document est marqué OBSOLETE, l\'édition directe est bloquée.',
+        actionHint:
+          "Réimportez une nouvelle version via « Réimporter » sur la page document — le doc repassera en brouillon.",
+      };
+    } else if (document.status === 'ARCHIVED') {
+      canEditReason = {
+        code: 'STATUS_ARCHIVED',
+        message: 'Ce document est ARCHIVÉ, l\'édition est bloquée.',
+        actionHint:
+          "Utilisez « Réouvrir » sur la page document pour le repasser en brouillon éditable.",
+      };
+    } else if (document.status === 'APPROVED' && !(isOwner || isAdmin)) {
+      canEditReason = {
+        code: 'STATUS_APPROVED_NOT_OWNER',
+        message:
+          'Ce document est APPROUVÉ. Seul le propriétaire ou un administrateur peut encore le modifier.',
+        actionHint:
+          "Pour une révision formelle, utilisez « Réouvrir » ou contactez le propriétaire.",
+      };
+    } else {
+      canEditReason = {
+        code: 'NOT_AUTHORIZED',
+        message: 'Édition non autorisée (raison inconnue).',
+      };
+    }
+
+    if (!canEdit) {
+      this.logger.warn(
+        `OnlyOffice editor readonly: doc=${document.reference} user=${currentUser.id} role=${currentUser.role} ` +
+          `status=${document.status} format=${extension} reason=${canEditReason.code}`,
+      );
+    }
+
     // Token d'accès signé pour que OnlyOffice puisse télécharger le fichier
     const accessToken = this.generateFileAccessToken(
       currentVersion.id,
@@ -403,6 +478,7 @@ export class OfficeService {
       documentServerUrl: this.documentServerUrl,
       config,
       canEdit,
+      canEditReason,
       extension,
       document: {
         id: document.id,

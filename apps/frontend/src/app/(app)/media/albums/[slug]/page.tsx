@@ -159,7 +159,7 @@ export default function AlbumDetailPage() {
                   src={withAuthToken(item.thumbnailUrl)}
                   alt={item.title ?? ''}
                   className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.25'; }}
                 />
               )}
               {/* Hover overlay */}

@@ -16,6 +16,18 @@ interface EditorConfig {
   documentServerUrl: string;
   config: any;
   canEdit: boolean;
+  canEditReason?: {
+    code:
+      | 'OK'
+      | 'VIEW_MODE'
+      | 'FORMAT_READONLY'
+      | 'NOT_AUTHORIZED'
+      | 'STATUS_OBSOLETE'
+      | 'STATUS_ARCHIVED'
+      | 'STATUS_APPROVED_NOT_OWNER';
+    message: string;
+    actionHint?: string;
+  };
   extension: string;
   document: {
     id: string;
@@ -724,14 +736,29 @@ export default function DocumentEditorPage() {
         </div>
       </div>
 
-      {/* Indication si on n'a pas l'édit */}
+      {/* Indication si on n'a pas l'édit — message précis + action concrète */}
       {mode === 'edit' && !editorConfig.canEdit && (
         <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
           <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-          <p>
-            Édition non autorisée : le document est en statut <strong>{editorConfig.document.status}</strong> ou vous n&apos;en êtes pas propriétaire/reviewer/admin.
-            Affichage en lecture seule.
-          </p>
+          <div className="flex-1">
+            <p className="font-semibold">
+              {editorConfig.canEditReason?.message ||
+                `Édition non autorisée (statut ${editorConfig.document.status}). Affichage en lecture seule.`}
+            </p>
+            {editorConfig.canEditReason?.actionHint && (
+              <p className="mt-1">{editorConfig.canEditReason.actionHint}</p>
+            )}
+            <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-500">
+              OnlyOffice n&apos;affichera donc que l&apos;option « Télécharger » — c&apos;est
+              volontaire tant que l&apos;édition directe n&apos;est pas autorisée.
+            </p>
+            <Link
+              href={`/documents/${editorConfig.document.id}`}
+              className="inline-flex items-center gap-1 mt-2 text-amber-900 dark:text-amber-200 font-medium hover:underline"
+            >
+              <ArrowLeft className="h-3 w-3" /> Retour à la page du document
+            </Link>
+          </div>
         </div>
       )}
 
