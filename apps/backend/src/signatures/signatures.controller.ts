@@ -5,10 +5,14 @@ import {
   Patch,
   Param,
   Body,
+  Query,
+  Res,
   UseGuards,
   ParseUUIDPipe,
   ForbiddenException,
 } from '@nestjs/common';
+import type { Response } from 'express';
+import { rowsToCsv, csvFilename, CsvColumn } from '../common/utils/csv-export';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -46,6 +50,73 @@ export class SignaturesController {
   @Roles(UserRole.ADMIN, UserRole.DIRECTION, UserRole.SUPER_ADMIN)
   listAllSignatureRequests() {
     return this.signaturesService.listAllSignatureRequests();
+  }
+
+  /**
+   * CSV export of all signature requests (max 1000 rows).
+   * ISO 27001 A.5.10 — export contrôlé.
+   */
+  @Get('export/csv')
+  @Roles(UserRole.ADMIN, UserRole.DIRECTION, UserRole.SUPER_ADMIN)
+  async exportCsv(
+    @Query('status') status: string | undefined,
+    @Res() res: Response,
+  ) {
+    const all = await this.signaturesService.listAllSignatureRequests();
+    const filtered = status
+      ? all.filter((r: { status: string }) => r.status === status)
+      : all;
+
+    type Row = {
+      status: string;
+      createdAt: Date | string;
+      signedAt: Date | string | null;
+      signer: { firstName: string; lastName: string; email: string } | null;
+      requestedBy: { firstName: string; lastName: string; email: string } | null;
+      documentVersion: {
+        versionNumber?: string | null;
+        document: { title: string; reference: string };
+      };
+    };
+
+    const columns: CsvColumn<Row>[] = [
+      { header: 'Document', accessor: (r) => r.documentVersion.document.title },
+      { header: 'Référence', accessor: (r) => r.documentVersion.document.reference },
+      { header: 'Version', accessor: (r) => r.documentVersion.versionNumber ?? '' },
+      { header: 'Statut', accessor: (r) => r.status },
+      {
+        header: 'Signataire',
+        accessor: (r) =>
+          r.signer ? `${r.signer.firstName} ${r.signer.lastName}` : '',
+      },
+      { header: 'Email signataire', accessor: (r) => r.signer?.email ?? '' },
+      {
+        header: 'Demandé par',
+        accessor: (r) =>
+          r.requestedBy
+            ? `${r.requestedBy.firstName} ${r.requestedBy.lastName}`
+            : '',
+      },
+      {
+        header: 'Demandé le',
+        accessor: (r) =>
+          r.createdAt ? new Date(r.createdAt).toISOString() : '',
+      },
+      {
+        header: 'Signé le',
+        accessor: (r) =>
+          r.signedAt ? new Date(r.signedAt).toISOString() : '',
+      },
+    ];
+
+    const csv = rowsToCsv<Row>(filtered.slice(0, 1000) as Row[], columns);
+
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${csvFilename('signatures')}"`,
+      'Cache-Control': 'private, no-store',
+    });
+    res.send(csv);
   }
 
   @Post('request')

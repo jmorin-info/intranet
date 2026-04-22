@@ -10,6 +10,7 @@ import { useTranslation } from '@/lib/i18n';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/layout/page-header';
+import { ExportCsvButton } from '@/components/ui/export-csv-button';
 
 const AdminGroupTabs = dynamic(
   () => import('@/components/layout/admin-group-tabs').then(m => ({ default: m.AdminGroupTabs })),
@@ -129,10 +130,18 @@ export default function AdminSignaturesPage() {
         icon={PenLine}
         hub="admin"
         actions={
-          <Button onClick={() => setShowRequestDialog(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Demander une signature
-          </Button>
+          <div className="flex items-center gap-2">
+            <ExportCsvButton
+              endpoint="/signatures/export/csv"
+              filename="signatures"
+              params={filter !== 'ALL' ? { status: filter } : undefined}
+              label="Exporter CSV"
+            />
+            <Button onClick={() => setShowRequestDialog(true)}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Demander une signature
+            </Button>
+          </div>
         }
       />
 

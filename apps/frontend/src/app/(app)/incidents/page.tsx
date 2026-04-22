@@ -34,7 +34,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
-import { ExportButton } from '@/components/ui/export-button';
+import { ExportCsvButton } from '@/components/ui/export-csv-button';
 import { PdfExportButton } from '@/components/ui/pdf-export-button';
 import { useEntityEvents } from '@/lib/events';
 import { useAISuggestions } from '@/lib/ai-ux';
@@ -451,18 +451,16 @@ export default function IncidentsPage() {
         hub="security"
         actions={
           <>
-            <ExportButton
+            <ExportCsvButton
+              endpoint="/incidents/export/csv"
               filename="incidents"
-              rows={(incidents?.data || []) as unknown as Array<Record<string, unknown>>}
-              columns={[
-                { header: 'Référence', accessor: (r: Record<string, unknown>) => (r?.reference as string) || (r?.id as string) || '' },
-                { header: 'Titre', accessor: 'title' },
-                { header: 'Statut', accessor: 'status' },
-                { header: 'Gravité', accessor: 'severity' },
-                { header: 'Catégorie', accessor: 'category' },
-                { header: 'Détecté le', accessor: (r: Record<string, unknown>) => (r?.detectedAt as string) || (r?.createdAt as string) || '' },
-                { header: 'Assigné à', accessor: (r: Record<string, unknown>) => (r?.assignedTo as { email?: string })?.email || '' },
-              ]}
+              params={{
+                ...(statusFilter ? { status: statusFilter } : {}),
+                ...(severityFilter ? { severity: severityFilter } : {}),
+                ...(categoryFilter ? { category: categoryFilter } : {}),
+                ...(debouncedSearch ? { search: debouncedSearch } : {}),
+                ...(dateFrom ? { dateFrom } : {}),
+              }}
             />
             <PdfExportButton
               label="Rapport incidents"
