@@ -36,7 +36,7 @@ export default function AlbumDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const canManage = Boolean(
-    user && (isRoleAtLeast(user.role, UserRole.ADMIN) || (user as { canManageMedia?: boolean }).canManageMedia),
+    user && (isRoleAtLeast(user.role, UserRole.ADMIN) || user.canManageMedia),
   );
 
   const load = useCallback(async () => {

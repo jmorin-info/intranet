@@ -150,7 +150,9 @@ export default function AlertsPage() {
       await api.post(`/alerts/${id}/read`);
       setAlerts(prev => prev.map(a => a.id === id ? { ...a, isRead: true } : a));
       toast.success('Accusé de lecture enregistré');
-    } catch {}
+    } catch {
+      toast.error("Impossible d'enregistrer l'accusé de lecture");
+    }
   };
 
   const handleMarkAllRead = async () => {

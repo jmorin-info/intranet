@@ -87,9 +87,7 @@ export default function MediaPage() {
 
   const user = useAuthStore((s) => s.user);
   const canManage = Boolean(
-    user &&
-      (isRoleAtLeast(user.role, UserRole.ADMIN) ||
-        (user as { canManageMedia?: boolean }).canManageMedia),
+    user && (isRoleAtLeast(user.role, UserRole.ADMIN) || user.canManageMedia),
   );
 
   const loadAlbums = useCallback(async () => {

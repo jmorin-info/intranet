@@ -21,7 +21,9 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
+set -a
 source .env
+set +a
 
 for var in DATABASE_URL JWT_ACCESS_SECRET JWT_REFRESH_SECRET; do
   if [ -z "${!var:-}" ]; then

@@ -25,6 +25,7 @@ export interface AuthUser {
   managerId?: string;
   manager?: { id: string; firstName: string; lastName: string; email: string; avatarUrl?: string } | null;
   subordinates?: { id: string; firstName: string; lastName: string; email: string; avatarUrl?: string }[];
+  canManageMedia?: boolean;
 }
 
 interface AuthState {
@@ -59,6 +60,7 @@ function mapUser(raw: Record<string, unknown>): AuthUser {
     managerId: raw.managerId as string | undefined,
     manager: raw.manager as AuthUser['manager'],
     subordinates: raw.subordinates as AuthUser['subordinates'],
+    canManageMedia: raw.canManageMedia as boolean | undefined,
   };
 }
 
