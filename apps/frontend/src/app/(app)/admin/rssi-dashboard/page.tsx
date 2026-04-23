@@ -33,7 +33,7 @@ import {
   AlertOctagon,
   Info,
   Bell,
-  Printer,
+  FileDown,
   RefreshCw,
   Flame,
 } from "lucide-react";
@@ -152,31 +152,61 @@ export default function RSSIDashboardPage() {
   const [recentIncidents, setRecentIncidents] = useState<IncidentRow[]>([]);
   const [recentVeille, setRecentVeille] = useState<VeilleItem[]>([]);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [pdfLoading, setPdfLoading] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /**
+   * Télécharge le rapport RSSI structuré en PDF depuis le backend
+   * (/reports/rssi-pdf) — ISO 27001 A.5.35/A.5.36, signature SHA-256.
+   */
+  const downloadRssiPdf = useCallback(async () => {
+    setPdfLoading(true);
+    try {
+      const response = await api.get("/reports/rssi-pdf", {
+        responseType: "blob",
+      });
+      const blob = new Blob([response.data as BlobPart], {
+        type: "application/pdf",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const today = new Date().toISOString().split("T")[0];
+      a.download = `rapport-rssi-omnitech-${today}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("Erreur téléchargement rapport RSSI PDF", err);
+      if (typeof window !== "undefined") {
+        window.alert(
+          "Impossible de générer le rapport PDF. Vérifiez vos droits (SUPER_ADMIN / ADMIN / DIRECTION).",
+        );
+      }
+    } finally {
+      setPdfLoading(false);
+    }
+  }, []);
 
   const loadData = useCallback(() => {
     Promise.all([
-      api
-        .get("/iso-analyzer/compliance-summary")
-        .catch(() => ({
-          data: { total: 0, covered: 0, coveragePercent: 0, byDomain: {} },
-        })),
-      api
-        .get("/reports/dashboard-stats")
-        .catch(() => ({
-          data: {
-            totalDocuments: 0,
-            approvedDocuments: 0,
-            pendingReview: 0,
-            pendingApproval: 0,
-            overdueRevision: 0,
-          },
-        })),
-      api
-        .get("/veille/stats")
-        .catch(() => ({
-          data: { total: 0, unprocessed: 0, processed: 0, bySeverity: {} },
-        })),
+      api.get("/iso-analyzer/compliance-summary").catch(() => ({
+        data: { total: 0, covered: 0, coveragePercent: 0, byDomain: {} },
+      })),
+      api.get("/reports/dashboard-stats").catch(() => ({
+        data: {
+          totalDocuments: 0,
+          approvedDocuments: 0,
+          pendingReview: 0,
+          pendingApproval: 0,
+          overdueRevision: 0,
+        },
+      })),
+      api.get("/veille/stats").catch(() => ({
+        data: { total: 0, unprocessed: 0, processed: 0, bySeverity: {} },
+      })),
       api
         .get("/tickets/stats")
         .catch(() => ({ data: { open: 0, inProgress: 0, resolved: 0 } })),
@@ -424,8 +454,15 @@ export default function RSSIDashboardPage() {
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" /> Imprimer / PDF
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={downloadRssiPdf}
+            disabled={pdfLoading}
+            title="PDF structuré signé SHA-256 (ISO 27001 A.5.35)"
+          >
+            <FileDown className="h-4 w-4" />
+            {pdfLoading ? "Génération..." : "Télécharger rapport RSSI (PDF)"}
           </Button>
           <Link href="/admin/reports">
             <Button variant="secondary" size="sm">
