@@ -1,7 +1,12 @@
-import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ConflictException,
+} from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 interface RSSItem {
   title: string;
@@ -20,44 +25,71 @@ interface RSSItem {
 // L'ordre compte : autorités d'abord, puis presse spécialisée métier.
 const RSS_FEEDS = [
   // --- Autorités FR (ANSSI, CNIL) ---
-  { name: 'CERT-FR Alertes', url: 'https://www.cert.ssi.gouv.fr/alerte/feed/' },
-  { name: 'CERT-FR Avis', url: 'https://www.cert.ssi.gouv.fr/avis/feed/' },
-  { name: 'CERT-FR CTI', url: 'https://www.cert.ssi.gouv.fr/cti/feed/' },
-  { name: 'ANSSI', url: 'https://cyber.gouv.fr/feed/actualites/rss.xml' },
-  { name: 'CNIL', url: 'https://www.cnil.fr/fr/flux-rss' },
+  { name: "CERT-FR Alertes", url: "https://www.cert.ssi.gouv.fr/alerte/feed/" },
+  { name: "CERT-FR Avis", url: "https://www.cert.ssi.gouv.fr/avis/feed/" },
+  { name: "CERT-FR CTI", url: "https://www.cert.ssi.gouv.fr/cti/feed/" },
+  { name: "ANSSI", url: "https://cyber.gouv.fr/feed/actualites/rss.xml" },
+  { name: "CNIL", url: "https://www.cnil.fr/fr/flux-rss" },
 
   // --- Autorités UE / US (conformité : NIS2, DORA, AI Act) ---
-  { name: 'ENISA', url: 'https://www.enisa.europa.eu/media/news-items/news-wires/RSS' },
-  { name: 'CISA Alerts', url: 'https://www.cisa.gov/cybersecurity-advisories/all.xml' },
-  { name: 'EDPB', url: 'https://edpb.europa.eu/news/news_en/rss.xml' },
+  {
+    name: "ENISA",
+    url: "https://www.enisa.europa.eu/media/news-items/news-wires/RSS",
+  },
+  {
+    name: "CISA Alerts",
+    url: "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+  },
+  { name: "EDPB", url: "https://edpb.europa.eu/news/news_en/rss.xml" },
 
   // --- CVE / Patch management (ISO 27001 A.8.8) ---
-  { name: 'CVE Feed', url: 'https://cvefeed.io/rssfeed/latest.xml' },
+  { name: "CVE Feed", url: "https://cvefeed.io/rssfeed/latest.xml" },
 
   // --- Presse cybersécurité entreprise ---
-  { name: 'BleepingComputer', url: 'https://www.bleepingcomputer.com/feed/' },
-  { name: 'SANS ISC', url: 'https://isc.sans.edu/rssfeed.xml' },
-  { name: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews' },
+  { name: "BleepingComputer", url: "https://www.bleepingcomputer.com/feed/" },
+  { name: "SANS ISC", url: "https://isc.sans.edu/rssfeed.xml" },
+  {
+    name: "The Hacker News",
+    url: "https://feeds.feedburner.com/TheHackersNews",
+  },
 
   // --- Sécurité physique / vidéosurveillance / contrôle d'accès ---
-  { name: 'IFSEC Insider', url: 'https://www.ifsecglobal.com/feed/' },
-  { name: 'Security Magazine', url: 'https://www.securitymagazine.com/rss/topic/2236-cyber-security-news' },
+  { name: "IFSEC Insider", url: "https://www.ifsecglobal.com/feed/" },
+  {
+    name: "Security Magazine",
+    url: "https://www.securitymagazine.com/rss/topic/2236-cyber-security-news",
+  },
 
   // --- IA / conformité AI Act ---
-  { name: 'NIST Cybersecurity', url: 'https://www.nist.gov/news-events/cybersecurity/rss.xml' },
+  {
+    name: "NIST Cybersecurity",
+    url: "https://www.nist.gov/news-events/cybersecurity/rss.xml",
+  },
 
   // --- PSIRT constructeurs (parc OMNITECH — priorisation patch management) ---
-  { name: 'Fortinet PSIRT', url: 'https://www.fortiguard.com/rss/psirt.xml' },
-  { name: 'Microsoft MSRC', url: 'https://msrc.microsoft.com/blog/feed' },
-  { name: 'VMware Security', url: 'https://www.vmware.com/security/advisories.xml' },
-  { name: 'Aruba (HPE) Security', url: 'https://www.arubanetworks.com/support-services/security-bulletins/feed/' },
-  { name: 'Cisco Security', url: 'https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml' },
-  { name: 'Veeam KB', url: 'https://www.veeam.com/blog/feed/' },
-  { name: 'HPE Security', url: 'https://support.hpe.com/hpsc/rss/servicenotifications?category=security' },
+  { name: "Fortinet PSIRT", url: "https://www.fortiguard.com/rss/psirt.xml" },
+  { name: "Microsoft MSRC", url: "https://msrc.microsoft.com/blog/feed" },
+  {
+    name: "VMware Security",
+    url: "https://www.vmware.com/security/advisories.xml",
+  },
+  {
+    name: "Aruba (HPE) Security",
+    url: "https://www.arubanetworks.com/support-services/security-bulletins/feed/",
+  },
+  {
+    name: "Cisco Security",
+    url: "https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml",
+  },
+  { name: "Veeam KB", url: "https://www.veeam.com/blog/feed/" },
+  {
+    name: "HPE Security",
+    url: "https://support.hpe.com/hpsc/rss/servicenotifications?category=security",
+  },
 
   // --- Hypervision / NVR / contrôle d'accès (produits OMNITECH Security) ---
-  { name: 'Genetec Security', url: 'https://www.genetec.com/feed/news' },
-  { name: 'Milestone XProtect', url: 'https://www.milestonesys.com/feed/' },
+  { name: "Genetec Security", url: "https://www.genetec.com/feed/news" },
+  { name: "Milestone XProtect", url: "https://www.milestonesys.com/feed/" },
 ];
 
 // Mots-clés supplémentaires pour taguer/prioriser la veille selon les sujets
@@ -66,45 +98,120 @@ const RSS_FEEDS = [
 // lorsqu'un produit/sujet du parc est mentionné.
 const OMNITECH_TOPICS = [
   // Réglementaire
-  'nis2', 'nis 2', 'dora', 'rgpd', 'gdpr', 'ai act', 'ia act',
+  "nis2",
+  "nis 2",
+  "dora",
+  "rgpd",
+  "gdpr",
+  "ai act",
+  "ia act",
   // Sécurité physique + hypervision
-  'vidéosurveillance', 'videosurveillance', 'cctv', 'caméra ip', 'camera ip',
-  'contrôle d\'accès', 'controle d\'acces', 'badge', 'biométrie', 'biometrie',
-  'intrusion', 'alarme', 'hypervision', 'nvr', 'vms',
-  'genetec', 'milestone', 'xprotect', 'synergis',
+  "vidéosurveillance",
+  "videosurveillance",
+  "cctv",
+  "caméra ip",
+  "camera ip",
+  "contrôle d'accès",
+  "controle d'acces",
+  "badge",
+  "biométrie",
+  "biometrie",
+  "intrusion",
+  "alarme",
+  "hypervision",
+  "nvr",
+  "vms",
+  "genetec",
+  "milestone",
+  "xprotect",
+  "synergis",
   // IA / cybersec IA
-  'intelligence artificielle', 'llm', 'chatbot', 'deepfake', 'prompt injection',
-  'ai security', 'adversarial', 'model poisoning',
+  "intelligence artificielle",
+  "llm",
+  "chatbot",
+  "deepfake",
+  "prompt injection",
+  "ai security",
+  "adversarial",
+  "model poisoning",
   // Infra réseau / PSIRT (produits parc — doublon avec OMNITECH_PRODUCTS mais
   // facilite le match quand le titre mentionne juste "Aruba ClearPass" sans
   // "aruba" en tag explicite)
-  'aruba', 'clearpass', 'instant on', 'hpe',
+  "aruba",
+  "clearpass",
+  "instant on",
+  "hpe",
 ];
 
 // Parc OMNITECH — produits à surveiller (ISO 27001 A.5.7)
 const OMNITECH_PRODUCTS = [
   // Firewall / VPN
-  'fortigate', 'fortinet', 'forticlient', 'fortios', 'fortianalyzer', 'fortimail', 'fortiweb',
+  "fortigate",
+  "fortinet",
+  "forticlient",
+  "fortios",
+  "fortianalyzer",
+  "fortimail",
+  "fortiweb",
   // Virtualisation
-  'vmware', 'vsphere', 'esxi', 'vcenter', 'nsx', 'horizon',
+  "vmware",
+  "vsphere",
+  "esxi",
+  "vcenter",
+  "nsx",
+  "horizon",
   // Endpoint / antivirus
-  'eset', 'nod32', 'sophos', 'defender', 'crowdstrike', 'sentinelone',
+  "eset",
+  "nod32",
+  "sophos",
+  "defender",
+  "crowdstrike",
+  "sentinelone",
   // Microsoft
-  'windows', 'microsoft', 'exchange', 'office 365', 'azure', 'intune', 'active directory',
+  "windows",
+  "microsoft",
+  "exchange",
+  "office 365",
+  "azure",
+  "intune",
+  "active directory",
   // Backup
-  'veeam', 'veeam b&r', 'acronis',
+  "veeam",
+  "veeam b&r",
+  "acronis",
   // Hardware / switch / wifi
-  'dell', 'hp ', 'hpe', 'aruba', 'clearpass',
-  'cisco', 'meraki', 'catalyst',
+  "dell",
+  "hp ",
+  "hpe",
+  "aruba",
+  "clearpass",
+  "cisco",
+  "meraki",
+  "catalyst",
   // Sécurité physique / vidéosurveillance / hypervision
-  'genetec', 'security center', 'synergis',
-  'milestone', 'xprotect', 'husky',
-  'hikvision', 'dahua', 'axis camera',
-  'bosch', 'avigilon',
+  "genetec",
+  "security center",
+  "synergis",
+  "milestone",
+  "xprotect",
+  "husky",
+  "hikvision",
+  "dahua",
+  "axis camera",
+  "bosch",
+  "avigilon",
   // Contrôle d'accès (cartes, lecteurs)
-  'hid', 'mifare', 'desfire',
+  "hid",
+  "mifare",
+  "desfire",
   // Infra backend
-  'postgresql', 'redis', 'nginx', 'node.js', 'nodejs', 'docker', 'kubernetes',
+  "postgresql",
+  "redis",
+  "nginx",
+  "node.js",
+  "nodejs",
+  "docker",
+  "kubernetes",
 ];
 
 @Injectable()
@@ -127,15 +234,16 @@ export class VeilleService {
     const limit = filters.limit || 30;
     const where: any = {};
 
-    if (filters.isProcessed !== undefined) where.isProcessed = filters.isProcessed;
+    if (filters.isProcessed !== undefined)
+      where.isProcessed = filters.isProcessed;
     if (filters.dateFrom) {
       where.publishedAt = { gte: new Date(filters.dateFrom) };
     }
     if (filters.search) {
       where.OR = [
-        { title: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } },
-        { cveId: { contains: filters.search, mode: 'insensitive' } },
+        { title: { contains: filters.search, mode: "insensitive" } },
+        { description: { contains: filters.search, mode: "insensitive" } },
+        { cveId: { contains: filters.search, mode: "insensitive" } },
       ];
     }
 
@@ -144,32 +252,46 @@ export class VeilleService {
         where,
         include: {
           acks: {
-            include: { user: { select: { id: true, firstName: true, lastName: true } } },
+            include: {
+              user: { select: { id: true, firstName: true, lastName: true } },
+            },
           },
         },
-        orderBy: { publishedAt: 'desc' },
+        orderBy: { publishedAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.veilleItem.count({ where }),
     ]);
 
-    return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    return {
+      data,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
-  async acknowledge(veilleItemId: string, userId: string, action: string, comment?: string) {
-    const item = await this.prisma.veilleItem.findUnique({ where: { id: veilleItemId } });
-    if (!item) throw new NotFoundException('Veille item not found');
+  async acknowledge(
+    veilleItemId: string,
+    userId: string,
+    action: string,
+    comment?: string,
+  ) {
+    const item = await this.prisma.veilleItem.findUnique({
+      where: { id: veilleItemId },
+    });
+    if (!item) throw new NotFoundException("Veille item not found");
 
     const ack = await this.prisma.veilleAck.upsert({
       where: { veilleItemId_userId: { veilleItemId, userId } },
       create: { veilleItemId, userId, action, comment },
       update: { action, comment, createdAt: new Date() },
-      include: { user: { select: { id: true, firstName: true, lastName: true } } },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true } },
+      },
     });
 
     // Mark as processed if action is definitive
-    if (['APPLIED', 'NOT_APPLICABLE', 'RISK_ACCEPTED'].includes(action)) {
+    if (["APPLIED", "NOT_APPLICABLE", "RISK_ACCEPTED"].includes(action)) {
       await this.prisma.veilleItem.update({
         where: { id: veilleItemId },
         data: { isProcessed: true },
@@ -198,7 +320,9 @@ export class VeilleService {
       },
     });
 
-    this.logger.log(`Bulk process: ${updated.count} items marked processed, ${purged.count} items purged (>90 days)`);
+    this.logger.log(
+      `Bulk process: ${updated.count} items marked processed, ${purged.count} items purged (>90 days)`,
+    );
     return { processed: updated.count, purged: purged.count };
   }
 
@@ -210,28 +334,37 @@ export class VeilleService {
     bySource: Record<string, number>;
     lastCollect: string | null;
   }> {
-    const [total, unprocessed, processed, bySeverity, bySource, lastItem] = await Promise.all([
-      this.prisma.veilleItem.count(),
-      this.prisma.veilleItem.count({ where: { isProcessed: false } }),
-      this.prisma.veilleItem.count({ where: { isProcessed: true } }),
-      this.prisma.veilleItem.groupBy({
-        by: ['severity'],
-        _count: true,
-        where: { isProcessed: false },
-      }),
-      this.prisma.veilleItem.groupBy({
-        by: ['sourceName'],
-        _count: true,
-      }),
-      this.prisma.veilleItem.findFirst({
-        orderBy: { publishedAt: 'desc' },
-        select: { publishedAt: true },
-      }),
-    ]);
+    const [total, unprocessed, processed, bySeverity, bySource, lastItem] =
+      await Promise.all([
+        this.prisma.veilleItem.count(),
+        this.prisma.veilleItem.count({ where: { isProcessed: false } }),
+        this.prisma.veilleItem.count({ where: { isProcessed: true } }),
+        this.prisma.veilleItem.groupBy({
+          by: ["severity"],
+          _count: true,
+          where: { isProcessed: false },
+        }),
+        this.prisma.veilleItem.groupBy({
+          by: ["sourceName"],
+          _count: true,
+        }),
+        this.prisma.veilleItem.findFirst({
+          orderBy: { publishedAt: "desc" },
+          select: { publishedAt: true },
+        }),
+      ]);
     return {
-      total, unprocessed, processed,
-      bySeverity: bySeverity.reduce<Record<string, number>>((a, b) => ({ ...a, [b.severity || 'unknown']: b._count }), {}),
-      bySource: bySource.reduce<Record<string, number>>((a, b) => ({ ...a, [b.sourceName]: b._count }), {}),
+      total,
+      unprocessed,
+      processed,
+      bySeverity: bySeverity.reduce<Record<string, number>>(
+        (a, b) => ({ ...a, [b.severity || "unknown"]: b._count }),
+        {},
+      ),
+      bySource: bySource.reduce<Record<string, number>>(
+        (a, b) => ({ ...a, [b.sourceName]: b._count }),
+        {},
+      ),
       lastCollect: lastItem?.publishedAt?.toISOString() ?? null,
     };
   }
@@ -241,29 +374,37 @@ export class VeilleService {
   // ---------------------------------------------------------------------------
 
   async getSources() {
-    return this.prisma.veilleSource.findMany({ orderBy: { createdAt: 'asc' } });
+    return this.prisma.veilleSource.findMany({ orderBy: { createdAt: "asc" } });
   }
 
   async createSource(data: { name: string; url: string }) {
     try {
       return await this.prisma.veilleSource.create({ data });
     } catch (err: any) {
-      if (err?.code === 'P2002') throw new ConflictException('Une source avec cette URL existe déjà');
+      if (err?.code === "P2002")
+        throw new ConflictException("Une source avec cette URL existe déjà");
       throw err;
     }
   }
 
-  async updateSource(id: string, data: { name?: string; url?: string; isActive?: boolean }) {
-    const existing = await this.prisma.veilleSource.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Source non trouvée');
+  async updateSource(
+    id: string,
+    data: { name?: string; url?: string; isActive?: boolean },
+  ) {
+    const existing = await this.prisma.veilleSource.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException("Source non trouvée");
     return this.prisma.veilleSource.update({ where: { id }, data });
   }
 
   async deleteSource(id: string) {
-    const existing = await this.prisma.veilleSource.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Source non trouvée');
+    const existing = await this.prisma.veilleSource.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException("Source non trouvée");
     await this.prisma.veilleSource.delete({ where: { id } });
-    return { message: 'Source supprimée' };
+    return { message: "Source supprimée" };
   }
 
   /**
@@ -274,99 +415,245 @@ export class VeilleService {
     let inserted = 0;
     let skipped = 0;
     for (const feed of RSS_FEEDS) {
-      const exists = await this.prisma.veilleSource.findUnique({ where: { url: feed.url } });
-      if (exists) { skipped++; continue; }
-      await this.prisma.veilleSource.create({ data: { name: feed.name, url: feed.url } });
+      const exists = await this.prisma.veilleSource.findUnique({
+        where: { url: feed.url },
+      });
+      if (exists) {
+        skipped++;
+        continue;
+      }
+      await this.prisma.veilleSource.create({
+        data: { name: feed.name, url: feed.url },
+      });
       inserted++;
     }
-    this.logger.log(`seedDefaultSources: ${inserted} inserted, ${skipped} skipped`);
+    this.logger.log(
+      `seedDefaultSources: ${inserted} inserted, ${skipped} skipped`,
+    );
     return { inserted, skipped };
   }
 
   @Cron(CronExpression.EVERY_2_HOURS)
   async fetchRSSFeeds() {
-    this.logger.log('Fetching RSS feeds for veille...');
+    this.logger.log("Fetching RSS feeds for veille...");
     let total = 0;
 
     // Resolve feeds: active DB sources, or fall back to hardcoded list if table is empty
     let feeds: Array<{ name: string; url: string }>;
     try {
-      const dbSources = await this.prisma.veilleSource.findMany({ where: { isActive: true } });
+      const dbSources = await this.prisma.veilleSource.findMany({
+        where: { isActive: true },
+      });
       feeds = dbSources.length > 0 ? dbSources : RSS_FEEDS;
     } catch {
       feeds = RSS_FEEDS;
     }
 
+    // Per-feed stats for observability: which feed is silently broken?
+    const feedStats: Array<{
+      feed: string;
+      fetched: number;
+      upserted: number;
+      error?: string;
+    }> = [];
+
+    // Items CRITICAL nouvellement créés → notification admins en fin de cycle
+    const newCriticalItems: Array<{
+      id: string;
+      title: string;
+      sourceName: string;
+      cveId: string | null;
+    }> = [];
+
     for (const feed of feeds) {
+      const stat = { feed: feed.name, fetched: 0, upserted: 0 } as {
+        feed: string;
+        fetched: number;
+        upserted: number;
+        error?: string;
+      };
       try {
         const items = await this.parseRSSFeed(feed.url, feed.name);
+        stat.fetched = items.length;
         for (const item of items) {
           try {
-            await this.prisma.veilleItem.upsert({
+            const existing = await this.prisma.veilleItem.findUnique({
               where: { sourceUrl: item.link },
-              create: {
+            });
+            if (existing) continue; // déjà ingéré
+
+            const severity = this.detectSeverity(
+              item.title + " " + (item.description || ""),
+            );
+            const cveId = this.extractCVE(
+              item.title + " " + (item.description || ""),
+            );
+            const created = await this.prisma.veilleItem.create({
+              data: {
                 title: item.title,
                 description: item.description?.substring(0, 2000) || null,
                 sourceUrl: item.link,
                 sourceName: item.source,
                 publishedAt: new Date(item.pubDate || Date.now()),
-                severity: this.detectSeverity(item.title + ' ' + (item.description || '')),
-                cveId: this.extractCVE(item.title + ' ' + (item.description || '')),
+                severity,
+                cveId,
               },
-              update: {},
             });
+            stat.upserted++;
             total++;
-          } catch {
-            // Skip duplicates silently
+
+            // ISO 27001 A.5.7 — notification rapide sur vulnérabilité critique
+            // concernant le parc OMNITECH (évite le bruit des CVE hors périmètre).
+            if (
+              severity === "CRITICAL" &&
+              this.isRelevantToParc(item.title + " " + (item.description || ""))
+            ) {
+              newCriticalItems.push({
+                id: created.id,
+                title: created.title,
+                sourceName: created.sourceName,
+                cveId: created.cveId,
+              });
+            }
+          } catch (err: any) {
+            // P2002 = collision de course (créé par un autre worker), on ignore.
+            if (err?.code !== "P2002") {
+              this.logger.warn(
+                `Create error for ${feed.name} (${item.link}): ${err?.message || err}`,
+              );
+            }
           }
         }
       } catch (err) {
-        this.logger.warn(`Failed to fetch ${feed.name}: ${err instanceof Error ? err.message : err}`);
+        stat.error = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`Failed to fetch ${feed.name}: ${stat.error}`);
+      }
+      feedStats.push(stat);
+    }
+
+    // Notifier les admins/super_admins des nouvelles alertes CRITIQUES
+    // pertinentes pour le parc (max 5 notifs pour éviter le flood).
+    if (newCriticalItems.length > 0) {
+      try {
+        const admins = await this.prisma.user.findMany({
+          where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
+          select: { id: true },
+        });
+        const toNotify = newCriticalItems.slice(0, 5);
+        for (const admin of admins) {
+          for (const crit of toNotify) {
+            await this.notificationsService.create({
+              userId: admin.id,
+              type: "DOC_PUBLISHED", // Type générique réutilisé (cf. bulletin hebdo)
+              title: `Veille CRITIQUE${crit.cveId ? ` — ${crit.cveId}` : ""}`,
+              body: `${crit.sourceName} : ${crit.title.substring(0, 180)}`,
+              resourceType: "VeilleItem",
+              resourceId: crit.id,
+            });
+          }
+        }
+        this.logger.warn(
+          `Veille: ${newCriticalItems.length} nouvelle(s) alerte(s) CRITIQUE(S) pertinente(s) pour le parc — ${admins.length} admin(s) notifié(s)`,
+        );
+      } catch (err) {
+        this.logger.error(
+          `Failed to notify admins of critical veille items: ${err instanceof Error ? err.message : err}`,
+        );
       }
     }
 
-    this.logger.log(`Veille: ${total} items processed`);
+    // Log structured summary (fed pas cassé reste isolable a posteriori)
+    const failed = feedStats.filter((s) => s.error || s.fetched === 0);
+    if (failed.length > 0) {
+      this.logger.warn(
+        `Veille: ${failed.length}/${feeds.length} sources vides ou en erreur: ${failed.map((f) => f.feed).join(", ")}`,
+      );
+    }
+    this.logger.log(
+      `Veille: ${total} items processed sur ${feeds.length} sources`,
+    );
   }
 
-  private async parseRSSFeed(url: string, sourceName: string): Promise<RSSItem[]> {
-    try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-      const xml = await response.text();
-      const items: RSSItem[] = [];
+  private async parseRSSFeed(
+    url: string,
+    sourceName: string,
+  ): Promise<RSSItem[]> {
+    // Le `fetchRSSFeeds` catche par-source : on laisse remonter l'erreur
+    // pour qu'elle soit loggée avec le nom du flux (diagnostic).
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        "User-Agent":
+          "OmnitechVeille/1.0 (+https://intranet.omnitech-security.fr)",
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    }
+    const xml = await response.text();
+    const items: RSSItem[] = [];
 
-      // Simple XML parsing without dependencies
-      const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-      let match;
-      while ((match = itemRegex.exec(xml)) !== null) {
-        const itemXml = match[1] || '';
-        const title = this.extractTag(itemXml, 'title');
-        const link = this.extractTag(itemXml, 'link');
-        const description = this.extractTag(itemXml, 'description');
-        const pubDate = this.extractTag(itemXml, 'pubDate');
+    // Simple XML parsing without dependencies
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null) {
+      const itemXml = match[1] || "";
+      const title = this.extractTag(itemXml, "title");
+      const link = this.extractTag(itemXml, "link");
+      const description = this.extractTag(itemXml, "description");
+      const pubDate = this.extractTag(itemXml, "pubDate");
 
+      if (title && link) {
+        items.push({ title, description, link, pubDate, source: sourceName });
+      }
+    }
+
+    // Fallback : si le flux utilise <entry> (Atom) et pas <item>, tenter ce format
+    if (items.length === 0) {
+      const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+      let entryMatch;
+      while ((entryMatch = entryRegex.exec(xml)) !== null) {
+        const entryXml = entryMatch[1] || "";
+        const title = this.extractTag(entryXml, "title");
+        // Atom: <link href="..."/>
+        const linkMatch = /<link[^>]*href="([^"]+)"/.exec(entryXml);
+        const link = linkMatch?.[1] || this.extractTag(entryXml, "id");
+        const description =
+          this.extractTag(entryXml, "summary") ||
+          this.extractTag(entryXml, "content");
+        const pubDate =
+          this.extractTag(entryXml, "updated") ||
+          this.extractTag(entryXml, "published");
         if (title && link) {
           items.push({ title, description, link, pubDate, source: sourceName });
         }
       }
-
-      return items.slice(0, 50);
-    } catch {
-      return [];
     }
+
+    return items.slice(0, 50);
   }
 
   private extractTag(xml: string, tag: string): string {
-    const regex = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`);
+    const regex = new RegExp(
+      `<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`,
+    );
     const match = regex.exec(xml);
-    return (match?.[1] || match?.[2] || '').trim().replace(/<[^>]+>/g, '');
+    return (match?.[1] || match?.[2] || "").trim().replace(/<[^>]+>/g, "");
   }
 
   private detectSeverity(text: string): string {
     const t = text.toLowerCase();
-    if (t.includes('critique') || t.includes('critical') || t.includes('urgente')) return 'CRITICAL';
-    if (t.includes('important') || t.includes('haute') || t.includes('high')) return 'HIGH';
-    if (t.includes('moyenne') || t.includes('medium') || t.includes('moderate')) return 'MEDIUM';
-    return 'LOW';
+    if (
+      t.includes("critique") ||
+      t.includes("critical") ||
+      t.includes("urgente")
+    )
+      return "CRITICAL";
+    if (t.includes("important") || t.includes("haute") || t.includes("high"))
+      return "HIGH";
+    if (t.includes("moyenne") || t.includes("medium") || t.includes("moderate"))
+      return "MEDIUM";
+    return "LOW";
   }
 
   private extractCVE(text: string): string | null {
@@ -389,13 +676,15 @@ export class VeilleService {
 
   // --- Weekly Bulletin ---
 
-  @Cron('0 8 * * 1') // Every Monday 8:00 AM
+  @Cron("0 8 * * 1") // Every Monday 8:00 AM
   async generateWeeklyBulletinCron() {
-    this.logger.log('Generating weekly cybersecurity bulletin...');
+    this.logger.log("Generating weekly cybersecurity bulletin...");
     try {
       await this.generateWeeklyBulletin();
     } catch (err) {
-      this.logger.error(`Failed to generate weekly bulletin: ${err instanceof Error ? err.message : err}`);
+      this.logger.error(
+        `Failed to generate weekly bulletin: ${err instanceof Error ? err.message : err}`,
+      );
     }
   }
 
@@ -415,26 +704,33 @@ export class VeilleService {
       where: {
         publishedAt: { gte: start, lt: end },
       },
-      orderBy: { publishedAt: 'desc' },
+      orderBy: { publishedAt: "desc" },
     });
 
     // Filter relevant to OMNITECH parc
-    const relevant = items.filter(item =>
-      this.isRelevantToParc((item.title || '') + ' ' + (item.description || ''))
+    const relevant = items.filter((item) =>
+      this.isRelevantToParc(
+        (item.title || "") + " " + (item.description || ""),
+      ),
     );
 
     // Group by severity
     const bySeverity = {
-      CRITICAL: relevant.filter(i => i.severity === 'CRITICAL'),
-      HIGH: relevant.filter(i => i.severity === 'HIGH'),
-      MEDIUM: relevant.filter(i => i.severity === 'MEDIUM'),
-      LOW: relevant.filter(i => i.severity === 'LOW'),
+      CRITICAL: relevant.filter((i) => i.severity === "CRITICAL"),
+      HIGH: relevant.filter((i) => i.severity === "HIGH"),
+      MEDIUM: relevant.filter((i) => i.severity === "MEDIUM"),
+      LOW: relevant.filter((i) => i.severity === "LOW"),
     };
 
     // Generate HTML
-    const content = this.generateBulletinHtml(start, end, bySeverity, relevant.length);
+    const content = this.generateBulletinHtml(
+      start,
+      end,
+      bySeverity,
+      relevant.length,
+    );
 
-    const title = `Bulletin Cybersécurité — Semaine du ${start.toLocaleDateString('fr-FR')} au ${end.toLocaleDateString('fr-FR')}`;
+    const title = `Bulletin Cybersécurité — Semaine du ${start.toLocaleDateString("fr-FR")} au ${end.toLocaleDateString("fr-FR")}`;
 
     const bulletin = await this.prisma.veilleBulletin.create({
       data: {
@@ -451,27 +747,29 @@ export class VeilleService {
     // Link items to bulletin
     if (relevant.length > 0) {
       await this.prisma.veilleItem.updateMany({
-        where: { id: { in: relevant.map(i => i.id) } },
+        where: { id: { in: relevant.map((i) => i.id) } },
         data: { bulletinId: bulletin.id },
       });
     }
 
     // Notify all ADMIN/SUPER_ADMIN users
     const admins = await this.prisma.user.findMany({
-      where: { role: { in: ['SUPER_ADMIN', 'ADMIN'] }, isActive: true },
+      where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
       select: { id: true },
     });
     for (const admin of admins) {
       await this.notificationsService.create({
         userId: admin.id,
-        type: 'DOC_PUBLISHED',
-        title: 'Bulletin cybersécurité hebdomadaire',
+        type: "DOC_PUBLISHED",
+        title: "Bulletin cybersécurité hebdomadaire",
         body: `${relevant.length} alertes pertinentes cette semaine.`,
-        resourceType: 'VeilleBulletin',
+        resourceType: "VeilleBulletin",
       });
     }
 
-    this.logger.log(`Weekly bulletin generated: ${relevant.length} relevant items out of ${items.length} total`);
+    this.logger.log(
+      `Weekly bulletin generated: ${relevant.length} relevant items out of ${items.length} total`,
+    );
     return bulletin;
   }
 
@@ -479,13 +777,16 @@ export class VeilleService {
     const [data, total] = await Promise.all([
       this.prisma.veilleBulletin.findMany({
         where: { isPublished: true },
-        orderBy: { weekStart: 'desc' },
+        orderBy: { weekStart: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.veilleBulletin.count({ where: { isPublished: true } }),
     ]);
-    return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    return {
+      data,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async getBulletinById(id: string) {
@@ -493,12 +794,18 @@ export class VeilleService {
       where: { id },
       include: {
         items: {
-          orderBy: { publishedAt: 'desc' },
-          include: { acks: { include: { user: { select: { id: true, firstName: true, lastName: true } } } } },
+          orderBy: { publishedAt: "desc" },
+          include: {
+            acks: {
+              include: {
+                user: { select: { id: true, firstName: true, lastName: true } },
+              },
+            },
+          },
         },
       },
     });
-    if (!bulletin) throw new NotFoundException('Bulletin not found');
+    if (!bulletin) throw new NotFoundException("Bulletin not found");
     return bulletin;
   }
 
@@ -525,7 +832,15 @@ export class VeilleService {
     weekEnd: string;
     total: number;
     bySeverity: Record<string, number>;
-    top5Critical: Array<{ id: string; title: string; severity: string; cveId: string | null; sourceName: string; publishedAt: string; sourceUrl: string }>;
+    top5Critical: Array<{
+      id: string;
+      title: string;
+      severity: string;
+      cveId: string | null;
+      sourceName: string;
+      publishedAt: string;
+      sourceUrl: string;
+    }>;
     productsAffected: string[];
   }> {
     const weekStart = this.getCurrentMonday();
@@ -534,7 +849,7 @@ export class VeilleService {
 
     const items = await this.prisma.veilleItem.findMany({
       where: { publishedAt: { gte: weekStart, lt: weekEnd } },
-      orderBy: [{ severity: 'asc' }, { publishedAt: 'desc' }],
+      orderBy: [{ severity: "asc" }, { publishedAt: "desc" }],
       select: {
         id: true,
         title: true,
@@ -547,17 +862,22 @@ export class VeilleService {
       },
     });
 
-    const bySeverity: Record<string, number> = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+    const bySeverity: Record<string, number> = {
+      CRITICAL: 0,
+      HIGH: 0,
+      MEDIUM: 0,
+      LOW: 0,
+    };
     for (const item of items) {
-      const sev = item.severity || 'LOW';
+      const sev = item.severity || "LOW";
       bySeverity[sev] = (bySeverity[sev] || 0) + 1;
     }
 
-    const criticalItems = items.filter(i => i.severity === 'CRITICAL');
-    const top5Critical = criticalItems.slice(0, 5).map(i => ({
+    const criticalItems = items.filter((i) => i.severity === "CRITICAL");
+    const top5Critical = criticalItems.slice(0, 5).map((i) => ({
       id: i.id,
       title: i.title,
-      severity: i.severity || 'LOW',
+      severity: i.severity || "LOW",
       cveId: i.cveId,
       sourceName: i.sourceName,
       publishedAt: i.publishedAt.toISOString(),
@@ -567,26 +887,55 @@ export class VeilleService {
     // Collect products mentioned in this week's items
     const productsFound = new Set<string>();
     for (const item of items) {
-      const text = ((item.title || '') + ' ' + (item.description || '')).toLowerCase();
+      const text = (
+        (item.title || "") +
+        " " +
+        (item.description || "")
+      ).toLowerCase();
       for (const product of OMNITECH_PRODUCTS) {
         if (text.includes(product.toLowerCase())) {
           // Normalise to a display-friendly name
           const display =
-            product === 'fortigate' || product === 'fortinet' || product === 'forticlient' || product === 'fortios' ? 'Fortinet/FortiGate' :
-            product === 'vmware' || product === 'vsphere' || product === 'esxi' || product === 'vcenter' ? 'VMware/vSphere' :
-            product === 'eset' || product === 'nod32' ? 'ESET' :
-            product === 'windows' || product === 'microsoft' || product === 'exchange' || product === 'office 365' || product === 'azure' ? 'Microsoft' :
-            product === 'veeam' ? 'Veeam' :
-            product === 'dell' ? 'Dell' :
-            product === 'hp ' || product === 'hpe' ? 'HPE/Dell' :
-            product === 'cisco' || product === 'meraki' ? 'Cisco/Meraki' :
-            product === 'sophos' ? 'Sophos' :
-            product === 'acronis' ? 'Acronis' :
-            product === 'postgresql' ? 'PostgreSQL' :
-            product === 'redis' ? 'Redis' :
-            product === 'nginx' ? 'Nginx' :
-            product === 'node.js' || product === 'nodejs' ? 'Node.js' :
-            product;
+            product === "fortigate" ||
+            product === "fortinet" ||
+            product === "forticlient" ||
+            product === "fortios"
+              ? "Fortinet/FortiGate"
+              : product === "vmware" ||
+                  product === "vsphere" ||
+                  product === "esxi" ||
+                  product === "vcenter"
+                ? "VMware/vSphere"
+                : product === "eset" || product === "nod32"
+                  ? "ESET"
+                  : product === "windows" ||
+                      product === "microsoft" ||
+                      product === "exchange" ||
+                      product === "office 365" ||
+                      product === "azure"
+                    ? "Microsoft"
+                    : product === "veeam"
+                      ? "Veeam"
+                      : product === "dell"
+                        ? "Dell"
+                        : product === "hp " || product === "hpe"
+                          ? "HPE/Dell"
+                          : product === "cisco" || product === "meraki"
+                            ? "Cisco/Meraki"
+                            : product === "sophos"
+                              ? "Sophos"
+                              : product === "acronis"
+                                ? "Acronis"
+                                : product === "postgresql"
+                                  ? "PostgreSQL"
+                                  : product === "redis"
+                                    ? "Redis"
+                                    : product === "nginx"
+                                      ? "Nginx"
+                                      : product === "node.js" ||
+                                          product === "nodejs"
+                                        ? "Node.js"
+                                        : product;
           productsFound.add(display);
         }
       }
@@ -608,27 +957,35 @@ export class VeilleService {
     bySeverity: Record<string, any[]>,
     totalCount: number,
   ): string {
-    const dateRange = `${start.toLocaleDateString('fr-FR')} — ${end.toLocaleDateString('fr-FR')}`;
+    const dateRange = `${start.toLocaleDateString("fr-FR")} — ${end.toLocaleDateString("fr-FR")}`;
 
     const renderSection = (title: string, emoji: string, items: any[]) => {
-      if (items.length === 0) return '';
+      if (items.length === 0) return "";
       return `
       <div style="margin-bottom:24px;">
         <h2 style="color:#004469;border-bottom:2px solid #F68D2E;padding-bottom:6px;">${emoji} ${title} (${items.length})</h2>
         <ul style="list-style:none;padding:0;">
-          ${items.map(item => `
+          ${items
+            .map(
+              (item) => `
             <li style="padding:8px 12px;margin:6px 0;background:#f8f9fa;border-left:4px solid ${
-              item.severity === 'CRITICAL' ? '#dc2626' :
-              item.severity === 'HIGH' ? '#f59e0b' :
-              item.severity === 'MEDIUM' ? '#3b82f6' : '#6b7280'
+              item.severity === "CRITICAL"
+                ? "#dc2626"
+                : item.severity === "HIGH"
+                  ? "#f59e0b"
+                  : item.severity === "MEDIUM"
+                    ? "#3b82f6"
+                    : "#6b7280"
             };border-radius:4px;">
               <strong>${this.escapeHtml(item.title)}</strong>
-              ${item.cveId ? `<span style="background:#fee2e2;color:#dc2626;padding:1px 6px;border-radius:3px;font-size:11px;margin-left:8px;">${item.cveId}</span>` : ''}
-              <br/><span style="font-size:12px;color:#666;">${item.sourceName} — ${new Date(item.publishedAt).toLocaleDateString('fr-FR')}</span>
-              ${item.description ? `<br/><span style="font-size:12px;color:#444;">${this.escapeHtml((item.description || '').substring(0, 200))}</span>` : ''}
+              ${item.cveId ? `<span style="background:#fee2e2;color:#dc2626;padding:1px 6px;border-radius:3px;font-size:11px;margin-left:8px;">${item.cveId}</span>` : ""}
+              <br/><span style="font-size:12px;color:#666;">${item.sourceName} — ${new Date(item.publishedAt).toLocaleDateString("fr-FR")}</span>
+              ${item.description ? `<br/><span style="font-size:12px;color:#444;">${this.escapeHtml((item.description || "").substring(0, 200))}</span>` : ""}
               <br/><a href="${item.sourceUrl}" style="font-size:11px;color:#F68D2E;">Voir le détail →</a>
             </li>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </ul>
       </div>
     `;
@@ -645,11 +1002,11 @@ export class VeilleService {
         <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:12px 16px;margin-bottom:20px;">
           <strong>Produits surveillés :</strong> FortiGate/FortiOS, VMware/vSphere/ESXi, ESET, Microsoft/Windows/Exchange/Azure, Veeam, Dell/HPE, Cisco/Meraki, Sophos, Acronis, PostgreSQL, Redis, Nginx, Node.js
         </div>
-        ${renderSection('Alertes CRITIQUES', '🔴', bySeverity.CRITICAL)}
-        ${renderSection('Alertes HAUTES', '🟠', bySeverity.HIGH)}
-        ${renderSection('Alertes MOYENNES', '🔵', bySeverity.MEDIUM)}
-        ${renderSection('Alertes BASSES', '⚪', bySeverity.LOW)}
-        ${totalCount === 0 ? '<p style="text-align:center;color:#6b7280;padding:20px;">Aucune alerte pertinente pour le parc OMNITECH cette semaine.</p>' : ''}
+        ${renderSection("Alertes CRITIQUES", "🔴", bySeverity.CRITICAL)}
+        ${renderSection("Alertes HAUTES", "🟠", bySeverity.HIGH)}
+        ${renderSection("Alertes MOYENNES", "🔵", bySeverity.MEDIUM)}
+        ${renderSection("Alertes BASSES", "⚪", bySeverity.LOW)}
+        ${totalCount === 0 ? '<p style="text-align:center;color:#6b7280;padding:20px;">Aucune alerte pertinente pour le parc OMNITECH cette semaine.</p>' : ""}
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
         <p style="font-size:11px;color:#9ca3af;text-align:center;">
           Généré automatiquement par l'intranet OMNITECH Security<br/>
@@ -663,10 +1020,10 @@ export class VeilleService {
 
   private escapeHtml(text: string): string {
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   /**
@@ -675,12 +1032,16 @@ export class VeilleService {
   async getRelevantItems(limit = 20) {
     const all = await this.prisma.veilleItem.findMany({
       where: { isProcessed: false },
-      orderBy: { publishedAt: 'desc' },
+      orderBy: { publishedAt: "desc" },
       take: 200,
     });
 
     return all
-      .filter(item => this.isRelevantToParc((item.title || '') + ' ' + (item.description || '')))
+      .filter((item) =>
+        this.isRelevantToParc(
+          (item.title || "") + " " + (item.description || ""),
+        ),
+      )
       .slice(0, limit);
   }
 }
