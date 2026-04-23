@@ -34,6 +34,7 @@ import {
   Moon,
   Award,
   Database,
+  KeyRound,
   type LucideIcon,
 } from 'lucide-react';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
@@ -53,6 +54,7 @@ const GROUPS: Record<string, { label: string; tabs: Tab[] }> = {
       { label: 'Utilisateurs', href: '/admin/users', icon: Users, minRole: UserRole.ADMIN },
       { label: 'Validation LDAP', href: '/admin/ldap-pending', icon: UserPlus, minRole: UserRole.ADMIN },
       { label: 'Départements', href: '/admin/departments', icon: Building2, minRole: UserRole.ADMIN },
+      { label: 'Accès & modules', href: '/admin/access', icon: KeyRound, minRole: UserRole.SUPER_ADMIN },
       { label: "Revues d'accès", href: '/admin/access-reviews', icon: UserCheck2, minRole: UserRole.SUPER_ADMIN },
       { label: 'Onboarding', href: '/admin/onboarding', icon: UsersIcon, minRole: UserRole.ADMIN },
       { label: 'Prestataires', href: '/admin/external-access', icon: UsersIcon, minRole: UserRole.ADMIN },
@@ -82,7 +84,8 @@ const GROUPS: Record<string, { label: string; tabs: Tab[] }> = {
     label: 'Configuration système',
     tabs: [
       { label: 'Configuration', href: '/admin/config', icon: Settings, minRole: UserRole.SUPER_ADMIN },
-      { label: 'Espaces & modules', href: '/admin/spaces', icon: Layers, minRole: UserRole.SUPER_ADMIN },
+      // Accès & modules (ex-/admin/spaces) a migré dans /admin/access — groupe identity
+      { label: 'Accès & modules', href: '/admin/access?tab=users', icon: Layers, minRole: UserRole.SUPER_ADMIN },
       { label: 'Exports IT', href: '/admin/it-exports', icon: ClipboardCheck, minRole: UserRole.ADMIN },
       { label: 'Audit dark mode', href: '/admin/dark-mode-audit', icon: Moon, minRole: UserRole.ADMIN },
       { label: 'Sauvegardes', href: '/admin/backups', icon: Database, minRole: UserRole.SUPER_ADMIN },

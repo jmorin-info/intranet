@@ -87,6 +87,13 @@ const nextConfig = {
         destination: "/admin/audit?tab=timeline",
         permanent: true,
       },
+      // Fusion /admin/spaces → /admin/access (onglet Utilisateurs)
+      // cf. docs/architecture/ACCESS_AND_SPACES_UNIFICATION.md (Option B)
+      {
+        source: "/admin/spaces",
+        destination: "/admin/access?tab=users",
+        permanent: false,
+      },
     ];
   },
 };
