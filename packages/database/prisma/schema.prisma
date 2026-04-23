@@ -236,6 +236,7 @@ model User {
   workflowStepsEscalate     WorkflowStep[]           @relation("StepEscalate")
   approvalInstancesStarted  ApprovalInstance[]       @relation("InstanceStarter")
   approvalStepDecisions     ApprovalStepInstance[]   @relation("StepDecider")
+  approvalStepAssignments   ApprovalStepInstance[]   @relation("StepAssignee")
   // === Signature campaigns (ISO 27001 A.5.1 + A.6.2) === 2026-04-13
   signatureCampaignsCreated SignatureCampaign[]      @relation("CampaignCreator")
   campaignSignatures        CampaignSignature[]      @relation("SignatureRecipient")
@@ -1490,6 +1491,10 @@ model ApprovalStepInstance {
   id          String           @id @default(uuid())
   instanceId  String
   stepId      String
+  // Approbateur pré-assigné pour cette step-instance. Utilisé par les modes
+  // PARALLEL_ALL / PARALLEL_ANY où l'on matérialise une ligne par approbateur
+  // attendu. Null pour SINGLE basé sur rôle/département (résolution dynamique).
+  assignedToId String?
   decidedById String?
   decision    ApprovalDecision @default(PENDING)
   comment     String?
@@ -1497,13 +1502,15 @@ model ApprovalStepInstance {
   escalatedAt DateTime?
   dueAt       DateTime?
 
-  instance  ApprovalInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  step      WorkflowStep     @relation(fields: [stepId], references: [id])
-  decidedBy User?            @relation("StepDecider", fields: [decidedById], references: [id])
+  instance   ApprovalInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  step       WorkflowStep     @relation(fields: [stepId], references: [id])
+  decidedBy  User?            @relation("StepDecider", fields: [decidedById], references: [id])
+  assignedTo User?            @relation("StepAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
 
   @@index([instanceId])
   @@index([stepId])
   @@index([decision, dueAt])
+  @@index([assignedToId])
 }
 
 enum ApprovalDecision {

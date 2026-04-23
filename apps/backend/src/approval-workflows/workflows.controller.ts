@@ -8,20 +8,22 @@ import {
   Patch,
   Post,
   UseGuards,
-} from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { RequestUser } from '../common/interfaces';
-import { UserRole } from '../common/enums';
-import { WorkflowsService } from './workflows.service';
+} from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { RequestUser } from "../common/interfaces";
+import { UserRole } from "../common/enums";
+import { WorkflowsService } from "./workflows.service";
+import { AddStepDto } from "./dto/add-step.dto";
+import { DecideStepDto } from "./dto/decide-step.dto";
 
 /**
  * Contrôleur REST pour les workflows d'approbation configurables.
  * Préfixe : /approval-workflows
  */
-@Controller('approval-workflows')
+@Controller("approval-workflows")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class WorkflowsController {
   constructor(private readonly service: WorkflowsService) {}
@@ -36,7 +38,7 @@ export class WorkflowsController {
     return this.service.findAll();
   }
 
-  @Post('seed-presets')
+  @Post("seed-presets")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   seedPresets(@CurrentUser() user: RequestUser) {
     return this.service.seedPresets(user.id);
@@ -57,16 +59,16 @@ export class WorkflowsController {
     return this.service.create(dto, user.id);
   }
 
-  @Get(':id')
+  @Get(":id")
   @Roles(UserRole.REVIEWER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.findOne(id);
   }
 
-  @Patch(':id')
+  @Patch(":id")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body()
     dto: {
       name?: string;
@@ -79,9 +81,9 @@ export class WorkflowsController {
     return this.service.update(id, dto);
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  deactivate(@Param('id', ParseUUIDPipe) id: string) {
+  deactivate(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.deactivate(id);
   }
 
@@ -89,36 +91,25 @@ export class WorkflowsController {
   // Steps
   // ---------------------------------------------------------------------------
 
-  @Post(':id/steps')
+  @Post(":id/steps")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   addStep(
-    @Param('id', ParseUUIDPipe) workflowId: string,
-    @Body()
-    dto: {
-      name: string;
-      mode?: 'SINGLE' | 'PARALLEL_ALL' | 'PARALLEL_ANY';
-      approverRole?: string | null;
-      approverUserId?: string | null;
-      approverDeptId?: string | null;
-      slaHours?: number | null;
-      escalateToUserId?: string | null;
-      autoApproveOnTimeout?: boolean;
-      order?: number;
-    },
+    @Param("id", ParseUUIDPipe) workflowId: string,
+    @Body() dto: AddStepDto,
   ) {
     return this.service.addStep(workflowId, dto);
   }
 
-  @Delete('steps/:stepId')
+  @Delete("steps/:stepId")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  removeStep(@Param('stepId', ParseUUIDPipe) stepId: string) {
+  removeStep(@Param("stepId", ParseUUIDPipe) stepId: string) {
     return this.service.removeStep(stepId);
   }
 
-  @Post(':id/steps/reorder')
+  @Post(":id/steps/reorder")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   reorderSteps(
-    @Param('id', ParseUUIDPipe) workflowId: string,
+    @Param("id", ParseUUIDPipe) workflowId: string,
     @Body() dto: { orderedStepIds: string[] },
   ) {
     return this.service.reorderSteps(workflowId, dto.orderedStepIds);
@@ -128,11 +119,16 @@ export class WorkflowsController {
   // Instances (démarrage et décisions)
   // ---------------------------------------------------------------------------
 
-  @Post(':id/documents/:docId/start')
-  @Roles(UserRole.COLLABORATEUR, UserRole.REVIEWER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post(":id/documents/:docId/start")
+  @Roles(
+    UserRole.COLLABORATEUR,
+    UserRole.REVIEWER,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
   startInstance(
-    @Param('id', ParseUUIDPipe) workflowId: string,
-    @Param('docId', ParseUUIDPipe) documentId: string,
+    @Param("id", ParseUUIDPipe) workflowId: string,
+    @Param("docId", ParseUUIDPipe) documentId: string,
     @Body()
     dto: {
       documentVersionId: string;
@@ -153,10 +149,15 @@ export class WorkflowsController {
    * Variante "docId en URL, workflowId en body" — utilisée par la page détail
    * document du frontend (WorkflowPanel). Accepte aussi `stepOverrides`.
    */
-  @Post('documents/:docId/start')
-  @Roles(UserRole.COLLABORATEUR, UserRole.REVIEWER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post("documents/:docId/start")
+  @Roles(
+    UserRole.COLLABORATEUR,
+    UserRole.REVIEWER,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
   startInstanceForDocument(
-    @Param('docId', ParseUUIDPipe) documentId: string,
+    @Param("docId", ParseUUIDPipe) documentId: string,
     @Body()
     dto: {
       workflowId: string;
@@ -177,11 +178,12 @@ export class WorkflowsController {
   /**
    * Retourne l'instance active (PENDING) pour un document, ou 404 si aucune.
    */
-  @Get('instance/for-document/:documentId')
+  @Get("instance/for-document/:documentId")
   async getActiveInstanceForDocument(
-    @Param('documentId', ParseUUIDPipe) documentId: string,
+    @Param("documentId", ParseUUIDPipe) documentId: string,
   ) {
-    const instance = await this.service.getActiveInstanceForDocument(documentId);
+    const instance =
+      await this.service.getActiveInstanceForDocument(documentId);
     if (!instance) {
       // On renvoie null (200) plutôt qu'un 404 pour simplifier le front
       return null;
@@ -189,22 +191,27 @@ export class WorkflowsController {
     return instance;
   }
 
-  @Post('steps/:stepInstanceId/decide')
+  @Post("steps/:stepInstanceId/decide")
   decide(
-    @Param('stepInstanceId', ParseUUIDPipe) stepInstanceId: string,
-    @Body() dto: { decision: 'APPROVED' | 'REJECTED'; comment?: string },
+    @Param("stepInstanceId", ParseUUIDPipe) stepInstanceId: string,
+    @Body() dto: DecideStepDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.decide(stepInstanceId, user.id, dto.decision, dto.comment);
+    return this.service.decide(
+      stepInstanceId,
+      user.id,
+      dto.decision,
+      dto.comment,
+    );
   }
 
-  @Post('instances/:instanceId/cancel')
+  @Post("instances/:instanceId/cancel")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  cancelInstance(@Param('instanceId', ParseUUIDPipe) instanceId: string) {
+  cancelInstance(@Param("instanceId", ParseUUIDPipe) instanceId: string) {
     return this.service.cancelInstance(instanceId);
   }
 
-  @Get('pending/me')
+  @Get("pending/me")
   pendingForMe(@CurrentUser() user: RequestUser) {
     return this.service.getPendingForUser(
       user.id,

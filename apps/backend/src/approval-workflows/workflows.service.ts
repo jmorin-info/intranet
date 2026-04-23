@@ -4,21 +4,26 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+} from "@nestjs/common";
+import type { Prisma, UserRole, WorkflowStepMode } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
 
 /**
  * WorkflowsService — Workflows d'approbation configurables (ISO 27001 A.5.1).
  *
- * Ce service fournit :
- *  - le CRUD des templates de workflow et de leurs étapes ;
- *  - la création d'une instance (démarrage d'un workflow sur un document) ;
- *  - l'enregistrement d'une décision sur une étape ;
- *  - l'évaluation automatique de la progression (avance au step suivant ou termine) ;
- *  - la récupération des approbations en attente pour un utilisateur.
+ * Modes supportés (enum WorkflowStepMode) :
+ *  - SINGLE        : une seule décision suffit (1 ligne ApprovalStepInstance).
+ *  - PARALLEL_ALL  : N approbateurs résolus dynamiquement, tous doivent
+ *                    approuver avant passage à l'étape suivante.
+ *  - PARALLEL_ANY  : N approbateurs, dès qu'UNE approbation arrive, l'étape
+ *                    est validée et les autres step-instances non décidées
+ *                    sont marquées SKIPPED.
  *
- * NOTE: ce service est pour l'instant autonome — il n'est pas encore branché
- * sur le modèle Document existant (qui conserve son flow DRAFT → APPROVED figé).
+ * Un rejet par n'importe quel approbateur (tous modes confondus) → l'étape
+ * entière et l'instance sont rejetées immédiatement.
+ *
+ * Validation stricte : une étape doit cibler EXACTEMENT UN type d'approbateur
+ * parmi {approverRole, approverUserId, approverDeptId} — sinon BadRequest.
  */
 @Injectable()
 export class WorkflowsService {
@@ -27,15 +32,149 @@ export class WorkflowsService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ---------------------------------------------------------------------------
+  // Helpers — validation & résolution d'approbateurs
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Valide qu'une définition d'étape cible EXACTEMENT UN type d'approbateur.
+   * Retourne un BadRequestException avec message explicite si le sélecteur
+   * est vide, ambigu (plusieurs renseignés), ou invalide.
+   */
+  private validateApproverSelector(sel: {
+    approverRole?: string | null;
+    approverUserId?: string | null;
+    approverDeptId?: string | null;
+  }): void {
+    const provided = [
+      sel.approverRole ? "approverRole" : null,
+      sel.approverUserId ? "approverUserId" : null,
+      sel.approverDeptId ? "approverDeptId" : null,
+    ].filter((v): v is string => v !== null);
+
+    if (provided.length === 0) {
+      throw new BadRequestException(
+        "Une étape doit définir exactement UN approbateur : 'approverRole', 'approverUserId' ou 'approverDeptId'.",
+      );
+    }
+    if (provided.length > 1) {
+      throw new BadRequestException(
+        `Une étape ne peut définir qu'UN SEUL type d'approbateur à la fois. Reçus : ${provided.join(
+          ", ",
+        )}.`,
+      );
+    }
+  }
+
+  /**
+   * Résout la liste des userIds éligibles à approuver une étape donnée,
+   * en fonction de son sélecteur (role / user / dept). Exclut les users
+   * soft-supprimés et inactifs. Pour approverRole, retourne TOUS les users
+   * ayant ce rôle.
+   */
+  private async resolveStepApprovers(step: {
+    approverRole: UserRole | null;
+    approverUserId: string | null;
+    approverDeptId: string | null;
+  }): Promise<string[]> {
+    if (step.approverUserId) {
+      return [step.approverUserId];
+    }
+    if (step.approverDeptId) {
+      const users = await this.prisma.user.findMany({
+        where: {
+          departmentId: step.approverDeptId,
+          isActive: true,
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      return users.map((u) => u.id);
+    }
+    if (step.approverRole) {
+      const users = await this.prisma.user.findMany({
+        where: {
+          role: step.approverRole,
+          isActive: true,
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      return users.map((u) => u.id);
+    }
+    return [];
+  }
+
+  /**
+   * Vérifie que `userId` est éligible à décider sur la step-instance donnée.
+   * Règles :
+   *  - Si `assignedToId` est renseigné (mode parallèle ou pré-assigné) :
+   *    seul cet utilisateur précis peut décider.
+   *  - Sinon on compare le rôle / département de l'user aux sélecteurs du
+   *    WorkflowStep template.
+   */
+  private async assertUserCanDecide(
+    userId: string,
+    stepInstance: {
+      assignedToId: string | null;
+      step: {
+        approverRole: UserRole | null;
+        approverUserId: string | null;
+        approverDeptId: string | null;
+      };
+    },
+  ): Promise<void> {
+    if (stepInstance.assignedToId) {
+      if (stepInstance.assignedToId !== userId) {
+        throw new ForbiddenException(
+          "Cette étape est assignée à un autre approbateur.",
+        );
+      }
+      return;
+    }
+
+    // Fallback : résolution dynamique via rôle/dept/user du template.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        role: true,
+        departmentId: true,
+        isActive: true,
+        deletedAt: true,
+      },
+    });
+    if (!user || !user.isActive || user.deletedAt) {
+      throw new ForbiddenException("Utilisateur invalide ou désactivé.");
+    }
+
+    const { step } = stepInstance;
+    if (step.approverUserId && step.approverUserId !== userId) {
+      throw new ForbiddenException(
+        "Cette étape est réservée à un approbateur spécifique.",
+      );
+    }
+    if (step.approverDeptId && step.approverDeptId !== user.departmentId) {
+      throw new ForbiddenException(
+        "Cette étape doit être validée par un membre du département désigné.",
+      );
+    }
+    if (step.approverRole && step.approverRole !== user.role) {
+      throw new ForbiddenException(
+        `Cette étape doit être validée par un utilisateur avec le rôle ${step.approverRole}.`,
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // CRUD Workflows
   // ---------------------------------------------------------------------------
 
   /** Liste tous les workflows (avec leurs étapes). */
   async findAll() {
     return this.prisma.approvalWorkflow.findMany({
-      orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+      orderBy: [{ isDefault: "desc" }, { name: "asc" }],
       include: {
-        steps: { orderBy: { order: 'asc' } },
+        steps: { orderBy: { order: "asc" } },
         _count: { select: { instances: true } },
       },
     });
@@ -47,14 +186,24 @@ export class WorkflowsService {
       where: { id },
       include: {
         steps: {
-          orderBy: { order: 'asc' },
+          orderBy: { order: "asc" },
           include: {
             approverUser: {
-              select: { id: true, firstName: true, lastName: true, email: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
             },
             approverDept: true,
             escalateTo: {
-              select: { id: true, firstName: true, lastName: true, email: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
             },
           },
         },
@@ -80,7 +229,10 @@ export class WorkflowsService {
     // Un seul default par catégorie : on reset les autres si isDefault=true
     if (data.isDefault) {
       await this.prisma.approvalWorkflow.updateMany({
-        where: { documentCategory: (data.documentCategory as any) ?? null, isDefault: true },
+        where: {
+          documentCategory: (data.documentCategory as any) ?? null,
+          isDefault: true,
+        },
         data: { isDefault: false },
       });
     }
@@ -106,7 +258,9 @@ export class WorkflowsService {
       isDefault?: boolean;
     },
   ) {
-    const existing = await this.prisma.approvalWorkflow.findUnique({ where: { id } });
+    const existing = await this.prisma.approvalWorkflow.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException(`Workflow ${id} introuvable`);
 
     if (data.isDefault) {
@@ -156,8 +310,8 @@ export class WorkflowsService {
   async seedPresets(userId: string) {
     type PresetStep = {
       name: string;
-      mode: 'SINGLE' | 'PARALLEL_ALL' | 'PARALLEL_ANY';
-      approverRole: 'REVIEWER' | 'ADMIN' | 'SUPER_ADMIN';
+      mode: "SINGLE" | "PARALLEL_ALL" | "PARALLEL_ANY";
+      approverRole: "REVIEWER" | "ADMIN" | "SUPER_ADMIN";
       slaHours?: number;
       autoApproveOnTimeout?: boolean;
     };
@@ -171,54 +325,114 @@ export class WorkflowsService {
 
     const presets: Preset[] = [
       {
-        name: 'Validation simple',
-        description: 'Relecture unique par un relecteur — idéal pour les notes de service et communications internes.',
+        name: "Validation simple",
+        description:
+          "Relecture unique par un relecteur — idéal pour les notes de service et communications internes.",
         documentCategory: null,
         isDefault: false,
         steps: [
-          { name: 'Relecture', mode: 'SINGLE', approverRole: 'REVIEWER', slaHours: 48 },
+          {
+            name: "Relecture",
+            mode: "SINGLE",
+            approverRole: "REVIEWER",
+            slaHours: 48,
+          },
         ],
       },
       {
-        name: 'Validation hiérarchique',
-        description: 'Relecture puis validation admin. Workflow standard pour la majorité des documents.',
+        name: "Validation hiérarchique",
+        description:
+          "Relecture puis validation admin. Workflow standard pour la majorité des documents.",
         documentCategory: null,
         isDefault: true,
         steps: [
-          { name: 'Relecture métier', mode: 'SINGLE', approverRole: 'REVIEWER', slaHours: 48 },
-          { name: 'Validation admin', mode: 'SINGLE', approverRole: 'ADMIN', slaHours: 72 },
+          {
+            name: "Relecture métier",
+            mode: "SINGLE",
+            approverRole: "REVIEWER",
+            slaHours: 48,
+          },
+          {
+            name: "Validation admin",
+            mode: "SINGLE",
+            approverRole: "ADMIN",
+            slaHours: 72,
+          },
         ],
       },
       {
-        name: 'Validation sécurité RSSI',
-        description: 'Parcours spécifique pour les politiques de sécurité — ISO 27001. Relecture puis double validation ADMIN + RSSI.',
-        documentCategory: 'POLICY',
+        name: "Validation sécurité RSSI",
+        description:
+          "Parcours spécifique pour les politiques de sécurité — ISO 27001. Relecture puis double validation ADMIN + RSSI.",
+        documentCategory: "POLICY",
         isDefault: true,
         steps: [
-          { name: 'Relecture technique', mode: 'SINGLE', approverRole: 'REVIEWER', slaHours: 72 },
-          { name: 'Validation ADMIN + RSSI', mode: 'PARALLEL_ALL', approverRole: 'ADMIN', slaHours: 120 },
-          { name: 'Approbation finale', mode: 'SINGLE', approverRole: 'SUPER_ADMIN', slaHours: 168 },
+          {
+            name: "Relecture technique",
+            mode: "SINGLE",
+            approverRole: "REVIEWER",
+            slaHours: 72,
+          },
+          {
+            name: "Validation ADMIN + RSSI",
+            mode: "PARALLEL_ALL",
+            approverRole: "ADMIN",
+            slaHours: 120,
+          },
+          {
+            name: "Approbation finale",
+            mode: "SINGLE",
+            approverRole: "SUPER_ADMIN",
+            slaHours: 168,
+          },
         ],
       },
       {
-        name: 'Procédure ISO 27001',
-        description: 'Workflow conforme pour les procédures opérationnelles : relecture, validation RSSI, approbation direction.',
-        documentCategory: 'PROCEDURE',
+        name: "Procédure ISO 27001",
+        description:
+          "Workflow conforme pour les procédures opérationnelles : relecture, validation RSSI, approbation direction.",
+        documentCategory: "PROCEDURE",
         isDefault: true,
         steps: [
-          { name: 'Revue qualité', mode: 'SINGLE', approverRole: 'REVIEWER', slaHours: 72 },
-          { name: 'Validation RSSI', mode: 'SINGLE', approverRole: 'ADMIN', slaHours: 120 },
-          { name: 'Approbation direction', mode: 'SINGLE', approverRole: 'SUPER_ADMIN', slaHours: 168 },
+          {
+            name: "Revue qualité",
+            mode: "SINGLE",
+            approverRole: "REVIEWER",
+            slaHours: 72,
+          },
+          {
+            name: "Validation RSSI",
+            mode: "SINGLE",
+            approverRole: "ADMIN",
+            slaHours: 120,
+          },
+          {
+            name: "Approbation direction",
+            mode: "SINGLE",
+            approverRole: "SUPER_ADMIN",
+            slaHours: 168,
+          },
         ],
       },
       {
-        name: 'Validation contrat',
-        description: 'Contrats fournisseurs / prestataires — double validation ADMIN (juridique + achats), approbation SUPER_ADMIN finale.',
-        documentCategory: 'CONTRACT',
+        name: "Validation contrat",
+        description:
+          "Contrats fournisseurs / prestataires — double validation ADMIN (juridique + achats), approbation SUPER_ADMIN finale.",
+        documentCategory: "CONTRACT",
         isDefault: true,
         steps: [
-          { name: 'Revue juridique & achats', mode: 'PARALLEL_ALL', approverRole: 'ADMIN', slaHours: 120 },
-          { name: 'Signature direction', mode: 'SINGLE', approverRole: 'SUPER_ADMIN', slaHours: 168 },
+          {
+            name: "Revue juridique & achats",
+            mode: "PARALLEL_ALL",
+            approverRole: "ADMIN",
+            slaHours: 120,
+          },
+          {
+            name: "Signature direction",
+            mode: "SINGLE",
+            approverRole: "SUPER_ADMIN",
+            slaHours: 168,
+          },
         ],
       },
     ];
@@ -284,8 +498,8 @@ export class WorkflowsService {
     workflowId: string,
     data: {
       name: string;
-      mode?: 'SINGLE' | 'PARALLEL_ALL' | 'PARALLEL_ANY';
-      approverRole?: string | null;
+      mode?: WorkflowStepMode;
+      approverRole?: UserRole | null;
       approverUserId?: string | null;
       approverDeptId?: string | null;
       slaHours?: number | null;
@@ -296,17 +510,41 @@ export class WorkflowsService {
   ) {
     const wf = await this.prisma.approvalWorkflow.findUnique({
       where: { id: workflowId },
-      include: { steps: { orderBy: { order: 'desc' }, take: 1 } },
+      include: { steps: { orderBy: { order: "desc" }, take: 1 } },
     });
     if (!wf) throw new NotFoundException(`Workflow ${workflowId} introuvable`);
 
     const nextOrder = data.order ?? (wf.steps[0]?.order ?? 0) + 1;
 
-    // Sanity: au moins un type d'approbateur défini
-    if (!data.approverRole && !data.approverUserId && !data.approverDeptId) {
-      throw new BadRequestException(
-        "Une étape doit définir au moins un approbateur (rôle, utilisateur ou département)",
-      );
+    // Validation stricte : exactement UN type d'approbateur
+    this.validateApproverSelector({
+      approverRole: data.approverRole,
+      approverUserId: data.approverUserId,
+      approverDeptId: data.approverDeptId,
+    });
+
+    // Sanity supplémentaire : si user ou dept fourni, on vérifie son existence.
+    if (data.approverUserId) {
+      const u = await this.prisma.user.findUnique({
+        where: { id: data.approverUserId },
+        select: { id: true },
+      });
+      if (!u) {
+        throw new BadRequestException(
+          `Utilisateur approbateur ${data.approverUserId} introuvable`,
+        );
+      }
+    }
+    if (data.approverDeptId) {
+      const d = await this.prisma.department.findUnique({
+        where: { id: data.approverDeptId },
+        select: { id: true },
+      });
+      if (!d) {
+        throw new BadRequestException(
+          `Département approbateur ${data.approverDeptId} introuvable`,
+        );
+      }
     }
 
     return this.prisma.workflowStep.create({
@@ -314,10 +552,10 @@ export class WorkflowsService {
         workflowId,
         order: nextOrder,
         name: data.name,
-        mode: (data.mode as any) ?? 'SINGLE',
-        approverRole: data.approverRole as any,
-        approverUserId: data.approverUserId,
-        approverDeptId: data.approverDeptId,
+        mode: (data.mode as any) ?? "SINGLE",
+        approverRole: (data.approverRole as any) ?? null,
+        approverUserId: data.approverUserId ?? null,
+        approverDeptId: data.approverDeptId ?? null,
         slaHours: data.slaHours ?? null,
         escalateToUserId: data.escalateToUserId ?? null,
         autoApproveOnTimeout: data.autoApproveOnTimeout ?? false,
@@ -326,7 +564,9 @@ export class WorkflowsService {
   }
 
   async removeStep(stepId: string) {
-    const step = await this.prisma.workflowStep.findUnique({ where: { id: stepId } });
+    const step = await this.prisma.workflowStep.findUnique({
+      where: { id: stepId },
+    });
     if (!step) throw new NotFoundException(`Étape ${stepId} introuvable`);
     return this.prisma.workflowStep.delete({ where: { id: stepId } });
   }
@@ -349,7 +589,14 @@ export class WorkflowsService {
 
   /**
    * Démarre une instance de workflow pour un document (+ version donnée).
-   * Crée un ApprovalStepInstance pour chaque WorkflowStep en status PENDING.
+   *
+   * Pour chaque WorkflowStep :
+   *  - SINGLE        : 1 ApprovalStepInstance (assignedToId optionnel : override
+   *                    explicite sinon null, résolution dynamique à `decide`).
+   *  - PARALLEL_ALL  : N lignes, une par approbateur résolu, assignedToId
+   *                    renseigné. Toutes doivent être APPROVED pour valider.
+   *  - PARALLEL_ANY  : N lignes, une par approbateur résolu. La 1re APPROVED
+   *                    valide l'étape ; les autres sont SKIPPED automatiquement.
    */
   async createInstance(
     workflowId: string,
@@ -360,21 +607,30 @@ export class WorkflowsService {
   ) {
     const wf = await this.prisma.approvalWorkflow.findUnique({
       where: { id: workflowId },
-      include: { steps: { orderBy: { order: 'asc' } } },
+      include: { steps: { orderBy: { order: "asc" } } },
     });
     if (!wf) throw new NotFoundException(`Workflow ${workflowId} introuvable`);
-    if (!wf.isActive) throw new BadRequestException('Workflow inactif');
+    if (!wf.isActive) throw new BadRequestException("Workflow inactif");
     if (wf.steps.length === 0) {
       throw new BadRequestException("Le workflow ne contient aucune étape");
     }
 
+    // Validation préventive de chaque step (coherence des sélecteurs)
+    for (const step of wf.steps) {
+      this.validateApproverSelector({
+        approverRole: step.approverRole,
+        approverUserId: step.approverUserId,
+        approverDeptId: step.approverDeptId,
+      });
+    }
+
     // Empêche les instances concurrentes sur le même document (une seule en cours)
     const existing = await this.prisma.approvalInstance.findFirst({
-      where: { documentId, status: 'PENDING' },
+      where: { documentId, status: "PENDING" },
     });
     if (existing) {
       throw new BadRequestException(
-        'Une instance de workflow est déjà en cours pour ce document',
+        "Une instance de workflow est déjà en cours pour ce document",
       );
     }
 
@@ -386,11 +642,55 @@ export class WorkflowsService {
       }
     }
 
-    // NOTE: on ne modifie pas le WorkflowStep template ; l'override est appliqué
-    // uniquement via le champ `assignedToId` de l'ApprovalStepInstance si le
-    // modèle l'expose. Sinon on s'appuie sur le `decidedById` au moment de la
-    // décision. Pour que getPendingForUser fonctionne malgré tout, on duplique
-    // l'info dans le commentaire initial (hack scaffold) — TODO proprement.
+    // Construction des step-instances à créer (avec matérialisation PARALLEL)
+    const stepResultsCreate: Prisma.ApprovalStepInstanceCreateWithoutInstanceInput[] =
+      [];
+    for (const step of wf.steps) {
+      const dueAt = step.slaHours
+        ? new Date(Date.now() + step.slaHours * 3600_000)
+        : null;
+
+      const mode = (step.mode as WorkflowStepMode) ?? "SINGLE";
+      const overrideUserId = overrideMap.get(step.id);
+
+      if (mode === "PARALLEL_ALL" || mode === "PARALLEL_ANY") {
+        // Résolution dynamique des approbateurs (role/user/dept)
+        const approverIds = await this.resolveStepApprovers({
+          approverRole: step.approverRole,
+          approverUserId: step.approverUserId,
+          approverDeptId: step.approverDeptId,
+        });
+
+        if (approverIds.length === 0) {
+          throw new BadRequestException(
+            `L'étape "${step.name}" (${mode}) n'a aucun approbateur éligible (rôle/département vide ?).`,
+          );
+        }
+
+        for (const approverId of approverIds) {
+          stepResultsCreate.push({
+            step: { connect: { id: step.id } },
+            decision: "PENDING",
+            assignedTo: { connect: { id: approverId } },
+            dueAt,
+          });
+        }
+      } else {
+        // SINGLE — une seule ligne. Si override fourni → assignedToId, sinon
+        // null et résolution dynamique au moment de la décision.
+        const resolvedAssignee =
+          overrideUserId ?? (step.approverUserId ? step.approverUserId : null);
+        stepResultsCreate.push({
+          step: { connect: { id: step.id } },
+          decision: "PENDING",
+          assignedTo: resolvedAssignee
+            ? { connect: { id: resolvedAssignee } }
+            : undefined,
+          dueAt,
+        });
+      }
+    }
+
     const instance = await this.prisma.approvalInstance.create({
       data: {
         workflowId,
@@ -398,45 +698,32 @@ export class WorkflowsService {
         documentVersionId,
         startedById: userId,
         currentStepOrder: 1,
-        status: 'PENDING',
+        status: "PENDING",
         stepResults: {
-          create: wf.steps.map((s) => {
-            const overrideUserId = overrideMap.get(s.id);
-            return {
-              stepId: s.id,
-              decision: 'PENDING' as const,
-              // Si override : on stocke l'info dans le commentaire pour rappel,
-              // et on force le decidedById à null jusqu'à la décision effective.
-              comment: overrideUserId
-                ? `__override_approver__:${overrideUserId}`
-                : null,
-              dueAt: s.slaHours
-                ? new Date(Date.now() + s.slaHours * 3600_000)
-                : null,
-            };
-          }),
+          create: stepResultsCreate,
         },
       },
       include: { stepResults: true },
     });
 
-    // TODO: PARALLEL_ALL / PARALLEL_ANY — créer N step-instances (une par
-    // approbateur) au lieu d'une seule. Actuellement tous les modes utilisent
-    // la même ligne, ce qui revient à un comportement SINGLE.
-
     this.logger.log(
-      `Instance ${instance.id} démarrée (workflow=${workflowId}, doc=${documentId})`,
+      `Instance ${instance.id} démarrée (workflow=${workflowId}, doc=${documentId}, ` +
+        `${stepResultsCreate.length} step-instances créées)`,
     );
     return instance;
   }
 
   /**
    * Enregistre une décision sur une étape-instance puis déclenche l'évaluation.
+   *
+   * - Vérifie que `userId` est éligible (assignedTo OU selector du template).
+   * - Trace la décision individuelle (audit log via log()).
+   * - Appelle evaluateProgress qui gère l'avancement / rejet / SKIP des autres.
    */
   async decide(
     stepInstanceId: string,
     userId: string,
-    decision: 'APPROVED' | 'REJECTED',
+    decision: "APPROVED" | "REJECTED",
     comment?: string,
   ) {
     const si = await this.prisma.approvalStepInstance.findUnique({
@@ -446,21 +733,33 @@ export class WorkflowsService {
         instance: true,
       },
     });
-    if (!si) throw new NotFoundException(`Étape-instance ${stepInstanceId} introuvable`);
-    if (si.decision !== 'PENDING') {
-      throw new BadRequestException('Cette étape a déjà été décidée');
+    if (!si)
+      throw new NotFoundException(
+        `Étape-instance ${stepInstanceId} introuvable`,
+      );
+    if (si.decision !== "PENDING") {
+      throw new BadRequestException("Cette étape a déjà été décidée");
     }
-    if (si.instance.status !== 'PENDING') {
+    if (si.instance.status !== "PENDING") {
       throw new BadRequestException("L'instance n'est plus en cours");
     }
 
-    // Vérif très basique : le step doit correspondre au currentStepOrder
+    // Vérif basique : le step doit correspondre au currentStepOrder
     if (si.step.order !== si.instance.currentStepOrder) {
-      throw new ForbiddenException("Ce n'est pas l'étape courante de l'instance");
+      throw new ForbiddenException(
+        "Ce n'est pas l'étape courante de l'instance",
+      );
     }
 
-    // TODO: vérifier que userId matche approverRole / approverUserId / approverDeptId
-    // (pour l'instant on fait confiance au frontend + RolesGuard)
+    // Validation stricte : l'utilisateur est-il éligible à décider ?
+    await this.assertUserCanDecide(userId, {
+      assignedToId: si.assignedToId,
+      step: {
+        approverRole: si.step.approverRole,
+        approverUserId: si.step.approverUserId,
+        approverDeptId: si.step.approverDeptId,
+      },
+    });
 
     await this.prisma.approvalStepInstance.update({
       where: { id: stepInstanceId },
@@ -472,22 +771,36 @@ export class WorkflowsService {
       },
     });
 
+    this.logger.log(
+      `Décision ${decision} enregistrée sur step-instance ${stepInstanceId} ` +
+        `(instance=${si.instanceId}, step=${si.step.name}, mode=${si.step.mode}, user=${userId})`,
+    );
+
     return this.evaluateProgress(si.instanceId);
   }
 
   /**
    * Calcule l'état du step courant (en fonction du `mode`) et avance si besoin.
+   *
+   * Logique par mode :
+   *  - Tout mode : si AU MOINS UNE ligne REJECTED → instance REJECTED
+   *  - SINGLE / PARALLEL_ANY : dès qu'UNE ligne APPROVED → étape validée
+   *    + les autres lignes pending deviennent SKIPPED
+   *  - PARALLEL_ALL : étape validée SSI toutes les lignes sont APPROVED
+   *
+   * Une fois l'étape validée, on passe au currentStepOrder + 1 ou on termine.
    */
   async evaluateProgress(instanceId: string) {
     const instance = await this.prisma.approvalInstance.findUnique({
       where: { id: instanceId },
       include: {
-        workflow: { include: { steps: { orderBy: { order: 'asc' } } } },
+        workflow: { include: { steps: { orderBy: { order: "asc" } } } },
         stepResults: { include: { step: true } },
       },
     });
-    if (!instance) throw new NotFoundException(`Instance ${instanceId} introuvable`);
-    if (instance.status !== 'PENDING') return instance;
+    if (!instance)
+      throw new NotFoundException(`Instance ${instanceId} introuvable`);
+    if (instance.status !== "PENDING") return instance;
 
     const currentStep = instance.workflow.steps.find(
       (s) => s.order === instance.currentStepOrder,
@@ -496,7 +809,7 @@ export class WorkflowsService {
       // Plus d'étapes : on termine en APPROVED
       return this.prisma.approvalInstance.update({
         where: { id: instanceId },
-        data: { status: 'APPROVED', completedAt: new Date() },
+        data: { status: "APPROVED", completedAt: new Date() },
       });
     }
 
@@ -504,32 +817,55 @@ export class WorkflowsService {
       (r) => r.stepId === currentStep.id,
     );
 
-    // Si une seule ligne step-result est créée par step, le mode PARALLEL_* a
-    // aujourd'hui la même sémantique (scaffold). On documente l'intention :
-    // SINGLE         → on attend 1 décision
-    // PARALLEL_ALL   → on attend que TOUTES les lignes soient décidées APPROVED
-    // PARALLEL_ANY   → dès qu'UNE ligne est APPROVED, on passe
-    const anyRejected = currentResults.some((r) => r.decision === 'REJECTED');
+    // Rejet immédiat : un seul REJECTED suffit à faire tomber l'instance
+    const anyRejected = currentResults.some((r) => r.decision === "REJECTED");
     if (anyRejected) {
+      this.logger.warn(
+        `Instance ${instanceId} REJETÉE (étape "${currentStep.name}" mode=${currentStep.mode})`,
+      );
       return this.prisma.approvalInstance.update({
         where: { id: instanceId },
-        data: { status: 'REJECTED', completedAt: new Date() },
+        data: { status: "REJECTED", completedAt: new Date() },
       });
     }
 
     let stepValidated = false;
-    if (currentStep.mode === 'PARALLEL_ANY') {
-      stepValidated = currentResults.some((r) => r.decision === 'APPROVED');
-    } else if (currentStep.mode === 'PARALLEL_ALL') {
+    const mode = currentStep.mode as WorkflowStepMode;
+
+    if (mode === "PARALLEL_ALL") {
+      // TOUTES les lignes doivent être APPROVED (pas de PENDING restante)
       stepValidated =
         currentResults.length > 0 &&
-        currentResults.every((r) => r.decision === 'APPROVED');
+        currentResults.every((r) => r.decision === "APPROVED");
     } else {
-      // SINGLE
-      stepValidated = currentResults.some((r) => r.decision === 'APPROVED');
+      // SINGLE ou PARALLEL_ANY : 1 APPROVED suffit
+      stepValidated = currentResults.some((r) => r.decision === "APPROVED");
     }
 
     if (!stepValidated) return instance; // toujours en attente
+
+    // Étape validée — pour PARALLEL_ANY, skip les lignes pending restantes
+    // pour nettoyer la file d'attente et éviter des décisions caduques.
+    if (mode === "PARALLEL_ANY") {
+      const pendingSiblings = currentResults.filter(
+        (r) => r.decision === "PENDING",
+      );
+      if (pendingSiblings.length > 0) {
+        await this.prisma.approvalStepInstance.updateMany({
+          where: {
+            id: { in: pendingSiblings.map((r) => r.id) },
+          },
+          data: {
+            decision: "SKIPPED",
+            decidedAt: new Date(),
+            comment: "Caduc (PARALLEL_ANY résolu par une autre approbation)",
+          },
+        });
+        this.logger.log(
+          `${pendingSiblings.length} step-instances SKIPPED (PARALLEL_ANY, instance=${instanceId})`,
+        );
+      }
+    }
 
     // Passe au step suivant, ou termine en APPROVED
     const nextStep = instance.workflow.steps.find(
@@ -537,9 +873,12 @@ export class WorkflowsService {
     );
 
     if (!nextStep) {
+      this.logger.log(
+        `Instance ${instanceId} APPROUVÉE (toutes étapes validées)`,
+      );
       return this.prisma.approvalInstance.update({
         where: { id: instanceId },
-        data: { status: 'APPROVED', completedAt: new Date() },
+        data: { status: "APPROVED", completedAt: new Date() },
       });
     }
 
@@ -550,18 +889,35 @@ export class WorkflowsService {
   }
 
   /**
-   * Liste les étapes-instances en attente pour un utilisateur, en se basant
-   * sur l'approverUserId explicite OU sur le rôle/département.
+   * Liste les étapes-instances en attente pour un utilisateur, en se basant sur
+   * trois sources cumulatives :
+   *   1. `assignedToId` == userId (pré-assignation explicite — prioritaire)
+   *   2. Le step du template cible `approverUserId` == userId
+   *   3. Le step cible `approverRole` == userRole OU `approverDeptId` == deptId
+   *      ET la step-instance n'a PAS d'assignedToId (sinon on exclurait les
+   *      autres approbateurs parallèles).
    */
-  async getPendingForUser(userId: string, userRole: string, deptId?: string | null) {
+  async getPendingForUser(
+    userId: string,
+    userRole: string,
+    deptId?: string | null,
+  ) {
     return this.prisma.approvalStepInstance.findMany({
       where: {
-        decision: 'PENDING',
-        instance: { status: 'PENDING' },
+        decision: "PENDING",
+        instance: { status: "PENDING" },
         OR: [
-          { step: { approverUserId: userId } },
-          { step: { approverRole: userRole as any } },
-          ...(deptId ? [{ step: { approverDeptId: deptId } }] : []),
+          { assignedToId: userId },
+          {
+            assignedToId: null,
+            step: {
+              OR: [
+                { approverUserId: userId },
+                { approverRole: userRole as any },
+                ...(deptId ? [{ approverDeptId: deptId }] : []),
+              ],
+            },
+          },
         ],
       },
       include: {
@@ -571,8 +927,11 @@ export class WorkflowsService {
             workflow: { select: { id: true, name: true } },
           },
         },
+        assignedTo: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
-      orderBy: { dueAt: 'asc' },
+      orderBy: { dueAt: "asc" },
     });
   }
 
@@ -583,16 +942,21 @@ export class WorkflowsService {
    */
   async getActiveInstanceForDocument(documentId: string) {
     const instance = await this.prisma.approvalInstance.findFirst({
-      where: { documentId, status: 'PENDING' },
-      orderBy: { startedAt: 'desc' },
+      where: { documentId, status: "PENDING" },
+      orderBy: { startedAt: "desc" },
       include: {
         workflow: {
           include: {
             steps: {
-              orderBy: { order: 'asc' },
+              orderBy: { order: "asc" },
               include: {
                 approverUser: {
-                  select: { id: true, firstName: true, lastName: true, email: true },
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
                 },
                 approverDept: true,
               },
@@ -603,7 +967,20 @@ export class WorkflowsService {
           include: {
             step: true,
             decidedBy: {
-              select: { id: true, firstName: true, lastName: true, email: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            assignedTo: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
             },
           },
         },
@@ -619,7 +996,7 @@ export class WorkflowsService {
   async cancelInstance(instanceId: string) {
     return this.prisma.approvalInstance.update({
       where: { id: instanceId },
-      data: { status: 'CANCELLED', completedAt: new Date() },
+      data: { status: "CANCELLED", completedAt: new Date() },
     });
   }
 }
