@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth-store';
-import { toast } from 'sonner';
+import React, { useEffect, useState, useCallback } from "react";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -13,7 +13,7 @@ import {
   Dialog,
   Input,
   EmptyState,
-} from '@omnitech/ui';
+} from "@omnitech/ui";
 import {
   Layers,
   Plus,
@@ -23,7 +23,7 @@ import {
   FileText,
   Sprout,
   Link2,
-} from 'lucide-react';
+} from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,7 +61,10 @@ interface FrameworkSummary {
   partial: number;
   uncovered: number;
   coveragePercent: number;
-  byDomain: Record<string, { total: number; covered: number; partial: number; uncovered: number }>;
+  byDomain: Record<
+    string,
+    { total: number; covered: number; partial: number; uncovered: number }
+  >;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,11 +72,13 @@ interface FrameworkSummary {
 // ---------------------------------------------------------------------------
 
 export function ComplianceFrameworks() {
-  const user = useAuthStore(s => s.user);
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const user = useAuthStore((s) => s.user);
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
   const [frameworks, setFrameworks] = useState<Framework[]>([]);
-  const [summaries, setSummaries] = useState<Record<string, FrameworkSummary>>({});
+  const [summaries, setSummaries] = useState<Record<string, FrameworkSummary>>(
+    {},
+  );
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, FrameworkDetail>>({});
   const [loading, setLoading] = useState(true);
@@ -81,16 +86,16 @@ export function ComplianceFrameworks() {
 
   // Create dialog state
   const [showCreate, setShowCreate] = useState(false);
-  const [createName, setCreateName] = useState('');
-  const [createVersion, setCreateVersion] = useState('');
-  const [createDescription, setCreateDescription] = useState('');
+  const [createName, setCreateName] = useState("");
+  const [createVersion, setCreateVersion] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
   const [creating, setCreating] = useState(false);
 
   // ------- Fetch frameworks -------
   const fetchFrameworks = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/frameworks');
+      const { data } = await api.get("/frameworks");
       const list: Framework[] = Array.isArray(data) ? data : data?.data || [];
       setFrameworks(list);
 
@@ -134,7 +139,7 @@ export function ComplianceFrameworks() {
         const { data } = await api.get(`/frameworks/${id}`);
         setDetails((prev) => ({ ...prev, [id]: data }));
       } catch {
-        toast.error('Impossible de charger les contrôles');
+        toast.error("Impossible de charger les contrôles");
       }
     }
   };
@@ -143,8 +148,8 @@ export function ComplianceFrameworks() {
   const handleSeed = async () => {
     setSeeding(true);
     try {
-      await api.post('/frameworks/seed');
-      toast.success('Référentiels par défaut importés avec succès');
+      await api.post("/frameworks/seed");
+      toast.success("Référentiels par défaut importés avec succès");
       await fetchFrameworks();
     } catch {
       toast.error("Erreur lors de l'import des référentiels");
@@ -156,32 +161,38 @@ export function ComplianceFrameworks() {
   // ------- Create -------
   const handleCreate = async () => {
     if (!createName.trim()) {
-      toast.error('Le nom est obligatoire');
+      toast.error("Le nom est obligatoire");
       return;
     }
     setCreating(true);
     try {
-      await api.post('/frameworks', {
+      await api.post("/frameworks", {
         name: createName.trim(),
-        version: createVersion.trim() || '1.0',
+        version: createVersion.trim() || "1.0",
         description: createDescription.trim(),
       });
-      toast.success('Référentiel créé avec succès');
+      toast.success("Référentiel créé avec succès");
       setShowCreate(false);
-      setCreateName('');
-      setCreateVersion('');
-      setCreateDescription('');
+      setCreateName("");
+      setCreateVersion("");
+      setCreateDescription("");
       await fetchFrameworks();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Erreur lors de la création');
+      toast.error(err.response?.data?.message || "Erreur lors de la création");
     } finally {
       setCreating(false);
     }
   };
 
   // ------- Coverage ring helper -------
-  const CoverageRing = ({ percent, size = 80 }: { percent: number; size?: number }) => {
+  const CoverageRing = ({
+    percent,
+    size = 80,
+  }: {
+    percent: number;
+    size?: number;
+  }) => {
     const radius = (size - 16) / 2;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percent / 100) * circumference;
@@ -204,20 +215,26 @@ export function ComplianceFrameworks() {
           r={radius}
           fill="none"
           stroke="currentColor"
-          className={percent >= 75 ? 'text-emerald-500' : percent >= 40 ? 'text-amber-400' : 'text-red-400'}
+          className={
+            percent >= 75
+              ? "text-emerald-500"
+              : percent >= 40
+                ? "text-amber-400"
+                : "text-red-400"
+          }
           strokeWidth="8"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           transform={`rotate(-90 ${center} ${center})`}
           strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.8s ease-in-out' }}
+          style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
         />
         <text
           x={center}
           y={center}
           textAnchor="middle"
           dominantBaseline="central"
-          className="text-sm font-semibold fill-navy dark:fill-white"
+          className="text-sm font-semibold fill-seal-navy dark:fill-white"
         >
           {percent}%
         </text>
@@ -229,7 +246,7 @@ export function ComplianceFrameworks() {
   const groupByDomain = (controls: FrameworkControl[]) => {
     const groups: Record<string, FrameworkControl[]> = {};
     for (const c of controls) {
-      const d = c.domain || 'Autre';
+      const d = c.domain || "Autre";
       if (!groups[d]) groups[d] = [];
       groups[d].push(c);
     }
@@ -243,7 +260,10 @@ export function ComplianceFrameworks() {
         <div className="h-8 w-64 rounded bg-gray-200 dark:bg-slate-700 animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-48 rounded-card bg-gray-200 dark:bg-slate-700 animate-pulse" />
+            <div
+              key={i}
+              className="h-48 rounded-card bg-gray-200 dark:bg-slate-700 animate-pulse"
+            />
           ))}
         </div>
       </div>
@@ -255,14 +275,22 @@ export function ComplianceFrameworks() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Référentiels de conformité</h1>
+          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">
+            Référentiels de conformité
+          </h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            Gestion des référentiels ISO 27001, NIST CSF, NIS2, ANSSI et autres cadres de conformité
+            Gestion des référentiels ISO 27001, NIST CSF, NIS2, ANSSI et autres
+            cadres de conformité
           </p>
         </div>
         <div className="flex items-center gap-3">
           {frameworks.length === 0 && isSuperAdmin && (
-            <Button variant="outline" onClick={handleSeed} loading={seeding} disabled={seeding}>
+            <Button
+              variant="outline"
+              onClick={handleSeed}
+              loading={seeding}
+              disabled={seeding}
+            >
               <Sprout className="h-4 w-4" />
               Importer les référentiels par défaut
             </Button>
@@ -285,8 +313,13 @@ export function ComplianceFrameworks() {
           action={
             isSuperAdmin ? (
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={handleSeed} loading={seeding}>
-                  <Sprout className="h-4 w-4" /> Importer les référentiels par défaut
+                <Button
+                  variant="outline"
+                  onClick={handleSeed}
+                  loading={seeding}
+                >
+                  <Sprout className="h-4 w-4" /> Importer les référentiels par
+                  défaut
                 </Button>
                 <Button onClick={() => setShowCreate(true)}>
                   <Plus className="h-4 w-4" /> Nouveau référentiel
@@ -308,7 +341,7 @@ export function ComplianceFrameworks() {
           return (
             <Card
               key={fw.id}
-              className={`transition-all duration-200 ${isExpanded ? 'col-span-full ring-2 ring-primary/30' : 'hover:shadow-lg cursor-pointer'}`}
+              className={`transition-all duration-200 ${isExpanded ? "col-span-full ring-2 ring-primary/30" : "hover:shadow-lg cursor-pointer"}`}
             >
               <CardHeader>
                 <div
@@ -317,9 +350,9 @@ export function ComplianceFrameworks() {
                   role="button"
                   tabIndex={0}
                   aria-expanded={isExpanded}
-                  aria-label={`${isExpanded ? 'Réduire' : 'Développer'} ${fw.name}`}
+                  aria-label={`${isExpanded ? "Réduire" : "Développer"} ${fw.name}`}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       toggleExpand(fw.id);
                     }
@@ -333,8 +366,8 @@ export function ComplianceFrameworks() {
                       <h3 className="text-lg font-medium text-seal-navy dark:text-white truncate">
                         {fw.name}
                       </h3>
-                      <Badge variant={fw.isActive ? 'approved' : 'info'}>
-                        {fw.isActive ? 'Actif' : 'Inactif'}
+                      <Badge variant={fw.isActive ? "approved" : "info"}>
+                        {fw.isActive ? "Actif" : "Inactif"}
                       </Badge>
                     </div>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-2">
@@ -346,21 +379,30 @@ export function ComplianceFrameworks() {
                     <div className="flex items-center gap-4 mt-3">
                       <div className="flex items-center gap-1.5 text-xs text-seal-gray-500 dark:text-slate-400">
                         <Shield className="h-3.5 w-3.5" />
-                        <span className="font-semibold text-seal-navy dark:text-white">{fw._count.controls}</span> contrôles
+                        <span className="font-semibold text-seal-navy dark:text-white">
+                          {fw._count.controls}
+                        </span>{" "}
+                        contrôles
                       </div>
                       {summary && (
                         <>
                           <div className="flex items-center gap-1.5 text-xs">
                             <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                            <span className="text-emerald-600 font-semibold">{summary.covered}</span>
+                            <span className="text-emerald-600 font-semibold">
+                              {summary.covered}
+                            </span>
                           </div>
                           <div className="flex items-center gap-1.5 text-xs">
                             <span className="h-2 w-2 rounded-full bg-amber-400" />
-                            <span className="text-amber-600 font-semibold">{summary.partial}</span>
+                            <span className="text-amber-600 font-semibold">
+                              {summary.partial}
+                            </span>
                           </div>
                           <div className="flex items-center gap-1.5 text-xs">
                             <span className="h-2 w-2 rounded-full bg-red-400" />
-                            <span className="text-red-500 font-semibold">{summary.uncovered}</span>
+                            <span className="text-red-500 font-semibold">
+                              {summary.uncovered}
+                            </span>
                           </div>
                         </>
                       )}
@@ -369,10 +411,11 @@ export function ComplianceFrameworks() {
 
                   {/* Expand icon */}
                   <div className="flex-shrink-0 mt-1">
-                    {isExpanded
-                      ? <ChevronDown className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
-                      : <ChevronRight className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
-                    }
+                    {isExpanded ? (
+                      <ChevronDown className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -383,21 +426,39 @@ export function ComplianceFrameworks() {
                   {/* Domain coverage bars */}
                   {summary && Object.keys(summary.byDomain).length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                      {Object.entries(summary.byDomain).map(([domain, stats]) => {
-                        const pct = stats.total > 0 ? Math.round((stats.covered / stats.total) * 100) : 0;
-                        const barColor = pct === 100 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-400' : 'bg-red-400';
-                        return (
-                          <div key={domain} className="rounded-lg bg-gray-50 dark:bg-slate-800/50 p-3">
-                            <p className="text-xs font-semibold text-seal-navy dark:text-white truncate mb-1">{domain}</p>
-                            <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
-                              <div className={`h-full rounded-full ${barColor} transition-all duration-500`} style={{ width: `${pct}%` }} />
+                      {Object.entries(summary.byDomain).map(
+                        ([domain, stats]) => {
+                          const pct =
+                            stats.total > 0
+                              ? Math.round((stats.covered / stats.total) * 100)
+                              : 0;
+                          const barColor =
+                            pct === 100
+                              ? "bg-emerald-500"
+                              : pct >= 50
+                                ? "bg-amber-400"
+                                : "bg-red-400";
+                          return (
+                            <div
+                              key={domain}
+                              className="rounded-lg bg-gray-50 dark:bg-slate-800/50 p-3"
+                            >
+                              <p className="text-xs font-semibold text-seal-navy dark:text-white truncate mb-1">
+                                {domain}
+                              </p>
+                              <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${barColor} transition-all duration-500`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mt-1">
+                                {stats.covered}/{stats.total} couverts ({pct}%)
+                              </p>
                             </div>
-                            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mt-1">
-                              {stats.covered}/{stats.total} couverts ({pct}%)
-                            </p>
-                          </div>
-                        );
-                      })}
+                          );
+                        },
+                      )}
                     </div>
                   )}
 
@@ -405,7 +466,9 @@ export function ComplianceFrameworks() {
                   {!detail ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                      <span className="ml-3 text-sm text-seal-gray-500 dark:text-slate-400">Chargement des contrôles...</span>
+                      <span className="ml-3 text-sm text-seal-gray-500 dark:text-slate-400">
+                        Chargement des contrôles...
+                      </span>
                     </div>
                   ) : detail.controls.length === 0 ? (
                     <p className="text-sm text-seal-gray-500 dark:text-slate-400 text-center py-8">
@@ -413,52 +476,62 @@ export function ComplianceFrameworks() {
                     </p>
                   ) : (
                     <div className="space-y-6 max-h-[600px] overflow-y-auto">
-                      {groupByDomain(detail.controls).map(([domain, controls]) => (
-                        <div key={domain}>
-                          <h4 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
-                            <Shield className="h-4 w-4 text-primary" />
-                            {domain}
-                            <Badge variant="info">{controls.length}</Badge>
-                          </h4>
-                          <div className="divide-y divide-gray-100 dark:divide-slate-700 rounded-lg border border-gray-100 dark:border-slate-700 overflow-hidden">
-                            {controls.map((ctrl) => (
-                              <div
-                                key={ctrl.id}
-                                className="flex items-start gap-3 px-4 py-3 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
-                              >
-                                <span className="font-mono text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded mt-0.5 flex-shrink-0">
-                                  {ctrl.code}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm text-seal-navy dark:text-white">
-                                    {ctrl.titleFr || ctrl.title}
-                                  </p>
-                                  {ctrl.titleFr && ctrl.title !== ctrl.titleFr && (
-                                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">{ctrl.title}</p>
-                                  )}
-                                  {ctrl.description && (
-                                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1 line-clamp-2">{ctrl.description}</p>
-                                  )}
+                      {groupByDomain(detail.controls).map(
+                        ([domain, controls]) => (
+                          <div key={domain}>
+                            <h4 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
+                              <Shield className="h-4 w-4 text-primary" />
+                              {domain}
+                              <Badge variant="info">{controls.length}</Badge>
+                            </h4>
+                            <div className="divide-y divide-gray-100 dark:divide-slate-700 rounded-lg border border-gray-100 dark:border-slate-700 overflow-hidden">
+                              {controls.map((ctrl) => (
+                                <div
+                                  key={ctrl.id}
+                                  className="flex items-start gap-3 px-4 py-3 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                                >
+                                  <span className="font-mono text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded mt-0.5 flex-shrink-0">
+                                    {ctrl.code}
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-seal-navy dark:text-white">
+                                      {ctrl.titleFr || ctrl.title}
+                                    </p>
+                                    {ctrl.titleFr &&
+                                      ctrl.title !== ctrl.titleFr && (
+                                        <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
+                                          {ctrl.title}
+                                        </p>
+                                      )}
+                                    {ctrl.description && (
+                                      <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1 line-clamp-2">
+                                        {ctrl.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    {ctrl.mappedIsoCode && (
+                                      <Badge variant="navy">
+                                        <Link2 className="h-3 w-3 mr-1" />
+                                        {ctrl.mappedIsoCode}
+                                      </Badge>
+                                    )}
+                                    {ctrl.documentLinks.length > 0 && (
+                                      <Badge variant="primary">
+                                        <FileText className="h-3 w-3 mr-1" />
+                                        {ctrl.documentLinks.length} doc
+                                        {ctrl.documentLinks.length !== 1
+                                          ? "s"
+                                          : ""}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  {ctrl.mappedIsoCode && (
-                                    <Badge variant="navy">
-                                      <Link2 className="h-3 w-3 mr-1" />
-                                      {ctrl.mappedIsoCode}
-                                    </Badge>
-                                  )}
-                                  {ctrl.documentLinks.length > 0 && (
-                                    <Badge variant="primary">
-                                      <FileText className="h-3 w-3 mr-1" />
-                                      {ctrl.documentLinks.length} doc{ctrl.documentLinks.length !== 1 ? 's' : ''}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ),
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -498,7 +571,11 @@ export function ComplianceFrameworks() {
             <Button variant="outline" onClick={() => setShowCreate(false)}>
               Annuler
             </Button>
-            <Button onClick={handleCreate} loading={creating} disabled={creating}>
+            <Button
+              onClick={handleCreate}
+              loading={creating}
+              disabled={creating}
+            >
               <Plus className="h-4 w-4" />
               Créer
             </Button>
