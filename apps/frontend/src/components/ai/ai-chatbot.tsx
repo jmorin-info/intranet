@@ -476,7 +476,20 @@ function hapticTap(): void {
 
 // ── Chatbot Component ─────────────────────────────────────────────
 
-export function AIChatbot() {
+interface AIChatbotProps {
+  /**
+   * `floating` (default) — original behaviour: FAB + floating sheet.
+   * `embedded` — renders inline (no FAB, no fullscreen sheet, no dialog
+   *              wrapper). Used on the `/helpdesk` hub so the same
+   *              chatbot/store/history is visible as a full-width panel.
+   *              The outer `open` state is ignored in embedded mode.
+   */
+  mode?: 'floating' | 'embedded';
+  /** Custom placeholder for the input (embedded usage). */
+  placeholder?: string;
+}
+
+export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {}) {
   const { t } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
@@ -491,6 +504,7 @@ export function AIChatbot() {
     setLoading,
     clearHistory,
   } = useChatbotStore();
+  const embedded = mode === 'embedded';
   const [input, setInput] = useState("");
   const [showActions, setShowActions] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -619,6 +633,166 @@ export function AIChatbot() {
   );
 
   const suggestions = getQuickSuggestions(module);
+
+  // ── Embedded mode ─────────────────────────────────────────────
+  // Renders the same conversation inline, sharing the same zustand store
+  // (same history as the FAB). No fixed positioning, no FAB, no scrim.
+  if (embedded) {
+    return (
+      <div
+        role="region"
+        aria-label="Assistant OMNITECH"
+        className="relative flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 bg-gradient-to-r from-[#004469]/5 to-[#F68D2E]/5 px-4 py-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#004469] to-[#F68D2E] shrink-0">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white truncate">
+                Assistant OMNITECH
+              </h3>
+              <p className="text-[11px] text-seal-gray-500 dark:text-slate-500 truncate">
+                Je peux répondre directement ou créer un ticket si besoin.
+              </p>
+            </div>
+          </div>
+          {messages.length > 0 && (
+            <button
+              onClick={() => {
+                hapticTap();
+                clearHistory();
+              }}
+              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 hover:text-red-500 transition"
+              title="Effacer l'historique"
+              aria-label="Effacer l'historique"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Messages */}
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="overflow-y-auto px-4 py-3 space-y-3 min-h-[260px] max-h-[440px]"
+        >
+          {messages.length === 0 && !loading && (
+            <div className="flex flex-col items-center justify-center text-center py-6 px-2">
+              <p className="text-base font-semibold text-seal-navy dark:text-white mb-1">
+                Bonjour{user?.firstName ? ` ${user.firstName}` : ''} !
+              </p>
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-5 max-w-sm">
+                Décrivez votre problème — je peux peut-être répondre directement.
+                Sinon, créez un ticket en un clic.
+              </p>
+              <div className="flex flex-col gap-2 w-full max-w-md">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => handleSend(s)}
+                    className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-seal-navy dark:text-slate-200 hover:border-[#004469] hover:text-[#004469] dark:hover:border-blue-400 dark:hover:text-blue-400 transition text-left"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed break-words [overflow-wrap:anywhere] ${
+                  msg.role === 'user'
+                    ? 'bg-[#004469] text-white rounded-br-md'
+                    : 'bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-md'
+                }`}
+              >
+                {msg.content.split('\n').map((line, i) => {
+                  const linkMatch = line.match(/^→ \[(.+?)\]\((.+?)\)$/);
+                  if (linkMatch) {
+                    return (
+                      <Link
+                        key={i}
+                        href={linkMatch[2]!}
+                        className="flex items-center gap-1.5 mt-1.5 text-xs font-medium text-[#004469] dark:text-blue-400 hover:underline"
+                      >
+                        <ChevronDown className="h-3 w-3 rotate-[-90deg]" />
+                        {linkMatch[1]}
+                      </Link>
+                    );
+                  }
+                  const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                  return (
+                    <p key={i} className={i > 0 ? 'mt-1' : ''}>
+                      {parts.map((part, j) =>
+                        part.startsWith('**') && part.endsWith('**') ? (
+                          <strong key={j} className="font-semibold">
+                            {part.slice(2, -2)}
+                          </strong>
+                        ) : (
+                          <span key={j}>{part}</span>
+                        ),
+                      )}
+                    </p>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={bottomAnchorRef} aria-hidden />
+        </div>
+
+        {/* Input */}
+        <div className="shrink-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2.5">
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder={placeholder || 'Décrivez votre problème, je peux peut-être répondre directement.'}
+              className="flex-1 min-h-[44px] rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-[#004469] focus:bg-white dark:focus:bg-slate-900 px-3.5 text-sm text-seal-navy dark:text-white placeholder-seal-taupe/50 dark:placeholder-slate-500 focus:outline-none transition"
+              disabled={loading}
+            />
+            <button
+              onClick={() => handleSend()}
+              disabled={!input.trim() || loading}
+              aria-label="Envoyer le message"
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#004469] text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-[#003352] active:scale-95 transition shrink-0"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Floating trigger button ───────────────────────────────────
   if (!open) {

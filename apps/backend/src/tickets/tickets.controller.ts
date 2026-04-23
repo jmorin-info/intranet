@@ -240,6 +240,16 @@ export class TicketsController {
     return this.ticketsService.findById(id, user);
   }
 
+  /**
+   * Return the latest AI qualification suggestion for this ticket (category,
+   * priority, tags) stored at creation time. Used by the ticket detail UI to
+   * surface "💡 Suggestion IA" nudges to agents.
+   */
+  @Get(':id/ai-suggestion')
+  getAiSuggestion(@Param('id', ParseUUIDPipe) id: string) {
+    return this.ticketsService.getAiSuggestion(id);
+  }
+
   @Post()
   create(@Body() body: CreateTicketDto, @CurrentUser() user: RequestUser) {
     return this.ticketsService.create(body, user.id);
