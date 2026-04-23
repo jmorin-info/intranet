@@ -1,12 +1,22 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { api } from '@/lib/api';
-import { Card, CardContent, Badge, Avatar, EmptyState } from '@omnitech/ui';
-import { Building2, Users, ChevronDown, ChevronRight, Mail, Phone, ExternalLink, GitBranchPlus } from 'lucide-react';
-import { getAvatarUrl } from '@/lib/avatar';
-import { useTranslation } from '@/lib/i18n';
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { api } from "@/lib/api";
+import { Card, CardContent, Badge, Avatar, EmptyState } from "@omnitech/ui";
+import {
+  Building2,
+  Users,
+  ChevronDown,
+  ChevronRight,
+  Mail,
+  Phone,
+  ExternalLink,
+  GitBranchPlus,
+  Crown,
+} from "lucide-react";
+import { getAvatarUrl } from "@/lib/avatar";
+import { useTranslation } from "@/lib/i18n";
 
 interface DepartmentMember {
   id: string;
@@ -22,32 +32,52 @@ interface DepartmentMember {
   _count?: { subordinates?: number };
 }
 
+interface DeptManager {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  avatarUrl?: string | null;
+}
+
 interface Department {
   id: string;
   name: string;
   code: string;
   _count?: { users: number; userMemberships: number };
+  managers?: DeptManager[];
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  ADMIN: 'Admin',
-  REVIEWER: 'Réviseur',
-  COLLABORATEUR: 'Collaborateur',
-  PRESTATAIRE: 'Prestataire',
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+  REVIEWER: "Réviseur",
+  COLLABORATEUR: "Collaborateur",
+  PRESTATAIRE: "Prestataire",
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  SUPER_ADMIN: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  ADMIN: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  REVIEWER: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  COLLABORATEUR: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  PRESTATAIRE: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+  SUPER_ADMIN: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  ADMIN:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  REVIEWER:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  COLLABORATEUR:
+    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  PRESTATAIRE:
+    "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
 };
 
 const AVATAR_COLORS = [
-  'bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500',
-  'bg-rose-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-teal-500',
+  "bg-blue-500",
+  "bg-emerald-500",
+  "bg-violet-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-cyan-500",
+  "bg-indigo-500",
+  "bg-teal-500",
 ];
 
 function getAvatarColor(name: string): string {
@@ -55,16 +85,23 @@ function getAvatarColor(name: string): string {
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] || 'bg-blue-500';
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] || "bg-blue-500";
 }
 
-function DepartmentCard({ dept, isLast }: { dept: Department; isLast: boolean }) {
+function DepartmentCard({
+  dept,
+  isLast,
+}: {
+  dept: Department;
+  isLast: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [members, setMembers] = useState<DepartmentMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const memberCount = (dept._count?.users || 0) + (dept._count?.userMemberships || 0);
+  const memberCount =
+    (dept._count?.users || 0) + (dept._count?.userMemberships || 0);
 
   const handleToggle = async () => {
     if (!loaded && !expanded) {
@@ -102,16 +139,22 @@ function DepartmentCard({ dept, isLast }: { dept: Department; isLast: boolean })
                   <Building2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-seal-navy dark:text-white text-sm">{dept.name}</h3>
-                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">{dept.code}</p>
+                  <h3 className="font-semibold text-seal-navy dark:text-white text-sm">
+                    {dept.name}
+                  </h3>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                    {dept.code}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  memberCount > 0
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'bg-gray-200 text-gray-500 dark:bg-slate-600 dark:text-slate-400'
-                }`}>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
+                    memberCount > 0
+                      ? "bg-primary text-white shadow-sm"
+                      : "bg-gray-200 text-gray-500 dark:bg-slate-600 dark:text-slate-400"
+                  }`}
+                >
                   <Users className="h-4 w-4" />
                   {memberCount}
                 </span>
@@ -122,6 +165,21 @@ function DepartmentCard({ dept, isLast }: { dept: Department; isLast: boolean })
                 )}
               </div>
             </div>
+
+            {/* Responsable(s) épinglé(s) — visible même avant expand */}
+            {dept.managers && dept.managers.length > 0 && (
+              <div className="mt-2 flex items-center gap-2 flex-wrap">
+                {dept.managers.slice(0, 2).map((m) => (
+                  <span
+                    key={m.id}
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 dark:bg-primary/20 px-2 py-0.5 text-[10px] font-medium text-primary"
+                  >
+                    <Crown className="h-3 w-3" />
+                    {m.firstName} {m.lastName}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </button>
 
@@ -131,7 +189,10 @@ function DepartmentCard({ dept, isLast }: { dept: Department; isLast: boolean })
             {loading ? (
               <div className="p-4 space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3 animate-pulse">
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 animate-pulse"
+                  >
                     <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-slate-700 flex-shrink-0" />
                     <div className="flex-1">
                       <div className="w-28 h-3 rounded bg-gray-200 dark:bg-slate-700" />
@@ -151,22 +212,39 @@ function DepartmentCard({ dept, isLast }: { dept: Department; isLast: boolean })
                   const directReportCounts = new Map<string, number>();
                   members.forEach((m) => {
                     if (m.managerId) {
-                      directReportCounts.set(m.managerId, (directReportCounts.get(m.managerId) || 0) + 1);
+                      directReportCounts.set(
+                        m.managerId,
+                        (directReportCounts.get(m.managerId) || 0) + 1,
+                      );
                     }
                   });
                   // Sort: managers first
                   const sorted = [...members].sort((a, b) => {
-                    const aCount = (a._count?.subordinates ?? 0) + (directReportCounts.get(a.id) ?? 0);
-                    const bCount = (b._count?.subordinates ?? 0) + (directReportCounts.get(b.id) ?? 0);
+                    const aCount =
+                      (a._count?.subordinates ?? 0) +
+                      (directReportCounts.get(a.id) ?? 0);
+                    const bCount =
+                      (b._count?.subordinates ?? 0) +
+                      (directReportCounts.get(b.id) ?? 0);
                     return bCount - aCount;
                   });
                   return sorted.map((member, idx) => {
-                    const initials = `${member.firstName.charAt(0)}${member.lastName.charAt(0)}`.toUpperCase();
-                    const color = getAvatarColor(member.firstName + member.lastName);
-                    const subCount = (member._count?.subordinates ?? 0) || (directReportCounts.get(member.id) ?? 0);
-                    const isSubordinate = !!member.managerId && members.some((m) => m.id === member.managerId);
+                    const initials =
+                      `${member.firstName.charAt(0)}${member.lastName.charAt(0)}`.toUpperCase();
+                    const color = getAvatarColor(
+                      member.firstName + member.lastName,
+                    );
+                    const subCount =
+                      (member._count?.subordinates ?? 0) ||
+                      (directReportCounts.get(member.id) ?? 0);
+                    const isSubordinate =
+                      !!member.managerId &&
+                      members.some((m) => m.id === member.managerId);
                     return (
-                      <div key={member.id} className={`flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors ${isSubordinate ? 'pl-10' : ''}`}>
+                      <div
+                        key={member.id}
+                        className={`flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors ${isSubordinate ? "pl-10" : ""}`}
+                      >
                         {/* Connection line for subordinates */}
                         {isSubordinate && (
                           <div className="absolute left-6 flex items-center">
@@ -178,14 +256,16 @@ function DepartmentCard({ dept, isLast }: { dept: Department; isLast: boolean })
                           src={getAvatarUrl(member.avatarUrl)}
                           initials={initials}
                           size="sm"
-                          className={`flex-shrink-0 ${!member.avatarUrl ? color : ''}`}
+                          className={`flex-shrink-0 ${!member.avatarUrl ? color : ""}`}
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">
                             {member.firstName} {member.lastName}
                           </p>
                           {member.jobTitle ? (
-                            <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">{member.jobTitle}</p>
+                            <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">
+                              {member.jobTitle}
+                            </p>
                           ) : (
                             <a
                               href={`mailto:${member.email}`}
@@ -198,7 +278,10 @@ function DepartmentCard({ dept, isLast }: { dept: Department; isLast: boolean })
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           {subCount > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" title={`${subCount} subordonné${subCount > 1 ? 's' : ''} direct${subCount > 1 ? 's' : ''}`}>
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                              title={`${subCount} subordonné${subCount > 1 ? "s" : ""} direct${subCount > 1 ? "s" : ""}`}
+                            >
                               <GitBranchPlus className="h-3 w-3" />
                               {subCount}
                             </span>
@@ -219,7 +302,9 @@ function DepartmentCard({ dept, isLast }: { dept: Department; isLast: boolean })
                               <Phone className="h-3.5 w-3.5" />
                             </a>
                           )}
-                          <Badge className={`text-[10px] ${ROLE_COLORS[member.role] || 'bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-slate-200'}`}>
+                          <Badge
+                            className={`text-[10px] ${ROLE_COLORS[member.role] || "bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-slate-200"}`}
+                          >
                             {ROLE_LABELS[member.role] || member.role}
                           </Badge>
                         </div>
@@ -244,7 +329,7 @@ export default function OrganigrammePage() {
   useEffect(() => {
     async function fetchDepartments() {
       try {
-        const { data } = await api.get('/departments');
+        const { data } = await api.get("/departments");
         const depts = Array.isArray(data) ? data : data?.data || [];
         setDepartments(depts);
       } catch {
@@ -271,7 +356,7 @@ export default function OrganigrammePage() {
         </div>
         {!loading && (
           <Badge className="bg-primary/10 text-primary dark:bg-primary/20 self-start">
-            {departments.length} département{departments.length > 1 ? 's' : ''}
+            {departments.length} département{departments.length > 1 ? "s" : ""}
           </Badge>
         )}
       </div>
@@ -342,29 +427,29 @@ export default function OrganigrammePage() {
                   className="object-contain"
                   style={{ width: 44, height: 44 }}
                 />
-                <h2 className="font-semibold text-seal-navy dark:text-white text-sm">OMNITECH Security</h2>
-                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Organisation</p>
+                <h2 className="font-semibold text-seal-navy dark:text-white text-sm">
+                  OMNITECH Security
+                </h2>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                  Organisation
+                </p>
               </div>
             </CardContent>
           </Card>
 
           {/* Vertical stem from root */}
-          <div className="w-0.5 h-8 bg-gradient-to-b from-primary/40 to-gray-300 dark:from-primary/50 dark:to-slate-600 rounded-full" />
+          <div className="w-0.5 h-6 bg-gradient-to-b from-primary/40 to-gray-300 dark:from-primary/50 dark:to-slate-600 rounded-full" />
 
-          {/* Horizontal branch bar spanning the columns */}
-          {departments.length > 1 && (
-            <div className="relative w-full max-w-5xl">
-              {/* The horizontal bar */}
-              <div className="absolute top-0 left-[calc(1/(2*var(--cols,3))*100%)] right-[calc(1/(2*var(--cols,3))*100%)] h-0.5 bg-gray-300 dark:bg-slate-600 rounded-full"
-                style={{ '--cols': Math.min(departments.length, 3) } as React.CSSProperties}
-              />
-            </div>
-          )}
-
-          {/* Department cards grid — each card draws its own top connector */}
+          {/* Department cards grid — chaque carte dessine son propre connecteur vertical.
+              La barre horizontale globale a été supprimée car elle rendait mal dès que
+              le nombre de départements dépassait 3 (wrapping sur plusieurs rangées). */}
           <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
             {departments.map((dept, idx) => (
-              <DepartmentCard key={dept.id} dept={dept} isLast={idx === departments.length - 1} />
+              <DepartmentCard
+                key={dept.id}
+                dept={dept}
+                isLast={idx === departments.length - 1}
+              />
             ))}
           </div>
         </div>

@@ -159,6 +159,7 @@ model User {
   avatarUrl         String?
   // MFA
   mfaEnabled        Boolean   @default(false)
+  mfaRequired       Boolean   @default(false) // Politique MFA imposée par un admin : bloque la connexion tant que MFA n'est pas activé
   mfaSecret         String?
   backupCodes       String? // JSON array of hashed backup codes
   // Chartes
@@ -1161,6 +1162,7 @@ model Banner {
   createdAt DateTime  @default(now())
   expiresAt DateTime?
   authorId  String?
+  linkUrl   String? // URL de redirection optionnelle au clic (article news, quiz, etc.)
 
   @@index([isActive, level])
 }

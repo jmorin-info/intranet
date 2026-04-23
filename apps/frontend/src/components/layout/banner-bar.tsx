@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { api } from '@/lib/api';
-import { AlertTriangle, Info, XOctagon, X } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from "react";
+import { api } from "@/lib/api";
+import { AlertTriangle, Info, XOctagon, X } from "lucide-react";
 
 interface Banner {
   id: string;
@@ -12,12 +12,13 @@ interface Banner {
   isActive: boolean;
   createdAt: string;
   expiresAt: string | null;
+  linkUrl?: string | null;
 }
 
-const DISMISSED_KEY = 'omnitech_dismissed_banners';
+const DISMISSED_KEY = "omnitech_dismissed_banners";
 
 function getDismissedIds(): Set<string> {
-  if (typeof window === 'undefined') return new Set();
+  if (typeof window === "undefined") return new Set();
   try {
     const raw = sessionStorage.getItem(DISMISSED_KEY);
     return raw ? new Set(JSON.parse(raw)) : new Set();
@@ -32,27 +33,30 @@ function addDismissedId(id: string) {
   sessionStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids]));
 }
 
-const levelConfig: Record<string, {
-  bg: string;
-  text: string;
-  icon: React.ElementType;
-  pulse: boolean;
-}> = {
+const levelConfig: Record<
+  string,
+  {
+    bg: string;
+    text: string;
+    icon: React.ElementType;
+    pulse: boolean;
+  }
+> = {
   P1: {
-    bg: 'bg-red-600',
-    text: 'text-white',
+    bg: "bg-red-600",
+    text: "text-white",
     icon: XOctagon,
     pulse: true,
   },
   P2: {
-    bg: 'bg-amber-400',
-    text: 'text-amber-950',
+    bg: "bg-amber-400",
+    text: "text-amber-950",
     icon: AlertTriangle,
     pulse: false,
   },
   P3: {
-    bg: 'bg-blue-600',
-    text: 'text-white',
+    bg: "bg-blue-600",
+    text: "text-white",
     icon: Info,
     pulse: false,
   },
@@ -64,7 +68,7 @@ export function BannerBar() {
 
   const fetchBanners = useCallback(async () => {
     try {
-      const { data } = await api.get('/banners');
+      const { data } = await api.get("/banners");
       const list: Banner[] = Array.isArray(data) ? data : data?.data || [];
       // Filter out expired banners client-side as well
       const now = new Date();
@@ -99,21 +103,51 @@ export function BannerBar() {
       {visibleBanners.map((banner) => {
         const config = (levelConfig[banner.level] || levelConfig.P3)!;
         const Icon = config.icon;
+        const link = banner.linkUrl?.trim();
+        const isExternal = !!link && /^https?:\/\//i.test(link);
+        const hasLink = !!link;
+
+        const content = (
+          <>
+            <Icon
+              className={`h-5 w-5 flex-shrink-0 ${config.pulse ? "animate-pulse" : ""}`}
+            />
+            <div className="flex-1 min-w-0">
+              <span className="font-semibold text-sm">{banner.title}</span>
+              {banner.message && (
+                <span className="text-sm ml-2 opacity-90">
+                  {banner.message}
+                </span>
+              )}
+              {hasLink && (
+                <span className="ml-2 text-xs underline opacity-80">
+                  En savoir plus →
+                </span>
+              )}
+            </div>
+          </>
+        );
 
         return (
           <div
             key={banner.id}
             className={`${config.bg} ${config.text} px-4 py-2.5 flex items-center gap-3`}
           >
-            <Icon
-              className={`h-5 w-5 flex-shrink-0 ${config.pulse ? 'animate-pulse' : ''}`}
-            />
-            <div className="flex-1 min-w-0">
-              <span className="font-semibold text-sm">{banner.title}</span>
-              {banner.message && (
-                <span className="text-sm ml-2 opacity-90">{banner.message}</span>
-              )}
-            </div>
+            {hasLink ? (
+              <a
+                href={link!}
+                target={isExternal ? "_blank" : undefined}
+                rel={isExternal ? "noopener noreferrer" : undefined}
+                className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-90 transition-opacity"
+                aria-label={`${banner.title} — ouvrir le lien`}
+              >
+                {content}
+              </a>
+            ) : (
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                {content}
+              </div>
+            )}
             <button
               onClick={() => handleDismiss(banner.id)}
               className={`flex-shrink-0 p-1 rounded-full hover:bg-black/10 transition-colors ${config.text}`}

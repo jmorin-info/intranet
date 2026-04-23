@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class BannerService {
@@ -14,7 +14,7 @@ export class BannerService {
         isActive: true,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
-      orderBy: [{ level: 'asc' }, { createdAt: 'desc' }],
+      orderBy: [{ level: "asc" }, { createdAt: "desc" }],
     });
   }
 
@@ -23,7 +23,7 @@ export class BannerService {
    */
   async findAll() {
     return this.prisma.banner.findMany({
-      orderBy: [{ createdAt: 'desc' }],
+      orderBy: [{ createdAt: "desc" }],
     });
   }
 
@@ -36,14 +36,16 @@ export class BannerService {
     level?: string;
     expiresAt?: string;
     authorId?: string;
+    linkUrl?: string;
   }) {
     return this.prisma.banner.create({
       data: {
         title: data.title,
         message: data.message,
-        level: data.level || 'P3',
+        level: data.level || "P3",
         expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
         authorId: data.authorId || null,
+        linkUrl: data.linkUrl?.trim() || null,
       },
     });
   }
@@ -51,16 +53,29 @@ export class BannerService {
   /**
    * Update a banner (partial).
    */
-  async update(id: string, data: Partial<{ title: string; message: string; level: string; isActive: boolean; expiresAt: string | null }>) {
+  async update(
+    id: string,
+    data: Partial<{
+      title: string;
+      message: string;
+      level: string;
+      isActive: boolean;
+      expiresAt: string | null;
+      linkUrl: string | null;
+    }>,
+  ) {
     const banner = await this.prisma.banner.findUnique({ where: { id } });
-    if (!banner) throw new NotFoundException('Banner not found');
+    if (!banner) throw new NotFoundException("Banner not found");
 
     const updateData: any = {};
     if (data.title !== undefined) updateData.title = data.title;
     if (data.message !== undefined) updateData.message = data.message;
     if (data.level !== undefined) updateData.level = data.level;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
-    if (data.expiresAt !== undefined) updateData.expiresAt = data.expiresAt ? new Date(data.expiresAt) : null;
+    if (data.expiresAt !== undefined)
+      updateData.expiresAt = data.expiresAt ? new Date(data.expiresAt) : null;
+    if (data.linkUrl !== undefined)
+      updateData.linkUrl = data.linkUrl?.trim() || null;
 
     return this.prisma.banner.update({ where: { id }, data: updateData });
   }
@@ -70,7 +85,7 @@ export class BannerService {
    */
   async dismiss(id: string) {
     const banner = await this.prisma.banner.findUnique({ where: { id } });
-    if (!banner) throw new NotFoundException('Banner not found');
+    if (!banner) throw new NotFoundException("Banner not found");
 
     return this.prisma.banner.update({
       where: { id },
@@ -83,7 +98,7 @@ export class BannerService {
    */
   async remove(id: string) {
     const banner = await this.prisma.banner.findUnique({ where: { id } });
-    if (!banner) throw new NotFoundException('Banner not found');
+    if (!banner) throw new NotFoundException("Banner not found");
 
     return this.prisma.banner.delete({ where: { id } });
   }

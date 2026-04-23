@@ -1,24 +1,33 @@
 import {
-  Controller, Post, Get, Body, Req, Res, UseGuards, HttpCode, HttpStatus,
-  UnauthorizedException, Logger,
-} from '@nestjs/common';
-import { Request, Response } from 'express';
-import { Throttle } from '@nestjs/throttler';
-import { AuthService } from './auth.service';
-import { MfaService } from '../mfa/mfa.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { Public } from './decorators/public.decorator';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { LoginDto } from './dto/login.dto';
-import { RefreshDto } from './dto/refresh.dto';
-import { LogoutDto } from './dto/logout.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { RequestUser } from '../common/interfaces';
-import { UserRole } from '../common/enums';
-import { UsersService } from '../users/users.service';
+  Controller,
+  Post,
+  Get,
+  Body,
+  Req,
+  Res,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  UnauthorizedException,
+  Logger,
+} from "@nestjs/common";
+import { Request, Response } from "express";
+import { Throttle } from "@nestjs/throttler";
+import { AuthService } from "./auth.service";
+import { MfaService } from "../mfa/mfa.service";
+import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { Public } from "./decorators/public.decorator";
+import { CurrentUser } from "./decorators/current-user.decorator";
+import { LoginDto } from "./dto/login.dto";
+import { RefreshDto } from "./dto/refresh.dto";
+import { LogoutDto } from "./dto/logout.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { RequestUser } from "../common/interfaces";
+import { UserRole } from "../common/enums";
+import { UsersService } from "../users/users.service";
 
-@Controller('auth')
+@Controller("auth")
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
@@ -29,7 +38,7 @@ export class AuthController {
   ) {}
 
   @Public()
-  @Post('login')
+  @Post("login")
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async login(
@@ -37,9 +46,12 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const user = await this.authService.validateUser(loginDto.email, loginDto.password);
-    const ip = req.ip || req.socket.remoteAddress || 'unknown';
-    const userAgent = req.headers['user-agent'] || 'unknown';
+    const user = await this.authService.validateUser(
+      loginDto.email,
+      loginDto.password,
+    );
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    const userAgent = req.headers["user-agent"] || "unknown";
 
     // Check if MFA is enabled for this user
     if (user.mfaEnabled && user.mfaSecret) {
@@ -49,9 +61,12 @@ export class AuthController {
         const valid = await this.mfaService.verifyMfa(user.id, mfaCode);
         if (!valid) {
           // Try backup code as fallback
-          const backupValid = await this.mfaService.verifyBackupCode(user.id, mfaCode);
+          const backupValid = await this.mfaService.verifyBackupCode(
+            user.id,
+            mfaCode,
+          );
           if (!backupValid) {
-            throw new UnauthorizedException('Code MFA invalide');
+            throw new UnauthorizedException("Code MFA invalide");
           }
           // Backup code was valid — proceed
         }
@@ -66,15 +81,20 @@ export class AuthController {
       return {
         mfaRequired: true,
         email: user.email,
-        message: 'Code MFA requis',
+        message: "Code MFA requis",
       };
     }
 
-    // PRESTATAIRE sans MFA: laisser se connecter mais forcer la config MFA côté frontend
-    // (au lieu de bloquer le login, on émet un token avec un flag)
-    const mfaSetupRequired = user.role === UserRole.PRESTATAIRE && !user.mfaEnabled;
+    // Politique MFA : prestataires par défaut + utilisateurs ciblés par
+    // `mfaRequired=true` (admin a imposé la politique MFA).
+    // Dans ces cas, on émet un token avec un flag mfaSetupRequired pour que le
+    // frontend redirige vers la page d'enrôlement MFA avant toute autre action.
+    const mfaSetupRequired =
+      !user.mfaEnabled &&
+      (user.role === UserRole.PRESTATAIRE ||
+        (user as any).mfaRequired === true);
 
-    // Login (with optional mfaSetupRequired flag for prestataires)
+    // Login (with optional mfaSetupRequired flag)
     const loginResult = await this.authService.login(user, ip, userAgent);
     this.setRefreshTokenCookie(res, loginResult.refreshToken);
     if (mfaSetupRequired) {
@@ -84,7 +104,7 @@ export class AuthController {
   }
 
   @Public()
-  @Post('refresh')
+  @Post("refresh")
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async refresh(
@@ -92,16 +112,17 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const ip = req.ip || req.socket.remoteAddress || 'unknown';
-    const userAgent = req.headers['user-agent'] || 'unknown';
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    const userAgent = req.headers["user-agent"] || "unknown";
 
     // Prefer cookie, fall back to body for backward compatibility.
     // TODO: Retirer le fallback body le 2026-05-16 — le refresh token doit venir uniquement du cookie httpOnly.
     const token: string | undefined =
-      (req.cookies?.refreshToken as string | undefined) || refreshDto.refreshToken;
+      (req.cookies?.refreshToken as string | undefined) ||
+      refreshDto.refreshToken;
 
     if (!token) {
-      throw new UnauthorizedException('refreshToken manquant');
+      throw new UnauthorizedException("refreshToken manquant");
     }
 
     try {
@@ -115,12 +136,12 @@ export class AuthController {
       this.logger.warn(
         `refresh failed from ${ip}: ${err instanceof Error ? err.message : String(err)}`,
       );
-      throw new UnauthorizedException('Session expirée');
+      throw new UnauthorizedException("Session expirée");
     }
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('logout')
+  @Post("logout")
   @HttpCode(HttpStatus.OK)
   async logout(
     @CurrentUser() user: RequestUser,
@@ -142,12 +163,12 @@ export class AuthController {
         `logout cleanup failed for user ${user.id}: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
-    res.clearCookie('refreshToken', { path: '/api/v1/auth/refresh' });
-    return { message: 'Logged out successfully' };
+    res.clearCookie("refreshToken", { path: "/api/v1/auth/refresh" });
+    return { message: "Logged out successfully" };
   }
 
   @Public()
-  @Post('forgot-password')
+  @Post("forgot-password")
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async forgotPassword(@Body() body: ForgotPasswordDto) {
@@ -155,7 +176,7 @@ export class AuthController {
   }
 
   @Public()
-  @Post('reset-password')
+  @Post("reset-password")
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async resetPassword(@Body() body: ResetPasswordDto) {
@@ -163,18 +184,18 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('me')
+  @Get("me")
   async me(@CurrentUser() user: RequestUser) {
     return this.usersService.findById(user.id);
   }
 
   /** Store refresh token in a httpOnly cookie (ANSSI R16). */
   private setRefreshTokenCookie(res: Response, refreshToken: string): void {
-    res.cookie('refreshToken', refreshToken, {
+    res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: 'strict',
-      path: '/api/v1/auth/refresh',
+      sameSite: "strict",
+      path: "/api/v1/auth/refresh",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }

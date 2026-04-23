@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { api } from '@/lib/api';
-import { toast } from 'sonner';
+import React, { useEffect, useState, useCallback } from "react";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -14,11 +14,22 @@ import {
   Input,
   Select,
   Textarea,
-} from '@omnitech/ui';
-import { PageHeader } from '@/components/layout/page-header';
-import { formatDate } from '@/lib/utils';
-import { useTranslation } from '@/lib/i18n';
-import { Award, Download, Calendar, Clock, ExternalLink, Plus, Upload } from 'lucide-react';
+} from "@omnitech/ui";
+import { PageHeader } from "@/components/layout/page-header";
+import { formatDate } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
+import { withAuthToken } from "@/lib/media-url";
+import {
+  Award,
+  Download,
+  Calendar,
+  Clock,
+  ExternalLink,
+  Plus,
+  Upload,
+  FileText,
+  FileBadge2,
+} from "lucide-react";
 
 interface Certificate {
   id: string;
@@ -31,53 +42,71 @@ interface Certificate {
 }
 
 function getKB4CertUrl(cert: Certificate): string | null {
-  if ((cert.certType ?? '').toLowerCase() !== 'knowbe4') return null;
-  const match = (cert.notes ?? '').match(/enrollment #(\d+)/i);
-  if (match?.[1]) return `https://eu.knowbe4.com/enrollments/${match[1]}/certificate.pdf`;
+  if ((cert.certType ?? "").toLowerCase() !== "knowbe4") return null;
+  const match = (cert.notes ?? "").match(/enrollment #(\d+)/i);
+  if (match?.[1])
+    return `https://eu.knowbe4.com/enrollments/${match[1]}/certificate.pdf`;
   return null;
 }
 
-type CertStatus = 'valid' | 'expiring' | 'expired';
+type CertStatus = "valid" | "expiring" | "expired";
 
 function getCertStatus(expiresAt: string | null): CertStatus {
-  if (!expiresAt) return 'valid';
+  if (!expiresAt) return "valid";
   const now = new Date();
   const exp = new Date(expiresAt);
-  if (exp < now) return 'expired';
+  if (exp < now) return "expired";
   const diffMs = exp.getTime() - now.getTime();
   const diffDays = diffMs / (1000 * 60 * 60 * 24);
-  if (diffDays <= 30) return 'expiring';
-  return 'valid';
+  if (diffDays <= 30) return "expiring";
+  return "valid";
 }
 
 function statusBadge(status: CertStatus) {
   switch (status) {
-    case 'valid':
+    case "valid":
       return <Badge variant="success">Valide</Badge>;
-    case 'expiring':
+    case "expiring":
       return <Badge variant="warning">Expire bientot</Badge>;
-    case 'expired':
+    case "expired":
       return <Badge variant="error">Expire</Badge>;
   }
 }
 
 function isPendingValidation(cert: Certificate): boolean {
-  return (cert.notes ?? '').includes('En attente de validation');
+  return (cert.notes ?? "").includes("En attente de validation");
+}
+
+function certExtension(fileUrl: string | null | undefined): string | null {
+  if (!fileUrl) return null;
+  const clean = (fileUrl.split("?")[0] ?? "").split("#")[0] ?? "";
+  const last = clean.split("/").pop() || "";
+  const dot = last.lastIndexOf(".");
+  if (dot <= 0) return null;
+  return last.slice(dot + 1).toLowerCase();
+}
+
+function isImageExt(ext: string | null): boolean {
+  return !!ext && ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext);
+}
+
+function isPdfExt(ext: string | null): boolean {
+  return ext === "pdf";
 }
 
 const CERT_TYPE_OPTIONS = [
-  { value: 'ISO 27001', label: 'ISO 27001' },
-  { value: 'ISO 27005', label: 'ISO 27005' },
-  { value: 'CISSP', label: 'CISSP' },
-  { value: 'CEH', label: 'CEH' },
-  { value: 'CompTIA Security+', label: 'CompTIA Security+' },
-  { value: 'OSCP', label: 'OSCP' },
-  { value: 'PSM', label: 'PSM' },
-  { value: 'PMP', label: 'PMP' },
-  { value: 'CISM', label: 'CISM' },
-  { value: 'CISA', label: 'CISA' },
-  { value: 'KnowBe4', label: 'KnowBe4' },
-  { value: 'Autre', label: 'Autre' },
+  { value: "ISO 27001", label: "ISO 27001" },
+  { value: "ISO 27005", label: "ISO 27005" },
+  { value: "CISSP", label: "CISSP" },
+  { value: "CEH", label: "CEH" },
+  { value: "CompTIA Security+", label: "CompTIA Security+" },
+  { value: "OSCP", label: "OSCP" },
+  { value: "PSM", label: "PSM" },
+  { value: "PMP", label: "PMP" },
+  { value: "CISM", label: "CISM" },
+  { value: "CISA", label: "CISA" },
+  { value: "KnowBe4", label: "KnowBe4" },
+  { value: "Autre", label: "Autre" },
 ];
 
 export default function MyCertificatesPage() {
@@ -88,30 +117,30 @@ export default function MyCertificatesPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // Form state
-  const [formName, setFormName] = useState('');
-  const [formCertType, setFormCertType] = useState('');
-  const [formObtainedAt, setFormObtainedAt] = useState('');
-  const [formExpiresAt, setFormExpiresAt] = useState('');
-  const [formNotes, setFormNotes] = useState('');
+  const [formName, setFormName] = useState("");
+  const [formCertType, setFormCertType] = useState("");
+  const [formObtainedAt, setFormObtainedAt] = useState("");
+  const [formExpiresAt, setFormExpiresAt] = useState("");
+  const [formNotes, setFormNotes] = useState("");
   const [formFile, setFormFile] = useState<File | null>(null);
 
   const resetForm = () => {
-    setFormName('');
-    setFormCertType('');
-    setFormObtainedAt('');
-    setFormExpiresAt('');
-    setFormNotes('');
+    setFormName("");
+    setFormCertType("");
+    setFormObtainedAt("");
+    setFormExpiresAt("");
+    setFormNotes("");
     setFormFile(null);
   };
 
   const fetchCertificates = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/certificates/my');
+      const { data } = await api.get("/certificates/my");
       setCertificates(Array.isArray(data) ? data : data?.data || []);
     } catch (err) {
-      console.error('Failed to load certificates:', err);
-      toast.error('Impossible de charger vos certificats.');
+      console.error("Failed to load certificates:", err);
+      toast.error("Impossible de charger vos certificats.");
     } finally {
       setLoading(false);
     }
@@ -124,46 +153,48 @@ export default function MyCertificatesPage() {
   const handleDownload = async (cert: Certificate) => {
     if (!cert.fileUrl) return;
     try {
-      window.open(cert.fileUrl, '_blank');
+      window.open(cert.fileUrl, "_blank");
     } catch {
-      toast.error('Impossible de télécharger le fichier.');
+      toast.error("Impossible de télécharger le fichier.");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName || !formCertType || !formObtainedAt) {
-      toast.error('Veuillez remplir les champs obligatoires.');
+      toast.error("Veuillez remplir les champs obligatoires.");
       return;
     }
 
     setSubmitting(true);
     try {
       const fd = new FormData();
-      fd.append('name', formName);
-      fd.append('certType', formCertType);
-      fd.append('obtainedAt', new Date(formObtainedAt).toISOString());
+      fd.append("name", formName);
+      fd.append("certType", formCertType);
+      fd.append("obtainedAt", new Date(formObtainedAt).toISOString());
       if (formExpiresAt) {
-        fd.append('expiresAt', new Date(formExpiresAt).toISOString());
+        fd.append("expiresAt", new Date(formExpiresAt).toISOString());
       }
       if (formNotes) {
-        fd.append('notes', formNotes);
+        fd.append("notes", formNotes);
       }
       if (formFile) {
-        fd.append('file', formFile);
+        fd.append("file", formFile);
       }
 
-      await api.post('/certificates/my', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      await api.post("/certificates/my", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast.success('Certificat ajouté avec succès. Il sera validé par un administrateur.');
+      toast.success(
+        "Certificat ajouté avec succès. Il sera validé par un administrateur.",
+      );
       setDialogOpen(false);
       resetForm();
       await fetchCertificates();
     } catch (err) {
-      console.error('Failed to create certificate:', err);
-      toast.error('Impossible de créer le certificat.');
+      console.error("Failed to create certificate:", err);
+      toast.error("Impossible de créer le certificat.");
     } finally {
       setSubmitting(false);
     }
@@ -187,7 +218,10 @@ export default function MyCertificatesPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-52 rounded-xl dark:bg-slate-800 shimmer" />
+            <Skeleton
+              key={i}
+              className="h-52 rounded-xl dark:bg-slate-800 shimmer"
+            />
           ))}
         </div>
       ) : certificates.length === 0 ? (
@@ -201,11 +235,58 @@ export default function MyCertificatesPage() {
           {certificates.map((cert) => {
             const status = getCertStatus(cert.expiresAt);
             const pending = isPendingValidation(cert);
+            const ext = certExtension(cert.fileUrl);
+            const previewSrc = cert.fileUrl
+              ? withAuthToken(cert.fileUrl)
+              : null;
             return (
               <Card
                 key={cert.id}
-                className="stagger-item shadow-sm rounded-xl cursor-default"
+                className="stagger-item shadow-sm rounded-xl cursor-default overflow-hidden"
               >
+                {/* Preview de la pièce jointe */}
+                {cert.fileUrl && (
+                  <div className="relative h-32 bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 border-b border-gray-100 dark:border-slate-800 flex items-center justify-center overflow-hidden">
+                    {isImageExt(ext) && previewSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={previewSrc}
+                        alt={cert.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display =
+                            "none";
+                        }}
+                      />
+                    ) : isPdfExt(ext) && previewSrc ? (
+                      <>
+                        <object
+                          data={`${previewSrc}#toolbar=0&navpanes=0&view=FitH&page=1`}
+                          type="application/pdf"
+                          className="w-full h-full pointer-events-none"
+                          aria-label={`Aperçu PDF : ${cert.name}`}
+                        >
+                          <FileText className="h-10 w-10 text-primary/60" />
+                        </object>
+                        <span className="absolute bottom-1 right-2 text-[10px] font-semibold text-primary bg-white/80 dark:bg-slate-900/80 rounded px-1.5 py-0.5 uppercase">
+                          PDF
+                        </span>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1 text-seal-gray-500 dark:text-slate-400">
+                        <FileBadge2 className="h-10 w-10" />
+                        <span className="text-[10px] uppercase font-semibold">
+                          {ext || "fichier"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!cert.fileUrl && (
+                  <div className="h-20 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border-b border-gray-100 dark:border-slate-800 flex items-center justify-center">
+                    <Award className="h-10 w-10 text-seal-gray-500/50" />
+                  </div>
+                )}
                 <CardContent className="py-5 px-5 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -216,7 +297,9 @@ export default function MyCertificatesPage() {
                         <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                           {cert.certType}
                         </p>
-                        {(cert.certType ?? '').toLowerCase().includes('knowbe4') && (
+                        {(cert.certType ?? "")
+                          .toLowerCase()
+                          .includes("knowbe4") && (
                           <Badge variant="info">KnowBe4</Badge>
                         )}
                       </div>
@@ -224,7 +307,9 @@ export default function MyCertificatesPage() {
                     <div className="flex flex-col items-end gap-1">
                       {statusBadge(status)}
                       {pending && (
-                        <Badge variant="warning">En attente de validation</Badge>
+                        <Badge variant="warning">
+                          En attente de validation
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -238,7 +323,7 @@ export default function MyCertificatesPage() {
                       <div className="flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 flex-shrink-0" />
                         <span>
-                          {status === 'expired' ? 'Expire le' : 'Expire le'}{' '}
+                          {status === "expired" ? "Expire le" : "Expire le"}{" "}
                           {formatDate(cert.expiresAt)}
                         </span>
                       </div>
@@ -279,11 +364,12 @@ export default function MyCertificatesPage() {
                       );
                     })()}
                   </div>
-                  {!cert.fileUrl && (cert.certType ?? '').toLowerCase() !== 'knowbe4' && (
-                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-2 italic">
-                      Aucun fichier attache — contactez votre administrateur.
-                    </p>
-                  )}
+                  {!cert.fileUrl &&
+                    (cert.certType ?? "").toLowerCase() !== "knowbe4" && (
+                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-2 italic">
+                        Aucun fichier attache — contactez votre administrateur.
+                      </p>
+                    )}
                 </CardContent>
               </Card>
             );
@@ -293,7 +379,10 @@ export default function MyCertificatesPage() {
 
       <Dialog
         open={dialogOpen}
-        onClose={() => { setDialogOpen(false); resetForm(); }}
+        onClose={() => {
+          setDialogOpen(false);
+          resetForm();
+        }}
         title="Ajouter un certificat"
         description="Renseignez les informations de votre certification. Elle sera soumise a validation par un administrateur."
       >
@@ -338,7 +427,7 @@ export default function MyCertificatesPage() {
             <div className="flex items-center gap-2">
               <label className="flex items-center gap-1.5 cursor-pointer rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-gray-500 dark:text-slate-400 hover:border-primary transition-colors">
                 <Upload className="h-4 w-4" />
-                {formFile ? formFile.name : 'Choisir un fichier'}
+                {formFile ? formFile.name : "Choisir un fichier"}
                 <input
                   type="file"
                   className="hidden"
@@ -370,7 +459,10 @@ export default function MyCertificatesPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => { setDialogOpen(false); resetForm(); }}
+              onClick={() => {
+                setDialogOpen(false);
+                resetForm();
+              }}
               disabled={submitting}
             >
               Annuler

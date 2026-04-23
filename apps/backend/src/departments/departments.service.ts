@@ -3,10 +3,10 @@ import {
   NotFoundException,
   ConflictException,
   Logger,
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateDepartmentDto } from './dto/create-department.dto';
-import { UpdateDepartmentDto } from './dto/update-department.dto';
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateDepartmentDto } from "./dto/create-department.dto";
+import { UpdateDepartmentDto } from "./dto/update-department.dto";
 
 @Injectable()
 export class DepartmentsService {
@@ -15,13 +15,42 @@ export class DepartmentsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll() {
-    return this.prisma.department.findMany({
+    const departments = await this.prisma.department.findMany({
       include: {
         _count: {
-          select: { users: true, userMemberships: true },
+          select: {
+            users: true,
+            userMemberships: true,
+            tickets: true,
+            calendarEvents: true,
+            mediaAlbums: true,
+          },
+        },
+        users: {
+          where: {
+            deletedAt: null,
+            isActive: true,
+            role: { in: ["DIRECTION", "ADMIN", "SUPER_ADMIN"] as any },
+          },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+            avatarUrl: true,
+          },
+          take: 3,
+          orderBy: { lastName: "asc" },
         },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
+    });
+
+    // Expose les "managers" séparément (users est déjà la relation de base)
+    return departments.map((d) => {
+      const { users, ...rest } = d;
+      return { ...rest, managers: users };
     });
   }
 
@@ -47,7 +76,7 @@ export class DepartmentsService {
     });
 
     if (!department) {
-      throw new NotFoundException('Department not found');
+      throw new NotFoundException("Department not found");
     }
 
     return department;
@@ -59,7 +88,7 @@ export class DepartmentsService {
     });
 
     if (existingByCode) {
-      throw new ConflictException('Department code already exists');
+      throw new ConflictException("Department code already exists");
     }
 
     const department = await this.prisma.department.create({
@@ -69,7 +98,9 @@ export class DepartmentsService {
       },
     });
 
-    this.logger.log(`Department created: ${department.name} (${department.code})`);
+    this.logger.log(
+      `Department created: ${department.name} (${department.code})`,
+    );
     return department;
   }
 
@@ -85,7 +116,7 @@ export class DepartmentsService {
       });
 
       if (existingByCode) {
-        throw new ConflictException('Department code already exists');
+        throw new ConflictException("Department code already exists");
       }
     }
 
@@ -110,30 +141,35 @@ export class DepartmentsService {
 
     if (userCount > 0) {
       throw new ConflictException(
-        'Cannot delete department with active users. Reassign users first.',
+        "Cannot delete department with active users. Reassign users first.",
       );
     }
 
     await this.prisma.department.delete({ where: { id } });
 
     this.logger.log(`Department deleted: ${department.name}`);
-    return { message: 'Department deleted successfully' };
+    return { message: "Department deleted successfully" };
   }
 
   async assignUser(departmentId: string, userId: string) {
-    const dept = await this.prisma.department.findUnique({ where: { id: departmentId } });
-    if (!dept) throw new NotFoundException('Department not found');
+    const dept = await this.prisma.department.findUnique({
+      where: { id: departmentId },
+    });
+    if (!dept) throw new NotFoundException("Department not found");
 
     // Set as primary department (legacy field)
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException("User not found");
 
     // Update legacy departmentId if user has none
     const updateData: any = {};
     if (!user.departmentId) updateData.departmentId = departmentId;
 
     if (Object.keys(updateData).length > 0) {
-      await this.prisma.user.update({ where: { id: userId }, data: updateData });
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
     }
 
     // Create multi-department membership
@@ -146,7 +182,13 @@ export class DepartmentsService {
 
     return this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, firstName: true, lastName: true, departmentId: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        departmentId: true,
+      },
     });
   }
 
@@ -161,7 +203,7 @@ export class DepartmentsService {
     if (user?.departmentId === departmentId) {
       const remaining = await this.prisma.userDepartment.findFirst({
         where: { userId },
-        orderBy: { isPrimary: 'desc' },
+        orderBy: { isPrimary: "desc" },
       });
       await this.prisma.user.update({
         where: { id: userId },
@@ -171,7 +213,13 @@ export class DepartmentsService {
 
     return this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, firstName: true, lastName: true, departmentId: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        departmentId: true,
+      },
     });
   }
 
@@ -182,7 +230,7 @@ export class DepartmentsService {
     return this.prisma.userDepartment.findMany({
       where: { userId },
       include: { department: true },
-      orderBy: { isPrimary: 'desc' },
+      orderBy: { isPrimary: "desc" },
     });
   }
 
@@ -194,23 +242,43 @@ export class DepartmentsService {
       where: { departmentId },
       include: {
         user: {
-          select: { id: true, email: true, firstName: true, lastName: true, role: true, isActive: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            isActive: true,
+          },
         },
       },
     });
     // Also include users with legacy departmentId
     const legacyUsers = await this.prisma.user.findMany({
       where: { departmentId, deletedAt: null },
-      select: { id: true, email: true, firstName: true, lastName: true, role: true, isActive: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+      },
     });
     // Merge and deduplicate
     const seen = new Set<string>();
     const result: any[] = [];
     for (const m of memberships) {
-      if (!seen.has(m.user.id)) { seen.add(m.user.id); result.push(m.user); }
+      if (!seen.has(m.user.id)) {
+        seen.add(m.user.id);
+        result.push(m.user);
+      }
     }
     for (const u of legacyUsers) {
-      if (!seen.has(u.id)) { seen.add(u.id); result.push(u); }
+      if (!seen.has(u.id)) {
+        seen.add(u.id);
+        result.push(u);
+      }
     }
     return result;
   }

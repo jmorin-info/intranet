@@ -5,14 +5,14 @@ import {
   UnauthorizedException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../audit/audit.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { PaginationParams, PaginatedResult } from '../common/interfaces';
-import { UserRole } from '../common/enums';
+} from "@nestjs/common";
+import * as bcrypt from "bcrypt";
+import { PrismaService } from "../prisma/prisma.service";
+import { AuditService } from "../audit/audit.service";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { PaginationParams, PaginatedResult } from "../common/interfaces";
+import { UserRole } from "../common/enums";
 
 @Injectable()
 export class UsersService {
@@ -29,15 +29,19 @@ export class UsersService {
    * N'expose que les champs nécessaires pour l'assignment / mention /
    * affichage d'auteur — jamais MFA, secrets, historique, etc.
    */
-  async getDirectory(opts: { search?: string; departmentId?: string; limit: number }) {
+  async getDirectory(opts: {
+    search?: string;
+    departmentId?: string;
+    limit: number;
+  }) {
     const where: Record<string, unknown> = { isActive: true, deletedAt: null };
     if (opts.departmentId) where.departmentId = opts.departmentId;
     if (opts.search && opts.search.trim()) {
       const q = opts.search.trim();
       where.OR = [
-        { firstName: { contains: q, mode: 'insensitive' } },
-        { lastName: { contains: q, mode: 'insensitive' } },
-        { email: { contains: q, mode: 'insensitive' } },
+        { firstName: { contains: q, mode: "insensitive" } },
+        { lastName: { contains: q, mode: "insensitive" } },
+        { email: { contains: q, mode: "insensitive" } },
       ];
     }
     const users = await this.prisma.user.findMany({
@@ -57,7 +61,7 @@ export class UsersService {
         departmentId: true,
         department: { select: { id: true, name: true, code: true } },
       },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
       take: opts.limit,
     });
     return { data: users, count: users.length };
@@ -70,8 +74,8 @@ export class UsersService {
     const page = pagination.page || 1;
     const limit = pagination.limit || 20;
     const skip = (page - 1) * limit;
-    const sortBy = pagination.sortBy || 'createdAt';
-    const sortOrder = pagination.sortOrder || 'desc';
+    const sortBy = pagination.sortBy || "createdAt";
+    const sortOrder = pagination.sortOrder || "desc";
 
     const where: any = {
       deletedAt: null,
@@ -90,9 +94,9 @@ export class UsersService {
 
     if (filters?.search) {
       where.OR = [
-        { firstName: { contains: filters.search, mode: 'insensitive' } },
-        { lastName: { contains: filters.search, mode: 'insensitive' } },
-        { email: { contains: filters.search, mode: 'insensitive' } },
+        { firstName: { contains: filters.search, mode: "insensitive" } },
+        { lastName: { contains: filters.search, mode: "insensitive" } },
+        { email: { contains: filters.search, mode: "insensitive" } },
       ];
     }
 
@@ -119,6 +123,7 @@ export class UsersService {
           },
           isActive: true,
           mfaEnabled: true,
+          mfaRequired: true,
           lastLoginAt: true,
           createdAt: true,
           updatedAt: true,
@@ -154,21 +159,35 @@ export class UsersService {
       include: {
         department: true,
         departmentMemberships: {
-          include: { department: { select: { id: true, name: true, code: true } } },
-          orderBy: { isPrimary: 'desc' as const },
+          include: {
+            department: { select: { id: true, name: true, code: true } },
+          },
+          orderBy: { isPrimary: "desc" as const },
         },
         manager: {
-          select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatarUrl: true,
+          },
         },
         subordinates: {
           where: { deletedAt: null, isActive: true },
-          select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatarUrl: true,
+          },
         },
       },
     });
 
     if (!user || user.deletedAt) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     return this.sanitizeUser(user);
@@ -187,7 +206,7 @@ export class UsersService {
     });
 
     if (existing) {
-      throw new ConflictException('Email already in use');
+      throw new ConflictException("Email already in use");
     }
 
     const passwordHash = await bcrypt.hash(dto.password, this.BCRYPT_ROUNDS);
@@ -227,7 +246,7 @@ export class UsersService {
         where: { email: dto.email },
       });
       if (existing) {
-        throw new ConflictException('Email already in use');
+        throw new ConflictException("Email already in use");
       }
     }
 
@@ -260,21 +279,21 @@ export class UsersService {
     if (dto.role && dto.role !== user.role) {
       await this.audit.log({
         userId: id,
-        action: 'USER_ROLE_CHANGED',
-        resourceType: 'User',
+        action: "USER_ROLE_CHANGED",
+        resourceType: "User",
         resourceId: id,
         metadata: { previousRole: user.role, newRole: dto.role },
-        severity: 'WARN',
+        severity: "WARN",
       });
     }
 
     if (dto.isActive === false && user.isActive) {
       await this.audit.log({
         userId: id,
-        action: 'USER_DEACTIVATED',
-        resourceType: 'User',
+        action: "USER_DEACTIVATED",
+        resourceType: "User",
         resourceId: id,
-        severity: 'WARN',
+        severity: "WARN",
       });
     }
 
@@ -294,18 +313,21 @@ export class UsersService {
     });
 
     this.logger.log(`User soft-deleted: ${id}`);
-    return { message: 'User deleted successfully' };
+    return { message: "User deleted successfully" };
   }
 
   private validatePasswordPolicy(password: string): void {
     const errors: string[] = [];
-    if (password.length < 12) errors.push('Minimum 12 caractères');
-    if (!/[A-Z]/.test(password)) errors.push('Au moins une majuscule');
-    if (!/[a-z]/.test(password)) errors.push('Au moins une minuscule');
-    if (!/[0-9]/.test(password)) errors.push('Au moins un chiffre');
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) errors.push('Au moins un caractère spécial');
+    if (password.length < 12) errors.push("Minimum 12 caractères");
+    if (!/[A-Z]/.test(password)) errors.push("Au moins une majuscule");
+    if (!/[a-z]/.test(password)) errors.push("Au moins une minuscule");
+    if (!/[0-9]/.test(password)) errors.push("Au moins un chiffre");
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password))
+      errors.push("Au moins un caractère spécial");
     if (errors.length > 0) {
-      throw new BadRequestException(`Mot de passe non conforme : ${errors.join(', ')}`);
+      throw new BadRequestException(
+        `Mot de passe non conforme : ${errors.join(", ")}`,
+      );
     }
   }
 
@@ -323,14 +345,14 @@ export class UsersService {
 
     await this.audit.log({
       userId: id,
-      action: 'USER_PASSWORD_RESET',
-      resourceType: 'User',
+      action: "USER_PASSWORD_RESET",
+      resourceType: "User",
       resourceId: id,
-      severity: 'WARN',
+      severity: "WARN",
     });
 
     this.logger.log(`Password reset for user: ${id}`);
-    return { message: 'Password reset successfully' };
+    return { message: "Password reset successfully" };
   }
 
   async changePassword(
@@ -343,7 +365,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     const isOldPasswordValid = await bcrypt.compare(
@@ -352,7 +374,7 @@ export class UsersService {
     );
 
     if (!isOldPasswordValid) {
-      throw new UnauthorizedException('Current password is incorrect');
+      throw new UnauthorizedException("Current password is incorrect");
     }
 
     this.validatePasswordPolicy(newPassword);
@@ -374,7 +396,7 @@ export class UsersService {
     this.logger.log(
       `Password changed for user ${userId} — ${revoked.count} refresh token(s) revoked`,
     );
-    return { message: 'Password changed successfully' };
+    return { message: "Password changed successfully" };
   }
 
   async getActivitySummary(userId: string) {
@@ -387,38 +409,46 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
-    const [documentsCount, ticketsCount, unreadNotificationsCount, quizAttempts, departments] =
-      await Promise.all([
-        this.prisma.document.count({
-          where: { ownerId: userId, deletedAt: null },
-        }),
-        this.prisma.ticket.count({
-          where: { creatorId: userId },
-        }),
-        this.prisma.notification.count({
-          where: { userId, isRead: false },
-        }),
-        this.prisma.auditLog.findMany({
-          where: { userId, action: 'QUIZ_COMPLETED' },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: { metadata: true },
-        }),
-        this.prisma.department.findMany({
-          select: { id: true, name: true },
-          orderBy: { name: 'asc' },
-        }),
-      ]);
+    const [
+      documentsCount,
+      ticketsCount,
+      unreadNotificationsCount,
+      quizAttempts,
+      departments,
+    ] = await Promise.all([
+      this.prisma.document.count({
+        where: { ownerId: userId, deletedAt: null },
+      }),
+      this.prisma.ticket.count({
+        where: { creatorId: userId },
+      }),
+      this.prisma.notification.count({
+        where: { userId, isRead: false },
+      }),
+      this.prisma.auditLog.findMany({
+        where: { userId, action: "QUIZ_COMPLETED" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { metadata: true },
+      }),
+      this.prisma.department.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+    ]);
 
     return {
       lastLoginAt: user.lastLoginAt,
       documentsCount,
       ticketsCount,
       unreadNotificationsCount,
-      quizBestScore: quizAttempts.length > 0 ? (quizAttempts[0].metadata as any)?.percentage ?? null : null,
+      quizBestScore:
+        quizAttempts.length > 0
+          ? ((quizAttempts[0].metadata as any)?.percentage ?? null)
+          : null,
       department: user.department,
       departments,
     };
@@ -426,7 +456,13 @@ export class UsersService {
 
   async updateProfile(
     userId: string,
-    dto: { phone?: string; location?: string; skills?: string; languages?: string; teamsLink?: string },
+    dto: {
+      phone?: string;
+      location?: string;
+      skills?: string;
+      languages?: string;
+      teamsLink?: string;
+    },
   ) {
     await this.findById(userId);
 
@@ -442,11 +478,23 @@ export class UsersService {
       include: {
         department: true,
         manager: {
-          select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatarUrl: true,
+          },
         },
         subordinates: {
           where: { deletedAt: null, isActive: true },
-          select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatarUrl: true,
+          },
         },
       },
     });
@@ -466,8 +514,8 @@ export class UsersService {
 
   private readonly DEFAULT_PREFERENCES = {
     darkMode: false,
-    language: 'fr',
-    dashboardWidgets: ['activity', 'documents', 'tickets', 'notifications'],
+    language: "fr",
+    dashboardWidgets: ["activity", "documents", "tickets", "notifications"],
     notificationPrefs: {
       email: true,
       inApp: true,
@@ -524,17 +572,31 @@ export class UsersService {
     };
 
     // Validate language
-    const validLanguages = ['fr', 'en', 'de', 'es'];
+    const validLanguages = ["fr", "en", "de", "es"];
     if (merged.language && !validLanguages.includes(merged.language)) {
-      throw new BadRequestException(`Langue non supportée : ${merged.language}. Options : ${validLanguages.join(', ')}`);
+      throw new BadRequestException(
+        `Langue non supportée : ${merged.language}. Options : ${validLanguages.join(", ")}`,
+      );
     }
 
     // Validate dashboardWidgets
-    const validWidgets = ['activity', 'documents', 'tickets', 'notifications', 'compliance', 'calendar', 'wiki'];
+    const validWidgets = [
+      "activity",
+      "documents",
+      "tickets",
+      "notifications",
+      "compliance",
+      "calendar",
+      "wiki",
+    ];
     if (merged.dashboardWidgets) {
-      const invalid = merged.dashboardWidgets.filter((w: string) => !validWidgets.includes(w));
+      const invalid = merged.dashboardWidgets.filter(
+        (w: string) => !validWidgets.includes(w),
+      );
       if (invalid.length > 0) {
-        throw new BadRequestException(`Widgets non reconnus : ${invalid.join(', ')}`);
+        throw new BadRequestException(
+          `Widgets non reconnus : ${invalid.join(", ")}`,
+        );
       }
     }
 
@@ -543,7 +605,12 @@ export class UsersService {
     await this.prisma.appConfig.upsert({
       where: { key: configKey },
       update: { value, updatedById: userId },
-      create: { key: configKey, value, description: `Préférences utilisateur ${userId}`, updatedById: userId },
+      create: {
+        key: configKey,
+        value,
+        description: `Préférences utilisateur ${userId}`,
+        updatedById: userId,
+      },
     });
 
     this.logger.log(`Preferences updated for user: ${userId}`);
@@ -640,39 +707,74 @@ export class UsersService {
         lastLoginAt: true,
         department: { select: { id: true, name: true, code: true } },
         departmentMemberships: {
-          select: { department: { select: { id: true, name: true } }, isPrimary: true },
+          select: {
+            department: { select: { id: true, name: true } },
+            isPrimary: true,
+          },
         },
-        manager: { select: { id: true, firstName: true, lastName: true, email: true } },
+        manager: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     const [documents, tickets, notifications, auditLogs] = await Promise.all([
       this.prisma.document.findMany({
         where: { ownerId: userId, deletedAt: null },
-        select: { id: true, title: true, status: true, category: true, createdAt: true, updatedAt: true },
-        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          category: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: { createdAt: "desc" },
         take: 500,
       }),
       this.prisma.ticket.findMany({
         where: { OR: [{ creatorId: userId }, { assigneeId: userId }] },
-        select: { id: true, title: true, status: true, priority: true, category: true, createdAt: true, updatedAt: true },
-        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          priority: true,
+          category: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: { createdAt: "desc" },
         take: 500,
       }),
       this.prisma.notification.findMany({
         where: { userId },
-        select: { id: true, title: true, body: true, type: true, isRead: true, createdAt: true },
-        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          body: true,
+          type: true,
+          isRead: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
         take: 500,
       }),
       this.prisma.auditLog.findMany({
         where: { userId },
-        select: { id: true, action: true, resourceType: true, resourceId: true, metadata: true, severity: true, createdAt: true },
-        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          action: true,
+          resourceType: true,
+          resourceId: true,
+          metadata: true,
+          severity: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
         take: 1000,
       }),
     ]);
@@ -684,10 +786,10 @@ export class UsersService {
 
     await this.audit.log({
       userId,
-      action: 'GDPR_DATA_EXPORT',
-      resourceType: 'User',
+      action: "GDPR_DATA_EXPORT",
+      resourceType: "User",
       resourceId: userId,
-      severity: 'INFO',
+      severity: "INFO",
     });
 
     this.logger.log(`GDPR export generated for user: ${userId}`);
@@ -709,7 +811,7 @@ export class UsersService {
     const memberships = await this.prisma.userDepartment.findMany({
       where: { userId },
       include: { department: { select: { id: true, name: true, code: true } } },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
     });
     return memberships;
   }
@@ -718,14 +820,19 @@ export class UsersService {
     await this.findById(userId);
 
     // Check department exists
-    const dept = await this.prisma.department.findUnique({ where: { id: departmentId } });
-    if (!dept) throw new NotFoundException('Department not found');
+    const dept = await this.prisma.department.findUnique({
+      where: { id: departmentId },
+    });
+    if (!dept) throw new NotFoundException("Department not found");
 
     // Check for existing membership
     const existing = await this.prisma.userDepartment.findUnique({
       where: { userId_departmentId: { userId, departmentId } },
     });
-    if (existing) throw new BadRequestException('L\'utilisateur appartient déjà à ce département');
+    if (existing)
+      throw new BadRequestException(
+        "L'utilisateur appartient déjà à ce département",
+      );
 
     const membership = await this.prisma.userDepartment.create({
       data: { userId, departmentId },
@@ -742,7 +849,7 @@ export class UsersService {
     const existing = await this.prisma.userDepartment.findUnique({
       where: { userId_departmentId: { userId, departmentId } },
     });
-    if (!existing) throw new NotFoundException('Membership not found');
+    if (!existing) throw new NotFoundException("Membership not found");
 
     await this.prisma.userDepartment.delete({
       where: { userId_departmentId: { userId, departmentId } },
@@ -766,18 +873,26 @@ export class UsersService {
         select: { id: true },
       });
       if (found.length !== departmentIds.length) {
-        throw new NotFoundException('One or more departments not found');
+        throw new NotFoundException("One or more departments not found");
       }
     }
 
     // Remove all existing memberships, then recreate
     await this.prisma.userDepartment.deleteMany({ where: { userId } });
 
-    const toCreate: Array<{ userId: string; departmentId: string; isPrimary: boolean }> = [];
+    const toCreate: Array<{
+      userId: string;
+      departmentId: string;
+      isPrimary: boolean;
+    }> = [];
 
     // Always ensure the primary department is included if set
     if (user.departmentId) {
-      toCreate.push({ userId, departmentId: user.departmentId, isPrimary: true });
+      toCreate.push({
+        userId,
+        departmentId: user.departmentId,
+        isPrimary: true,
+      });
     }
 
     for (const dId of departmentIds) {
@@ -790,7 +905,9 @@ export class UsersService {
       await this.prisma.userDepartment.createMany({ data: toCreate });
     }
 
-    this.logger.log(`Departments updated for user ${userId}: ${departmentIds.join(', ')}`);
+    this.logger.log(
+      `Departments updated for user ${userId}: ${departmentIds.join(", ")}`,
+    );
     return this.getUserDepartments(userId);
   }
 
@@ -799,29 +916,43 @@ export class UsersService {
   async getUserSpaceAccessConfigs(userId: string) {
     await this.findById(userId);
     return this.prisma.spaceAccessConfig.findMany({
-      where: { scopeType: 'USER', scopeValue: userId },
-      orderBy: { module: 'asc' },
+      where: { scopeType: "USER", scopeValue: userId },
+      orderBy: { module: "asc" },
     });
   }
 
-  async setUserSpaceAccess(userId: string, module: string, enabled: boolean, config?: Record<string, unknown>) {
+  async setUserSpaceAccess(
+    userId: string,
+    module: string,
+    enabled: boolean,
+    config?: Record<string, unknown>,
+  ) {
     await this.findById(userId);
 
     const entry = await this.prisma.spaceAccessConfig.upsert({
       where: {
-        module_scopeType_scopeValue: { module, scopeType: 'USER', scopeValue: userId },
+        module_scopeType_scopeValue: {
+          module,
+          scopeType: "USER",
+          scopeValue: userId,
+        },
       },
-      update: { enabled, ...(config !== undefined && { config: config as any }) },
+      update: {
+        enabled,
+        ...(config !== undefined && { config: config as any }),
+      },
       create: {
         module,
-        scopeType: 'USER',
+        scopeType: "USER",
         scopeValue: userId,
         enabled,
         ...(config !== undefined && { config: config as any }),
       },
     });
 
-    this.logger.log(`SpaceAccessConfig USER/${userId} module=${module} enabled=${enabled}`);
+    this.logger.log(
+      `SpaceAccessConfig USER/${userId} module=${module} enabled=${enabled}`,
+    );
     return entry;
   }
 
@@ -830,22 +961,28 @@ export class UsersService {
 
     const existing = await this.prisma.spaceAccessConfig.findUnique({
       where: {
-        module_scopeType_scopeValue: { module, scopeType: 'USER', scopeValue: userId },
+        module_scopeType_scopeValue: {
+          module,
+          scopeType: "USER",
+          scopeValue: userId,
+        },
       },
     });
-    if (!existing) throw new NotFoundException('SpaceAccessConfig not found');
+    if (!existing) throw new NotFoundException("SpaceAccessConfig not found");
 
     await this.prisma.spaceAccessConfig.delete({ where: { id: existing.id } });
 
-    this.logger.log(`SpaceAccessConfig deleted USER/${userId} module=${module}`);
+    this.logger.log(
+      `SpaceAccessConfig deleted USER/${userId} module=${module}`,
+    );
     return { deleted: true };
   }
 
   async getAllModules(): Promise<string[]> {
     const configs = await this.prisma.spaceAccessConfig.findMany({
       select: { module: true },
-      distinct: ['module'],
-      orderBy: { module: 'asc' },
+      distinct: ["module"],
+      orderBy: { module: "asc" },
     });
     return configs.map((c) => c.module);
   }

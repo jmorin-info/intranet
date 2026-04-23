@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Page unifiée Audit — fusion des anciennes pages /admin/audit-log et
@@ -15,46 +15,55 @@
  * Référence : docs/admin/HUB_TAXONOMY.md, quick win #8 et #9 de l'audit.
  */
 
-import React, { useCallback, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ClipboardList, Activity } from 'lucide-react';
-import { Tabs } from '@omnitech/ui';
-import { UserRole } from '@omnitech/shared';
-import { PageHeader } from '@/components/layout/page-header';
-import { RoleGuard } from '@/components/role-guard';
-import { AuditLogView } from '@/components/admin/audit-log-view';
-import { AuditTimelineView } from '@/components/admin/audit-timeline-view';
+import React, { useCallback, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ClipboardList, Activity } from "lucide-react";
+import { Tabs } from "@omnitech/ui";
+import { UserRole } from "@omnitech/shared";
+import { PageHeader } from "@/components/layout/page-header";
+import { RoleGuard } from "@/components/role-guard";
+import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
+import { AuditLogView } from "@/components/admin/audit-log-view";
+import { AuditTimelineView } from "@/components/admin/audit-timeline-view";
 
-type AuditTab = 'log' | 'timeline';
+type AuditTab = "log" | "timeline";
 
 function isAuditTab(value: string | null): value is AuditTab {
-  return value === 'log' || value === 'timeline';
+  return value === "log" || value === "timeline";
 }
 
 export default function AdminAuditPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tabParam = searchParams.get('tab');
-  const activeTab: AuditTab = isAuditTab(tabParam) ? tabParam : 'log';
+  const tabParam = searchParams.get("tab");
+  const activeTab: AuditTab = isAuditTab(tabParam) ? tabParam : "log";
 
   const handleTabChange = useCallback(
     (tabId: string) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (tabId === 'log') {
-        params.delete('tab');
+      if (tabId === "log") {
+        params.delete("tab");
       } else {
-        params.set('tab', tabId);
+        params.set("tab", tabId);
       }
       const query = params.toString();
-      router.replace(query ? `/admin/audit?${query}` : '/admin/audit');
+      router.replace(query ? `/admin/audit?${query}` : "/admin/audit");
     },
     [router, searchParams],
   );
 
   const tabs = useMemo(
     () => [
-      { id: 'log', label: "Journal d'audit", icon: <ClipboardList className="h-4 w-4" /> },
-      { id: 'timeline', label: 'Chronologie', icon: <Activity className="h-4 w-4" /> },
+      {
+        id: "log",
+        label: "Journal d'audit",
+        icon: <ClipboardList className="h-4 w-4" />,
+      },
+      {
+        id: "timeline",
+        label: "Chronologie",
+        icon: <Activity className="h-4 w-4" />,
+      },
     ],
     [],
   );
@@ -62,6 +71,8 @@ export default function AdminAuditPage() {
   return (
     <RoleGuard minRole={UserRole.ADMIN}>
       <div className="p-6 space-y-6 bg-gray-50 dark:bg-slate-950 min-h-screen">
+        <AdminGroupTabs group="audit" />
+
         <PageHeader
           title="Audit"
           subtitle="ISO 27001 A.5.36 — Journal d'audit sécurité (table + frise)"
@@ -71,7 +82,7 @@ export default function AdminAuditPage() {
 
         <Tabs tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
 
-        {activeTab === 'log' ? <AuditLogView /> : <AuditTimelineView />}
+        {activeTab === "log" ? <AuditLogView /> : <AuditTimelineView />}
       </div>
     </RoleGuard>
   );
