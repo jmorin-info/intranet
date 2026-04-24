@@ -68,6 +68,7 @@ const GROUPS: Record<string, { label: string; tabs: Tab[] }> = {
       { label: 'Audit (log + frise)', href: '/admin/audit', icon: ClipboardList, minRole: UserRole.ADMIN },
       { label: 'Santé système', href: '/admin/system-health', icon: Monitor, minRole: UserRole.ADMIN },
       { label: 'Dashboard RSSI', href: '/admin/rssi-dashboard', icon: BarChart3, minRole: UserRole.SUPER_ADMIN },
+      { label: 'Score cyber', href: '/admin/cyber-score', icon: ShieldCheck, minRole: UserRole.SUPER_ADMIN },
       { label: 'Rapports', href: '/admin/reports', icon: BarChart3, minRole: UserRole.ADMIN },
     ],
   },

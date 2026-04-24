@@ -76,6 +76,7 @@ import { TestimonialsModule } from './testimonials/testimonials.module';
 import { MediaModule } from './media/media.module';
 import { SystemMonitoringModule } from './system-monitoring/system-monitoring.module';
 import { TrustModule } from './trust/trust.module';
+import { CyberScoreModule } from './cyber-score/cyber-score.module';
 
 @Module({
   imports: [
@@ -164,6 +165,7 @@ import { TrustModule } from './trust/trust.module';
     MediaModule,
     SystemMonitoringModule,
     TrustModule,
+    CyberScoreModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

@@ -1983,3 +1983,24 @@ model MediaItemDownload {
   @@index([itemId])
   @@index([userId, downloadedAt])
 }
+
+// =============================================================================
+// Cyber Score Snapshot (ISO 27001:2022 — /admin/cyber-score)
+// =============================================================================
+// Historise chaque calcul du score cyber global afin d'afficher des tendances
+// 7j / 30j / 90j sur la page /admin/cyber-score. Un snapshot est créé :
+//  - par le cron hebdomadaire CyberScoreService (dimanche 3h)
+//  - manuellement via POST /cyber-score/recompute (bouton "Recalculer")
+// Le champ `domains` contient le payload JSON complet des 10 sous-scores et
+// de leurs signaux afin de pouvoir replayer un calcul historique sans devoir
+// rejouer les requêtes Prisma.
+// =============================================================================
+
+model CyberScoreSnapshot {
+  id        String   @id @default(uuid())
+  score     Int // 0..100 — moyenne arithmétique des 10 sous-scores
+  domains   Json // Tableau [{key, iso, name, score, signals:[{label,value,weight}]}, ...]
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
