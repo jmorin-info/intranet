@@ -305,6 +305,22 @@ function LoginPageInner() {
             )}
           </div>
 
+          {/* Trust bullets — présents en plus du panneau gauche pour rester visibles en mobile */}
+          <div className="mt-5 grid grid-cols-3 gap-2 text-center" aria-label="Garanties de confiance">
+            <div className="flex flex-col items-center gap-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 px-2 py-2">
+              <span className="text-base" aria-hidden>🇫🇷</span>
+              <span className="text-[10px] font-semibold text-seal-navy dark:text-white leading-tight">Hébergement FR</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 px-2 py-2">
+              <Shield className="h-4 w-4 text-[#006233]" aria-hidden />
+              <span className="text-[10px] font-semibold text-seal-navy dark:text-white leading-tight">ISO 27001</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 px-2 py-2">
+              <Lock className="h-4 w-4 text-[#296DC1]" aria-hidden />
+              <span className="text-[10px] font-semibold text-seal-navy dark:text-white leading-tight">100% souverain</span>
+            </div>
+          </div>
+
           <div className="mt-5 text-center">
             <Link
               href="/welcome"
@@ -317,8 +333,10 @@ function LoginPageInner() {
           <p className="mt-4 text-center text-[11px] text-seal-gray-500/70 dark:text-slate-500">
             OMNITECH Security &copy; {new Date().getFullYear()} — Tous droits réservés
           </p>
-          <p className="mt-1 text-center text-[10px] text-seal-gray-500/40 dark:text-slate-600">
-            Powered by OMNITECH Intranet v2.4
+          <p className="mt-1 text-center text-[10px] text-seal-gray-500/40 dark:text-slate-600 flex items-center justify-center gap-2">
+            <Link href="/trust" className="hover:text-[#F68D2E] transition-colors">Centre de confiance</Link>
+            <span aria-hidden>·</span>
+            <span>Powered by OMNITECH Intranet v2.4</span>
           </p>
         </div>
       </div>

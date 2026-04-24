@@ -4,17 +4,45 @@ import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader } from "@omnitech/ui";
-import { Bell, Eye, Globe, CheckCircle2 } from "lucide-react";
+import { Bell, Eye, Globe, CheckCircle2, Sparkles } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { useGlanceStore } from "@/stores/glance-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { useTranslation } from "@/lib/i18n";
+import { replayWelcomeTour } from "@/components/onboarding/welcome-tour";
 import type { ApiError, NotifPrefs } from "./types";
 
 export function ProfilePreferencesSection() {
   const { locale, setLocale } = useUIStore();
   const glanceEnabled = useGlanceStore((s) => s.enabled);
   const setGlanceEnabled = useGlanceStore((s) => s.setEnabled);
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
   const { t } = useTranslation();
+  const [resettingTour, setResettingTour] = useState(false);
+
+  const handleReplayTour = async () => {
+    setResettingTour(true);
+    try {
+      // Reset côté serveur pour que l'auto-trigger reste armé au prochain login
+      // même depuis un autre poste.
+      const { data } = await api.post("/users/me/onboarding-reset", {});
+      if (user) {
+        setUser({ ...user, onboardingCompletedAt: data?.onboardingCompletedAt ?? null });
+      }
+      // Ouverture immédiate du tour sans attendre un rechargement.
+      replayWelcomeTour();
+      toast.success(t("welcomeTour.replay.reset"));
+    } catch (err) {
+      toast.error(
+        (err as ApiError)?.response?.data?.message ||
+          (err as ApiError)?.message ||
+          t("welcomeTour.replay.error"),
+      );
+    } finally {
+      setResettingTour(false);
+    }
+  };
 
   const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>({
     emailDocuments: true,
@@ -188,6 +216,30 @@ export function ProfilePreferencesSection() {
               />
             </button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Replay welcome tour */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            {t("welcomeTour.replay.title")}
+          </h2>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-3">
+            {t("welcomeTour.replay.description")}
+          </p>
+          <button
+            type="button"
+            onClick={handleReplayTour}
+            disabled={resettingTour}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-btn border border-primary/40 text-sm font-semibold text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition"
+          >
+            <Sparkles className="h-4 w-4" />
+            {t("welcomeTour.replay.button")}
+          </button>
         </CardContent>
       </Card>
 

@@ -414,6 +414,137 @@ export class UsersService {
     return { message: "Password changed successfully" };
   }
 
+  /**
+   * Tour guidé de première connexion — marque la fin.
+   * Le champ `onboardingCompletedAt` est conservé pour historiser la date de
+   * "onboarding v2" (différent du module HR `OnboardingStep`).
+   */
+  async markOnboardingCompleted(userId: string) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { onboardingCompletedAt: new Date() },
+      select: { id: true, onboardingCompletedAt: true },
+    });
+    this.logger.log(`Welcome tour completed for user ${userId}`);
+    return user;
+  }
+
+  /** Reset le tour : l'utilisateur reverra la modale au prochain mount. */
+  async resetOnboarding(userId: string) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { onboardingCompletedAt: null },
+      select: { id: true, onboardingCompletedAt: true },
+    });
+    this.logger.log(`Welcome tour reset for user ${userId}`);
+    return user;
+  }
+
+  /** Masque explicitement la checklist "Démarrage rapide". */
+  async dismissWelcomeChecklist(userId: string) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { welcomeChecklistDismissedAt: new Date() },
+      select: { id: true, welcomeChecklistDismissedAt: true },
+    });
+    this.logger.log(`Welcome checklist dismissed for user ${userId}`);
+    return user;
+  }
+
+  /**
+   * Calcule l'état des 5 items de la checklist "Démarrage rapide".
+   * Retourne { items, done, total, dismissed, createdAt } — le front décide
+   * de l'affichage (masquage si done === total, > 14 jours, ou dismissed).
+   *
+   * Les items :
+   *  1. profile    — user.phone && user.location
+   *  2. mfa        — user.mfaEnabled
+   *  3. charte     — chartesAcceptedAt signé dans les 12 derniers mois
+   *  4. docs       — v1 : toujours true après 3 jours (non bloquant). Avant 3j, on
+   *                  vérifie qu'au moins 3 audit logs "DOCUMENT_VIEWED" ou
+   *                  équivalents existent. En pratique on prend les logs liés
+   *                  au resource Document.
+   *  5. quiz       — au moins un audit log QUIZ_COMPLETED avec percentage > 0
+   */
+  async getOnboardingChecklist(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        createdAt: true,
+        phone: true,
+        location: true,
+        mfaEnabled: true,
+        chartesAcceptedAt: true,
+        welcomeChecklistDismissedAt: true,
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const now = new Date();
+    const accountAgeDays = Math.floor(
+      (now.getTime() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    // Profile — phone + location renseignés (seuil minimal)
+    const profileDone = !!(user.phone && user.location);
+
+    // MFA
+    const mfaDone = user.mfaEnabled === true;
+
+    // Charte — signée dans les 12 derniers mois
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    const charteDone =
+      !!user.chartesAcceptedAt && user.chartesAcceptedAt >= twelveMonthsAgo;
+
+    // Docs — v1 : non bloquant après 3 jours. Avant ça, on vérifie l'activité
+    // sur les documents via les audit logs.
+    let docsDone = false;
+    if (accountAgeDays >= 3) {
+      docsDone = true;
+    } else {
+      const docViewCount = await this.prisma.auditLog.count({
+        where: {
+          userId,
+          resourceType: 'Document',
+          action: { in: ['DOCUMENT_VIEWED', 'DOCUMENT_DOWNLOADED', 'DOCUMENT_OPENED'] },
+        },
+      });
+      docsDone = docViewCount >= 3;
+    }
+
+    // Quiz — au moins un QUIZ_COMPLETED avec un score > 0
+    const quizLog = await this.prisma.auditLog.findFirst({
+      where: { userId, action: 'QUIZ_COMPLETED' },
+      orderBy: { createdAt: 'desc' },
+      select: { metadata: true },
+    });
+    const quizScore = quizLog
+      ? ((quizLog.metadata as { percentage?: number } | null)?.percentage ?? 0)
+      : 0;
+    const quizDone = quizScore > 0;
+
+    const items = [
+      { key: 'profile', done: profileDone, href: '/profile' },
+      { key: 'mfa', done: mfaDone, href: '/profile#security' },
+      { key: 'charte', done: charteDone, href: '/chartes' },
+      { key: 'docs', done: docsDone, href: '/documents' },
+      { key: 'quiz', done: quizDone, href: '/quiz' },
+    ];
+
+    const doneCount = items.filter((i) => i.done).length;
+
+    return {
+      items,
+      done: doneCount,
+      total: items.length,
+      dismissed: !!user.welcomeChecklistDismissedAt,
+      accountAgeDays,
+      createdAt: user.createdAt,
+    };
+  }
+
   async getActivitySummary(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

@@ -179,6 +179,14 @@ model User {
   // Used by AccessReviewsService (PASSWORDS campaigns) to detect stale credentials.
   // Nullable: backfilled to createdAt for existing rows via the 20260424 migration.
   passwordChangedAt DateTime?
+  // First-login guided tour : timestamp of completion. Null = tour not done
+  // (triggers the welcome modal on next /dashboard mount if account age < 7d).
+  // Reset to null via POST /users/me/onboarding-reset when user asks to
+  // re-watch the tour from Profile > Preferences.
+  onboardingCompletedAt     DateTime?
+  // Welcome checklist ("Démarrage rapide") on dashboard : explicit dismissal.
+  // Also auto-hidden when all 5 items are completed or after 14 days.
+  welcomeChecklistDismissedAt DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
