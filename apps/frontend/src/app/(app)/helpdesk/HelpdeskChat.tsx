@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { features } from '@/lib/features';
 import { useTranslation } from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { Card, Button } from '@omnitech/ui';
 import {
@@ -93,7 +94,7 @@ export function HelpdeskChat() {
   const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
-    api.get('/helpdesk/kb').then(({ data }) => setKnowledgeBase(Array.isArray(data) ? data : data?.data || [])).catch(console.error);
+    api.get('/helpdesk/kb').then(({ data }) => setKnowledgeBase(Array.isArray(data) ? data : data?.data || [])).catch((err) => logger.error(err, { component: 'HelpdeskChat', context: 'load kb' }));
   }, []);
 
   function findBestMatch(query: string, kb: KBArticle[]): { answer: string; confidence: number; question: string; actions?: Array<{ label: string; href?: string; action?: string }> } | null {

@@ -19,6 +19,7 @@ import {
 } from '@omnitech/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { formatDate } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import Image from 'next/image';
 import { Plus, Pin, Newspaper, User, Calendar, Star, Clock, Eye } from 'lucide-react';
 
@@ -75,11 +76,11 @@ export default function NewsPage() {
   const FALLBACK_CATEGORIES = ['Intranet', 'SMSI', 'Sécurité', 'RH', 'Événement', 'Technique'];
 
   useEffect(() => {
-    api.get('/news/popular?limit=5').then(r => setPopular(r.data || [])).catch(console.error);
+    api.get('/news/popular?limit=5').then(r => setPopular(r.data || [])).catch((err) => logger.error(err, { page: 'news', context: 'load popular' }));
     api.get('/news/categories').then(({ data }) => {
       const dynamic = (Array.isArray(data) ? data : []).map((c: { category?: string }) => c.category).filter((v): v is string => Boolean(v));
       if (dynamic.length > 0) setCategories(dynamic);
-    }).catch(console.error);
+    }).catch((err) => logger.error(err, { page: 'news', context: 'load categories' }));
   }, []);
 
   const debouncedSearch = useDebounce(search, 300);

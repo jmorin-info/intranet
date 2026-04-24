@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/layout/page-header';
 import { ExportCsvButton } from '@/components/ui/export-csv-button';
+import { logger } from '@/lib/logger';
 
 const AdminGroupTabs = dynamic(
   () => import('@/components/layout/admin-group-tabs').then(m => ({ default: m.AdminGroupTabs })),
@@ -331,7 +332,7 @@ export default function AdminSignaturesPage() {
                 body: `Vous avez une signature en attente. Veuillez la compléter dans les meilleurs délais.`,
                 resourceType: 'Signature',
                 resourceId: sig.id,
-              }).catch(console.error);
+              }).catch((err) => logger.error(err, { page: 'admin/signatures', context: 'notify pending' }));
             }
             toast.success(`${pending.length} rappel(s) envoyé(s)`);
           }}>

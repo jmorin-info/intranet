@@ -2,6 +2,53 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
 
+// ─── Content-Security-Policy ───────────────────────────────────────────────
+// Strict CSP applied on every route. Dev mode keeps 'unsafe-inline' /
+// 'unsafe-eval' for Next.js hot-reload & React refresh; production is strict.
+// A nonce-based script-src would be ideal but requires a middleware which is
+// out of scope for v1 (the Next 15 App Router still injects a few inline
+// bootstrap scripts without nonce support on static pages). Revisit once
+// the framework-level nonce plumbing stabilises.
+//
+// Trusted external origins:
+//   - OnlyOffice document server (env NEXT_PUBLIC_ONLYOFFICE_URL)
+//   - DocuSeal signature iframe + API (docuseal.com + NEXT_PUBLIC_DOCUSEAL_URL)
+//   - Sentry ingest (*.sentry.io) — telemetry is opt-in via DSN
+// `frame-ancestors 'self'` matches X-Frame-Options: SAMEORIGIN (used by the
+// Glance same-origin overlay); object-src is disabled entirely.
+const isProd = process.env.NODE_ENV === "production";
+
+const onlyofficeUrl = (process.env.NEXT_PUBLIC_ONLYOFFICE_URL || "").trim();
+const docusealUrl = (process.env.NEXT_PUBLIC_DOCUSEAL_URL || "").trim();
+
+const extraFrameSrc = [onlyofficeUrl, docusealUrl, "https://docuseal.com", "https://*.docuseal.com"]
+  .filter(Boolean)
+  .join(" ");
+const extraConnectSrc = [onlyofficeUrl, docusealUrl, "https://docuseal.com", "https://*.docuseal.com"]
+  .filter(Boolean)
+  .join(" ");
+
+const scriptSrc = isProd
+  ? "script-src 'self'"
+  : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
+
+const cspDirectives = [
+  "default-src 'self'",
+  scriptSrc,
+  "style-src 'self' 'unsafe-inline'", // Tailwind JIT + Next inline styles
+  "img-src 'self' data: blob: https:", // avatars LDAP, tuiles cartes, etc.
+  "font-src 'self' data:",
+  `connect-src 'self' https://*.sentry.io ${extraConnectSrc}`.trim(),
+  `frame-src 'self' ${extraFrameSrc}`.trim(),
+  "frame-ancestors 'self'", // cohérent avec X-Frame-Options SAMEORIGIN (Glance overlay)
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "upgrade-insecure-requests",
+];
+
+const cspHeader = cspDirectives.join("; ");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@omnitech/shared", "@omnitech/ui"],
@@ -40,6 +87,7 @@ const nextConfig = {
         value: "max-age=63072000; includeSubDomains; preload",
       },
       { key: "X-XSS-Protection", value: "0" },
+      { key: "Content-Security-Policy", value: cspHeader },
     ];
     return [{ source: "/:path*", headers: securityHeaders }];
   },

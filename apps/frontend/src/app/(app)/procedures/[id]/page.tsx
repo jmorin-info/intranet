@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import {
@@ -233,7 +234,7 @@ export default function ProcedureViewerPage() {
       .then((blob) => {
         setFileUrl(URL.createObjectURL(blob));
       })
-      .catch(console.error);
+      .catch((err) => logger.error(err, { page: "procedures/[id]", context: "download" }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [downloadPath]);
 

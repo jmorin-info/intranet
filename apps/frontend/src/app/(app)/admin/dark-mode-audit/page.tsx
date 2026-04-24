@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
 import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/layout/page-header';
+import { logger } from '@/lib/logger';
 
 // Pages à auditer (routes authenticated uniquement).
 // On scanne dans l'ordre, chaque page est chargée brièvement dans un <iframe>
@@ -154,7 +155,7 @@ export default function DarkModeAuditPage() {
 
         scanned.push(page);
       } catch (err) {
-        console.warn(`audit failed for ${page}:`, err);
+        logger.warn(`audit failed for ${page}`, { page, error: err instanceof Error ? err.message : String(err) });
       } finally {
         iframe.remove();
       }

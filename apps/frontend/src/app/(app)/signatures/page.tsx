@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 import { PenLine, CheckCircle2, Clock, FileText, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 
 interface SignatureRequest {
   id: string;
@@ -36,7 +37,7 @@ export default function MySignaturesPage() {
       const { data } = await api.get('/signatures/my');
       setPending(data.pending || []);
       setCompleted(data.completed || []);
-    } catch (err) { console.error('Failed to load signatures:', err); }
+    } catch (err) { logger.error(err, { page: 'signatures', context: 'load' }); }
     finally { setLoading(false); }
   }, []);
 

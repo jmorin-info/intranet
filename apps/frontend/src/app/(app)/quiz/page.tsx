@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '@/lib/api';
+import { logger } from '@/lib/logger';
 import { useAuthStore } from '@/stores/auth-store';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { toast } from 'sonner';
@@ -453,7 +454,7 @@ export default function QuizPage() {
 
   useEffect(() => {
     if (isAdmin) {
-      api.get('/quiz/stats').then((r) => setStats(r.data)).catch(console.error);
+      api.get('/quiz/stats').then((r) => setStats(r.data)).catch((err) => logger.error(err, { page: 'quiz', context: 'stats' }));
     }
   }, [isAdmin]);
 

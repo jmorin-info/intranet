@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Card, CardContent, Button, Skeleton } from "@omnitech/ui";
@@ -186,7 +187,7 @@ export default function AdminReportsPage() {
           totalTickets: totalTickets || dash.totalTickets,
         });
       })
-      .catch(console.error)
+      .catch((err) => logger.error(err, { page: "admin/reports", context: "load stats" }))
       .finally(() => setStatsLoading(false));
   }, []);
 

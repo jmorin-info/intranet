@@ -3,6 +3,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, Button } from '@omnitech/ui';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -34,8 +35,8 @@ export class ErrorBoundary extends Component<Props, State> {
         metadata: { componentStack: errorInfo.componentStack },
       });
     } catch {
-      // Observability not available — log to console as fallback
-      console.error('ErrorBoundary caught:', error, errorInfo);
+      // Observability not available — forward to logger fallback.
+      logger.error(error, { componentStack: errorInfo.componentStack });
     }
   }
 

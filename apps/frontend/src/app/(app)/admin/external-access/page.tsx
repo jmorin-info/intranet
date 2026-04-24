@@ -14,6 +14,7 @@ import {
   Shield, UserCheck, UserX, Clock, AlertTriangle, Plus, RefreshCw, Building2, Eye,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 
 interface ExternalAccess {
   id: string;
@@ -59,9 +60,9 @@ export default function AdminExternalAccessPage() {
         api.get('/external-access/due-review'),
       ]);
       if (accessRes.status === 'fulfilled') setAccesses(accessRes.value.data?.data || []);
-      else console.error('Failed to load external accesses:', accessRes.reason);
+      else logger.error(accessRes.reason, { page: 'admin/external-access', context: 'load accesses' });
       if (dueRes.status === 'fulfilled') setDueReview(dueRes.value.data || []);
-      else console.error('Failed to load due reviews:', dueRes.reason);
+      else logger.error(dueRes.reason, { page: 'admin/external-access', context: 'load due reviews' });
     } catch { /**/ } finally { setLoading(false); }
   }, []);
 

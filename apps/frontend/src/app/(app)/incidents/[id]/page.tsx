@@ -9,6 +9,7 @@ import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { EntityBreadcrumb } from '@/components/ui/entity-breadcrumb';
 import { InlineStatusDropdown } from '@/components/ui/inline-status-dropdown';
 import { eventBus, createEvent } from '@/lib/events';
+import { logger } from '@/lib/logger';
 import {
   Badge,
   Button,
@@ -188,7 +189,7 @@ export default function IncidentDetailPage() {
         gdprNotifiable: res.data.gdprNotifiable || false,
       });
     } catch (err) {
-      console.error(err);
+      logger.error(err, { page: 'incidents/[id]', context: 'fetch incident' });
       toast.error('Incident introuvable');
       router.push('/incidents');
     } finally {

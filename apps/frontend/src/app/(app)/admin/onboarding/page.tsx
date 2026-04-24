@@ -10,6 +10,7 @@ import { ExportButton } from '@/components/ui/export-button';
 import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
 import { PageHeader } from '@/components/layout/page-header';
 import { useTranslation } from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 
 interface PendingOnboarding {
   user: { id: string; firstName: string; lastName: string; email: string };
@@ -97,9 +98,9 @@ export default function OnboardingPage() {
       if (pendingR.status === 'fulfilled') {
         const d = pendingR.value.data;
         setPending(Array.isArray(d) ? d : d?.data || []);
-      } else console.error('Failed to load onboarding pending:', pendingR.reason);
+      } else logger.error(pendingR.reason, { page: 'admin/onboarding', context: 'load pending' });
       if (usersR.status === 'fulfilled') setUsers(usersR.value.data?.data || []);
-      else console.error('Failed to load users:', usersR.reason);
+      else logger.error(usersR.reason, { page: 'admin/onboarding', context: 'load users' });
     }).finally(() => setLoading(false));
   }, []);
 

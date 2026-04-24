@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Rss, ExternalLink, Shield, AlertTriangle, AlertOctagon, Info, ArrowRight } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface FeedItem {
   title: string;
@@ -42,7 +43,7 @@ export function RSSFeedWidget() {
           cveId: item.cveId,
         })));
       })
-      .catch(console.error)
+      .catch((err) => logger.error(err, { component: 'RSSFeedWidget' }))
       .finally(() => setLoading(false));
   }, []);
 

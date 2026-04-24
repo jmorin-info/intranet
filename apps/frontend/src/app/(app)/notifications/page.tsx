@@ -30,6 +30,7 @@ import {
 import { useTranslation } from '@/lib/i18n';
 import { ExportButton } from '@/components/ui/export-button';
 import { PageHeader } from '@/components/layout/page-header';
+import { logger } from '@/lib/logger';
 
 const typeIcons: Record<string, React.ElementType> = {
   DOC_PUBLISHED: FileText,
@@ -124,7 +125,7 @@ export default function NotificationsPage() {
         setHasMore(meta ? meta.page < meta.totalPages : false);
         setPage(1);
       })
-      .catch(console.error)
+      .catch((err) => logger.error(err, { page: 'notifications', context: 'load' }))
       .finally(() => setLoading(false));
   }, [setNotifications]);
 

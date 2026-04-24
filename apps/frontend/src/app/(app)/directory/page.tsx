@@ -11,6 +11,7 @@ import {
 import { Users, Mail, Building2, Search, GitBranchPlus, Phone, MapPin, ExternalLink, LayoutGrid, List, Download } from 'lucide-react';
 import Link from 'next/link';
 import { getAvatarUrl } from '@/lib/avatar';
+import { logger } from '@/lib/logger';
 import { PageHeader } from '@/components/layout/page-header';
 
 interface DirectoryUser {
@@ -79,7 +80,7 @@ export default function DirectoryPage() {
         const data = res.data?.data || res.data || [];
         setUsers(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error('Directory: failed to load users', err);
+        logger.error(err, { page: 'directory', context: 'load users' });
       } finally {
         setLoading(false);
       }

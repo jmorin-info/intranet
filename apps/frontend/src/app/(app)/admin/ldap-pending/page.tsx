@@ -15,6 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
 import { PageHeader } from '@/components/layout/page-header';
@@ -94,14 +95,14 @@ export default function LdapPendingPage() {
         api.get('/departments'),
       ]);
       const list: PendingUser[] = pendingRes.status === 'fulfilled' ? (pendingRes.value.data?.data || []) : [];
-      if (pendingRes.status === 'rejected') console.error('Failed to load LDAP pending:', pendingRes.reason);
+      if (pendingRes.status === 'rejected') logger.error(pendingRes.reason, { page: 'admin/ldap-pending', context: 'load pending' });
       setItems(list);
       if (deptRes.status === 'fulfilled') {
         const deptList: Department[] = Array.isArray(deptRes.value.data)
           ? deptRes.value.data
           : deptRes.value.data?.data || [];
         setDepartments(deptList);
-      } else console.error('Failed to load departments:', deptRes.reason);
+      } else logger.error(deptRes.reason, { page: 'admin/ldap-pending', context: 'load departments' });
       // Initialiser les choix par défaut : rôle COLLABORATEUR
       const next: Record<string, { departmentId?: string; role: string }> = {};
       for (const item of list) {

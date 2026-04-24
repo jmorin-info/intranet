@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import {
   Card,
   CardContent,
@@ -179,8 +180,7 @@ export default function RSSIDashboardPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Erreur téléchargement rapport RSSI PDF", err);
+      logger.error(err, { page: "admin/rssi-dashboard", context: "PDF download" });
       if (typeof window !== "undefined") {
         window.alert(
           "Impossible de générer le rapport PDF. Vérifiez vos droits (SUPER_ADMIN / ADMIN / DIRECTION).",

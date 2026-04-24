@@ -8,6 +8,7 @@ import { Layers, Save, RefreshCw, Lock, Check, X } from 'lucide-react';
 import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
 import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/layout/page-header';
+import { logger } from '@/lib/logger';
 
 interface ModuleDef {
   code: string;
@@ -85,17 +86,17 @@ export default function SpacesAdminPage() {
       ]);
       if (modulesRes.status === 'fulfilled') {
         setModules(modulesRes.value.data?.modules || []);
-      } else console.error('Failed to load modules:', modulesRes.reason);
+      } else logger.error(modulesRes.reason, { page: 'admin/spaces', context: 'load modules' });
       if (configsRes.status === 'fulfilled') {
         setConfigs(configsRes.value.data?.data || []);
-      } else console.error('Failed to load configs:', configsRes.reason);
+      } else logger.error(configsRes.reason, { page: 'admin/spaces', context: 'load configs' });
       if (deptsRes.status === 'fulfilled') {
         const deptsData: Department[] = deptsRes.value.data?.data || deptsRes.value.data || [];
         setDepartments(Array.isArray(deptsData) ? deptsData : []);
-      } else console.error('Failed to load departments:', deptsRes.reason);
+      } else logger.error(deptsRes.reason, { page: 'admin/spaces', context: 'load departments' });
       setPending({});
     } catch (err: any) {
-      console.error('Failed to load spaces admin data', err);
+      logger.error(err, { page: 'admin/spaces', context: 'load all' });
       toast.error(err?.response?.data?.message || err?.message || 'Impossible de charger la configuration des espaces');
     } finally {
       setLoading(false);
@@ -187,7 +188,7 @@ export default function SpacesAdminPage() {
       toast.success(`${entries.length} règle(s) sauvegardée(s)`);
       await loadAll();
     } catch (err: any) {
-      console.error(err);
+      logger.error(err, { page: 'admin/spaces', context: 'save changes' });
       toast.error(err?.response?.data?.message || err?.message || 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);

@@ -8,6 +8,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { Button, Card, CardContent, Dialog, Skeleton, EmptyState } from '@omnitech/ui';
 import { Plus, Workflow as WorkflowIcon, CheckCircle2, Circle, RefreshCw, Sparkles } from 'lucide-react';
@@ -70,8 +71,7 @@ export default function WorkflowsAdminPage() {
       setWorkflows(data);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || 'Impossible de charger les workflows');
-      // eslint-disable-next-line no-console
-      console.error(err);
+      logger.error(err, { page: 'admin/workflows', context: 'load' });
     } finally {
       setLoading(false);
     }

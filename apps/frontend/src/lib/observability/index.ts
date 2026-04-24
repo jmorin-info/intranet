@@ -65,8 +65,10 @@ export function captureError(
     }
   }
 
-  // Console in dev for visibility.
+  // Dev console echo for visibility (low-level observability layer —
+  // we use raw console here to avoid a logger<->observability cycle).
   if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
     console.error('[OBS]', event.message, event.metadata);
   }
 }

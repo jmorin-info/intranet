@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button, Card, CardContent } from '@omnitech/ui';
 import { ArrowLeft, AlertTriangle, Loader2 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 
 interface StoredEditorConfig {
   sessionId: string;
@@ -146,8 +147,7 @@ export default function SmbEditorPage() {
         height: `${measuredH}px`,
         events: {
           onError: (event: any) => {
-            // eslint-disable-next-line no-console
-            console.error('OnlyOffice error:', event);
+            logger.error(new Error(`OnlyOffice error: ${event?.data?.errorDescription || 'unknown'}`), { tool: 'OnlyOffice', event });
             setError(event?.data?.errorDescription || 'Erreur OnlyOffice');
           },
           onDocumentReady: () => {

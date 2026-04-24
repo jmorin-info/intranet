@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { UserRole } from '@omnitech/shared';
 import { api } from '@/lib/api';
 import { features } from '@/lib/features';
+import { logger } from '@/lib/logger';
 import { useEventSubscription } from '@/lib/events';
 import { getBookmarks, type BookmarkItem } from '@/components/bookmark-button';
 import type { DashboardStats } from './dashboard-stats-grid';
@@ -92,7 +93,7 @@ export function useDashboardData({ isManager, isAdmin, userRole }: UseDashboardD
       if (isManager) {
         api.get('/iso-analyzer/compliance-summary')
           .then((r) => setCompliance(r.data))
-          .catch((err) => console.error('Failed to load compliance summary:', err));
+          .catch((err) => logger.error(err, { context: 'dashboard: compliance summary' }));
       }
       if (isAdmin) {
         if (!aggregatedOk) api.get('/tickets/stats').then((r) => setTicketStats(r.data)).catch(() => {});
@@ -103,7 +104,7 @@ export function useDashboardData({ isManager, isAdmin, userRole }: UseDashboardD
         const surveys = Array.isArray(data) ? data : (data?.data || []);
         const active = surveys.find((s: any) => s.isActive || (s.expiresAt && new Date(s.expiresAt) > new Date()));
         if (active) setActiveSurvey({ id: active.id, title: active.title, description: active.description });
-      }).catch(console.error);
+      }).catch((err) => logger.error(err, { context: 'dashboard: satisfaction surveys' }));
 
       api.get('/audit/my-activity', { params: { limit: 50 } })
         .then((r) => {
@@ -145,7 +146,7 @@ export function useDashboardData({ isManager, isAdmin, userRole }: UseDashboardD
         api.get('/ai/ux-insights').then(({ data }) => setUxInsights(data)).catch(() => {});
       }
     } catch (err) {
-      console.error('Dashboard load error:', err);
+      logger.error(err, { context: 'dashboard: load' });
       setError(true);
     } finally {
       setLoading(false);

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { TicketSpacesHub } from './TicketSpacesHub';
 import { api } from '@/lib/api';
 import { features } from '@/lib/features';
+import { logger } from '@/lib/logger';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTranslation } from '@/lib/i18n';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -423,11 +424,11 @@ export default function TicketsPage() {
 
   useEffect(() => {
     if (isAdmin) {
-      api.get('/tickets/analytics').then(r => setAnalytics(r.data)).catch(console.error);
+      api.get('/tickets/analytics').then(r => setAnalytics(r.data)).catch((err) => logger.error(err, { page: 'tickets', context: 'analytics' }));
       api.get('/users', { params: { limit: 100 } }).then(r => {
         const data = r.data?.data || r.data || [];
         setAdminUsers(data.map((u: any) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName })));
-      }).catch(console.error);
+      }).catch((err) => logger.error(err, { page: 'tickets', context: 'admin users' }));
     }
   }, [isAdmin]);
 
@@ -691,7 +692,7 @@ export default function TicketsPage() {
       if (activeSpaceSlug) params.spaceSlug = activeSpaceSlug;
       const { data } = await api.get('/tickets', { params });
       setTickets(data);
-    } catch (err) { console.error('Failed to load tickets:', err); setFetchError(true); } finally { setLoading(false); }
+    } catch (err) { logger.error(err, { page: 'tickets', context: 'load list' }); setFetchError(true); } finally { setLoading(false); }
   }, [page, statusFilter, priorityFilter, categoryFilter, assigneeFilter, departmentFilter, myTicketsOnly, user?.id, debouncedSearch, activeSpaceSlug]);
 
   useEffect(() => { fetchTickets(); }, [fetchTickets]);

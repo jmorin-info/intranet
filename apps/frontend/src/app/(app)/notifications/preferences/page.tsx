@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, Button, Select } from '@omnitech/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import {
@@ -155,8 +156,7 @@ export default function NotificationPreferencesPage() {
         // Fall back to defaults so the UI is usable.
         setPrefs({ ...DEFAULT_PREFS });
         setInitial({ ...DEFAULT_PREFS });
-        // eslint-disable-next-line no-console
-        console.error(err);
+        logger.error(err, { page: 'notifications/preferences', context: 'load' });
       })
       .finally(() => setLoading(false));
   }, []);

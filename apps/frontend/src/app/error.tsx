@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { logger } from '@/lib/logger';
 
 export default function Error({
   error,
@@ -16,12 +17,8 @@ export default function Error({
       const { captureError } = require('@/lib/observability');
       captureError(error, { severity: 'error', metadata: { digest: error?.digest } });
     } catch {
-      // Fallback to console
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Application error:', error);
-      } else {
-        console.error('Application error:', error?.digest || 'no-digest');
-      }
+      // Fallback when observability module cannot be loaded.
+      logger.error(error, { digest: error?.digest });
     }
   }, [error]);
 

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { useAuthStore } from "@/stores/auth-store";
 import { UserRole } from "@omnitech/shared";
 import { toast } from "sonner";
@@ -76,7 +77,7 @@ export default function MfaPage() {
         setLastLoginAt(data.lastLoginAt || null);
         if (data.mfaEnabled) setStep("done");
       })
-      .catch(console.error)
+      .catch((err) => logger.error(err, { page: "mfa", context: "load status" }))
       .finally(() => setStatusLoading(false));
   }, []);
 
