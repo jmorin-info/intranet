@@ -7,6 +7,7 @@ import { OmnitechLogo } from '@/components/omnitech-logo';
 import { WeatherWidget } from '@/components/widgets/weather-widget';
 import { RSSFeedWidget } from '@/components/widgets/rss-feed-widget';
 import { formatDate } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { useTranslation } from '@/lib/i18n';
 import {
   Shield, FileText, Newspaper, Users, ArrowRight, ArrowLeft, Lock, CheckCircle2,
@@ -96,11 +97,11 @@ export default function WelcomePage() {
       setNews(newsData?.data || []);
       setDocs(docsData?.data || []);
       setLoaded(true);
-    }).catch(console.error);
+    }).catch((err) => logger.error(err, { page: 'welcome', context: 'portal info' }));
     fetch(`${API}/testimonials/approved`, opts)
       .then(r => r.json())
       .then(d => setTestimonials({ visible: !!d?.visible, items: d?.items || [] }))
-      .catch(console.error);
+      .catch((err) => logger.error(err, { page: 'welcome', context: 'testimonials' }));
     fetch(`${API}/public/veille?limit=5`, opts)
       .then(r => r.json())
       .then(d => setAlerts(
@@ -112,7 +113,7 @@ export default function WelcomePage() {
           sourceName: v.sourceName,
         })),
       ))
-      .catch(console.error);
+      .catch((err) => logger.error(err, { page: 'welcome', context: 'veille alerts' }));
   }, []);
 
   useEffect(() => {

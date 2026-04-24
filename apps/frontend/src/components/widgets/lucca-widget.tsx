@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { ExternalLink, Calendar, Briefcase, Users } from 'lucide-react';
 import { api } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 const LUCCA_URL = 'https://omnitech-security.ilucca.net/';
 
@@ -13,7 +14,7 @@ export function LuccaWidget() {
     api.get('/departments').then(r => {
       const depts = r.data?.data || r.data || [];
       if (depts.length > 0) setDeptInfo({ name: depts[0].name, userCount: depts[0]._count?.users || 0 });
-    }).catch(console.error);
+    }).catch((err) => logger.error(err, { component: 'LuccaWidget' }));
   }, []);
 
   return (

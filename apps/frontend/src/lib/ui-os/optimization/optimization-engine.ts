@@ -17,6 +17,7 @@ import { abTestingEngine } from './ab-testing-engine';
 import { configEvolver } from './config-evolver';
 import { perceptionGuard } from '../perception';
 import { useImpactStore } from '../impact';
+import { logger } from '@/lib/logger';
 
 const IS_DEV = process.env.NODE_ENV === 'development';
 const OPTIMIZATION_INTERVAL_MS = 60_000; // 1 minute
@@ -68,15 +69,15 @@ function runCycle(): void {
   // Step 6: Auto-rollback if degradation
   if (report.systemHealth.fatigueScore > 70 && report.systemHealth.rollbackRate > 0.2) {
     configEvolver.rollback();
-    if (IS_DEV) console.warn('[UI-OS OPT] Auto-rollback: high fatigue + rollbacks');
+    if (IS_DEV) logger.warn('[UI-OS OPT] Auto-rollback: high fatigue + rollbacks');
   }
 
   if (IS_DEV && optimized.reasoning.length > 0) {
-    console.groupCollapsed('[UI-OS OPT] Optimization cycle');
-    console.log('Health:', report.systemHealth);
-    for (const r of optimized.reasoning) console.log(`  → ${r}`);
-    if (abResult.ready) console.log(`  A/B winner: ${abResult.winnerVariant} (+${abResult.improvement}%)`);
-    console.groupEnd();
+    logger.debug('[UI-OS OPT] Optimization cycle', {
+      health: report.systemHealth,
+      reasoning: optimized.reasoning,
+      abWinner: abResult.ready ? `${abResult.winnerVariant} (+${abResult.improvement}%)` : undefined,
+    });
   }
 }
 

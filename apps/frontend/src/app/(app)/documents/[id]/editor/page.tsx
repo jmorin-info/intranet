@@ -11,6 +11,7 @@ import {
   LogOut, Save, Circle,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 
 interface EditorConfig {
   documentServerUrl: string;
@@ -422,15 +423,12 @@ export default function DocumentEditorPage() {
           },
           onError: (event: any) => {
             const desc = event.data?.errorDescription || event.data?.message || 'Erreur inconnue';
-            // Keep console.error for prod debug — payload contient seulement le code/desc OnlyOffice, pas de données sensibles
-            console.error('[OnlyOffice] editor error:', desc);
+            // Forward to Sentry — payload contient seulement le code/desc OnlyOffice, pas de données sensibles
+            logger.error(new Error(`[OnlyOffice] editor error: ${desc}`), { tool: 'OnlyOffice', desc });
             setEditorError(desc);
           },
           onWarning: (event: any) => {
-            if (process.env.NODE_ENV === 'development') {
-              // eslint-disable-next-line no-console
-              console.warn('[OnlyOffice] warning:', event?.data?.warningDescription || event);
-            }
+            logger.warn('[OnlyOffice] warning', { description: event?.data?.warningDescription });
           },
           onDocumentReady: () => {
             setEditorMounted(true);
@@ -488,8 +486,8 @@ export default function DocumentEditorPage() {
       initGuardRef.current = true;
       editorInstanceRef.current = new DocsAPI.DocEditor('onlyoffice-placeholder', configWithEvents);
     } catch (err) {
-      // Keep console.error for prod debug — message ne contient pas de données sensibles (juste le throw OnlyOffice)
-      console.error('[OnlyOffice] mount error:', err instanceof Error ? err.message : String(err));
+      // Forward to Sentry — message ne contient pas de données sensibles (juste le throw OnlyOffice)
+      logger.error(err, { tool: 'OnlyOffice', context: 'mount' });
       initGuardRef.current = false;
       setError(err instanceof Error ? err.message : String(err));
     }

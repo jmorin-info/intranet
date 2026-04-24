@@ -11,6 +11,7 @@ import {
 import { PageHeader } from '@/components/layout/page-header';
 import { ExternalLink, Search, Shield, Clock, UserX, Users, AlertTriangle } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 interface ExtranetAccess {
   id: string;
@@ -58,7 +59,7 @@ export default function ExtranetPage() {
         const data = res.data?.data || res.data || [];
         setAccesses(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error('Extranet: failed to load accesses', err);
+        logger.error(err, { page: 'extranet', context: 'load accesses' });
       } finally {
         setLoading(false);
       }
@@ -93,7 +94,7 @@ export default function ExtranetPage() {
       await api.post(`/extranet/accesses/${accessId}/revoke`);
       setAccesses(prev => prev.map(a => a.id === accessId ? { ...a, isActive: false } : a));
     } catch (err) {
-      console.error('Failed to revoke access', err);
+      logger.error(err, { page: 'extranet', context: 'revoke access' });
     } finally {
       setRevoking(null);
     }

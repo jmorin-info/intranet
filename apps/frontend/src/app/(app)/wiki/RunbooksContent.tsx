@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, Badge, SearchInput, EmptyState, Button, 
 import { BookOpen, Play, CheckCircle2, ChevronRight, Clock, User, Filter, Plus, Edit, Save, ListChecks } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 
 interface Runbook {
   id: string; title: string; slug: string; description: string | null;
@@ -224,7 +225,7 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
           setExecCounts(prev => ({ ...prev, [rb.id]: count }));
         }).catch(() => {});
       });
-    }).catch(console.error).finally(() => setLoading(false));
+    }).catch((err) => logger.error(err, { component: 'RunbooksContent', context: 'load runbooks' })).finally(() => setLoading(false));
   }, []);
 
   const filtered = runbooks.filter(r => {

@@ -9,6 +9,7 @@
  */
 
 import type { OptimizedRules } from './rule-optimizer';
+import { logger } from '@/lib/logger';
 
 const STORAGE_KEY = 'omnitech_ui_os_config';
 const MIN_GAIN_PERCENT = 15;
@@ -44,13 +45,13 @@ class ConfigEvolver {
 
     // Guard: too soon since last update
     if (now - this.lastApplied < MIN_UPDATE_INTERVAL_MS) {
-      if (IS_DEV) console.info('[UI-OS OPT] Config update skipped — too soon');
+      if (IS_DEV) logger.debug('[UI-OS OPT] Config update skipped — too soon');
       return false;
     }
 
     // Guard: insufficient gain
     if (gainPercent < MIN_GAIN_PERCENT) {
-      if (IS_DEV) console.info(`[UI-OS OPT] Config update skipped — gain ${gainPercent}% < ${MIN_GAIN_PERCENT}%`);
+      if (IS_DEV) logger.debug(`[UI-OS OPT] Config update skipped — gain ${gainPercent}% < ${MIN_GAIN_PERCENT}%`);
       return false;
     }
 
@@ -61,8 +62,9 @@ class ConfigEvolver {
     this.persist();
 
     if (IS_DEV) {
-      console.info(`[UI-OS OPT] Config evolved: debounce=${newRules.debounceMs}ms, maxMutations=${newRules.maxMutationsPerCycle}`);
-      for (const r of newRules.reasoning) console.info(`  → ${r}`);
+      logger.debug(`[UI-OS OPT] Config evolved: debounce=${newRules.debounceMs}ms, maxMutations=${newRules.maxMutationsPerCycle}`, {
+        reasoning: newRules.reasoning,
+      });
     }
 
     return true;
@@ -77,7 +79,7 @@ class ConfigEvolver {
     this.currentRules = this.previousRules;
     this.previousRules = null;
     this.persist();
-    if (IS_DEV) console.warn('[UI-OS OPT] Config rolled back to previous');
+    if (IS_DEV) logger.warn('[UI-OS OPT] Config rolled back to previous');
     return true;
   }
 

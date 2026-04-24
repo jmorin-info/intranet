@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 /**
  * Trigger discret pour inviter les collaborateurs à laisser un témoignage
@@ -68,11 +69,8 @@ export function useTestimonialTrigger() {
     // 4. Enregistre "asked now" AVANT d'afficher pour éviter double-prompt
     markLastAsked();
 
-    // 5. Log dans la console en dev (peut devenir un ping analytics plus tard)
-    if (process.env.NODE_ENV === 'development') {
-
-      console.info('[testimonial-trigger] prompting user after positive action:', reason);
-    }
+    // 5. Debug trace (peut devenir un ping analytics plus tard)
+    logger.debug('[testimonial-trigger] prompting user after positive action:', reason);
 
     // 6. Affiche le toast non-bloquant
     toast(

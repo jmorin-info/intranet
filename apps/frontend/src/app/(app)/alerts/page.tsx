@@ -13,6 +13,7 @@ import {
   AlertTriangle, AlertOctagon, Info, Shield, Plus, CheckCircle2, Bell, Clock, EyeOff,
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
+import { logger } from '@/lib/logger';
 import { useTranslation } from '@/lib/i18n';
 
 function timeAgo(dateStr: string): string {
@@ -94,7 +95,7 @@ export default function AlertsPage() {
           setServerStats(r.data);
           setReadRateStats(r.data);
         }
-      }).catch(console.error);
+      }).catch((err) => logger.error(err, { page: 'alerts', context: 'load stats' }));
     }
   }, [isAdmin]);
 
@@ -127,7 +128,7 @@ export default function AlertsPage() {
   }, [alerts, severityFilter, hideExpired]);
 
   useEffect(() => {
-    api.get('/alerts').then(({ data }) => setAlerts(Array.isArray(data) ? data : data?.data || [])).catch(console.error).finally(() => setLoading(false));
+    api.get('/alerts').then(({ data }) => setAlerts(Array.isArray(data) ? data : data?.data || [])).catch((err) => logger.error(err, { page: 'alerts', context: 'load alerts' })).finally(() => setLoading(false));
   }, []);
 
   const handleCreate = async () => {

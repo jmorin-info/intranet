@@ -6,6 +6,7 @@
  */
 
 import type { UIGovernedAction } from '../types';
+import { logger } from '@/lib/logger';
 import { useUIStateStore } from './ui-state-store';
 import { useAIModeStore } from '../control/ai-mode-store';
 import { explainActions } from '../explainability';
@@ -50,7 +51,7 @@ export function applyUIMutations(actions: UIGovernedAction[], module?: string): 
       // Phase 14: Record impact
       useImpactStore.getState().recordImpact(action.type, module);
       if (IS_DEV) {
-        console.info(`[UI-EXEC] ${action.type}→${action.target} applied`);
+        logger.debug(`[UI-EXEC] ${action.type}→${action.target} applied`);
       }
     }
   }

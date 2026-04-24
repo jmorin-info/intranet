@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDocumentStore } from "@/stores/document-store";
 import { useTestimonialTrigger } from "@/hooks/use-testimonial-trigger";
@@ -514,7 +515,7 @@ export function useDocumentDetail(id: string | undefined) {
       const { data } = await api.get(`/documents/${doc!.id}/history`);
       setHistory(data);
     } catch (err) {
-      console.error("Failed to load document history:", err);
+      logger.error(err, { context: "useDocumentDetail: load history" });
     } finally {
       setHistoryLoading(false);
     }

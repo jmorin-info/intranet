@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { logger } from '@/lib/logger';
 import { useTranslation } from '@/lib/i18n';
 import { DocumentCategory, DOCUMENT_CATEGORY_LABELS, formatFileSize, isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { useAuthStore } from '@/stores/auth-store';
@@ -233,14 +234,14 @@ export default function NewDocumentPage() {
   useEffect(() => {
     api.get('/iso-controls', { params: { limit: 100 } }).then(({ data }) => {
       setIsoControls(data.data || []);
-    }).catch(err => console.error('Failed to load ISO controls:', err));
+    }).catch((err) => logger.error(err, { page: 'documents/new', context: 'load ISO controls' }));
     // Load reviewers (REVIEWER+ roles)
     api.get('/users/directory', { params: { limit: 200 } }).then(({ data }) => {
       const eligible = (data.data || []).filter((u: any) =>
         ['SUPER_ADMIN', 'ADMIN', 'DIRECTION', 'REVIEWER'].includes(u.role) && u.isActive
       );
       setReviewers(eligible);
-    }).catch(console.error);
+    }).catch((err) => logger.error(err, { page: 'documents/new', context: 'load reviewers' }));
   }, []);
 
   // Auto-classify when title reaches 10+ characters (debounced 800ms)

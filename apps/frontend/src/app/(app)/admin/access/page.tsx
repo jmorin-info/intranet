@@ -47,6 +47,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { RoleGuard } from '@/components/role-guard';
 import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
 import { api } from '@/lib/api';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -510,7 +511,7 @@ function DepartmentsTab() {
       setDepartments(Array.isArray(deptsData) ? deptsData : []);
       setModules(modulesRes.data?.modules || []);
     } catch (err: any) {
-      console.error(err);
+      logger.error(err, { page: 'admin/access', context: 'load departments' });
       toast.error(
         err?.response?.data?.message ||
           'Impossible de charger les départements',
@@ -532,7 +533,7 @@ function DepartmentsTab() {
       setDeptConfig(res.data?.modules || []);
       setPendingToggles({});
     } catch (err: any) {
-      console.error(err);
+      logger.error(err, { page: 'admin/access', context: 'load dept config' });
       toast.error(
         err?.response?.data?.message ||
           'Impossible de charger la configuration du département',
@@ -578,7 +579,7 @@ function DepartmentsTab() {
       toast.success('Configuration enregistrée');
       await loadDeptConfig(selectedDeptId);
     } catch (err: any) {
-      console.error(err);
+      logger.error(err, { page: 'admin/access', context: 'save dept config' });
       toast.error(
         err?.response?.data?.message ||
           'Erreur lors de la sauvegarde de la configuration',
@@ -885,7 +886,7 @@ function UsersTab() {
         usersRes.data?.data || usersRes.data || [];
       setUsers(Array.isArray(usersData) ? usersData : []);
     } catch (err: any) {
-      console.error(err);
+      logger.error(err, { page: 'admin/access', context: 'load users data' });
       toast.error(
         err?.response?.data?.message ||
           'Impossible de charger les données utilisateurs',
@@ -907,7 +908,7 @@ function UsersTab() {
       setUserConfigs(res.data?.configs || []);
       setPendingUserToggles({});
     } catch (err: any) {
-      console.error(err);
+      logger.error(err, { page: 'admin/access', context: 'load user config' });
       toast.error(
         err?.response?.data?.message ||
           "Impossible de charger la configuration de l'utilisateur",
@@ -1015,7 +1016,7 @@ function UsersTab() {
       toast.success('Overrides utilisateur enregistrés');
       await loadUserConfig(selectedUserId);
     } catch (err: any) {
-      console.error(err);
+      logger.error(err, { page: 'admin/access', context: 'save user overrides' });
       toast.error(
         err?.response?.data?.message ||
           'Erreur lors de la sauvegarde des overrides',

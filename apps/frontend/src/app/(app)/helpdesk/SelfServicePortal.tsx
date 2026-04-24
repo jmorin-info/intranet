@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 
 const FAQ_CATEGORY_ICONS: Record<string, React.ElementType> = {
   password: Key,
@@ -92,7 +93,7 @@ export function SelfServicePortal() {
   const [faqSearch, setFaqSearch] = useState('');
 
   useEffect(() => {
-    api.get('/health').then(({ data }) => setSystemInfo(data)).catch(console.error);
+    api.get('/health').then(({ data }) => setSystemInfo(data)).catch((err) => logger.error(err, { component: 'SelfServicePortal', context: 'health' }));
   }, []);
 
   useEffect(() => {

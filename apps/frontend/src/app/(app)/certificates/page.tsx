@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 import {
   Card,
@@ -139,7 +140,7 @@ export default function MyCertificatesPage() {
       const { data } = await api.get("/certificates/my");
       setCertificates(Array.isArray(data) ? data : data?.data || []);
     } catch (err) {
-      console.error("Failed to load certificates:", err);
+      logger.error(err, { page: "certificates", context: "load" });
       toast.error("Impossible de charger vos certificats.");
     } finally {
       setLoading(false);
@@ -193,7 +194,7 @@ export default function MyCertificatesPage() {
       resetForm();
       await fetchCertificates();
     } catch (err) {
-      console.error("Failed to create certificate:", err);
+      logger.error(err, { page: "certificates", context: "create" });
       toast.error("Impossible de créer le certificat.");
     } finally {
       setSubmitting(false);

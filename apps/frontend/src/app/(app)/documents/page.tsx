@@ -15,6 +15,7 @@ import { AISuggestionBar } from '@/components/ai/ai-suggestion-bar';
 import { useAIOrchestrator } from '@/lib/ai-orchestrator';
 import { AIOrchestratedLayout } from '@/components/ai/ai-orchestrated-layout';
 import { useUIVisibility } from '@/lib/ui-os/execution';
+import { logger } from '@/lib/logger';
 import {
   DocumentStatus,
   DocumentCategory,
@@ -295,7 +296,7 @@ function DocumentsContent() {
 
   useEffect(() => {
     if (isAdmin) {
-      api.get('/documents/statistics').then(r => setDocStats(r.data)).catch(console.error);
+      api.get('/documents/statistics').then(r => setDocStats(r.data)).catch((err) => logger.error(err, { page: 'documents', context: 'load statistics' }));
     }
   }, [isAdmin]);
 

@@ -42,6 +42,7 @@ import { AISuggestionBar } from '@/components/ai/ai-suggestion-bar';
 import { useAIOrchestrator } from '@/lib/ai-orchestrator';
 import { AIOrchestratedLayout } from '@/components/ai/ai-orchestrated-layout';
 import { useTranslation } from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 
 // --- Animated counter hook ---------------------------------------------------
 function useCountUp(target: number, duration = 800) {
@@ -278,11 +279,11 @@ export default function IncidentsPage() {
         api.get<DashboardKpis>('/incidents/dashboard'),
       ]);
       if (listRes.status === 'fulfilled') setIncidents(listRes.value.data);
-      else console.error('Failed to load incidents list:', listRes.reason);
+      else logger.error(listRes.reason, { page: 'incidents', context: 'load list' });
       if (kpiRes.status === 'fulfilled') setKpis(kpiRes.value.data);
-      else console.error('Failed to load incident KPIs:', kpiRes.reason);
+      else logger.error(kpiRes.reason, { page: 'incidents', context: 'load kpis' });
     } catch (err) {
-      console.error(err);
+      logger.error(err, { page: 'incidents', context: 'fetch' });
       const e = err as { message?: string; response?: { data?: { message?: string } } };
       toast.error('Erreur de chargement');
     } finally {

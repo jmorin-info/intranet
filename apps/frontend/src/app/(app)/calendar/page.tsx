@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
 import { formatDate } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { useAuthStore } from '@/stores/auth-store';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { Card, CardContent, Badge, Button, Dialog, Input, Textarea, Select } from '@omnitech/ui';
@@ -275,7 +276,7 @@ export default function CalendarPage() {
 
       setEvents(items);
     } catch {
-      console.warn('Calendar: failed to load events');
+      logger.warn('Calendar: failed to load events');
     } finally {
       setLoading(false);
     }
