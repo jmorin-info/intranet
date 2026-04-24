@@ -593,6 +593,7 @@ export function Sidebar() {
       shortcutKey: '5',
       items: [
         { label: 'Dashboard RSSI', href: '/admin/rssi-dashboard', icon: Activity, minRole: UserRole.SUPER_ADMIN },
+        { label: t('nav.cyberScore'), href: '/admin/cyber-score', icon: ShieldCheck, minRole: UserRole.SUPER_ADMIN },
       ],
     },
   ];
