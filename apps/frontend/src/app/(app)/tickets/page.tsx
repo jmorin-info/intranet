@@ -29,6 +29,7 @@ import { AISuggestionBar } from '@/components/ai/ai-suggestion-bar';
 import { useAIOrchestrator } from '@/lib/ai-orchestrator';
 import { AIOrchestratedLayout } from '@/components/ai/ai-orchestrated-layout';
 import { useUIEmphasis } from '@/lib/ui-os/execution';
+import { ticketCreateSchema } from '@/lib/validation/schemas';
 
 const BulkActionsBar = dynamic(
   () => import('@/components/ui/bulk-actions-bar').then(m => ({ default: m.BulkActionsBar })),
@@ -311,6 +312,8 @@ export default function TicketsPage() {
   }, [searchParams]);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', category: 'OTHER', priority: 'MEDIUM', tagsInput: '', departmentId: '' });
+  // Validation errors côté formulaire de création (zod)
+  const [createErrors, setCreateErrors] = useState<Partial<Record<'title' | 'description' | 'category' | 'priority', string>>>({});
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   const [myTicketsOnly, setMyTicketsOnly] = useState(false);
   const [sourceTab, setSourceTab] = useState<SourceTab>('all');
@@ -769,7 +772,24 @@ export default function TicketsPage() {
   };
 
   const handleCreate = async () => {
-    if (!form.title || !form.description) { toast.error(t('tickets.create.required')); return; }
+    // Validation zod avant submit — affiche les erreurs par champ
+    const parsed = ticketCreateSchema.safeParse({
+      title: form.title,
+      description: form.description,
+      category: form.category,
+      priority: (form.priority || '').toLowerCase(),
+    });
+    if (!parsed.success) {
+      const next: typeof createErrors = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as keyof typeof next;
+        if (key && !next[key]) next[key] = issue.message;
+      }
+      setCreateErrors(next);
+      toast.error(t('tickets.create.required'));
+      return;
+    }
+    setCreateErrors({});
     setCreating(true);
     try {
       const tags = form.tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
@@ -1494,7 +1514,10 @@ export default function TicketsPage() {
               </div>
             </div>
           )}
-          <Input label={t('tickets.create.titleLabel')} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={t('tickets.create.titlePlaceholder')} required autoFocus onKeyDown={(e: React.KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleCreate(); } }} />
+          <Input label={t('tickets.create.titleLabel')} value={form.title} onChange={(e) => { setForm({ ...form, title: e.target.value }); if (createErrors.title) setCreateErrors((p) => ({ ...p, title: undefined })); }} placeholder={t('tickets.create.titlePlaceholder')} required autoFocus aria-invalid={!!createErrors.title} onKeyDown={(e: React.KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleCreate(); } }} />
+          {createErrors.title && (
+            <p className="text-red-500 text-xs mt-1">{createErrors.title}</p>
+          )}
           {/* Smart suggestions based on title */}
           {titleSuggestionsLoading && (
             <div className="flex items-center gap-2 text-xs text-seal-gray-500 dark:text-slate-400 animate-pulse">
@@ -1566,11 +1589,14 @@ export default function TicketsPage() {
             </label>
             <RichTextEditor
               value={form.description}
-              onChange={(html) => setForm({ ...form, description: html })}
+              onChange={(html) => { setForm({ ...form, description: html }); if (createErrors.description) setCreateErrors((p) => ({ ...p, description: undefined })); }}
               placeholder={t('tickets.create.descriptionPlaceholder')}
               minHeight={150}
               ariaLabel={t('tickets.create.descriptionLabel')}
             />
+            {createErrors.description && (
+              <p className="text-red-500 text-xs mt-1">{createErrors.description}</p>
+            )}
           </div>
           {/* Category-based template hint */}
           {form.category && CATEGORY_HINTS[form.category] && (

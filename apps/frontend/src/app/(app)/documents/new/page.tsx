@@ -38,11 +38,12 @@ function Tooltip({ text }: { text: string }) {
 }
 
 const documentSchema = z.object({
-  title: z.string().min(3, 'Titre requis (min 3 caractères)'),
+  title: z.string().min(3, 'Titre requis (min 3 caractères)').max(300, '300 caractères max'),
+  reference: z.string().max(50, '50 caractères max').optional().or(z.literal('')),
   description: z.string().optional(),
   category: z.nativeEnum(DocumentCategory, { required_error: 'Catégorie requise' }),
   domain: z.string().min(1, 'Domaine requis'),
-  classification: z.string().optional(),
+  classification: z.string().min(1, 'Classification requise').optional().or(z.literal('')),
   isPublic: z.boolean().optional(),
   nextReviewDate: z.string().optional(),
 });
@@ -219,9 +220,10 @@ export default function NewDocumentPage() {
     handleSubmit,
     watch,
     setValue,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, isSubmitting },
   } = useForm<DocumentForm>({
     resolver: zodResolver(documentSchema),
+    mode: 'onTouched',
     defaultValues: {
       isPublic: true,
       category: (searchParams.get('category') as DocumentCategory) || undefined,
@@ -887,7 +889,7 @@ export default function NewDocumentPage() {
                   <FilePlus className="h-4 w-4" />
                   Brouillon
                 </Button>
-                <Button type="submit" loading={loading} disabled={savingDraft}>
+                <Button type="submit" loading={loading || isSubmitting} disabled={savingDraft || isSubmitting}>
                   <Save className="h-4 w-4" />
                   {t('documents.new.submit')}
                 </Button>

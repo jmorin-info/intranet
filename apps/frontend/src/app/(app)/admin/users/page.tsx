@@ -3,10 +3,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import { UserRole, USER_ROLE_LABELS, isRoleAtLeast } from "@omnitech/shared";
+import { adminUserCreateSchema, type AdminUserCreateFormData } from "@/lib/validation/schemas";
 import { useDebounce } from "@/hooks/use-debounce";
 import { formatRelativeTime } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
@@ -145,15 +148,25 @@ export default function AdminUsersPage() {
 
   /* ---- Dialogs ---- */
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [createForm, setCreateForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    role: UserRole.COLLABORATEUR as string,
-    departmentId: "",
-  });
+  const [createDepartmentId, setCreateDepartmentId] = useState("");
   const [creating, setCreating] = useState(false);
+
+  const {
+    register: registerCreate,
+    handleSubmit: handleSubmitCreate,
+    reset: resetCreate,
+    formState: { errors: createErrors, isSubmitting: createSubmitting },
+  } = useForm<AdminUserCreateFormData>({
+    resolver: zodResolver(adminUserCreateSchema),
+    mode: "onTouched",
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      role: UserRole.COLLABORATEUR as string,
+    },
+  });
 
   const [editRoleUser, setEditRoleUser] = useState<UserRecord | null>(null);
   const [editRoleValue, setEditRoleValue] = useState("");
@@ -264,36 +277,21 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleCreateUser = async () => {
-    if (
-      !createForm.firstName ||
-      !createForm.lastName ||
-      !createForm.email ||
-      !createForm.password
-    ) {
-      toast.error("Veuillez remplir tous les champs obligatoires");
-      return;
-    }
+  const handleCreateUser = async (data: AdminUserCreateFormData) => {
     setCreating(true);
     try {
       await api.post("/users", {
-        firstName: createForm.firstName,
-        lastName: createForm.lastName,
-        email: createForm.email,
-        password: createForm.password,
-        role: createForm.role,
-        departmentId: createForm.departmentId || undefined,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+        role: data.role,
+        departmentId: createDepartmentId || undefined,
       });
       toast.success("Utilisateur cr\u00e9\u00e9 avec succ\u00e8s");
       setShowCreateDialog(false);
-      setCreateForm({
-        firstName: "",
-        lastName: "",
-        email: "",
-        password: "",
-        role: UserRole.COLLABORATEUR,
-        departmentId: "",
-      });
+      resetCreate();
+      setCreateDepartmentId("");
       fetchUsers();
     } catch (err: unknown) {
       const msg =
@@ -1040,84 +1038,75 @@ export default function AdminUsersPage() {
       {/* ---- Create user dialog ---- */}
       <Dialog
         open={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
+        onClose={() => { setShowCreateDialog(false); resetCreate(); setCreateDepartmentId(""); }}
         title="Cr\u00e9er un utilisateur"
         description="Remplissez les informations du nouvel utilisateur."
       >
-        <div className="space-y-3">
+        <form onSubmit={handleSubmitCreate(handleCreateUser)} className="space-y-3" noValidate>
           <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Pr\u00e9nom"
-              placeholder="Jean"
-              value={createForm.firstName}
-              onChange={(e) =>
-                setCreateForm((f) => ({ ...f, firstName: e.target.value }))
-              }
-              required
-            />
-            <Input
-              label="Nom"
-              placeholder="Dupont"
-              value={createForm.lastName}
-              onChange={(e) =>
-                setCreateForm((f) => ({ ...f, lastName: e.target.value }))
-              }
-              required
-            />
+            <div>
+              <Input
+                label="Pr\u00e9nom"
+                placeholder="Jean"
+                error={createErrors.firstName?.message}
+                {...registerCreate("firstName")}
+              />
+            </div>
+            <div>
+              <Input
+                label="Nom"
+                placeholder="Dupont"
+                error={createErrors.lastName?.message}
+                {...registerCreate("lastName")}
+              />
+            </div>
           </div>
           <Input
             label="Adresse email"
             type="email"
             placeholder="jean.dupont@omnitech-security.fr"
-            value={createForm.email}
-            onChange={(e) =>
-              setCreateForm((f) => ({ ...f, email: e.target.value }))
-            }
-            required
+            autoComplete="off"
+            error={createErrors.email?.message}
+            {...registerCreate("email")}
           />
           <Input
             label="Mot de passe"
             type="password"
             placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
-            value={createForm.password}
-            onChange={(e) =>
-              setCreateForm((f) => ({ ...f, password: e.target.value }))
-            }
-            required
+            autoComplete="new-password"
+            error={createErrors.password?.message}
+            {...registerCreate("password")}
           />
           <Select
             label="R\u00f4le"
             options={roleOptions}
-            value={createForm.role}
-            onChange={(e) =>
-              setCreateForm((f) => ({ ...f, role: e.target.value }))
-            }
+            error={createErrors.role?.message}
+            {...registerCreate("role")}
           />
           <Select
             label="D\u00e9partement"
             options={departmentOptions}
             placeholder="Aucun d\u00e9partement"
-            value={createForm.departmentId}
-            onChange={(e) =>
-              setCreateForm((f) => ({ ...f, departmentId: e.target.value }))
-            }
+            value={createDepartmentId}
+            onChange={(e) => setCreateDepartmentId(e.target.value)}
           />
           <div className="flex justify-end gap-3 pt-2">
             <Button
+              type="button"
               variant="outline"
-              onClick={() => setShowCreateDialog(false)}
+              onClick={() => { setShowCreateDialog(false); resetCreate(); setCreateDepartmentId(""); }}
             >
               Annuler
             </Button>
             <Button
-              onClick={handleCreateUser}
-              loading={creating}
-              disabled={creating}
+              type="submit"
+              loading={creating || createSubmitting}
+              disabled={creating || createSubmitting}
             >
               Cr\u00e9er l&apos;utilisateur
             </Button>
           </div>
-        </div>
+        </form>
       </Dialog>
 
       {/* ---- Edit role dialog ---- */}
