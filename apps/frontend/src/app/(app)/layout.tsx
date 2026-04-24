@@ -25,6 +25,7 @@ const InstallPrompt = dynamic(() => import('@/components/pwa/install-prompt').th
 const OfflineIndicator = dynamic(() => import('@/components/pwa/offline-indicator').then(m => ({ default: m.OfflineIndicator })), { ssr: false });
 const KeyboardShortcutsDialog = dynamic(() => import('@/components/ui/keyboard-shortcuts-dialog').then(m => ({ default: m.KeyboardShortcutsDialog })), { ssr: false });
 const OnboardingTour = dynamic(() => import('@/components/onboarding-tour').then(m => ({ default: m.OnboardingTour })), { ssr: false });
+const WelcomeTour = dynamic(() => import('@/components/onboarding/welcome-tour').then(m => ({ default: m.WelcomeTour })), { ssr: false });
 const ScrollTop = dynamic(() => import('@/components/ui/scroll-top').then(m => ({ default: m.ScrollTop })), { ssr: false });
 const AIChatbot = dynamic(() => import('@/components/ai/ai-chatbot').then(m => ({ default: m.AIChatbot })), { ssr: false });
 const UpdateNotification = dynamic(() => import('@/components/pwa/update-notification').then(m => ({ default: m.UpdateNotification })), { ssr: false });
@@ -178,6 +179,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <ScrollTop />
         <AIChatbot />
         <OnboardingTour />
+        <WelcomeTour />
         <UpdateNotification />
         <MaintenanceGuard />
       </div>

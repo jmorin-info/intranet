@@ -146,6 +146,42 @@ export class UsersController {
     return this.usersService.getActivitySummary(user.id);
   }
 
+  /**
+   * Marque le tour guidé de première connexion comme terminé pour l'utilisateur
+   * courant. Idempotent : rejouer ne remet pas le timestamp en cause.
+   */
+  @Post('me/onboarding-complete')
+  async completeOnboarding(@CurrentUser() user: RequestUser) {
+    return this.usersService.markOnboardingCompleted(user.id);
+  }
+
+  /**
+   * Réinitialise le tour de bienvenue : `onboardingCompletedAt = null`.
+   * Utilisé par le bouton "Revoir le tour" dans les préférences.
+   */
+  @Post('me/onboarding-reset')
+  async resetOnboarding(@CurrentUser() user: RequestUser) {
+    return this.usersService.resetOnboarding(user.id);
+  }
+
+  /**
+   * État de la checklist "Démarrage rapide" affichée sur le dashboard pendant
+   * les premiers jours du compte. Retourne 5 items + leur statut `done`.
+   */
+  @Get('me/onboarding-checklist')
+  async getOnboardingChecklist(@CurrentUser() user: RequestUser) {
+    return this.usersService.getOnboardingChecklist(user.id);
+  }
+
+  /**
+   * Masque la checklist "Démarrage rapide" pour cet utilisateur
+   * (`welcomeChecklistDismissedAt = now()`).
+   */
+  @Post('me/welcome-checklist/dismiss')
+  async dismissWelcomeChecklist(@CurrentUser() user: RequestUser) {
+    return this.usersService.dismissWelcomeChecklist(user.id);
+  }
+
   @Get('me/preferences')
   async getPreferences(@CurrentUser() user: RequestUser) {
     return this.usersService.getPreferences(user.id);

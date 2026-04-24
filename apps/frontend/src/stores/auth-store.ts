@@ -28,6 +28,10 @@ export interface AuthUser {
   canManageMedia?: boolean;
   /** Preferred UI language, mirrored from User.locale. */
   locale?: 'fr' | 'en';
+  /** First-login welcome tour — timestamp of completion, null = not done. */
+  onboardingCompletedAt?: string | null;
+  /** Dashboard welcome checklist dismissal timestamp. */
+  welcomeChecklistDismissedAt?: string | null;
 }
 
 /**
@@ -84,6 +88,8 @@ function mapUser(raw: Record<string, unknown>): AuthUser {
     subordinates: raw.subordinates as AuthUser['subordinates'],
     canManageMedia: raw.canManageMedia as boolean | undefined,
     locale,
+    onboardingCompletedAt: (raw.onboardingCompletedAt as string | null | undefined) ?? null,
+    welcomeChecklistDismissedAt: (raw.welcomeChecklistDismissedAt as string | null | undefined) ?? null,
   };
 }
 

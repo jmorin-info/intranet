@@ -55,6 +55,7 @@ import { DashboardWidgetsGrid } from '@/components/dashboard/dashboard-widgets-g
 import { SmartInsightsWidget } from '@/components/dashboard/dashboard-smart-insights';
 import { DashboardProviderView } from '@/components/dashboard/dashboard-provider-view';
 import { DashboardOnboardingCard } from '@/components/dashboard/dashboard-onboarding-card';
+import { WelcomeChecklist } from '@/components/dashboard/welcome-checklist';
 import { DashboardFooterShortcuts } from '@/components/dashboard/dashboard-footer-shortcuts';
 import { DashboardTabs, type DashboardView } from '@/components/dashboard/dashboard-tabs';
 import {
@@ -198,6 +199,9 @@ export default function DashboardPage() {
               }}
             />
           )}
+
+          {/* Démarrage rapide — auto-masqué si 5/5, > 14 jours, ou dismissed. */}
+          <WelcomeChecklist />
 
           <AISuggestionBar suggestions={aiSuggestions} />
           <AIExplainabilityHints />
