@@ -11,6 +11,7 @@ import { UserRole, ROLE_HIERARCHY } from '../common/enums';
 import { sanitizePlainText } from '../common/sanitize';
 import { parseEnumFilter, validateEnum } from '../common/validation-helpers';
 import { TicketsRepository } from './tickets.repository';
+import { AiService } from '../ai/ai.service';
 
 const VALID_TICKET_STATUSES = ['OPEN', 'IN_PROGRESS', 'WAITING', 'RESOLVED', 'CLOSED'] as const;
 type TicketStatus = (typeof VALID_TICKET_STATUSES)[number];
@@ -47,7 +48,113 @@ export class TicketsService {
     private readonly cacheService: CacheService,
     @Optional() private readonly mentions?: MentionsService,
     @Optional() private readonly meili?: MeilisearchService,
+    @Optional() private readonly aiService?: AiService,
   ) {}
+
+  /**
+   * Qualify a freshly-created ticket with AI suggestions (category, priority,
+   * tags). Non-blocking: any failure or timeout is logged but does not impact
+   * the ticket creation. Stored in AuditLog (action `TICKET_AI_QUALIFICATION`)
+   * as a suggestion — the agent can later `Apply` it from the ticket detail UI.
+   *
+   * Timeout budget: 5s total (the create() caller should not be delayed).
+   */
+  private async qualifyTicketWithAi(
+    ticketId: string,
+    userId: string,
+    data: { title: string; description: string; category?: string; priority?: string; tags?: string[] },
+    autoTags: string[],
+  ): Promise<void> {
+    if (!this.aiService) return;
+    try {
+      const analysis = await Promise.race([
+        Promise.resolve(this.aiService.analyzeTicket(data.title, data.description, data.category || 'OTHER')),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('AI qualification timeout')), 5000)),
+      ]);
+
+      // Map AiService category labels (FR) → canonical TicketCategory (EN)
+      const categoryMap: Record<string, string> = {
+        SECURITE: 'SECURITY',
+        RESEAU: 'NETWORK',
+        MATERIEL: 'HARDWARE',
+        LOGICIEL: 'SOFTWARE',
+        ACCES: 'ACCESS',
+      };
+      const suggestedCategory = categoryMap[analysis.suggestedCategory] || analysis.suggestedCategory || 'OTHER';
+      const suggestedPriority = analysis.suggestedPriority || 'MEDIUM';
+
+      const userCategory = (data.category || 'OTHER').toUpperCase();
+      const userPriority = (data.priority || 'MEDIUM').toUpperCase();
+
+      const differs = {
+        category: suggestedCategory !== userCategory,
+        priority: suggestedPriority !== userPriority,
+      };
+
+      const suggestedTags = autoTags;
+
+      await this.audit.log({
+        userId,
+        action: 'TICKET_AI_QUALIFICATION',
+        resourceType: 'Ticket',
+        resourceId: ticketId,
+        metadata: {
+          aiQualified: true,
+          userCategory,
+          userPriority,
+          suggestedCategory,
+          suggestedPriority,
+          suggestedTags,
+          riskFlags: analysis.riskFlags,
+          confidence: analysis.confidence,
+          analysis: analysis.analysis,
+          differs,
+        },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `AI qualification failed for ticket ${ticketId}: ${(err as Error)?.message}`,
+      );
+    }
+  }
+
+  /**
+   * Retrieve the latest AI qualification suggestion for a given ticket
+   * (stored in AuditLog). Returns null when no suggestion is recorded.
+   */
+  async getAiSuggestion(ticketId: string): Promise<null | {
+    suggestedCategory: string;
+    suggestedPriority: string;
+    suggestedTags: string[];
+    riskFlags: string[];
+    confidence: number;
+    userCategory: string;
+    userPriority: string;
+    differs: { category: boolean; priority: boolean };
+    createdAt: Date;
+  }> {
+    const row = await this.prisma.auditLog.findFirst({
+      where: {
+        action: 'TICKET_AI_QUALIFICATION',
+        resourceType: 'Ticket',
+        resourceId: ticketId,
+      },
+      orderBy: { createdAt: 'desc' },
+    }).catch(() => null);
+    if (!row) return null;
+    const meta = (row.metadata as any) || {};
+    return {
+      suggestedCategory: meta.suggestedCategory || 'OTHER',
+      suggestedPriority: meta.suggestedPriority || 'MEDIUM',
+      suggestedTags: Array.isArray(meta.suggestedTags) ? meta.suggestedTags : [],
+      riskFlags: Array.isArray(meta.riskFlags) ? meta.riskFlags : [],
+      confidence: typeof meta.confidence === 'number' ? meta.confidence : 0,
+      userCategory: meta.userCategory || 'OTHER',
+      userPriority: meta.userPriority || 'MEDIUM',
+      differs: meta.differs || { category: false, priority: false },
+      createdAt: row.createdAt,
+    };
+  }
 
   /** Invalidate dashboard stats cache after ticket mutations. */
   private invalidateDashboardCache(): void {
@@ -457,6 +564,10 @@ export class TicketsService {
 
     this.indexForMeili(ticket);
     this.invalidateDashboardCache();
+
+    // AI qualification (non-blocking — fire and forget with internal timeout).
+    // Suggestions are stored in AuditLog for agents to review/apply from the UI.
+    void this.qualifyTicketWithAi(ticket.id, userId, data, mergedTags);
 
     return { ...ticket, autoTags: mergedTags, suggestedAssignee };
   }

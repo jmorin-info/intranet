@@ -175,6 +175,21 @@ export default function TicketDetailPage() {
   const [satisfactionSending, setSatisfactionSending] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [aiSuggestionLoading, setAiSuggestionLoading] = useState(false);
+  // Auto-qualification at ticket creation (category/priority/tags) — fetched
+  // from /tickets/:id/ai-suggestion. Displayed as a nudge to the agent if the
+  // IA suggestion differs from what the user chose.
+  const [aiQualif, setAiQualif] = useState<null | {
+    suggestedCategory: string;
+    suggestedPriority: string;
+    suggestedTags: string[];
+    riskFlags: string[];
+    confidence: number;
+    userCategory: string;
+    userPriority: string;
+    differs: { category: boolean; priority: boolean };
+  }>(null);
+  const [aiQualifApplying, setAiQualifApplying] = useState(false);
+  const [aiQualifDismissed, setAiQualifDismissed] = useState(false);
   const [deployLabels, setDeployLabels] = useState<DeploymentLabels | null>(null);
   const [kbLoading, setKbLoading] = useState(false);
   const [kbDraft, setKbDraft] = useState<{ title: string; slug: string; content: string; category: string; visibility: string; ownerDepartmentId?: string } | null>(null);
@@ -281,6 +296,51 @@ export default function TicketDetailPage() {
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, router]);
+
+  // Fetch AI qualification suggestion (non-blocking). Only useful for agents
+  // who can apply the suggestion; we still fetch for everyone to render the
+  // informational note when relevant.
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    api.get(`/tickets/${id}/ai-suggestion`)
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        setAiQualif(data);
+      })
+      .catch(() => { /* no suggestion recorded — silent */ });
+    return () => { cancelled = true; };
+  }, [id]);
+
+  const applyAiQualification = useCallback(async () => {
+    if (!ticket || !aiQualif) return;
+    setAiQualifApplying(true);
+    try {
+      const payload: { priority?: string } = {};
+      if (aiQualif.differs.priority) payload.priority = aiQualif.suggestedPriority;
+      // Category is not patchable from the admin endpoint (only status/priority/
+      // assigneeId/tags), so we only apply priority + tags for now. Tags: merge
+      // with existing ones, dedup, and push the AI suggestions.
+      if (aiQualif.suggestedTags.length > 0) {
+        const merged = Array.from(new Set([...(ticket.tags || []), ...aiQualif.suggestedTags]));
+        (payload as any).tags = merged;
+      }
+      if (Object.keys(payload).length === 0) {
+        toast.info('Aucun changement à appliquer');
+        setAiQualifApplying(false);
+        return;
+      }
+      await api.patch(`/tickets/${ticket.id}`, payload);
+      const { data } = await api.get(`/tickets/${ticket.id}`);
+      setTicket(data);
+      toast.success('Suggestion IA appliquée');
+      setAiQualifDismissed(true);
+    } catch {
+      toast.error('Erreur lors de l\'application de la suggestion');
+    } finally {
+      setAiQualifApplying(false);
+    }
+  }, [ticket, aiQualif]);
 
   // Auto-refresh every 30 seconds to pick up new comments from other users
   useEffect(() => {
@@ -451,6 +511,66 @@ export default function TicketDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* AI qualification banner (category/priority suggestion at creation) */}
+      {aiQualif && !aiQualifDismissed && (aiQualif.differs.category || aiQualif.differs.priority) && (
+        <div className="rounded-xl border border-[#F68D2E]/30 bg-gradient-to-r from-[#F68D2E]/5 to-transparent dark:from-[#F68D2E]/10 dark:border-[#F68D2E]/40 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 no-print">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F68D2E]/10 text-[#F68D2E] shrink-0">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-semibold text-seal-navy dark:text-white">
+              Suggestion IA à la création
+            </h4>
+            <div className="mt-1 text-xs text-seal-gray-500 dark:text-slate-400 space-y-0.5">
+              {aiQualif.differs.priority && (
+                <p>
+                  <span className="font-medium">Priorité :</span>{' '}
+                  <span className="line-through">{aiQualif.userPriority}</span>
+                  {' → '}
+                  <span className="font-semibold text-[#F68D2E]">{aiQualif.suggestedPriority}</span>
+                </p>
+              )}
+              {aiQualif.differs.category && (
+                <p>
+                  <span className="font-medium">Catégorie :</span>{' '}
+                  <span className="line-through">{aiQualif.userCategory}</span>
+                  {' → '}
+                  <span className="font-semibold text-[#F68D2E]">{aiQualif.suggestedCategory}</span>
+                </p>
+              )}
+              {aiQualif.riskFlags.length > 0 && (
+                <p>
+                  <span className="font-medium">Flags :</span>{' '}
+                  {aiQualif.riskFlags.join(', ')}
+                </p>
+              )}
+              <p className="text-[11px] italic opacity-70">
+                Confiance : {Math.round((aiQualif.confidence || 0) * 100)}%
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {isAdmin && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={applyAiQualification}
+                disabled={aiQualifApplying}
+              >
+                {aiQualifApplying ? 'Application...' : 'Appliquer'}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAiQualifDismissed(true)}
+            >
+              Ignorer
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main content */}
