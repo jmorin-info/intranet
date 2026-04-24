@@ -254,4 +254,79 @@ export class SpacesService {
     this.logger.log(`User module overrides set for ${userId}: ${modules.join(', ')}`);
     return { userId, modules };
   }
+
+  // ── Department-level module access configuration ─────────────────
+  //
+  // Expose une vue simple de la config d'accès modules par département.
+  // L'UI `/admin/access` consomme ces méthodes pour définir rapidement
+  // les modules par défaut d'un département (sans avoir à manipuler
+  // directement la matrice SpaceAccessConfig).
+
+  /**
+   * Retourne la configuration d'accès modules pour un département donné,
+   * fusionnée avec la liste canonique des modules. Chaque entrée indique
+   * si une règle explicite existe (rule) et sa valeur enabled.
+   */
+  async getDepartmentAccessConfig(departmentId: string) {
+    const configs = await this.prisma.spaceAccessConfig.findMany({
+      where: { scopeType: 'DEPARTMENT', scopeValue: departmentId },
+    });
+    const byModule = new Map<string, (typeof configs)[number]>();
+    for (const c of configs) byModule.set(c.module, c);
+
+    return {
+      departmentId,
+      modules: AVAILABLE_MODULES.map((mod) => {
+        const rule = byModule.get(mod.code);
+        return {
+          code: mod.code,
+          label: mod.label,
+          section: mod.section,
+          alwaysOn: (mod as any).alwaysOn ?? false,
+          // Si aucune règle n'existe, le module hérite du scope global
+          // (par défaut: activé). On retourne `null` dans ce cas pour que
+          // l'UI puisse afficher "hérité" plutôt qu'un état explicite.
+          explicit: !!rule,
+          enabled: rule ? rule.enabled : true,
+        };
+      }),
+    };
+  }
+
+  /**
+   * Remplace atomiquement la config DEPARTMENT pour ce département :
+   * les modules listés sont marqués enabled=true, tous les autres
+   * reçoivent une règle enabled=false. Cela permet à l'admin de définir
+   * clairement l'ensemble des modules "par défaut" d'un département
+   * (overridable ensuite par un override USER ou ROLE).
+   */
+  async setDepartmentAccessConfig(departmentId: string, modules: string[]) {
+    const validCodes = AVAILABLE_MODULES.map((m) => m.code);
+    for (const mod of modules) {
+      if (!validCodes.includes(mod as AvailableModule)) {
+        throw new BadRequestException(`Unknown module: ${mod}`);
+      }
+    }
+    const enabledSet = new Set(modules);
+
+    // Supprime l'ancien set
+    await this.prisma.spaceAccessConfig.deleteMany({
+      where: { scopeType: 'DEPARTMENT', scopeValue: departmentId },
+    });
+
+    // Recrée des règles explicites pour chaque module canonique
+    await this.prisma.spaceAccessConfig.createMany({
+      data: AVAILABLE_MODULES.map((mod) => ({
+        module: mod.code,
+        scopeType: 'DEPARTMENT' as const,
+        scopeValue: departmentId,
+        enabled: enabledSet.has(mod.code),
+      })),
+    });
+
+    this.logger.log(
+      `Department access config updated for ${departmentId}: ${modules.length}/${AVAILABLE_MODULES.length} modules enabled`,
+    );
+    return this.getDepartmentAccessConfig(departmentId);
+  }
 }

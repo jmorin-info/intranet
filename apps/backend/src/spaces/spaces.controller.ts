@@ -55,4 +55,56 @@ export class SpacesController {
   deleteConfig(@Param('id') id: string) {
     return this.spacesService.deleteConfig(id);
   }
+
+  // ── Department-level access configuration ────────────────────────
+
+  /**
+   * Retourne la config modules (explicite + fusion canonique) d'un
+   * département. Consommée par `/admin/access` (onglet Départements).
+   */
+  @Get('departments/:id/access-config')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  getDepartmentAccessConfig(@Param('id') id: string) {
+    return this.spacesService.getDepartmentAccessConfig(id);
+  }
+
+  /**
+   * Met à jour l'ensemble des modules actifs pour un département
+   * (remplace le set complet). SUPER_ADMIN uniquement car impact
+   * potentiellement large sur la navigation des collaborateurs.
+   */
+  @Post('departments/:id/access-config')
+  @Roles(UserRole.SUPER_ADMIN)
+  setDepartmentAccessConfig(
+    @Param('id') id: string,
+    @Body() body: { modules: string[] },
+  ) {
+    const modules = Array.isArray(body?.modules) ? body.modules : [];
+    return this.spacesService.setDepartmentAccessConfig(id, modules);
+  }
+
+  // ── User-level access configuration ──────────────────────────────
+
+  /**
+   * Retourne les règles USER-level pour un user donné (pour admin UI).
+   */
+  @Get('users/:id/access-config')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async getUserAccessConfig(@Param('id') id: string) {
+    const configs = await this.spacesService.getConfigsForUser(id);
+    return { userId: id, configs };
+  }
+
+  /**
+   * Remplace la liste des modules activés au niveau USER (override).
+   */
+  @Post('users/:id/access-config')
+  @Roles(UserRole.SUPER_ADMIN)
+  setUserAccessConfig(
+    @Param('id') id: string,
+    @Body() body: { modules: string[] },
+  ) {
+    const modules = Array.isArray(body?.modules) ? body.modules : [];
+    return this.spacesService.setUserModuleOverrides(id, modules);
+  }
 }

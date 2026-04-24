@@ -2244,6 +2244,24 @@ export default function AdminConfigPage() {
       {/* Matrice des accès — EDITABLE */}
       <Card>
         <CardHeader>
+          {/* Bandeau : cette matrice est documentaire (audit ISO). Le RBAC
+              modules effectif se configure dans /admin/access (Option B,
+              docs/architecture/ACCESS_AND_SPACES_UNIFICATION.md). */}
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-blue-100 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/10 p-3">
+            <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+            <div className="text-[11px] text-seal-gray-500 dark:text-slate-300">
+              <strong>Matrice documentaire (audit ISO 27001 A.5.15).</strong>{' '}
+              Pour configurer le RBAC modules effectif (rôle, département,
+              utilisateur), rendez-vous sur{' '}
+              <a
+                href="/admin/access"
+                className="text-primary underline font-medium"
+              >
+                /admin/access
+              </a>
+              .
+            </div>
+          </div>
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
