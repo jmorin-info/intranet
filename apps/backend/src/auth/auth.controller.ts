@@ -19,8 +19,6 @@ import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { Public } from "./decorators/public.decorator";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import { LoginDto } from "./dto/login.dto";
-import { RefreshDto } from "./dto/refresh.dto";
-import { LogoutDto } from "./dto/logout.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { RequestUser } from "../common/interfaces";
@@ -108,21 +106,22 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async refresh(
-    @Body() refreshDto: RefreshDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const ip = req.ip || req.socket.remoteAddress || "unknown";
     const userAgent = req.headers["user-agent"] || "unknown";
 
-    // Prefer cookie, fall back to body for backward compatibility.
-    // TODO: Retirer le fallback body le 2026-05-16 — le refresh token doit venir uniquement du cookie httpOnly.
-    const token: string | undefined =
-      (req.cookies?.refreshToken as string | undefined) ||
-      refreshDto.refreshToken;
+    // ANSSI R16 : le refresh token vient exclusivement du cookie httpOnly.
+    // Pas de fallback body — empêche toute exposition du token côté JS.
+    const token: string | undefined = req.cookies?.refreshToken as
+      | string
+      | undefined;
 
     if (!token) {
-      throw new UnauthorizedException("refreshToken manquant");
+      throw new UnauthorizedException(
+        "Session expirée, veuillez vous reconnecter",
+      );
     }
 
     try {
@@ -145,16 +144,16 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logout(
     @CurrentUser() user: RequestUser,
-    @Body() body: LogoutDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     // Best-effort : on n'échoue jamais un logout pour un refreshToken manquant/bancal,
     // sinon le frontend se retrouve bloqué en boucle 400 et ne nettoie pas son état local.
     try {
-      // TODO: Retirer le fallback body le 2026-05-16 — le refresh token doit venir uniquement du cookie httpOnly.
-      const token: string | undefined =
-        (req.cookies?.refreshToken as string | undefined) || body?.refreshToken;
+      // ANSSI R16 : le refresh token vient exclusivement du cookie httpOnly.
+      const token: string | undefined = req.cookies?.refreshToken as
+        | string
+        | undefined;
       if (token) {
         await this.authService.logout(user.id, token);
       }

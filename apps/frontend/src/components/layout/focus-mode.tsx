@@ -148,14 +148,19 @@ export function FocusMode() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [mode, exit, enterPageMode]);
 
-  // Alt+Click on an element → focus that element
+  // Alt+Click on an element → focus that element.
+  // NOTE: Alt+Click sur un <a href> interne est géré en priorité par
+  // GlanceOverlay (capture phase, registered earlier). On skippe donc ici
+  // les événements qui ciblent un <a>, pour laisser Glance ouvrir son panneau.
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (!e.altKey) return;
+      const el = e.target as HTMLElement;
+      // Si le clic est sur un lien, Glance prend le relais → ne rien faire.
+      if (el.closest?.('a[href]')) return;
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      const el = e.target as HTMLElement;
       if (el.closest('[data-focus-ui]')) return;
 
       const focusable = findFocusableParent(el);
@@ -165,7 +170,12 @@ export function FocusMode() {
     };
 
     const block = (e: MouseEvent) => {
-      if (e.altKey) { e.preventDefault(); e.stopImmediatePropagation(); }
+      if (!e.altKey) return;
+      const el = e.target as HTMLElement;
+      // Idem : on laisse passer les clics sur <a> pour Glance.
+      if (el.closest?.('a[href]')) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
     };
 
     window.addEventListener('click', onClick, { capture: true });

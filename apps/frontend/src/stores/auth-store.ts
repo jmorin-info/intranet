@@ -26,6 +26,27 @@ export interface AuthUser {
   manager?: { id: string; firstName: string; lastName: string; email: string; avatarUrl?: string } | null;
   subordinates?: { id: string; firstName: string; lastName: string; email: string; avatarUrl?: string }[];
   canManageMedia?: boolean;
+  /** Preferred UI language, mirrored from User.locale. */
+  locale?: 'fr' | 'en';
+}
+
+/**
+ * Push the server-side locale into the UI store if (and only if) it differs
+ * from what's already in localStorage. Runs inside a dynamic import to avoid
+ * a circular dep between auth-store and ui-store at module init time.
+ */
+function hydrateLocaleFromUser(raw: Record<string, unknown>): void {
+  if (typeof window === 'undefined') return;
+  const serverLocale = raw.locale as string | undefined | null;
+  if (serverLocale !== 'fr' && serverLocale !== 'en') return;
+  const current = localStorage.getItem('locale');
+  if (current === serverLocale) return;
+  // Lazy require to dodge circular deps
+  import('@/stores/ui-store')
+    .then(({ useUIStore }) => {
+      useUIStore.getState().setLocale(serverLocale, { skipRemote: true });
+    })
+    .catch(() => {});
 }
 
 interface AuthState {
@@ -39,6 +60,7 @@ interface AuthState {
 }
 
 function mapUser(raw: Record<string, unknown>): AuthUser {
+  const locale = raw.locale === 'fr' || raw.locale === 'en' ? (raw.locale as 'fr' | 'en') : undefined;
   return {
     id: raw.id as string,
     email: raw.email as string,
@@ -61,6 +83,7 @@ function mapUser(raw: Record<string, unknown>): AuthUser {
     manager: raw.manager as AuthUser['manager'],
     subordinates: raw.subordinates as AuthUser['subordinates'],
     canManageMedia: raw.canManageMedia as boolean | undefined,
+    locale,
   };
 }
 
@@ -82,6 +105,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (data.mfaSetupRequired) {
       localStorage.setItem('mfaSetupRequired', 'true');
     }
+    hydrateLocaleFromUser(data.user as Record<string, unknown>);
     set({ user: mapUser(data.user), isAuthenticated: true, isLoading: false });
   },
 
@@ -104,6 +128,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         return;
       }
       const { data } = await api.get('/auth/me');
+      hydrateLocaleFromUser(data as Record<string, unknown>);
       set({ user: mapUser(data), isAuthenticated: true, isLoading: false });
     } catch (err: unknown) {
       // Only clear the token on a definitive auth failure (401/403).

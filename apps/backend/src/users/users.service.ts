@@ -527,20 +527,28 @@ export class UsersService {
 
   async getPreferences(userId: string) {
     const configKey = `user_prefs_${userId}`;
-    const config = await this.prisma.appConfig.findUnique({
-      where: { key: configKey },
-    });
+    const [config, user] = await Promise.all([
+      this.prisma.appConfig.findUnique({ where: { key: configKey } }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { locale: true },
+      }),
+    ]);
 
-    if (!config) {
-      return { ...this.DEFAULT_PREFERENCES };
+    const base = { ...this.DEFAULT_PREFERENCES };
+    let prefs = base;
+    if (config) {
+      try {
+        const stored = JSON.parse(config.value);
+        prefs = { ...base, ...stored };
+      } catch {
+        /* fall through to defaults */
+      }
     }
-
-    try {
-      const stored = JSON.parse(config.value);
-      return { ...this.DEFAULT_PREFERENCES, ...stored };
-    } catch {
-      return { ...this.DEFAULT_PREFERENCES };
-    }
+    // User.locale (column) is the source of truth for language — it follows
+    // the user across devices. Fall back to legacy JSON blob, then 'fr'.
+    const locale = user?.locale || prefs.language || "fr";
+    return { ...prefs, language: locale, locale };
   }
 
   async updatePreferences(
@@ -548,6 +556,7 @@ export class UsersService {
     prefs: {
       darkMode?: boolean;
       language?: string;
+      locale?: string;
       dashboardWidgets?: string[];
       notificationPrefs?: {
         email?: boolean;
@@ -560,11 +569,16 @@ export class UsersService {
   ) {
     const configKey = `user_prefs_${userId}`;
 
+    // Accept either `locale` (new, canonical) or `language` (legacy). The
+    // frontend now calls the endpoint with { locale } so we normalise here.
+    const incomingLocale = prefs.locale ?? prefs.language;
+
     // Merge with existing preferences
     const current = await this.getPreferences(userId);
     const merged = {
       ...current,
       ...prefs,
+      ...(incomingLocale !== undefined && { language: incomingLocale, locale: incomingLocale }),
       notificationPrefs: {
         ...current.notificationPrefs,
         ...(prefs.notificationPrefs || {}),
@@ -612,6 +626,15 @@ export class UsersService {
         updatedById: userId,
       },
     });
+
+    // Mirror the UI language into User.locale so auth responses (/auth/me,
+    // /auth/login) can hydrate the Zustand locale store at session start.
+    if (incomingLocale) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { locale: incomingLocale },
+      });
+    }
 
     this.logger.log(`Preferences updated for user: ${userId}`);
     return merged;

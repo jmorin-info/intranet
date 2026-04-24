@@ -4,7 +4,7 @@ import React from 'react';
 import { Dialog } from '@omnitech/ui';
 import {
   FileText, Ticket, ShieldAlert, Newspaper, BookOpen, FileType, HelpCircle, Search,
-  Command, MessageSquare, LayoutDashboard, Cog, Image,
+  Command, MessageSquare, LayoutDashboard, Cog, Image, Eye, Focus,
 } from 'lucide-react';
 
 interface KeyboardShortcutsDialogProps {
@@ -53,6 +53,15 @@ const GROUPS: ShortcutGroup[] = [
       { keys: ['Ctrl', 'Shift', 'W'], label: 'Wiki', icon: BookOpen },
       { keys: ['Ctrl', 'Shift', 'P'], label: 'Outils PDF', icon: FileType },
       { keys: ['Ctrl', 'Alt', '1-5'], label: 'Naviguer entre les hubs', icon: Command },
+    ],
+  },
+  {
+    title: 'Aperçu & concentration',
+    entries: [
+      { keys: ['Alt', 'Clic'], label: 'Glance — aperçu rapide d’un lien interne', icon: Eye },
+      { keys: ['Alt'], label: 'Focus page (masque sidebar/header)', icon: Focus },
+      { keys: ['Alt', 'Clic'], label: 'Focus élément (carte/section non-lien)', icon: Focus },
+      { keys: ['Esc'], label: 'Fermer Glance / Quitter le focus', icon: Command },
     ],
   },
   {

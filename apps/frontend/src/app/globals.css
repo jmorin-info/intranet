@@ -1773,6 +1773,41 @@ main > [class*="space-y-"] {
 }
 
 /* ============================================
+   Glance (Zen-style preview) — panneau flottant
+   qui "sort" du curseur. Voir components/layout/glance-overlay.tsx.
+   ============================================ */
+@keyframes glanceIn {
+  from {
+    opacity: 0;
+    /* Part légèrement depuis la position du curseur vers le centre */
+    transform: translate(
+        calc((var(--glance-origin-x, 50vw) - 50vw) * 0.25),
+        calc((var(--glance-origin-y, 50vh) - 50vh) * 0.25)
+      )
+      scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+.glance-panel {
+  animation: glanceIn 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center center;
+}
+
+.glance-hint {
+  animation: fadeIn 120ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glance-panel {
+    animation: fadeIn 120ms ease-out;
+  }
+}
+
+/* ============================================
    Tooltip
    ============================================ */
 [data-tooltip] {

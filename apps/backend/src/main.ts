@@ -28,7 +28,12 @@ import { ApiSocketIoAdapter } from './socket-io-adapter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // rawBody: true — requis pour valider les signatures HMAC des webhooks
+  // externes (DocuSeal, etc.) sur le body brut (ISO 27001 A.8.26).
+  // Voir apps/backend/src/signatures/webhook.controller.ts.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   // Serve uploaded files (wiki attachments, certificates, etc.)
   const uploadsDir = join(process.cwd(), 'uploads');

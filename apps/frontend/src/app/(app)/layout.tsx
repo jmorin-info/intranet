@@ -19,6 +19,7 @@ import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { useKeyboardShortcuts, type KeyboardShortcutEntry } from '@/hooks/use-keyboard-shortcuts';
 
 const FocusMode = dynamic(() => import('@/components/layout/focus-mode').then(m => ({ default: m.FocusMode })), { ssr: false });
+const GlanceOverlay = dynamic(() => import('@/components/layout/glance-overlay').then(m => ({ default: m.GlanceOverlay })), { ssr: false });
 const PushNotificationManager = dynamic(() => import('@/components/notifications/push-notification-manager').then(m => ({ default: m.PushNotificationManager })), { ssr: false });
 const InstallPrompt = dynamic(() => import('@/components/pwa/install-prompt').then(m => ({ default: m.InstallPrompt })), { ssr: false });
 const OfflineIndicator = dynamic(() => import('@/components/pwa/offline-indicator').then(m => ({ default: m.OfflineIndicator })), { ssr: false });
@@ -166,6 +167,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
         <MobileBottomNav />
+        {/* GlanceOverlay doit être monté AVANT FocusMode afin que son
+            listener click (capture phase) s'enregistre en premier et
+            intercepte Alt+Click sur les liens internes. */}
+        <GlanceOverlay />
         <FocusMode />
         <PushNotificationManager />
         <InstallPrompt />

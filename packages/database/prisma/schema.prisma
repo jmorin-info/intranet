@@ -167,6 +167,8 @@ model User {
   // Notification preferences (per-channel × per-category) — nullable = defaults (all in-app/email ON, push only mentions+incidents)
   // Shape: { email: { tickets, documents, incidents, mentions: bool, digest: 'off'|'daily'|'weekly' }, inApp: {...}, push: {...} }
   notificationPreferences Json?
+  // UI language preference (persisted so it follows the user across devices). Fallback: 'fr'.
+  locale            String?   @default("fr")
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
