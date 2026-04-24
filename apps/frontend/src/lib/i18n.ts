@@ -247,6 +247,7 @@ const translations: Record<string, Record<string, string>> = {
     'tickets.sla.warning': 'SLA proche',
     'tickets.subtitle': 'Créez et suivez vos demandes : support IT, déploiements, RMA, projets internes.',
     'tickets.empty': 'Aucun ticket',
+    'tickets.searchPlaceholder': 'Rechercher un ticket...',
     'tickets.status.all': 'Tous les statuts',
     'tickets.status.waiting': 'En attente',
     'tickets.priority.toutes': 'Toutes',
@@ -570,6 +571,8 @@ const translations: Record<string, Record<string, string>> = {
     'helpdesk.fallback': 'Je ne suis pas sûr de comprendre votre demande. Voici ce que je peux vous aider :\n\n• Mot de passe\n• VPN\n• Imprimante\n• Email / Messagerie\n• MFA / Double authentification\n• Congés / RH\n• Sécurité / Incident\n\nSi votre problème n\'est pas listé, créez un ticket pour le support IT.',
     'helpdesk.fallbackCreateTicket': 'Créer un ticket',
     'helpdesk.fallbackSelfService': 'Self-service IT',
+    'helpdesk.supportTitle': 'Support IT',
+    'helpdesk.supportSubtitle': 'Assistant de premier niveau, recherche dans la base de connaissances et création de ticket assistée.',
     // Forgot password page
     'forgotPassword.title': 'Mot de passe oublié',
     'forgotPassword.instruction': 'Saisissez votre adresse email. Un lien de réinitialisation vous sera envoyé.',
@@ -899,6 +902,7 @@ const translations: Record<string, Record<string, string>> = {
     'wiki.lockedByOther': 'Page verrouillée par un autre utilisateur',
     'wiki.fileDeleted': 'Fichier supprimé',
     'wiki.deleteError.short': 'Erreur suppression',
+    'wiki.confirmDeleteTitle': 'Supprimer la page',
     'wiki.uploadFailed': 'Échec upload',
     'wiki.addLink': 'Ajouter un lien',
     'wiki.linkText': 'Texte du lien',
@@ -1036,6 +1040,7 @@ const translations: Record<string, Record<string, string>> = {
     'header.activateDark': 'Activer le mode sombre',
     'header.switchToEn': 'Switch to English',
     'header.switchToFr': 'Passer en français',
+    'header.language': 'Langue',
     // Sidebar (extended)
     'sidebar.detach': 'Détacher',
     'sidebar.pin': 'Épingler',
@@ -1383,6 +1388,7 @@ const translations: Record<string, Record<string, string>> = {
     'tickets.sla.warning': 'SLA warning',
     'tickets.subtitle': 'Create and track your requests: IT support, deployments, RMA, internal projects.',
     'tickets.empty': 'No tickets',
+    'tickets.searchPlaceholder': 'Search for a ticket...',
     'tickets.status.all': 'All statuses',
     'tickets.status.waiting': 'Waiting',
     'tickets.priority.toutes': 'All',
@@ -1706,6 +1712,8 @@ const translations: Record<string, Record<string, string>> = {
     'helpdesk.fallback': 'I\'m not sure I understand your request. Here\'s what I can help with:\n\n• Password\n• VPN\n• Printer\n• Email / Messaging\n• MFA / Two-factor authentication\n• Leave / HR\n• Security / Incident\n\nIf your issue is not listed, create a ticket for IT support.',
     'helpdesk.fallbackCreateTicket': 'Create a ticket',
     'helpdesk.fallbackSelfService': 'IT Self-service',
+    'helpdesk.supportTitle': 'IT Support',
+    'helpdesk.supportSubtitle': 'First-level assistant, knowledge base search and guided ticket creation.',
     // Forgot password page
     'forgotPassword.title': 'Forgot password',
     'forgotPassword.instruction': 'Enter your email address. A reset link will be sent to you.',
@@ -2035,6 +2043,7 @@ const translations: Record<string, Record<string, string>> = {
     'wiki.lockedByOther': 'Page locked by another user',
     'wiki.fileDeleted': 'File deleted',
     'wiki.deleteError.short': 'Delete error',
+    'wiki.confirmDeleteTitle': 'Delete page',
     'wiki.uploadFailed': 'Upload failed',
     'wiki.addLink': 'Add a link',
     'wiki.linkText': 'Link text',
@@ -2172,6 +2181,7 @@ const translations: Record<string, Record<string, string>> = {
     'header.activateDark': 'Activate dark mode',
     'header.switchToEn': 'Switch to English',
     'header.switchToFr': 'Passer en français',
+    'header.language': 'Language',
     // Sidebar (extended)
     'sidebar.detach': 'Detach',
     'sidebar.pin': 'Pin',
@@ -2285,4 +2295,21 @@ export function useTranslation() {
     t: (key: string) => t(key, locale),
     locale,
   };
+}
+
+/**
+ * Returns the current UI locale. Re-renders the caller on change.
+ */
+export function useLocale(): 'fr' | 'en' {
+  const { useUIStore } = require('@/stores/ui-store');
+  return useUIStore((state: { locale: 'fr' | 'en' }) => state.locale);
+}
+
+/**
+ * Imperative locale setter — persists to localStorage and (if authenticated)
+ * to the backend `PATCH /users/me/preferences`. Use in non-hook contexts.
+ */
+export function setLocale(locale: 'fr' | 'en'): void {
+  const { useUIStore } = require('@/stores/ui-store');
+  useUIStore.getState().setLocale(locale);
 }

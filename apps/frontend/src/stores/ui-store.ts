@@ -45,7 +45,15 @@ interface UIState {
   togglePinned: (href: string) => void;
   pushRecent: (href: string) => void;
   toggleDarkMode: () => void;
-  setLocale: (locale: 'fr' | 'en') => void;
+  /**
+   * Change the UI language.
+   *
+   * - Always writes to localStorage (immediate offline fallback).
+   * - By default also PATCHes `/users/me/preferences` so the preference
+   *   follows the user across devices. Pass `{ skipRemote: true }` when
+   *   the new value *came* from the server (hydration) to avoid a loop.
+   */
+  setLocale: (locale: 'fr' | 'en', options?: { skipRemote?: boolean }) => void;
   toggleZenMode: () => void;
   setActiveSpace: (id: string | null) => void;
 }
@@ -109,9 +117,17 @@ export const useUIStore = create<UIState>((set) => ({
       return { darkMode: next };
     }),
 
-  setLocale: (locale) => {
+  setLocale: (locale, options) => {
     if (typeof window !== 'undefined') localStorage.setItem('locale', locale);
     set({ locale });
+    if (!options?.skipRemote && typeof window !== 'undefined' && localStorage.getItem('accessToken')) {
+      // Lazy import to keep ui-store free of an `api` dependency at module init.
+      import('@/lib/api')
+        .then(({ api }) => api.patch('/users/me/preferences', { locale }))
+        .catch(() => {
+          // Best-effort: the localStorage write above already gave the user immediate feedback.
+        });
+    }
   },
 
   toggleZenMode: () => set((state) => ({ zenMode: !state.zenMode })),

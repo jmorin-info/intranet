@@ -818,20 +818,86 @@ function DarkModeToggle() {
 function LanguageToggle() {
   const { t } = useTranslation();
   const { locale, setLocale } = useUIStore();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  const LANGS: Array<{ value: 'fr' | 'en'; label: string; flag: string }> = [
+    { value: 'fr', label: 'Français', flag: '🇫🇷' },
+    { value: 'en', label: 'English', flag: '🇬🇧' },
+  ];
+  const current = LANGS.find((l) => l.value === locale) ?? LANGS[0]!;
+
   return (
-    <button
-      onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
-      className={
-        'inline-flex h-9 items-center gap-1 rounded-lg px-2 text-[12px] font-semibold text-seal-gray-500 dark:text-slate-400 ' +
-        'hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-blue dark:hover:text-seal-orange ' +
-        'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ' +
-        'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900'
-      }
-      title={locale === 'fr' ? t('header.switchToEn') : t('header.switchToFr')}
-      aria-label={locale === 'fr' ? t('header.switchToEn') : t('header.switchToFr')}
-    >
-      <Globe className="h-4 w-4" />
-      {locale.toUpperCase()}
-    </button>
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={
+          'inline-flex h-9 w-9 items-center justify-center rounded-lg text-base ' +
+          'text-seal-gray-500 dark:text-slate-400 ' +
+          'hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-blue dark:hover:text-seal-orange ' +
+          'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ' +
+          'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900'
+        }
+        title={locale === 'fr' ? t('header.switchToEn') : t('header.switchToFr')}
+        aria-label={`${t('header.language') || 'Language'}: ${current.label}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <span aria-hidden="true">{current.flag}</span>
+      </button>
+      {open && (
+        <div
+          role="menu"
+          aria-label={t('header.language') || 'Language'}
+          className="header-dropdown-in absolute right-0 top-full mt-2 w-44 max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl py-1 z-50"
+        >
+          {LANGS.map((lang) => {
+            const active = lang.value === locale;
+            return (
+              <button
+                key={lang.value}
+                type="button"
+                role="menuitemradio"
+                aria-checked={active}
+                onClick={() => {
+                  setLocale(lang.value);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800 ${
+                  active
+                    ? 'text-seal-blue dark:text-seal-orange font-semibold'
+                    : 'text-seal-navy dark:text-slate-200'
+                }`}
+              >
+                <span className="text-base" aria-hidden="true">
+                  {lang.flag}
+                </span>
+                <span className="flex-1 text-left">{lang.label}</span>
+                {active && <span className="text-[11px] uppercase tracking-wide">{lang.value}</span>}
+              </button>
+            );
+          })}
+          <div className="px-4 pt-1.5 pb-1 text-[10px] text-seal-gray-500/70 dark:text-slate-500 border-t border-gray-100 dark:border-slate-700 mt-1">
+            <Globe className="h-3 w-3 inline mr-1" />
+            {locale === 'fr' ? t('header.switchToEn') : t('header.switchToFr')}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
