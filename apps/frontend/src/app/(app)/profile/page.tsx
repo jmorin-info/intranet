@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
@@ -80,18 +79,12 @@ interface CharteStatus {
   signedAt: string | null;
 }
 
-const passwordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Mot de passe actuel requis"),
-    newPassword: z.string().min(12, "Minimum 12 caractères"),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas",
-    path: ["confirmPassword"],
-  });
-
-type PasswordForm = z.infer<typeof passwordSchema>;
+// Politique ANSSI / ISO 27001 A.5.17 — alignée avec AuthService.resetPasswordWithToken
+import {
+  changePasswordSchema as passwordInputSchema,
+  type ChangePasswordFormData,
+} from "@/lib/validation/schemas";
+type PasswordForm = ChangePasswordFormData;
 
 // Note: API calls go through the axios `api` instance which resolves NEXT_PUBLIC_API_URL → /api/v1.
 
@@ -467,9 +460,11 @@ export default function ProfilePage() {
     handleSubmit,
     reset,
     watch,
-    formState: { errors },
+    formState: { errors, isSubmitting, isValid },
   } = useForm<PasswordForm>({
-    resolver: zodResolver(passwordSchema),
+    resolver: zodResolver(passwordInputSchema),
+    mode: "onTouched",
+    defaultValues: { oldPassword: "", newPassword: "", confirmPassword: "" },
   });
 
   const watchedNewPassword = watch("newPassword") || "";
@@ -478,7 +473,7 @@ export default function ProfilePage() {
     setChangingPassword(true);
     try {
       await api.post("/users/me/change-password", {
-        oldPassword: data.currentPassword,
+        oldPassword: data.oldPassword,
         newPassword: data.newPassword,
       });
       toast.success(t("profile.passwordChanged"));
@@ -1311,8 +1306,9 @@ export default function ProfilePage() {
                   <Input
                     label={t("profile.currentPassword")}
                     type="password"
-                    error={errors.currentPassword?.message}
-                    {...register("currentPassword")}
+                    autoComplete="current-password"
+                    error={errors.oldPassword?.message}
+                    {...register("oldPassword")}
                   />
                   <Input
                     label={t("profile.newPassword")}
@@ -1424,8 +1420,8 @@ export default function ProfilePage() {
                   <div className="flex justify-end">
                     <Button
                       type="submit"
-                      loading={changingPassword}
-                      disabled={changingPassword}
+                      loading={changingPassword || isSubmitting}
+                      disabled={changingPassword || isSubmitting || !isValid}
                     >
                       <Save className="h-4 w-4" />
                       {changingPassword ? "Modification…" : "Modifier"}

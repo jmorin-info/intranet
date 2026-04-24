@@ -3,12 +3,15 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { OmnitechLogo } from '@/components/omnitech-logo';
 import { Card, CardContent, Button, Input } from '@omnitech/ui';
 import { Lock, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { resetPasswordSchema, type ResetPasswordFormData } from '@/lib/validation/schemas';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string; bgColor: string } {
   let score = 0;
@@ -30,14 +33,23 @@ function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token') || '';
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [countdown, setCountdown] = useState(5);
 
-  const isValid = password.length >= 12 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password) && /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) && password === confirmPassword;
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting, isValid },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+    mode: 'onChange',
+    defaultValues: { password: '', confirmPassword: '' },
+  });
+
+  const password = watch('password');
+  const confirmPassword = watch('confirmPassword');
 
   const strength = password ? getPasswordStrength(password) : null;
   const strengthPercent = strength ? Math.round((strength.score / 6) * 100) : 0;
@@ -52,13 +64,11 @@ function ResetPasswordContent() {
     return () => clearTimeout(timer);
   }, [success, countdown, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isValid || !token) return;
-    setLoading(true);
+  const onSubmit = async (data: ResetPasswordFormData) => {
+    if (!token) return;
     setErrorMessage('');
     try {
-      await api.post('/auth/reset-password', { token, password });
+      await api.post('/auth/reset-password', { token, password: data.password });
       setSuccess(true);
       toast.success(t('resetPassword.successToast'));
     } catch (error: unknown) {
@@ -72,8 +82,6 @@ function ResetPasswordContent() {
         setErrorMessage('Une erreur est survenue. Veuillez réessayer.');
         toast.error(t('resetPassword.errorExpired'));
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -137,10 +145,20 @@ function ResetPasswordContent() {
                 </Link>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
                 <div>
-                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">{t('resetPassword.label.password')}</label>
-                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('resetPassword.passwordPlaceholder')} required minLength={12} autoFocus />
+                  <label htmlFor="password" className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">{t('resetPassword.label.password')}</label>
+                  <Input
+                    id="password"
+                    type="password"
+                    {...register('password')}
+                    placeholder={t('resetPassword.passwordPlaceholder')}
+                    autoFocus
+                    aria-invalid={!!errors.password}
+                  />
+                  {errors.password && (
+                    <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+                  )}
 
                   {/* Password strength meter */}
                   {password && strength && (
@@ -176,12 +194,18 @@ function ResetPasswordContent() {
                   )}
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">{t('resetPassword.label.confirm')}</label>
-                  <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t('resetPassword.confirmPlaceholder')} required />
-                  {confirmPassword && password !== confirmPassword && (
-                    <p className="text-xs text-red-500 mt-1">{t('resetPassword.mismatch')}</p>
+                  <label htmlFor="confirmPassword" className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">{t('resetPassword.label.confirm')}</label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    {...register('confirmPassword')}
+                    placeholder={t('resetPassword.confirmPlaceholder')}
+                    aria-invalid={!!errors.confirmPassword}
+                  />
+                  {errors.confirmPassword && (
+                    <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message || t('resetPassword.mismatch')}</p>
                   )}
-                  {confirmPassword && password === confirmPassword && (
+                  {!errors.confirmPassword && confirmPassword && password === confirmPassword && (
                     <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3" /> Les mots de passe correspondent
                     </p>
@@ -195,7 +219,7 @@ function ResetPasswordContent() {
                     </Link>
                   </div>
                 )}
-                <Button type="submit" className="w-full" loading={loading} disabled={!isValid}>
+                <Button type="submit" className="w-full" loading={isSubmitting} disabled={!isValid || isSubmitting}>
                   <Lock className="h-4 w-4" /> {t('resetPassword.submit')}
                 </Button>
               </form>

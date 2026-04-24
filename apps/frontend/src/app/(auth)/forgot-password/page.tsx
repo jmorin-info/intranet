@@ -1,20 +1,33 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { OmnitechLogo } from '@/components/omnitech-logo';
 import { Card, CardContent, Button, Input } from '@omnitech/ui';
-import { Mail, ArrowLeft, CheckCircle2, Send, Shield, Lock } from 'lucide-react';
+import { Mail, ArrowLeft, Send, Shield, Lock } from 'lucide-react';
+import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/lib/validation/schemas';
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation();
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [resendLoading, setResendLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    formState: { errors, isSubmitting },
+  } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    mode: 'onTouched',
+    defaultValues: { email: '' },
+  });
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -22,24 +35,22 @@ export default function ForgotPasswordPage() {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || cooldown > 0) return;
-    setLoading(true);
+  const onSubmit = async (data: ForgotPasswordFormData) => {
+    if (cooldown > 0) return;
     try {
-      await api.post('/auth/forgot-password', { email });
+      await api.post('/auth/forgot-password', { email: data.email });
       setSent(true);
       setCooldown(60);
     } catch {
       toast.error(t('forgotPassword.sendError'));
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleResend = async () => {
     if (cooldown > 0) return;
-    setLoading(true);
+    const email = getValues('email');
+    if (!email) return;
+    setResendLoading(true);
     try {
       await api.post('/auth/forgot-password', { email });
       toast.success('Lien renvoyé avec succès');
@@ -47,9 +58,11 @@ export default function ForgotPasswordPage() {
     } catch {
       toast.error(t('forgotPassword.sendError'));
     } finally {
-      setLoading(false);
+      setResendLoading(false);
     }
   };
+
+  const email = getValues('email');
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#004469] via-[#00587a] to-[#003852] p-4">
@@ -100,8 +113,8 @@ export default function ForgotPasswordPage() {
                     variant="outline"
                     className="w-full"
                     onClick={handleResend}
-                    disabled={cooldown > 0}
-                    loading={loading}
+                    disabled={cooldown > 0 || resendLoading}
+                    loading={resendLoading}
                   >
                     <Send className="h-4 w-4" />
                     {cooldown > 0
@@ -117,22 +130,25 @@ export default function ForgotPasswordPage() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
                 <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">
                   {t('forgotPassword.instruction')}
                 </p>
                 <div>
-                  <label className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">{t('forgotPassword.label.email')}</label>
+                  <label htmlFor="email" className="text-xs font-semibold text-seal-gray-500 dark:text-slate-400 block mb-1">{t('forgotPassword.label.email')}</label>
                   <Input
+                    id="email"
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    {...register('email')}
                     placeholder="votre.nom@omnitech-security.fr"
-                    required
                     autoFocus
+                    aria-invalid={!!errors.email}
                   />
+                  {errors.email && (
+                    <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+                  )}
                 </div>
-                <Button type="submit" className="w-full" loading={loading}>
+                <Button type="submit" className="w-full" loading={isSubmitting} disabled={isSubmitting || cooldown > 0}>
                   <Mail className="h-4 w-4" /> {t('forgotPassword.submit')}
                 </Button>
                 <Link href="/login" className="block text-center text-sm text-primary hover:underline mt-2">

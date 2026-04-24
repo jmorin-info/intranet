@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { UserRole } from "@omnitech/shared";
@@ -24,6 +26,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { mfaCodeSchema, type MfaCodeFormData } from "@/lib/validation/schemas";
 
 export default function MfaPage() {
   const { t } = useTranslation();
@@ -33,8 +36,21 @@ export default function MfaPage() {
   );
   const [qrCode, setQrCode] = useState("");
   const [secret, setSecret] = useState("");
-  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const {
+    register: registerCode,
+    handleSubmit: handleSubmitCode,
+    watch: watchCode,
+    reset: resetCode,
+    setValue: setCodeValue,
+    formState: { errors: codeErrors, isSubmitting: codeSubmitting },
+  } = useForm<MfaCodeFormData>({
+    resolver: zodResolver(mfaCodeSchema),
+    mode: "onChange",
+    defaultValues: { code: "" },
+  });
+  const code = watchCode("code") || "";
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [lastLoginAt, setLastLoginAt] = useState<string | null>(null);
@@ -78,31 +94,25 @@ export default function MfaPage() {
     }
   };
 
-  const handleVerify = async () => {
-    if (code.length !== 6) {
-      toast.error("Le code doit faire 6 chiffres");
-      return;
-    }
-    setLoading(true);
+  const handleVerify = async (data: MfaCodeFormData) => {
     try {
-      await api.post("/mfa/activate", { code });
+      await api.post("/mfa/activate", { code: data.code });
       toast.success("MFA activé avec succès");
       setStep("done");
       setMfaEnabled(true);
+      resetCode();
       // Clear prestataire MFA setup flag (no longer required)
       localStorage.removeItem("mfaSetupRequired");
 
       // Generate backup codes after successful activation
       try {
-        const { data } = await api.post("/mfa/backup-codes");
-        setBackupCodes(data.codes || []);
+        const { data: bc } = await api.post("/mfa/backup-codes");
+        setBackupCodes(bc.codes || []);
       } catch {
         // Non-blocking if backup codes endpoint is unavailable
       }
     } catch {
       toast.error(t("mfa.invalidCode"));
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -143,7 +153,7 @@ export default function MfaPage() {
       setStep("intro");
       setMfaEnabled(false);
       setBackupCodes([]);
-      setCode("");
+      resetCode();
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 401) {
@@ -343,33 +353,49 @@ export default function MfaPage() {
               )}
             </div>
 
-            <div className="border-t border-gray-100 dark:border-slate-700 pt-4">
+            <form
+              id="mfa-verify-form"
+              onSubmit={handleSubmitCode(handleVerify)}
+              className="border-t border-gray-100 dark:border-slate-700 pt-4"
+              noValidate
+            >
               <Input
                 label="Code de vérification (6 chiffres)"
                 placeholder="000000"
-                value={code}
-                onChange={(e) =>
-                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                {...registerCode("code", {
+                  onChange: (e) => {
+                    const cleaned = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setCodeValue("code", cleaned, { shouldValidate: true });
+                  },
+                })}
                 className="text-center text-2xl font-mono tracking-[0.5em]"
+                aria-invalid={!!codeErrors.code}
               />
-            </div>
+              {codeErrors.code && (
+                <p className="text-red-500 text-xs mt-1">{codeErrors.code.message}</p>
+              )}
+            </form>
           </CardContent>
           <CardFooter>
             <div className="flex justify-between w-full">
               <Button
+                type="button"
                 variant="outline"
                 onClick={() => {
                   setStep("intro");
                   setShowManualSecret(false);
+                  resetCode();
                 }}
               >
                 Annuler
               </Button>
               <Button
-                onClick={handleVerify}
-                loading={loading}
-                disabled={code.length !== 6}
+                type="submit"
+                form="mfa-verify-form"
+                loading={codeSubmitting}
+                disabled={codeSubmitting || code.length !== 6}
               >
                 <CheckCircle2 className="h-4 w-4" /> Activer le MFA
               </Button>

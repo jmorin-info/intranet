@@ -23,12 +23,13 @@ import {
 } from '@omnitech/ui';
 import { ArrowLeft, Save, Send, X, Image, FileText, RefreshCw, Eye, EyeOff, Sparkles } from 'lucide-react';
 
+// Schéma local étendu (incl. champs optionnels) — réutilise les règles min de @/lib/validation/schemas
 const newsSchema = z.object({
-  title: z.string().min(3, 'Titre requis'),
-  excerpt: z.string().optional(),
+  title: z.string().min(3, 'Titre requis (min. 3 caractères)').max(200, '200 caractères max'),
+  excerpt: z.string().max(500, '500 caractères max').optional().or(z.literal('')),
   content: z.string().min(10, 'Contenu requis (minimum 10 caractères)'),
   category: z.string().optional(),
-  coverImageUrl: z.string().url().optional().or(z.literal('')),
+  coverImageUrl: z.string().url('URL invalide').optional().or(z.literal('')),
   isPinned: z.boolean().optional(),
   isPublished: z.boolean().optional(),
 });
@@ -61,9 +62,11 @@ export default function ComposeNewsPage() {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    reset,
+    formState: { errors, isSubmitting },
   } = useForm<NewsForm>({
     resolver: zodResolver(newsSchema),
+    mode: 'onTouched',
     defaultValues: {
       isPublished: true,
       isPinned: false,
@@ -412,9 +415,9 @@ export default function ComposeNewsPage() {
                 <X className="h-4 w-4" />
                 {t('newsCompose.cancel')}
               </Button>
-              <Button type="submit" loading={loading} disabled={loading}>
-                {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                {loading ? 'Publication…' : t('newsCompose.publish')}
+              <Button type="submit" loading={loading || isSubmitting} disabled={loading || isSubmitting}>
+                {loading || isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {loading || isSubmitting ? 'Publication…' : t('newsCompose.publish')}
               </Button>
             </div>
           </CardFooter>

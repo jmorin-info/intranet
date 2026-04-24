@@ -6,20 +6,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/auth-store';
-import { api } from '@/lib/api';
-import { Button, Input } from '@omnitech/ui';
+import { Button } from '@omnitech/ui';
 import { Shield, Lock, Mail, Key, UserCheck } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { loginSchema, type LoginFormData } from '@/lib/validation/schemas';
 
-const loginSchema = z.object({
-  email: z.string().email('Adresse email invalide'),
-  password: z.string().min(1, 'Mot de passe requis'),
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
+type LoginForm = LoginFormData;
 
 function LoginPageInner() {
   const router = useRouter();
@@ -45,9 +39,10 @@ function LoginPageInner() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
+    mode: 'onTouched',
   });
 
   const [isPrestataire, setIsPrestataire] = useState(false);
@@ -58,7 +53,7 @@ function LoginPageInner() {
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
-      await login(data.email, data.password);
+      await login(data.email, data.password, data.mfaCode || undefined);
       localStorage.setItem('had_session', '1');
       toast.success(t('login.success'));
       // Hard navigation to ensure SW cache is bypassed after login
@@ -240,7 +235,7 @@ function LoginPageInner() {
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-xs text-red-600">{t('login.emailInvalid')}</p>
+                  <p className="text-red-500 text-xs mt-1">{errors.email.message || t('login.emailInvalid')}</p>
                 )}
               </div>
 
@@ -259,11 +254,16 @@ function LoginPageInner() {
                   />
                 </div>
                 {errors.password && (
-                  <p className="text-xs text-red-600">{t('login.passwordRequired')}</p>
+                  <p className="text-red-500 text-xs mt-1">{errors.password.message || t('login.passwordRequired')}</p>
                 )}
               </div>
 
-              <Button type="submit" loading={loading} className="w-full mt-2 bg-gradient-to-r from-[#F68D2E] to-[#e67d1e] border-0 hover:from-[#e67d1e] hover:to-[#d06a10]">
+              <Button
+                type="submit"
+                loading={loading || isSubmitting}
+                disabled={loading || isSubmitting}
+                className="w-full mt-2 bg-gradient-to-r from-[#F68D2E] to-[#e67d1e] border-0 hover:from-[#e67d1e] hover:to-[#d06a10]"
+              >
                 {t('auth.submit')}
               </Button>
 
