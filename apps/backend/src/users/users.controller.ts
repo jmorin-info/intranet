@@ -24,6 +24,7 @@ import * as fs from 'fs';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -224,6 +225,9 @@ export class UsersController {
   }
 
   @Post('me/change-password')
+  // Per-user rate limit (en plus du per-IP global) — empêche un attaquant
+  // qui possède une session valide de bruteforcer l'ancien mot de passe.
+  @UseGuards(UserThrottlerGuard)
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   async changePassword(
     @CurrentUser() user: RequestUser,
@@ -329,6 +333,10 @@ export class UsersController {
   }
 
   @Post('me/gdpr-export')
+  // RGPD : 1 export par utilisateur par heure max — protège contre l'abus
+  // (génère un dump complet des données perso, coûteux côté DB).
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ default: { limit: 1, ttl: 3600000 } })
   async requestGdprExport(
     @CurrentUser() user: RequestUser,
     @Res() res: Response,

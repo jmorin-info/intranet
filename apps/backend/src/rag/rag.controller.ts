@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../common/enums';
@@ -48,7 +49,10 @@ export class RagController {
    * Sends `token` events as the LLM generates, then a final `done` event with sources + metadata.
    */
   @Post('ask-stream')
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  // 60 requêtes/min/utilisateur — éviter qu'un user abuse du chatbot LLM
+  // (coût compute / quotas API), tout en laissant de la marge pour un usage normal.
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   async askStream(
     @Body() body: { question: string },
     @CurrentUser() user: RequestUser,
