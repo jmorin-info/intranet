@@ -421,12 +421,16 @@ export default function DocumentEditorPage() {
             }
           },
           onError: (event: any) => {
-            console.error('OnlyOffice error:', event);
             const desc = event.data?.errorDescription || event.data?.message || 'Erreur inconnue';
+            // Keep console.error for prod debug — payload contient seulement le code/desc OnlyOffice, pas de données sensibles
+            console.error('[OnlyOffice] editor error:', desc);
             setEditorError(desc);
           },
           onWarning: (event: any) => {
-            console.warn('OnlyOffice warning:', event);
+            if (process.env.NODE_ENV === 'development') {
+              // eslint-disable-next-line no-console
+              console.warn('[OnlyOffice] warning:', event?.data?.warningDescription || event);
+            }
           },
           onDocumentReady: () => {
             setEditorMounted(true);
@@ -468,8 +472,7 @@ export default function DocumentEditorPage() {
                 const observer = new ResizeObserver((entries) => {
                   for (const entry of entries) {
                     if (entry.contentRect.height < 100) {
-                      // eslint-disable-next-line no-console
-                      console.warn('[OnlyOffice] iframe collapsed to', entry.contentRect, '— force resize');
+                      // Iframe collapsed — silently re-apply forced dimensions
                       forceIframeFill();
                     }
                   }
@@ -481,21 +484,12 @@ export default function DocumentEditorPage() {
         },
       };
 
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.log('[OnlyOffice] Mounting editor with config:', JSON.stringify({
-          documentServerUrl: cfg.documentServerUrl,
-          fileType: cfg.config?.document?.fileType,
-          key: cfg.config?.document?.key,
-          mode: cfg.config?.editorConfig?.mode,
-        }));
-      }
-
       // Mark as initialized BEFORE calling DocsAPI (synchronous guard)
       initGuardRef.current = true;
       editorInstanceRef.current = new DocsAPI.DocEditor('onlyoffice-placeholder', configWithEvents);
     } catch (err) {
-      console.error('[OnlyOffice] Mount error:', err);
+      // Keep console.error for prod debug — message ne contient pas de données sensibles (juste le throw OnlyOffice)
+      console.error('[OnlyOffice] mount error:', err instanceof Error ? err.message : String(err));
       initGuardRef.current = false;
       setError(err instanceof Error ? err.message : String(err));
     }
