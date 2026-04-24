@@ -1,20 +1,16 @@
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   Bot,
   X,
   Send,
   Trash2,
-  ChevronDown,
   Sparkles,
-  FileText,
-  Ticket,
-  Shield,
-  HelpCircle,
   Zap,
+  Square,
+  Search as SearchIcon,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useChatbotStore, type ChatMessage } from "@/stores/chatbot-store";
@@ -26,6 +22,14 @@ import {
   executeAction,
   trackPageView,
 } from "@/lib/copilot";
+import { MarkdownRenderer } from "@/components/chatbot/markdown-renderer";
+import { MessageToolbar } from "@/components/chatbot/message-toolbar";
+import { ConversationMenu } from "@/components/chatbot/conversation-menu";
+import {
+  SlashCommands,
+  filterSlashCommands,
+  type SlashCommandDef,
+} from "@/components/chatbot/slash-commands";
 
 // ── Module context detection ─────────────────────────────────��────
 
@@ -490,7 +494,8 @@ interface AIChatbotProps {
 }
 
 export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {}) {
-  const { t } = useTranslation();
+  const { t: _t } = useTranslation();
+  void _t;
   const pathname = usePathname();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
@@ -498,19 +503,30 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
     open,
     messages,
     loading,
+    streaming,
+    searchTerm,
     toggle,
     close,
     addMessage,
+    updateMessage,
+    removeAfter,
     setLoading,
+    setStreaming,
+    setSearchTerm,
     clearHistory,
   } = useChatbotStore();
   const embedded = mode === 'embedded';
   const [input, setInput] = useState("");
   const [showActions, setShowActions] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [slashIndex, setSlashIndex] = useState(0);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const lastQuestionRef = useRef<string>('');
 
   const module = detectModule(pathname || "/");
   const pageContext = getPageContext(pathname || "/");
@@ -577,60 +593,334 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, close]);
 
-  const handleSend = useCallback(
-    async (text?: string) => {
-      const query = (text || input).trim();
-      if (!query || loading) return;
+  /**
+   * Stop génération (Feature 1) — abort le controller SSE/HTTP en cours.
+   */
+  const stopGeneration = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    setStreaming(false);
+    setLoading(false);
+  }, [setLoading, setStreaming]);
 
-      hapticTap();
-      setIsAtBottom(true); // sending a message -> user wants to see the bottom
+  /**
+   * Tente une requête RAG en SSE pour récupérer le queryId + sources.
+   * Renvoie null si SSE indisponible (l'appelant fait alors le fallback local).
+   */
+  const tryRagStream = useCallback(
+    async (
+      question: string,
+      assistantId: string,
+    ): Promise<{ ok: boolean; aborted: boolean }> => {
+      const token =
+        typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(
+        /\/api\/?$/,
+        '/api/v1',
+      );
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-      const userMsg: ChatMessage = {
-        id: `u-${Date.now()}`,
-        role: "user",
-        content: query,
-        timestamp: Date.now(),
-        context: { page: pathname || "/", module },
-      };
-      addMessage(userMsg);
-      setInput("");
-      setLoading(true);
+      let res: Response;
+      try {
+        res = await fetch(`${baseUrl}/rag/ask-stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ question }),
+          signal: controller.signal,
+        });
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return { ok: false, aborted: true };
+        return { ok: false, aborted: false };
+      }
+
+      if (!res.ok || !res.body) return { ok: false, aborted: false };
+
+      setStreaming(true);
+      setLoading(false);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullAnswer = '';
 
       try {
-        const response = await generateResponse(
-          query,
-          module,
-          user?.role || "COLLABORATEUR",
-        );
-        const assistantMsg: ChatMessage = {
-          id: `a-${Date.now()}`,
-          role: "assistant",
-          content:
-            response.content +
-            (response.actions
-              ? "\n\n" +
-                response.actions
-                  .map((a) => `→ [${a.label}](${a.href})`)
-                  .join("\n")
-              : ""),
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const payload = JSON.parse(line.slice(6));
+              if (payload.type === 'token') {
+                fullAnswer += payload.token;
+                updateMessage(assistantId, { content: fullAnswer });
+              } else if (payload.type === 'meta') {
+                updateMessage(assistantId, {
+                  sources: payload.sources ?? [],
+                  queryId: payload.queryId ?? undefined,
+                });
+              }
+            } catch {
+              /* partial JSON */
+            }
+          }
+        }
+        return { ok: true, aborted: false };
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return { ok: false, aborted: true };
+        return { ok: false, aborted: false };
+      } finally {
+        reader.cancel().catch(() => {});
+        setStreaming(false);
+        abortRef.current = null;
+      }
+    },
+    [setStreaming, setLoading, updateMessage],
+  );
+
+  const handleSend = useCallback(
+    async (text?: string, opts: { regenerate?: boolean; replaceId?: string } = {}) => {
+      let query = (text || input).trim();
+      if (!query || loading || streaming) return;
+
+      // Slash command transformation (Feature 6)
+      if (query.startsWith('/')) {
+        const matches = filterSlashCommands(query);
+        if (matches.length > 0) {
+          const transformed = matches[0]!.transform(query);
+          if (transformed) {
+            query = transformed;
+          } else {
+            // /doc sans terme → ne fais rien, garde l'input
+            return;
+          }
+        }
+      }
+
+      hapticTap();
+      setIsAtBottom(true);
+      lastQuestionRef.current = query;
+
+      // Pour une régénération, on ne ré-ajoute pas le message user
+      if (!opts.regenerate) {
+        const userMsg: ChatMessage = {
+          id: `u-${Date.now()}`,
+          role: 'user',
+          content: query,
           timestamp: Date.now(),
-          context: { page: pathname || "/", module },
+          context: { page: pathname || '/', module },
         };
-        addMessage(assistantMsg);
-      } catch {
+        addMessage(userMsg);
+        setInput('');
+      }
+
+      const assistantId = opts.replaceId ?? `a-${Date.now()}`;
+      // Si replaceId : on remplace en place, sinon on ajoute un message vide
+      if (opts.replaceId) {
+        updateMessage(opts.replaceId, {
+          content: '',
+          aborted: false,
+          regenerateCount: (messages.find((m) => m.id === opts.replaceId)?.regenerateCount ?? 0) + 1,
+        });
+      } else {
         addMessage({
-          id: `e-${Date.now()}`,
-          role: "assistant",
-          content:
-            "Désolé, une erreur est survenue. Réessayez dans quelques instants.",
+          id: assistantId,
+          role: 'assistant',
+          content: '',
           timestamp: Date.now(),
+          context: { page: pathname || '/', module },
+        });
+      }
+      setLoading(true);
+
+      // 1. Heuristique locale (intents OMNITECH connus)
+      let local: AssistantResponse | null = null;
+      try {
+        const before = Date.now();
+        local = await generateResponse(query, module, user?.role || 'COLLABORATEUR');
+        // Si la réponse locale est riche (actions ou contenu non générique), on la prend
+        const isRich = !!local.actions?.length || local.content.length > 200;
+        if (isRich || (Date.now() - before) > 500) {
+          const fullContent =
+            local.content +
+            (local.actions
+              ? '\n\n' +
+                local.actions
+                  .map((a) => `→ [${a.label}](${a.href})`)
+                  .join('\n')
+              : '');
+          updateMessage(assistantId, { content: fullContent });
+          setLoading(false);
+          return;
+        }
+      } catch {
+        /* continue vers RAG */
+      }
+
+      // 2. Fallback RAG streaming SSE → fournit queryId + sources
+      const stream = await tryRagStream(query, assistantId);
+      if (stream.aborted) {
+        updateMessage(assistantId, { aborted: true });
+        setLoading(false);
+        setStreaming(false);
+        return;
+      }
+      if (stream.ok) {
+        setLoading(false);
+        return;
+      }
+
+      // 3. Fallback ultime : POST /rag/ask non-streaming
+      try {
+        const { data } = await api.post('/rag/ask', { question: query });
+        if (data?.answer) {
+          updateMessage(assistantId, {
+            content: data.answer,
+            sources: data.sources,
+            queryId: data.queryId,
+          });
+        } else if (local) {
+          // Recolle la heuristique locale s'il n'y a rien de mieux
+          updateMessage(assistantId, {
+            content:
+              local.content +
+              (local.actions
+                ? '\n\n' +
+                  local.actions
+                    .map((a) => `→ [${a.label}](${a.href})`)
+                    .join('\n')
+                : ''),
+          });
+        } else {
+          updateMessage(assistantId, {
+            content:
+              "Je n'ai pas trouvé de réponse précise. Essayez de reformuler ou créez un ticket.",
+          });
+        }
+      } catch {
+        updateMessage(assistantId, {
+          content: 'Désolé, une erreur est survenue. Réessayez dans quelques instants.',
         });
       } finally {
         setLoading(false);
       }
     },
-    [input, loading, pathname, module, user?.role, addMessage, setLoading],
+    [
+      input,
+      loading,
+      streaming,
+      pathname,
+      module,
+      user?.role,
+      addMessage,
+      updateMessage,
+      setLoading,
+      setStreaming,
+      tryRagStream,
+      messages,
+    ],
   );
+
+  /**
+   * Régénère le dernier message assistant (Feature 3).
+   */
+  const handleRegenerateLast = useCallback(() => {
+    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+    if (!lastAssistant) return;
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    if (!lastUser) return;
+    void handleSend(lastUser.content, { regenerate: true, replaceId: lastAssistant.id });
+  }, [messages, handleSend]);
+
+  /**
+   * Édite un message utilisateur (Feature 4) : remplit l'input,
+   * tronque l'historique après ce message, prêt à re-soumettre.
+   */
+  const handleEditMessage = useCallback(
+    (msg: ChatMessage) => {
+      setEditingId(msg.id);
+      setInput(msg.content);
+      // Tronque l'historique APRÈS ce message (le message lui-même reste,
+      // l'utilisateur peut le supprimer ou le ré-envoyer modifié).
+      removeAfter(msg.id);
+      // Au prochain handleSend, on re-soumet — on supprime aussi le message édité
+      // pour le remplacer.
+      setTimeout(() => inputRef.current?.focus(), 50);
+    },
+    [removeAfter],
+  );
+
+  // Wraps handleSend pour traiter le cas "édition" : on supprime le message
+  // d'origine puis on envoie comme nouvelle question.
+  const handleSendOrEdit = useCallback(
+    (text?: string) => {
+      if (editingId) {
+        // Retire le message en cours d'édition (et tout ce qui suit déjà tronqué)
+        const idx = messages.findIndex((m) => m.id === editingId);
+        if (idx !== -1) {
+          // remove this user msg by truncating to idx-1 (ou clean si premier)
+          const prev = messages[idx - 1];
+          if (prev) removeAfter(prev.id);
+          else clearHistory();
+        }
+        setEditingId(null);
+        return handleSend(text);
+      }
+      return handleSend(text);
+    },
+    [editingId, messages, removeAfter, clearHistory, handleSend],
+  );
+
+  // Filtré pour la recherche dans l'historique (Feature 9)
+  const visibleMessages = useMemo(() => {
+    if (!searchTerm.trim()) return messages;
+    const term = searchTerm.toLowerCase();
+    return messages.filter((m) => m.content.toLowerCase().includes(term));
+  }, [messages, searchTerm]);
+
+  // Slash command suggestions visibles ?
+  const slashSuggestions = useMemo(
+    () => (input.startsWith('/') ? filterSlashCommands(input) : []),
+    [input],
+  );
+
+  const pickSlashCommand = useCallback(
+    (cmd: SlashCommandDef) => {
+      // Conserve l'argument si déjà tapé après la commande, sinon insère juste le trigger + espace
+      const parts = input.split(/\s+/);
+      const arg = parts.slice(1).join(' ');
+      const next = arg ? `${cmd.trigger} ${arg}` : `${cmd.trigger} `;
+      setInput(next);
+      inputRef.current?.focus();
+    },
+    [input],
+  );
+
+  /**
+   * Highlight d'un terme dans une chaîne pour la recherche (Feature 9).
+   */
+  function highlightTerm(content: string, term: string): React.ReactNode {
+    if (!term) return content;
+    const parts = content.split(new RegExp(`(${term.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')})`, 'gi'));
+    return parts.map((p, i) =>
+      p.toLowerCase() === term.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-200 dark:bg-yellow-700/50 text-inherit rounded px-0.5">
+          {p}
+        </mark>
+      ) : (
+        <React.Fragment key={i}>{p}</React.Fragment>
+      ),
+    );
+  }
+  void highlightTerm;
 
   const suggestions = getQuickSuggestions(module);
 
@@ -659,19 +949,26 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
               </p>
             </div>
           </div>
-          {messages.length > 0 && (
-            <button
-              onClick={() => {
-                hapticTap();
-                clearHistory();
-              }}
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 hover:text-red-500 transition"
-              title="Effacer l'historique"
-              aria-label="Effacer l'historique"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            <ConversationMenu
+              messages={messages}
+              user={user || undefined}
+              module={moduleLabel(module)}
+            />
+            {messages.length > 0 && (
+              <button
+                onClick={() => {
+                  hapticTap();
+                  clearHistory();
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 hover:text-red-500 transition"
+                title="Effacer l'historique"
+                aria-label="Effacer l'historique"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Messages */}
@@ -703,52 +1000,44 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
             </div>
           )}
 
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
+          {visibleMessages.map((msg) => {
+            const lastAssistantId = [...messages]
+              .reverse()
+              .find((m) => m.role === 'assistant')?.id;
+            return (
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed break-words [overflow-wrap:anywhere] ${
-                  msg.role === 'user'
-                    ? 'bg-[#004469] text-white rounded-br-md'
-                    : 'bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-md'
-                }`}
+                key={msg.id}
+                className={`group flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                {msg.content.split('\n').map((line, i) => {
-                  const linkMatch = line.match(/^→ \[(.+?)\]\((.+?)\)$/);
-                  if (linkMatch) {
-                    return (
-                      <Link
-                        key={i}
-                        href={linkMatch[2]!}
-                        className="flex items-center gap-1.5 mt-1.5 text-xs font-medium text-[#004469] dark:text-blue-400 hover:underline"
-                      >
-                        <ChevronDown className="h-3 w-3 rotate-[-90deg]" />
-                        {linkMatch[1]}
-                      </Link>
-                    );
-                  }
-                  const parts = line.split(/(\*\*[^*]+\*\*)/g);
-                  return (
-                    <p key={i} className={i > 0 ? 'mt-1' : ''}>
-                      {parts.map((part, j) =>
-                        part.startsWith('**') && part.endsWith('**') ? (
-                          <strong key={j} className="font-semibold">
-                            {part.slice(2, -2)}
-                          </strong>
-                        ) : (
-                          <span key={j}>{part}</span>
-                        ),
-                      )}
-                    </p>
-                  );
-                })}
+                <div className="max-w-[85%]">
+                  <div
+                    className={`rounded-2xl px-4 py-3 text-sm leading-relaxed break-words [overflow-wrap:anywhere] ${
+                      msg.role === 'user'
+                        ? 'bg-[#004469] text-white rounded-br-md'
+                        : 'bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-md'
+                    }`}
+                  >
+                    <MarkdownRenderer content={msg.content} dense />
+                    {msg.aborted && (
+                      <p className="mt-2 text-[11px] italic text-amber-600 dark:text-amber-400">
+                        Génération arrêtée
+                      </p>
+                    )}
+                  </div>
+                  <MessageToolbar
+                    role={msg.role}
+                    content={msg.content}
+                    isLastAssistant={msg.id === lastAssistantId}
+                    queryId={msg.queryId}
+                    onRegenerate={handleRegenerateLast}
+                    onEdit={() => handleEditMessage(msg)}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
-          {loading && (
+          {loading && !streaming && (
             <div className="flex justify-start">
               <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
                 <div className="flex items-center gap-1.5">
@@ -763,31 +1052,69 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
         </div>
 
         {/* Input */}
-        <div className="shrink-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2.5">
+        <div className="relative shrink-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2.5">
+          {slashSuggestions.length > 0 && (
+            <SlashCommands input={input} onPick={pickSlashCommand} activeIndex={slashIndex} />
+          )}
           <div className="flex items-center gap-2">
             <input
               ref={inputRef}
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setSlashIndex(0);
+              }}
               onKeyDown={(e) => {
+                if (slashSuggestions.length > 0) {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSlashIndex((i) => (i + 1) % slashSuggestions.length);
+                    return;
+                  }
+                  if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSlashIndex((i) => (i - 1 + slashSuggestions.length) % slashSuggestions.length);
+                    return;
+                  }
+                  if (e.key === 'Tab') {
+                    e.preventDefault();
+                    pickSlashCommand(slashSuggestions[slashIndex]!);
+                    return;
+                  }
+                }
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  handleSend();
+                  if (slashSuggestions.length > 0 && !input.includes(' ')) {
+                    pickSlashCommand(slashSuggestions[slashIndex]!);
+                    return;
+                  }
+                  handleSendOrEdit();
                 }
               }}
-              placeholder={placeholder || 'Décrivez votre problème, je peux peut-être répondre directement.'}
+              placeholder={placeholder || 'Décrivez votre problème… (tapez / pour les commandes)'}
               className="flex-1 min-h-[44px] rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-[#004469] focus:bg-white dark:focus:bg-slate-900 px-3.5 text-sm text-seal-navy dark:text-white placeholder-seal-taupe/50 dark:placeholder-slate-500 focus:outline-none transition"
               disabled={loading}
             />
-            <button
-              onClick={() => handleSend()}
-              disabled={!input.trim() || loading}
-              aria-label="Envoyer le message"
-              className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#004469] text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-[#003352] active:scale-95 transition shrink-0"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+            {(loading || streaming) ? (
+              <button
+                onClick={stopGeneration}
+                aria-label="Arrêter la génération"
+                title="Arrêter (⏹)"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-500 text-white hover:bg-red-600 active:scale-95 transition shrink-0"
+              >
+                <Square className="h-4 w-4 fill-current" />
+              </button>
+            ) : (
+              <button
+                onClick={() => handleSendOrEdit()}
+                disabled={!input.trim()}
+                aria-label="Envoyer le message"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#004469] text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-[#003352] active:scale-95 transition shrink-0"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -862,6 +1189,24 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {messages.length > 0 && (
+              <button
+                onClick={() => {
+                  hapticTap();
+                  setShowSearch((s) => !s);
+                }}
+                className={`flex h-11 w-11 lg:h-8 lg:w-8 items-center justify-center rounded-lg transition active:scale-95 touch-manipulation ${showSearch ? 'bg-[#004469]/10 text-[#004469] dark:bg-blue-900/30 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500'}`}
+                title="Rechercher dans l'historique"
+                aria-label="Rechercher dans l'historique"
+              >
+                <SearchIcon className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
+              </button>
+            )}
+            <ConversationMenu
+              messages={messages}
+              user={user || undefined}
+              module={moduleLabel(module)}
+            />
             <button
               onClick={() => {
                 hapticTap();
@@ -895,6 +1240,28 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
             </button>
           </div>
         </div>
+
+        {/* Search bar (Feature 9) */}
+        {showSearch && (
+          <div className="shrink-0 border-b border-gray-100 dark:border-slate-800 px-4 py-2 bg-gray-50/50 dark:bg-slate-800/50">
+            <div className="relative">
+              <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-seal-gray-500" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Rechercher dans la conversation…"
+                className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-8 pr-3 py-1.5 text-xs text-seal-navy dark:text-white placeholder-seal-gray-400 focus:outline-none focus:border-[#004469]"
+                aria-label="Rechercher dans l'historique"
+              />
+            </div>
+            {searchTerm && (
+              <p className="mt-1 text-[10px] text-seal-gray-500">
+                {visibleMessages.length} résultat{visibleMessages.length !== 1 ? 's' : ''} sur {messages.length} message{messages.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Context Actions Panel */}
         {showActions && contextActions.length > 0 && (
@@ -975,64 +1342,50 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
             </div>
           )}
 
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
+          {visibleMessages.map((msg) => {
+            const lastAssistantId = [...messages]
+              .reverse()
+              .find((m) => m.role === 'assistant')?.id;
+            return (
               <div
-                className={`max-w-[85%] sm:max-w-[75%] lg:max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed break-words [overflow-wrap:anywhere] ${
-                  msg.role === "user"
-                    ? "bg-[#004469] text-white rounded-br-md"
-                    : "bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-md"
-                }`}
+                key={msg.id}
+                className={`group flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                {msg.content.split("\n").map((line, i) => {
-                  // Render action links
-                  const linkMatch = line.match(/^→ \[(.+?)\]\((.+?)\)$/);
-                  if (linkMatch) {
-                    return (
-                      <Link
-                        key={i}
-                        href={linkMatch[2]!}
-                        onClick={() => {
-                          hapticTap();
-                          setTimeout(close, 100);
-                        }}
-                        className="flex items-center gap-1.5 mt-1.5 text-xs font-medium text-[#004469] dark:text-blue-400 hover:underline active:scale-[0.98] touch-manipulation"
-                      >
-                        <ChevronDown className="h-3 w-3 rotate-[-90deg]" />
-                        {linkMatch[1]}
-                      </Link>
-                    );
-                  }
-                  // Bold markdown
-                  const parts = line.split(/(\*\*[^*]+\*\*)/g);
-                  return (
-                    <p key={i} className={i > 0 ? "mt-1" : ""}>
-                      {parts.map((part, j) =>
-                        part.startsWith("**") && part.endsWith("**") ? (
-                          <strong key={j} className="font-semibold">
-                            {part.slice(2, -2)}
-                          </strong>
-                        ) : (
-                          <span key={j}>{part}</span>
-                        ),
-                      )}
+                <div className="max-w-[85%] sm:max-w-[75%] lg:max-w-[80%]">
+                  <div
+                    className={`rounded-2xl px-4 py-3 text-sm leading-relaxed break-words [overflow-wrap:anywhere] ${
+                      msg.role === 'user'
+                        ? 'bg-[#004469] text-white rounded-br-md'
+                        : 'bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-md'
+                    }`}
+                  >
+                    <MarkdownRenderer content={msg.content} dense />
+                    {msg.aborted && (
+                      <p className="mt-2 text-[11px] italic text-amber-200 dark:text-amber-400">
+                        Génération arrêtée
+                      </p>
+                    )}
+                    <p className="mt-1.5 text-[11px] opacity-60">
+                      {new Date(msg.timestamp).toLocaleTimeString('fr-FR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </p>
-                  );
-                })}
-                <p className="mt-1.5 text-[11px] opacity-60">
-                  {new Date(msg.timestamp).toLocaleTimeString("fr-FR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
+                  </div>
+                  <MessageToolbar
+                    role={msg.role}
+                    content={msg.content}
+                    isLastAssistant={msg.id === lastAssistantId}
+                    queryId={msg.queryId}
+                    onRegenerate={handleRegenerateLast}
+                    onEdit={() => handleEditMessage(msg)}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
-          {loading && (
+          {loading && !streaming && (
             <div className="flex justify-start">
               <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
                 <div className="flex items-center gap-1.5">
@@ -1074,35 +1427,96 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
         )}
 
         {/* Input — sticky bottom with safe-area inset */}
-        <div className="shrink-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+0.625rem)] lg:pb-2.5">
+        <div className="relative shrink-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+0.625rem)] lg:pb-2.5">
+          {slashSuggestions.length > 0 && (
+            <SlashCommands
+              input={input}
+              onPick={pickSlashCommand}
+              activeIndex={slashIndex}
+            />
+          )}
+          {editingId && (
+            <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
+              <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                Édition d&apos;un message — l&apos;envoi remplacera l&apos;ancien.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingId(null);
+                  setInput('');
+                }}
+                className="text-[10px] text-seal-gray-500 hover:text-seal-navy dark:hover:text-white underline"
+              >
+                Annuler
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <input
               ref={inputRef}
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setSlashIndex(0);
+              }}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                if (slashSuggestions.length > 0) {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSlashIndex((i) => (i + 1) % slashSuggestions.length);
+                    return;
+                  }
+                  if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSlashIndex(
+                      (i) => (i - 1 + slashSuggestions.length) % slashSuggestions.length,
+                    );
+                    return;
+                  }
+                  if (e.key === 'Tab') {
+                    e.preventDefault();
+                    pickSlashCommand(slashSuggestions[slashIndex]!);
+                    return;
+                  }
+                }
+                if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  handleSend();
+                  if (slashSuggestions.length > 0 && !input.includes(' ')) {
+                    pickSlashCommand(slashSuggestions[slashIndex]!);
+                    return;
+                  }
+                  handleSendOrEdit();
                 }
               }}
-              placeholder="Posez une question..."
+              placeholder={editingId ? 'Modifiez le message…' : 'Posez une question (/ pour les commandes)'}
               className="flex-1 min-h-[44px] rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-[#004469] focus:bg-white dark:focus:bg-slate-900 px-3.5 text-base lg:text-sm text-seal-navy dark:text-white placeholder-seal-taupe/50 dark:placeholder-slate-500 focus:outline-none transition touch-manipulation"
               inputMode="text"
               autoComplete="off"
               autoCorrect="on"
               enterKeyHint="send"
-              disabled={loading}
+              disabled={loading && !streaming}
             />
-            <button
-              onClick={() => handleSend()}
-              disabled={!input.trim() || loading}
-              aria-label="Envoyer le message"
-              className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#004469] text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-[#003352] active:scale-95 transition touch-manipulation shrink-0"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+            {(loading || streaming) ? (
+              <button
+                onClick={stopGeneration}
+                aria-label="Arrêter la génération"
+                title="Arrêter (⏹)"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-500 text-white hover:bg-red-600 active:scale-95 transition touch-manipulation shrink-0"
+              >
+                <Square className="h-4 w-4 fill-current" />
+              </button>
+            ) : (
+              <button
+                onClick={() => handleSendOrEdit()}
+                disabled={!input.trim()}
+                aria-label="Envoyer le message"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#004469] text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-[#003352] active:scale-95 transition touch-manipulation shrink-0"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>

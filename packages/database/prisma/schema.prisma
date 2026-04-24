@@ -257,6 +257,8 @@ model User {
   // === Chat Unified (Mission 3 Phase 1) === 2026-04-20
   chatSessions              ChatSession[]            @relation("ChatSessionAuthor")
   chatFeedback              ChatMessageFeedback[]    @relation("ChatFeedbackAuthor")
+  // === Chatbot share links === 2026-04-24 (polish 10 features)
+  chatbotShares             ChatbotShareLink[]       @relation("ChatbotShareOwner")
   // === LDAP Pending Users === 2026-04-14
   ldapPendingProcessed      LdapPendingUser[]        @relation("LdapPendingProcessor")
   // === Certifications de formation === 2026-04-16
@@ -1748,6 +1750,27 @@ model ChatMessageFeedback {
   createdAt DateTime            @default(now())
 
   @@index([rating, createdAt])
+}
+
+// ============================================================
+// Chatbot — partage de conversation (Feature 10, polish 2026-04-24)
+// Crée un lien public éphémère (token UUID) vers une conversation
+// snapshot read-only. Expire automatiquement après N jours (default 7).
+// Aucun PII direct ici, mais on stocke ownerId pour audit ISO A.8.15.
+// ============================================================
+model ChatbotShareLink {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  ownerId   String
+  owner     User     @relation("ChatbotShareOwner", fields: [ownerId], references: [id])
+  payload   Json     // snapshot des messages (role, content, timestamp, sources)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  // Compteur de vues (analytics légère, non-PII)
+  viewCount Int      @default(0)
+
+  @@index([ownerId, createdAt])
+  @@index([expiresAt])
 }
 
 // ============================================================
