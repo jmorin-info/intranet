@@ -75,6 +75,7 @@ import { TicketSpacesModule } from './ticket-spaces/ticket-spaces.module';
 import { TestimonialsModule } from './testimonials/testimonials.module';
 import { MediaModule } from './media/media.module';
 import { SystemMonitoringModule } from './system-monitoring/system-monitoring.module';
+import { TrustModule } from './trust/trust.module';
 
 @Module({
   imports: [
@@ -162,6 +163,7 @@ import { SystemMonitoringModule } from './system-monitoring/system-monitoring.mo
     TestimonialsModule,
     MediaModule,
     SystemMonitoringModule,
+    TrustModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
