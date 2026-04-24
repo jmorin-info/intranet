@@ -122,7 +122,7 @@ function persistDismissedId(id: string) {
 /*  Auto-rotation interval (ms)                                        */
 /* ------------------------------------------------------------------ */
 
-const ROTATION_INTERVAL = 30_000;
+const ROTATION_INTERVAL = 15_000;
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -259,59 +259,62 @@ export function TipBanner({ context, role }: TipBannerProps) {
   return (
     <div
       className={`
-        fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)]
+        fixed bottom-6 right-6 z-50 w-[360px] max-w-[calc(100vw-2rem)]
         transition-all duration-300 ease-out
         ${slideIn ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}
       `}
     >
-      <div className="rounded-xl border border-seal-navy/10 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-        {/* Header bar */}
-        <div className="flex items-center justify-between rounded-t-xl bg-seal-navy px-4 py-2.5 dark:bg-slate-800">
+      <div className="overflow-hidden rounded-xl border border-seal-navy/10 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+        {/* Header bar compact */}
+        <div className="flex items-center justify-between bg-seal-navy px-3 py-1.5 dark:bg-slate-800">
           <div className="flex items-center gap-2">
-            <IconComp className="h-4 w-4 text-orange-400" />
-            <span className="text-xs font-semibold uppercase tracking-wide text-white/80">
+            <IconComp className="h-3.5 w-3.5 text-orange-400" />
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-white/80">
               Astuce {currentIndex + 1}/{tips.length}
             </span>
           </div>
           <button
             onClick={() => handleDismiss(false)}
             className="rounded p-0.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Fermer"
+            aria-label="Fermer l'astuce"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="px-4 py-4">
-          <div className="flex gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-900/20">
-              <IconComp className="h-5 w-5 text-orange-500" />
+        {/* Body compact (1 ligne visuelle) */}
+        <div className="px-3 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-900/20">
+              <IconComp className="h-4 w-4 text-orange-500" />
             </div>
-            <div className="min-w-0">
-              <h4 className="text-sm font-semibold text-seal-navy dark:text-white">{tip.title}</h4>
-              <p className="mt-1 text-xs leading-relaxed text-gray-600 dark:text-slate-400">
+            <div className="min-w-0 flex-1">
+              <h4 className="truncate text-sm font-semibold text-seal-navy dark:text-white">
+                {tip.title}
+              </h4>
+              <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-gray-600 dark:text-slate-400">
                 {tip.body}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Footer actions */}
-        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-2.5 dark:border-slate-700">
+        {/* Footer compact */}
+        <div className="flex items-center justify-between border-t border-gray-100 px-3 py-1.5 dark:border-slate-700">
           <button
             onClick={() => handleDismiss(true)}
-            className="text-xs text-gray-400 transition-colors hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
+            className="text-[11px] text-gray-400 transition-colors hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
           >
             Ne plus afficher
           </button>
           {tips.length > 1 && (
             <button
               onClick={handleNext}
-              className="flex items-center gap-1 rounded-md bg-seal-navy/5 px-3 py-1.5 text-xs font-semibold text-seal-navy transition-colors hover:bg-seal-navy/10 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
+              className="flex items-center gap-1 rounded-md bg-seal-navy/5 px-2 py-1 text-[11px] font-semibold text-seal-navy transition-colors hover:bg-seal-navy/10 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
+              aria-label="Astuce suivante"
             >
               Suivant
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ChevronRight className="h-3 w-3" />
             </button>
           )}
         </div>
