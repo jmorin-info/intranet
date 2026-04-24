@@ -814,6 +814,7 @@ export default function ProfilePage() {
               <button
                 onClick={() => setShowEditModal(false)}
                 title="Fermer"
+                aria-label="Fermer la fenêtre de modification du profil"
                 className="p-1.5 rounded-lg text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <X className="h-4 w-4" />

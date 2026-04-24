@@ -223,7 +223,7 @@ export default function EditDocumentPage() {
         hub="work"
         actions={
           <>
-            <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Retour">
+            <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Revenir au document">
               <ArrowLeft className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
             </button>
             {hasChanges && (

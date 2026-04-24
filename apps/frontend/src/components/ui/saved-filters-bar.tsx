@@ -153,6 +153,7 @@ export function SavedFiltersBar({ module, currentFilters, onApplyFilter }: Saved
           <button
             onClick={() => { setShowPrompt(false); setNewName(''); }}
             className="inline-flex items-center justify-center rounded-full h-6 w-6 text-seal-gray-500 hover:bg-gray-200 dark:hover:bg-slate-600 transition"
+            aria-label="Annuler"
           >
             <X className="h-3.5 w-3.5" />
           </button>

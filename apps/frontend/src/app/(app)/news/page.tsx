@@ -423,7 +423,9 @@ function NewsCard({ post, t, onPin }: { post: NewsPost; t: (key: string) => stri
             {onPin && (
               <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPin(post.id, !post.isPinned); }}
                 className={`ml-auto p-0.5 rounded transition duration-200 ${post.isPinned ? 'text-primary hover:text-primary/70' : 'text-seal-gray-500/30 hover:text-primary'}`}
-                title={post.isPinned ? 'Désépingler' : 'Épingler'}>
+                title={post.isPinned ? 'Désépingler' : 'Épingler'}
+                aria-label={post.isPinned ? `Désépingler "${post.title}"` : `Épingler "${post.title}"`}
+                aria-pressed={!!post.isPinned}>
                 <Pin className="h-3 w-3" />
               </button>
             )}

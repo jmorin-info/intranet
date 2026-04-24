@@ -704,6 +704,7 @@ export default function AdminUsersPage() {
               }}
               className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
               title="Modifier le r\u00f4le"
+              aria-label={`Modifier le r\u00f4le de ${u.firstName} ${u.lastName}`}
             >
               <Shield className="h-3.5 w-3.5" />
             </button>
@@ -714,6 +715,7 @@ export default function AdminUsersPage() {
               }}
               className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
               title="Modifier le d\u00e9partement"
+              aria-label={`Modifier le d\u00e9partement de ${u.firstName} ${u.lastName}`}
             >
               <Building2 className="h-3.5 w-3.5" />
             </button>
@@ -721,6 +723,7 @@ export default function AdminUsersPage() {
               onClick={() => openSpaceAccess(u)}
               className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
               title="G\u00e9rer les acc\u00e8s espaces"
+              aria-label={`G\u00e9rer les acc\u00e8s espaces de ${u.firstName} ${u.lastName}`}
             >
               <Lock className="h-3.5 w-3.5" />
             </button>
@@ -728,6 +731,7 @@ export default function AdminUsersPage() {
               onClick={() => setResetPasswordUser(u)}
               className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
               title="R\u00e9initialiser le mot de passe"
+              aria-label={`R\u00e9initialiser le mot de passe de ${u.firstName} ${u.lastName}`}
             >
               <Key className="h-3.5 w-3.5" />
             </button>
@@ -735,6 +739,7 @@ export default function AdminUsersPage() {
               onClick={() => setResetMfaUser(u)}
               className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white"
               title="R\u00e9initialiser MFA"
+              aria-label={`R\u00e9initialiser le MFA de ${u.firstName} ${u.lastName}`}
             >
               <Smartphone className="h-3.5 w-3.5" />
             </button>
@@ -745,6 +750,11 @@ export default function AdminUsersPage() {
                 u.isActive
                   ? "D\u00e9sactiver le compte"
                   : "R\u00e9activer le compte"
+              }
+              aria-label={
+                u.isActive
+                  ? `D\u00e9sactiver le compte de ${u.firstName} ${u.lastName}`
+                  : `R\u00e9activer le compte de ${u.firstName} ${u.lastName}`
               }
             >
               {u.isActive ? (
@@ -758,6 +768,7 @@ export default function AdminUsersPage() {
                 onClick={() => setDeleteUser(u)}
                 className="rounded-lg p-1.5 text-seal-gray-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600"
                 title="Supprimer d\u00e9finitivement"
+                aria-label={`Supprimer d\u00e9finitivement ${u.firstName} ${u.lastName}`}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>

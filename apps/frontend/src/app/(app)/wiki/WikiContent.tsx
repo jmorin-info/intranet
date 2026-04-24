@@ -1584,6 +1584,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                           )
                         }
                         className="hover:text-red-500 transition-colors"
+                        aria-label={`Retirer ${u.firstName} ${u.lastName}`}
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -1778,6 +1779,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">{t('wiki.contentLabel')}</label>
               <div className="flex items-center gap-2">
                 <button type="button" title={isEditorFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
+                  aria-label={isEditorFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
                   onClick={toggleEditorFullscreen}
                   className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
                 >
@@ -1814,10 +1816,10 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             {/* WYSIWYG toolbar — sticky */}
             <div className="sticky top-0 z-20 flex flex-wrap items-center gap-1 border border-b-0 border-gray-300 dark:border-slate-600 rounded-t-lg p-2 bg-gray-50 dark:bg-slate-800" onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}>
               {/* Undo / Redo */}
-              <button type="button" title="Annuler (Ctrl+Z)" onClick={() => execCmd('undo')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
+              <button type="button" title="Annuler (Ctrl+Z)" aria-label="Annuler (Ctrl+Z)" onClick={() => execCmd('undo')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
                 <Undo2 className="h-3.5 w-3.5" />
               </button>
-              <button type="button" title="Rétablir (Ctrl+Y)" onClick={() => execCmd('redo')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
+              <button type="button" title="Rétablir (Ctrl+Y)" aria-label="Rétablir (Ctrl+Y)" onClick={() => execCmd('redo')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
                 <Redo2 className="h-3.5 w-3.5" />
               </button>
               <div className="w-px h-5 bg-gray-300 dark:bg-slate-600 mx-1" />
@@ -1825,6 +1827,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               {/* Headings */}
               {(['H1', 'H2', 'H3'] as const).map((h) => (
                 <button key={h} type="button" title={`Titre ${h} (Ctrl+Shift+${h[1]})`}
+                  aria-label={`Titre ${h} (Ctrl+Shift+${h[1]})`}
                   onClick={() => execCmd('formatBlock', h)}
                   className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white font-semibold"
                 >{h}</button>
@@ -1842,6 +1845,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               {/* Text color */}
               <div className="relative">
                 <button type="button" title="Couleur du texte"
+                  aria-label="Couleur du texte"
                   onClick={() => { setShowColorPicker((v) => !v); setShowHighlightPicker(false); setShowTableInsert(false); }}
                   className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white flex items-center gap-0.5"
                 >
@@ -1883,17 +1887,17 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               <div className="w-px h-5 bg-gray-300 dark:bg-slate-600 mx-1" />
 
               {/* Lists */}
-              <button type="button" title="Liste à puces" onClick={() => execCmd('insertUnorderedList')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white font-semibold">{'\u2022'}</button>
+              <button type="button" title="Liste à puces" aria-label="Liste à puces" onClick={() => execCmd('insertUnorderedList')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white font-semibold">{'\u2022'}</button>
               <button type="button" title="Liste numérotée" onClick={() => execCmd('insertOrderedList')} className="px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white font-semibold">1.</button>
               <div className="w-px h-5 bg-gray-300 dark:bg-slate-600 mx-1" />
 
               {/* Blockquote */}
-              <button type="button" title="Citation" onClick={() => execCmd('formatBlock', 'BLOCKQUOTE')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
+              <button type="button" title="Citation" aria-label="Citation" onClick={() => execCmd('formatBlock', 'BLOCKQUOTE')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
                 <Quote className="h-3.5 w-3.5" />
               </button>
 
               {/* Code inline */}
-              <button type="button" title="Code inline"
+              <button type="button" title="Code inline" aria-label="Code inline"
                 onClick={() => {
                   const sel = window.getSelection();
                   const text = sel?.toString() || 'code';
@@ -1905,7 +1909,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               </button>
 
               {/* Code block */}
-              <button type="button" title="Bloc de code"
+              <button type="button" title="Bloc de code" aria-label="Bloc de code"
                 onClick={() => {
                   const sel = window.getSelection();
                   const text = sel?.toString() || '// code';
@@ -1918,7 +1922,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               <div className="w-px h-5 bg-gray-300 dark:bg-slate-600 mx-1" />
 
               {/* Link */}
-              <button type="button" title="Ajouter un lien (Ctrl+K)"
+              <button type="button" title="Ajouter un lien (Ctrl+K)" aria-label="Ajouter un lien (Ctrl+K)"
                 onClick={() => { saveSelection(); setLinkUrl(''); setLinkText(''); setShowLinkDialog(true); }}
                 className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white flex items-center gap-1"
               >
@@ -1926,7 +1930,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               </button>
 
               {/* Image */}
-              <button type="button" title="Ajouter une image"
+              <button type="button" title="Ajouter une image" aria-label="Ajouter une image"
                 onClick={() => { saveSelection(); setImgUrl(''); setImgAlt(''); setShowImageDialog(true); }}
                 className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white flex items-center gap-1"
               >
@@ -1935,7 +1939,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
 
               {/* Table */}
               <div className="relative">
-                <button type="button" title="Insérer un tableau"
+                <button type="button" title="Insérer un tableau" aria-label="Insérer un tableau"
                   onClick={() => { setShowTableInsert((v) => !v); setShowColorPicker(false); setShowHighlightPicker(false); }}
                   className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
                 >
@@ -1959,13 +1963,14 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               </div>
 
               {/* Horizontal rule */}
-              <button type="button" title="Séparateur horizontal" onClick={() => execCmd('insertHorizontalRule')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
+              <button type="button" title="Séparateur horizontal" aria-label="Séparateur horizontal" onClick={() => execCmd('insertHorizontalRule')} className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white">
                 <Minus className="h-3.5 w-3.5" />
               </button>
               <div className="w-px h-5 bg-gray-300 dark:bg-slate-600 mx-1" />
 
               {/* Fullscreen */}
               <button type="button" title={isEditorFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
+                aria-label={isEditorFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
                 onClick={toggleEditorFullscreen}
                 className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white ml-auto"
               >
@@ -2837,6 +2842,8 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                 : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
             }`}
             title="Vue grille"
+            aria-label="Vue grille"
+            aria-pressed={listViewMode === 'grid'}
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
@@ -2848,6 +2855,8 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                 : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
             }`}
             title="Vue par catégorie"
+            aria-label="Vue par catégorie"
+            aria-pressed={listViewMode === 'category'}
           >
             <FolderOpen className="h-4 w-4" />
           </button>

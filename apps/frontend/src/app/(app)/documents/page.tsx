@@ -1178,6 +1178,7 @@ function DocumentsContent() {
             type="button"
             onClick={() => setShowShortcutsHelp(s => !s)}
             title="Raccourcis clavier (?)"
+            aria-label="Afficher les raccourcis clavier"
             className="rounded p-1.5 text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition"
           >
             <Keyboard className="h-3.5 w-3.5" />
