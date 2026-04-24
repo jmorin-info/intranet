@@ -38,10 +38,14 @@ export class AccessReviewsService {
    */
   private readonly INACTIVE_THRESHOLD_DAYS = 90;
   /**
-   * Seuil de rotation des mots de passe (en mois) — utilise `createdAt`
-   * comme fallback tant que `passwordChangedAt` n'existe pas sur User.
+   * Seuil de rotation des mots de passe (en mois). Lu depuis
+   * `process.env.PASSWORD_ROTATION_MONTHS`, fallback à 6 mois si non défini
+   * ou invalide.
    */
-  private readonly PASSWORD_ROTATION_MONTHS = 6;
+  private readonly PASSWORD_ROTATION_MONTHS = (() => {
+    const raw = parseInt(process.env.PASSWORD_ROTATION_MONTHS || '', 10);
+    return Number.isFinite(raw) && raw > 0 ? raw : 6;
+  })();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -105,7 +109,7 @@ export class AccessReviewsService {
    * Creates one AccessReview row per in-scope active user for this campaign.
    * Le type de campagne pilote le filtrage :
    *  - ACCESS_RIGHTS : tous les users actifs hors PRESTATAIRE
-   *  - PASSWORDS     : users actifs dont createdAt > PASSWORD_ROTATION_MONTHS OU MFA désactivé
+   *  - PASSWORDS     : users actifs dont passwordChangedAt > PASSWORD_ROTATION_MONTHS (ou null) OU MFA désactivé
    *  - INACTIVE_USERS: users actifs dont lastLoginAt ≥ INACTIVE_THRESHOLD_DAYS (ou jamais connectés)
    */
   async generateReviews(campaignId: string) {
@@ -135,10 +139,11 @@ export class AccessReviewsService {
     } else if (type === 'PASSWORDS') {
       const threshold = new Date();
       threshold.setMonth(threshold.getMonth() - this.PASSWORD_ROTATION_MONTHS);
-      // Fallback : on cible users créés il y a plus de N mois OU sans MFA activée
-      // (faute de champ `passwordChangedAt` sur User).
+      // Cible : mot de passe non renouvelé depuis > N mois (passwordChangedAt
+      // < seuil ou null = legacy non encore backfillé) OU MFA désactivée.
       where.OR = [
-        { createdAt: { lt: threshold } },
+        { passwordChangedAt: { lt: threshold } },
+        { passwordChangedAt: null },
         { mfaEnabled: false },
       ];
     }
@@ -212,7 +217,7 @@ export class AccessReviewsService {
         `Revue mots de passe — ${new Date().toISOString().slice(0, 10)}`,
       description:
         overrides?.description ||
-        `Revue automatique des mots de passe : utilisateurs créés depuis plus de ${this.PASSWORD_ROTATION_MONTHS} mois ou sans MFA activée.`,
+        `Revue automatique des mots de passe : dernier changement (passwordChangedAt) > ${this.PASSWORD_ROTATION_MONTHS} mois, ou MFA désactivée.`,
       type: AccessReviewCampaignTypeDto.PASSWORDS,
       dueDate,
       scopeDepartmentId: overrides?.scopeDepartmentId,
@@ -250,14 +255,20 @@ export class AccessReviewsService {
   /**
    * Cron mensuel — 1er du mois à 3h du matin.
    * Crée automatiquement une campagne INACTIVE_USERS si aucune active n'existe
-   * pour ce type. Désactivable via ACCESS_REVIEW_AUTO_INACTIVE=false.
+   * pour ce type. Activable explicitement via `ACCESS_REVIEW_AUTO_INACTIVE=true`
+   * (par défaut désactivé pour ne rien créer en silence en prod).
+   *
+   * Audit : enregistre un évènement `ACCESS_REVIEW_AUTO_INACTIVE_CREATED`
+   * (resource = AccessReviewCampaign) à chaque création.
    */
   @Cron('0 3 1 * *')
   async autoInactiveCampaignCron() {
     const enabled =
-      (process.env.ACCESS_REVIEW_AUTO_INACTIVE || 'true').toLowerCase() !== 'false';
+      (process.env.ACCESS_REVIEW_AUTO_INACTIVE || '').toLowerCase() === 'true';
     if (!enabled) {
-      this.logger.log('Cron auto-inactive désactivé par ACCESS_REVIEW_AUTO_INACTIVE=false');
+      this.logger.debug(
+        'Cron auto-inactive : désactivé (ACCESS_REVIEW_AUTO_INACTIVE != "true")',
+      );
       return;
     }
 
@@ -295,6 +306,20 @@ export class AccessReviewsService {
       this.logger.log(
         `Cron auto-inactive : campagne créée (${result.id}) avec ${result.reviewsCount} revues.`,
       );
+      await this.audit.log({
+        userId: systemAdmin.id,
+        action: 'ACCESS_REVIEW_AUTO_INACTIVE_CREATED',
+        resourceType: 'AccessReviewCampaign',
+        resourceId: result.id,
+        metadata: {
+          name: result.name,
+          dueDate: result.dueDate,
+          reviewsCount: result.reviewsCount,
+          inactiveThresholdDays: this.INACTIVE_THRESHOLD_DAYS,
+          source: 'cron:0 3 1 * *',
+        },
+        severity: 'WARN',
+      });
     } catch (err) {
       this.logger.error('Cron auto-inactive : erreur', err as Error);
     }
@@ -368,6 +393,7 @@ export class AccessReviewsService {
             lastLoginAt: true,
             mfaEnabled: true,
             createdAt: true,
+            passwordChangedAt: true,
             department: { select: { id: true, name: true, code: true } },
           },
         })
@@ -436,6 +462,7 @@ export class AccessReviewsService {
             lastLoginAt: true,
             mfaEnabled: true,
             createdAt: true,
+            passwordChangedAt: true,
             department: { select: { id: true, name: true, code: true } },
           },
         })
