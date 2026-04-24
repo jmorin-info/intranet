@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Post, Res, UseGuards, ParseUUIDPipe, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Res, UseGuards, ParseUUIDPipe, BadRequestException, NotFoundException, GoneException } from '@nestjs/common';
 import { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
+import { randomBytes } from 'node:crypto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../common/enums';
 import { RequestUser } from '../common/interfaces';
@@ -221,5 +223,96 @@ export class RagController {
     });
 
     return { success: true, id: updated.id, rating: updated.rating };
+  }
+
+  /**
+   * Feature 10 — Crée un lien public éphémère vers une conversation snapshot.
+   * Le client envoie le tableau de messages (role/content/timestamp/sources).
+   * On stocke dans `ChatbotShareLink` avec un token aléatoire et expire 7 jours.
+   *
+   * Retour : `{ token, url, expiresAt }` — l'URL pointe vers le frontend
+   * (/share/conversation/:token) qui consommera GET /rag/conversations/share/:token.
+   */
+  @Post('conversations/share')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async createShareLink(
+    @Body()
+    body: {
+      messages: Array<{
+        role: 'user' | 'assistant';
+        content: string;
+        timestamp?: number;
+        sources?: unknown;
+      }>;
+      ttlDays?: number;
+    },
+    @CurrentUser() user: RequestUser,
+  ) {
+    const messages = Array.isArray(body?.messages) ? body.messages : [];
+    if (messages.length === 0) {
+      throw new BadRequestException('messages must be a non-empty array');
+    }
+    if (messages.length > 100) {
+      throw new BadRequestException('cannot share more than 100 messages');
+    }
+    // Garde-fou taille payload
+    const totalChars = messages.reduce((acc, m) => acc + (m.content?.length ?? 0), 0);
+    if (totalChars > 200_000) {
+      throw new BadRequestException('conversation too large to share');
+    }
+
+    const ttlDays = Math.min(Math.max(1, body.ttlDays ?? 7), 30);
+    const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+    const token = randomBytes(24).toString('hex');
+
+    const created = await (this.prisma as any).chatbotShareLink.create({
+      data: {
+        token,
+        ownerId: user.id,
+        payload: messages as any,
+        expiresAt,
+      },
+    });
+
+    // L'URL frontend est construite côté client à partir du token retourné ;
+    // on expose une URL relative pour rester portable (dev/prod, plusieurs hostnames).
+    const url = `/share/conversation/${created.token}`;
+    return {
+      token: created.token,
+      url,
+      expiresAt: created.expiresAt.toISOString(),
+    };
+  }
+
+  /**
+   * Feature 10 — Lecture d'une conversation partagée (read-only, public).
+   * Pas d'authentification requise. Refuse si expiré.
+   */
+  @Get('conversations/share/:token')
+  @Public()
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  async getShareLink(@Param('token') token: string) {
+    if (!token || token.length < 16) {
+      throw new BadRequestException('invalid token');
+    }
+    const link = await (this.prisma as any).chatbotShareLink.findUnique({
+      where: { token },
+    });
+    if (!link) throw new NotFoundException('share link not found');
+    if (link.expiresAt < new Date()) {
+      throw new GoneException('share link expired');
+    }
+    // Compteur de vues (best-effort, non bloquant)
+    void (this.prisma as any).chatbotShareLink
+      .update({ where: { id: link.id }, data: { viewCount: { increment: 1 } } })
+      .catch(() => undefined);
+
+    return {
+      token: link.token,
+      messages: link.payload,
+      createdAt: link.createdAt.toISOString(),
+      expiresAt: link.expiresAt.toISOString(),
+      viewCount: link.viewCount + 1,
+    };
   }
 }
