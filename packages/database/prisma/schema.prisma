@@ -175,6 +175,10 @@ model User {
   notificationPreferences Json?
   // UI language preference (persisted so it follows the user across devices). Fallback: 'fr'.
   locale            String?   @default("fr")
+  // Tracks the most recent password change (admin reset, self-change, token reset).
+  // Used by AccessReviewsService (PASSWORDS campaigns) to detect stale credentials.
+  // Nullable: backfilled to createdAt for existing rows via the 20260424 migration.
+  passwordChangedAt DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 

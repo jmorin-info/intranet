@@ -348,10 +348,11 @@ export class AuthService {
     // Hash new password
     const passwordHash = await bcrypt.hash(newPassword, 12);
 
-    // Update password
+    // Update password — track rotation timestamp for AccessReview PASSWORDS campaigns
+    // (ISO 27001 A.5.17 / A.5.18).
     await this.prisma.user.update({
       where: { id: storedToken.userId },
-      data: { passwordHash },
+      data: { passwordHash, passwordChangedAt: new Date() },
     });
 
     // Revoke the reset token

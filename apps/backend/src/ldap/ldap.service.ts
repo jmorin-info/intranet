@@ -592,6 +592,9 @@ export class LdapService {
           firstName,
           lastName,
           passwordHash: hash,
+          // LDAP : auth externe — on initialise tout de meme passwordChangedAt
+          // pour eviter les faux positifs dans les campagnes PASSWORDS.
+          passwordChangedAt: new Date(),
           role: role as any,
           isActive: true,
           lastLoginAt: new Date(),
@@ -671,6 +674,9 @@ export class LdapService {
         firstName: pending.firstName,
         lastName: pending.lastName,
         passwordHash: hash,
+        // LDAP : auth externe — initialise passwordChangedAt pour cohérence
+        // avec les campagnes PASSWORDS de la revue d'accès.
+        passwordChangedAt: new Date(),
         role: params.role as any,
         isActive: true,
         lastLoginAt: null,

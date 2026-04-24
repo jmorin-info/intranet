@@ -203,6 +203,9 @@ export class CsvImportService {
             lastName: row.lastName,
             role: row.role,
             passwordHash,
+            // Initialise le suivi de rotation MDP des l'import
+            // (ISO 27001 A.5.17 — campagnes AccessReview PASSWORDS).
+            passwordChangedAt: new Date(),
             isActive: true,
             gdprConsentAt: new Date(),
             departmentId,

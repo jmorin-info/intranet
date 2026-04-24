@@ -40,6 +40,9 @@ export class ExternalAccessService {
         firstName: data.firstName,
         lastName: data.lastName,
         passwordHash,
+        // Initialise passwordChangedAt pour le suivi des rotations
+        // (ISO 27001 A.5.17 — campagnes AccessReview PASSWORDS).
+        passwordChangedAt: new Date(),
         role: 'PRESTATAIRE',
         isActive: true,
         gdprConsentAt: new Date(),

@@ -215,6 +215,9 @@ export class UsersService {
       data: {
         email: dto.email,
         passwordHash,
+        // Initialise le suivi de rotation MDP des la creation du compte
+        // (ISO 27001 A.5.17 — utilise par les campagnes AccessReview PASSWORDS).
+        passwordChangedAt: new Date(),
         firstName: dto.firstName,
         lastName: dto.lastName,
         role: dto.role,
@@ -340,7 +343,7 @@ export class UsersService {
 
     await this.prisma.user.update({
       where: { id },
-      data: { passwordHash },
+      data: { passwordHash, passwordChangedAt: new Date() },
     });
 
     await this.audit.log({
@@ -383,7 +386,7 @@ export class UsersService {
 
     await this.prisma.user.update({
       where: { id: userId },
-      data: { passwordHash },
+      data: { passwordHash, passwordChangedAt: new Date() },
     });
 
     // Revoke ALL existing refresh tokens (force re-login on all other sessions).
