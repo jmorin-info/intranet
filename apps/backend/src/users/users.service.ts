@@ -9,6 +9,7 @@ import {
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
+import { HibpService } from "../auth/hibp.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { PaginationParams, PaginatedResult } from "../common/interfaces";
@@ -22,6 +23,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly hibp: HibpService,
   ) {}
 
   /**
@@ -209,6 +211,10 @@ export class UsersService {
       throw new ConflictException("Email already in use");
     }
 
+    // ANSSI R20 — Vérification HIBP (k-anonymity, ne fuite pas le mot de passe).
+    // Rejet au-delà du seuil configuré (HIBP_THRESHOLD, défaut 100).
+    await this.hibp.assertPasswordNotPwned(dto.password);
+
     const passwordHash = await bcrypt.hash(dto.password, this.BCRYPT_ROUNDS);
 
     const user = await this.prisma.user.create({
@@ -339,6 +345,9 @@ export class UsersService {
 
     this.validatePasswordPolicy(newPassword);
 
+    // ANSSI R20 — Vérification HIBP même pour les resets admin.
+    await this.hibp.assertPasswordNotPwned(newPassword);
+
     const passwordHash = await bcrypt.hash(newPassword, this.BCRYPT_ROUNDS);
 
     await this.prisma.user.update({
@@ -381,6 +390,9 @@ export class UsersService {
     }
 
     this.validatePasswordPolicy(newPassword);
+
+    // ANSSI R20 — vérifier que le nouveau MDP n'est pas dans une fuite connue.
+    await this.hibp.assertPasswordNotPwned(newPassword);
 
     const passwordHash = await bcrypt.hash(newPassword, this.BCRYPT_ROUNDS);
 

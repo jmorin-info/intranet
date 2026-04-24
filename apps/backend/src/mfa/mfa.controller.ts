@@ -12,6 +12,7 @@ import { Throttle } from "@nestjs/throttler";
 import { Request } from "express";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
+import { UserThrottlerGuard } from "../auth/guards/user-throttler.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { MfaService } from "./mfa.service";
@@ -29,6 +30,7 @@ export class MfaController {
   ) {}
 
   @Post("setup")
+  @UseGuards(UserThrottlerGuard)
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   setup(@CurrentUser() user: RequestUser, @Req() req: Request) {
     return this.mfaService.setupMfa(user.id, this.getCtx(req));
@@ -55,7 +57,8 @@ export class MfaController {
    * pour empêcher qu'une session volée sauve la 2FA sans challenge.
    */
   @Post("disable/me")
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   disableOwn(
     @CurrentUser() user: RequestUser,
     @Body() body: DisableMfaDto,
@@ -89,6 +92,8 @@ export class MfaController {
   }
 
   @Post("backup-codes")
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   async generateBackupCodes(
     @CurrentUser() user: RequestUser,
     @Req() req: Request,

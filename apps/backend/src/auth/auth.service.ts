@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { LdapService } from '../ldap/ldap.service';
 import { AuditService } from '../audit/audit.service';
+import { HibpService } from './hibp.service';
 import { JwtPayload } from '../common/interfaces';
 import { UserRole } from '../common/enums';
 
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly ldapService: LdapService,
     private readonly auditService: AuditService,
+    private readonly hibpService: HibpService,
   ) {}
 
   /**
@@ -344,6 +346,9 @@ export class AuthService {
     if (policyErrors.length > 0) {
       throw new BadRequestException(`Mot de passe non conforme : ${policyErrors.join(', ')}`);
     }
+
+    // ANSSI R20 — Vérification HIBP (k-anonymity, ne fuite pas le mot de passe).
+    await this.hibpService.assertPasswordNotPwned(newPassword);
 
     // Hash new password
     const passwordHash = await bcrypt.hash(newPassword, 12);

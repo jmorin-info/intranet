@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { LdapService } from '../ldap/ldap.service';
 import { AuditService } from '../audit/audit.service';
+import { HibpService } from './hibp.service';
 import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '../common/enums';
@@ -74,6 +75,13 @@ describe('AuthService', () => {
         {
           provide: AuditService,
           useValue: { log: jest.fn().mockResolvedValue(undefined) },
+        },
+        {
+          provide: HibpService,
+          useValue: {
+            isPasswordPwned: jest.fn().mockResolvedValue({ pwned: false, count: 0 }),
+            assertPasswordNotPwned: jest.fn().mockResolvedValue(undefined),
+          },
         },
       ],
     }).compile();
