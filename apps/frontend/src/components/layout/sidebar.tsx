@@ -579,6 +579,7 @@ export function Sidebar() {
         { label: t('nav.config'), href: '/admin/config', icon: Settings, minRole: UserRole.SUPER_ADMIN },
         { label: 'Espaces & modules', href: '/admin/spaces', icon: Layers, minRole: UserRole.SUPER_ADMIN },
         { label: 'Sauvegardes', href: '/admin/backups', icon: Database, minRole: UserRole.SUPER_ADMIN },
+        { label: 'PCA / Continuité', href: '/admin/pca', icon: ShieldCheck, minRole: UserRole.SUPER_ADMIN },
         // { label: 'Extranet', href: '/extranet', icon: Globe2, minRole: UserRole.ADMIN },
       ],
     },
