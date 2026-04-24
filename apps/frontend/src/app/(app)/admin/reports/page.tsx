@@ -21,6 +21,7 @@ import {
   Table2,
 } from "lucide-react";
 import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
+import { PageHeader } from "@/components/layout/page-header";
 
 interface ReportConfig {
   id: string;
@@ -228,14 +229,12 @@ export default function AdminReportsPage() {
   return (
     <div className="space-y-6">
       <AdminGroupTabs group="audit" />
-      <div className="animate-fade-in-up">
-        <h1 className="text-2xl font-medium text-seal-navy dark:text-white">
-          {t("reports.title")}
-        </h1>
-        <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-          {t("reports.subtitle")}
-        </p>
-      </div>
+      <PageHeader
+        title={t("reports.title")}
+        subtitle={t("reports.subtitle")}
+        icon={BarChart3}
+        hub="admin"
+      />
 
       {/* Dashboard quick stats */}
       {statsLoading ? (

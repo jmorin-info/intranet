@@ -17,7 +17,8 @@ import {
   Skeleton,
   ConfirmDialog,
 } from '@omnitech/ui';
-import { ArrowLeft, Save, X, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, X, Trash2, Newspaper } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
 
 const newsSchema = z.object({
   title: z.string().min(3, 'Titre requis'),
@@ -127,18 +128,22 @@ export default function EditNewsPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800">
-          <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Modifier l&apos;article</h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">Éditez le contenu et les métadonnées</p>
-        </div>
-        <Button variant="outline" onClick={() => setShowDeleteConfirm(true)} loading={deleting} className="text-red-600 border-red-200 hover:bg-red-50">
-          <Trash2 className="h-4 w-4" /> Supprimer
-        </Button>
-      </div>
+      <PageHeader
+        title="Modifier l'article"
+        subtitle="Éditez le contenu et les métadonnées"
+        icon={Newspaper}
+        hub="work"
+        actions={
+          <>
+            <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Retour">
+              <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
+            </button>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(true)} loading={deleting} className="text-red-600 border-red-200 hover:bg-red-50">
+              <Trash2 className="h-4 w-4" /> Supprimer
+            </Button>
+          </>
+        }
+      />
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>

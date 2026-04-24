@@ -23,6 +23,7 @@ import {
   IsoControlBadge,
 } from '@omnitech/ui';
 import { ArrowLeft, Save, X, Sparkles, FileText, FileSpreadsheet, File, FilePlus, ShieldCheck, BookOpen, LifeBuoy, ClipboardList, BookMarked, HelpCircle, AlertTriangle } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
 
 function Tooltip({ text }: { text: string }) {
   return (
@@ -424,18 +425,21 @@ export default function NewDocumentPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => router.back()}
-          className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('documents.new.title')}</h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{t('documents.new.subtitle')}</p>
-        </div>
-      </div>
+      <PageHeader
+        title={t('documents.new.title')}
+        subtitle={t('documents.new.subtitle')}
+        icon={FilePlus}
+        hub="work"
+        actions={
+          <button
+            onClick={() => router.back()}
+            className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+            aria-label="Retour"
+          >
+            <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
+          </button>
+        }
+      />
 
       {/* Wizard stepper */}
       <Card>

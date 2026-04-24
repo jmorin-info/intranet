@@ -48,9 +48,10 @@ import {
   PenLine, ShieldCheck, Ticket, Rss, Clock, Settings, Activity, ClipboardList,
   UserCircle, ShieldAlert, Newspaper, X, Sparkles, BookOpen, Bell,
   Star, Brain, MessageSquare, ScrollText, Lightbulb, Trophy, RefreshCw,
-  Workflow, UserPlus, TrendingUp, TrendingDown, Minus,
+  Workflow, UserPlus, TrendingUp, TrendingDown, Minus, Briefcase,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { PageHeader } from '@/components/layout/page-header';
 import { getBookmarks, type BookmarkItem } from '@/components/bookmark-button';
 import { features } from '@/lib/features';
 
@@ -193,14 +194,12 @@ function PrestataireDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Espace Prestataire — Tableau de bord</h1>
-        {data?.access && (
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            {data.access.companyName} — Contrat {data.access.contractRef}
-          </p>
-        )}
-      </div>
+      <PageHeader
+        title="Espace Prestataire — Tableau de bord"
+        subtitle={data?.access ? `${data.access.companyName} — Contrat ${data.access.contractRef}` : undefined}
+        icon={Briefcase}
+        hub="monEspace"
+      />
 
       {data?.access?.accessExpiresAt && (
         <Card className="border-l-4 border-l-amber-400">

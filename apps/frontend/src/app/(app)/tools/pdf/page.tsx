@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { Card, CardContent, Button } from '@omnitech/ui';
 import { useTranslation } from '@/lib/i18n';
+import { PageHeader } from '@/components/layout/page-header';
 import {
   FileText, ExternalLink, RefreshCw, AlertTriangle, CheckCircle2,
   Maximize2, Minimize2, Loader2, XCircle, Download, Copy,
@@ -274,45 +275,41 @@ export default function StirlingPdfPage() {
   }, [fullscreen]);
 
   const renderHeader = () => (
-    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
-            <FileText className="h-6 w-6 text-primary" />
-            Outils PDF
-          </h1>
+    <PageHeader
+      title="Outils PDF"
+      subtitle="Suite complète d'outils PDF : fusionner, diviser, OCR, compresser, filigraner, signer, convertir, nettoyer — le tout sans quitter l'intranet."
+      icon={FileText}
+      hub="work"
+      actions={
+        <>
           {status && (
             <StatusPill status={status} loading={loading} onRefresh={fetchStatus} />
           )}
-        </div>
-        <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-          Suite complète d&apos;outils PDF : fusionner, diviser, OCR, compresser, filigraner,
-          signer, convertir, nettoyer — le tout sans quitter l&apos;intranet.
-        </p>
-      </div>
-      {status?.ok && (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setFullscreen((f) => !f)}
-            title={fullscreen ? 'Quitter le plein écran (Esc)' : 'Plein écran'}
-          >
-            {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-            {fullscreen ? 'Réduire' : 'Plein écran'}
-          </Button>
-          <a
-            href={status.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline px-3 py-2"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            Ouvrir dans un nouvel onglet
-          </a>
-        </div>
-      )}
-    </div>
+          {status?.ok && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFullscreen((f) => !f)}
+                title={fullscreen ? 'Quitter le plein écran (Esc)' : 'Plein écran'}
+              >
+                {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                {fullscreen ? 'Réduire' : 'Plein écran'}
+              </Button>
+              <a
+                href={status.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline px-3 py-2"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Ouvrir dans un nouvel onglet
+              </a>
+            </>
+          )}
+        </>
+      }
+    />
   );
 
   const renderToolbar = () => {

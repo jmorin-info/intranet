@@ -7,6 +7,7 @@ import { Card, CardContent, Button, Badge, Skeleton } from '@omnitech/ui';
 import { Layers, Save, RefreshCw, Lock, Check, X } from 'lucide-react';
 import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
 import { useTranslation } from '@/lib/i18n';
+import { PageHeader } from '@/components/layout/page-header';
 
 interface ModuleDef {
   code: string;
@@ -218,35 +219,32 @@ export default function SpacesAdminPage() {
   return (
     <div className="space-y-6">
       <AdminGroupTabs group="config" />
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
-            <Layers className="h-6 w-6" /> Espaces & modules
-          </h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            Activez ou désactivez chaque module pour l&apos;ensemble de
-            l&apos;organisation, pour un rôle spécifique ou pour un département.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={loadAll} disabled={loading || saving}>
-            <RefreshCw className="h-4 w-4" /> Actualiser
-          </Button>
-          {hasChanges && (
-            <Button variant="outline" onClick={resetChanges} disabled={saving}>
-              Annuler
+      <PageHeader
+        title="Espaces & modules"
+        subtitle="Activez ou désactivez chaque module pour l'ensemble de l'organisation, pour un rôle spécifique ou pour un département."
+        icon={Layers}
+        hub="admin"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={loadAll} disabled={loading || saving}>
+              <RefreshCw className="h-4 w-4" /> Actualiser
             </Button>
-          )}
-          <Button onClick={saveChanges} loading={saving} disabled={!hasChanges}>
-            <Save className="h-4 w-4" /> Sauvegarder
             {hasChanges && (
-              <Badge variant="primary" className="ml-1">
-                {Object.keys(pending).length}
-              </Badge>
+              <Button variant="outline" onClick={resetChanges} disabled={saving}>
+                Annuler
+              </Button>
             )}
-          </Button>
-        </div>
-      </div>
+            <Button onClick={saveChanges} loading={saving} disabled={!hasChanges}>
+              <Save className="h-4 w-4" /> Sauvegarder
+              {hasChanges && (
+                <Badge variant="primary" className="ml-1">
+                  {Object.keys(pending).length}
+                </Badge>
+              )}
+            </Button>
+          </div>
+        }
+      />
 
       {loading ? (
         <div className="space-y-3">

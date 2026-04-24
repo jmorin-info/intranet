@@ -34,6 +34,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { PageHeader } from '@/components/layout/page-header';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -1083,17 +1084,12 @@ export default function ItExportsPage() {
     <div className="space-y-6">
       <AdminGroupTabs group="config" />
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
-            <ClipboardCheck className="h-7 w-7 text-primary" />
-            Exports IT &amp; Conformité
-          </h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            Dépôt centralisé des preuves d&apos;audit pour la certification ISO 27001:2022.
-          </p>
-        </div>
-        {canViewStats && stats && (
+      <PageHeader
+        title="Exports IT & Conformité"
+        subtitle="Dépôt centralisé des preuves d'audit pour la certification ISO 27001:2022."
+        icon={ClipboardCheck}
+        hub="admin"
+        actions={canViewStats && stats ? (
           <div className="flex items-center gap-6 text-xs text-seal-gray-500 dark:text-slate-400">
             <div>
               <p className="text-[10px] uppercase tracking-wider">Total exports</p>
@@ -1114,8 +1110,8 @@ export default function ItExportsPage() {
               </p>
             </div>
           </div>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {loadError && (
         <div className="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">

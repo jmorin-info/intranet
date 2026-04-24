@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { getAvatarUrl } from "@/lib/avatar";
 import { useTranslation } from "@/lib/i18n";
+import { PageHeader } from "@/components/layout/page-header";
 
 interface DepartmentMember {
   id: string;
@@ -344,22 +345,17 @@ export default function OrganigrammePage() {
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
-            <Building2 className="h-7 w-7 text-primary" />
-            Organigramme
-          </h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            Vue hiérarchique des départements et de leurs membres
-          </p>
-        </div>
-        {!loading && (
+      <PageHeader
+        title="Organigramme"
+        subtitle="Vue hiérarchique des départements et de leurs membres"
+        icon={Building2}
+        hub="work"
+        actions={!loading ? (
           <Badge className="bg-primary/10 text-primary dark:bg-primary/20 self-start">
             {departments.length} département{departments.length > 1 ? "s" : ""}
           </Badge>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* Tab navigation */}
       <div className="flex items-center gap-1 border-b border-gray-200 dark:border-slate-700">

@@ -13,6 +13,7 @@ import {
   CheckCircle2, Type, ListChecks, Sliders, ToggleLeft, ChevronDown, ChevronUp, Eye, Send, Edit,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { PageHeader } from '@/components/layout/page-header';
 
 interface SurveyQuestion {
   id: string;
@@ -463,17 +464,17 @@ export default function SatisfactionPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('satisfaction.title')}</h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{t('satisfaction.subtitle')}</p>
-        </div>
-        {isAdmin && (
+      <PageHeader
+        title={t('satisfaction.title')}
+        subtitle={t('satisfaction.subtitle')}
+        icon={Star}
+        hub="security"
+        actions={isAdmin ? (
           <Button onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4" /> {t('satisfaction.newSurvey')}
           </Button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* Admin stats */}
       {isAdmin && stats && (

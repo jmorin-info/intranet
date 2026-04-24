@@ -5,9 +5,10 @@ import { useDropzone } from 'react-dropzone';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, Button, Badge } from '@omnitech/ui';
-import { Upload, FileText, CheckCircle2, AlertTriangle, ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertTriangle, ArrowLeft, Download, Loader2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
+import { PageHeader } from '@/components/layout/page-header';
 
 interface ValidationError {
   line: number;
@@ -116,18 +117,20 @@ export default function ImportUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/admin/users">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="h-4 w-4" />
-            Retour
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Importer des utilisateurs (CSV)</h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">Import en masse via fichier CSV</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Importer des utilisateurs (CSV)"
+        subtitle="Import en masse via fichier CSV"
+        icon={Users}
+        hub="admin"
+        actions={
+          <Link href="/admin/users">
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="h-4 w-4" />
+              Retour
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Steps indicator */}
       <div className="flex items-center gap-2 text-sm">

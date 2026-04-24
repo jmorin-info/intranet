@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, Button, Badge, EmptyState, ConfirmDialog } from '@omnitech/ui';
 import { useTranslation } from '@/lib/i18n';
+import { PageHeader } from '@/components/layout/page-header';
 import {
   Folder, File, Download, Upload, ArrowLeft, HardDrive, Globe, Server,
   Briefcase, Calculator, ClipboardList, Users, Lightbulb, Handshake, ChevronRight,
@@ -233,14 +234,12 @@ export default function FilesPage() {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('nav.networkFiles')}</h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            {currentShare ? `\\\\10.33.50.5\\${currentShare}` : 'Parcourez les partages réseau OMNITECH'}
-          </p>
-        </div>
-        {currentShare && (
+      <PageHeader
+        title={t('nav.networkFiles')}
+        subtitle={currentShare ? `\\\\10.33.50.5\\${currentShare}` : 'Parcourez les partages réseau OMNITECH'}
+        icon={HardDrive}
+        hub="work"
+        actions={currentShare ? (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowNewFolder(true)}>
               <FolderPlus className="h-4 w-4" /> Nouveau dossier
@@ -252,8 +251,8 @@ export default function FilesPage() {
               <input type="file" className="hidden" onChange={handleUpload} />
             </label>
           </div>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* SMB server unreachable */}
       {sharesError && (

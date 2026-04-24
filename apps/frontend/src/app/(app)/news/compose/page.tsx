@@ -21,7 +21,8 @@ import {
   Dialog,
   Badge,
 } from '@omnitech/ui';
-import { ArrowLeft, Save, Send, X, Image, FileText, RefreshCw, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { ArrowLeft, Save, Send, X, Image, FileText, RefreshCw, Eye, EyeOff, Sparkles, Newspaper } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
 
 const newsSchema = z.object({
   title: z.string().min(3, 'Titre requis'),
@@ -157,23 +158,27 @@ export default function ComposeNewsPage() {
 
   return (
     <div className={`mx-auto space-y-6 ${showPreview ? 'max-w-6xl' : 'max-w-3xl'}`}>
-      <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
-          <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('newsCompose.title')}</h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{t('newsCompose.subtitle')}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowPreview(!showPreview)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition ${showPreview ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 dark:border-slate-700 text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
-        >
-          {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-          {showPreview ? 'Masquer l\'aperçu' : 'Aperçu live'}
-        </button>
-      </div>
+      <PageHeader
+        title={t('newsCompose.title')}
+        subtitle={t('newsCompose.subtitle')}
+        icon={Newspaper}
+        hub="work"
+        actions={
+          <>
+            <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors" aria-label="Retour">
+              <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPreview(!showPreview)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition ${showPreview ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 dark:border-slate-700 text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+            >
+              {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              {showPreview ? 'Masquer l\'aperçu' : 'Aperçu live'}
+            </button>
+          </>
+        }
+      />
 
       <div className={`${showPreview ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''}`}>
       <form onSubmit={handleSubmit(onSubmit)} onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleSubmit(onSubmit)(); } }}>

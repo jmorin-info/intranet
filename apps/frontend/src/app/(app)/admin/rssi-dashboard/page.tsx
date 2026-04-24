@@ -14,6 +14,7 @@ import {
 } from "@omnitech/ui";
 import { SmsiIndicatorsWidget } from "@/components/widgets/smsi-indicators-widget";
 import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   ShieldCheck,
   AlertTriangle,
@@ -433,43 +434,40 @@ export default function RSSIDashboardPage() {
           Généré le {new Date().toLocaleDateString("fr-FR")}
         </p>
       </div>
-      <div className="flex items-center justify-between animate-fade-in-up stagger-item">
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">
-            Tableau de bord RSSI
-          </h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            Vue centralisée de la sécurité — ISO 27001 · NIS2 · ANSSI · PSSI
-          </p>
-          <p className="text-[10px] text-seal-gray-500/60 dark:text-slate-500 mt-0.5">
-            Maj auto 60s — derniere : {lastRefresh.toLocaleTimeString("fr-FR")}
-          </p>
-        </div>
-        <div className="flex gap-2 print:hidden">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={loadData}
-            title="Actualiser"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={downloadRssiPdf}
-            disabled={pdfLoading}
-            title="PDF structuré signé SHA-256 (ISO 27001 A.5.35)"
-          >
-            <FileDown className="h-4 w-4" />
-            {pdfLoading ? "Génération..." : "Télécharger rapport RSSI (PDF)"}
-          </Button>
-          <Link href="/admin/reports">
-            <Button variant="secondary" size="sm">
-              <Download className="h-4 w-4" /> Rapport SMSI
-            </Button>
-          </Link>
-        </div>
+      <div className="animate-fade-in-up stagger-item">
+        <PageHeader
+          title="Tableau de bord RSSI"
+          subtitle={`Vue centralisée de la sécurité — ISO 27001 · NIS2 · ANSSI · PSSI · Maj auto 60s — derniere : ${lastRefresh.toLocaleTimeString("fr-FR")}`}
+          icon={ShieldCheck}
+          hub="rssi"
+          actions={
+            <div className="flex gap-2 print:hidden">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={loadData}
+                title="Actualiser"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={downloadRssiPdf}
+                disabled={pdfLoading}
+                title="PDF structuré signé SHA-256 (ISO 27001 A.5.35)"
+              >
+                <FileDown className="h-4 w-4" />
+                {pdfLoading ? "Génération..." : "Télécharger rapport RSSI (PDF)"}
+              </Button>
+              <Link href="/admin/reports">
+                <Button variant="secondary" size="sm">
+                  <Download className="h-4 w-4" /> Rapport SMSI
+                </Button>
+              </Link>
+            </div>
+          }
+        />
       </div>
 
       {/* Compliance overview with ring chart */}

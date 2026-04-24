@@ -18,7 +18,8 @@ import {
 } from '@omnitech/ui';
 import type { Column } from '@omnitech/ui';
 import { formatRelativeTime } from '@/lib/utils';
-import { FileText, Eye, UserCheck, CheckCircle2, AlertTriangle, PartyPopper, XCircle } from 'lucide-react';
+import { FileText, Eye, UserCheck, CheckCircle2, AlertTriangle, PartyPopper, XCircle, ClipboardCheck } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
 
@@ -198,10 +199,12 @@ export default function PendingDocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-medium text-seal-navy dark:text-white">{t('pending.title')}</h1>
-        <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{t('pending.subtitle')}</p>
-      </div>
+      <PageHeader
+        title={t('pending.title')}
+        subtitle={t('pending.subtitle')}
+        icon={ClipboardCheck}
+        hub="work"
+      />
 
       {/* Action required banner */}
       {!loading && actionRequiredCount > 0 && (

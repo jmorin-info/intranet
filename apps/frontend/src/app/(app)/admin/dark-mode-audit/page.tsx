@@ -17,6 +17,7 @@ import { downloadCsv } from '@/lib/export-csv';
 import { toast } from 'sonner';
 import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
 import { useTranslation } from '@/lib/i18n';
+import { PageHeader } from '@/components/layout/page-header';
 
 // Pages à auditer (routes authenticated uniquement).
 // On scanne dans l'ordre, chaque page est chargée brièvement dans un <iframe>
@@ -184,35 +185,32 @@ export default function DarkModeAuditPage() {
   return (
     <div className="space-y-6">
       <AdminGroupTabs group="config" />
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <Moon className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Audit dark mode</h1>
-          </div>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            Détecte les éléments avec fond clair sans variante <code>dark:</code> (heuristique luminance &gt; 0.9).
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={runAudit}
-            disabled={running}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
-          >
-            <Play className="h-4 w-4" />
-            {running ? `Audit en cours… ${progress}%` : 'Démarrer l\'audit'}
-          </button>
-          {findings.length > 0 && (
+      <PageHeader
+        title="Audit dark mode"
+        subtitle="Détecte les éléments avec fond clair sans variante dark: (heuristique luminance > 0.9)."
+        icon={Moon}
+        hub="admin"
+        actions={
+          <>
             <button
-              onClick={exportCsv}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 text-sm font-medium text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+              onClick={runAudit}
+              disabled={running}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
             >
-              Export CSV ({findings.length})
+              <Play className="h-4 w-4" />
+              {running ? `Audit en cours… ${progress}%` : 'Démarrer l\'audit'}
             </button>
-          )}
-        </div>
-      </div>
+            {findings.length > 0 && (
+              <button
+                onClick={exportCsv}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 text-sm font-medium text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+              >
+                Export CSV ({findings.length})
+              </button>
+            )}
+          </>
+        }
+      />
 
       {running && (
         <div className="rounded-lg border border-blue-200 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-900/20 p-4">
