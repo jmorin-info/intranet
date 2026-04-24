@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
 import { useTranslation } from '@/lib/i18n';
+import { PageHeader } from '@/components/layout/page-header';
 import {
   Activity,
   Database,
@@ -166,12 +167,13 @@ export default function SystemHealthPage() {
     <div className="space-y-6">
       <AdminGroupTabs group="audit" />
 
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3 animate-fade-in-up">
-        <div>
-          <div className="flex items-center gap-2">
-            <Activity className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl text-seal-navy dark:text-white">Santé système</h1>
+      <PageHeader
+        title="Santé système"
+        subtitle={`${upCount}/${allServices.length} services UP · Rafraichi ${lastUpdate ? lastUpdate.toLocaleTimeString('fr-FR') : '—'} · Auto-refresh toutes les 30 s${health?.uptime ? ` · Uptime : ${formatUptime(health.uptime)}` : ''}`}
+        icon={Activity}
+        hub="admin"
+        actions={
+          <>
             <span
               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] uppercase font-bold ${
                 globalStatus === 'up'
@@ -186,22 +188,16 @@ export default function SystemHealthPage() {
               {globalStatus === 'degraded' && <Clock className="h-3 w-3" />}
               {globalStatus === 'up' ? 'Opérationnel' : globalStatus === 'down' ? 'Panne' : 'Dégradé'}
             </span>
-          </div>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            {upCount}/{allServices.length} services UP · Rafraichi{' '}
-            {lastUpdate ? lastUpdate.toLocaleTimeString('fr-FR') : '—'}
-            {' · '}Auto-refresh toutes les 30 s
-            {health?.uptime ? ` · Uptime : ${formatUptime(health.uptime)}` : ''}
-          </p>
-        </div>
-        <button
-          onClick={() => void load()}
-          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-medium text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
-        >
-          <RefreshCw className="h-3 w-3" />
-          Rafraîchir
-        </button>
-      </div>
+            <button
+              onClick={() => void load()}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-medium text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Rafraîchir
+            </button>
+          </>
+        }
+      />
 
       {/* Runtime info */}
       {health?.status === 'ok' && (

@@ -24,6 +24,7 @@ import {
   Sprout,
   Link2,
 } from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -273,36 +274,33 @@ export function ComplianceFrameworks() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">
-            Référentiels de conformité
-          </h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            Gestion des référentiels ISO 27001, NIST CSF, NIS2, ANSSI et autres
-            cadres de conformité
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {frameworks.length === 0 && isSuperAdmin && (
-            <Button
-              variant="outline"
-              onClick={handleSeed}
-              loading={seeding}
-              disabled={seeding}
-            >
-              <Sprout className="h-4 w-4" />
-              Importer les référentiels par défaut
-            </Button>
-          )}
-          {isSuperAdmin && (
-            <Button onClick={() => setShowCreate(true)}>
-              <Plus className="h-4 w-4" />
-              Nouveau référentiel
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Référentiels de conformité"
+        subtitle="Gestion des référentiels ISO 27001, NIST CSF, NIS2, ANSSI et autres cadres de conformité"
+        icon={Shield}
+        hub="admin"
+        actions={
+          <div className="flex items-center gap-3">
+            {frameworks.length === 0 && isSuperAdmin && (
+              <Button
+                variant="outline"
+                onClick={handleSeed}
+                loading={seeding}
+                disabled={seeding}
+              >
+                <Sprout className="h-4 w-4" />
+                Importer les référentiels par défaut
+              </Button>
+            )}
+            {isSuperAdmin && (
+              <Button onClick={() => setShowCreate(true)}>
+                <Plus className="h-4 w-4" />
+                Nouveau référentiel
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* Empty state */}
       {frameworks.length === 0 && (

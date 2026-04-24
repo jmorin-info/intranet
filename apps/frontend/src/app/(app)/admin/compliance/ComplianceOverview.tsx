@@ -25,6 +25,7 @@ import {
   ScanSearch,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/page-header";
 
 interface ComplianceSummary {
   total: number;
@@ -202,20 +203,18 @@ export function ComplianceOverview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">
-            {t("compliance.title")}
-          </h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            {t("compliance.subtitle")}
-          </p>
-        </div>
-        <Button onClick={handleFullScan} loading={scanning} disabled={scanning}>
-          <ScanSearch className="h-4 w-4" />
-          {scanning ? "Analyse en cours..." : "Scanner tous les documents"}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("compliance.title")}
+        subtitle={t("compliance.subtitle")}
+        icon={Shield}
+        hub="admin"
+        actions={
+          <Button onClick={handleFullScan} loading={scanning} disabled={scanning}>
+            <ScanSearch className="h-4 w-4" />
+            {scanning ? "Analyse en cours..." : "Scanner tous les documents"}
+          </Button>
+        }
+      />
 
       {/* Scan results */}
       {scanResult && (

@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { useTestimonialTrigger } from '@/hooks/use-testimonial-trigger';
+import { PageHeader } from '@/components/layout/page-header';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -610,29 +611,23 @@ export default function QuizPage() {
     return (
       <div className="space-y-6 max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-start justify-between animate-fade-in-up">
-          <div>
-            <h1 className="text-2xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
-              <GraduationCap className="h-7 w-7 text-primary" aria-hidden="true" />
-              {t('quiz.campaigns')}
-            </h1>
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1 max-w-2xl">
-              Les campagnes de quiz permettent à OMNITECH SECURITY de mesurer et d&apos;entretenir la vigilance de chaque collaborateur face aux risques cyber. Choisissez une campagne active et testez vos connaissances en sécurité de l&apos;information, conformité RGPD et bonnes pratiques du quotidien.
-            </p>
-            {/* Gamification level badge */}
-            {myResults.length > 0 && (
-              <div className={`inline-flex items-center gap-2 mt-2 px-3 py-1.5 rounded-full border text-xs font-semibold ${gamificationLevel.color}`}>
-                <GamificationIcon className="h-3.5 w-3.5" />
-                {gamificationLevel.label} — {myResults.length} quiz completes
-              </div>
-            )}
-          </div>
-          {isAdmin && (
+        <PageHeader
+          title={t('quiz.campaigns')}
+          subtitle="Les campagnes de quiz permettent à OMNITECH SECURITY de mesurer et d'entretenir la vigilance de chaque collaborateur face aux risques cyber."
+          icon={GraduationCap}
+          hub="security"
+          actions={isAdmin ? (
             <Button size="sm" onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-1" /> {t('quiz.newCampaign')}
             </Button>
-          )}
-        </div>
+          ) : undefined}
+          meta={myResults.length > 0 ? (
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold ${gamificationLevel.color}`}>
+              <GamificationIcon className="h-3.5 w-3.5" />
+              {gamificationLevel.label} — {myResults.length} quiz completes
+            </div>
+          ) : undefined}
+        />
 
         {/* Admin stats */}
         {isAdmin && stats && (

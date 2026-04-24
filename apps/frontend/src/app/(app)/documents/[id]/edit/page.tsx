@@ -23,7 +23,8 @@ import {
   Skeleton,
   Badge,
 } from '@omnitech/ui';
-import { ArrowLeft, Save, X, Upload, Info } from 'lucide-react';
+import { ArrowLeft, Save, X, Upload, Info, FileEdit } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
 import { useTranslation } from '@/lib/i18n';
 
 const CLASSIFICATIONS = [
@@ -216,18 +217,24 @@ export default function EditDocumentPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800">
-          <ArrowLeft className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
-        </button>
-        <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Modifier le document</h1>
-        {hasChanges && (
-          <span className="ml-auto text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-            <Info className="h-3 w-3" />
-            Modifications non enregistrées
-          </span>
-        )}
-      </div>
+      <PageHeader
+        title="Modifier le document"
+        icon={FileEdit}
+        hub="work"
+        actions={
+          <>
+            <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Retour">
+              <ArrowLeft className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
+            </button>
+            {hasChanges && (
+              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <Info className="h-3 w-3" />
+                Modifications non enregistrées
+              </span>
+            )}
+          </>
+        }
+      />
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -17,6 +17,7 @@ import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { useNotificationStore } from '@/stores/notification-store';
 import { Card, CardContent, Button, Badge, EmptyState } from '@omnitech/ui';
+import { PageHeader } from '@/components/layout/page-header';
 import { formatRelativeTime } from '@/lib/utils';
 
 type TimelineKind = 'news' | 'notification' | 'document';
@@ -200,18 +201,18 @@ export default function TimelinePage() {
 
   return (
     <div className="space-y-5 animate-fade-in-up">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Timeline</h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400">
-            Vue unifiée des actualités, notifications et documents.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Rafraîchir
-        </Button>
-      </div>
+      <PageHeader
+        title="Timeline"
+        subtitle="Vue unifiée des actualités, notifications et documents."
+        icon={Clock}
+        hub="monEspace"
+        actions={
+          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Rafraîchir
+          </Button>
+        }
+      />
 
       <div className="flex items-center gap-2 flex-wrap">
         <Filter className="h-4 w-4 text-seal-gray-500 dark:text-slate-500" />

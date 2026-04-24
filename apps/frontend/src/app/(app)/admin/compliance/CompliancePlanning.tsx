@@ -9,6 +9,7 @@ import {
   Card, CardContent, CardHeader, Button, Badge, Dialog, Input, Textarea, Select, EmptyState,
 } from '@omnitech/ui';
 import { formatDate } from '@/lib/utils';
+import { PageHeader } from '@/components/layout/page-header';
 import {
   ClipboardList, Plus, CheckCircle2, AlertTriangle, Clock, Shield, Calendar, Filter, GripVertical,
   ChevronLeft, ChevronRight, Repeat,
@@ -224,35 +225,35 @@ export function CompliancePlanning() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Planning de conformité</h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            Suivi des tâches récurrentes ISO 27001, NIS2 et ANSSI — PSSI, audits, revues et formations
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 border rounded-lg p-0.5 dark:border-slate-700">
-            <button onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'list' ? 'bg-primary text-white' : 'text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
-              Liste
-            </button>
-            <button onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'kanban' ? 'bg-primary text-white' : 'text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
-              Kanban
-            </button>
-            <button onClick={() => setViewMode('timeline')}
-              className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'timeline' ? 'bg-primary text-white' : 'text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
-              Calendrier
-            </button>
+      <PageHeader
+        title="Planning de conformité"
+        subtitle="Suivi des tâches récurrentes ISO 27001, NIS2 et ANSSI — PSSI, audits, revues et formations"
+        icon={ClipboardList}
+        hub="admin"
+        actions={
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 border rounded-lg p-0.5 dark:border-slate-700">
+              <button onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'list' ? 'bg-primary text-white' : 'text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
+                Liste
+              </button>
+              <button onClick={() => setViewMode('kanban')}
+                className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'kanban' ? 'bg-primary text-white' : 'text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
+                Kanban
+              </button>
+              <button onClick={() => setViewMode('timeline')}
+                className={`px-3 py-1.5 text-xs rounded font-semibold transition ${viewMode === 'timeline' ? 'bg-primary text-white' : 'text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
+                Calendrier
+              </button>
+            </div>
+            {isAdmin && (
+              <Button onClick={() => setShowCreate(true)}>
+                <Plus className="h-4 w-4" /> Nouvelle tâche
+              </Button>
+            )}
           </div>
-          {isAdmin && (
-            <Button onClick={() => setShowCreate(true)}>
-              <Plus className="h-4 w-4" /> Nouvelle tâche
-            </Button>
-          )}
-        </div>
-      </div>
+        }
+      />
 
       {/* Monthly summary banner */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-seal-navy/10 bg-seal-navy/5 dark:bg-slate-800/60 px-4 py-3">

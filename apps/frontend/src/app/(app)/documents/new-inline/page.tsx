@@ -15,6 +15,7 @@ import {
   Select,
 } from '@omnitech/ui';
 import { ArrowLeft, Save, FileText } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
 import { api } from '@/lib/api';
 const InlineEditor = dynamic(
   () => import('@/components/documents/inline-editor').then((m) => m.InlineEditor),
@@ -85,24 +86,19 @@ export default function NewInlineDocumentPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => router.push('/documents')}>
-          <ArrowLeft className="h-4 w-4" /> Retour
-        </Button>
-      </div>
+      <PageHeader
+        title="Nouveau document en ligne"
+        subtitle="Rédigez directement une politique ou une procédure sans fichier externe. ISO 27001 A.5.1 — GED native."
+        icon={FileText}
+        hub="work"
+        actions={
+          <Button variant="ghost" onClick={() => router.push('/documents')}>
+            <ArrowLeft className="h-4 w-4" /> Retour
+          </Button>
+        }
+      />
 
       <Card>
-        <CardHeader>
-          <h1 className="text-xl font-medium text-seal-navy dark:text-white flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Nouveau document en ligne
-          </h1>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400">
-            Rédigez directement une politique ou une procédure sans fichier
-            externe. ISO 27001 A.5.1 — GED native.
-          </p>
-        </CardHeader>
-
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
