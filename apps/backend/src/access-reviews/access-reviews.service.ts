@@ -5,18 +5,27 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { UserRole, ROLE_HIERARCHY } from '../common/enums';
-import { CreateCampaignDto } from './dto/create-campaign.dto';
+import {
+  AccessReviewCampaignTypeDto,
+  CreateCampaignDto,
+} from './dto/create-campaign.dto';
 import { ReviewDecision } from './dto/review-decision.dto';
 
 /**
  * AccessReviewsService — periodic user access review workflow (ISO 27001 A.5.18).
  *
+ * Types de campagne supportés :
+ *  - ACCESS_RIGHTS  (défaut) : revue des droits d'accès des utilisateurs actifs
+ *  - PASSWORDS             : revue des mots de passe non renouvelés / absence MFA
+ *  - INACTIVE_USERS        : revue des comptes inactifs (≥ 90 jours sans connexion)
+ *
  * Core flow:
- *  1. An RSSI/SUPER_ADMIN creates a campaign
- *  2. The service auto-generates one AccessReview per in-scope active user
+ *  1. An RSSI/SUPER_ADMIN creates a campaign (any type)
+ *  2. The service auto-generates one AccessReview per in-scope user (filtrage selon le type)
  *  3. Managers / RSSI submit decisions (KEEP, REVOKE, CHANGE_ROLE, CHANGE_DEPT)
  *  4. Actions are logged in AuditLog
  *  5. Campaign can be closed, flagging any remaining PENDING reviews as EXPIRED
@@ -24,6 +33,15 @@ import { ReviewDecision } from './dto/review-decision.dto';
 @Injectable()
 export class AccessReviewsService {
   private readonly logger = new Logger(AccessReviewsService.name);
+  /**
+   * Seuil d'inactivité (en jours) au-delà duquel un compte est proposé en revue.
+   */
+  private readonly INACTIVE_THRESHOLD_DAYS = 90;
+  /**
+   * Seuil de rotation des mots de passe (en mois) — utilise `createdAt`
+   * comme fallback tant que `passwordChangedAt` n'existe pas sur User.
+   */
+  private readonly PASSWORD_ROTATION_MONTHS = 6;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -32,7 +50,8 @@ export class AccessReviewsService {
 
   /**
    * Creates a new review campaign and auto-generates one AccessReview
-   * per active user matching the campaign scope.
+   * per active user matching the campaign scope. Le champ `type` détermine
+   * les critères de pré-sélection des utilisateurs.
    */
   async createCampaign(dto: CreateCampaignDto, createdById: string) {
     const dueDate = new Date(dto.dueDate);
@@ -43,10 +62,13 @@ export class AccessReviewsService {
       throw new BadRequestException('dueDate doit être dans le futur');
     }
 
+    const type = dto.type || AccessReviewCampaignTypeDto.ACCESS_RIGHTS;
+
     const campaign = await this.prisma.accessReviewCampaign.create({
       data: {
         name: dto.name,
         description: dto.description || null,
+        type: type as never,
         dueDate,
         status: 'ACTIVE',
         createdById,
@@ -64,6 +86,7 @@ export class AccessReviewsService {
       resourceId: campaign.id,
       metadata: {
         name: campaign.name,
+        type,
         dueDate: campaign.dueDate,
         scopeDepartmentId: campaign.scopeDepartmentId,
         scopeRoles: campaign.scopeRoles,
@@ -80,7 +103,10 @@ export class AccessReviewsService {
 
   /**
    * Creates one AccessReview row per in-scope active user for this campaign.
-   * Skips PRESTATAIRE users by default (they have their own review process).
+   * Le type de campagne pilote le filtrage :
+   *  - ACCESS_RIGHTS : tous les users actifs hors PRESTATAIRE
+   *  - PASSWORDS     : users actifs dont createdAt > PASSWORD_ROTATION_MONTHS OU MFA désactivé
+   *  - INACTIVE_USERS: users actifs dont lastLoginAt ≥ INACTIVE_THRESHOLD_DAYS (ou jamais connectés)
    */
   async generateReviews(campaignId: string) {
     const campaign = await this.prisma.accessReviewCampaign.findUnique({
@@ -91,8 +117,32 @@ export class AccessReviewsService {
     const where: Record<string, unknown> = {
       isActive: true,
       deletedAt: null,
-      role: { not: UserRole.PRESTATAIRE },
     };
+
+    const type = (campaign as unknown as { type?: string }).type || 'ACCESS_RIGHTS';
+
+    if (type === 'ACCESS_RIGHTS') {
+      where.role = { not: UserRole.PRESTATAIRE };
+    } else if (type === 'INACTIVE_USERS') {
+      const threshold = new Date(
+        Date.now() - this.INACTIVE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000,
+      );
+      // lastLoginAt < seuil OU jamais connecté (null)
+      where.OR = [
+        { lastLoginAt: { lt: threshold } },
+        { lastLoginAt: null },
+      ];
+    } else if (type === 'PASSWORDS') {
+      const threshold = new Date();
+      threshold.setMonth(threshold.getMonth() - this.PASSWORD_ROTATION_MONTHS);
+      // Fallback : on cible users créés il y a plus de N mois OU sans MFA activée
+      // (faute de champ `passwordChangedAt` sur User).
+      where.OR = [
+        { createdAt: { lt: threshold } },
+        { mfaEnabled: false },
+      ];
+    }
+
     if (campaign.scopeDepartmentId) {
       where.departmentId = campaign.scopeDepartmentId;
     }
@@ -116,6 +166,14 @@ export class AccessReviewsService {
     });
     const existingIds = new Set(existing.map((r) => r.userId));
 
+    // Contexte par défaut selon le type — injecté dans le champ comments
+    const defaultComment =
+      type === 'PASSWORDS'
+        ? 'Renouvellement MDP conseillé (rotation > 6 mois ou MFA absent)'
+        : type === 'INACTIVE_USERS'
+          ? 'Compte inactif ≥ 90 jours — envisager désactivation'
+          : null;
+
     const toCreate = users
       .filter((u) => !existingIds.has(u.id))
       .map((u) => ({
@@ -123,6 +181,7 @@ export class AccessReviewsService {
         userId: u.id,
         reviewerId: u.managerId || null,
         status: 'PENDING' as const,
+        comments: defaultComment,
       }));
 
     if (toCreate.length === 0) {
@@ -134,6 +193,111 @@ export class AccessReviewsService {
     });
 
     return { count: result.count };
+  }
+
+  /**
+   * Campagne dédiée "PASSWORDS" — wrapper ergonomique.
+   * Crée une campagne de type PASSWORDS avec une échéance par défaut à 30 jours.
+   */
+  async createPasswordReviewCampaign(
+    createdById: string,
+    overrides?: Partial<CreateCampaignDto>,
+  ) {
+    const dueDate = overrides?.dueDate
+      ? overrides.dueDate
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const dto: CreateCampaignDto = {
+      name:
+        overrides?.name ||
+        `Revue mots de passe — ${new Date().toISOString().slice(0, 10)}`,
+      description:
+        overrides?.description ||
+        `Revue automatique des mots de passe : utilisateurs créés depuis plus de ${this.PASSWORD_ROTATION_MONTHS} mois ou sans MFA activée.`,
+      type: AccessReviewCampaignTypeDto.PASSWORDS,
+      dueDate,
+      scopeDepartmentId: overrides?.scopeDepartmentId,
+      scopeRoles: overrides?.scopeRoles,
+    };
+    return this.createCampaign(dto, createdById);
+  }
+
+  /**
+   * Campagne dédiée "INACTIVE_USERS" — wrapper ergonomique.
+   * Crée une campagne de type INACTIVE_USERS avec une échéance par défaut à 30 jours.
+   */
+  async createInactiveReviewCampaign(
+    createdById: string,
+    overrides?: Partial<CreateCampaignDto>,
+  ) {
+    const dueDate = overrides?.dueDate
+      ? overrides.dueDate
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const dto: CreateCampaignDto = {
+      name:
+        overrides?.name ||
+        `Revue comptes inactifs — ${new Date().toISOString().slice(0, 10)}`,
+      description:
+        overrides?.description ||
+        `Revue automatique des comptes inactifs : dernière connexion ≥ ${this.INACTIVE_THRESHOLD_DAYS} jours. Action suggérée : désactivation, relance, ou suppression.`,
+      type: AccessReviewCampaignTypeDto.INACTIVE_USERS,
+      dueDate,
+      scopeDepartmentId: overrides?.scopeDepartmentId,
+      scopeRoles: overrides?.scopeRoles,
+    };
+    return this.createCampaign(dto, createdById);
+  }
+
+  /**
+   * Cron mensuel — 1er du mois à 3h du matin.
+   * Crée automatiquement une campagne INACTIVE_USERS si aucune active n'existe
+   * pour ce type. Désactivable via ACCESS_REVIEW_AUTO_INACTIVE=false.
+   */
+  @Cron('0 3 1 * *')
+  async autoInactiveCampaignCron() {
+    const enabled =
+      (process.env.ACCESS_REVIEW_AUTO_INACTIVE || 'true').toLowerCase() !== 'false';
+    if (!enabled) {
+      this.logger.log('Cron auto-inactive désactivé par ACCESS_REVIEW_AUTO_INACTIVE=false');
+      return;
+    }
+
+    try {
+      const existing = await this.prisma.accessReviewCampaign.findFirst({
+        where: {
+          status: 'ACTIVE',
+          // on cible les campagnes de type INACTIVE_USERS
+          // (cast because Prisma type not yet widened in runtime TS)
+          ...( { type: 'INACTIVE_USERS' } as Record<string, unknown>),
+        },
+      });
+      if (existing) {
+        this.logger.log(
+          `Cron auto-inactive : campagne déjà active (${existing.id}), aucune action.`,
+        );
+        return;
+      }
+
+      // SYSTEM user fallback : première SUPER_ADMIN disponible
+      const systemAdmin = await this.prisma.user.findFirst({
+        where: { role: UserRole.SUPER_ADMIN, isActive: true, deletedAt: null },
+        select: { id: true },
+      });
+      if (!systemAdmin) {
+        this.logger.warn('Cron auto-inactive : aucun SUPER_ADMIN trouvé pour créer la campagne.');
+        return;
+      }
+
+      const result = await this.createInactiveReviewCampaign(systemAdmin.id, {
+        name: `Revue mensuelle comptes inactifs — ${new Date().toISOString().slice(0, 7)}`,
+        description:
+          'Campagne mensuelle automatique (cron) : comptes actifs sans connexion depuis au moins 90 jours.',
+      });
+      this.logger.log(
+        `Cron auto-inactive : campagne créée (${result.id}) avec ${result.reviewsCount} revues.`,
+      );
+    } catch (err) {
+      this.logger.error('Cron auto-inactive : erreur', err as Error);
+    }
   }
 
   /**
@@ -202,6 +366,7 @@ export class AccessReviewsService {
             role: true,
             isActive: true,
             lastLoginAt: true,
+            mfaEnabled: true,
             createdAt: true,
             department: { select: { id: true, name: true, code: true } },
           },
@@ -251,7 +416,7 @@ export class AccessReviewsService {
             }),
       },
       include: {
-        campaign: { select: { id: true, name: true, dueDate: true, status: true } },
+        campaign: { select: { id: true, name: true, dueDate: true, status: true, type: true } },
       },
       orderBy: { createdAt: 'asc' },
       take: 200,
@@ -269,6 +434,7 @@ export class AccessReviewsService {
             role: true,
             isActive: true,
             lastLoginAt: true,
+            mfaEnabled: true,
             createdAt: true,
             department: { select: { id: true, name: true, code: true } },
           },

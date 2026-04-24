@@ -98,6 +98,12 @@ enum AccessReviewStatus {
   EXPIRED // Délai dépassé sans action
 }
 
+enum AccessReviewCampaignType {
+  ACCESS_RIGHTS // Revue des droits d'accès utilisateurs (par défaut)
+  PASSWORDS // Revue des mots de passe (rotation / MFA absent)
+  INACTIVE_USERS // Revue des comptes inactifs (>= 90 jours sans connexion)
+}
+
 enum AccessReviewCampaignStatus {
   DRAFT
   ACTIVE
@@ -1196,6 +1202,7 @@ model AccessReviewCampaign {
   id                String                     @id @default(uuid())
   name              String
   description       String?
+  type              AccessReviewCampaignType   @default(ACCESS_RIGHTS)
   startDate         DateTime                   @default(now())
   dueDate           DateTime
   status            AccessReviewCampaignStatus @default(DRAFT)
@@ -1210,6 +1217,7 @@ model AccessReviewCampaign {
 
   @@index([status])
   @@index([dueDate])
+  @@index([type])
 }
 
 model AccessReview {

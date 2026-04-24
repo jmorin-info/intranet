@@ -36,6 +36,9 @@ import {
   FileText,
   X,
   Loader2,
+  KeyRound,
+  UserMinus,
+  Info,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
@@ -46,6 +49,8 @@ import { useTranslation } from '@/lib/i18n';
 type CampaignStatus = 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 type ReviewStatus = 'PENDING' | 'APPROVED' | 'REVOKED' | 'MODIFIED' | 'EXPIRED';
 type ReviewDecision = 'KEEP' | 'REVOKE' | 'CHANGE_ROLE' | 'CHANGE_DEPT';
+type CampaignType = 'ACCESS_RIGHTS' | 'PASSWORDS' | 'INACTIVE_USERS';
+type TabKey = 'access' | 'passwords' | 'inactive' | 'my';
 
 interface CampaignStats {
   total: number;
@@ -62,6 +67,7 @@ interface Campaign {
   id: string;
   name: string;
   description?: string | null;
+  type?: CampaignType;
   startDate: string;
   dueDate: string;
   status: CampaignStatus;
@@ -82,6 +88,7 @@ interface ReviewUser {
   role: UserRole;
   isActive: boolean;
   lastLoginAt?: string | null;
+  mfaEnabled?: boolean;
   createdAt: string;
   department?: { id: string; name: string; code?: string | null } | null;
 }
@@ -99,7 +106,7 @@ interface Review {
   updatedAt: string;
   user?: ReviewUser | null;
   reviewer?: ReviewUser | null;
-  campaign?: { id: string; name: string; dueDate: string; status: CampaignStatus };
+  campaign?: { id: string; name: string; dueDate: string; status: CampaignStatus; type?: CampaignType };
 }
 
 interface CampaignDetail extends Campaign {
@@ -152,9 +159,19 @@ const REVIEW_STATUS_LABEL: Record<ReviewStatus, string> = {
   EXPIRED: 'Expiré',
 };
 
+const CAMPAIGN_TYPE_LABEL: Record<CampaignType, string> = {
+  ACCESS_RIGHTS: 'Accès',
+  PASSWORDS: 'Mots de passe',
+  INACTIVE_USERS: 'Comptes inactifs',
+};
+
 function fullName(user?: ReviewUser | null): string {
   if (!user) return 'Utilisateur inconnu';
   return `${user.firstName} ${user.lastName}`;
+}
+
+function getCampaignType(c: Campaign | CampaignDetail | null | undefined): CampaignType {
+  return (c?.type as CampaignType) || 'ACCESS_RIGHTS';
 }
 
 // -----------------------------------------------------------------------------
@@ -164,11 +181,14 @@ function fullName(user?: ReviewUser | null): string {
 export default function AccessReviewsPage() {
   const { t } = useTranslation();
   const user = useAuthStore(s => s.user);
-  const [tab, setTab] = useState<'campaigns' | 'my'>('campaigns');
+  const [tab, setTab] = useState<TabKey>('access');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [myReviews, setMyReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState<{ open: boolean; type: CampaignType }>({
+    open: false,
+    type: 'ACCESS_RIGHTS',
+  });
   const [openCampaign, setOpenCampaign] = useState<CampaignDetail | null>(null);
   const [openCampaignLoading, setOpenCampaignLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -261,61 +281,79 @@ export default function AccessReviewsPage() {
     [loadMyReviews, loadCampaigns, openCampaign, handleViewCampaign],
   );
 
+  // Campagnes filtrées par type pour chaque onglet
+  const campaignsByType = useMemo(() => {
+    const groups: Record<CampaignType, Campaign[]> = {
+      ACCESS_RIGHTS: [],
+      PASSWORDS: [],
+      INACTIVE_USERS: [],
+    };
+    for (const c of campaigns) {
+      groups[getCampaignType(c)].push(c);
+    }
+    return groups;
+  }, [campaigns]);
+
   const pendingCount = useMemo(() => myReviews.filter((r) => r.status === 'PENDING').length, [myReviews]);
   const activeCount = useMemo(() => campaigns.filter((c) => c.status === 'ACTIVE').length, [campaigns]);
+
+  const openCreate = (type: CampaignType) => setShowCreate({ open: true, type });
 
   return (
     <div className="space-y-6 animate-fade-in-up">
       <AdminGroupTabs group="identity" />
       <PageHeader
         title="Revues d'accès"
-        subtitle="Revue trimestrielle des droits (ISO 27001 A.5.18)"
+        subtitle="Accès, mots de passe et comptes inactifs (ISO 27001 A.5.18)"
         icon={ShieldCheck}
         hub="admin"
         actions={
           <>
             <ExportButton
-            filename="revues-acces"
-            rows={(campaigns || []) as unknown as Array<Record<string, unknown>>}
-            columns={[
-              { header: 'ID', accessor: 'id' },
-              { header: 'Titre', accessor: 'title' },
-              { header: 'Statut', accessor: 'status' },
-              { header: 'Début', accessor: (r: any) => r?.startDate || '' },
-              { header: 'Fin', accessor: (r: any) => r?.endDate || '' },
-              { header: 'Créée par', accessor: (r: any) => r?.createdBy?.email || '' },
-            ]}
-          />
-          <PdfExportButton
-            payload={() => ({
-              title: 'Revue périodique des accès',
-              subtitle: 'ISO 27001 A.5.18 — Procès-verbal de revue',
-              reference: `REVIEW-${new Date().toISOString().slice(0, 10)}`,
-              context: 'Extrait du portail OMNITECH Intranet',
-              sections: [
-                {
-                  heading: 'Campagnes',
-                  paragraphs:
-                    (campaigns || []).length === 0
-                      ? ['Aucune campagne enregistrée.']
-                      : (campaigns || []).map(
-                          (c: any) =>
-                            `${c.title || c.id} — statut: ${c.status || 'n/a'} — période: ${c.startDate?.slice(0, 10) || '?'} → ${c.endDate?.slice(0, 10) || '?'}`,
-                        ),
-                },
-                {
-                  heading: 'Synthèse',
-                  paragraphs: [
-                    `Nombre de campagnes: ${(campaigns || []).length}`,
-                    `Campagnes actives: ${activeCount}`,
-                    'Ce document a été généré automatiquement. Le hash SHA-256 en pied de page garantit son intégrité.',
-                  ],
-                },
-              ],
-            })}
-          />
+              filename="revues-acces"
+              rows={(campaigns || []) as unknown as Array<Record<string, unknown>>}
+              columns={[
+                { header: 'ID', accessor: 'id' },
+                { header: 'Nom', accessor: 'name' },
+                { header: 'Type', accessor: (r: any) => CAMPAIGN_TYPE_LABEL[getCampaignType(r)] },
+                { header: 'Statut', accessor: 'status' },
+                { header: 'Début', accessor: (r: any) => r?.startDate || '' },
+                { header: 'Échéance', accessor: (r: any) => r?.dueDate || '' },
+              ]}
+            />
+            <PdfExportButton
+              payload={() => ({
+                title: 'Revue périodique des accès',
+                subtitle: 'ISO 27001 A.5.18 — Accès, mots de passe, comptes inactifs',
+                reference: `REVIEW-${new Date().toISOString().slice(0, 10)}`,
+                context: 'Extrait du portail OMNITECH Intranet',
+                sections: [
+                  {
+                    heading: 'Campagnes',
+                    paragraphs:
+                      (campaigns || []).length === 0
+                        ? ['Aucune campagne enregistrée.']
+                        : (campaigns || []).map(
+                            (c: any) =>
+                              `${c.name || c.id} — type: ${CAMPAIGN_TYPE_LABEL[getCampaignType(c)]} — statut: ${c.status || 'n/a'} — échéance: ${c.dueDate?.slice(0, 10) || '?'}`,
+                          ),
+                  },
+                  {
+                    heading: 'Synthèse',
+                    paragraphs: [
+                      `Nombre de campagnes: ${(campaigns || []).length}`,
+                      `Campagnes actives: ${activeCount}`,
+                      `Campagnes d'accès: ${campaignsByType.ACCESS_RIGHTS.length}`,
+                      `Campagnes mots de passe: ${campaignsByType.PASSWORDS.length}`,
+                      `Campagnes comptes inactifs: ${campaignsByType.INACTIVE_USERS.length}`,
+                      'Ce document a été généré automatiquement. Le hash SHA-256 en pied de page garantit son intégrité.',
+                    ],
+                  },
+                ],
+              })}
+            />
             {isAdmin && (
-              <Button onClick={() => setShowCreate(true)}>
+              <Button onClick={() => openCreate(getCampaignTypeFromTab(tab))}>
                 <Plus className="h-4 w-4" />
                 Nouvelle campagne
               </Button>
@@ -324,8 +362,26 @@ export default function AccessReviewsPage() {
         }
       />
 
+      {/* Bloc introductif ISO 27001 A.5.18 */}
+      <Card className="border-l-4 border-l-primary bg-primary/5 dark:bg-primary/10">
+        <CardContent className="py-3 px-4 flex items-start gap-3">
+          <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-seal-navy dark:text-slate-200">
+            <p className="font-medium">
+              Cette section permet de réviser périodiquement les accès, mots de passe et comptes
+              inactifs conformément à ISO 27001 A.5.18.
+            </p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
+              Chaque campagne génère automatiquement une revue par utilisateur concerné, que les
+              managers et le RSSI instruisent (maintien, révocation, modification de rôle / service).
+              Les décisions sont tracées dans l&apos;AuditLog à fin d&apos;audit.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="border-l-4 border-l-primary">
           <CardContent className="py-3 px-4 flex items-center gap-3">
             <CalendarDays className="h-5 w-5 text-primary" />
@@ -344,12 +400,21 @@ export default function AccessReviewsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-navy">
+        <Card className="border-l-4 border-l-indigo-400">
           <CardContent className="py-3 px-4 flex items-center gap-3">
-            <Users className="h-5 w-5 text-seal-navy dark:text-slate-300" />
+            <KeyRound className="h-5 w-5 text-indigo-500" />
             <div>
-              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Total campagnes</p>
-              <p className="text-xl text-seal-navy dark:text-white">{campaigns.length}</p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Revues MDP</p>
+              <p className="text-xl text-seal-navy dark:text-white">{campaignsByType.PASSWORDS.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-rose-400">
+          <CardContent className="py-3 px-4 flex items-center gap-3">
+            <UserMinus className="h-5 w-5 text-rose-500" />
+            <div>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Revues inactifs</p>
+              <p className="text-xl text-seal-navy dark:text-white">{campaignsByType.INACTIVE_USERS.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -358,12 +423,20 @@ export default function AccessReviewsPage() {
       {/* Tabs */}
       <Tabs
         tabs={[
-          { id: 'campaigns', label: 'Campagnes', count: campaigns.length },
+          { id: 'access', label: 'Accès', count: campaignsByType.ACCESS_RIGHTS.length },
+          { id: 'passwords', label: 'Mots de passe', count: campaignsByType.PASSWORDS.length },
+          { id: 'inactive', label: 'Utilisateurs inactifs', count: campaignsByType.INACTIVE_USERS.length },
           { id: 'my', label: 'Mes revues', count: pendingCount },
         ]}
         activeTab={tab}
-        onChange={(id) => setTab(id as 'campaigns' | 'my')}
+        onChange={(id) => setTab(id as TabKey)}
       />
+
+      {/* Tooltip d'aide sous l'onglet actif (équivalent tooltip ISO A.5.18) */}
+      <div className="text-xs text-seal-gray-500 dark:text-slate-400 -mt-2 px-1 flex items-start gap-2">
+        <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+        <span>{getTabHelpText(tab)}</span>
+      </div>
 
       {loading ? (
         <div className="space-y-3">
@@ -371,25 +444,34 @@ export default function AccessReviewsPage() {
             <Skeleton key={i} className="h-20 w-full" />
           ))}
         </div>
-      ) : tab === 'campaigns' ? (
+      ) : tab === 'my' ? (
+        <MyReviewsList reviews={myReviews} onDecision={handleSubmitDecision} />
+      ) : (
         <CampaignsList
-          campaigns={campaigns}
+          campaigns={
+            tab === 'access'
+              ? campaignsByType.ACCESS_RIGHTS
+              : tab === 'passwords'
+                ? campaignsByType.PASSWORDS
+                : campaignsByType.INACTIVE_USERS
+          }
+          campaignType={getCampaignTypeFromTab(tab)}
           isAdmin={isAdmin}
           onView={handleViewCampaign}
           onClose={handleCloseCampaign}
+          onCreate={() => openCreate(getCampaignTypeFromTab(tab))}
         />
-      ) : (
-        <MyReviewsList reviews={myReviews} onDecision={handleSubmitDecision} />
       )}
 
       {/* Create campaign modal */}
-      {showCreate && (
+      {showCreate.open && (
         <CreateCampaignDialog
-          open={showCreate}
-          onClose={() => setShowCreate(false)}
+          open={showCreate.open}
+          type={showCreate.type}
+          onClose={() => setShowCreate({ open: false, type: showCreate.type })}
           departments={departments}
           onCreated={() => {
-            setShowCreate(false);
+            setShowCreate({ open: false, type: showCreate.type });
             refreshAll();
           }}
         />
@@ -410,27 +492,70 @@ export default function AccessReviewsPage() {
   );
 }
 
+function getCampaignTypeFromTab(tab: TabKey): CampaignType {
+  if (tab === 'passwords') return 'PASSWORDS';
+  if (tab === 'inactive') return 'INACTIVE_USERS';
+  return 'ACCESS_RIGHTS';
+}
+
+function getTabHelpText(tab: TabKey): string {
+  switch (tab) {
+    case 'access':
+      return 'Revue classique ISO 27001 A.5.18 : vérifier que chaque utilisateur a le bon rôle et service.';
+    case 'passwords':
+      return 'Cible les comptes créés il y a plus de 6 mois (fallback en l\'absence de passwordChangedAt) ou sans MFA activée.';
+    case 'inactive':
+      return 'Cible les comptes actifs dont la dernière connexion remonte à plus de 90 jours — proposer la désactivation.';
+    case 'my':
+      return 'Liste des revues qui vous sont assignées en tant que relecteur.';
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Campaigns list
 // -----------------------------------------------------------------------------
 
 function CampaignsList({
   campaigns,
+  campaignType,
   isAdmin,
   onView,
   onClose,
+  onCreate,
 }: {
   campaigns: Campaign[];
+  campaignType: CampaignType;
   isAdmin: boolean;
   onView: (id: string) => void;
   onClose: (id: string) => void;
+  onCreate: () => void;
 }) {
   if (campaigns.length === 0) {
     return (
       <EmptyState
         type="general"
-        title="Aucune campagne"
-        description="Créez une campagne pour lancer une revue périodique des accès."
+        title={
+          campaignType === 'PASSWORDS'
+            ? 'Aucune revue mot de passe'
+            : campaignType === 'INACTIVE_USERS'
+              ? 'Aucune revue de comptes inactifs'
+              : 'Aucune campagne'
+        }
+        description={
+          campaignType === 'PASSWORDS'
+            ? 'Lancez une revue pour identifier les mots de passe non renouvelés et les comptes sans MFA.'
+            : campaignType === 'INACTIVE_USERS'
+              ? 'Lancez une revue des comptes sans connexion depuis 90 jours — une campagne mensuelle automatique est prévue par cron.'
+              : 'Créez une campagne pour lancer une revue périodique des accès.'
+        }
+        action={
+          isAdmin ? (
+            <Button onClick={onCreate}>
+              <Plus className="h-4 w-4" />
+              Nouvelle campagne
+            </Button>
+          ) : undefined
+        }
       />
     );
   }
@@ -456,6 +581,8 @@ function CampaignsList({
         };
         const overdueClass = overdue ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : '';
         const effectiveStatusClass = overdue ? overdueClass : statusBadgeClass[c.status];
+        const type = getCampaignType(c);
+        const TypeIcon = type === 'PASSWORDS' ? KeyRound : type === 'INACTIVE_USERS' ? UserMinus : ShieldCheck;
         return (
           <Card
             key={c.id}
@@ -466,7 +593,9 @@ function CampaignsList({
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
+                    <TypeIcon className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
                     <h3 className="text-seal-navy dark:text-white">{c.name}</h3>
+                    <Badge variant="info">{CAMPAIGN_TYPE_LABEL[type]}</Badge>
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${effectiveStatusClass}`}>
                       {overdue ? 'En retard' : CAMPAIGN_STATUS_LABEL[c.status]}
                     </span>
@@ -618,6 +747,7 @@ function ReviewCard({
   };
 
   const u = review.user;
+  const campaignType = (review.campaign?.type as CampaignType) || 'ACCESS_RIGHTS';
   return (
     <Card>
       <CardContent className="py-4">
@@ -638,9 +768,13 @@ function ReviewCard({
                   {review.campaign.name}
                 </Badge>
               )}
+              <Badge variant="info">{CAMPAIGN_TYPE_LABEL[campaignType]}</Badge>
               <Badge variant={REVIEW_STATUS_VARIANT[review.status]}>
                 {REVIEW_STATUS_LABEL[review.status]}
               </Badge>
+              {campaignType === 'PASSWORDS' && u && u.mfaEnabled === false && (
+                <Badge variant="warning">MFA désactivée</Badge>
+              )}
             </div>
             {u && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-seal-gray-500 dark:text-slate-400">
@@ -657,6 +791,11 @@ function ReviewCard({
                   </span>
                 )}
               </div>
+            )}
+            {review.comments && (
+              <p className="mt-2 text-xs italic text-seal-gray-500 dark:text-slate-400">
+                &ldquo;{review.comments}&rdquo;
+              </p>
             )}
           </div>
         </div>
@@ -689,7 +828,7 @@ function ReviewCard({
               onClick={() => submit('REVOKE')}
             >
               <UserX className="h-3 w-3" />
-              Révoquer
+              {campaignType === 'INACTIVE_USERS' ? 'Désactiver' : 'Révoquer'}
             </Button>
             <Button
               size="sm"
@@ -724,11 +863,13 @@ function ReviewCard({
 
 function CreateCampaignDialog({
   open,
+  type,
   onClose,
   onCreated,
   departments,
 }: {
   open: boolean;
+  type: CampaignType;
   onClose: () => void;
   onCreated: () => void;
   departments: Department[];
@@ -738,6 +879,20 @@ function CreateCampaignDialog({
   const [dueDate, setDueDate] = useState('');
   const [scopeDepartmentId, setScopeDepartmentId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const title =
+    type === 'PASSWORDS'
+      ? 'Nouvelle revue des mots de passe'
+      : type === 'INACTIVE_USERS'
+        ? 'Nouvelle revue des comptes inactifs'
+        : 'Nouvelle campagne de revue';
+
+  const helpText =
+    type === 'PASSWORDS'
+      ? 'Cette revue cible les utilisateurs créés depuis plus de 6 mois (fallback en l\'absence de passwordChangedAt) ou sans MFA activée.'
+      : type === 'INACTIVE_USERS'
+        ? 'Cette revue cible les comptes actifs dont la dernière connexion remonte à plus de 90 jours (ou qui ne se sont jamais connectés).'
+        : 'Une revue sera automatiquement générée pour chaque utilisateur actif dans le périmètre choisi.';
 
   const submit = async () => {
     if (!name.trim() || !dueDate) {
@@ -756,11 +911,21 @@ function CreateCampaignDialog({
     try {
       const payload: Record<string, unknown> = {
         name: name.trim(),
+        type,
         dueDate: new Date(dueDate).toISOString(),
       };
       if (description.trim()) payload.description = description.trim();
       if (scopeDepartmentId) payload.scopeDepartmentId = scopeDepartmentId;
-      await api.post('/access-reviews/campaigns', payload);
+
+      // Endpoint dédié pour les types spéciaux — conserve l'endpoint générique sinon
+      const endpoint =
+        type === 'PASSWORDS'
+          ? '/access-reviews/campaigns/password-review'
+          : type === 'INACTIVE_USERS'
+            ? '/access-reviews/campaigns/inactive-review'
+            : '/access-reviews/campaigns';
+
+      await api.post(endpoint, payload);
       toast.success('Campagne créée');
       onCreated();
     } catch (err) {
@@ -775,8 +940,8 @@ function CreateCampaignDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Nouvelle campagne de revue"
-      description="Une revue sera automatiquement générée pour chaque utilisateur actif dans le périmètre choisi."
+      title={title}
+      description={helpText}
     >
       <div className="space-y-3">
         <div>
@@ -785,7 +950,13 @@ function CreateCampaignDialog({
             className="w-full mt-1 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white focus:border-primary focus:outline-none"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Revue Q2 2026"
+            placeholder={
+              type === 'PASSWORDS'
+                ? 'Revue MDP Q2 2026'
+                : type === 'INACTIVE_USERS'
+                  ? 'Revue comptes inactifs Q2 2026'
+                  : 'Revue Q2 2026'
+            }
             maxLength={200}
           />
         </div>
@@ -855,6 +1026,7 @@ function CampaignDetailDrawer({
   onDecision: (id: string, decision: ReviewDecision, comments?: string) => Promise<void>;
   onCloseCampaign: (id: string) => void;
 }) {
+  const campaignType = getCampaignType(campaign);
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
@@ -865,10 +1037,11 @@ function CampaignDetailDrawer({
               {campaign?.name || 'Campagne'}
             </h2>
             {campaign && (
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <Badge variant={CAMPAIGN_STATUS_VARIANT[campaign.status]}>
                   {CAMPAIGN_STATUS_LABEL[campaign.status]}
                 </Badge>
+                <Badge variant="info">{CAMPAIGN_TYPE_LABEL[campaignType]}</Badge>
                 <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                   Échéance : {formatDate(campaign.dueDate)}
                 </span>
@@ -916,6 +1089,7 @@ function CampaignDetailDrawer({
               <ReviewsTable
                 reviews={campaign.reviews}
                 canDecide={campaign.status === 'ACTIVE'}
+                campaignType={campaignType}
                 onDecision={onDecision}
               />
             </div>
@@ -929,10 +1103,12 @@ function CampaignDetailDrawer({
 function ReviewsTable({
   reviews,
   canDecide,
+  campaignType,
   onDecision,
 }: {
   reviews: Review[];
   canDecide: boolean;
+  campaignType: CampaignType;
   onDecision: (id: string, decision: ReviewDecision, comments?: string) => Promise<void>;
 }) {
   return (
@@ -942,6 +1118,7 @@ function ReviewsTable({
           key={r.id}
           review={r}
           canDecide={canDecide && r.status === 'PENDING'}
+          campaignType={campaignType}
           onDecision={onDecision}
         />
       ))}
@@ -952,10 +1129,12 @@ function ReviewsTable({
 function InlineReviewRow({
   review,
   canDecide,
+  campaignType,
   onDecision,
 }: {
   review: Review;
   canDecide: boolean;
+  campaignType: CampaignType;
   onDecision: (id: string, decision: ReviewDecision, comments?: string) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -981,6 +1160,49 @@ function InlineReviewRow({
     MODIFIED: 'border-l-4 border-l-primary',
     EXPIRED: 'border-l-4 border-l-gray-400',
   };
+
+  // Info utilisateur spécifique au type
+  const contextInfo = () => {
+    if (!u) return null;
+    if (campaignType === 'PASSWORDS') {
+      return (
+        <>
+          <span>Créé le {formatDate(u.createdAt)}</span>
+          <span>
+            MFA :{' '}
+            {u.mfaEnabled ? (
+              <span className="text-emerald-600 dark:text-emerald-400">activée</span>
+            ) : (
+              <span className="text-amber-600 dark:text-amber-400">désactivée</span>
+            )}
+          </span>
+        </>
+      );
+    }
+    if (campaignType === 'INACTIVE_USERS') {
+      return (
+        <>
+          <span>Embauché {formatDate(u.createdAt)}</span>
+          <span>
+            Dernière connexion :{' '}
+            <span className="text-rose-600 dark:text-rose-400">
+              {u.lastLoginAt ? formatRelativeTime(u.lastLoginAt) : 'Jamais'}
+            </span>
+          </span>
+        </>
+      );
+    }
+    return (
+      <>
+        <span>Embauché {formatDate(u.createdAt)}</span>
+        <span>
+          Dernière connexion :{' '}
+          {u.lastLoginAt ? formatRelativeTime(u.lastLoginAt) : 'Jamais'}
+        </span>
+      </>
+    );
+  };
+
   return (
     <div className={`rounded-md border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 ${decisionBorder[review.status]}`}>
       <div
@@ -1009,6 +1231,12 @@ function InlineReviewRow({
             <Badge variant="info">{u.department.name}</Badge>
           )}
           {u && <Badge variant="navy">{u.role}</Badge>}
+          {campaignType === 'PASSWORDS' && u && u.mfaEnabled === false && (
+            <Badge variant="warning">sans MFA</Badge>
+          )}
+          {campaignType === 'INACTIVE_USERS' && u && !u.lastLoginAt && (
+            <Badge variant="warning">jamais connecté</Badge>
+          )}
         </div>
         <Badge variant={REVIEW_STATUS_VARIANT[review.status]}>
           {REVIEW_STATUS_LABEL[review.status]}
@@ -1023,11 +1251,7 @@ function InlineReviewRow({
         <div className="px-3 py-3 border-t border-gray-100 dark:border-slate-800 space-y-2">
           {u && (
             <div className="text-xs text-seal-gray-500 dark:text-slate-400 flex flex-wrap gap-x-3 gap-y-1">
-              <span>Embauché {formatDate(u.createdAt)}</span>
-              <span>
-                Dernière connexion :{' '}
-                {u.lastLoginAt ? formatRelativeTime(u.lastLoginAt) : 'Jamais'}
-              </span>
+              {contextInfo()}
             </div>
           )}
           <textarea
@@ -1056,7 +1280,7 @@ function InlineReviewRow({
               onClick={() => submit('REVOKE')}
             >
               <UserX className="h-3 w-3" />
-              Révoquer
+              {campaignType === 'INACTIVE_USERS' ? 'Désactiver' : 'Révoquer'}
             </Button>
             <Button
               size="sm"

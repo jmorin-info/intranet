@@ -31,6 +31,31 @@ export class AccessReviewsController {
     return this.service.createCampaign(dto, user.id);
   }
 
+  /**
+   * Raccourci : crée une campagne de type PASSWORDS (rotation MDP / MFA absent).
+   * Accepte un payload partiel (name, description, dueDate, scopeDepartmentId, scopeRoles).
+   */
+  @Post('campaigns/password-review')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  createPasswordReview(
+    @Body() dto: Partial<CreateCampaignDto>,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.createPasswordReviewCampaign(user.id, dto);
+  }
+
+  /**
+   * Raccourci : crée une campagne de type INACTIVE_USERS (comptes inactifs ≥ 90 jours).
+   */
+  @Post('campaigns/inactive-review')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  createInactiveReview(
+    @Body() dto: Partial<CreateCampaignDto>,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.createInactiveReviewCampaign(user.id, dto);
+  }
+
   @Get('campaigns')
   @Roles(UserRole.REVIEWER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   findCampaigns() {
