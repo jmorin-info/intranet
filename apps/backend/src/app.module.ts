@@ -1,6 +1,8 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { LoggerModule } from 'nestjs-pino';
 import { RequestIdMiddleware } from './common/request-id.middleware';
+import { buildPinoConfig } from './common/logging/pino.config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bullmq';
@@ -76,6 +78,9 @@ import { SystemMonitoringModule } from './system-monitoring/system-monitoring.mo
 
 @Module({
   imports: [
+    // Structured JSON logging (dev: pretty, prod: ndjson) with X-Request-ID
+    // correlation. Level configurable via LOG_LEVEL.
+    LoggerModule.forRoot(buildPinoConfig()),
     ThrottlerModule.forRoot([{
       ttl: parseInt(process.env.THROTTLE_TTL || '60000', 10),
       limit: parseInt(process.env.THROTTLE_LIMIT || '300', 10),

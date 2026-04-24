@@ -44,7 +44,28 @@ export function captureError(
   errorBuffer.push(event);
   if (errorBuffer.length > MAX_BUFFER) errorBuffer.shift();
 
-  // Console in dev, silent in prod (replace with Sentry when ready)
+  // Forward to Sentry if it has been initialised (NEXT_PUBLIC_SENTRY_DSN set).
+  // Lazy require so the bundle only pulls @sentry/nextjs at runtime when
+  // observability code actually fires.
+  if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const SentryMod = require('@sentry/nextjs');
+      const err = typeof error === 'string' ? new Error(error) : error;
+      SentryMod.withScope((scope: { setTag: (k: string, v: string) => void; setContext: (k: string, v: unknown) => void; setLevel: (l: string) => void }) => {
+        if (context?.component) scope.setTag('component', context.component);
+        if (context?.page) scope.setTag('page', context.page);
+        if (context?.userId) scope.setTag('user_id', context.userId);
+        scope.setLevel(context?.severity || 'error');
+        if (context?.metadata) scope.setContext('metadata', context.metadata);
+        SentryMod.captureException(err);
+      });
+    } catch {
+      // Sentry not available — fail silent (telemetry must never break the app).
+    }
+  }
+
+  // Console in dev for visibility.
   if (process.env.NODE_ENV === 'development') {
     console.error('[OBS]', event.message, event.metadata);
   }

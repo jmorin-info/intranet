@@ -16,24 +16,38 @@ if (existsSync(rootEnv) && !process.env.DATABASE_URL) {
   }
 }
 
-import { NestFactory } from '@nestjs/core';
+// IMPORTANT: Sentry must be initialised BEFORE any other module that may
+// throw, so its instrumentation can capture early errors (DB connect, etc.).
+// This is a no-op if SENTRY_DSN is unset — Sentry is 100% opt-in.
+import { initSentry, isSentryEnabled } from './common/sentry.init';
+initSentry();
+
+import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { ApiSocketIoAdapter } from './socket-io-adapter';
+import { SentryExceptionFilter } from './common/sentry.filter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   // rawBody: true — requis pour valider les signatures HMAC des webhooks
   // externes (DocuSeal, etc.) sur le body brut (ISO 27001 A.8.26).
   // Voir apps/backend/src/signatures/webhook.controller.ts.
+  // bufferLogs: true — bufferise les logs de bootstrap pour les rejouer
+  // dans le logger Pino dès qu'il est instancié.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
+    bufferLogs: true,
   });
+
+  // Switch the Nest logger to Pino (structured JSON + X-Request-ID).
+  app.useLogger(app.get(PinoLogger));
 
   // Serve uploaded files (wiki attachments, certificates, etc.)
   const uploadsDir = join(process.cwd(), 'uploads');
@@ -190,6 +204,15 @@ async function bootstrap() {
   if (!isProduction) {
     SwaggerModule.setup('api/v1/docs', app, swaggerDoc);
     logger.log('Swagger UI available at /api/v1/docs (dev only)');
+  }
+
+  // Global exception filter — sends 5xx + uncaught errors to Sentry
+  // (no-op if SENTRY_DSN is missing) and falls back to the default
+  // Nest behaviour for the HTTP response.
+  const httpAdapterHost = app.get(HttpAdapterHost);
+  app.useGlobalFilters(new SentryExceptionFilter(httpAdapterHost.httpAdapter));
+  if (isSentryEnabled()) {
+    logger.log('Sentry error reporting: ENABLED');
   }
 
   const port = process.env.PORT || 3000;

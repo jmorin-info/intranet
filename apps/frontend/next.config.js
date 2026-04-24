@@ -105,4 +105,27 @@ const nextConfig = {
   },
 };
 
-module.exports = withBundleAnalyzer(nextConfig);
+// Sentry — opt-in. We always wrap the config (the Next.js plugin is a no-op
+// for runtime behaviour when no DSN is provided), but source-map upload
+// only happens when SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT are set.
+let exported = withBundleAnalyzer(nextConfig);
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { withSentryConfig } = require("@sentry/nextjs");
+  exported = withSentryConfig(exported, {
+    silent: true,
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    // Only upload source maps when explicitly configured.
+    disableLogger: true,
+    automaticVercelMonitors: false,
+    widenClientFileUpload: false,
+    hideSourceMaps: true,
+    tunnelRoute: undefined,
+  });
+} catch {
+  // @sentry/nextjs not installed — keep base config (telemetry disabled).
+}
+
+module.exports = exported;
