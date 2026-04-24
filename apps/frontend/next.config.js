@@ -21,7 +21,10 @@ const nextConfig = {
   },
   async headers() {
     const securityHeaders = [
-      { key: "X-Frame-Options", value: "DENY" },
+      // SAMEORIGIN (au lieu de DENY) pour permettre la feature "Glance" —
+      // aperçu rapide same-origin via iframe (voir components/layout/glance-overlay.tsx).
+      // Toujours protégé contre le clickjacking d'origines tierces.
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       {

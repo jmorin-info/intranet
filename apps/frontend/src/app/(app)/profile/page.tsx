@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useUIStore } from "@/stores/ui-store";
 import { useNotificationStore } from "@/stores/notification-store";
+import { useGlanceStore } from "@/stores/glance-store";
 import { USER_ROLE_LABELS } from "@omnitech/shared";
 import {
   Card,
@@ -52,6 +53,7 @@ import {
   X,
   ChevronDown,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import { SubmitTestimonialDialog } from "@/components/testimonials/submit-dialog";
 
@@ -148,6 +150,8 @@ export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const { locale, setLocale } = useUIStore();
+  const glanceEnabled = useGlanceStore((s) => s.enabled);
+  const setGlanceEnabled = useGlanceStore((s) => s.setEnabled);
   const { t } = useTranslation();
   const [changingPassword, setChangingPassword] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -1816,6 +1820,46 @@ export default function ProfilePage() {
                   </button>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Navigation preferences — Glance */}
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
+                <Eye className="h-5 w-5 text-primary" />
+                Préférences de navigation
+              </h2>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                <div className="pr-4">
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">
+                    Glance — aperçu Alt+Clic
+                  </p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                    Maintenez{" "}
+                    <kbd className="px-1 py-0.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded text-[10px] font-mono font-semibold">
+                      Alt
+                    </kbd>{" "}
+                    et cliquez sur un lien interne pour l&apos;ouvrir en
+                    surimpression sans quitter la page courante. Inspiré de Zen
+                    Browser.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setGlanceEnabled(!glanceEnabled)}
+                  aria-label="Activer/désactiver : Glance (aperçu Alt+Clic)"
+                  aria-checked={glanceEnabled}
+                  role="switch"
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${glanceEnabled ? "bg-primary" : "bg-gray-300 dark:bg-slate-600"}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${glanceEnabled ? "translate-x-6" : "translate-x-1"}`}
+                  />
+                </button>
+              </div>
             </CardContent>
           </Card>
 
