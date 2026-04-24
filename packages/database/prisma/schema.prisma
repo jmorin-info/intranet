@@ -150,31 +150,31 @@ enum IncidentCategory {
 // =============================================================================
 
 model User {
-  id                String    @id @default(uuid())
-  email             String    @unique
-  passwordHash      String
-  firstName         String
-  lastName          String
-  role              UserRole
-  departmentId      String?
-  isActive          Boolean   @default(true)
-  lastLoginAt       DateTime?
-  deletedAt         DateTime?
-  gdprConsentAt     DateTime?
-  gdprConsentIp     String?
-  avatarUrl         String?
+  id                      String    @id @default(uuid())
+  email                   String    @unique
+  passwordHash            String
+  firstName               String
+  lastName                String
+  role                    UserRole
+  departmentId            String?
+  isActive                Boolean   @default(true)
+  lastLoginAt             DateTime?
+  deletedAt               DateTime?
+  gdprConsentAt           DateTime?
+  gdprConsentIp           String?
+  avatarUrl               String?
   // MFA
-  mfaEnabled        Boolean   @default(false)
-  mfaRequired       Boolean   @default(false) // Politique MFA imposée par un admin : bloque la connexion tant que MFA n'est pas activé
-  mfaSecret         String?
-  backupCodes       String? // JSON array of hashed backup codes
+  mfaEnabled              Boolean   @default(false)
+  mfaRequired             Boolean   @default(false) // Politique MFA imposée par un admin : bloque la connexion tant que MFA n'est pas activé
+  mfaSecret               String?
+  backupCodes             String? // JSON array of hashed backup codes
   // Chartes
-  chartesAcceptedAt DateTime?
+  chartesAcceptedAt       DateTime?
   // Notification preferences (per-channel × per-category) — nullable = defaults (all in-app/email ON, push only mentions+incidents)
   // Shape: { email: { tickets, documents, incidents, mentions: bool, digest: 'off'|'daily'|'weekly' }, inApp: {...}, push: {...} }
   notificationPreferences Json?
   // UI language preference (persisted so it follows the user across devices). Fallback: 'fr'.
-  locale            String?   @default("fr")
+  locale                  String?   @default("fr")
   // Tracks the most recent password change (admin reset, self-change, token reset).
   // Used by AccessReviewsService (PASSWORDS campaigns) to detect stale credentials.
   // Nullable: backfilled to createdAt for existing rows via the 20260424 migration.
@@ -280,6 +280,8 @@ model User {
   mediaAlbumsCreated        MediaAlbum[]             @relation("MediaAlbumCreator")
   mediaItemsUploaded        MediaItem[]              @relation("MediaItemUploader")
   mediaDownloads            MediaItemDownload[]      @relation("MediaDownloader")
+  // === PCA / Continuité d'activité === 2026-04-24 (ISO 27001 A.5.30)
+  pcaRunsTriggered          PcaRun[]                 @relation("PcaRunTrigger")
 
   @@index([departmentId])
   @@index([role])
@@ -1512,19 +1514,19 @@ enum ApprovalInstanceStatus {
 }
 
 model ApprovalStepInstance {
-  id          String           @id @default(uuid())
-  instanceId  String
-  stepId      String
+  id           String           @id @default(uuid())
+  instanceId   String
+  stepId       String
   // Approbateur pré-assigné pour cette step-instance. Utilisé par les modes
   // PARALLEL_ALL / PARALLEL_ANY où l'on matérialise une ligne par approbateur
   // attendu. Null pour SINGLE basé sur rôle/département (résolution dynamique).
   assignedToId String?
-  decidedById String?
-  decision    ApprovalDecision @default(PENDING)
-  comment     String?
-  decidedAt   DateTime?
-  escalatedAt DateTime?
-  dueAt       DateTime?
+  decidedById  String?
+  decision     ApprovalDecision @default(PENDING)
+  comment      String?
+  decidedAt    DateTime?
+  escalatedAt  DateTime?
+  dueAt        DateTime?
 
   instance   ApprovalInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   step       WorkflowStep     @relation(fields: [stepId], references: [id])
@@ -1662,8 +1664,8 @@ model RagQueryLog {
   query      String
   chunksUsed Int
   durationMs Int
-  rating     Int?     // -1 = negative, 0 = neutral, 1 = positive
-  feedback   String?  // Optional text feedback from user
+  rating     Int? // -1 = negative, 0 = neutral, 1 = positive
+  feedback   String? // Optional text feedback from user
   createdAt  DateTime @default(now())
 
   user User @relation("RagQueryAuthor", fields: [userId], references: [id])
@@ -1704,16 +1706,16 @@ enum ChatFeedbackReason {
 }
 
 model ChatSession {
-  id              String         @id @default(cuid())
+  id              String        @id @default(cuid())
   userId          String
-  user            User           @relation("ChatSessionAuthor", fields: [userId], references: [id])
+  user            User          @relation("ChatSessionAuthor", fields: [userId], references: [id])
   title           String?
   surface         ChatSurface
   contextUrl      String?
   contextType     String?
   contextEntityId String?
-  startedAt       DateTime       @default(now())
-  lastMessageAt   DateTime       @default(now())
+  startedAt       DateTime      @default(now())
+  lastMessageAt   DateTime      @default(now())
   archivedAt      DateTime?
   messages        ChatMessage[]
 
@@ -1723,23 +1725,23 @@ model ChatSession {
 }
 
 model ChatMessage {
-  id                  String                @id @default(cuid())
+  id                  String               @id @default(cuid())
   sessionId           String
-  session             ChatSession           @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session             ChatSession          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   role                ChatMessageRole
-  content             String                @db.Text
+  content             String               @db.Text
   citations           Json?
   retrievalConfidence Float?
-  retrievedChunkIds   String[]              @default([])
+  retrievedChunkIds   String[]             @default([])
   modelUsed           String?
   modeUsed            String?
   tokensIn            Int?
   tokensOut           Int?
   timeToFirstTokenMs  Int?
   totalLatencyMs      Int?
-  regenerateCount     Int                   @default(0)
-  wasAborted          Boolean               @default(false)
-  createdAt           DateTime              @default(now())
+  regenerateCount     Int                  @default(0)
+  wasAborted          Boolean              @default(false)
+  createdAt           DateTime             @default(now())
   feedback            ChatMessageFeedback?
 
   @@index([sessionId, createdAt])
@@ -1771,7 +1773,7 @@ model ChatbotShareLink {
   token     String   @unique
   ownerId   String
   owner     User     @relation("ChatbotShareOwner", fields: [ownerId], references: [id])
-  payload   Json     // snapshot des messages (role, content, timestamp, sources)
+  payload   Json // snapshot des messages (role, content, timestamp, sources)
   createdAt DateTime @default(now())
   expiresAt DateTime
   // Compteur de vues (analytics légère, non-PII)
@@ -1912,9 +1914,9 @@ model Testimonial {
 // Pas de carousel PUBLIC sur /welcome — consultation nécessite auth.
 
 enum MediaVisibility {
-  INTERNAL    // tout collaborateur authentifié
-  DEPARTMENT  // membres d'un département spécifique
-  PRIVATE     // seulement créateur + admins
+  INTERNAL // tout collaborateur authentifié
+  DEPARTMENT // membres d'un département spécifique
+  PRIVATE // seulement créateur + admins
 }
 
 enum MediaType {
@@ -1934,10 +1936,10 @@ model MediaAlbum {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
-  items     MediaItem[]    @relation("AlbumItems")
-  createdBy User           @relation("MediaAlbumCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  department Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  coverItem MediaItem?     @relation("AlbumCover", fields: [coverItemId], references: [id], onDelete: SetNull)
+  items      MediaItem[] @relation("AlbumItems")
+  createdBy  User        @relation("MediaAlbumCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  coverItem  MediaItem?  @relation("AlbumCover", fields: [coverItemId], references: [id], onDelete: SetNull)
 
   @@index([visibility, createdAt])
   @@index([createdById])
@@ -1950,11 +1952,11 @@ model MediaItem {
   type          MediaType
   fileUrl       String
   thumbnailUrl  String
-  posterUrl     String?   // vidéos : frame extraite (null tant que ffmpeg absent)
+  posterUrl     String? // vidéos : frame extraite (null tant que ffmpeg absent)
   width         Int?
   height        Int?
-  durationSec   Int?      // vidéos uniquement
-  fileSizeBytes BigInt    // BigInt pour supporter > 2 Go
+  durationSec   Int? // vidéos uniquement
+  fileSizeBytes BigInt // BigInt pour supporter > 2 Go
   mimeType      String
   title         String?
   description   String?
@@ -1987,15 +1989,6 @@ model MediaItemDownload {
 // =============================================================================
 // Cyber Score Snapshot (ISO 27001:2022 — /admin/cyber-score)
 // =============================================================================
-// Historise chaque calcul du score cyber global afin d'afficher des tendances
-// 7j / 30j / 90j sur la page /admin/cyber-score. Un snapshot est créé :
-//  - par le cron hebdomadaire CyberScoreService (dimanche 3h)
-//  - manuellement via POST /cyber-score/recompute (bouton "Recalculer")
-// Le champ `domains` contient le payload JSON complet des 10 sous-scores et
-// de leurs signaux afin de pouvoir replayer un calcul historique sans devoir
-// rejouer les requêtes Prisma.
-// =============================================================================
-
 model CyberScoreSnapshot {
   id        String   @id @default(uuid())
   score     Int // 0..100 — moyenne arithmétique des 10 sous-scores
@@ -2003,4 +1996,26 @@ model CyberScoreSnapshot {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PCA / Plan de continuité d'activité — ISO 27001:2022 A.5.30 (ICT readiness
+// for business continuity) + A.8.13/A.8.14 (backups / redundancy).
+// ─────────────────────────────────────────────────────────────────────────────
+model PcaRun {
+  id          String    @id @default(cuid())
+  scenarioId  String
+  status      String // PENDING | RUNNING | SUCCESS | FAILED | CANCELLED
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  duration    Int?
+  result      Json?
+  logs        String?   @db.Text
+  triggeredBy String
+
+  triggeredByUser User @relation("PcaRunTrigger", fields: [triggeredBy], references: [id], onDelete: Restrict)
+
+  @@index([scenarioId, startedAt])
+  @@index([status])
+  @@index([triggeredBy])
 }

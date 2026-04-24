@@ -77,6 +77,7 @@ import { MediaModule } from './media/media.module';
 import { SystemMonitoringModule } from './system-monitoring/system-monitoring.module';
 import { TrustModule } from './trust/trust.module';
 import { CyberScoreModule } from './cyber-score/cyber-score.module';
+import { PcaModule } from './pca/pca.module';
 
 @Module({
   imports: [
@@ -166,6 +167,7 @@ import { CyberScoreModule } from './cyber-score/cyber-score.module';
     SystemMonitoringModule,
     TrustModule,
     CyberScoreModule,
+    PcaModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
