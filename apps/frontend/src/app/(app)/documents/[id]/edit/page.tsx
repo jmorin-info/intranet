@@ -217,7 +217,11 @@ export default function EditDocumentPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800">
+        <button
+          onClick={() => router.back()}
+          className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800"
+          aria-label="Revenir au document"
+        >
           <ArrowLeft className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
         </button>
         <h1 className="text-2xl font-medium text-seal-navy dark:text-white">Modifier le document</h1>

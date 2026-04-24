@@ -14,9 +14,32 @@ interface DialogProps {
   className?: string;
 }
 
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'area[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'iframe',
+  '[tabindex]:not([tabindex="-1"])',
+  '[contenteditable="true"]',
+].join(',');
+
+function getVisibleFocusable(root: HTMLElement): HTMLElement[] {
+  const nodes = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+  return nodes.filter(
+    (n) =>
+      !n.hasAttribute('data-focus-trap-ignore') &&
+      n.offsetWidth > 0 &&
+      n.offsetHeight > 0,
+  );
+}
+
 export function Dialog({ open, onClose, title, description, children, className }: DialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   // Store onClose in a ref so the effect doesn't re-run when the callback changes
   const onCloseRef = useRef(onClose);
@@ -24,30 +47,92 @@ export function Dialog({ open, onClose, title, description, children, className 
   const prevOpenRef = useRef(false);
 
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
-    };
     if (open) {
-      document.addEventListener('keydown', handleEsc);
+      // Remember the trigger so we can restore focus on close (WCAG 2.4.3)
+      if (!prevOpenRef.current) {
+        previouslyFocusedRef.current = (document.activeElement as HTMLElement | null) ?? null;
+      }
       document.body.style.overflow = 'hidden';
       // Auto-focus ONLY when dialog first opens (not on every re-render)
       if (!prevOpenRef.current) {
         requestAnimationFrame(() => {
           if (overlayRef.current) overlayRef.current.scrollTop = 0;
-          const el = panelRef.current?.querySelector<HTMLElement>(
+          // Prefer first input/textarea/select for ergonomic flow, otherwise
+          // first focusable element (incl. close button).
+          const formEl = panelRef.current?.querySelector<HTMLElement>(
             'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])',
           );
-          el?.focus({ preventScroll: true });
+          if (formEl) {
+            formEl.focus({ preventScroll: true });
+          } else if (panelRef.current) {
+            const focusables = getVisibleFocusable(panelRef.current);
+            (focusables[0] ?? panelRef.current).focus({ preventScroll: true });
+          }
         });
       }
       prevOpenRef.current = true;
-    } else {
+    } else if (prevOpenRef.current) {
+      // Restore focus to the element that opened the dialog
+      const prev = previouslyFocusedRef.current;
+      if (prev && typeof prev.focus === 'function') {
+        requestAnimationFrame(() => {
+          try {
+            prev.focus({ preventScroll: true });
+          } catch {
+            // no-op
+          }
+        });
+      }
+      previouslyFocusedRef.current = null;
       prevOpenRef.current = false;
     }
     return () => {
-      document.removeEventListener('keydown', handleEsc);
       document.body.style.overflow = '';
     };
+  }, [open]);
+
+  // Focus-trap + Escape : while the dialog is open, Tab/Shift+Tab cycle inside
+  // the panel and never escape it. Escape closes.
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab' || !panelRef.current) return;
+
+      const focusables = getVisibleFocusable(panelRef.current);
+      if (focusables.length === 0) {
+        e.preventDefault();
+        if (!panelRef.current.hasAttribute('tabindex')) {
+          panelRef.current.setAttribute('tabindex', '-1');
+        }
+        panelRef.current.focus({ preventScroll: true });
+        return;
+      }
+      const first = focusables[0]!;
+      const last = focusables[focusables.length - 1]!;
+      const current = document.activeElement as HTMLElement | null;
+      const inside = panelRef.current.contains(current);
+
+      if (e.shiftKey) {
+        if (!inside || current === first) {
+          e.preventDefault();
+          last.focus({ preventScroll: true });
+        }
+      } else {
+        if (!inside || current === last) {
+          e.preventDefault();
+          first.focus({ preventScroll: true });
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [open]);
 
   if (!open) return null;
@@ -80,9 +165,10 @@ export function Dialog({ open, onClose, title, description, children, className 
             {description && <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5">{description}</p>}
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="rounded-full p-1 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-            aria-label="Fermer"
+            aria-label="Fermer la fenêtre"
           >
             <X className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
           </button>

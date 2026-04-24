@@ -428,6 +428,7 @@ export default function NewDocumentPage() {
         <button
           onClick={() => router.back()}
           className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+          aria-label="Revenir à la liste des documents"
         >
           <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
         </button>
@@ -858,6 +859,7 @@ export default function NewDocumentPage() {
                     type="button"
                     onClick={() => setFile(null)}
                     className="text-seal-gray-500 hover:text-red-500 transition-colors"
+                    aria-label="Retirer le fichier"
                   >
                     <X className="h-4 w-4" />
                   </button>

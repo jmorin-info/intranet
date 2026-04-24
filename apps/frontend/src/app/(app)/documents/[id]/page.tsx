@@ -1167,6 +1167,7 @@ export default function DocumentDetailPage() {
               <button
                 onClick={() => router.back()}
                 className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors duration-200"
+                aria-label="Revenir à la page précédente"
               >
                 <ArrowLeft className="h-4 w-4 text-seal-gray-500 dark:text-slate-400" />
               </button>

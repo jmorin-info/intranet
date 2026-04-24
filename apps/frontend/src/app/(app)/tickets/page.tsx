@@ -902,6 +902,7 @@ export default function TicketsPage() {
         <div className="relative">
           <button
             title="Changer le statut"
+            aria-label={`Changer le statut du ticket ${ticket.reference}`}
             onClick={(e) => { e.stopPropagation(); const el = e.currentTarget.nextElementSibling as HTMLElement; if (el) el.classList.toggle('hidden'); }}
             className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-gray-500 hover:text-seal-navy dark:hover:text-white transition"
           >
@@ -931,6 +932,7 @@ export default function TicketsPage() {
         {user && (!ticket.assignee || ticket.assignee.firstName !== user.firstName) && (
           <button
             title="M'assigner ce ticket"
+            aria-label={`M'assigner le ticket ${ticket.reference}`}
             onClick={async (e) => {
               e.stopPropagation();
               try {
@@ -947,6 +949,7 @@ export default function TicketsPage() {
         {/* Copy reference */}
         <button
           title="Copier la référence"
+          aria-label={`Copier la référence ${ticket.reference}`}
           onClick={(e) => {
             e.stopPropagation();
             navigator.clipboard.writeText(ticket.reference);
