@@ -5,24 +5,27 @@ import {
   BadRequestException,
   Logger,
   Optional,
-} from '@nestjs/common';
-import * as crypto from 'crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { StorageService } from '../storage/storage.service';
-import { AuditService } from '../audit/audit.service';
-import { ScannerService } from '../scanner/scanner.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { CacheService } from '../common/cache/cache.service';
-import { CreateDocumentDto } from './dto/create-document.dto';
-import { UpdateDocumentDto } from './dto/update-document.dto';
-import { DocumentFiltersDto } from './dto/document-filters.dto';
-import { RequestUser } from '../common/interfaces';
-import { UserRole, ROLE_HIERARCHY } from '../common/enums';
-import { ISO_CONTROLS_FR } from '../iso-controls/iso-controls-fr.map';
-import { sanitizePlainText } from '../common/sanitize';
-import { safeParseInt } from '../common/validation-helpers';
-import { MeilisearchService, MeiliDocument } from '../search/meilisearch.service';
-import { RagService } from '../rag/rag.service';
+} from "@nestjs/common";
+import * as crypto from "crypto";
+import { PrismaService } from "../prisma/prisma.service";
+import { StorageService } from "../storage/storage.service";
+import { AuditService } from "../audit/audit.service";
+import { ScannerService } from "../scanner/scanner.service";
+import { NotificationsService } from "../notifications/notifications.service";
+import { CacheService } from "../common/cache/cache.service";
+import { CreateDocumentDto } from "./dto/create-document.dto";
+import { UpdateDocumentDto } from "./dto/update-document.dto";
+import { DocumentFiltersDto } from "./dto/document-filters.dto";
+import { RequestUser } from "../common/interfaces";
+import { UserRole, ROLE_HIERARCHY } from "../common/enums";
+import { ISO_CONTROLS_FR } from "../iso-controls/iso-controls-fr.map";
+import { sanitizePlainText } from "../common/sanitize";
+import { safeParseInt } from "../common/validation-helpers";
+import {
+  MeilisearchService,
+  MeiliDocument,
+} from "../search/meilisearch.service";
+import { RagService } from "../rag/rag.service";
 
 /** Enrich any object that has nested isoControls[].isoControl with titleFr */
 function enrichIsoControls<T>(doc: T): T {
@@ -34,7 +37,7 @@ function enrichIsoControls<T>(doc: T): T {
           ...link,
           isoControl: {
             ...link.isoControl,
-            titleFr: ISO_CONTROLS_FR[link.isoControl.code] || '',
+            titleFr: ISO_CONTROLS_FR[link.isoControl.code] || "",
           },
         };
       }
@@ -45,23 +48,28 @@ function enrichIsoControls<T>(doc: T): T {
 }
 
 const ALLOWED_MIME_TYPES = [
-  'application/pdf',
+  "application/pdf",
   // OOXML (Office 2007+)
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',   // .docx
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',         // .xlsx
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
   // Legacy Office (pre-2007) — supported by OnlyOffice in view mode
-  'application/msword',                                                        // .doc
-  'application/vnd.ms-excel',                                                  // .xls
-  'application/vnd.ms-powerpoint',                                             // .ppt
+  "application/msword", // .doc
+  "application/vnd.ms-excel", // .xls
+  "application/vnd.ms-powerpoint", // .ppt
   // ODF (OpenDocument) — editable in OnlyOffice
-  'application/vnd.oasis.opendocument.text',                                   // .odt
-  'application/vnd.oasis.opendocument.spreadsheet',                            // .ods
-  'application/vnd.oasis.opendocument.presentation',                           // .odp
+  "application/vnd.oasis.opendocument.text", // .odt
+  "application/vnd.oasis.opendocument.spreadsheet", // .ods
+  "application/vnd.oasis.opendocument.presentation", // .odp
   // Images
-  'image/png', 'image/jpeg', 'image/webp', 'image/gif',
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
   // Markdown + texte brut (documentation légère, procédures)
-  'text/markdown', 'text/x-markdown', 'text/plain',
+  "text/markdown",
+  "text/x-markdown",
+  "text/plain",
 ];
 
 /**
@@ -71,24 +79,42 @@ const ALLOWED_MIME_TYPES = [
  * bytes of the file content are trustworthy.
  */
 const MAGIC_BYTES: Array<{ mime: string; bytes: number[] }> = [
-  { mime: 'application/pdf', bytes: [0x25, 0x50, 0x44, 0x46] }, // %PDF
+  { mime: "application/pdf", bytes: [0x25, 0x50, 0x44, 0x46] }, // %PDF
   // OOXML (docx, xlsx, pptx) — PK ZIP header (all OOXML are ZIP archives)
-  { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', bytes: [0x50, 0x4b, 0x03, 0x04] },
-  { mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', bytes: [0x50, 0x4b, 0x03, 0x04] },
-  { mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', bytes: [0x50, 0x4b, 0x03, 0x04] },
+  {
+    mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    bytes: [0x50, 0x4b, 0x03, 0x04],
+  },
+  {
+    mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    bytes: [0x50, 0x4b, 0x03, 0x04],
+  },
+  {
+    mime: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    bytes: [0x50, 0x4b, 0x03, 0x04],
+  },
   // Legacy Office — OLE2 Compound Document (0xD0CF11E0A1B11AE1)
-  { mime: 'application/msword', bytes: [0xd0, 0xcf, 0x11, 0xe0] },
-  { mime: 'application/vnd.ms-excel', bytes: [0xd0, 0xcf, 0x11, 0xe0] },
-  { mime: 'application/vnd.ms-powerpoint', bytes: [0xd0, 0xcf, 0x11, 0xe0] },
+  { mime: "application/msword", bytes: [0xd0, 0xcf, 0x11, 0xe0] },
+  { mime: "application/vnd.ms-excel", bytes: [0xd0, 0xcf, 0x11, 0xe0] },
+  { mime: "application/vnd.ms-powerpoint", bytes: [0xd0, 0xcf, 0x11, 0xe0] },
   // ODF (OpenDocument) — also PK ZIP archives
-  { mime: 'application/vnd.oasis.opendocument.text', bytes: [0x50, 0x4b, 0x03, 0x04] },
-  { mime: 'application/vnd.oasis.opendocument.spreadsheet', bytes: [0x50, 0x4b, 0x03, 0x04] },
-  { mime: 'application/vnd.oasis.opendocument.presentation', bytes: [0x50, 0x4b, 0x03, 0x04] },
+  {
+    mime: "application/vnd.oasis.opendocument.text",
+    bytes: [0x50, 0x4b, 0x03, 0x04],
+  },
+  {
+    mime: "application/vnd.oasis.opendocument.spreadsheet",
+    bytes: [0x50, 0x4b, 0x03, 0x04],
+  },
+  {
+    mime: "application/vnd.oasis.opendocument.presentation",
+    bytes: [0x50, 0x4b, 0x03, 0x04],
+  },
   // Images
-  { mime: 'image/png', bytes: [0x89, 0x50, 0x4e, 0x47] },
-  { mime: 'image/jpeg', bytes: [0xff, 0xd8, 0xff] },
-  { mime: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46] }, // RIFF (WEBP container)
-  { mime: 'image/gif', bytes: [0x47, 0x49, 0x46, 0x38] }, // GIF8
+  { mime: "image/png", bytes: [0x89, 0x50, 0x4e, 0x47] },
+  { mime: "image/jpeg", bytes: [0xff, 0xd8, 0xff] },
+  { mime: "image/webp", bytes: [0x52, 0x49, 0x46, 0x46] }, // RIFF (WEBP container)
+  { mime: "image/gif", bytes: [0x47, 0x49, 0x46, 0x38] }, // GIF8
   // Markdown et texte : pas de magic bytes fiable (format texte UTF-8).
   // Validation effectuée via taille max + MIME declaré ; bypass magic-bytes
   // géré dans validateMagicBytes() par exclusion.
@@ -96,9 +122,9 @@ const MAGIC_BYTES: Array<{ mime: string; bytes: number[] }> = [
 
 // Formats sans magic bytes fiable (texte plat) — accepter tel quel
 const TEXT_MIMES_SKIP_MAGIC = new Set([
-  'text/markdown',
-  'text/x-markdown',
-  'text/plain',
+  "text/markdown",
+  "text/x-markdown",
+  "text/plain",
 ]);
 
 /**
@@ -107,17 +133,17 @@ const TEXT_MIMES_SKIP_MAGIC = new Set([
  * MIME attendu en se basant sur l'extension du nom original.
  */
 function normalizeMimeType(file: Express.Multer.File): void {
-  const current = (file.mimetype || '').toLowerCase();
+  const current = (file.mimetype || "").toLowerCase();
   const ambiguous =
     !current ||
-    current === 'application/octet-stream' ||
-    current === 'application/x-unknown';
+    current === "application/octet-stream" ||
+    current === "application/x-unknown";
   if (!ambiguous) return;
-  const name = (file.originalname || '').toLowerCase();
-  if (name.endsWith('.md') || name.endsWith('.markdown')) {
-    file.mimetype = 'text/markdown';
-  } else if (name.endsWith('.txt')) {
-    file.mimetype = 'text/plain';
+  const name = (file.originalname || "").toLowerCase();
+  if (name.endsWith(".md") || name.endsWith(".markdown")) {
+    file.mimetype = "text/markdown";
+  } else if (name.endsWith(".txt")) {
+    file.mimetype = "text/plain";
   }
 }
 
@@ -149,8 +175,8 @@ export class DocumentsService {
 
   /** Invalidate document + dashboard stats caches after mutations. */
   private invalidateStatsCaches(): void {
-    void this.cacheService.del('stats:documents:global');
-    void this.cacheService.del('stats:dashboard:global');
+    void this.cacheService.del("stats:documents:global");
+    void this.cacheService.del("stats:dashboard:global");
   }
 
   /**
@@ -160,9 +186,9 @@ export class DocumentsService {
     if (!this.meili) return;
     const payload: MeiliDocument = {
       id: `document-${doc.id}`,
-      title: doc.title ?? '',
-      content: doc.description ?? '',
-      type: 'document',
+      title: doc.title ?? "",
+      content: doc.description ?? "",
+      type: "document",
       url: `/documents/${doc.id}`,
       authorId: doc.ownerId ?? null,
       date: doc.createdAt?.toISOString?.() ?? null,
@@ -172,9 +198,13 @@ export class DocumentsService {
       reference: doc.reference ?? null,
       tags: [doc.category, doc.classification, doc.status].filter(Boolean),
     };
-    void this.meili.indexOne('document', payload).catch((err) =>
-      this.logger.warn(`Meilisearch indexation failed for document ${doc.id}: ${err?.message || err}`),
-    );
+    void this.meili
+      .indexOne("document", payload)
+      .catch((err) =>
+        this.logger.warn(
+          `Meilisearch indexation failed for document ${doc.id}: ${err?.message || err}`,
+        ),
+      );
   }
 
   /**
@@ -186,9 +216,9 @@ export class DocumentsService {
     document: { classification?: string | null; ownerId: string },
     currentUser: RequestUser,
   ): void {
-    const userRole = (currentUser.role || '').toUpperCase() as UserRole;
+    const userRole = (currentUser.role || "").toUpperCase() as UserRole;
     const roleLevel = ROLE_HIERARCHY[userRole] ?? 0;
-    const classification = (document.classification || 'INTERNE').toUpperCase();
+    const classification = (document.classification || "INTERNE").toUpperCase();
     const isOwner = document.ownerId === currentUser.id;
 
     // ADMIN+ and DIRECTION see everything
@@ -198,23 +228,23 @@ export class DocumentsService {
 
     if (userRole === UserRole.COLLABORATEUR) {
       // COLLABORATEUR: PUBLIC + INTERNE only
-      if (!['PUBLIC', 'INTERNE'].includes(classification)) {
-        throw new ForbiddenException('Accès refusé');
+      if (!["PUBLIC", "INTERNE"].includes(classification)) {
+        throw new ForbiddenException("Accès refusé");
       }
     } else if (userRole === UserRole.AUDITEUR) {
       // AUDITEUR: up to CONFIDENTIEL
-      if (classification === 'SECRET') {
-        throw new ForbiddenException('Accès refusé');
+      if (classification === "SECRET") {
+        throw new ForbiddenException("Accès refusé");
       }
     } else if (userRole === UserRole.REVIEWER) {
       // REVIEWER: all except SECRET
-      if (classification === 'SECRET') {
-        throw new ForbiddenException('Accès refusé');
+      if (classification === "SECRET") {
+        throw new ForbiddenException("Accès refusé");
       }
     } else if (userRole === UserRole.PRESTATAIRE) {
       // PRESTATAIRE: very restricted, only PUBLIC
-      if (classification !== 'PUBLIC') {
-        throw new ForbiddenException('Accès refusé');
+      if (classification !== "PUBLIC") {
+        throw new ForbiddenException("Accès refusé");
       }
     }
   }
@@ -222,18 +252,21 @@ export class DocumentsService {
   async findAll(filters: DocumentFiltersDto, currentUser: RequestUser) {
     const page = safeParseInt(filters.page, 1);
     const rawLimit = safeParseInt(filters.limit, 20);
-    const limit = Math.min(Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20, 100);
+    const limit = Math.min(
+      Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20,
+      100,
+    );
     const where: any = { deletedAt: null, AND: [] };
 
     // Role-based filtering (ISO 27001 A.5.15 — Access control)
-    const userRole = (currentUser.role || '').toUpperCase() as UserRole;
+    const userRole = (currentUser.role || "").toUpperCase() as UserRole;
     this.logger.debug(`findAll: user=${currentUser.id} role=${userRole}`);
     if (userRole === UserRole.PRESTATAIRE) {
       // Prestataires: CONTRACT documents + public approved docs only
       where.AND.push({
         OR: [
-          { category: 'CONTRACT', status: 'APPROVED' },
-          { isPublic: true, status: 'APPROVED' },
+          { category: "CONTRACT", status: "APPROVED" },
+          { isPublic: true, status: "APPROVED" },
         ],
       });
     } else if (userRole === UserRole.COLLABORATEUR) {
@@ -242,7 +275,7 @@ export class DocumentsService {
       //   CONFIDENTIEL + SECRET = invisible (sauf s'ils sont propriétaire)
       where.AND.push({
         OR: [
-          { status: 'APPROVED', classification: { in: ['PUBLIC', 'INTERNE'] } },
+          { status: "APPROVED", classification: { in: ["PUBLIC", "INTERNE"] } },
           { ownerId: currentUser.id },
         ],
       });
@@ -250,14 +283,17 @@ export class DocumentsService {
       // Auditeurs: PUBLIC + INTERNE + CONFIDENTIEL approved (pas SECRET)
       where.AND.push({
         OR: [
-          { status: 'APPROVED', classification: { in: ['PUBLIC', 'INTERNE', 'CONFIDENTIEL'] } },
+          {
+            status: "APPROVED",
+            classification: { in: ["PUBLIC", "INTERNE", "CONFIDENTIEL"] },
+          },
         ],
       });
     } else if (userRole === UserRole.REVIEWER) {
       // Reviewers: tout sauf SECRET (sauf s'ils sont propriétaire)
       where.AND.push({
         OR: [
-          { classification: { in: ['PUBLIC', 'INTERNE', 'CONFIDENTIEL'] } },
+          { classification: { in: ["PUBLIC", "INTERNE", "CONFIDENTIEL"] } },
           { ownerId: currentUser.id },
         ],
       });
@@ -280,9 +316,9 @@ export class DocumentsService {
     if (filters.search) {
       where.AND.push({
         OR: [
-          { title: { contains: filters.search, mode: 'insensitive' } },
-          { description: { contains: filters.search, mode: 'insensitive' } },
-          { reference: { contains: filters.search, mode: 'insensitive' } },
+          { title: { contains: filters.search, mode: "insensitive" } },
+          { description: { contains: filters.search, mode: "insensitive" } },
+          { reference: { contains: filters.search, mode: "insensitive" } },
         ],
       });
     }
@@ -304,21 +340,37 @@ export class DocumentsService {
       delete where.AND;
     }
 
-    this.logger.debug(`findAll where: ${JSON.stringify(where).substring(0, 500)}`);
+    this.logger.debug(
+      `findAll where: ${JSON.stringify(where).substring(0, 500)}`,
+    );
 
     let data: any[];
     let total: number;
     try {
-      const validSortFields = ['title', 'createdAt', 'updatedAt', 'reference', 'status', 'nextReviewDate'];
-      const sortBy = validSortFields.includes(filters.sortBy || '') ? filters.sortBy! : 'updatedAt';
-      const sortOrder = filters.sortOrder === 'asc' ? 'asc' : 'desc';
+      const validSortFields = [
+        "title",
+        "createdAt",
+        "updatedAt",
+        "reference",
+        "status",
+        "nextReviewDate",
+      ];
+      const sortBy = validSortFields.includes(filters.sortBy || "")
+        ? filters.sortBy!
+        : "updatedAt";
+      const sortOrder = filters.sortOrder === "asc" ? "asc" : "desc";
 
       [data, total] = await Promise.all([
         this.prisma.document.findMany({
           where,
           include: {
             owner: {
-              select: { id: true, firstName: true, lastName: true, email: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
             },
             isoControls: {
               include: { isoControl: true },
@@ -334,7 +386,9 @@ export class DocumentsService {
         this.prisma.document.count({ where }),
       ]);
     } catch (err) {
-      this.logger.error(`findAll Prisma error: ${err instanceof Error ? err.message : err}`);
+      this.logger.error(
+        `findAll Prisma error: ${err instanceof Error ? err.message : err}`,
+      );
       this.logger.error(`where was: ${JSON.stringify(where)}`);
       throw err;
     }
@@ -364,15 +418,19 @@ export class DocumentsService {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
         versions: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           include: {
             uploadedBy: {
               select: { id: true, firstName: true, lastName: true },
             },
             signatureRequests: {
               include: {
-                signer: { select: { id: true, firstName: true, lastName: true } },
-                requestedBy: { select: { id: true, firstName: true, lastName: true } },
+                signer: {
+                  select: { id: true, firstName: true, lastName: true },
+                },
+                requestedBy: {
+                  select: { id: true, firstName: true, lastName: true },
+                },
               },
             },
           },
@@ -382,16 +440,18 @@ export class DocumentsService {
         },
         acknowledgments: {
           select: {
-            id: true, userId: true, acknowledgedAt: true,
+            id: true,
+            userId: true,
+            acknowledgedAt: true,
             user: { select: { id: true, firstName: true, lastName: true } },
           },
         },
         validationRequests: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           take: 1,
           include: {
             steps: {
-              orderBy: { createdAt: 'desc' },
+              orderBy: { createdAt: "desc" },
               include: {
                 assignedTo: {
                   select: { id: true, firstName: true, lastName: true },
@@ -404,35 +464,42 @@ export class DocumentsService {
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document introuvable');
+      throw new NotFoundException("Document introuvable");
     }
 
     // Access checks (ISO 27001 A.5.12 — Classification + A.5.15 — Access Control)
-    const userRole = (currentUser.role || '').toUpperCase() as UserRole;
+    const userRole = (currentUser.role || "").toUpperCase() as UserRole;
     const isOwner = document.ownerId === currentUser.id;
-    const classification = document.classification || 'INTERNE';
+    const classification = document.classification || "INTERNE";
 
     if (userRole === UserRole.PRESTATAIRE) {
       // Prestataires: only CONTRACT + APPROVED or public + APPROVED
-      if (!isOwner && (document.status !== 'APPROVED' || (document.category !== 'CONTRACT' && !document.isPublic))) {
-        throw new ForbiddenException('Accès refusé');
+      if (
+        !isOwner &&
+        (document.status !== "APPROVED" ||
+          (document.category !== "CONTRACT" && !document.isPublic))
+      ) {
+        throw new ForbiddenException("Accès refusé");
       }
     } else if (userRole === UserRole.COLLABORATEUR) {
       // Collaborateurs: PUBLIC + INTERNE approved only, or own documents
       if (!isOwner) {
-        if (document.status !== 'APPROVED') throw new ForbiddenException('Accès refusé');
-        if (!['PUBLIC', 'INTERNE'].includes(classification)) {
-          throw new ForbiddenException('Niveau de classification insuffisant');
+        if (document.status !== "APPROVED")
+          throw new ForbiddenException("Accès refusé");
+        if (!["PUBLIC", "INTERNE"].includes(classification)) {
+          throw new ForbiddenException("Niveau de classification insuffisant");
         }
       }
     } else if (userRole === UserRole.AUDITEUR) {
       // Auditeurs: PUBLIC + INTERNE + CONFIDENTIEL approved only (not SECRET)
-      if (document.status !== 'APPROVED') throw new ForbiddenException('Accès refusé');
-      if (classification === 'SECRET') throw new ForbiddenException('Niveau de classification insuffisant');
+      if (document.status !== "APPROVED")
+        throw new ForbiddenException("Accès refusé");
+      if (classification === "SECRET")
+        throw new ForbiddenException("Niveau de classification insuffisant");
     } else if (userRole === UserRole.REVIEWER) {
       // Reviewers: all except SECRET (unless owner)
-      if (!isOwner && classification === 'SECRET') {
-        throw new ForbiddenException('Niveau de classification insuffisant');
+      if (!isOwner && classification === "SECRET") {
+        throw new ForbiddenException("Niveau de classification insuffisant");
       }
     }
     // ADMIN, SUPER_ADMIN, DIRECTION: full access
@@ -445,25 +512,32 @@ export class DocumentsService {
       where: { id },
       include: { isoControls: { select: { isoControlId: true } } },
     });
-    if (!doc || doc.deletedAt) throw new NotFoundException('Document introuvable');
+    if (!doc || doc.deletedAt)
+      throw new NotFoundException("Document introuvable");
 
     // Classification-based access check before exposing related documents
     if (currentUser) {
       this.checkClassificationAccess(doc, currentUser);
     }
 
-    const isoControlIds = doc.isoControls.map(c => c.isoControlId);
+    const isoControlIds = doc.isoControls.map((c) => c.isoControlId);
 
     // Find docs that share the same category OR the same ISO controls
     const related = await this.prisma.document.findMany({
       where: {
         id: { not: id },
         deletedAt: null,
-        status: { not: 'ARCHIVED' },
+        status: { not: "ARCHIVED" },
         OR: [
           { category: doc.category },
           ...(isoControlIds.length > 0
-            ? [{ isoControls: { some: { isoControlId: { in: isoControlIds } } } }]
+            ? [
+                {
+                  isoControls: {
+                    some: { isoControlId: { in: isoControlIds } },
+                  },
+                },
+              ]
             : []),
         ],
       },
@@ -475,10 +549,12 @@ export class DocumentsService {
         status: true,
         updatedAt: true,
         isoControls: {
-          include: { isoControl: { select: { code: true, titleFr: true, title: true } } },
+          include: {
+            isoControl: { select: { code: true, titleFr: true, title: true } },
+          },
         },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { updatedAt: "desc" },
       take: limit,
     });
 
@@ -486,20 +562,27 @@ export class DocumentsService {
   }
 
   async create(dto: CreateDocumentDto, userId: string) {
-    const reference = await this.generateReference(dto.category, dto.domain || 'GEN');
+    const reference = await this.generateReference(
+      dto.category,
+      dto.domain || "GEN",
+    );
 
     const document = await this.prisma.document.create({
       data: {
         title: sanitizePlainText(dto.title),
-        description: dto.description ? sanitizePlainText(dto.description) : undefined,
+        description: dto.description
+          ? sanitizePlainText(dto.description)
+          : undefined,
         category: dto.category,
         reference,
         ownerId: userId,
         reviewerId: dto.reviewerId,
         approverId: dto.approverId,
-        nextReviewDate: dto.nextReviewDate ? new Date(dto.nextReviewDate) : null,
+        nextReviewDate: dto.nextReviewDate
+          ? new Date(dto.nextReviewDate)
+          : null,
         isPublic: dto.isPublic ?? false,
-        classification: dto.classification || 'INTERNE',
+        classification: dto.classification || "INTERNE",
         isoControls: dto.isoControlIds?.length
           ? {
               create: dto.isoControlIds.map((isoControlId) => ({
@@ -518,8 +601,8 @@ export class DocumentsService {
 
     await this.auditService.log({
       userId,
-      action: 'DOCUMENT_CREATED',
-      resourceType: 'Document',
+      action: "DOCUMENT_CREATED",
+      resourceType: "Document",
       resourceId: document.id,
       metadata: { title: dto.title, category: dto.category, reference },
     });
@@ -548,23 +631,25 @@ export class DocumentsService {
 
     const published = await this.prisma.document.update({
       where: { id: doc.id },
-      data: { status: 'APPROVED' },
+      data: { status: "APPROVED" },
       include: {
-        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
+        owner: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
         isoControls: { include: { isoControl: true } },
       },
     });
 
     await this.auditService.log({
       userId: user.id,
-      action: 'DOCUMENT_DIRECT_PUBLISHED',
-      resourceType: 'Document',
+      action: "DOCUMENT_DIRECT_PUBLISHED",
+      resourceType: "Document",
       resourceId: doc.id,
-      severity: 'WARN',
+      severity: "WARN",
       metadata: {
         title: doc.title,
         reference: (doc as { reference?: string }).reference,
-        reason: 'Permanent document — workflow bypassed by admin',
+        reason: "Permanent document — workflow bypassed by admin",
       },
     });
 
@@ -582,18 +667,16 @@ export class DocumentsService {
    * Refs: feedback user 2026-04-21 "impossible de mettre document en permanent
    * + approuvé sans revue si déjà existant".
    */
-  async forceApprove(
-    id: string,
-    user: RequestUser,
-    makePermanent: boolean,
-  ) {
+  async forceApprove(id: string, user: RequestUser, makePermanent: boolean) {
     const doc = await this.prisma.document.findUnique({ where: { id } });
     if (!doc || doc.deletedAt) {
-      throw new NotFoundException('Document introuvable');
+      throw new NotFoundException("Document introuvable");
     }
 
     // Role check (double-guard ; le controller a déjà @Roles(ADMIN+))
-    if (ROLE_HIERARCHY[user.role as UserRole] < ROLE_HIERARCHY[UserRole.ADMIN]) {
+    if (
+      ROLE_HIERARCHY[user.role as UserRole] < ROLE_HIERARCHY[UserRole.ADMIN]
+    ) {
       throw new ForbiddenException(
         "Seul un administrateur peut forcer l'approbation d'un document.",
       );
@@ -601,7 +684,7 @@ export class DocumentsService {
 
     // Annule les workflows pending (même logique que softDelete)
     const pendingInstances = await this.prisma.approvalInstance.findMany({
-      where: { documentId: id, status: 'PENDING' },
+      where: { documentId: id, status: "PENDING" },
       select: { id: true },
     });
     if (pendingInstances.length > 0) {
@@ -609,14 +692,14 @@ export class DocumentsService {
       await this.prisma.$transaction([
         this.prisma.approvalInstance.updateMany({
           where: { id: { in: instanceIds } },
-          data: { status: 'CANCELLED', completedAt: new Date() },
+          data: { status: "CANCELLED", completedAt: new Date() },
         }),
         this.prisma.approvalStepInstance.updateMany({
-          where: { instanceId: { in: instanceIds }, decision: 'PENDING' },
+          where: { instanceId: { in: instanceIds }, decision: "PENDING" },
           data: {
-            decision: 'REJECTED',
+            decision: "REJECTED",
             decidedAt: new Date(),
-            comment: 'Approbation forcée par un administrateur',
+            comment: "Approbation forcée par un administrateur",
           },
         }),
       ]);
@@ -625,23 +708,29 @@ export class DocumentsService {
     const updated = await this.prisma.document.update({
       where: { id },
       data: {
-        status: 'APPROVED',
+        status: "APPROVED",
         ...(makePermanent ? { nextReviewDate: null } : {}),
       },
       include: {
-        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
-        reviewer: { select: { id: true, firstName: true, lastName: true, email: true } },
-        approver: { select: { id: true, firstName: true, lastName: true, email: true } },
+        owner: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        reviewer: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        approver: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
         isoControls: { include: { isoControl: true } },
       },
     });
 
     await this.auditService.log({
       userId: user.id,
-      action: 'DOCUMENT_FORCE_APPROVED',
-      resourceType: 'Document',
+      action: "DOCUMENT_FORCE_APPROVED",
+      resourceType: "Document",
       resourceId: id,
-      severity: 'WARN',
+      severity: "WARN",
       metadata: {
         title: doc.title,
         reference: doc.reference,
@@ -672,18 +761,19 @@ export class DocumentsService {
   async reopenDocument(id: string, user: RequestUser) {
     const doc = await this.prisma.document.findUnique({ where: { id } });
     if (!doc || doc.deletedAt) {
-      throw new NotFoundException('Document introuvable');
+      throw new NotFoundException("Document introuvable");
     }
 
-    const isAdmin = ROLE_HIERARCHY[user.role as UserRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
+    const isAdmin =
+      ROLE_HIERARCHY[user.role as UserRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
     const isOwner = doc.ownerId === user.id;
     if (!isAdmin && !isOwner) {
       throw new ForbiddenException(
-        'Seuls le propriétaire du document ou un administrateur peut le réouvrir.',
+        "Seuls le propriétaire du document ou un administrateur peut le réouvrir.",
       );
     }
 
-    if (doc.status !== 'ARCHIVED' && doc.status !== 'OBSOLETE') {
+    if (doc.status !== "ARCHIVED" && doc.status !== "OBSOLETE") {
       throw new BadRequestException(
         `Impossible de réouvrir un document en statut "${doc.status}". Seuls les documents archivés ou obsolètes peuvent être réouverts.`,
       );
@@ -691,7 +781,7 @@ export class DocumentsService {
 
     // Annule d'éventuels workflows pending (rare, mais sécuritaire)
     const pendingInstances = await this.prisma.approvalInstance.findMany({
-      where: { documentId: id, status: 'PENDING' },
+      where: { documentId: id, status: "PENDING" },
       select: { id: true },
     });
     if (pendingInstances.length > 0) {
@@ -699,14 +789,14 @@ export class DocumentsService {
       await this.prisma.$transaction([
         this.prisma.approvalInstance.updateMany({
           where: { id: { in: instanceIds } },
-          data: { status: 'CANCELLED', completedAt: new Date() },
+          data: { status: "CANCELLED", completedAt: new Date() },
         }),
         this.prisma.approvalStepInstance.updateMany({
-          where: { instanceId: { in: instanceIds }, decision: 'PENDING' },
+          where: { instanceId: { in: instanceIds }, decision: "PENDING" },
           data: {
-            decision: 'REJECTED',
+            decision: "REJECTED",
             decidedAt: new Date(),
-            comment: 'Document réouvert — workflow annulé',
+            comment: "Document réouvert — workflow annulé",
           },
         }),
       ]);
@@ -714,21 +804,27 @@ export class DocumentsService {
 
     const updated = await this.prisma.document.update({
       where: { id },
-      data: { status: 'DRAFT' },
+      data: { status: "DRAFT" },
       include: {
-        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
-        reviewer: { select: { id: true, firstName: true, lastName: true, email: true } },
-        approver: { select: { id: true, firstName: true, lastName: true, email: true } },
+        owner: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        reviewer: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        approver: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
         isoControls: { include: { isoControl: true } },
       },
     });
 
     await this.auditService.log({
       userId: user.id,
-      action: 'DOCUMENT_REOPENED',
-      resourceType: 'Document',
+      action: "DOCUMENT_REOPENED",
+      resourceType: "Document",
       resourceId: id,
-      severity: 'INFO',
+      severity: "INFO",
       metadata: {
         title: doc.title,
         reference: doc.reference,
@@ -748,7 +844,7 @@ export class DocumentsService {
   async createInline(dto: CreateDocumentDto, userId: string) {
     const reference = await this.generateReference(
       dto.category,
-      dto.domain || 'GEN',
+      dto.domain || "GEN",
     );
 
     const document = await this.prisma.document.create({
@@ -766,10 +862,10 @@ export class DocumentsService {
           ? new Date(dto.nextReviewDate)
           : null,
         isPublic: dto.isPublic ?? false,
-        classification: dto.classification || 'INTERNE',
-        content: dto.content ?? '',
+        classification: dto.classification || "INTERNE",
+        content: dto.content ?? "",
         isNative: true,
-        scanStatus: 'CLEAN', // inline content bypasses AV
+        scanStatus: "CLEAN", // inline content bypasses AV
         isoControls: dto.isoControlIds?.length
           ? {
               create: dto.isoControlIds.map((isoControlId) => ({
@@ -788,8 +884,8 @@ export class DocumentsService {
 
     await this.auditService.log({
       userId,
-      action: 'DOCUMENT_CREATED_INLINE',
-      resourceType: 'Document',
+      action: "DOCUMENT_CREATED_INLINE",
+      resourceType: "Document",
       resourceId: document.id,
       metadata: {
         title: dto.title,
@@ -799,9 +895,7 @@ export class DocumentsService {
       },
     });
 
-    this.logger.log(
-      `Inline document created: ${reference} by user ${userId}`,
-    );
+    this.logger.log(`Inline document created: ${reference} by user ${userId}`);
     this.invalidateStatsCaches();
     return enrichIsoControls(document);
   }
@@ -820,7 +914,7 @@ export class DocumentsService {
   ) {
     const document = await this.prisma.document.findUnique({ where: { id } });
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document introuvable');
+      throw new NotFoundException("Document introuvable");
     }
 
     if (!document.isNative) {
@@ -829,19 +923,18 @@ export class DocumentsService {
       );
     }
 
-    const userRole = (currentUser.role || '').toUpperCase() as UserRole;
-    const isAdmin =
-      ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
+    const userRole = (currentUser.role || "").toUpperCase() as UserRole;
+    const isAdmin = ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
     const isOwner = document.ownerId === currentUser.id;
     const isAssignedReviewer = document.reviewerId === currentUser.id;
 
     if (!isAdmin && !isOwner && !isAssignedReviewer) {
       throw new ForbiddenException(
-        'Seul le propriétaire, le relecteur assigné ou un administrateur peut éditer ce document',
+        "Seul le propriétaire, le relecteur assigné ou un administrateur peut éditer ce document",
       );
     }
 
-    if (document.status !== 'DRAFT' && document.status !== 'IN_REVIEW') {
+    if (document.status !== "DRAFT" && document.status !== "IN_REVIEW") {
       throw new ForbiddenException(
         "Le contenu ne peut être édité qu'en statut DRAFT ou IN_REVIEW",
       );
@@ -860,8 +953,8 @@ export class DocumentsService {
 
     await this.auditService.log({
       userId: currentUser.id,
-      action: 'DOCUMENT_CONTENT_UPDATED',
-      resourceType: 'Document',
+      action: "DOCUMENT_CONTENT_UPDATED",
+      resourceType: "Document",
       resourceId: id,
       metadata: { length: content.length },
     });
@@ -873,15 +966,17 @@ export class DocumentsService {
     const document = await this.prisma.document.findUnique({ where: { id } });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document introuvable');
+      throw new NotFoundException("Document introuvable");
     }
 
-    const userRole = (currentUser.role || '').toUpperCase() as UserRole;
+    const userRole = (currentUser.role || "").toUpperCase() as UserRole;
     const isOwner = document.ownerId === currentUser.id;
     const isAdmin = ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
 
     if (!isOwner && !isAdmin) {
-      throw new ForbiddenException('Seul le propriétaire ou un administrateur peut modifier ce document');
+      throw new ForbiddenException(
+        "Seul le propriétaire ou un administrateur peut modifier ce document",
+      );
     }
 
     const updateData: any = {};
@@ -891,9 +986,12 @@ export class DocumentsService {
     if (dto.reviewerId !== undefined) updateData.reviewerId = dto.reviewerId;
     if (dto.approverId !== undefined) updateData.approverId = dto.approverId;
     if (dto.nextReviewDate !== undefined)
-      updateData.nextReviewDate = dto.nextReviewDate ? new Date(dto.nextReviewDate) : null;
+      updateData.nextReviewDate = dto.nextReviewDate
+        ? new Date(dto.nextReviewDate)
+        : null;
     if (dto.isPublic !== undefined) updateData.isPublic = dto.isPublic;
-    if (dto.classification !== undefined) updateData.classification = dto.classification;
+    if (dto.classification !== undefined)
+      updateData.classification = dto.classification;
     if (dto.status !== undefined) updateData.status = dto.status;
 
     // Handle ISO controls update — wrapped in a transaction to avoid
@@ -929,12 +1027,12 @@ export class DocumentsService {
     // Notify document owner when status changes (e.g. Kanban drag-and-drop)
     if (dto.status && dto.status !== document.status) {
       const statusLabels: Record<string, string> = {
-        DRAFT: 'Brouillon',
-        IN_REVIEW: 'En revue',
-        PENDING_APPROVAL: 'En attente d\'approbation',
-        APPROVED: 'Approuvé',
-        OBSOLETE: 'Obsolète',
-        ARCHIVED: 'Archivé',
+        DRAFT: "Brouillon",
+        IN_REVIEW: "En revue",
+        PENDING_APPROVAL: "En attente d'approbation",
+        APPROVED: "Approuvé",
+        OBSOLETE: "Obsolète",
+        ARCHIVED: "Archivé",
       };
       const newStatusLabel = statusLabels[dto.status] || dto.status;
       const oldStatusLabel = statusLabels[document.status] || document.status;
@@ -943,10 +1041,10 @@ export class DocumentsService {
       if (document.ownerId !== currentUser.id) {
         await this.notificationsService.create({
           userId: document.ownerId,
-          type: 'DOC_PUBLISHED',
+          type: "DOC_PUBLISHED",
           title: `Statut modifié : ${document.title}`,
           body: `Le statut du document "${document.title}" (${document.reference}) a été changé de "${oldStatusLabel}" à "${newStatusLabel}".`,
-          resourceType: 'Document',
+          resourceType: "Document",
           resourceId: id,
         });
       }
@@ -954,8 +1052,8 @@ export class DocumentsService {
 
     await this.auditService.log({
       userId: currentUser.id,
-      action: 'DOCUMENT_UPDATED',
-      resourceType: 'Document',
+      action: "DOCUMENT_UPDATED",
+      resourceType: "Document",
       resourceId: id,
       metadata: { changes: dto },
     });
@@ -969,7 +1067,7 @@ export class DocumentsService {
     const document = await this.prisma.document.findUnique({ where: { id } });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document introuvable');
+      throw new NotFoundException("Document introuvable");
     }
 
     await this.prisma.document.update({
@@ -983,7 +1081,7 @@ export class DocumentsService {
     // sur 404 Document introuvable (bug 2026-04-21).
     try {
       const pendingInstances = await this.prisma.approvalInstance.findMany({
-        where: { documentId: id, status: 'PENDING' },
+        where: { documentId: id, status: "PENDING" },
         select: { id: true },
       });
       if (pendingInstances.length > 0) {
@@ -991,11 +1089,15 @@ export class DocumentsService {
         await this.prisma.$transaction([
           this.prisma.approvalInstance.updateMany({
             where: { id: { in: instanceIds } },
-            data: { status: 'CANCELLED', completedAt: new Date() },
+            data: { status: "CANCELLED", completedAt: new Date() },
           }),
           this.prisma.approvalStepInstance.updateMany({
-            where: { instanceId: { in: instanceIds }, decision: 'PENDING' },
-            data: { decision: 'REJECTED', decidedAt: new Date(), comment: 'Document supprimé' },
+            where: { instanceId: { in: instanceIds }, decision: "PENDING" },
+            data: {
+              decision: "REJECTED",
+              decidedAt: new Date(),
+              comment: "Document supprimé",
+            },
           }),
         ]);
         this.logger.log(
@@ -1010,20 +1112,22 @@ export class DocumentsService {
 
     // Désindexation complète : Meilisearch (recherche globale) + RAG
     // (chatbot ne doit plus ressortir le contenu).
-    void this.meili?.deleteDocument('document', id);
-    void this.rag?.removeFromIndex('DOCUMENT' as never, id).catch(() => undefined);
+    void this.meili?.deleteDocument("document", id);
+    void this.rag
+      ?.removeFromIndex("DOCUMENT" as never, id)
+      .catch(() => undefined);
 
     await this.auditService.log({
       userId: currentUser.id,
-      action: 'DOCUMENT_DELETED',
-      resourceType: 'Document',
+      action: "DOCUMENT_DELETED",
+      resourceType: "Document",
       resourceId: id,
-      severity: 'WARN',
+      severity: "WARN",
       metadata: { title: document.title, reference: document.reference },
     });
 
     this.invalidateStatsCaches();
-    return { message: 'Document supprimé avec succès' };
+    return { message: "Document supprimé avec succès" };
   }
 
   /**
@@ -1032,10 +1136,10 @@ export class DocumentsService {
    */
   async bulkSoftDelete(ids: string[], currentUser: RequestUser) {
     if (!Array.isArray(ids) || ids.length === 0) {
-      throw new BadRequestException('Aucun identifiant fourni');
+      throw new BadRequestException("Aucun identifiant fourni");
     }
     if (ids.length > 100) {
-      throw new BadRequestException('Trop d\'identifiants (max 100)');
+      throw new BadRequestException("Trop d'identifiants (max 100)");
     }
 
     // Only target documents that still exist and aren't already deleted.
@@ -1058,10 +1162,10 @@ export class DocumentsService {
     for (const doc of existing) {
       await this.auditService.log({
         userId: currentUser.id,
-        action: 'DOCUMENT_DELETED',
-        resourceType: 'Document',
+        action: "DOCUMENT_DELETED",
+        resourceType: "Document",
         resourceId: doc.id,
-        severity: 'WARN',
+        severity: "WARN",
         metadata: {
           title: doc.title,
           reference: doc.reference,
@@ -1084,7 +1188,7 @@ export class DocumentsService {
    */
   async bulkArchive(ids: string[], currentUser: RequestUser) {
     if (!Array.isArray(ids) || ids.length === 0) {
-      throw new BadRequestException('Aucun identifiant fourni');
+      throw new BadRequestException("Aucun identifiant fourni");
     }
     if (ids.length > 100) {
       throw new BadRequestException("Trop d'identifiants (max 100)");
@@ -1100,16 +1204,16 @@ export class DocumentsService {
     const existingIds = existing.map((d) => d.id);
     const result = await this.prisma.document.updateMany({
       where: { id: { in: existingIds } },
-      data: { status: 'ARCHIVED' },
+      data: { status: "ARCHIVED" },
     });
 
     for (const doc of existing) {
       await this.auditService.log({
         userId: currentUser.id,
-        action: 'DOCUMENT_ARCHIVED',
-        resourceType: 'Document',
+        action: "DOCUMENT_ARCHIVED",
+        resourceType: "Document",
         resourceId: doc.id,
-        severity: 'INFO',
+        severity: "INFO",
         metadata: {
           title: doc.title,
           reference: doc.reference,
@@ -1137,14 +1241,16 @@ export class DocumentsService {
     currentUser: RequestUser,
   ) {
     if (!Array.isArray(ids) || ids.length === 0) {
-      throw new BadRequestException('Aucun identifiant fourni');
+      throw new BadRequestException("Aucun identifiant fourni");
     }
     if (ids.length > 100) {
       throw new BadRequestException("Trop d'identifiants (max 100)");
     }
-    const ALLOWED = ['PUBLIC', 'INTERNE', 'CONFIDENTIEL', 'SECRET'];
+    const ALLOWED = ["PUBLIC", "INTERNE", "CONFIDENTIEL", "SECRET"];
     if (!ALLOWED.includes(classification)) {
-      throw new BadRequestException(`Classification invalide: ${classification}`);
+      throw new BadRequestException(
+        `Classification invalide: ${classification}`,
+      );
     }
 
     const existing = await this.prisma.document.findMany({
@@ -1163,10 +1269,10 @@ export class DocumentsService {
     for (const doc of existing) {
       await this.auditService.log({
         userId: currentUser.id,
-        action: 'DOCUMENT_CLASSIFICATION_CHANGED',
-        resourceType: 'Document',
+        action: "DOCUMENT_CLASSIFICATION_CHANGED",
+        resourceType: "Document",
         resourceId: doc.id,
-        severity: 'WARN',
+        severity: "WARN",
         metadata: {
           title: doc.title,
           reference: doc.reference,
@@ -1193,11 +1299,11 @@ export class DocumentsService {
   ) {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
-      include: { versions: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document introuvable');
+      throw new NotFoundException("Document introuvable");
     }
 
     // Normalise le MIME : certains OS envoient application/octet-stream pour
@@ -1205,13 +1311,15 @@ export class DocumentsService {
     normalizeMimeType(file);
     // Validate MIME type
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      throw new BadRequestException(`Type de fichier non autorisé: ${file.mimetype}`);
+      throw new BadRequestException(
+        `Type de fichier non autorisé: ${file.mimetype}`,
+      );
     }
 
     // Validate magic bytes — ISO 27001 A.8.28 (prevents MIME spoofing)
     if (file.buffer && !validateMagicBytes(file)) {
       throw new BadRequestException(
-        'Le contenu du fichier ne correspond pas au type déclaré (magic bytes invalides)',
+        "Le contenu du fichier ne correspond pas au type déclaré (magic bytes invalides)",
       );
     }
 
@@ -1223,7 +1331,9 @@ export class DocumentsService {
       where: { documentId, checksum },
     });
     if (existingVersion) {
-      throw new BadRequestException('Ce fichier est identique à une version existante (même checksum)');
+      throw new BadRequestException(
+        "Ce fichier est identique à une version existante (même checksum)",
+      );
     }
 
     // Upload file
@@ -1241,7 +1351,7 @@ export class DocumentsService {
     const lastVersion = document.versions[0];
     const isDraftOverwrite =
       !!lastVersion &&
-      (document.status === 'DRAFT' || document.status === 'IN_REVIEW');
+      (document.status === "DRAFT" || document.status === "IN_REVIEW");
 
     let version;
     let nextVersionNumber: string;
@@ -1259,15 +1369,15 @@ export class DocumentsService {
           fileType: file.mimetype,
           fileSizeBytes: file.size,
           checksum,
-          changeLog: changeLog || 'Brouillon mis à jour',
+          changeLog: changeLog || "Brouillon mis à jour",
           uploadedById: userId,
         },
       });
 
       try {
         const oldPath = this.storageService.getFilePath(oldFileUrl);
-        if (require('fs').existsSync(oldPath)) {
-          require('fs').unlinkSync(oldPath);
+        if (require("fs").existsSync(oldPath)) {
+          require("fs").unlinkSync(oldPath);
         }
       } catch (err) {
         this.logger.warn(
@@ -1275,7 +1385,9 @@ export class DocumentsService {
         );
       }
     } else {
-      nextVersionNumber = lastVersion ? `${parseInt(lastVersion.versionNumber.split('.')[0] ?? '1', 10) + 1}.0` : '1.0';
+      nextVersionNumber = lastVersion
+        ? `${parseInt(lastVersion.versionNumber.split(".")[0] ?? "1", 10) + 1}.0`
+        : "1.0";
 
       version = await this.prisma.documentVersion.create({
         data: {
@@ -1298,8 +1410,8 @@ export class DocumentsService {
 
     await this.auditService.log({
       userId,
-      action: 'DOCUMENT_VERSION_UPLOADED',
-      resourceType: 'DocumentVersion',
+      action: "DOCUMENT_VERSION_UPLOADED",
+      resourceType: "DocumentVersion",
       resourceId: version.id,
       metadata: {
         documentId,
@@ -1312,14 +1424,16 @@ export class DocumentsService {
 
     // Scan file with ClamAV (async, non-blocking)
     const filePath = this.storageService.getFilePath(fileUrl);
-    this.scannerService.scanDocumentVersion(documentId, version.id, filePath).catch((err) => {
-      this.logger.warn(`Scan failed for ${fileUrl}: ${err}`);
-    });
+    this.scannerService
+      .scanDocumentVersion(documentId, version.id, filePath)
+      .catch((err) => {
+        this.logger.warn(`Scan failed for ${fileUrl}: ${err}`);
+      });
 
     // If this version was uploaded on an already APPROVED document,
     // notify all concerned users that an update is available.
     // ISO 27001 A.5.12 — classification-aware notification.
-    if (document.status === 'APPROVED') {
+    if (document.status === "APPROVED") {
       try {
         await this.notifyNewDocumentAvailable(
           await this.prisma.document.findUnique({ where: { id: documentId } }),
@@ -1352,34 +1466,34 @@ export class DocumentsService {
     userId: string,
   ) {
     if (!file) {
-      throw new BadRequestException('Fichier requis');
+      throw new BadRequestException("Fichier requis");
     }
 
     const document = await this.prisma.document.findUnique({
       where: { id: docId },
-      include: { versions: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document introuvable');
+      throw new NotFoundException("Document introuvable");
     }
 
-    if (document.status !== 'OBSOLETE') {
+    if (document.status !== "OBSOLETE") {
       throw new BadRequestException(
-        'Seuls les documents en statut OBSOLETE peuvent être réimportés',
+        "Seuls les documents en statut OBSOLETE peuvent être réimportés",
       );
     }
 
     // Owner OR ADMIN+ can reimport
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('Utilisateur introuvable');
+    if (!user) throw new NotFoundException("Utilisateur introuvable");
     const userRole = (user.role as UserRole) || UserRole.COLLABORATEUR;
     const isOwner = document.ownerId === userId;
     const isAdmin =
       (ROLE_HIERARCHY[userRole] ?? 0) >= ROLE_HIERARCHY[UserRole.ADMIN];
     if (!isOwner && !isAdmin) {
       throw new ForbiddenException(
-        'Seul le propriétaire ou un administrateur peut réimporter ce document',
+        "Seul le propriétaire ou un administrateur peut réimporter ce document",
       );
     }
 
@@ -1395,15 +1509,15 @@ export class DocumentsService {
     // Validate magic bytes — ISO 27001 A.8.28 (prevents MIME spoofing)
     if (file.buffer && !validateMagicBytes(file)) {
       throw new BadRequestException(
-        'Le contenu du fichier ne correspond pas au type déclaré (magic bytes invalides)',
+        "Le contenu du fichier ne correspond pas au type déclaré (magic bytes invalides)",
       );
     }
 
     // SHA-256 checksum (explicit per spec)
     const newHash = crypto
-      .createHash('sha256')
+      .createHash("sha256")
       .update(file.buffer)
-      .digest('hex');
+      .digest("hex");
 
     // Prevent re-uploading a file that is byte-identical to an existing version
     const existingVersion = await this.prisma.documentVersion.findFirst({
@@ -1411,7 +1525,7 @@ export class DocumentsService {
     });
     if (existingVersion) {
       throw new BadRequestException(
-        'Ce fichier est identique à une version existante (même checksum)',
+        "Ce fichier est identique à une version existante (même checksum)",
       );
     }
 
@@ -1425,9 +1539,9 @@ export class DocumentsService {
     const lastVersion = document.versions[0];
     const oldVersion = lastVersion?.versionNumber || null;
     const oldHash = lastVersion?.checksum || null;
-    let nextVersionNumber = '1.0';
+    let nextVersionNumber = "1.0";
     if (lastVersion) {
-      const parts = lastVersion.versionNumber.split('.');
+      const parts = lastVersion.versionNumber.split(".");
       const major = parseInt(parts[0], 10);
       nextVersionNumber = `${major + 1}.0`;
     }
@@ -1441,7 +1555,7 @@ export class DocumentsService {
         fileType: file.mimetype,
         fileSizeBytes: file.size,
         checksum: newHash,
-        changeLog: changeLog || 'Réimport après obsolescence',
+        changeLog: changeLog || "Réimport après obsolescence",
         uploadedById: userId,
       },
     });
@@ -1451,16 +1565,16 @@ export class DocumentsService {
       where: { id: docId },
       data: {
         currentVersionId: version.id,
-        status: 'DRAFT',
+        status: "DRAFT",
       },
     });
 
     await this.auditService.log({
       userId,
-      action: 'DOCUMENT_REIMPORTED',
-      resourceType: 'Document',
+      action: "DOCUMENT_REIMPORTED",
+      resourceType: "Document",
       resourceId: docId,
-      severity: 'WARN',
+      severity: "WARN",
       metadata: {
         title: document.title,
         reference: document.reference,
@@ -1481,11 +1595,11 @@ export class DocumentsService {
       });
 
     this.logger.log(
-      `Document ${document.reference} reimported (v${oldVersion ?? '-'} → v${nextVersionNumber}) by user ${userId}`,
+      `Document ${document.reference} reimported (v${oldVersion ?? "-"} → v${nextVersionNumber}) by user ${userId}`,
     );
 
     return {
-      message: 'Document réimporté avec succès, repassé en DRAFT',
+      message: "Document réimporté avec succès, repassé en DRAFT",
       version,
     };
   }
@@ -1512,14 +1626,14 @@ export class DocumentsService {
   ) {
     if (!document) return { sent: 0 };
 
-    const classification = (document.classification || 'INTERNE').toUpperCase();
+    const classification = (document.classification || "INTERNE").toUpperCase();
 
     let roleFilter: UserRole[] | undefined;
     switch (classification) {
-      case 'PUBLIC':
+      case "PUBLIC":
         roleFilter = undefined; // all active users
         break;
-      case 'INTERNE':
+      case "INTERNE":
         roleFilter = [
           UserRole.SUPER_ADMIN,
           UserRole.ADMIN,
@@ -1529,7 +1643,7 @@ export class DocumentsService {
           UserRole.COLLABORATEUR,
         ];
         break;
-      case 'CONFIDENTIEL':
+      case "CONFIDENTIEL":
         roleFilter = [
           UserRole.SUPER_ADMIN,
           UserRole.ADMIN,
@@ -1537,7 +1651,7 @@ export class DocumentsService {
           UserRole.REVIEWER,
         ];
         break;
-      case 'SECRET':
+      case "SECRET":
         roleFilter = [UserRole.SUPER_ADMIN];
         break;
       default:
@@ -1561,8 +1675,8 @@ export class DocumentsService {
     });
 
     const title = isUpdate
-      ? 'Mise à jour disponible'
-      : 'Nouveau document disponible';
+      ? "Mise à jour disponible"
+      : "Nouveau document disponible";
     const body = isUpdate
       ? `"${document.title}" (${document.reference}) a été mis à jour. Catégorie : ${document.category}. Cliquez pour consulter la nouvelle version.`
       : `"${document.title}" (${document.reference}) vient d'être publié. Catégorie : ${document.category}. Cliquez pour consulter.`;
@@ -1575,10 +1689,10 @@ export class DocumentsService {
           // NB: 'DOC_NEW_AVAILABLE' was requested in spec; we map it to
           // the closest existing NotificationType enum value (DOC_PUBLISHED)
           // to avoid a Prisma enum violation at runtime.
-          type: 'DOC_PUBLISHED',
+          type: "DOC_PUBLISHED",
           title,
           body,
-          resourceType: 'Document',
+          resourceType: "Document",
           resourceId: document.id,
         });
         sent++;
@@ -1604,7 +1718,7 @@ export class DocumentsService {
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document introuvable');
+      throw new NotFoundException("Document introuvable");
     }
 
     if (currentUser) {
@@ -1618,7 +1732,7 @@ export class DocumentsService {
           select: { id: true, firstName: true, lastName: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -1632,31 +1746,38 @@ export class DocumentsService {
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document introuvable');
+      throw new NotFoundException("Document introuvable");
     }
 
     // Access check (ISO 27001 A.5.12 — same rules as findById)
-    const userRole = (currentUser.role || '').toUpperCase() as UserRole;
+    const userRole = (currentUser.role || "").toUpperCase() as UserRole;
     const isOwner = document.ownerId === currentUser.id;
-    const classification = document.classification || 'INTERNE';
+    const classification = document.classification || "INTERNE";
 
     if (userRole === UserRole.PRESTATAIRE) {
-      if (!isOwner && (document.status !== 'APPROVED' || (document.category !== 'CONTRACT' && !document.isPublic))) {
-        throw new ForbiddenException('Accès refusé');
+      if (
+        !isOwner &&
+        (document.status !== "APPROVED" ||
+          (document.category !== "CONTRACT" && !document.isPublic))
+      ) {
+        throw new ForbiddenException("Accès refusé");
       }
     } else if (userRole === UserRole.COLLABORATEUR) {
       if (!isOwner) {
-        if (document.status !== 'APPROVED') throw new ForbiddenException('Accès refusé');
-        if (!['PUBLIC', 'INTERNE'].includes(classification)) {
-          throw new ForbiddenException('Niveau de classification insuffisant');
+        if (document.status !== "APPROVED")
+          throw new ForbiddenException("Accès refusé");
+        if (!["PUBLIC", "INTERNE"].includes(classification)) {
+          throw new ForbiddenException("Niveau de classification insuffisant");
         }
       }
     } else if (userRole === UserRole.AUDITEUR) {
-      if (document.status !== 'APPROVED') throw new ForbiddenException('Accès refusé');
-      if (classification === 'SECRET') throw new ForbiddenException('Niveau de classification insuffisant');
+      if (document.status !== "APPROVED")
+        throw new ForbiddenException("Accès refusé");
+      if (classification === "SECRET")
+        throw new ForbiddenException("Niveau de classification insuffisant");
     } else if (userRole === UserRole.REVIEWER) {
-      if (!isOwner && classification === 'SECRET') {
-        throw new ForbiddenException('Niveau de classification insuffisant');
+      if (!isOwner && classification === "SECRET") {
+        throw new ForbiddenException("Niveau de classification insuffisant");
       }
     }
 
@@ -1665,7 +1786,7 @@ export class DocumentsService {
     });
 
     if (!version) {
-      throw new NotFoundException('Version introuvable');
+      throw new NotFoundException("Version introuvable");
     }
 
     const signedUrl = await this.storageService.generateSignedUrl(
@@ -1675,13 +1796,20 @@ export class DocumentsService {
 
     await this.auditService.log({
       userId: currentUser.id,
-      action: 'DOCUMENT_DOWNLOADED',
-      resourceType: 'DocumentVersion',
+      action: "DOCUMENT_DOWNLOADED",
+      resourceType: "DocumentVersion",
       resourceId: versionId,
       metadata: { documentId, versionNumber: version.versionNumber },
     });
 
-    return { url: signedUrl, fileName: version.fileUrl, fileType: version.fileType };
+    return {
+      url: signedUrl,
+      fileName: version.fileUrl,
+      fileType: version.fileType,
+      versionNumber: version.versionNumber,
+      documentReference: document.reference,
+      documentTitle: document.title,
+    };
   }
 
   async getHistory(documentId: string, currentUser?: RequestUser) {
@@ -1691,7 +1819,7 @@ export class DocumentsService {
         where: { id: documentId },
       });
       if (!document || document.deletedAt) {
-        throw new NotFoundException('Document introuvable');
+        throw new NotFoundException("Document introuvable");
       }
       this.checkClassificationAccess(document, currentUser);
     }
@@ -1699,29 +1827,35 @@ export class DocumentsService {
     const [versions, auditLogs] = await Promise.all([
       this.prisma.documentVersion.findMany({
         where: { documentId },
-        include: { uploadedBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
-        orderBy: { createdAt: 'desc' },
+        include: {
+          uploadedBy: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
       }),
       this.prisma.auditLog.findMany({
-        where: { resourceType: 'Document', resourceId: documentId },
-        include: { user: { select: { id: true, firstName: true, lastName: true } } },
-        orderBy: { createdAt: 'desc' },
+        where: { resourceType: "Document", resourceId: documentId },
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true } },
+        },
+        orderBy: { createdAt: "desc" },
         take: 50,
       }),
     ]);
 
     // Merge and sort by date
     const timeline = [
-      ...versions.map(v => ({
-        type: 'version' as const,
+      ...versions.map((v) => ({
+        type: "version" as const,
         date: v.createdAt,
         versionNumber: v.versionNumber,
         changeLog: v.changeLog,
         user: v.uploadedBy,
         fileSize: v.fileSizeBytes,
       })),
-      ...auditLogs.map(l => ({
-        type: 'audit' as const,
+      ...auditLogs.map((l) => ({
+        type: "audit" as const,
         date: l.createdAt,
         action: l.action,
         metadata: l.metadata,
@@ -1734,45 +1868,64 @@ export class DocumentsService {
   }
 
   async getStatistics() {
-    return this.cacheService.wrap('stats:documents:global', 300, async () => {
+    return this.cacheService.wrap("stats:documents:global", 300, async () => {
       const now = new Date();
       const in30Days = new Date(now.getTime() + 30 * 24 * 3600000);
 
-      const [total, byCategory, byStatus, byClassification, approvedDocs, approachingReview, topContributors] =
-        await Promise.all([
-          this.prisma.document.count({ where: { deletedAt: null } }),
-          this.prisma.document.groupBy({ by: ['category'], _count: true, where: { deletedAt: null } }),
-          this.prisma.document.groupBy({ by: ['status'], _count: true, where: { deletedAt: null } }),
-          this.prisma.document.groupBy({ by: ['classification'], _count: true, where: { deletedAt: null } }),
-          // Documents that went from DRAFT to APPROVED (for avg time calculation)
-          this.prisma.document.findMany({
-            where: { deletedAt: null, status: 'APPROVED' },
-            select: { createdAt: true, updatedAt: true },
-          }),
-          // Documents approaching review date (next 30 days)
-          this.prisma.document.findMany({
-            where: {
-              deletedAt: null,
-              nextReviewDate: { gte: now, lte: in30Days },
-            },
-            select: {
-              id: true,
-              title: true,
-              reference: true,
-              nextReviewDate: true,
-              owner: { select: { id: true, firstName: true, lastName: true } },
-            },
-            orderBy: { nextReviewDate: 'asc' },
-          }),
-          // Most active contributors (top 5 by document count)
-          this.prisma.document.groupBy({
-            by: ['ownerId'],
-            _count: true,
-            where: { deletedAt: null },
-            orderBy: { _count: { ownerId: 'desc' } },
-            take: 5,
-          }),
-        ]);
+      const [
+        total,
+        byCategory,
+        byStatus,
+        byClassification,
+        approvedDocs,
+        approachingReview,
+        topContributors,
+      ] = await Promise.all([
+        this.prisma.document.count({ where: { deletedAt: null } }),
+        this.prisma.document.groupBy({
+          by: ["category"],
+          _count: true,
+          where: { deletedAt: null },
+        }),
+        this.prisma.document.groupBy({
+          by: ["status"],
+          _count: true,
+          where: { deletedAt: null },
+        }),
+        this.prisma.document.groupBy({
+          by: ["classification"],
+          _count: true,
+          where: { deletedAt: null },
+        }),
+        // Documents that went from DRAFT to APPROVED (for avg time calculation)
+        this.prisma.document.findMany({
+          where: { deletedAt: null, status: "APPROVED" },
+          select: { createdAt: true, updatedAt: true },
+        }),
+        // Documents approaching review date (next 30 days)
+        this.prisma.document.findMany({
+          where: {
+            deletedAt: null,
+            nextReviewDate: { gte: now, lte: in30Days },
+          },
+          select: {
+            id: true,
+            title: true,
+            reference: true,
+            nextReviewDate: true,
+            owner: { select: { id: true, firstName: true, lastName: true } },
+          },
+          orderBy: { nextReviewDate: "asc" },
+        }),
+        // Most active contributors (top 5 by document count)
+        this.prisma.document.groupBy({
+          by: ["ownerId"],
+          _count: true,
+          where: { deletedAt: null },
+          orderBy: { _count: { ownerId: "desc" } },
+          take: 5,
+        }),
+      ]);
 
       // Calculate average time from DRAFT to APPROVED (in days)
       let avgDraftToApprovedDays: number | null = null;
@@ -1780,17 +1933,25 @@ export class DocumentsService {
         const totalMs = approvedDocs.reduce((sum, doc) => {
           return sum + (doc.updatedAt.getTime() - doc.createdAt.getTime());
         }, 0);
-        avgDraftToApprovedDays = Math.round((totalMs / approvedDocs.length / (24 * 3600000)) * 10) / 10;
+        avgDraftToApprovedDays =
+          Math.round((totalMs / approvedDocs.length / (24 * 3600000)) * 10) /
+          10;
       }
 
       // Enrich top contributors with user info
       const contributorIds = topContributors.map((c) => c.ownerId);
-      const contributorUsers = contributorIds.length > 0
-        ? await this.prisma.user.findMany({
-            where: { id: { in: contributorIds } },
-            select: { id: true, firstName: true, lastName: true, email: true },
-          })
-        : [];
+      const contributorUsers =
+        contributorIds.length > 0
+          ? await this.prisma.user.findMany({
+              where: { id: { in: contributorIds } },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            })
+          : [];
       const userMap = new Map(contributorUsers.map((u) => [u.id, u]));
       const topContributorsEnriched = topContributors.map((c) => ({
         user: userMap.get(c.ownerId) || { id: c.ownerId },
@@ -1802,16 +1963,22 @@ export class DocumentsService {
       const recentlyApproved = await this.prisma.document.count({
         where: {
           deletedAt: null,
-          status: 'APPROVED',
+          status: "APPROVED",
           updatedAt: { gte: thirtyDaysAgo },
         },
       });
 
       return {
         total,
-        byCategory: byCategory.map(c => ({ category: c.category, count: c._count })),
-        byStatus: byStatus.map(s => ({ status: s.status, count: s._count })),
-        byClassification: byClassification.map(c => ({ classification: c.classification, count: c._count })),
+        byCategory: byCategory.map((c) => ({
+          category: c.category,
+          count: c._count,
+        })),
+        byStatus: byStatus.map((s) => ({ status: s.status, count: s._count })),
+        byClassification: byClassification.map((c) => ({
+          classification: c.classification,
+          count: c._count,
+        })),
         recentlyApproved,
         avgDraftToApprovedDays,
         approachingReview,
@@ -1820,10 +1987,7 @@ export class DocumentsService {
     });
   }
 
-  async generateReference(
-    category: string,
-    domain: string,
-  ): Promise<string> {
+  async generateReference(category: string, domain: string): Promise<string> {
     const catCode = category.substring(0, 3).toUpperCase();
     const domCode = domain.substring(0, 3).toUpperCase();
     const prefix = `OMS-${catCode}-${domCode}`;
@@ -1832,18 +1996,18 @@ export class DocumentsService {
       where: {
         reference: { startsWith: prefix },
       },
-      orderBy: { reference: 'desc' },
+      orderBy: { reference: "desc" },
     });
 
     let seq = 1;
     if (lastDoc) {
-      const parts = lastDoc.reference.split('-');
+      const parts = lastDoc.reference.split("-");
       const lastSeq = parseInt(parts[parts.length - 1], 10);
       if (!isNaN(lastSeq)) {
         seq = lastSeq + 1;
       }
     }
 
-    return `${prefix}-${seq.toString().padStart(4, '0')}`;
+    return `${prefix}-${seq.toString().padStart(4, "0")}`;
   }
 }

@@ -62,6 +62,14 @@ export function extensionForMime(
 /**
  * Build a safe filename for a document version download, preserving its real
  * extension even when the reference already contains dots (e.g. "v1.0").
+ *
+ * Bug fix : `extensionForMime` doit prendre la dernière extension de
+ * `fileUrl` (utilise `lastIndexOf('.')`), JAMAIS un naïf `split('.')[0]` qui
+ * tronquerait `OMS-PRO-IT-0006-v1.0.md` en `OMS-PRO-IT-0006-v1`.
+ *
+ * On nettoie aussi `reference` pour retirer les caractères interdits sur les
+ * filesystems Windows/macOS (\, /, :, *, ?, ", <, >, |) et on évite les
+ * doubles extensions si la référence se termine déjà par `.<ext>`.
  */
 export function buildDocumentFilename(
   reference: string,
@@ -71,7 +79,10 @@ export function buildDocumentFilename(
 ): string {
   const ext = extensionForMime(mime, fileUrl);
   const version = versionNumber != null ? String(versionNumber) : "1";
-  return `${reference}-v${version}.${ext}`;
+  const cleanRef = (reference || "document")
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(new RegExp(`\\.${ext}$`, "i"), ""); // évite "ref.md-v1.0.md"
+  return `${cleanRef}-v${version}.${ext}`;
 }
 
 /**

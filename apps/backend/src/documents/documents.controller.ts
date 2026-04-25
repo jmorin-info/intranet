@@ -36,6 +36,33 @@ import { RequestUser } from "../common/interfaces";
 import { UserRole, ROLE_HIERARCHY } from "../common/enums";
 import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib";
 import * as fs from "fs";
+import * as path from "path";
+
+/**
+ * Build a download-friendly filename preserving the *last* extension.
+ *
+ * Bug fix : auparavant, on utilisait `result.fileName.split('/').pop()` qui
+ * renvoyait le nom interne du storage (ex. `<uuid>.md`). Le client voyait
+ * donc un UUID sans rapport avec son document. Pire, si la `reference` du
+ * document contenait des points (ex. `OMS-PRO-IT-0006-v1.0`), un naïf
+ * `split('.')[0]` côté client tronquait `.md`.
+ *
+ * On construit désormais un nom lisible :
+ *   <reference>-v<version>.<ext>
+ * où <ext> vient du chemin réel (path.extname → garde le DERNIER point) et
+ * fallback sur `bin` si introuvable.
+ */
+function buildDownloadFilename(
+  reference: string,
+  versionNumber: string | number | null | undefined,
+  storageFilePath: string,
+): string {
+  const segment = storageFilePath.split("/").pop() || "";
+  const ext = path.extname(segment).replace(/^\./, "") || "bin";
+  const safeRef = (reference || "document").replace(/[\\/:*?"<>|]/g, "_");
+  const v = versionNumber != null ? String(versionNumber) : "1";
+  return `${safeRef}-v${v}.${ext}`;
+}
 
 @Controller("documents")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -466,7 +493,13 @@ export class DocumentsController {
     if (!fs.existsSync(filePath))
       throw new NotFoundException("File not found on disk");
 
-    const filename = result.fileName.split("/").pop() || "document";
+    // Friendly filename based on the document reference + version + real
+    // extension (preserves `.md`, `.pdf`, etc. — does NOT split on first dot).
+    const filename = buildDownloadFilename(
+      result.documentReference,
+      result.versionNumber,
+      result.fileName,
+    );
     const disposition = inline === "true" ? "inline" : "attachment";
     const isPdf =
       !!result.fileType?.includes("pdf") ||
@@ -563,7 +596,7 @@ export class DocumentsController {
         const watermarkedBytes = await pdfDoc.save();
         res.set({
           "Content-Type": "application/pdf",
-          "Content-Disposition": `${disposition}; filename="${encodeURIComponent(filename)}"`,
+          "Content-Disposition": `${disposition}; filename="${filename.replace(/"/g, "")}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
           "Content-Length": String(watermarkedBytes.length),
           "Cache-Control": "private, no-store",
           "X-Watermark": `classification=${classification};user=${encodeURIComponent(user.email)}`,
@@ -579,7 +612,7 @@ export class DocumentsController {
     const stream = this.storageService.getFileStream(result.fileName);
     res.set({
       "Content-Type": result.fileType || "application/octet-stream",
-      "Content-Disposition": `${disposition}; filename="${encodeURIComponent(filename)}"`,
+      "Content-Disposition": `${disposition}; filename="${filename.replace(/"/g, "")}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
       "Cache-Control": "private, max-age=3600",
       ...(rawRequested ? { "X-Raw-Export": "super-admin" } : {}),
     });
