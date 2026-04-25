@@ -27,6 +27,7 @@ export class DepartmentsController {
     return this.departmentsService.findAll();
   }
 
+
   // Static routes MUST come before :id parameterized routes
   @Get('users/:userId/departments')
   async getUserDepartments(@Param('userId', ParseUUIDPipe) userId: string) {

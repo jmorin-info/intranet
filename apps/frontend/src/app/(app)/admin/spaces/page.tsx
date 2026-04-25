@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { Card, CardContent, Button, Badge, Skeleton } from '@omnitech/ui';
-import { Layers, Save, RefreshCw, Lock, Check, X } from 'lucide-react';
+import { Layers, Save, RefreshCw, Lock, Check, X, Info, Settings, KeyRound } from 'lucide-react';
 import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
 import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/layout/page-header';
@@ -246,6 +247,32 @@ export default function SpacesAdminPage() {
           </div>
         }
       />
+
+      {/* Bandeau d'orientation — symétrique de /admin/config. */}
+      <div className="rounded-card border border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-900/10 px-4 py-3 text-sm flex gap-3">
+        <Info className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-seal-navy dark:text-white font-semibold">
+            {t('admin.spaces.bannerTitle') as string}
+          </p>
+          <p className="text-seal-gray-500 dark:text-slate-400 text-xs">
+            {t('admin.spaces.bannerDesc') as string}{' '}
+            <Link
+              href="/admin/config"
+              className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+            >
+              <Settings className="h-3.5 w-3.5" /> Configuration globale
+            </Link>{' '}
+            ·{' '}
+            <Link
+              href="/admin/access-overview"
+              className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+            >
+              <KeyRound className="h-3.5 w-3.5" /> Vue 360° des accès
+            </Link>
+          </p>
+        </div>
+      </div>
 
       {loading ? (
         <div className="space-y-3">

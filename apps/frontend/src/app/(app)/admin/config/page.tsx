@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { UserRole } from "@omnitech/shared";
-import { Settings } from "lucide-react";
+import { Settings, Info, KeyRound, Layers } from "lucide-react";
 import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
 import { PageHeader } from "@/components/layout/page-header";
 import { RoleGuard } from "@/components/role-guard";
@@ -53,6 +54,33 @@ export default function AdminConfigPage() {
           icon={Settings}
           hub="admin"
         />
+
+        {/* Bandeau d'orientation — clarifie le périmètre de cette page vs
+            /admin/spaces et /admin/access-overview. */}
+        <div className="rounded-card border border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-900/10 px-4 py-3 text-sm flex gap-3">
+          <Info className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-seal-navy dark:text-white font-semibold">
+              {t("admin.config.bannerTitle") as string}
+            </p>
+            <p className="text-seal-gray-500 dark:text-slate-400 text-xs">
+              {t("admin.config.bannerDesc") as string}{" "}
+              <Link
+                href="/admin/spaces"
+                className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+              >
+                <Layers className="h-3.5 w-3.5" /> Espaces & départements
+              </Link>{" "}
+              ·{" "}
+              <Link
+                href="/admin/access-overview"
+                className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+              >
+                <KeyRound className="h-3.5 w-3.5" /> Vue 360° des accès
+              </Link>
+            </p>
+          </div>
+        </div>
 
         {/* Informations système (version, DB, Redis, users, uptime, RAM) */}
         <ConfigSystemInfo systemInfo={systemInfo} loading={loading} />
