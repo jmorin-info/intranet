@@ -1087,13 +1087,18 @@ export function Sidebar() {
 
                 {/* Search */}
                 <div className="mt-3 relative">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40" />
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40" aria-hidden="true" />
+                  <label htmlFor="sidebar-filter" className="sr-only">
+                    {`Rechercher dans ${selectedHub.label}`}
+                  </label>
                   <input
+                    id="sidebar-filter"
                     ref={filterInputRef}
                     type="text"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                     placeholder={`Rechercher dans ${selectedHub.label}`}
+                    aria-label={`Rechercher dans ${selectedHub.label}`}
                     className={cn(
                       'w-full h-8 pl-7 pr-14 rounded-md',
                       'bg-white/5 border border-white/10 text-[12px] text-white placeholder:text-white/40',
@@ -1105,10 +1110,10 @@ export function Sidebar() {
                     <button
                       type="button"
                       onClick={() => setFilter('')}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-white/50 hover:text-white"
-                      aria-label="Effacer"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-white/50 hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#F9964A] rounded"
+                      aria-label="Effacer la recherche"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3 w-3" aria-hidden="true" />
                     </button>
                   ) : (
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-mono text-white/40 pointer-events-none">

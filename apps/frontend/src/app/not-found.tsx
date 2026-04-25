@@ -21,18 +21,28 @@ export default function NotFound() {
         <div className="flex items-center justify-center gap-3 mt-8">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-sm font-semibold text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
+            aria-label="Revenir à la page précédente"
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-sm font-semibold text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Page précédente
           </button>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-xl bg-seal-navy px-6 py-3 text-sm font-semibold text-white hover:bg-seal-navy/90 transition-all hover:shadow-lg hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 rounded-xl bg-seal-navy px-6 py-3 text-sm font-semibold text-white hover:bg-seal-navy/90 transition-all hover:shadow-lg hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             Tableau de bord
           </Link>
         </div>
+        <p className="mt-6 text-xs text-seal-gray-500 dark:text-slate-500">
+          Lien cassé ou page disparue ?{' '}
+          <Link
+            href="/helpdesk"
+            className="font-semibold text-seal-blue hover:underline dark:text-seal-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+          >
+            Signaler au support
+          </Link>
+        </p>
       </div>
     </div>
   );

@@ -54,21 +54,28 @@ interface SkeletonListProps {
   count?: number;
   variant?: 'card' | 'row';
   className?: string;
+  /** Message annoncé aux lecteurs d'écran. Défaut: "Chargement…". */
+  loadingLabel?: string;
 }
 
 export function SkeletonList({
   count = 5,
   variant = 'card',
   className,
+  loadingLabel = 'Chargement…',
 }: SkeletonListProps) {
   const Item = variant === 'row' ? SkeletonRow : SkeletonCard;
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
       className={cn(
         variant === 'card' ? 'space-y-3' : 'divide-y divide-gray-100 dark:divide-slate-800',
         className,
       )}
     >
+      <span className="sr-only">{loadingLabel}</span>
       {Array.from({ length: count }).map((_, i) => (
         <Item key={i} />
       ))}

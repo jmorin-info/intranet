@@ -44,17 +44,26 @@ export default function Error({
           <button
             onClick={reset}
             aria-label="Réessayer le chargement de la page"
-            className="inline-flex items-center gap-2 rounded-xl bg-seal-navy px-6 py-3 text-sm font-semibold text-white hover:bg-seal-navy/90 transition-all hover:shadow-lg hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 rounded-xl bg-seal-navy px-6 py-3 text-sm font-semibold text-white hover:bg-seal-navy/90 transition-all hover:shadow-lg hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             Réessayer
           </button>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-sm font-semibold text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-sm font-semibold text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             Tableau de bord
           </Link>
         </div>
+        <p className="mt-6 text-xs text-seal-gray-500 dark:text-slate-500">
+          Le problème persiste ?{' '}
+          <Link
+            href="/helpdesk"
+            className="font-semibold text-seal-blue hover:underline dark:text-seal-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+          >
+            Contacter le support
+          </Link>
+        </p>
       </div>
     </div>
   );
