@@ -235,6 +235,43 @@ export class DepartmentsService {
   }
 
   /**
+   * Organigramme — hiérarchie flat consommée par /directory/organigramme.
+   *
+   * Retourne tous les départements + tous les users actifs avec leur
+   * `managerId` (champ Prisma User.managerId, self-relation "UserManager").
+   * Le front se charge de reconstruire l'arbre (départements en racines,
+   * users rattachés via managerId pour la chaîne hiérarchique interne).
+   *
+   * Pas de filtre rôle (organigramme public à tous les authentifiés,
+   * équivalent à /users/directory).
+   */
+  async getOrgChart() {
+    const [departments, users] = await Promise.all([
+      this.prisma.department.findMany({
+        select: { id: true, name: true, code: true },
+        orderBy: { name: "asc" },
+      }),
+      this.prisma.user.findMany({
+        where: { isActive: true, deletedAt: null },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          role: true,
+          jobTitle: true,
+          avatarUrl: true,
+          phone: true,
+          departmentId: true,
+          managerId: true,
+        },
+        orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+      }),
+    ]);
+    return { departments, users };
+  }
+
+  /**
    * Get users in a department (via junction table for multi-dept support)
    */
   async getDepartmentUsers(departmentId: string) {
