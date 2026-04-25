@@ -28,9 +28,13 @@ import {
   UpdateIncidentDto,
 } from './dto/update-incident.dto';
 import { CreateRemediationDto } from './dto/create-remediation.dto';
+import { RequireFreshMfa } from '../mfa/decorators/require-fresh-mfa.decorator';
 
 @Controller('incidents')
 @UseGuards(JwtAuthGuard, RolesGuard)
+// Toute action sur un incident (création, changement de statut, timeline) exige
+// une re-validation MFA récente (ISO 27001 A.5.24/.25/.26).
+@RequireFreshMfa()
 export class IncidentsController {
   constructor(private readonly service: IncidentsService) {}
 

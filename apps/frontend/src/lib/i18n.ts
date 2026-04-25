@@ -1162,6 +1162,23 @@ const translations: Record<string, Record<string, string>> = {
     // MFA
     "mfa.invalidCode": "Code invalide — réessayez",
     "mfa.codesInvalidated": "Les anciens codes seront invalidés",
+    "mfa.revalidate.title": "Re-validation MFA",
+    "mfa.revalidate.subtitle":
+      "Cette action sensible exige une nouvelle vérification de votre double authentification.",
+    "mfa.revalidate.formTitle": "Saisissez votre code MFA",
+    "mfa.revalidate.formHelp":
+      "Code TOTP à 6 chiffres depuis votre application d'authentification, ou code de secours.",
+    "mfa.revalidate.codeLabel": "Code de vérification",
+    "mfa.revalidate.codeRequired": "Veuillez saisir un code MFA valide.",
+    "mfa.revalidate.submit": "Valider et continuer",
+    "mfa.revalidate.success": "MFA validé — vous pouvez continuer.",
+    "mfa.revalidate.invalid": "Code MFA invalide — réessayez.",
+    "mfa.revalidate.tooManyAttempts":
+      "Trop de tentatives — patientez avant de réessayer.",
+    "mfa.revalidate.error":
+      "Erreur lors de la re-validation MFA. Veuillez réessayer.",
+    "mfa.revalidate.backupHint":
+      "Pas d'accès à votre application TOTP ? Utilisez l'un de vos codes de secours.",
     // PDF Tools
     "pdfTools.browserCopyUnsupported":
       "Votre navigateur ne supporte pas la copie de fichiers",
@@ -2440,6 +2457,23 @@ const translations: Record<string, Record<string, string>> = {
     // MFA
     "mfa.invalidCode": "Invalid code — try again",
     "mfa.codesInvalidated": "Old codes will be invalidated",
+    "mfa.revalidate.title": "MFA revalidation",
+    "mfa.revalidate.subtitle":
+      "This sensitive action requires a fresh verification of your two-factor authentication.",
+    "mfa.revalidate.formTitle": "Enter your MFA code",
+    "mfa.revalidate.formHelp":
+      "6-digit TOTP code from your authenticator app, or a backup code.",
+    "mfa.revalidate.codeLabel": "Verification code",
+    "mfa.revalidate.codeRequired": "Please enter a valid MFA code.",
+    "mfa.revalidate.submit": "Validate and continue",
+    "mfa.revalidate.success": "MFA validated — you can continue.",
+    "mfa.revalidate.invalid": "Invalid MFA code — try again.",
+    "mfa.revalidate.tooManyAttempts":
+      "Too many attempts — please wait before retrying.",
+    "mfa.revalidate.error":
+      "MFA revalidation failed. Please try again.",
+    "mfa.revalidate.backupHint":
+      "No access to your TOTP app? Use one of your backup codes.",
     // PDF Tools
     "pdfTools.browserCopyUnsupported":
       "Your browser does not support file copying",

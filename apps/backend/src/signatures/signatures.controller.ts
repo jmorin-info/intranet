@@ -22,9 +22,13 @@ import { SignaturesService } from './signatures.service';
 import { CreateSignatureDto } from './dto/create-signature.dto';
 import { RequestUser } from '../common/interfaces';
 import { UserRole } from '../common/enums';
+import { RequireFreshMfa } from '../mfa/decorators/require-fresh-mfa.decorator';
 
 @Controller('signatures')
 @UseGuards(JwtAuthGuard, RolesGuard)
+// Toutes les actions sur les signatures (template, soumission, signature) sont
+// considérées sensibles : exigent une re-validation MFA récente (12 h max).
+@RequireFreshMfa()
 export class SignaturesController {
   constructor(private readonly signaturesService: SignaturesService) {}
 

@@ -18,6 +18,7 @@ import {
   CompleteRemediationDto,
   UpdateRemediationDto,
 } from './dto/update-remediation.dto';
+import { RequireFreshMfa } from '../mfa/decorators/require-fresh-mfa.decorator';
 
 /**
  * Separate controller for remediation-level operations so routes stay flat:
@@ -26,6 +27,8 @@ import {
  */
 @Controller('remediations')
 @UseGuards(JwtAuthGuard, RolesGuard)
+// Aligné avec IncidentsController : toute mutation requiert un MFA frais.
+@RequireFreshMfa()
 export class RemediationsController {
   constructor(private readonly service: IncidentsService) {}
 

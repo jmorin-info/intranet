@@ -24,8 +24,13 @@ import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { RequestUser } from "../common/interfaces";
 import { UserRole } from "../common/enums";
 import { UsersService } from "../users/users.service";
+import { SkipMfaCheck } from "../mfa/decorators/skip-mfa-check.decorator";
 
 @Controller("auth")
+// Tous les endpoints d'auth doivent rester accessibles, y compris pour les
+// utilisateurs en attente d'enrôlement MFA — sinon /auth/me casserait /mfa et
+// /auth/logout deviendrait inatteignable.
+@SkipMfaCheck()
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
@@ -68,8 +73,10 @@ export class AuthController {
           }
           // Backup code was valid — proceed
         }
-        // MFA verified — proceed with full login
-        const result = await this.authService.login(user, ip, userAgent);
+        // MFA verified — proceed with full login + signe mfaValidatedAt pour
+        // FreshMfaGuard (autorise les endpoints sensibles pendant 12 h sans
+        // re-challenge).
+        const result = await this.authService.login(user, ip, userAgent, true);
         this.setRefreshTokenCookie(res, result.refreshToken);
         return result;
       }

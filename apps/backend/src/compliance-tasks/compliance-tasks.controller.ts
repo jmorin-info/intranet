@@ -14,9 +14,12 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../common/enums';
 import { ComplianceTasksService } from './compliance-tasks.service';
+import { RequireFreshMfa } from '../mfa/decorators/require-fresh-mfa.decorator';
 
 @Controller('compliance-tasks')
 @UseGuards(JwtAuthGuard, RolesGuard)
+// Tâches de conformité (ISO 27001) — re-validation MFA requise.
+@RequireFreshMfa()
 export class ComplianceTasksController {
   constructor(private readonly service: ComplianceTasksService) {}
 

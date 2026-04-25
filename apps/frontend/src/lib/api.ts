@@ -105,6 +105,34 @@ api.interceptors.response.use(
       }
     }
 
+    // ── Politique MFA : interception des codes backend ──
+    // Le backend renvoie 403 avec un code `MFA_SETUP_REQUIRED` ou
+    // `MFA_REVALIDATION_REQUIRED` dans le body (cf. MfaRequiredGuard /
+    // FreshMfaGuard). On redirige avant tout autre handler 403 pour ne pas
+    // les "swallow" silencieusement.
+    if (error.response?.status === 403 && typeof window !== 'undefined') {
+      const body = error.response.data as { code?: string } | undefined;
+      const code = body?.code;
+      const currentPath = window.location.pathname + window.location.search;
+      if (code === 'MFA_SETUP_REQUIRED' && !window.location.pathname.startsWith('/mfa')) {
+        // L'utilisateur a la politique mfaRequired imposée mais n'a pas activé
+        // son MFA. On force le passage par /mfa avant tout autre accès.
+        localStorage.setItem('mfaSetupRequired', 'true');
+        window.location.href = '/mfa';
+        return Promise.reject(error);
+      }
+      if (
+        code === 'MFA_REVALIDATION_REQUIRED' &&
+        !window.location.pathname.startsWith('/mfa/revalidate')
+      ) {
+        // Endpoint sensible touché → on redirige vers /mfa/revalidate avec
+        // un retour vers la page d'origine (preservée dans `next`).
+        const next = encodeURIComponent(currentPath);
+        window.location.href = `/mfa/revalidate?next=${next}`;
+        return Promise.reject(error);
+      }
+    }
+
     // Silently swallow 403/429 on GET requests (data loading, not user actions)
     // 403: non-admin user hitting admin-only endpoint
     // 429: rate limit exceeded during page load
