@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
 /**
  * Vue temps réel de l'état de santé des services backend.
  * Ping toutes les 10 secondes.
  */
-import { useCallback, useEffect, useState } from 'react';
-import { api } from '@/lib/api';
-import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
-import { useTranslation } from '@/lib/i18n';
-import { PageHeader } from '@/components/layout/page-header';
+import { useCallback, useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
+import { useTranslation } from "@/lib/i18n";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Activity,
   Database,
@@ -23,10 +23,10 @@ import {
   XCircle,
   Clock,
   RefreshCw,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface Health {
-  status: 'ok' | 'degraded' | 'down';
+  status: "ok" | "degraded" | "down";
   version?: string;
   uptime?: number;
   counts?: { activeUsers?: number; documents?: number };
@@ -39,7 +39,12 @@ interface Health {
  * Unified service health state — must match the backend contract
  * defined in health.controller.ts (ServiceHealthState).
  */
-type ServiceHealthState = 'up' | 'down' | 'degraded' | 'not_configured' | 'unknown';
+type ServiceHealthState =
+  | "up"
+  | "down"
+  | "degraded"
+  | "not_configured"
+  | "unknown";
 
 interface ServiceStatus {
   name: string;
@@ -49,16 +54,20 @@ interface ServiceStatus {
   detail?: string;
 }
 
-const SERVICE_MAP: Array<{ key: string; label: string; icon: React.ElementType }> = [
-  { key: 'database', label: 'PostgreSQL', icon: Database },
-  { key: 'redis', label: 'Redis', icon: Zap },
-  { key: 'smtp', label: 'SMTP', icon: Mail },
-  { key: 'ldap', label: 'LDAP / AD', icon: Shield },
-  { key: 'storage', label: 'Stockage', icon: HardDrive },
-  { key: 'clamav', label: 'ClamAV', icon: Shield },
-  { key: 'meilisearch', label: 'Meilisearch', icon: Search },
-  { key: 'ollama', label: 'RAG AI (Ollama)', icon: Sparkles },
-  { key: 'onlyoffice', label: 'OnlyOffice', icon: FileText },
+const SERVICE_MAP: Array<{
+  key: string;
+  label: string;
+  icon: React.ElementType;
+}> = [
+  { key: "database", label: "PostgreSQL", icon: Database },
+  { key: "redis", label: "Redis", icon: Zap },
+  { key: "smtp", label: "SMTP", icon: Mail },
+  { key: "ldap", label: "LDAP / AD", icon: Shield },
+  { key: "storage", label: "Stockage", icon: HardDrive },
+  { key: "clamav", label: "ClamAV", icon: Shield },
+  { key: "meilisearch", label: "Meilisearch", icon: Search },
+  { key: "ollama", label: "RAG AI (Ollama)", icon: Sparkles },
+  { key: "onlyoffice", label: "OnlyOffice", icon: FileText },
 ];
 
 function formatUptime(seconds: number): string {
@@ -88,31 +97,31 @@ export default function SystemHealthPage() {
 
   const load = useCallback(async () => {
     try {
-      const { data } = await api.get('/health');
+      const { data } = await api.get("/health");
       setHealth(data);
     } catch {
-      setHealth({ status: 'down' });
+      setHealth({ status: "down" });
     }
     try {
-      const { data } = await api.get('/office/status');
+      const { data } = await api.get("/office/status");
       setOnlyOfficeOk(data?.enabled && data?.ok === true);
     } catch {
       setOnlyOfficeOk(null);
     }
     try {
-      const { data } = await api.get('/stirling/status');
+      const { data } = await api.get("/stirling/status");
       setStirlingOk(data?.enabled && data?.ok === true);
     } catch {
       setStirlingOk(null);
     }
     try {
-      const { data } = await api.get('/rag/stats');
+      const { data } = await api.get("/rag/stats");
       setRagEnabled(data?.enabled === true);
     } catch {
       setRagEnabled(null);
     }
     try {
-      const { data } = await api.get('/search/v2/health');
+      const { data } = await api.get("/search/v2/health");
       setMeilisearchOk(data?.ok === true);
     } catch {
       setMeilisearchOk(null);
@@ -128,40 +137,55 @@ export default function SystemHealthPage() {
   }, [load]);
 
   // Map unified health states from backend — all services now come from /health
-  const VALID_STATES: ServiceHealthState[] = ['up', 'down', 'degraded', 'not_configured', 'unknown'];
+  const VALID_STATES: ServiceHealthState[] = [
+    "up",
+    "down",
+    "degraded",
+    "not_configured",
+    "unknown",
+  ];
   const services: ServiceStatus[] = SERVICE_MAP.map((s) => {
     const raw = health?.services?.[s.key] as string | undefined;
-    const status: ServiceHealthState = raw && VALID_STATES.includes(raw as ServiceHealthState)
-      ? (raw as ServiceHealthState)
-      : 'unknown';
+    const status: ServiceHealthState =
+      raw && VALID_STATES.includes(raw as ServiceHealthState)
+        ? (raw as ServiceHealthState)
+        : "unknown";
     return { name: s.key, label: s.label, icon: s.icon, status };
   });
 
   // Extra services not covered by /health endpoint — checked via dedicated endpoints
   const extraServices: ServiceStatus[] = [
     {
-      name: 'stirling',
-      label: 'Stirling PDF',
+      name: "stirling",
+      label: "Stirling PDF",
       icon: FileText,
-      status: stirlingOk === true ? 'up' : stirlingOk === false ? 'down' : 'unknown',
+      status:
+        stirlingOk === true ? "up" : stirlingOk === false ? "down" : "unknown",
     },
   ];
 
   const allServices = [...services, ...extraServices];
-  const upCount = allServices.filter((s) => s.status === 'up' || s.status === 'degraded').length;
+  const upCount = allServices.filter(
+    (s) => s.status === "up" || s.status === "degraded",
+  ).length;
   // 'not_configured' is intentional, not a failure — only 'down' counts as a problem
-  const downCount = allServices.filter((s) => s.status === 'down').length;
+  const downCount = allServices.filter((s) => s.status === "down").length;
 
   if (loading && !health) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+      <div className="space-y-6">
+        {/* Bug fix : barre d'onglets persistante pendant le chargement
+            initial pour préserver les raccourcis Audit & Monitoring. */}
+        <AdminGroupTabs group="audit" />
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
 
   const globalStatus =
-    downCount > 0 ? 'down' : health?.status === 'ok' ? 'up' : 'degraded';
+    downCount > 0 ? "down" : health?.status === "ok" ? "up" : "degraded";
 
   return (
     <div className="space-y-6">
@@ -169,24 +193,28 @@ export default function SystemHealthPage() {
 
       <PageHeader
         title="Santé système"
-        subtitle={`${upCount}/${allServices.length} services UP · Rafraichi ${lastUpdate ? lastUpdate.toLocaleTimeString('fr-FR') : '—'} · Auto-refresh toutes les 30 s${health?.uptime ? ` · Uptime : ${formatUptime(health.uptime)}` : ''}`}
+        subtitle={`${upCount}/${allServices.length} services UP · Rafraichi ${lastUpdate ? lastUpdate.toLocaleTimeString("fr-FR") : "—"} · Auto-refresh toutes les 30 s${health?.uptime ? ` · Uptime : ${formatUptime(health.uptime)}` : ""}`}
         icon={Activity}
         hub="admin"
         actions={
           <>
             <span
               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] uppercase font-bold ${
-                globalStatus === 'up'
-                  ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                  : globalStatus === 'down'
-                    ? 'bg-red-500/20 text-red-700 dark:text-red-300'
-                    : 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                globalStatus === "up"
+                  ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                  : globalStatus === "down"
+                    ? "bg-red-500/20 text-red-700 dark:text-red-300"
+                    : "bg-amber-500/20 text-amber-700 dark:text-amber-300"
               }`}
             >
-              {globalStatus === 'up' && <CheckCircle2 className="h-3 w-3" />}
-              {globalStatus === 'down' && <XCircle className="h-3 w-3" />}
-              {globalStatus === 'degraded' && <Clock className="h-3 w-3" />}
-              {globalStatus === 'up' ? 'Opérationnel' : globalStatus === 'down' ? 'Panne' : 'Dégradé'}
+              {globalStatus === "up" && <CheckCircle2 className="h-3 w-3" />}
+              {globalStatus === "down" && <XCircle className="h-3 w-3" />}
+              {globalStatus === "degraded" && <Clock className="h-3 w-3" />}
+              {globalStatus === "up"
+                ? "Opérationnel"
+                : globalStatus === "down"
+                  ? "Panne"
+                  : "Dégradé"}
             </span>
             <button
               onClick={() => void load()}
@@ -200,28 +228,38 @@ export default function SystemHealthPage() {
       />
 
       {/* Runtime info */}
-      {health?.status === 'ok' && (
+      {health?.status === "ok" && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in-up">
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Version</p>
-            <p className="text-xl font-light text-seal-navy dark:text-white">{health.version || '—'}</p>
-          </div>
-          <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Uptime</p>
+            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">
+              Version
+            </p>
             <p className="text-xl font-light text-seal-navy dark:text-white">
-              {health.uptime ? formatUptime(health.uptime) : '—'}
+              {health.version || "—"}
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Mémoire RSS</p>
+            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">
+              Uptime
+            </p>
             <p className="text-xl font-light text-seal-navy dark:text-white">
-              {health.memory?.rss ? formatBytes(health.memory.rss) : '—'}
+              {health.uptime ? formatUptime(health.uptime) : "—"}
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">Utilisateurs actifs</p>
+            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">
+              Mémoire RSS
+            </p>
             <p className="text-xl font-light text-seal-navy dark:text-white">
-              {health.counts?.activeUsers ?? '—'}
+              {health.memory?.rss ? formatBytes(health.memory.rss) : "—"}
+            </p>
+          </div>
+          <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+            <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">
+              Utilisateurs actifs
+            </p>
+            <p className="text-xl font-light text-seal-navy dark:text-white">
+              {health.counts?.activeUsers ?? "—"}
             </p>
           </div>
         </div>
@@ -236,18 +274,21 @@ export default function SystemHealthPage() {
           {allServices.map((svc) => {
             const Icon = svc.icon;
             const toneBg = {
-              up: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-900/40',
-              down: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/40',
-              degraded: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/40',
-              not_configured: 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700',
-              unknown: 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700',
+              up: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-900/40",
+              down: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/40",
+              degraded:
+                "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/40",
+              not_configured:
+                "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700",
+              unknown:
+                "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700",
             }[svc.status];
             const toneDot = {
-              up: 'bg-emerald-500',
-              down: 'bg-red-500',
-              degraded: 'bg-amber-500',
-              not_configured: 'bg-gray-400',
-              unknown: 'bg-gray-400',
+              up: "bg-emerald-500",
+              down: "bg-red-500",
+              degraded: "bg-amber-500",
+              not_configured: "bg-gray-400",
+              unknown: "bg-gray-400",
             }[svc.status];
 
             return (
@@ -258,23 +299,27 @@ export default function SystemHealthPage() {
                 <div className="flex items-center justify-between mb-3">
                   <Icon className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
                   <span className="relative flex h-2 w-2">
-                    {svc.status === 'up' && (
+                    {svc.status === "up" && (
                       <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
                     )}
-                    <span className={`relative inline-flex rounded-full h-2 w-2 ${toneDot}`} />
+                    <span
+                      className={`relative inline-flex rounded-full h-2 w-2 ${toneDot}`}
+                    />
                   </span>
                 </div>
-                <p className="text-sm font-semibold text-seal-navy dark:text-white">{svc.label}</p>
+                <p className="text-sm font-semibold text-seal-navy dark:text-white">
+                  {svc.label}
+                </p>
                 <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mt-0.5">
-                  {svc.status === 'up'
-                    ? 'Opérationnel'
-                    : svc.status === 'down'
-                      ? 'HORS LIGNE'
-                      : svc.status === 'degraded'
-                        ? 'Dégradé'
-                        : svc.status === 'not_configured'
-                          ? 'Non configuré'
-                          : 'Inconnu'}
+                  {svc.status === "up"
+                    ? "Opérationnel"
+                    : svc.status === "down"
+                      ? "HORS LIGNE"
+                      : svc.status === "degraded"
+                        ? "Dégradé"
+                        : svc.status === "not_configured"
+                          ? "Non configuré"
+                          : "Inconnu"}
                 </p>
               </div>
             );
@@ -283,7 +328,8 @@ export default function SystemHealthPage() {
       </div>
 
       <p className="text-[10px] text-seal-gray-500/70 dark:text-slate-600 text-center">
-        Accès réservé aux rôles ADMIN et SUPER_ADMIN · Auto-refresh toutes les 30 secondes
+        Accès réservé aux rôles ADMIN et SUPER_ADMIN · Auto-refresh toutes les
+        30 secondes
       </p>
     </div>
   );

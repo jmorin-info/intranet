@@ -180,7 +180,10 @@ export default function RSSIDashboardPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      logger.error(err, { page: "admin/rssi-dashboard", context: "PDF download" });
+      logger.error(err, {
+        page: "admin/rssi-dashboard",
+        context: "PDF download",
+      });
       if (typeof window !== "undefined") {
         window.alert(
           "Impossible de générer le rapport PDF. Vérifiez vos droits (SUPER_ADMIN / ADMIN / DIRECTION).",
@@ -376,12 +379,22 @@ export default function RSSIDashboardPage() {
   if (loading)
     return (
       <div className="space-y-4">
+        {/* Bug fix : on garde la barre d'onglets persistante pendant le
+            chargement pour préserver la navigation entre pages du groupe
+            Audit & Monitoring (sinon les raccourcis « disparaissent »
+            jusqu'à fin du fetch). */}
+        <AdminGroupTabs group="audit" />
         {[1, 2, 3, 4].map((i) => (
           <Skeleton key={i} className="h-32 rounded-xl" />
         ))}
       </div>
     );
-  if (!data) return null;
+  if (!data)
+    return (
+      <div className="space-y-4">
+        <AdminGroupTabs group="audit" />
+      </div>
+    );
 
   /* Chartes coverage percent */
   const chartesCoveragePct =
@@ -458,7 +471,9 @@ export default function RSSIDashboardPage() {
                 title="PDF structuré signé SHA-256 (ISO 27001 A.5.35)"
               >
                 <FileDown className="h-4 w-4" />
-                {pdfLoading ? "Génération..." : "Télécharger rapport RSSI (PDF)"}
+                {pdfLoading
+                  ? "Génération..."
+                  : "Télécharger rapport RSSI (PDF)"}
               </Button>
               <Link href="/admin/reports">
                 <Button variant="secondary" size="sm">
