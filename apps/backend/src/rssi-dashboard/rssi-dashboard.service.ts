@@ -17,6 +17,17 @@ export class RssiDashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Wrapper utilitaire — encapsule chaque requête pour qu'une erreur
+   * isolée ne casse pas tout le dashboard.
+   */
+  private safe<T>(p: Promise<T>, fallback: T, label: string): Promise<T> {
+    return p.catch((err) => {
+      this.logger.warn(`rssi-dashboard[${label}]: ${err?.message || err}`);
+      return fallback;
+    });
+  }
+
+  /**
    * Retourne un snapshot complet des indicateurs clés.
    * Toutes les requêtes sont parallélisées et chaque erreur est
    * capturée individuellement pour éviter qu'une seule requête en panne
@@ -28,10 +39,7 @@ export class RssiDashboardService {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
 
     const safe = <T>(p: Promise<T>, fallback: T, label: string): Promise<T> =>
-      p.catch((err) => {
-        this.logger.warn(`rssi-dashboard[${label}]: ${err?.message || err}`);
-        return fallback;
-      });
+      this.safe(p, fallback, label);
 
     const [
       // Incidents
@@ -251,6 +259,355 @@ export class RssiDashboardService {
         eventsLast24h: auditEventsLast24h,
         failedLoginsLast24h,
       },
+    };
+  }
+
+  /**
+   * État du SMSI : politiques actives, actifs critiques, risques ouverts,
+   * dernière revue de direction et prochaine échéance.
+   *
+   * ISO 27001 A.5.1 (politiques) + A.5.35 (revue de direction).
+   */
+  async getSmsiState() {
+    const now = new Date();
+    const safe = <T>(p: Promise<T>, fallback: T, label: string): Promise<T> =>
+      this.safe(p, fallback, label);
+
+    const [
+      activePolicies,
+      criticalAssets,
+      openRisks,
+      lastReview,
+      nextReview,
+      activeFrameworks,
+    ] = await Promise.all([
+      // "Politiques actives" = documents catégorisés comme politiques approuvées
+      safe(
+        this.prisma.document.count({
+          where: {
+            deletedAt: null,
+            status: 'APPROVED' as any,
+            category: { in: ['POLICY', 'PROCEDURE'] as any },
+          },
+        }),
+        0,
+        'activePolicies',
+      ),
+      // "Actifs critiques" = documents classifiés SECRET ou CONFIDENTIEL
+      safe(
+        this.prisma.document.count({
+          where: {
+            deletedAt: null,
+            classification: { in: ['SECRET', 'CONFIDENTIEL'] as any },
+          },
+        }),
+        0,
+        'criticalAssets',
+      ),
+      // "Risques ouverts" = incidents critiques/élevés non clôturés (proxy)
+      safe(
+        this.prisma.incident.count({
+          where: {
+            severity: { in: ['CRITICAL', 'HIGH'] as any },
+            status: { notIn: ['CLOSED', 'RECOVERED'] as any },
+          },
+        }),
+        0,
+        'openRisks',
+      ),
+      // Dernière revue = dernière tâche conformité COMPLETED
+      safe(
+        this.prisma.complianceTask.findFirst({
+          where: { status: 'COMPLETED', lastCompletedAt: { not: null } },
+          orderBy: { lastCompletedAt: 'desc' },
+          select: { lastCompletedAt: true, title: true },
+        }),
+        null,
+        'lastReview',
+      ),
+      // Prochaine revue = prochaine tâche compliance non terminée
+      safe(
+        this.prisma.complianceTask.findFirst({
+          where: {
+            status: { not: 'COMPLETED' },
+            nextDueDate: { gte: now },
+          },
+          orderBy: { nextDueDate: 'asc' },
+          select: { nextDueDate: true, title: true },
+        }),
+        null,
+        'nextReview',
+      ),
+      // Frameworks de conformité actifs
+      safe(
+        this.prisma.complianceFramework.count({ where: { isActive: true } }),
+        0,
+        'activeFrameworks',
+      ),
+    ]);
+
+    return {
+      generatedAt: now.toISOString(),
+      activePolicies,
+      criticalAssets,
+      openRisks,
+      lastReview: lastReview
+        ? {
+            date: lastReview.lastCompletedAt?.toISOString() ?? null,
+            title: lastReview.title,
+          }
+        : null,
+      nextReview: nextReview
+        ? {
+            date: nextReview.nextDueDate?.toISOString() ?? null,
+            title: nextReview.title,
+          }
+        : null,
+      activeFrameworks,
+    };
+  }
+
+  /**
+   * Tendance des incidents sur 30 jours (compteur par jour) + top 3 par sévérité.
+   * Renvoie des séries simples utilisables par une sparkline SVG côté front.
+   */
+  async getIncidentTrend() {
+    const now = new Date();
+    const since = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+    const safe = <T>(p: Promise<T>, fallback: T, label: string): Promise<T> =>
+      this.safe(p, fallback, label);
+
+    const [incidents, topSeverity] = await Promise.all([
+      safe(
+        this.prisma.incident.findMany({
+          where: { detectedAt: { gte: since } },
+          select: { detectedAt: true, severity: true },
+          orderBy: { detectedAt: 'asc' },
+        }),
+        [] as Array<{ detectedAt: Date; severity: any }>,
+        'incidentsTrend',
+      ),
+      safe(
+        this.prisma.incident.findMany({
+          where: {
+            severity: { in: ['CRITICAL', 'HIGH'] as any },
+            status: { notIn: ['CLOSED'] as any },
+          },
+          select: {
+            id: true,
+            reference: true,
+            title: true,
+            severity: true,
+            status: true,
+            detectedAt: true,
+          },
+          orderBy: [{ severity: 'asc' }, { detectedAt: 'desc' }],
+          take: 3,
+        }),
+        [],
+        'topSeverity',
+      ),
+    ]);
+
+    // Bucket par jour (30 cases)
+    const buckets: number[] = new Array(30).fill(0);
+    const dayMs = 24 * 3600 * 1000;
+    for (const inc of incidents) {
+      const idx = Math.min(
+        29,
+        Math.max(0, Math.floor((inc.detectedAt.getTime() - since.getTime()) / dayMs)),
+      );
+      buckets[idx] = (buckets[idx] ?? 0) + 1;
+    }
+
+    return {
+      generatedAt: now.toISOString(),
+      windowDays: 30,
+      total: incidents.length,
+      buckets,
+      top: topSeverity.map((i) => ({
+        id: i.id,
+        reference: i.reference,
+        title: i.title,
+        severity: String(i.severity),
+        status: String(i.status),
+        detectedAt: i.detectedAt.toISOString(),
+      })),
+    };
+  }
+
+  /**
+   * Avancement des chantiers ISO 27001 — combine documents liés à des
+   * contrôles ISO + tâches de conformité. Retourne progression globale +
+   * détail par domaine A.5/A.6/A.7/A.8.
+   */
+  async getComplianceProgress() {
+    const now = new Date();
+    const safe = <T>(p: Promise<T>, fallback: T, label: string): Promise<T> =>
+      this.safe(p, fallback, label);
+
+    const [controls, tasks] = await Promise.all([
+      safe(
+        this.prisma.isoControl.findMany({
+          select: {
+            code: true,
+            domain: true,
+            _count: { select: { documents: true } },
+          },
+        }),
+        [],
+        'controls',
+      ),
+      safe(
+        this.prisma.complianceTask.findMany({
+          select: {
+            status: true,
+            nextDueDate: true,
+            isoControl: true,
+          },
+        }),
+        [],
+        'tasks',
+      ),
+    ]);
+
+    const totalControls = controls.length;
+    const coveredControls = controls.filter((c) => (c._count?.documents ?? 0) > 0).length;
+    const coveragePct =
+      totalControls > 0 ? Math.round((coveredControls / totalControls) * 100) : 0;
+
+    // Ventilation par domaine (A.5, A.6, A.7, A.8)
+    const byDomain: Record<string, { total: number; covered: number; pct: number }> = {};
+    for (const ctl of controls) {
+      const dom = ctl.domain || 'autre';
+      if (!byDomain[dom]) byDomain[dom] = { total: 0, covered: 0, pct: 0 };
+      byDomain[dom].total += 1;
+      if ((ctl._count?.documents ?? 0) > 0) byDomain[dom].covered += 1;
+    }
+    for (const dom of Object.keys(byDomain)) {
+      const v = byDomain[dom]!;
+      v.pct = v.total > 0 ? Math.round((v.covered / v.total) * 100) : 0;
+    }
+
+    const tasksTotal = tasks.length;
+    const tasksCompleted = tasks.filter((t) => t.status === 'COMPLETED').length;
+    const tasksOverdue = tasks.filter(
+      (t) => t.status !== 'COMPLETED' && t.nextDueDate && t.nextDueDate < now,
+    ).length;
+
+    return {
+      generatedAt: now.toISOString(),
+      controls: {
+        total: totalControls,
+        covered: coveredControls,
+        pct: coveragePct,
+      },
+      tasks: {
+        total: tasksTotal,
+        completed: tasksCompleted,
+        overdue: tasksOverdue,
+      },
+      byDomain,
+    };
+  }
+
+  /**
+   * Indicateurs opérationnels SOC : MTTR / MTTD / EDR / MFA.
+   *
+   *  - MTTR : moyenne (resolvedAt - detectedAt) sur incidents 30j
+   *  - MTTD : moyenne (containedAt - detectedAt) sur incidents 30j
+   *  - EDR  : taux d'incidents catégorie ENDPOINT/MALWARE détectés < 1h
+   *  - MFA  : taux d'utilisateurs actifs MFA-enabled
+   */
+  async getOperationalIndicators() {
+    const now = new Date();
+    const since = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+    const safe = <T>(p: Promise<T>, fallback: T, label: string): Promise<T> =>
+      this.safe(p, fallback, label);
+
+    const [resolved, contained, edrIncidents, activeUsers, mfaUsers] = await Promise.all([
+      safe(
+        this.prisma.incident.findMany({
+          where: { detectedAt: { gte: since }, resolvedAt: { not: null } },
+          select: { detectedAt: true, resolvedAt: true },
+          take: 200,
+        }),
+        [],
+        'mttrIncidents',
+      ),
+      safe(
+        this.prisma.incident.findMany({
+          where: { detectedAt: { gte: since }, containedAt: { not: null } },
+          select: { detectedAt: true, containedAt: true },
+          take: 200,
+        }),
+        [],
+        'mttdIncidents',
+      ),
+      safe(
+        this.prisma.incident.findMany({
+          where: {
+            detectedAt: { gte: since },
+            category: { in: ['MALWARE', 'PHISHING', 'UNAUTHORIZED_ACCESS'] as any },
+          },
+          select: { detectedAt: true, containedAt: true },
+        }),
+        [],
+        'edrIncidents',
+      ),
+      safe(
+        this.prisma.user.count({ where: { isActive: true, deletedAt: null } }),
+        0,
+        'activeUsers',
+      ),
+      safe(
+        this.prisma.user.count({
+          where: { isActive: true, deletedAt: null, mfaEnabled: true },
+        }),
+        0,
+        'mfaEnabled',
+      ),
+    ]);
+
+    const avgHours = (
+      rows: Array<{ a: Date | null; b: Date | null }>,
+    ): number | null => {
+      const valid = rows.filter((r) => r.a && r.b);
+      if (valid.length === 0) return null;
+      const totalMs = valid.reduce(
+        (acc, r) => acc + (r.b!.getTime() - r.a!.getTime()),
+        0,
+      );
+      return Math.round((totalMs / valid.length / 3600000) * 10) / 10;
+    };
+
+    const mttrHours = avgHours(
+      resolved.map((r) => ({ a: r.detectedAt, b: r.resolvedAt })),
+    );
+    const mttdHours = avgHours(
+      contained.map((r) => ({ a: r.detectedAt, b: r.containedAt })),
+    );
+
+    // EDR : % incidents endpoint contenus < 1h
+    const edrTotal = edrIncidents.length;
+    const edrFast = edrIncidents.filter(
+      (i) =>
+        i.containedAt &&
+        i.containedAt.getTime() - i.detectedAt.getTime() < 3600 * 1000,
+    ).length;
+    const edrPct = edrTotal > 0 ? Math.round((edrFast / edrTotal) * 100) : null;
+
+    const mfaPct = activeUsers > 0 ? Math.round((mfaUsers / activeUsers) * 100) : 0;
+
+    return {
+      generatedAt: now.toISOString(),
+      mttrHours,
+      mttdHours,
+      edrPct,
+      edrSampleSize: edrTotal,
+      mfaPct,
+      mfaActiveUsers: activeUsers,
+      mfaEnabledUsers: mfaUsers,
     };
   }
 }
