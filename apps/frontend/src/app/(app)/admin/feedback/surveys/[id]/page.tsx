@@ -115,21 +115,31 @@ export default function SurveyDetailPage() {
   const fetchData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
+    // Promise.allSettled : si l'une des deux requêtes 404 (ex. enquête
+    // orpheline sans réponses), on affiche la moitié dispo plutôt que
+    // de fail-fast en "Enquête introuvable" pour les deux.
     try {
-      const [metaRes, resultsRes] = await Promise.all([
+      const [metaRes, resultsRes] = await Promise.allSettled([
         api.get(`/satisfaction/surveys/${id}`),
         api.get(`/satisfaction/surveys/${id}/results`),
       ]);
-      setMeta(metaRes.data);
-      setResults(resultsRes.data);
-      setNotFound(false);
-    } catch (err) {
-      const status = (err as { response?: { status?: number } })?.response
-        ?.status;
-      if (status === 404) {
-        setNotFound(true);
+      const metaOk = metaRes.status === "fulfilled";
+      const resultsOk = resultsRes.status === "fulfilled";
+      if (metaOk) setMeta(metaRes.value.data);
+      if (resultsOk) setResults(resultsRes.value.data);
+      // Vraiment introuvable seulement si meta absent (pas seulement
+      // les résultats — l'enquête peut exister sans aucune réponse).
+      if (!metaOk) {
+        const status = (
+          metaRes.reason as { response?: { status?: number } } | undefined
+        )?.response?.status;
+        if (status === 404) {
+          setNotFound(true);
+        } else {
+          toast.error("Erreur lors du chargement de l'enquête");
+        }
       } else {
-        toast.error("Erreur lors du chargement de l'enquête");
+        setNotFound(false);
       }
     } finally {
       setLoading(false);
@@ -200,7 +210,7 @@ export default function SurveyDetailPage() {
     );
   }
 
-  if (notFound || !meta || !results) {
+  if (notFound || !meta) {
     return (
       <div className="space-y-6">
         <Link
@@ -222,7 +232,19 @@ export default function SurveyDetailPage() {
     );
   }
 
-  const { stats } = results;
+  // Si l'enquête existe mais que les résultats sont indisponibles (404 sur
+  // l'agrégation, requête réseau échouée), on affiche un placeholder neutre
+  // au lieu de masquer la page entière en "Enquête introuvable".
+  const stats = results?.stats ?? {
+    totalResponses: 0,
+    averageRating: 0,
+    distribution: [] as Array<{ rating: number; count: number }>,
+    byDepartment: [] as Array<{
+      departmentId: string;
+      responses: number;
+      averageRating: number;
+    }>,
+  };
   const maxDistCount = Math.max(1, ...stats.distribution.map((d) => d.count));
 
   return (
@@ -331,7 +353,7 @@ export default function SurveyDetailPage() {
                   Questions
                 </p>
                 <p className="text-3xl font-semibold text-seal-navy dark:text-white mt-1">
-                  {results.questionResults.length}
+                  {results?.questionResults.length ?? meta.questions.length}
                 </p>
               </div>
               <BarChart3 className="h-5 w-5 text-seal-gray-400" />
@@ -390,7 +412,7 @@ export default function SurveyDetailPage() {
               <h2 className="text-sm font-semibold text-seal-navy dark:text-white">
                 Résultats par question
               </h2>
-              {results.questionResults.map((q) => (
+              {(results?.questionResults ?? []).map((q) => (
                 <div
                   key={q.questionId}
                   className="border-t border-gray-100 dark:border-slate-800 pt-4 first:border-t-0 first:pt-0"
@@ -505,7 +527,7 @@ export default function SurveyDetailPage() {
                 Dernières réponses
               </h2>
               <div className="divide-y divide-gray-100 dark:divide-slate-800 max-h-[500px] overflow-auto">
-                {results.responses.slice(0, 100).map((r) => (
+                {(results?.responses ?? []).slice(0, 100).map((r) => (
                   <div key={r.id} className="py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">

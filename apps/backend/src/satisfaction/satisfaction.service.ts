@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class SatisfactionService {
@@ -14,7 +14,7 @@ export class SatisfactionService {
     return this.prisma.satisfactionSurvey.findMany({
       where,
       include: { _count: { select: { responses: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -23,7 +23,13 @@ export class SatisfactionService {
     description?: string;
     expiresAt?: string;
     isAnonymous?: boolean;
-    questions?: Array<{ label: string; type: string; options?: string[]; isRequired?: boolean; description?: string }>;
+    questions?: Array<{
+      label: string;
+      type: string;
+      options?: string[];
+      isRequired?: boolean;
+      description?: string;
+    }>;
   }) {
     const survey = await this.prisma.satisfactionSurvey.create({
       data: {
@@ -40,7 +46,7 @@ export class SatisfactionService {
         data: data.questions.map((q, i) => ({
           surveyId: survey.id,
           label: q.label,
-          type: q.type || 'rating',
+          type: q.type || "rating",
           options: q.options ? JSON.stringify(q.options) : null,
           isRequired: q.isRequired !== false,
           order: i,
@@ -52,8 +58,8 @@ export class SatisfactionService {
       await this.prisma.surveyQuestion.create({
         data: {
           surveyId: survey.id,
-          label: 'Votre niveau de satisfaction global',
-          type: 'rating',
+          label: "Votre niveau de satisfaction global",
+          type: "rating",
           isRequired: true,
           order: 0,
         },
@@ -62,7 +68,10 @@ export class SatisfactionService {
 
     return this.prisma.satisfactionSurvey.findUnique({
       where: { id: survey.id },
-      include: { questions: { orderBy: { order: 'asc' } }, _count: { select: { responses: true } } },
+      include: {
+        questions: { orderBy: { order: "asc" } },
+        _count: { select: { responses: true } },
+      },
     });
   }
 
@@ -70,34 +79,59 @@ export class SatisfactionService {
     const survey = await this.prisma.satisfactionSurvey.findUnique({
       where: { id: surveyId },
       include: {
-        questions: { orderBy: { order: 'asc' } },
+        questions: { orderBy: { order: "asc" } },
         _count: { select: { responses: true } },
       },
     });
-    if (!survey) throw new NotFoundException('Survey not found');
+    if (!survey) throw new NotFoundException("Survey not found");
     return survey;
   }
 
-  async respond(surveyId: string, userId: string, rating: number, comment?: string, answers?: Array<{ questionId: string; value: string }>) {
+  async respond(
+    surveyId: string,
+    userId: string,
+    rating: number,
+    comment?: string,
+    answers?: Array<{ questionId: string; value: string }>,
+  ) {
     const survey = await this.prisma.satisfactionSurvey.findUnique({
       where: { id: surveyId },
       include: { questions: true },
     });
-    if (!survey || !survey.isActive) throw new NotFoundException('Survey not found or inactive');
+    if (!survey || !survey.isActive)
+      throw new NotFoundException("Survey not found or inactive");
 
     // Upsert the main response
     const response = await this.prisma.satisfactionResponse.upsert({
       where: { surveyId_userId: { surveyId, userId } },
-      create: { surveyId, userId, rating: Math.min(5, Math.max(1, rating || 0)), comment },
-      update: { rating: Math.min(5, Math.max(1, rating || 0)), comment, createdAt: new Date() },
+      create: {
+        surveyId,
+        userId,
+        rating: Math.min(5, Math.max(1, rating || 0)),
+        comment,
+      },
+      update: {
+        rating: Math.min(5, Math.max(1, rating || 0)),
+        comment,
+        createdAt: new Date(),
+      },
     });
 
     // Save individual question answers if provided
     if (answers && answers.length > 0) {
       for (const ans of answers) {
         await this.prisma.questionAnswer.upsert({
-          where: { responseId_questionId: { responseId: response.id, questionId: ans.questionId } },
-          create: { responseId: response.id, questionId: ans.questionId, value: ans.value },
+          where: {
+            responseId_questionId: {
+              responseId: response.id,
+              questionId: ans.questionId,
+            },
+          },
+          create: {
+            responseId: response.id,
+            questionId: ans.questionId,
+            value: ans.value,
+          },
           update: { value: ans.value },
         });
       }
@@ -110,29 +144,46 @@ export class SatisfactionService {
     const survey = await this.prisma.satisfactionSurvey.findUnique({
       where: { id: surveyId },
       include: {
-        questions: { orderBy: { order: 'asc' } },
+        questions: { orderBy: { order: "asc" } },
         responses: {
           include: {
-            user: { select: { id: true, firstName: true, lastName: true, departmentId: true } },
+            // Sélection optionnelle — un user peut avoir été soft-deleté ou
+            // (rare) supprimé en dur via maintenance manuelle ; on ne veut PAS
+            // que la page admin renvoie 404 "User not found" pour autant.
+            // L'agrégation gère explicitement le cas `user === null` plus bas.
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                departmentId: true,
+              },
+            },
             answers: true,
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
         },
       },
     });
-    if (!survey) throw new NotFoundException('Survey not found');
+    if (!survey) throw new NotFoundException("Survey not found");
 
     const ratings = survey.responses.map((r) => r.rating);
-    const avg = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+    const avg =
+      ratings.length > 0
+        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+        : 0;
     const distribution = [1, 2, 3, 4, 5].map((n) => ({
       rating: n,
       count: ratings.filter((r) => r === n).length,
     }));
 
     // Aggregation by department
-    const byDepartment: Record<string, { total: number; sum: number; count: number }> = {};
+    const byDepartment: Record<
+      string,
+      { total: number; sum: number; count: number }
+    > = {};
     for (const response of survey.responses) {
-      const deptId = response.user?.departmentId || 'unknown';
+      const deptId = response.user?.departmentId || "unknown";
       if (!byDepartment[deptId]) {
         byDepartment[deptId] = { total: 0, sum: 0, count: 0 };
       }
@@ -141,11 +192,14 @@ export class SatisfactionService {
       byDepartment[deptId].count++;
     }
 
-    const departmentStats = Object.entries(byDepartment).map(([departmentId, stats]) => ({
-      departmentId,
-      responses: stats.total,
-      averageRating: stats.count > 0 ? Math.round((stats.sum / stats.count) * 10) / 10 : 0,
-    }));
+    const departmentStats = Object.entries(byDepartment).map(
+      ([departmentId, stats]) => ({
+        departmentId,
+        responses: stats.total,
+        averageRating:
+          stats.count > 0 ? Math.round((stats.sum / stats.count) * 10) / 10 : 0,
+      }),
+    );
 
     // Per-question aggregation
     const questionResults = survey.questions.map((q) => {
@@ -156,19 +210,38 @@ export class SatisfactionService {
       const values = questionAnswers.map((a) => a.value);
       const aggregation: any = { total: values.length };
 
-      if (q.type === 'rating') {
+      if (q.type === "rating") {
         const nums = values.map(Number).filter((n) => !isNaN(n));
-        aggregation.distribution = [1, 2, 3, 4, 5].map((n) => ({ value: n, count: nums.filter((v) => v === n).length }));
-        aggregation.average = nums.length > 0 ? Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 10) / 10 : 0;
-      } else if (q.type === 'scale') {
+        aggregation.distribution = [1, 2, 3, 4, 5].map((n) => ({
+          value: n,
+          count: nums.filter((v) => v === n).length,
+        }));
+        aggregation.average =
+          nums.length > 0
+            ? Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 10) /
+              10
+            : 0;
+      } else if (q.type === "scale") {
         const nums = values.map(Number).filter((n) => !isNaN(n));
-        aggregation.distribution = Array.from({ length: 10 }, (_, i) => ({ value: i + 1, count: nums.filter((v) => v === i + 1).length }));
-        aggregation.average = nums.length > 0 ? Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 10) / 10 : 0;
-      } else if (q.type === 'choice' || q.type === 'yesno') {
+        aggregation.distribution = Array.from({ length: 10 }, (_, i) => ({
+          value: i + 1,
+          count: nums.filter((v) => v === i + 1).length,
+        }));
+        aggregation.average =
+          nums.length > 0
+            ? Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 10) /
+              10
+            : 0;
+      } else if (q.type === "choice" || q.type === "yesno") {
         const counts: Record<string, number> = {};
-        for (const v of values) { counts[v] = (counts[v] || 0) + 1; }
-        aggregation.choices = Object.entries(counts).map(([label, count]) => ({ label, count }));
-      } else if (q.type === 'text') {
+        for (const v of values) {
+          counts[v] = (counts[v] || 0) + 1;
+        }
+        aggregation.choices = Object.entries(counts).map(([label, count]) => ({
+          label,
+          count,
+        }));
+      } else if (q.type === "text") {
         aggregation.texts = values.filter((v) => v.trim());
       }
 
@@ -182,7 +255,11 @@ export class SatisfactionService {
     });
 
     return {
-      survey: { id: survey.id, title: survey.title, description: survey.description },
+      survey: {
+        id: survey.id,
+        title: survey.title,
+        description: survey.description,
+      },
       stats: {
         totalResponses: ratings.length,
         averageRating: Math.round(avg * 10) / 10,
@@ -215,15 +292,19 @@ export class SatisfactionService {
       title: s.title,
       responses: s._count.responses,
       totalUsers: totalActiveUsers,
-      rate: totalActiveUsers > 0
-        ? Math.round((s._count.responses / totalActiveUsers) * 1000) / 10
-        : 0,
+      rate:
+        totalActiveUsers > 0
+          ? Math.round((s._count.responses / totalActiveUsers) * 1000) / 10
+          : 0,
     }));
 
     const totalResponses = surveyRates.reduce((sum, s) => sum + s.responses, 0);
-    const globalRate = activeSurveys.length > 0 && totalActiveUsers > 0
-      ? Math.round((totalResponses / (totalActiveUsers * activeSurveys.length)) * 1000) / 10
-      : 0;
+    const globalRate =
+      activeSurveys.length > 0 && totalActiveUsers > 0
+        ? Math.round(
+            (totalResponses / (totalActiveUsers * activeSurveys.length)) * 1000,
+          ) / 10
+        : 0;
 
     return {
       totalActiveUsers,
@@ -253,13 +334,16 @@ export class SatisfactionService {
         },
       },
     });
-    if (!survey) throw new NotFoundException('Survey not found');
+    if (!survey) throw new NotFoundException("Survey not found");
 
     // Group by department
-    const byDepartment: Record<string, { name: string; ratings: number[]; responses: any[] }> = {};
+    const byDepartment: Record<
+      string,
+      { name: string; ratings: number[]; responses: any[] }
+    > = {};
     for (const response of survey.responses) {
-      const deptName = response.user?.department?.name || 'Non attribue';
-      const deptId = response.user?.departmentId || 'unknown';
+      const deptName = response.user?.department?.name || "Non attribue";
+      const deptId = response.user?.departmentId || "unknown";
       if (!byDepartment[deptId]) {
         byDepartment[deptId] = { name: deptName, ratings: [], responses: [] };
       }
@@ -270,7 +354,7 @@ export class SatisfactionService {
     // Group by role
     const byRole: Record<string, { ratings: number[]; count: number }> = {};
     for (const response of survey.responses) {
-      const role = response.user?.role || 'UNKNOWN';
+      const role = response.user?.role || "UNKNOWN";
       if (!byRole[role]) {
         byRole[role] = { ratings: [], count: 0 };
       }
@@ -284,9 +368,14 @@ export class SatisfactionService {
         departmentId: id,
         departmentName: dept.name,
         totalResponses: dept.ratings.length,
-        averageRating: dept.ratings.length > 0
-          ? Math.round((dept.ratings.reduce((a, b) => a + b, 0) / dept.ratings.length) * 10) / 10
-          : 0,
+        averageRating:
+          dept.ratings.length > 0
+            ? Math.round(
+                (dept.ratings.reduce((a, b) => a + b, 0) /
+                  dept.ratings.length) *
+                  10,
+              ) / 10
+            : 0,
         distribution: [1, 2, 3, 4, 5].map((n) => ({
           rating: n,
           count: dept.ratings.filter((r) => r === n).length,
@@ -295,31 +384,54 @@ export class SatisfactionService {
       byRole: Object.entries(byRole).map(([role, data]) => ({
         role,
         totalResponses: data.count,
-        averageRating: data.ratings.length > 0
-          ? Math.round((data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length) * 10) / 10
-          : 0,
+        averageRating:
+          data.ratings.length > 0
+            ? Math.round(
+                (data.ratings.reduce((a, b) => a + b, 0) /
+                  data.ratings.length) *
+                  10,
+              ) / 10
+            : 0,
       })),
     };
   }
 
-  async updateSurvey(id: string, data: {
-    title?: string;
-    description?: string;
-    expiresAt?: string;
-    isAnonymous?: boolean;
-    questions?: Array<{ id?: string; label: string; type: string; options?: string[]; isRequired?: boolean; description?: string }>;
-  }) {
-    const survey = await this.prisma.satisfactionSurvey.findUnique({ where: { id } });
-    if (!survey) throw new NotFoundException('Survey not found');
+  async updateSurvey(
+    id: string,
+    data: {
+      title?: string;
+      description?: string;
+      expiresAt?: string;
+      isAnonymous?: boolean;
+      questions?: Array<{
+        id?: string;
+        label: string;
+        type: string;
+        options?: string[];
+        isRequired?: boolean;
+        description?: string;
+      }>;
+    },
+  ) {
+    const survey = await this.prisma.satisfactionSurvey.findUnique({
+      where: { id },
+    });
+    if (!survey) throw new NotFoundException("Survey not found");
 
     // Update survey fields
     await this.prisma.satisfactionSurvey.update({
       where: { id },
       data: {
         ...(data.title !== undefined && { title: data.title }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.expiresAt !== undefined && { expiresAt: data.expiresAt ? new Date(data.expiresAt) : null }),
-        ...(data.isAnonymous !== undefined && { isAnonymous: data.isAnonymous }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
+        ...(data.expiresAt !== undefined && {
+          expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
+        }),
+        ...(data.isAnonymous !== undefined && {
+          isAnonymous: data.isAnonymous,
+        }),
       },
     });
 
@@ -332,7 +444,7 @@ export class SatisfactionService {
         data: data.questions.map((q, i) => ({
           surveyId: id,
           label: q.label,
-          type: q.type || 'rating',
+          type: q.type || "rating",
           options: q.options ? JSON.stringify(q.options) : null,
           isRequired: q.isRequired !== false,
           order: i,
@@ -343,26 +455,34 @@ export class SatisfactionService {
 
     return this.prisma.satisfactionSurvey.findUnique({
       where: { id },
-      include: { questions: { orderBy: { order: 'asc' } }, _count: { select: { responses: true } } },
+      include: {
+        questions: { orderBy: { order: "asc" } },
+        _count: { select: { responses: true } },
+      },
     });
   }
 
   async deleteSurvey(id: string) {
-    const survey = await this.prisma.satisfactionSurvey.findUnique({ where: { id } });
-    if (!survey) throw new NotFoundException('Survey not found');
+    const survey = await this.prisma.satisfactionSurvey.findUnique({
+      where: { id },
+    });
+    if (!survey) throw new NotFoundException("Survey not found");
     await this.prisma.satisfactionSurvey.delete({ where: { id } });
-    return { message: 'Survey deleted' };
+    return { message: "Survey deleted" };
   }
 
   async getGlobalStats() {
     const surveys = await this.prisma.satisfactionSurvey.findMany({
       include: { responses: true, _count: { select: { responses: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 10,
     });
 
     const allRatings = surveys.flatMap((s) => s.responses.map((r) => r.rating));
-    const globalAvg = allRatings.length > 0 ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : 0;
+    const globalAvg =
+      allRatings.length > 0
+        ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length
+        : 0;
 
     return {
       globalAverage: Math.round(globalAvg * 10) / 10,
@@ -373,9 +493,14 @@ export class SatisfactionService {
         title: s.title,
         isActive: s.isActive,
         responses: s._count.responses,
-        avg: s.responses.length > 0
-          ? Math.round((s.responses.reduce((a, b) => a + b.rating, 0) / s.responses.length) * 10) / 10
-          : 0,
+        avg:
+          s.responses.length > 0
+            ? Math.round(
+                (s.responses.reduce((a, b) => a + b.rating, 0) /
+                  s.responses.length) *
+                  10,
+              ) / 10
+            : 0,
       })),
     };
   }
