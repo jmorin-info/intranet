@@ -366,13 +366,6 @@ export default function RSSIDashboardPage() {
       </div>
     );
   }
-  if (!data) {
-    return (
-      <div className="space-y-4">
-        <AdminGroupTabs group="audit" />
-      </div>
-    );
-  }
 
   const Delta7Icon = deltaIcon(cyber?.trends?.delta7d ?? null);
   const Delta30Icon = deltaIcon(cyber?.trends?.delta30d ?? null);
@@ -407,9 +400,7 @@ export default function RSSIDashboardPage() {
                 title="Rapport SMSI structuré ISO 27001 (9 chapitres) signé SHA-256"
               >
                 <FileDown className="h-4 w-4" />
-                {pdfLoading
-                  ? "Génération..."
-                  : "Générer rapport SMSI PDF"}
+                {pdfLoading ? "Génération..." : "Générer rapport SMSI PDF"}
               </Button>
             </div>
           }
@@ -605,9 +596,7 @@ export default function RSSIDashboardPage() {
                         href={`/incidents/${inc.id}`}
                         className="block"
                       >
-                        <div
-                          className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors border border-gray-100 dark:border-slate-700"
-                        >
+                        <div className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors border border-gray-100 dark:border-slate-700">
                           <span
                             className="h-2 w-2 rounded-full flex-shrink-0"
                             style={{ background: sev.color }}
@@ -690,10 +679,7 @@ export default function RSSIDashboardPage() {
 
                 <div className="space-y-2">
                   {Object.entries(compliance.byDomain).map(([dom, v]) => (
-                    <div
-                      key={dom}
-                      className="flex items-center gap-2 text-xs"
-                    >
+                    <div key={dom} className="flex items-center gap-2 text-xs">
                       <span className="w-32 truncate text-seal-gray-500 dark:text-slate-400 font-medium">
                         {dom}
                       </span>
@@ -733,9 +719,7 @@ export default function RSSIDashboardPage() {
               label="MTTR"
               hint="Mean Time To Resolve (30j)"
               value={
-                indicators?.mttrHours != null
-                  ? `${indicators.mttrHours}h`
-                  : "—"
+                indicators?.mttrHours != null ? `${indicators.mttrHours}h` : "—"
               }
               icon={Clock}
             />
@@ -743,18 +727,14 @@ export default function RSSIDashboardPage() {
               label="MTTD"
               hint="Mean Time To Detect (30j)"
               value={
-                indicators?.mttdHours != null
-                  ? `${indicators.mttdHours}h`
-                  : "—"
+                indicators?.mttdHours != null ? `${indicators.mttdHours}h` : "—"
               }
               icon={AlertTriangle}
             />
             <IndicatorRow
               label="EDR < 1h"
               hint={`endpoints contenus (${indicators?.edrSampleSize ?? 0} ech.)`}
-              value={
-                indicators?.edrPct != null ? `${indicators.edrPct}%` : "—"
-              }
+              value={indicators?.edrPct != null ? `${indicators.edrPct}%` : "—"}
               icon={ShieldCheck}
               tone={
                 indicators?.edrPct != null
@@ -769,9 +749,7 @@ export default function RSSIDashboardPage() {
             <IndicatorRow
               label="MFA"
               hint={`${indicators?.mfaEnabledUsers ?? 0}/${indicators?.mfaActiveUsers ?? 0} utilisateurs`}
-              value={
-                indicators?.mfaPct != null ? `${indicators.mfaPct}%` : "—"
-              }
+              value={indicators?.mfaPct != null ? `${indicators.mfaPct}%` : "—"}
               icon={KeyRound}
               tone={
                 indicators?.mfaPct != null
