@@ -1835,6 +1835,9 @@ model Certificate {
   fileUrl       String? // Pièce jointe (PDF, image)
   fileName      String?
   fileSizeBytes Int?
+  // Aperçu (thumbnail 256x256) généré à l'upload — affiché dans la liste admin.
+  // null si fichier sans preview possible (pas d'image, pdftoppm absent, etc.).
+  thumbnailUrl  String?
   notes         String?
 
   // Utilisateur interne (nullable si externe)
@@ -1925,16 +1928,20 @@ enum MediaType {
 }
 
 model MediaAlbum {
-  id           String          @id @default(uuid())
-  title        String
-  slug         String          @unique
-  description  String?
-  coverItemId  String?
-  visibility   MediaVisibility @default(INTERNAL)
-  departmentId String?
-  createdById  String
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  id             String          @id @default(uuid())
+  title          String
+  slug           String          @unique
+  description    String?
+  coverItemId    String?
+  // Image de couverture dédiée (upload distinct des items de l'album).
+  // Stockée sous storage/media/albums/{id}/cover/. Si présente, prime sur
+  // coverItem côté affichage public.
+  coverImageUrl  String?
+  visibility     MediaVisibility @default(INTERNAL)
+  departmentId   String?
+  createdById    String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   items      MediaItem[] @relation("AlbumItems")
   createdBy  User        @relation("MediaAlbumCreator", fields: [createdById], references: [id], onDelete: Restrict)

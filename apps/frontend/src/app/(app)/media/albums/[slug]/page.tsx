@@ -34,6 +34,7 @@ interface AlbumDetail {
   createdAt: string;
   coverItemId: string | null;
   coverItem: LightboxItem | null;
+  coverImageUrl: string | null;
   createdBy: {
     id: string;
     firstName: string;
@@ -116,12 +117,14 @@ export default function AlbumDetailPage() {
     );
   }
 
-  // Pick the cover item: explicit album.coverItem → first image in items → first item
+  // Pick the hero: image de couverture dédiée → coverItem → first image → first item
   const heroItem: LightboxItem | null =
     album.coverItem ||
     album.items.find((it) => it.type === "IMAGE") ||
     album.items[0] ||
     null;
+  const hasDedicatedCover = Boolean(album.coverImageUrl);
+  const showHero = hasDedicatedCover || Boolean(heroItem);
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -134,9 +137,20 @@ export default function AlbumDetailPage() {
       </Link>
 
       {/* Hero cover */}
-      {heroItem && (
-        <div className="relative mb-6 rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-black aspect-[16/6] max-h-[320px] shadow-lg">
-          {heroItem.type === "VIDEO" ? (
+      {showHero && (
+        <div
+          className={`relative mb-6 rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-black aspect-[16/6] max-h-[320px] shadow-lg${
+            hasDedicatedCover ? " bg-cover bg-center" : ""
+          }`}
+          style={
+            hasDedicatedCover
+              ? {
+                  backgroundImage: `url(${withAuthToken(album.coverImageUrl)})`,
+                }
+              : undefined
+          }
+        >
+          {!hasDedicatedCover && heroItem && heroItem.type === "VIDEO" ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -151,7 +165,7 @@ export default function AlbumDetailPage() {
                 <Video className="h-14 w-14 text-white/80 drop-shadow-lg" />
               </div>
             </>
-          ) : (
+          ) : !hasDedicatedCover && heroItem ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={withAuthToken(heroItem.thumbnailUrl)}
@@ -161,7 +175,7 @@ export default function AlbumDetailPage() {
                 (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
             />
-          )}
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6">
             <h1 className="text-3xl md:text-4xl font-semibold text-white drop-shadow-lg leading-tight">
@@ -180,7 +194,7 @@ export default function AlbumDetailPage() {
       <header className="mb-8">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
-            {!heroItem && (
+            {!showHero && (
               <>
                 <h1 className="text-3xl font-semibold text-seal-navy dark:text-white leading-tight">
                   {album.title}

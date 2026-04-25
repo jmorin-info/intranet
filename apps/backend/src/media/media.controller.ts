@@ -61,6 +61,44 @@ export class MediaController {
     return this.service.deleteAlbum(user, id);
   }
 
+  // ---- Album cover image (upload dédié, distinct du coverItem) ----
+
+  @Patch('albums/:id/cover-image')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 50 * 1024 * 1024 }, // 50 Mo : largement suffisant pour une image
+    }),
+  )
+  setAlbumCoverImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: RequestUser,
+  ) {
+    if (!file) throw new BadRequestException('Fichier manquant (champ "file").');
+    return this.service.setAlbumCoverImage(user, id, file);
+  }
+
+  @Delete('albums/:id/cover-image')
+  removeAlbumCoverImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.removeAlbumCoverImage(user, id);
+  }
+
+  /** Sert l'image de couverture dédiée d'un album (auth requise). */
+  @Get('albums/:id/cover-image')
+  async serveAlbumCoverImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+    @Res() res: Response,
+  ) {
+    const { path: filePath, mime } = await this.service.getAlbumCoverImagePath(id, user);
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    createReadStream(filePath).pipe(res);
+  }
+
   // ---- Items ----
 
   /** Liste flat de tous les médias visibles (vue galerie globale). */

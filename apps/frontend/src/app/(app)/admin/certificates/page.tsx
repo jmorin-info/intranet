@@ -39,6 +39,7 @@ import {
   ExternalLink,
   Info,
   Eye,
+  Image as ImageIcon,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -58,6 +59,8 @@ interface Certificate {
   obtainedAt: string;
   expiresAt: string | null;
   fileUrl: string | null;
+  fileName?: string | null;
+  thumbnailUrl: string | null;
   notes: string | null;
   isExternal: boolean;
   user?: { id: string; firstName: string; lastName: string; email: string };
@@ -492,6 +495,33 @@ export default function AdminCertificatesPage() {
   // -------------------------------------------------------------------------
 
   const columns: Column<Certificate>[] = [
+    {
+      key: 'preview',
+      header: 'Aperçu',
+      className: 'w-[60px]',
+      render: (cert) => {
+        if (cert.thumbnailUrl) {
+          return (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={cert.thumbnailUrl}
+              alt=""
+              className="h-10 w-10 rounded-md object-cover border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800"
+            />
+          );
+        }
+        const fileName = cert.fileName || cert.fileUrl || '';
+        const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
+        const isPdf = ext === 'pdf';
+        const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext);
+        const Icon = isPdf ? FileText : isImage ? ImageIcon : ShieldCheck;
+        return (
+          <div className="h-10 w-10 rounded-md flex items-center justify-center bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-seal-gray-500 dark:text-slate-400">
+            <Icon className="h-4 w-4" />
+          </div>
+        );
+      },
+    },
     {
       key: 'holder',
       header: 'Titulaire',

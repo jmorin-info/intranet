@@ -62,7 +62,7 @@ export class CertificatesController {
       limits: { fileSize: 20 * 1024 * 1024 },
     }),
   )
-  createMy(
+  async createMy(
     @Body() dto: CreateCertificateDto,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
@@ -72,7 +72,15 @@ export class CertificatesController {
       dto.fileName = file.originalname;
       dto.fileSizeBytes = file.size;
     }
-    return this.certificatesService.createMy(dto, user);
+    const cert = await this.certificatesService.createMy(dto, user);
+    if (file) {
+      await this.certificatesService.regenerateThumbnailForCert(
+        cert.id,
+        dto.fileUrl,
+        file.mimetype,
+      );
+    }
+    return cert;
   }
 
   @Patch('my/:id')
@@ -95,7 +103,7 @@ export class CertificatesController {
       limits: { fileSize: 20 * 1024 * 1024 },
     }),
   )
-  updateMy(
+  async updateMy(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCertificateDto,
     @UploadedFile() file: Express.Multer.File,
@@ -106,7 +114,15 @@ export class CertificatesController {
       dto.fileName = file.originalname;
       dto.fileSizeBytes = file.size;
     }
-    return this.certificatesService.updateMy(id, dto, user);
+    const cert = await this.certificatesService.updateMy(id, dto, user);
+    if (file) {
+      await this.certificatesService.regenerateThumbnailForCert(
+        cert.id,
+        dto.fileUrl,
+        file.mimetype,
+      );
+    }
+    return cert;
   }
 
   @Get()
@@ -170,7 +186,7 @@ export class CertificatesController {
       limits: { fileSize: 20 * 1024 * 1024 },
     }),
   )
-  create(
+  async create(
     @Body() dto: CreateCertificateDto,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
@@ -180,7 +196,15 @@ export class CertificatesController {
       dto.fileName = file.originalname;
       dto.fileSizeBytes = file.size;
     }
-    return this.certificatesService.create(dto, user.id);
+    const cert = await this.certificatesService.create(dto, user.id);
+    if (file) {
+      await this.certificatesService.regenerateThumbnailForCert(
+        cert.id,
+        dto.fileUrl,
+        file.mimetype,
+      );
+    }
+    return cert;
   }
 
   @Patch(':id')
@@ -204,7 +228,7 @@ export class CertificatesController {
       limits: { fileSize: 20 * 1024 * 1024 },
     }),
   )
-  update(
+  async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCertificateDto,
     @UploadedFile() file: Express.Multer.File,
@@ -215,7 +239,15 @@ export class CertificatesController {
       dto.fileName = file.originalname;
       dto.fileSizeBytes = file.size;
     }
-    return this.certificatesService.update(id, dto, user.id);
+    const cert = await this.certificatesService.update(id, dto, user.id);
+    if (file) {
+      await this.certificatesService.regenerateThumbnailForCert(
+        cert.id,
+        dto.fileUrl,
+        file.mimetype,
+      );
+    }
+    return cert;
   }
 
   @Delete(':id')
@@ -258,13 +290,19 @@ export class CertificatesController {
     }
 
     const fileUrl = `/uploads/certificates/${file.filename}`;
-    return this.certificatesService.updateFile(
+    const cert = await this.certificatesService.updateFile(
       id,
       fileUrl,
       file.originalname,
       file.size,
       user.id,
     );
+    await this.certificatesService.regenerateThumbnailForCert(
+      cert.id,
+      fileUrl,
+      file.mimetype,
+    );
+    return cert;
   }
 
   @Get(':id/download')

@@ -2,8 +2,13 @@ import {
   Injectable,
   BadRequestException,
   ForbiddenException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
+import { spawn } from 'child_process';
+import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationType } from '@prisma/client';
@@ -11,12 +16,175 @@ import { CreateCertificateDto } from './dto/create-certificate.dto';
 import { UpdateCertificateDto } from './dto/update-certificate.dto';
 import { RequestUser } from '../common/interfaces';
 
+const THUMBS_DIR = path.join(process.cwd(), 'uploads', 'certificates', 'thumbs');
+const THUMB_SIZE = 256;
+const IMAGE_MIMES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+
 @Injectable()
 export class CertificatesService {
+  private readonly logger = new Logger(CertificatesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
   ) {}
+
+  /**
+   * Génère un thumbnail 256x256 (mode cover) à partir d'un fichier de certificat.
+   * - Image (jpg/png/webp/gif) → sharp resize WebP
+   * - PDF → tente pdftoppm (poppler-utils). Si binaire absent ou erreur,
+   *         retourne null sans planter (à installer au déploiement, cf. README).
+   * - Autre → null
+   * Retourne le path public-relatif (ex: /uploads/certificates/thumbs/xxx.webp)
+   * ou null si non générable.
+   */
+  async generateThumbnail(
+    filePath: string,
+    mimeType: string,
+  ): Promise<string | null> {
+    try {
+      if (!fs.existsSync(THUMBS_DIR)) {
+        fs.mkdirSync(THUMBS_DIR, { recursive: true });
+      }
+    } catch (err) {
+      this.logger.warn(`Création dossier thumbs certificats échouée : ${err}`);
+      return null;
+    }
+
+    const mime = (mimeType || '').toLowerCase();
+    const baseName = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const outPath = path.join(THUMBS_DIR, `${baseName}.webp`);
+    const publicUrl = `/uploads/certificates/thumbs/${baseName}.webp`;
+
+    if (IMAGE_MIMES.has(mime)) {
+      try {
+        await sharp(filePath)
+          .resize(THUMB_SIZE, THUMB_SIZE, { fit: 'cover', position: 'attention' })
+          .webp({ quality: 82 })
+          .toFile(outPath);
+        return publicUrl;
+      } catch (err) {
+        this.logger.warn(
+          `Thumbnail certificat (image) échoué pour ${filePath} : ${err}`,
+        );
+        return null;
+      }
+    }
+
+    if (mime === 'application/pdf') {
+      // pdftoppm produit "<outBase>-1.jpg" pour la première page.
+      const tmpBase = path.join(THUMBS_DIR, `${baseName}.pdf-tmp`);
+      const ok = await new Promise<boolean>((resolve) => {
+        const proc = spawn(
+          'pdftoppm',
+          ['-r', '72', '-f', '1', '-l', '1', '-jpeg', filePath, tmpBase],
+          { stdio: ['ignore', 'ignore', 'pipe'] },
+        );
+        let stderr = '';
+        proc.stderr?.on('data', (d: Buffer) => {
+          stderr += d.toString();
+        });
+        proc.on('error', (err) => {
+          this.logger.warn(
+            `pdftoppm indisponible (poppler-utils non installé ?) : ${err.message}`,
+          );
+          resolve(false);
+        });
+        proc.on('close', (code) => {
+          if (code !== 0) {
+            this.logger.warn(
+              `pdftoppm exit=${code} stderr=${stderr.slice(-200)}`,
+            );
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
+        setTimeout(() => {
+          proc.kill('SIGKILL');
+          resolve(false);
+        }, 15_000);
+      });
+
+      const tmpJpg = `${tmpBase}-1.jpg`;
+      if (!ok) {
+        // Cleanup éventuels résidus
+        try {
+          if (fs.existsSync(tmpJpg)) fs.unlinkSync(tmpJpg);
+        } catch {
+          /* ignore */
+        }
+        return null;
+      }
+
+      try {
+        await sharp(tmpJpg)
+          .resize(THUMB_SIZE, THUMB_SIZE, { fit: 'cover', position: 'attention' })
+          .webp({ quality: 82 })
+          .toFile(outPath);
+        return publicUrl;
+      } catch (err) {
+        this.logger.warn(
+          `sharp resize PDF preview échoué pour ${filePath} : ${err}`,
+        );
+        return null;
+      } finally {
+        try {
+          if (fs.existsSync(tmpJpg)) fs.unlinkSync(tmpJpg);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Wrapper qui génère le thumbnail à partir d'un fileUrl public-relatif
+   * (ex: /uploads/certificates/xxx.pdf) et met à jour le certificat.
+   * Best-effort : ne lève jamais — un échec laisse simplement thumbnailUrl null.
+   */
+  async regenerateThumbnailForCert(
+    certId: string,
+    fileUrl: string | null | undefined,
+    mimeOrExt: string | null | undefined,
+  ): Promise<void> {
+    try {
+      if (!fileUrl) return;
+      const absPath = path.join(process.cwd(), fileUrl.replace(/^\//, ''));
+      if (!fs.existsSync(absPath)) return;
+
+      // Déduit le mime depuis l'extension si absent
+      let mime = (mimeOrExt || '').toLowerCase();
+      if (!mime || !mime.includes('/')) {
+        const ext = path.extname(absPath).toLowerCase();
+        if (ext === '.pdf') mime = 'application/pdf';
+        else if (ext === '.jpg' || ext === '.jpeg') mime = 'image/jpeg';
+        else if (ext === '.png') mime = 'image/png';
+        else if (ext === '.webp') mime = 'image/webp';
+        else if (ext === '.gif') mime = 'image/gif';
+      }
+
+      const thumbnailUrl = await this.generateThumbnail(absPath, mime);
+      if (thumbnailUrl) {
+        await this.prisma.certificate.update({
+          where: { id: certId },
+          data: { thumbnailUrl },
+        });
+      }
+    } catch (err) {
+      this.logger.warn(
+        `regenerateThumbnailForCert échoué pour ${certId} : ${err}`,
+      );
+    }
+  }
 
   private addStatus<T extends { expiresAt: Date | null }>(
     cert: T,

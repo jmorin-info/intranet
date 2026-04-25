@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, Button, Input, Textarea, EmptyState, Ske
 import {
   ArrowLeft, Upload, Image as ImageIcon, Video, Trash2, Star, Edit3, Save, X,
 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 import { api } from '@/lib/api';
 import { withAuthToken } from '@/lib/media-url';
 import { formatRelativeTime } from '@/lib/utils';
@@ -33,6 +34,7 @@ interface Album {
   description: string | null;
   visibility: string;
   coverItemId?: string | null;
+  coverImageUrl?: string | null;
   items: Item[];
   _count: { items: number };
 }
@@ -55,7 +57,10 @@ export default function AdminAlbumPage() {
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editTags, setEditTags] = useState('');
+  const [coverDragOver, setCoverDragOver] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch album via slug-less endpoint : on prend l'id direct sur la liste pour trouver le slug
   const load = useCallback(async () => {
@@ -133,6 +138,48 @@ export default function AdminAlbumPage() {
     }
   };
 
+  const uploadCoverImage = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Seules les images sont acceptées comme couverture.');
+      return;
+    }
+    setCoverUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await api.patch(`/media/albums/${albumId}/cover-image`, formData);
+      toast.success('Image de couverture mise à jour');
+      await load();
+    } catch (err: unknown) {
+      logger.error('Cover image upload failed', err);
+      const msg = err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        : null;
+      toast.error(msg || 'Échec de l\'upload de la couverture');
+    } finally {
+      setCoverUploading(false);
+    }
+  };
+
+  const handleCoverDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setCoverDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadCoverImage(file);
+  };
+
+  const handleRemoveCover = async () => {
+    if (!confirm('Retirer l\'image de couverture dédiée ?')) return;
+    try {
+      await api.delete(`/media/albums/${albumId}/cover-image`);
+      toast.success('Image de couverture retirée');
+      load();
+    } catch (err: unknown) {
+      logger.error('Cover image remove failed', err);
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
   const handleSetCover = async (item: Item) => {
     try {
       await api.patch(`/media/albums/${albumId}`, { coverItemId: item.id });
@@ -199,6 +246,87 @@ export default function AdminAlbumPage() {
           <Button variant="outline">Voir côté utilisateur →</Button>
         </Link>
       </header>
+
+      {/* Image de couverture dédiée — distincte des items de l'album */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="text-sm font-semibold text-seal-navy dark:text-white">Image de couverture dédiée</h2>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
+                Affichée en bannière de l&apos;album. Si définie, elle prime sur la cover choisie parmi les médias.
+              </p>
+            </div>
+            {album.coverImageUrl && (
+              <Button variant="outline" size="sm" onClick={handleRemoveCover} className="gap-1.5 text-red-500 hover:text-red-600">
+                <Trash2 className="h-3.5 w-3.5" /> Retirer
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {album.coverImageUrl ? (
+            <div className="relative rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 aspect-[16/6] max-h-[260px]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={withAuthToken(album.coverImageUrl)}
+                alt="Image de couverture"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute bottom-3 right-3 flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={coverUploading}
+                  className="gap-1.5 bg-white/90 hover:bg-white"
+                >
+                  <Upload className="h-3.5 w-3.5" /> Remplacer
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className={`rounded-xl border-2 border-dashed p-6 text-center transition-all ${
+                coverDragOver
+                  ? 'border-[#F9964A] bg-[#F9964A]/5 scale-[1.005]'
+                  : 'border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800/40'
+              }`}
+              onDragOver={(e) => { e.preventDefault(); setCoverDragOver(true); }}
+              onDragLeave={() => setCoverDragOver(false)}
+              onDrop={handleCoverDrop}
+            >
+              <ImageIcon className={`h-8 w-8 mx-auto mb-2 ${coverDragOver ? 'text-[#F9964A]' : 'text-seal-gray-500'}`} />
+              <p className="text-xs font-semibold text-seal-navy dark:text-white mb-1">
+                Déposez une image de couverture ici
+              </p>
+              <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mb-2">
+                JPEG, PNG, WebP — recommandé 1920×1080
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => coverInputRef.current?.click()}
+                disabled={coverUploading}
+                className="gap-1.5"
+              >
+                <Upload className="h-3.5 w-3.5" /> {coverUploading ? 'Upload…' : 'Choisir une image'}
+              </Button>
+            </div>
+          )}
+          <input
+            ref={coverInputRef}
+            type="file"
+            className="hidden"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) uploadCoverImage(f);
+              e.target.value = '';
+            }}
+          />
+        </CardContent>
+      </Card>
 
       {/* Dropzone upload */}
       <div

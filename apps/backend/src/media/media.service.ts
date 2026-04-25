@@ -291,6 +291,153 @@ export class MediaService {
     return updated;
   }
 
+  // ========================================================================
+  // Album cover image — upload dédié (distinct du coverItem qui pointe sur un
+  // MediaItem existant). Stocké sous storage/media/albums/{id}/cover/.
+  // L'URL produite pointe vers GET /api/v1/media/albums/:id/cover-image,
+  // servie avec auth (les images d'album restent privées par visibilité).
+  // ========================================================================
+
+  async setAlbumCoverImage(
+    user: RequestUser,
+    albumId: string,
+    file: Express.Multer.File,
+  ): Promise<{ coverImageUrl: string }> {
+    await this.assertCanManage(user);
+    const album = await this.prisma.mediaAlbum.findUnique({
+      where: { id: albumId },
+    });
+    if (!album) throw new NotFoundException("Album introuvable.");
+    if (album.createdById !== user.id && !this.isAdmin(user)) {
+      throw new ForbiddenException(
+        "Seul le créateur ou un administrateur peut modifier cet album.",
+      );
+    }
+
+    if (!file || !file.buffer) {
+      throw new BadRequestException(
+        'Aucun fichier reçu (le champ "file" est vide ou le multipart est malformé).',
+      );
+    }
+    const mime = file.mimetype.toLowerCase();
+    if (!IMAGE_MIMES.has(mime)) {
+      throw new BadRequestException(
+        `Type de fichier non autorisé pour une image de couverture : ${mime}.`,
+      );
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      throw new BadRequestException("Fichier trop volumineux.");
+    }
+
+    const coverDir = path.join(MEDIA_ROOT, "albums", albumId, "cover");
+    await fs.mkdir(coverDir, { recursive: true });
+
+    // Nettoie une éventuelle cover précédente avant d'écrire la nouvelle, afin
+    // d'éviter d'accumuler des fichiers orphelins sur disque.
+    try {
+      const existing = await fs.readdir(coverDir);
+      await Promise.all(
+        existing.map((f) =>
+          fs.rm(path.join(coverDir, f), { force: true }).catch(() => {
+            /* ignore */
+          }),
+        ),
+      );
+    } catch {
+      /* ignore : dossier inexistant */
+    }
+
+    const filename = `cover.webp`;
+    const destPath = path.join(coverDir, filename);
+    try {
+      await sharp(file.buffer)
+        .resize(1920, 1080, { fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 86 })
+        .toFile(destPath);
+    } catch (err) {
+      this.logger.warn(`Cover image resize échoué pour album ${albumId} : ${err}`);
+      // Fallback : écrire le buffer brut au format d'origine
+      await fs.writeFile(destPath, file.buffer);
+    }
+
+    // URL servie via endpoint dédié auth (cohérent avec serveThumb/serveFile)
+    const coverImageUrl = `/api/v1/media/albums/${albumId}/cover-image`;
+    await this.prisma.mediaAlbum.update({
+      where: { id: albumId },
+      data: { coverImageUrl },
+    });
+
+    await this.audit.log({
+      userId: user.id,
+      action: "MEDIA_ALBUM_COVER_IMAGE_SET",
+      resourceType: "MediaAlbum",
+      resourceId: albumId,
+      severity: "INFO",
+    });
+
+    return { coverImageUrl };
+  }
+
+  async removeAlbumCoverImage(
+    user: RequestUser,
+    albumId: string,
+  ): Promise<{ message: string }> {
+    await this.assertCanManage(user);
+    const album = await this.prisma.mediaAlbum.findUnique({
+      where: { id: albumId },
+    });
+    if (!album) throw new NotFoundException("Album introuvable.");
+    if (album.createdById !== user.id && !this.isAdmin(user)) {
+      throw new ForbiddenException(
+        "Seul le créateur ou un administrateur peut modifier cet album.",
+      );
+    }
+
+    const coverDir = path.join(MEDIA_ROOT, "albums", albumId, "cover");
+    try {
+      await fs.rm(coverDir, { recursive: true, force: true });
+    } catch (err) {
+      this.logger.warn(
+        `Suppression cover image album ${albumId} échouée : ${err}`,
+      );
+    }
+
+    await this.prisma.mediaAlbum.update({
+      where: { id: albumId },
+      data: { coverImageUrl: null },
+    });
+
+    await this.audit.log({
+      userId: user.id,
+      action: "MEDIA_ALBUM_COVER_IMAGE_REMOVED",
+      resourceType: "MediaAlbum",
+      resourceId: albumId,
+      severity: "INFO",
+    });
+
+    return { message: "Image de couverture retirée." };
+  }
+
+  /** Retourne le path disque + mime de la cover image d'un album. */
+  async getAlbumCoverImagePath(
+    albumId: string,
+    user: RequestUser,
+  ): Promise<{ path: string; mime: string }> {
+    const album = await this.prisma.mediaAlbum.findUnique({
+      where: { id: albumId },
+    });
+    if (!album) throw new NotFoundException("Album introuvable.");
+    if (!(await this.userCanViewAlbum(album, user))) {
+      throw new NotFoundException("Album introuvable.");
+    }
+    if (!album.coverImageUrl) {
+      throw new NotFoundException("Aucune image de couverture définie.");
+    }
+    const coverDir = path.join(MEDIA_ROOT, "albums", albumId, "cover");
+    const filePath = path.join(coverDir, "cover.webp");
+    return { path: filePath, mime: "image/webp" };
+  }
+
   async deleteAlbum(
     user: RequestUser,
     id: string,
