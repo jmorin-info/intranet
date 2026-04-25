@@ -1,18 +1,36 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth-store';
-import { useTranslation } from '@/lib/i18n';
-import { UserRole, isRoleAtLeast } from '@omnitech/shared';
+import React, { useEffect, useState, useMemo } from "react";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth-store";
+import { useTranslation } from "@/lib/i18n";
+import { UserRole, isRoleAtLeast } from "@omnitech/shared";
 import {
-  Card, CardContent, Badge, SearchInput, Select, Avatar,
-} from '@omnitech/ui';
-import { Users, Mail, Building2, Search, GitBranchPlus, Phone, MapPin, ExternalLink, LayoutGrid, List, Download } from 'lucide-react';
-import Link from 'next/link';
-import { getAvatarUrl } from '@/lib/avatar';
-import { logger } from '@/lib/logger';
-import { PageHeader } from '@/components/layout/page-header';
+  Card,
+  CardContent,
+  Badge,
+  SearchInput,
+  Select,
+  Avatar,
+} from "@omnitech/ui";
+import {
+  Users,
+  Mail,
+  Building2,
+  Search,
+  GitBranchPlus,
+  Phone,
+  MapPin,
+  ExternalLink,
+  LayoutGrid,
+  List,
+  Download,
+} from "lucide-react";
+import Link from "next/link";
+import { getAvatarUrl } from "@/lib/avatar";
+import { logger } from "@/lib/logger";
+import { formatUserName } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/page-header";
 
 interface DirectoryUser {
   id: string;
@@ -31,25 +49,38 @@ interface DirectoryUser {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  SUPER_ADMIN: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  ADMIN: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  REVIEWER: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  COLLABORATEUR: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  PRESTATAIRE: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+  SUPER_ADMIN: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  ADMIN:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  REVIEWER:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  COLLABORATEUR:
+    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  PRESTATAIRE:
+    "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  ADMIN: 'Admin',
-  REVIEWER: 'Réviseur',
-  COLLABORATEUR: 'Collaborateur',
-  PRESTATAIRE: 'Prestataire',
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+  REVIEWER: "Réviseur",
+  COLLABORATEUR: "Collaborateur",
+  PRESTATAIRE: "Prestataire",
 };
 
 const AVATAR_COLORS = [
-  'bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500',
-  'bg-rose-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-teal-500',
-  'bg-orange-500', 'bg-pink-500', 'bg-lime-600', 'bg-fuchsia-500',
+  "bg-blue-500",
+  "bg-emerald-500",
+  "bg-violet-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-cyan-500",
+  "bg-indigo-500",
+  "bg-teal-500",
+  "bg-orange-500",
+  "bg-pink-500",
+  "bg-lime-600",
+  "bg-fuchsia-500",
 ];
 
 function getAvatarColor(name: string): string {
@@ -57,30 +88,32 @@ function getAvatarColor(name: string): string {
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] || '';
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] || "";
 }
 
-type ViewMode = 'grid' | 'list';
+type ViewMode = "grid" | "list";
 
 export default function DirectoryPage() {
-  const user = useAuthStore(s => s.user);
+  const user = useAuthStore((s) => s.user);
   const { t } = useTranslation();
   const isAdmin = user && isRoleAtLeast(user.role, UserRole.ADMIN);
   const [users, setUsers] = useState<DirectoryUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [search, setSearch] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   useEffect(() => {
     async function fetchUsers() {
       try {
-        const res = await api.get('/users/directory', { params: { limit: 200 } });
+        const res = await api.get("/users/directory", {
+          params: { limit: 200 },
+        });
         const data = res.data?.data || res.data || [];
         setUsers(Array.isArray(data) ? data : []);
       } catch (err) {
-        logger.error(err, { page: 'directory', context: 'load users' });
+        logger.error(err, { page: "directory", context: "load users" });
       } finally {
         setLoading(false);
       }
@@ -95,7 +128,9 @@ export default function DirectoryPage() {
         deptMap.set(u.department.id, u.department.name);
       }
     });
-    return Array.from(deptMap.entries()).map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+    return Array.from(deptMap.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [users]);
 
   const roles = useMemo(() => {
@@ -106,16 +141,18 @@ export default function DirectoryPage() {
 
   const departmentCounts = useMemo(() => {
     const counts = new Map<string, { name: string; count: number }>();
-    users.filter((u) => u.isActive).forEach((u) => {
-      const key = u.department?.id ?? '__none__';
-      const name = u.department?.name ?? 'Sans département';
-      const entry = counts.get(key);
-      if (entry) {
-        entry.count++;
-      } else {
-        counts.set(key, { name, count: 1 });
-      }
-    });
+    users
+      .filter((u) => u.isActive)
+      .forEach((u) => {
+        const key = u.department?.id ?? "__none__";
+        const name = u.department?.name ?? "Sans département";
+        const entry = counts.get(key);
+        if (entry) {
+          entry.count++;
+        } else {
+          counts.set(key, { name, count: 1 });
+        }
+      });
     return Array.from(counts.entries())
       .map(([id, { name, count }]) => ({ id, name, count }))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -127,23 +164,36 @@ export default function DirectoryPage() {
   };
 
   const handleExportCsv = () => {
-    const header = ['Prénom', 'Nom', 'Email', 'Poste', 'Département', 'Téléphone', 'Localisation', 'Rôle'];
+    const header = [
+      "Prénom",
+      "Nom",
+      "Email",
+      "Poste",
+      "Département",
+      "Téléphone",
+      "Localisation",
+      "Rôle",
+    ];
     const rows = filteredUsers.map((u) => [
       u.firstName,
       u.lastName,
       u.email,
-      u.jobTitle ?? '',
-      u.department?.name ?? '',
-      u.phone ?? '',
-      u.location ?? '',
+      u.jobTitle ?? "",
+      u.department?.name ?? "",
+      u.phone ?? "",
+      u.location ?? "",
       ROLE_LABELS[u.role] ?? u.role,
     ]);
     const csvContent = [header, ...rows]
-      .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      .map((row) =>
+        row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","),
+      )
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `annuaire_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
@@ -155,11 +205,17 @@ export default function DirectoryPage() {
       if (!u.isActive) return false;
       const q = search.toLowerCase();
       if (q) {
-        const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
-        const dept = (u.department?.name || '').toLowerCase();
-        if (!fullName.includes(q) && !u.email.toLowerCase().includes(q) && !dept.includes(q)) return false;
+        const fullName = formatUserName(u).toLowerCase();
+        const dept = (u.department?.name || "").toLowerCase();
+        if (
+          !fullName.includes(q) &&
+          !u.email.toLowerCase().includes(q) &&
+          !dept.includes(q)
+        )
+          return false;
       }
-      if (departmentFilter && u.department?.id !== departmentFilter) return false;
+      if (departmentFilter && u.department?.id !== departmentFilter)
+        return false;
       if (roleFilter && u.role !== roleFilter) return false;
       return true;
     });
@@ -171,15 +227,17 @@ export default function DirectoryPage() {
   return (
     <div className="space-y-6 animate-fade-in-up">
       <PageHeader
-        title={t('directory.title')}
-        subtitle={t('directory.subtitle')}
+        title={t("directory.title")}
+        subtitle={t("directory.subtitle")}
         icon={Users}
         hub="monEspace"
-        actions={!loading ? (
-          <Badge className="bg-primary/10 text-primary dark:bg-primary/20">
-            {filteredUsers.length} {t('directory.employees')}
-          </Badge>
-        ) : undefined}
+        actions={
+          !loading ? (
+            <Badge className="bg-primary/10 text-primary dark:bg-primary/20">
+              {filteredUsers.length} {t("directory.employees")}
+            </Badge>
+          ) : undefined
+        }
       />
 
       {/* Tab navigation */}
@@ -214,7 +272,7 @@ export default function DirectoryPage() {
                 <SearchInput
                   value={search}
                   onChange={setSearch}
-                  placeholder={t('directory.searchPlaceholder')}
+                  placeholder={t("directory.searchPlaceholder")}
                 />
               </div>
               {/* Department filter */}
@@ -223,29 +281,29 @@ export default function DirectoryPage() {
                   value={departmentFilter}
                   onChange={(e) => setDepartmentFilter(e.target.value)}
                   options={departments}
-                  placeholder={t('directory.allDepartments')}
+                  placeholder={t("directory.allDepartments")}
                 />
               </div>
               {/* View toggle */}
               <div className="flex items-center gap-1 rounded-lg border border-gray-200 dark:border-slate-700 p-1 self-start md:self-auto">
                 <button
-                  onClick={() => setViewMode('grid')}
+                  onClick={() => setViewMode("grid")}
                   title="Vue grille"
                   className={`p-1.5 rounded-md transition-all duration-200 ${
-                    viewMode === 'grid'
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
+                    viewMode === "grid"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => setViewMode('list')}
+                  onClick={() => setViewMode("list")}
                   title="Vue liste"
                   className={`p-1.5 rounded-md transition-all duration-200 ${
-                    viewMode === 'list'
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
+                    viewMode === "list"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   <List className="h-4 w-4" />
@@ -256,25 +314,29 @@ export default function DirectoryPage() {
             {/* Role pills — visible to all */}
             {roles.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
-                <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-500 uppercase tracking-wider mr-1">Rôle</span>
+                <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-500 uppercase tracking-wider mr-1">
+                  Rôle
+                </span>
                 <button
-                  onClick={() => setRoleFilter('')}
+                  onClick={() => setRoleFilter("")}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-                    roleFilter === ''
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                    roleFilter === ""
+                      ? "bg-primary text-white shadow-sm"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
                   }`}
                 >
-                  {t('common.all')}
+                  {t("common.all")}
                 </button>
                 {roles.map((role) => (
                   <button
                     key={role}
-                    onClick={() => setRoleFilter(roleFilter === role ? '' : role)}
+                    onClick={() =>
+                      setRoleFilter(roleFilter === role ? "" : role)
+                    }
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
                       roleFilter === role
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                        ? "bg-primary text-white shadow-sm"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
                     }`}
                   >
                     {ROLE_LABELS[role] || role}
@@ -283,7 +345,8 @@ export default function DirectoryPage() {
                 {/* Result counter */}
                 {!loading && (
                   <span className="ml-auto text-xs text-seal-gray-500 dark:text-slate-400">
-                    {filteredUsers.length} résultat{filteredUsers.length !== 1 ? 's' : ''}
+                    {filteredUsers.length} résultat
+                    {filteredUsers.length !== 1 ? "s" : ""}
                   </span>
                 )}
               </div>
@@ -291,15 +354,25 @@ export default function DirectoryPage() {
             {/* Department count pills */}
             {departmentCounts.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
-                <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-500 uppercase tracking-wider mr-1">Départements</span>
+                <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-500 uppercase tracking-wider mr-1">
+                  Départements
+                </span>
                 {departmentCounts.map((d) => (
                   <button
                     key={d.id}
-                    onClick={() => setDepartmentFilter(departmentFilter === d.id ? '' : (d.id === '__none__' ? '' : d.id))}
+                    onClick={() =>
+                      setDepartmentFilter(
+                        departmentFilter === d.id
+                          ? ""
+                          : d.id === "__none__"
+                            ? ""
+                            : d.id,
+                      )
+                    }
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
                       departmentFilter === d.id
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                        ? "bg-primary text-white shadow-sm"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
                     }`}
                   >
                     {d.name} ({d.count})
@@ -342,22 +415,28 @@ export default function DirectoryPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <Search className="h-12 w-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
-            <p className="text-lg font-medium text-seal-navy dark:text-white">{t('common.noResults')}</p>
+            <p className="text-lg font-medium text-seal-navy dark:text-white">
+              {t("common.noResults")}
+            </p>
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-              {t('directory.noResultsHint')}
+              {t("directory.noResultsHint")}
             </p>
           </CardContent>
         </Card>
       )}
 
       {/* User grid view */}
-      {!loading && filteredUsers.length > 0 && viewMode === 'grid' && (
+      {!loading && filteredUsers.length > 0 && viewMode === "grid" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredUsers.map((u) => {
             const initials = getInitials(u.firstName, u.lastName);
             const colorClass = getAvatarColor(u.firstName + u.lastName);
             return (
-              <Card key={u.id} hoverable className="stagger-item shadow-sm rounded-xl group">
+              <Card
+                key={u.id}
+                hoverable
+                className="stagger-item shadow-sm rounded-xl group"
+              >
                 <CardContent className="p-5">
                   <div className="flex flex-col items-center text-center gap-3">
                     {/* Avatar — prominent + online indicator */}
@@ -366,12 +445,16 @@ export default function DirectoryPage() {
                         src={getAvatarUrl(u.avatarUrl)}
                         initials={initials}
                         size="lg"
-                        className={`!w-20 !h-20 !text-xl ring-2 ring-white dark:ring-slate-800 shadow-md group-hover:scale-105 transition-transform duration-200 ${!u.avatarUrl ? colorClass : ''}`}
+                        className={`!w-20 !h-20 !text-xl ring-2 ring-white dark:ring-slate-800 shadow-md group-hover:scale-105 transition-transform duration-200 ${!u.avatarUrl ? colorClass : ""}`}
                       />
                       <span
-                        title={isOnline(u.lastLoginAt) ? 'En ligne' : 'Hors ligne'}
+                        title={
+                          isOnline(u.lastLoginAt) ? "En ligne" : "Hors ligne"
+                        }
                         className={`absolute bottom-0 right-0 block h-4 w-4 rounded-full ring-2 ring-white dark:ring-slate-800 ${
-                          isOnline(u.lastLoginAt) ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'
+                          isOnline(u.lastLoginAt)
+                            ? "bg-emerald-500"
+                            : "bg-gray-300 dark:bg-slate-600"
                         }`}
                       />
                     </div>
@@ -379,10 +462,12 @@ export default function DirectoryPage() {
                     {/* Name + job title block */}
                     <div className="space-y-0.5">
                       <h3 className="font-medium text-seal-navy dark:text-white text-sm leading-tight">
-                        {u.firstName} {u.lastName}
+                        {formatUserName(u)}
                       </h3>
                       {u.jobTitle && (
-                        <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate max-w-[180px]">{u.jobTitle}</p>
+                        <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate max-w-[180px]">
+                          {u.jobTitle}
+                        </p>
                       )}
                     </div>
 
@@ -422,8 +507,12 @@ export default function DirectoryPage() {
                     </div>
 
                     {/* Role badge — discrete */}
-                    <Badge className={`text-[9px] ${isAdmin ? (ROLE_COLORS[u.role] || 'bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-slate-200') : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300'}`}>
-                      {isAdmin ? (ROLE_LABELS[u.role] || u.role) : 'Collaborateur'}
+                    <Badge
+                      className={`text-[9px] ${isAdmin ? ROLE_COLORS[u.role] || "bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-slate-200" : "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300"}`}
+                    >
+                      {isAdmin
+                        ? ROLE_LABELS[u.role] || u.role
+                        : "Collaborateur"}
                     </Badge>
                   </div>
                 </CardContent>
@@ -434,7 +523,7 @@ export default function DirectoryPage() {
       )}
 
       {/* User list view */}
-      {!loading && filteredUsers.length > 0 && viewMode === 'list' && (
+      {!loading && filteredUsers.length > 0 && viewMode === "list" && (
         <Card className="shadow-sm rounded-xl overflow-hidden">
           <div className="divide-y divide-gray-100 dark:divide-slate-800">
             {filteredUsers.map((u) => {
@@ -451,12 +540,16 @@ export default function DirectoryPage() {
                       src={getAvatarUrl(u.avatarUrl)}
                       initials={initials}
                       size="md"
-                      className={`${!u.avatarUrl ? colorClass : ''}`}
+                      className={`${!u.avatarUrl ? colorClass : ""}`}
                     />
                     <span
-                      title={isOnline(u.lastLoginAt) ? 'En ligne' : 'Hors ligne'}
+                      title={
+                        isOnline(u.lastLoginAt) ? "En ligne" : "Hors ligne"
+                      }
                       className={`absolute bottom-0 right-0 block h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-800 ${
-                        isOnline(u.lastLoginAt) ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'
+                        isOnline(u.lastLoginAt)
+                          ? "bg-emerald-500"
+                          : "bg-gray-300 dark:bg-slate-600"
                       }`}
                     />
                   </div>
@@ -464,10 +557,12 @@ export default function DirectoryPage() {
                   {/* Name + job title */}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-seal-navy dark:text-white text-sm truncate">
-                      {u.firstName} {u.lastName}
+                      {formatUserName(u)}
                     </p>
                     {u.jobTitle && (
-                      <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">{u.jobTitle}</p>
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">
+                        {u.jobTitle}
+                      </p>
                     )}
                   </div>
 
@@ -482,8 +577,12 @@ export default function DirectoryPage() {
 
                   {/* Role — discrete */}
                   <div className="hidden md:block flex-shrink-0">
-                    <Badge className={`text-[9px] ${isAdmin ? (ROLE_COLORS[u.role] || 'bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-slate-200') : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300'}`}>
-                      {isAdmin ? (ROLE_LABELS[u.role] || u.role) : 'Collaborateur'}
+                    <Badge
+                      className={`text-[9px] ${isAdmin ? ROLE_COLORS[u.role] || "bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-slate-200" : "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300"}`}
+                    >
+                      {isAdmin
+                        ? ROLE_LABELS[u.role] || u.role
+                        : "Collaborateur"}
                     </Badge>
                   </div>
 

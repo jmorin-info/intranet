@@ -14,6 +14,7 @@ import {
   UploadedFile,
   ParseUUIDPipe,
   BadRequestException,
+  ForbiddenException,
   HttpCode,
 } from "@nestjs/common";
 import { Response } from "express";
@@ -243,7 +244,24 @@ export class UsersController {
   }
 
   @Get(":id")
-  async findById(@Param("id", ParseUUIDPipe) id: string) {
+  async findById(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    // ANSSI A.5.15 — un utilisateur authentifié ne peut consulter le profil
+    // complet (manager, subordinates, departmentMemberships) que de lui-même.
+    // Pour les autres profils, l'annuaire `GET /users/directory` expose les
+    // champs sûrs (id, nom, email, département, jobTitle, avatar). Sans cette
+    // garde, n'importe quel user authentifié pouvait énumérer l'organigramme
+    // complet via cet endpoint (IDOR).
+    const isSelf = user.id === id;
+    const isAdmin =
+      user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+    if (!isSelf && !isAdmin) {
+      throw new ForbiddenException(
+        "Profil détaillé réservé au propriétaire ou à un administrateur — utilisez /users/directory",
+      );
+    }
     return this.usersService.findById(id);
   }
 
