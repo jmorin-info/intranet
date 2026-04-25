@@ -1,8 +1,9 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, Button } from '@omnitech/ui';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, LifeBuoy } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
 interface Props {
@@ -64,9 +65,18 @@ export class ErrorBoundary extends Component<Props, State> {
                   {this.state.error.message}
                 </p>
               )}
-              <Button onClick={this.handleRetry} variant="secondary" className="mt-4">
-                <RefreshCw className="h-4 w-4" /> Réessayer
-              </Button>
+              <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
+                <Button onClick={this.handleRetry} variant="secondary">
+                  <RefreshCw className="h-4 w-4" aria-hidden="true" /> Réessayer
+                </Button>
+                <Link
+                  href="/helpdesk"
+                  className="inline-flex items-center gap-1.5 text-xs text-seal-blue dark:text-seal-orange hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded px-2 py-1"
+                >
+                  <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" />
+                  Contacter le support
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -69,33 +69,44 @@ export function InlineStatusDropdown({
   const canInteract = interactive && actions.length > 0;
   const Icon = config?.icon;
 
+  const currentLabel = config?.label || current;
+
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => canInteract && setOpen(o => !o)}
-        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+        aria-label={canInteract ? `Changer le statut (actuel : ${currentLabel})` : `Statut : ${currentLabel}`}
+        aria-haspopup={canInteract ? 'menu' : undefined}
+        aria-expanded={canInteract ? open : undefined}
+        disabled={!canInteract}
+        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
           canInteract ? 'cursor-pointer hover:ring-2 hover:ring-primary/30' : 'cursor-default'
         } ${config?.badgeBg || 'bg-gray-100 dark:bg-slate-800'} ${config?.badgeText || 'text-gray-700 dark:text-slate-300'}`}
       >
-        {Icon && <Icon className="h-3 w-3" />}
-        {config?.label || current}
+        {Icon && <Icon className="h-3 w-3" aria-hidden="true" />}
+        {currentLabel}
         {canInteract && (
-          <ChevronDown className={`h-3 w-3 ml-0.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`h-3 w-3 ml-0.5 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
         )}
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-52 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1 animate-fade-in-up">
+        <div
+          role="menu"
+          aria-label="Transitions de statut"
+          className="absolute left-0 top-full mt-1 z-50 w-52 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1 animate-fade-in-up"
+        >
           {actions.map(action => {
             const ActionIcon = action.icon;
             return (
               <button
                 key={action.key}
                 type="button"
+                role="menuitem"
                 onClick={() => { setOpen(false); onAction(action.key); }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm transition hover:bg-gray-50 dark:hover:bg-slate-800"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm transition hover:bg-gray-50 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800"
               >
-                {ActionIcon && <ActionIcon className={`h-3.5 w-3.5 ${action.iconColor || 'text-seal-gray-500'}`} />}
+                {ActionIcon && <ActionIcon className={`h-3.5 w-3.5 ${action.iconColor || 'text-seal-gray-500'}`} aria-hidden="true" />}
                 <span className="text-seal-navy dark:text-white">{action.label}</span>
               </button>
             );

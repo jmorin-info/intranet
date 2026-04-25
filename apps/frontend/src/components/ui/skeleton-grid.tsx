@@ -20,6 +20,8 @@ const COLUMN_CLASSES: Record<1 | 2 | 3 | 4, string> = {
 /**
  * Grille unifiée de loading states : rend `count` SkeletonCard dans une grille
  * responsive. Sert à harmoniser les états de chargement à travers l'app.
+ *
+ * Annonce "Chargement…" aux lecteurs d'écran via role="status" + sr-only.
  */
 export function SkeletonGrid({
   count = 6,
@@ -27,7 +29,13 @@ export function SkeletonGrid({
   className,
 }: SkeletonGridProps) {
   return (
-    <div className={cn('grid gap-4', COLUMN_CLASSES[columns], className)}>
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      className={cn('grid gap-4', COLUMN_CLASSES[columns], className)}
+    >
+      <span className="sr-only">Chargement…</span>
       {Array.from({ length: count }).map((_, i) => (
         <SkeletonCard key={i} />
       ))}

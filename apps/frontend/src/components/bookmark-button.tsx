@@ -74,13 +74,15 @@ export function BookmarkButton({ type, id, title, href, className = '' }: Bookma
 
   return (
     <button
+      type="button"
       onClick={handleClick}
-      className={`inline-flex items-center justify-center rounded-lg p-1.5 transition hover:bg-gray-100 dark:hover:bg-slate-800 ${className}`}
+      className={`inline-flex items-center justify-center rounded-lg p-1.5 transition hover:bg-gray-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${className}`}
       title={active ? t('component.bookmark.remove') : t('component.bookmark.add')}
       aria-label={active ? t('component.bookmark.remove') : t('component.bookmark.add')}
       aria-pressed={active}
     >
       <Star
+        aria-hidden="true"
         className={`h-4 w-4 transition ${
           active
             ? 'fill-amber-400 text-amber-400'
