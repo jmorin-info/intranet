@@ -27,12 +27,12 @@ Dès qu'un signal incident est reçu :
 
 ### 1. Qualifier la sévérité (matrice P0/P1/P2/P3)
 
-| Niveau | Critère                                                                  | Délai prise en charge | MTTR cible |
-|--------|--------------------------------------------------------------------------|-----------------------|------------|
-| **P0** | Indisponibilité totale (404/502 sur `/`), perte de données, brèche sécu  | Immédiat (< 5 min)    | < 1 h      |
-| **P1** | Service dégradé majeur (auth KO, MFA KO, BDD lente, 5xx > 5%/min)        | < 15 min              | < 4 h      |
-| **P2** | Fonctionnalité non critique KO (Meilisearch down, Ollama HS, RAG)        | < 1 h ouvré           | < 1 jour   |
-| **P3** | Bug cosmétique, demande utilisateur, optimisation                        | Backlog               | Selon plan |
+| Niveau | Critère                                                                 | Délai prise en charge | MTTR cible |
+| ------ | ----------------------------------------------------------------------- | --------------------- | ---------- |
+| **P0** | Indisponibilité totale (404/502 sur `/`), perte de données, brèche sécu | Immédiat (< 5 min)    | < 1 h      |
+| **P1** | Service dégradé majeur (auth KO, MFA KO, BDD lente, 5xx > 5%/min)       | < 15 min              | < 4 h      |
+| **P2** | Fonctionnalité non critique KO (Meilisearch down, Ollama HS, RAG)       | < 1 h ouvré           | < 1 jour   |
+| **P3** | Bug cosmétique, demande utilisateur, optimisation                       | Backlog               | Selon plan |
 
 ### 2. Premier diagnostic (5 minutes max)
 
@@ -58,14 +58,14 @@ uptime
 
 ### 3. Hypothèses fréquentes & actions
 
-| Symptôme                                           | Cause probable               | Action immédiate                          |
-|----------------------------------------------------|------------------------------|-------------------------------------------|
-| `services.database: down` dans `/api/health`       | Postgres KO ou pool saturé   | `systemctl status postgresql` + voir §4   |
-| `services.redis: up` mais latence > 2s             | Redis OOM                    | `redis-cli INFO memory` + flush ciblé     |
-| `502 Bad Gateway` sur tout                         | Backend crashé               | `systemctl restart omnitech-backend`      |
-| `Cannot find module` après deploy                  | `pnpm install` incomplet     | `pnpm install --frozen-lockfile` + redémarrer |
-| Disque `/` > 90 %                                  | Logs ou uploads engorgés     | `du -sh /var/log/* /root/omnitech-intranet/storage/* | sort -h` |
-| MFA `403 MFA_SETUP_REQUIRED` en boucle             | Politique MFA forcée à tort  | Voir `MFA_ENROLLMENT.md` §reset           |
+| Symptôme                                     | Cause probable              | Action immédiate                                     |
+| -------------------------------------------- | --------------------------- | ---------------------------------------------------- | -------- |
+| `services.database: down` dans `/api/health` | Postgres KO ou pool saturé  | `systemctl status postgresql` + voir §4              |
+| `services.redis: up` mais latence > 2s       | Redis OOM                   | `redis-cli INFO memory` + flush ciblé                |
+| `502 Bad Gateway` sur tout                   | Backend crashé              | `systemctl restart omnitech-backend`                 |
+| `Cannot find module` après deploy            | `pnpm install` incomplet    | `pnpm install --frozen-lockfile` + redémarrer        |
+| Disque `/` > 90 %                            | Logs ou uploads engorgés    | `du -sh /var/log/_ /root/omnitech-intranet/storage/_ | sort -h` |
+| MFA `403 MFA_SETUP_REQUIRED` en boucle       | Politique MFA forcée à tort | Voir `MFA_ENROLLMENT.md` §reset                      |
 
 ### 4. Confinement
 
@@ -119,9 +119,17 @@ git log --oneline -10                 # repérer le SHA stable précédent
 git checkout <sha-stable>
 pnpm install --frozen-lockfile
 pnpm --filter @omnitech/database prisma:generate
-# si la migration Prisma du commit problématique a écrit en DB :
-# [À COMPLÉTER PAR L'ÉQUIPE OPS : décider rollback DB ou forward-fix selon
-#  la migration concernée — Prisma ne sait pas rollback automatiquement]
+# Migration Prisma déjà appliquée par le commit problématique :
+#   1. Si la migration est ADDITIVE (ADD COLUMN nullable, ADD INDEX, ADD TABLE) :
+#      → forward-fix prioritaire. Garder la colonne vide, écrire un nouveau
+#        commit qui restaure la cohérence applicative. Pas de rollback DB.
+#   2. Si la migration est DESTRUCTIVE (DROP COLUMN, DROP TABLE, ALTER TYPE
+#      avec data-loss) : restaurer depuis le dernier dump (cf.
+#      DATABASE_BACKUP_RESTORE.md → "Restauration partielle")
+#      AVANT le checkout du SHA stable. RPO = 24h.
+#   3. Si en doute : appeler le RSSI avant toute action destructive.
+pnpm --filter @omnitech/backend run build
+pnpm --filter @omnitech/frontend run build
 systemctl restart omnitech-backend.service omnitech-frontend.service
 ```
 
@@ -130,13 +138,17 @@ systemctl restart omnitech-backend.service omnitech-frontend.service
 Chaîne ops, dans l'ordre :
 
 1. **DSI / Astreinte infra** (premier interlocuteur 24/7)
-   `[À COMPLÉTER PAR L'ÉQUIPE OPS : numéro d'astreinte DSI]`
+   `<À RENSEIGNER : numéro d'astreinte DSI>`
 2. **RSSI** — `jmorin@omnitech-security.fr`
    - obligatoire pour toute suspicion brèche sécu, fuite données, ransomware
-3. **Direction** — `[À COMPLÉTER PAR L'ÉQUIPE OPS : contact direction]`
+3. **Direction** — `<À RENSEIGNER : email/téléphone direction>`
    - dépassement RTO/RPO, P0 > 1 h, activation PCA (cf. `/admin/pca`)
 4. **Hébergeur / fournisseurs externes** :
-   - DocuSeal, KnowBe4, OnlyOffice : `[À COMPLÉTER PAR L'ÉQUIPE OPS]`
+   - DocuSeal Cloud (signatures) : `support@docuseal.com` (FR business hours)
+   - KnowBe4 Security Awareness : `support@knowbe4.com` + ticket portail eu.knowbe4.com
+   - OnlyOffice (édition documents) : self-hosted local — pas de support externe
+   - Stirling-PDF : self-hosted local — issues GitHub
+   - Meilisearch : self-hosted local — issues GitHub / Discord
 
 SLA cible : **uptime 99,5 %/an** (~ 43 h d'indispo cumulée tolérée par an).
 

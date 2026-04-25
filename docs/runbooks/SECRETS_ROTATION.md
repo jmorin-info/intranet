@@ -23,22 +23,22 @@
 
 ## Inventaire des secrets
 
-| Secret                         | Localisation             | Périodicité min | Impact rotation                                     |
-|--------------------------------|--------------------------|-----------------|-----------------------------------------------------|
-| `JWT_ACCESS_SECRET`            | `.env` (backend)         | 6 mois          | **Tous les access tokens invalides** (relogin forcé) |
-| `JWT_REFRESH_SECRET`           | `.env` (backend)         | 6 mois          | Toutes les sessions invalidées                      |
-| `POSTGRES_PASSWORD`            | `.env` + Postgres        | 12 mois         | Backend KO le temps du restart                      |
-| `REDIS_PASSWORD`               | `.env` + Redis conf      | 12 mois         | Sessions / queues KO le temps du restart            |
-| `DOCUSEAL_API_KEY`             | `.env`                   | 12 mois         | Workflows signatures KO                             |
-| `DOCUSEAL_WEBHOOK_SECRET`      | `.env` + UI DocuSeal     | 12 mois         | Webhooks ignorés tant que déphasé                   |
-| `KNOWBE4_API_TOKEN`            | `.env`                   | 12 mois         | Sync formations KO                                  |
-| `MEILISEARCH_MASTER_KEY`       | `.env` + Meili daemon    | 12 mois         | Recherche KO le temps de la rotation                |
-| `ONLYOFFICE_JWT_SECRET`        | `.env` + Docs Server     | 12 mois         | Editeurs en ligne KO le temps de la rotation        |
-| `ONLYOFFICE_SECURE_LINK_SECRET`| `.env`                   | 12 mois         | Liens d'édition signés expirent (re-génération auto) |
-| `SMB_BACKUP_PASSWORD`          | `.env`                   | 12 mois         | Copie hors-site backup KO                           |
-| `FILESERVER_PASSWORD` / `FILESERVER_SERVICE_PASSWORD` | `.env`     | 12 mois         | Module fileserver KO                                |
-| LDAP `bind_password`           | `AppConfig` (DB)         | 12 mois         | Auth LDAP + sync nightly KO                         |
-| `SENTRY_AUTH_TOKEN` (CI)       | secret CI                | 12 mois         | Upload sourcemaps KO (non bloquant)                 |
+| Secret                                                | Localisation          | Périodicité min | Impact rotation                                      |
+| ----------------------------------------------------- | --------------------- | --------------- | ---------------------------------------------------- |
+| `JWT_ACCESS_SECRET`                                   | `.env` (backend)      | 6 mois          | **Tous les access tokens invalides** (relogin forcé) |
+| `JWT_REFRESH_SECRET`                                  | `.env` (backend)      | 6 mois          | Toutes les sessions invalidées                       |
+| `POSTGRES_PASSWORD`                                   | `.env` + Postgres     | 12 mois         | Backend KO le temps du restart                       |
+| `REDIS_PASSWORD`                                      | `.env` + Redis conf   | 12 mois         | Sessions / queues KO le temps du restart             |
+| `DOCUSEAL_API_KEY`                                    | `.env`                | 12 mois         | Workflows signatures KO                              |
+| `DOCUSEAL_WEBHOOK_SECRET`                             | `.env` + UI DocuSeal  | 12 mois         | Webhooks ignorés tant que déphasé                    |
+| `KNOWBE4_API_TOKEN`                                   | `.env`                | 12 mois         | Sync formations KO                                   |
+| `MEILISEARCH_MASTER_KEY`                              | `.env` + Meili daemon | 12 mois         | Recherche KO le temps de la rotation                 |
+| `ONLYOFFICE_JWT_SECRET`                               | `.env` + Docs Server  | 12 mois         | Editeurs en ligne KO le temps de la rotation         |
+| `ONLYOFFICE_SECURE_LINK_SECRET`                       | `.env`                | 12 mois         | Liens d'édition signés expirent (re-génération auto) |
+| `SMB_BACKUP_PASSWORD`                                 | `.env`                | 12 mois         | Copie hors-site backup KO                            |
+| `FILESERVER_PASSWORD` / `FILESERVER_SERVICE_PASSWORD` | `.env`                | 12 mois         | Module fileserver KO                                 |
+| LDAP `bind_password`                                  | `AppConfig` (DB)      | 12 mois         | Auth LDAP + sync nightly KO                          |
+| `SENTRY_AUTH_TOKEN` (CI)                              | secret CI             | 12 mois         | Upload sourcemaps KO (non bloquant)                  |
 
 > **NB sécurité** : actuellement `/root/omnitech-intranet/.env` est en mode
 > `0644` (lisible par tous). Dans la procédure ci-dessous on normalise à
@@ -92,8 +92,13 @@ journalctl -u omnitech-backend --since "2 min ago" | grep -iE "error|fatal" | he
 curl -s http://localhost:3000/api/health | jq '.status, .services'
 
 # Login fonctionnel (compte test)
-# [À COMPLÉTER PAR L'ÉQUIPE OPS : enregistrer un compte de smoke test
-#  avec MFA pré-activé, valider le full flow en 60 s]
+# Compte recommandé : créer `smoke-test@omnitech-security.fr` (rôle COLLABORATEUR,
+# MFA pré-activé avec TOTP statique stocké dans le coffre du RSSI). Le smoke
+# test doit valider en < 60 s : POST /auth/login → POST /auth/mfa/verify →
+# GET /auth/me → 200. Si l'un des 3 échoue après rotation, rollback immédiat.
+TEST_EMAIL="smoke-test@omnitech-security.fr"
+curl -sS -X POST http://localhost:3000/api/v1/auth/login -H "Content-Type: application/json" \
+  -d "{\"email\":\"$TEST_EMAIL\",\"password\":\"<from-vault>\"}" | jq '.mfaRequired // .error'
 ```
 
 ### 6. Auditer
@@ -205,17 +210,25 @@ de rétablir l'ancienne révoquée.
 
 ## Escalade
 
-| Situation                                                  | Contact                                |
-|------------------------------------------------------------|----------------------------------------|
-| Suspicion fuite secret (push public, leak Slack, etc.)     | RSSI immédiat → invalidation < 1 h     |
-| Rotation impossible (service tiers indisponible)           | DSI puis fournisseur                   |
-| Découverte ancien secret en clair dans le repo Git         | RSSI + nettoyage history (`git filter-repo`) |
+| Situation                                              | Contact                                      |
+| ------------------------------------------------------ | -------------------------------------------- |
+| Suspicion fuite secret (push public, leak Slack, etc.) | RSSI immédiat → invalidation < 1 h           |
+| Rotation impossible (service tiers indisponible)       | DSI puis fournisseur                         |
+| Découverte ancien secret en clair dans le repo Git     | RSSI + nettoyage history (`git filter-repo`) |
 
 ## Annexes
 
 - Bonne pratique : migrer `.env` → `/etc/omnitech/intranet.env` (perms 600,
   hors du repo, référencé par les unités systemd via `EnvironmentFile=`)
-- Rotation automatisable via Hashicorp Vault / AWS SecretsManager :
-  `[À COMPLÉTER PAR L'ÉQUIPE OPS : décision arch RSSI/DSI sur coffre central]`
+- Rotation automatisable via coffre central : décision RSSI/DSI à prendre
+  quand le périmètre s'élargira (multi-VM, multi-app). Options évaluées :
+  - **Hashicorp Vault** (open-source, self-hosted) — overkill pour ~10
+    secrets et 1 VM, mais idéal si on package plusieurs apps demain.
+  - **systemd-creds** (built-in Debian 12) — léger, rotation manuelle, pas
+    d'intégration applicative native. Pragmatique court terme.
+  - **1Password Connect / Bitwarden** — bon si l'équipe a déjà l'outil ;
+    complexité opérationnelle moyenne.
+    Recommandation actuelle : `EnvironmentFile=/etc/omnitech/intranet.env` +
+    rotation manuelle annuelle traçée dans le coffre 1Password équipe DSI.
 - Politique cryptographique : ANSSI R20 (cf. `apps/backend/src/auth/hibp.service.ts`)
 - Inventaire complet `.env` : `apps/backend/src/main.ts` + `.env.example`

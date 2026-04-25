@@ -82,11 +82,19 @@ journalctl -u omnitech-backend --since "2 min ago" | grep -i sentry
 # Pas de ligne "[Sentry] init failed" → init OK
 # Si SENTRY_DSN absent : init() retourne false silencieusement (no-op)
 
-# 4.2 — Tester un envoi manuel (route admin SUPER_ADMIN)
-# [À COMPLÉTER PAR L'ÉQUIPE OPS : exposer une route /admin/_sentry-test
-#  qui force `Sentry.captureMessage('manual test')` — actuellement aucune
-#  route dédiée n'existe, on peut soit l'ajouter (5 lignes), soit déclencher
-#  une vraie 500 ciblée pour valider la chaîne.]
+# 4.2 — Tester un envoi manuel via l'API store directe (sans modifier le code)
+# Récupérer le DSN depuis .env, extraire la clé et le projet ID :
+#   DSN=http://<key>@host:port/<projectId>
+DSN=$(grep '^SENTRY_DSN=' /root/omnitech-intranet/.env | cut -d= -f2-)
+KEY=$(echo "$DSN" | sed -E 's|http://([^@]+)@.*|\1|')
+HOST_PROJ=$(echo "$DSN" | sed -E 's|http://[^@]+@||')
+HOST=${HOST_PROJ%/*}
+PROJ=${HOST_PROJ##*/}
+curl -sS -X POST "http://$HOST/api/$PROJ/store/?sentry_key=$KEY&sentry_version=7" \
+  -H "Content-Type: application/json" \
+  -d "{\"event_id\":\"$(uuidgen | tr -d '-')\",\"timestamp\":\"$(date -u +%FT%TZ)\",\"platform\":\"node\",\"level\":\"info\",\"message\":\"smoke test from runbook\"}"
+# Réponse attendue : {"event_id": "...", "task_id": null}
+# Vérifier dans GlitchTip UI que l'event apparaît dans les ~30s.
 ```
 
 ### 5. Vérifier l'init côté frontend

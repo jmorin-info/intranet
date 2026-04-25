@@ -9,16 +9,16 @@
 
 ## Vue d'ensemble
 
-| # | Feature                                       | Commit principal | Risque rollback |
-|---|-----------------------------------------------|------------------|-----------------|
-| 1 | RSSI dashboard + PDF SMSI ISO 27001           | `c63ddef`        | Faible (UI + export PDF) |
-| 2 | MFA fresh-12h + traçabilité per-user          | `88cf1b0`        | **Moyen** (sécurité, voir runbook) |
-| 3 | Calendar ↔ tickets bidir + iCal export        | `33f8dc5`        | Faible (sync différée OK) |
-| 4 | Organigramme refonte + matrice accès clarifiée| `294084b`        | Faible |
-| 5 | NOA mode humour cadré (flag global + opt-in)  | `91176da`        | Très faible (feature flag) |
-| 6 | MEDIA / CERTIFICATES previews                 | `cb70d24`        | Faible |
-| 7 | GLANCE focus mode (Alt+Click overlay)         | `27e861c` puis `cb1a195` | Faible |
-| 8 | CSP nonce-based middleware                    | `c50935d`        | **Moyen** (peut casser hydration si désactivé à mi-chemin) |
+| #   | Feature                                        | Commit principal         | Risque rollback                                            |
+| --- | ---------------------------------------------- | ------------------------ | ---------------------------------------------------------- |
+| 1   | RSSI dashboard + PDF SMSI ISO 27001            | `c63ddef`                | Faible (UI + export PDF)                                   |
+| 2   | MFA fresh-12h + traçabilité per-user           | `88cf1b0`                | **Moyen** (sécurité, voir runbook)                         |
+| 3   | Calendar ↔ tickets bidir + iCal export         | `33f8dc5`                | Faible (sync différée OK)                                  |
+| 4   | Organigramme refonte + matrice accès clarifiée | `294084b`                | Faible                                                     |
+| 5   | NOA mode humour cadré (flag global + opt-in)   | `91176da`                | Très faible (feature flag)                                 |
+| 6   | MEDIA / CERTIFICATES previews                  | `cb70d24`                | Faible                                                     |
+| 7   | GLANCE focus mode (Alt+Click overlay)          | `27e861c` puis `cb1a195` | Faible                                                     |
+| 8   | CSP nonce-based middleware                     | `c50935d`                | **Moyen** (peut casser hydration si désactivé à mi-chemin) |
 
 ## 1. RSSI dashboard + PDF SMSI ISO 27001 — `c63ddef`
 
@@ -162,9 +162,10 @@ git checkout -b rollback/<feature> <SHA>
 pnpm install --frozen-lockfile
 pnpm --filter @omnitech/database prisma:generate
 
-# Si la feature touche le schéma Prisma :
-# [À COMPLÉTER PAR L'ÉQUIPE OPS : décider rollback DB ou forward-fix selon
-#  la migration concernée — Prisma ne sait pas rollback automatiquement]
+# Si la feature touche le schéma Prisma : voir
+# runbooks/PRODUCTION_INCIDENT_RESPONSE.md § Rollback pour la matrice
+# additif/destructif. Règle d'or : ne JAMAIS lancer un drop column ou
+# alter type avec data-loss sans validation RSSI.
 
 systemctl restart omnitech-backend.service omnitech-frontend.service
 curl -s http://localhost:3000/api/health | jq .
@@ -183,5 +184,11 @@ procédure encadrée.
   `runbooks/LDAP_SYNC_MANUAL.md`, `runbooks/MFA_ENROLLMENT.md`
 - Inventaire complémentaire features (cyber-score, trust, tips, helpdesk
   IA, signatures, etc.) à compléter post-launch :
-  `[À COMPLÉTER PAR L'ÉQUIPE OPS : Phase 2 — extraire `feat(...)` des 30
-  derniers commits non listés ici si pertinent pour la doc clients]`
+  ```bash
+  git log --oneline --grep="^feat(" --since="2025-10-01" \
+    --pretty=format:"- %h %s" > docs/FEATURES_HISTORICAL.md
+  ```
+  Procédure : à exécuter à chaque release majeure pour générer un
+  changelog filtré aux `feat()` sur les 30 derniers commits, à enrichir
+  manuellement avec les sections "rollback" + "rôles concernés" pour la
+  doc clients.

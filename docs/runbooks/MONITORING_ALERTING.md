@@ -23,30 +23,30 @@
 
 ### 1. Sources de signal disponibles
 
-| Source                        | Couvre                                           | Comment lire                                  |
-|-------------------------------|--------------------------------------------------|-----------------------------------------------|
-| Sentry (backend)              | exceptions Nest, 500, jobs failed                | sentry.io → Issues + Alerts                   |
-| Sentry (frontend)             | erreurs React, chunk loads, replays sur erreur   | sentry.io → projet frontend                   |
-| `journalctl -u omnitech-backend` | logs Pino structurés (pid, requestId, level)  | `journalctl -u omnitech-backend -f`           |
-| `/api/health`                 | DB / Redis / SMTP / LDAP / Storage / ClamAV / Meili / Ollama / OnlyOffice | `curl -s /api/health \| jq` |
-| `/api/health/detailed`        | pool Postgres, Redis usedMemory, last LDAP sync, disk usage | nécessite SUPER_ADMIN     |
-| `/api/health/metrics`         | métriques Prometheus exportables (cf. `MetricsService`) | scrape Prometheus si déployé              |
-| Cron alerts (`backup.sh`, `backup-drill.sh`) | échecs sauvegarde / drill          | mail à `${ALERT_EMAIL}`                       |
+| Source                                       | Couvre                                                                    | Comment lire                        |
+| -------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------- |
+| Sentry (backend)                             | exceptions Nest, 500, jobs failed                                         | sentry.io → Issues + Alerts         |
+| Sentry (frontend)                            | erreurs React, chunk loads, replays sur erreur                            | sentry.io → projet frontend         |
+| `journalctl -u omnitech-backend`             | logs Pino structurés (pid, requestId, level)                              | `journalctl -u omnitech-backend -f` |
+| `/api/health`                                | DB / Redis / SMTP / LDAP / Storage / ClamAV / Meili / Ollama / OnlyOffice | `curl -s /api/health \| jq`         |
+| `/api/health/detailed`                       | pool Postgres, Redis usedMemory, last LDAP sync, disk usage               | nécessite SUPER_ADMIN               |
+| `/api/health/metrics`                        | métriques Prometheus exportables (cf. `MetricsService`)                   | scrape Prometheus si déployé        |
+| Cron alerts (`backup.sh`, `backup-drill.sh`) | échecs sauvegarde / drill                                                 | mail à `${ALERT_EMAIL}`             |
 
 ### 2. Seuils recommandés (à ajuster après baseline 2 semaines)
 
-| Métrique                          | Seuil WARN | Seuil CRIT | Action attendue                              |
-|-----------------------------------|------------|------------|----------------------------------------------|
-| Disque `/`                        | 70 %       | 85 %       | Purge logs + uploads anciens                 |
-| Disque `/var/backups/omnitech`    | 70 %       | 90 %       | Vérifier rétention + copie SMB               |
-| RAM libre VM                      | < 1.5 GB   | < 500 MB   | Identifier process gourmand                  |
-| Heap Node backend (`memoryUsage().heapUsed`) | 350 MB | 500 MB | Restart contrôlé + investigation fuite     |
-| Error rate Sentry (5 min)         | 0.5 %      | 1 %        | Ouvrir incident P1                           |
-| Latence p95 `/api/health`         | 500 ms     | 1 s        | Vérifier DB lente, charge Postgres            |
-| Connexions Postgres actives       | 30         | 80         | Vérifier `max_connections` et pool Prisma    |
-| Sessions Redis usedMemory         | 256 MB     | 512 MB     | Inspect keys, flush ciblé                    |
-| Echec backup quotidien            | 1 jour     | 2 jours    | Voir `DATABASE_BACKUP_RESTORE.md`            |
-| Drill mensuel KO                  | 1 fois     | 2 fois consécutives | Escalade RSSI                       |
+| Métrique                                     | Seuil WARN | Seuil CRIT          | Action attendue                           |
+| -------------------------------------------- | ---------- | ------------------- | ----------------------------------------- |
+| Disque `/`                                   | 70 %       | 85 %                | Purge logs + uploads anciens              |
+| Disque `/var/backups/omnitech`               | 70 %       | 90 %                | Vérifier rétention + copie SMB            |
+| RAM libre VM                                 | < 1.5 GB   | < 500 MB            | Identifier process gourmand               |
+| Heap Node backend (`memoryUsage().heapUsed`) | 350 MB     | 500 MB              | Restart contrôlé + investigation fuite    |
+| Error rate Sentry (5 min)                    | 0.5 %      | 1 %                 | Ouvrir incident P1                        |
+| Latence p95 `/api/health`                    | 500 ms     | 1 s                 | Vérifier DB lente, charge Postgres        |
+| Connexions Postgres actives                  | 30         | 80                  | Vérifier `max_connections` et pool Prisma |
+| Sessions Redis usedMemory                    | 256 MB     | 512 MB              | Inspect keys, flush ciblé                 |
+| Echec backup quotidien                       | 1 jour     | 2 jours             | Voir `DATABASE_BACKUP_RESTORE.md`         |
+| Drill mensuel KO                             | 1 fois     | 2 fois consécutives | Escalade RSSI                             |
 
 ### 3. Alertes Sentry (à configurer dans l'UI)
 
@@ -74,8 +74,9 @@ crontab -e
 */15 * * * * /root/omnitech-intranet/scripts/ops-alert.sh >> /var/log/omnitech/ops-alert.log 2>&1
 ```
 
-Exemple de script `scripts/ops-alert.sh` à créer
-(`[À COMPLÉTER PAR L'ÉQUIPE OPS : valider seuils + ajouter au repo]`) :
+Script `scripts/ops-alert.sh` à créer (seuils par défaut ci-dessous,
+ajustables après 1 mois d'observation prod — cible : alertes < 5/jour
+en régime stable, sinon recalibrer pour éviter la fatigue d'alerte) :
 
 ```bash
 #!/usr/bin/env bash
@@ -140,8 +141,14 @@ Vérifier : `logrotate -d /etc/logrotate.d/omnitech` (dry-run).
 - `mail` envoie bien (`echo test | mail -s test ${ALERT_EMAIL}`) → mail reçu
 - Sentry → Alerts liste au moins 4 règles actives
 - `/var/log/omnitech/*.log` rotates après 24 h (vérifier `.1.gz`)
-- Une alerte de test (ex: simuler `df` à 90 % via mock) déclenche bien un mail
-  `[À COMPLÉTER PAR L'ÉQUIPE OPS : runbook de chaos test trimestriel]`
+- Une alerte de test (ex: simuler `df` à 90 % via mock) déclenche bien un mail.
+  **Chaos test trimestriel recommandé** (RSSI peut planifier) :
+  1. Forcer kill du process Postgres → vérifier que `/api/health` retourne 503
+     et qu'une alerte mail part dans les 15 min.
+  2. Remplir `/var/log` à >85 % → vérifier alerte disk.
+  3. Couper LDAP réseau → vérifier dégradation gracieuse (auth fallback DB
+     locale documenté dans `LDAP_SYNC_MANUAL.md`).
+     À tracer dans `docs/chaos-tests/YYYY-QN.md` (RSSI signe le PV).
 
 ## Rollback
 

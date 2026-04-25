@@ -99,8 +99,15 @@ sha256sum db_*.sql.gz > checksums.sha256
 sha256sum -c checksums.sha256
 ```
 
-À ajouter dans la cron de backup si traçabilité longue durée requise :
-`[À COMPLÉTER PAR L'ÉQUIPE OPS : décision RSSI sur archivage des checksums]`.
+**Archivage checksums** (ISO 27001 A.5.29 — preuve d'intégrité backup) :
+recommandation par défaut → garder les `.sha256` 1 an dans le SMB share,
+séparés des dumps (sous-dossier `checksums/`). Le RSSI peut allonger la
+rétention sur les checksums correspondant aux dumps annuels archivés long
+terme. À implémenter en ajoutant à `backup.sh` :
+
+```bash
+sha256sum "$DUMP_FILE" > "$SMB_BACKUP_MOUNT/checksums/$(basename $DUMP_FILE).sha256"
+```
 
 ### 4. Restauration vers une base de test (`omnitech_intranet_test`)
 
@@ -171,17 +178,31 @@ sudo bash /root/omnitech-intranet/scripts/backup-restore.sh \
 ```
 
 Si le dump source lui-même est corrompu :
-`[À COMPLÉTER PAR L'ÉQUIPE OPS : récupérer un dump plus ancien depuis SMB
-hors-site puis appliquer la même procédure ; envisager activation PCA]`.
+
+1. Lister les dumps disponibles sur le SMB hors-site :
+   ```bash
+   ls -lh /mnt/intranet-backup/db/ | tail -30
+   ```
+2. Choisir le plus récent pour lequel le `.sha256` matche (vérification
+   intégrité). Si plusieurs dumps consécutifs sont corrompus → suspicion
+   ransomware → escalade RSSI **immédiat** + activation PCA (cf.
+   `/admin/pca`), ne PAS continuer la restoration.
+3. Sinon, copier en local et appliquer la même procédure :
+   ```bash
+   cp /mnt/intranet-backup/db/<dump_OK>.sql.gz /var/backups/omnitech/
+   ```
+4. Documenter la perte de données (RPO dégradé) dans le ticket d'incident
+   et notifier les utilisateurs si > 24 h de données perdues (RGPD A.34
+   en cas d'impact sur intégrité de leurs données personnelles).
 
 ## Escalade
 
-| Situation                                                   | Contact                                |
-|-------------------------------------------------------------|----------------------------------------|
-| Drill mensuel échoue 2 fois de suite                        | RSSI (`jmorin@omnitech-security.fr`)   |
-| Backup quotidien manqué > 48 h                              | DSI puis RSSI                          |
-| Restauration prod nécessaire                                | RSSI **+** DSI (4-yeux)                |
-| RTO/RPO dépassé pendant restauration                        | Direction (PCA, cf. `/admin/pca`)      |
+| Situation                            | Contact                              |
+| ------------------------------------ | ------------------------------------ |
+| Drill mensuel échoue 2 fois de suite | RSSI (`jmorin@omnitech-security.fr`) |
+| Backup quotidien manqué > 48 h       | DSI puis RSSI                        |
+| Restauration prod nécessaire         | RSSI **+** DSI (4-yeux)              |
+| RTO/RPO dépassé pendant restauration | Direction (PCA, cf. `/admin/pca`)    |
 
 ## Annexes
 

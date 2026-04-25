@@ -26,10 +26,19 @@
   `mfa.service.ts:387`. La cible des rôles est paramétrable :
   - sans paramètre → tous les utilisateurs actifs
   - avec `roles: ['ADMIN', 'SUPER_ADMIN']` → uniquement les admins
-  - politique réellement déployée actuellement :
-    `[À COMPLÉTER PAR L'ÉQUIPE OPS : confirmer auprès du RSSI quels rôles sont
-    soumis à mfaRequired=true en base — recommandation RSSI = SUPER_ADMIN + ADMIN
-    + RSSI obligatoire, COLLABORATEUR optionnel]`
+  - politique recommandée (à valider par RSSI lors du go-live) :
+    - **Obligatoire** : `SUPER_ADMIN`, `ADMIN`, `DIRECTION`, `REVIEWER` (accès
+      données sensibles, audit logs, validations docs)
+    - **Recommandé fortement** : `AUDITEUR`, `COLLABORATEUR` ayant accès
+      aux espaces RH/JURIDIQUE/DSI
+    - **Optionnel** : `COLLABORATEUR` standard, `PRESTATAIRE`
+      Vérifier l'état actuel en base :
+    ```sql
+    SELECT role, COUNT(*) FILTER (WHERE "mfaRequired") AS mfa_on,
+           COUNT(*) AS total
+    FROM "User" WHERE "isActive" GROUP BY role ORDER BY role;
+    ```
+    Bascule en lot via `/admin/users` (filtre rôle → action bulk MFA on).
 - **Fraîcheur** : la garde `FreshMfaGuard` (`apps/backend/src/mfa/fresh-mfa.guard.ts`)
   exige une revalidation TOTP sur certaines actions sensibles si la dernière
   vérification date de plus de **12 h**.
@@ -169,19 +178,19 @@ calcule un score MFA `mfaPolicyScore` (100 si au moins 1 user a `mfaRequired=tru
 
 ## Rollback
 
-| Action faite à tort                       | Rollback                                              |
-|-------------------------------------------|-------------------------------------------------------|
-| Politique forcée sur un user pas prêt     | Lever via `/admin/users` (action « Lever politique ») |
-| Reset MFA accidentel                      | L'utilisateur ré-active depuis son profil (TOTP requis) — il faudra qu'il scanne un nouveau QR |
-| Forçage en masse trop large               | `UPDATE "User" SET "mfaRequired"=false WHERE "mfaEnforcedAt" > NOW() - INTERVAL '10 minutes';` (relire d'abord en SELECT) |
+| Action faite à tort                   | Rollback                                                                                                                  |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Politique forcée sur un user pas prêt | Lever via `/admin/users` (action « Lever politique »)                                                                     |
+| Reset MFA accidentel                  | L'utilisateur ré-active depuis son profil (TOTP requis) — il faudra qu'il scanne un nouveau QR                            |
+| Forçage en masse trop large           | `UPDATE "User" SET "mfaRequired"=false WHERE "mfaEnforcedAt" > NOW() - INTERVAL '10 minutes';` (relire d'abord en SELECT) |
 
 ## Escalade
 
-| Situation                                                         | Contact                            |
-|-------------------------------------------------------------------|------------------------------------|
-| Plusieurs utilisateurs bloqués en boucle `MFA_SETUP_REQUIRED`     | DSI / Helpdesk → assistance directe |
-| Suspicion contournement MFA (token forgé, replay)                 | RSSI immédiat                      |
-| Demande de levée de MFA sur un compte SUPER_ADMIN                 | RSSI **+** Direction (4-yeux)      |
+| Situation                                                     | Contact                             |
+| ------------------------------------------------------------- | ----------------------------------- |
+| Plusieurs utilisateurs bloqués en boucle `MFA_SETUP_REQUIRED` | DSI / Helpdesk → assistance directe |
+| Suspicion contournement MFA (token forgé, replay)             | RSSI immédiat                       |
+| Demande de levée de MFA sur un compte SUPER_ADMIN             | RSSI **+** Direction (4-yeux)       |
 
 ## Annexes
 
