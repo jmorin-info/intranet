@@ -20,6 +20,7 @@ import { eventBus, createEvent } from '@/lib/events';
 import {
   ArrowLeft, Send, Clock, CheckCircle2, Circle, User, Timer, Star, ShieldCheck, Printer, Settings,
   Sparkles, BookOpen, ChevronDown,
+  CalendarDays as CalendarDaysIcon,
 } from 'lucide-react';
 
 function getSlaRemaining(ticket: { priority: string; createdAt: string; status: string }) {
@@ -137,6 +138,12 @@ interface TicketDetail {
   createdAt: string;
   updatedAt: string;
   resolvedAt: string | null;
+  // Dates métier (P1.10) — synchronisées vers le calendrier individuel de l'assigné.
+  dueDate?: string | null;
+  clientShipmentDate?: string | null;
+  materialReceivedDate?: string | null;
+  deployedAt?: string | null;
+  deploymentScheduledFor?: string | null;
   creator: { id: string; firstName: string; lastName: string; email: string };
   assignee: { id: string; firstName: string; lastName: string } | null;
   comments: Array<{
@@ -146,6 +153,30 @@ interface TicketDetail {
     createdAt: string;
     author: { id: string; firstName: string; lastName: string; role: string };
   }>;
+}
+
+/** Champs de dates métier — ordre d'affichage. */
+const TICKET_DATE_FIELDS_FRONT: Array<{
+  key: 'dueDate' | 'deploymentScheduledFor' | 'clientShipmentDate' | 'materialReceivedDate' | 'deployedAt';
+  labelKey: string;
+  color: string;
+}> = [
+  { key: 'dueDate', labelKey: 'tickets.dates.dueDate', color: 'border-l-red-500' },
+  { key: 'deploymentScheduledFor', labelKey: 'tickets.dates.deploymentScheduledFor', color: 'border-l-violet-500' },
+  { key: 'clientShipmentDate', labelKey: 'tickets.dates.clientShipmentDate', color: 'border-l-blue-500' },
+  { key: 'materialReceivedDate', labelKey: 'tickets.dates.materialReceivedDate', color: 'border-l-amber-500' },
+  { key: 'deployedAt', labelKey: 'tickets.dates.deployedAt', color: 'border-l-emerald-500' },
+];
+
+/** Convert Date|string|null en input[type=date] string. */
+function toDateInputValue(d: string | Date | null | undefined): string {
+  if (!d) return '';
+  const date = typeof d === 'string' ? new Date(d) : d;
+  if (isNaN(date.getTime())) return '';
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 const priorityColor: Record<string, string> = {
@@ -201,6 +232,9 @@ export default function TicketDetailPage() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Dates métier (P1.10) — édition inline avec datepickers HTML5.
+  const [datesSaving, setDatesSaving] = useState<string | null>(null);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) {
@@ -239,6 +273,26 @@ export default function TicketDetailPage() {
       toast.error('Erreur de mise a jour');
     }
   }, [ticket]);
+
+  const handleDateChange = useCallback(async (
+    field: 'dueDate' | 'clientShipmentDate' | 'materialReceivedDate' | 'deployedAt' | 'deploymentScheduledFor',
+    value: string,
+  ) => {
+    if (!ticket) return;
+    setDatesSaving(field);
+    try {
+      // Empty -> null (effacement explicite). Sinon, ISO yyyy-mm-dd -> ISO Date string.
+      const payload: Record<string, string | null> = {};
+      payload[field] = value ? new Date(value).toISOString() : null;
+      const { data } = await api.patch(`/tickets/${ticket.id}/dates`, payload);
+      setTicket((prev) => (prev ? { ...prev, ...data } : prev));
+      toast.success(t('tickets.dates.saved'));
+    } catch {
+      toast.error(t('tickets.dates.saveError'));
+    } finally {
+      setDatesSaving(null);
+    }
+  }, [ticket, t]);
 
   const handleAiSuggest = async () => {
     if (!ticket) return;
@@ -631,6 +685,70 @@ export default function TicketDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Dates métier (P1.10) — synchronisées vers le calendrier individuel
+              de l'assigné (échéance, envoi, réception, déploiement…). Édition
+              ouverte à l'assigné et aux managers (REVIEWER+). */}
+          {(() => {
+            const isAssignee = !!user && !!ticket.assignee && ticket.assignee.id === user.id;
+            const canEditDates = isAssignee || (!!user && isRoleAtLeast(user.role, UserRole.REVIEWER));
+            const hasAnyDate = TICKET_DATE_FIELDS_FRONT.some(
+              (f) => !!(ticket as unknown as Record<string, unknown>)[f.key],
+            );
+            if (!canEditDates && !hasAnyDate) return null;
+            return (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
+                      <CalendarDaysIcon className="h-4 w-4 text-primary" />
+                      {t('tickets.dates.title')}
+                    </h3>
+                    {canEditDates && (
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">
+                        {t('tickets.dates.hint')}
+                      </span>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {TICKET_DATE_FIELDS_FRONT.map((f) => {
+                      const raw = (ticket as unknown as Record<string, string | null | undefined>)[f.key];
+                      const value = toDateInputValue(raw);
+                      return (
+                        <div
+                          key={f.key}
+                          className={`rounded-lg border-l-4 ${f.color} bg-gray-50 dark:bg-slate-800/40 p-3`}
+                        >
+                          <label
+                            htmlFor={`date-${f.key}`}
+                            className="block text-xs font-medium text-seal-gray-600 dark:text-slate-300 mb-1"
+                          >
+                            {t(f.labelKey)}
+                          </label>
+                          {canEditDates ? (
+                            <input
+                              id={`date-${f.key}`}
+                              type="date"
+                              value={value}
+                              onChange={(e) => handleDateChange(f.key, e.target.value)}
+                              disabled={datesSaving === f.key}
+                              className="w-full rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm text-seal-navy dark:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                            />
+                          ) : (
+                            <p className="text-sm font-medium text-seal-navy dark:text-white">
+                              {value ? formatDateTime(raw as string).split(' ')[0] : t('tickets.dates.notSet')}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Status Timeline */}
           <Card>

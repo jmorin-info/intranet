@@ -245,6 +245,10 @@ model User {
   incidentTimeline          IncidentTimelineEntry[]  @relation("IncidentTimelineAuthor")
   // Calendar events
   calendarEvents            CalendarEvent[]          @relation("CalendarEventCreator")
+  // P1.10 — événements du calendrier individuel (assigné aux tickets, etc.)
+  calendarUserEvents        CalendarEvent[]          @relation("CalendarEventUser")
+  // P1.10 — tokens d'abonnement iCal (révocables)
+  calendarSubscriptionTokens CalendarSubscriptionToken[] @relation("CalendarSubscriptionUser")
   // Manager relation
   manager                   User?                    @relation("UserManager", fields: [managerId], references: [id])
   subordinates              User[]                   @relation("UserManager")
@@ -782,6 +786,13 @@ model Ticket {
   spaceId      String?
   resolvedAt   DateTime?
   closedAt     DateTime?
+  // Dates métier (P1.10) — utilisées pour la synchro calendrier individuel
+  // de l'assigné. Toutes nullables, patchables via PATCH /tickets/:id/dates.
+  dueDate                DateTime?
+  clientShipmentDate     DateTime?
+  materialReceivedDate   DateTime?
+  deployedAt             DateTime?
+  deploymentScheduledFor DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -1396,17 +1407,47 @@ model CalendarEvent {
   isRecurring  Boolean   @default(false)
   recurrence   String? // iCalendar RRULE format
   color        String? // hex color for display
+  // P1.10 — Calendrier individuel (synchro tickets) :
+  //   userId    = utilisateur "propriétaire" de l'événement (ex. assigné ticket)
+  //   sourceType / sourceId = clé fonctionnelle pour upsert idempotent
+  //     (ex. sourceType=TICKET, sourceId=`<ticketId>:dueDate`)
+  userId       String?
+  sourceType   String?
+  sourceId     String?
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   createdBy  User        @relation("CalendarEventCreator", fields: [createdById], references: [id])
+  user       User?       @relation("CalendarEventUser", fields: [userId], references: [id])
   department Department? @relation("CalendarEventDept", fields: [departmentId], references: [id])
 
   @@index([startDate, endDate])
   @@index([category])
   @@index([createdById])
   @@index([departmentId])
+  @@index([userId, startDate])
+  @@index([sourceType, sourceId])
+}
+
+// =============================================================================
+// Calendar Subscription Token — abonnement iCal (Outlook / Google) (P1.10)
+// =============================================================================
+// Permet à un utilisateur d'exposer son calendrier individuel via une URL
+// publique signée par un token aléatoire (30 jours). Pas d'auth applicative
+// sur l'endpoint d'export pour rester compatible Outlook "Ajouter calendrier
+// > À partir d'Internet". Le token est révocable (delete) et expirable.
+model CalendarSubscriptionToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation("CalendarSubscriptionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // =============================================================================

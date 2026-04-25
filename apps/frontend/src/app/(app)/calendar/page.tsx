@@ -22,6 +22,9 @@ import {
   Plus,
   CalendarDays,
   MapPin,
+  Share2,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -183,7 +186,52 @@ export default function CalendarPage() {
     title: '', description: '', startDate: '', endDate: '', category: 'GENERAL', allDay: false, location: '', departmentId: '',
   });
 
+  // Export iCal / abonnement Outlook (P1.10)
+  const [showExport, setShowExport] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportUrl, setExportUrl] = useState<string>('');
+  const [exportExpiresAt, setExportExpiresAt] = useState<string>('');
+  const [exportCopied, setExportCopied] = useState(false);
+
   const isReviewer = user && isRoleAtLeast(user.role, UserRole.REVIEWER);
+
+  /**
+   * Récupère (ou crée) le token d'abonnement iCal côté backend, puis construit
+   * l'URL absolue avec le token. Affiche la modal d'export.
+   */
+  const handleOpenExport = useCallback(async () => {
+    setShowExport(true);
+    setExportCopied(false);
+    if (exportUrl) return;
+    setExportLoading(true);
+    try {
+      const { data } = await api.get<{ token: string; expiresAt: string }>('/calendar/subscription-token');
+      const apiBase = (api.defaults?.baseURL ?? '').replace(/\/$/, '');
+      // Si baseURL est relatif (ex. "/api"), on construit avec window.location
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const absoluteApi = apiBase.startsWith('http') ? apiBase : `${origin}${apiBase}`;
+      setExportUrl(`${absoluteApi}/calendar/export.ics?token=${encodeURIComponent(data.token)}`);
+      setExportExpiresAt(data.expiresAt);
+    } catch (err) {
+      logger.error(err, { context: 'calendar.export.tokenFailed' });
+      toast.error(t('calendar.export.tokenError'));
+      setShowExport(false);
+    } finally {
+      setExportLoading(false);
+    }
+  }, [exportUrl, t]);
+
+  const handleCopyExportUrl = useCallback(async () => {
+    if (!exportUrl) return;
+    try {
+      await navigator.clipboard.writeText(exportUrl);
+      setExportCopied(true);
+      toast.success(t('calendar.export.copied'));
+      setTimeout(() => setExportCopied(false), 2500);
+    } catch {
+      toast.error(t('calendar.export.copyError'));
+    }
+  }, [exportUrl, t]);
 
   // Load departments
   useEffect(() => {
@@ -378,6 +426,9 @@ export default function CalendarPage() {
               <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block" /> {t('calendar.legendReview')}</span>
               <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" /> Événement</span>
             </div>
+            <Button variant="outline" onClick={handleOpenExport} loading={exportLoading}>
+              <Share2 className="h-4 w-4" /> {t('calendar.export.button')}
+            </Button>
             {isReviewer && (
               <Button onClick={() => { setShowCreate(true); if (selectedDate) { setEventForm(f => ({ ...f, startDate: toDateKey(selectedDate) })); } }}>
                 <Plus className="h-4 w-4" /> Créer un événement
@@ -709,6 +760,61 @@ export default function CalendarPage() {
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 dark:border-slate-700">
             <Button variant="outline" onClick={() => { setShowCreate(false); setCreationAttempted(false); setEventForm({ title: '', description: '', startDate: '', endDate: '', category: 'GENERAL', allDay: false, location: '', departmentId: '' }); }}>{t('common.cancel')}</Button>
             <Button onClick={handleCreateEvent} loading={creating}>{t('common.create')}</Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Export iCal / abonnement Outlook (P1.10) */}
+      <Dialog
+        open={showExport}
+        onClose={() => setShowExport(false)}
+        title={t('calendar.export.title')}
+        description={t('calendar.export.description')}
+      >
+        <div className="space-y-4">
+          {exportLoading ? (
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('common.loading')}</p>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-seal-gray-600 dark:text-slate-300 mb-1">
+                  {t('calendar.export.urlLabel')}
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={exportUrl}
+                    onFocus={(e) => e.currentTarget.select()}
+                    className="flex-1 rounded-md border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 py-2 text-xs font-mono text-seal-navy dark:text-white"
+                    aria-label={t('calendar.export.urlLabel')}
+                  />
+                  <Button variant="outline" size="sm" onClick={handleCopyExportUrl}>
+                    {exportCopied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                    {exportCopied ? t('calendar.export.copied') : t('calendar.export.copy')}
+                  </Button>
+                </div>
+                {exportExpiresAt && (
+                  <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mt-1">
+                    {t('calendar.export.expiresAt')} {formatDate(exportExpiresAt)}
+                  </p>
+                )}
+              </div>
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 p-3 text-xs text-seal-navy dark:text-blue-100">
+                <p className="font-semibold mb-1">{t('calendar.export.howto.title')}</p>
+                <ol className="list-decimal pl-4 space-y-0.5">
+                  <li>{t('calendar.export.howto.step1')}</li>
+                  <li>{t('calendar.export.howto.step2')}</li>
+                  <li>{t('calendar.export.howto.step3')}</li>
+                </ol>
+              </div>
+              <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
+                {t('calendar.export.privacy')}
+              </p>
+            </>
+          )}
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 dark:border-slate-700">
+            <Button variant="outline" onClick={() => setShowExport(false)}>{t('common.close')}</Button>
           </div>
         </div>
       </Dialog>
