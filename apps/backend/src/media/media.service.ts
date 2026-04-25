@@ -776,11 +776,17 @@ export class MediaService {
     const metaRaw = await fs.readFile(metaPath, "utf8").catch(() => null);
     if (!metaRaw)
       throw new NotFoundException("Fichier introuvable sur le disque.");
-    const meta = JSON.parse(metaRaw) as {
-      originalFilename: string;
-      thumbFilename: string;
-      mime: string;
-    };
+    // Bug fix : un .meta.json corrompu (disque plein, écriture interrompue, etc.) ferait
+    // remonter une SyntaxError non-typée → 500 ISE pour l'utilisateur. On la convertit
+    // en NotFound pour que la suite de la chaîne (UI) gère proprement ce cas.
+    let meta: { originalFilename: string; thumbFilename: string; mime: string };
+    try {
+      meta = JSON.parse(metaRaw);
+    } catch {
+      throw new NotFoundException(
+        "Métadonnées du fichier corrompues sur le disque.",
+      );
+    }
 
     if (kind === "thumb") {
       return {
