@@ -32,4 +32,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  // Mode humour Noa — opt-in par utilisateur (admin peut le toggler depuis
+  // /admin/users). Sans effet si feature.humor.noa est OFF.
+  @IsOptional()
+  @IsBoolean()
+  noaEnabled?: boolean;
 }

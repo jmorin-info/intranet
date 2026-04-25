@@ -7,11 +7,13 @@ import { TicketSpacesHub } from './TicketSpacesHub';
 import { api } from '@/lib/api';
 import { features } from '@/lib/features';
 import { logger } from '@/lib/logger';
+import { NoaLoading } from '@/lib/noa/loading';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTranslation } from '@/lib/i18n';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useRefetchOnFocus } from '@/hooks/use-refetch-on-focus';
 import { toast } from 'sonner';
+import { noaToast } from '@/lib/noa/toast';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import {
   Card, CardContent, Button, Badge, DataTable, SearchInput, Select, Dialog, Input, Textarea, EmptyState, StatusBadge,
@@ -813,7 +815,7 @@ export default function TicketsPage() {
       };
       if (form.departmentId) payload.departmentId = form.departmentId;
       const { data: created } = await api.post('/tickets', payload);
-      toast.success(t('tickets.create.success'));
+      noaToast.success(t('tickets.create.success'));
       if (created?.id) {
         eventBus.emit(createEvent('CREATED', 'TICKET', created.id, {
           label: `${created.reference || 'Ticket'} cree`,
@@ -2185,7 +2187,11 @@ function KanbanBoard({ tickets, isAdmin, getSlaStatus, categoryBadgeVariant, cat
         <div className="space-y-2">
           {columnTickets.map(renderKanbanCard)}
           {columnTickets.length === 0 && !isOver && (
-            <p className="text-xs text-seal-gray-500 dark:text-slate-500 text-center py-8">Aucun ticket dans cette colonne</p>
+            <NoaLoading
+              category="loading"
+              fallback="Aucun ticket dans cette colonne"
+              className="text-xs text-seal-gray-500 dark:text-slate-500 text-center py-8"
+            />
           )}
         </div>
       </div>

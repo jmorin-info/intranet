@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { BannerBar } from '@/components/layout/banner-bar';
 import { AuthProvider } from '@/components/layout/auth-provider';
+import { NoaProvider } from '@/lib/noa/runtime';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -129,6 +130,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthProvider>
+      <NoaProvider>
       <SkipLinks />
       <div className="min-h-dvh bg-surface">
         {/* Sidebar isolée : si elle crash, le reste de la page continue à s'afficher */}
@@ -183,6 +185,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <UpdateNotification />
         <MaintenanceGuard />
       </div>
+      </NoaProvider>
     </AuthProvider>
   );
 }

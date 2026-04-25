@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { noa } from '@/lib/noa';
 import { useAuthStore } from '@/stores/auth-store';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, Button, Badge, EmptyState, ConfirmDialog } from '@omnitech/ui';
@@ -374,7 +375,7 @@ export default function FilesPage() {
           {loading ? (
             Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-24 animate-pulse bg-gray-100 dark:bg-slate-800 rounded-xl" />)
           ) : shares.length === 0 ? (
-            <div className="col-span-full"><EmptyState type="general" title="Aucun partage réseau accessible" description="Les partages réseau sont attribués selon votre fonction et votre équipe Active Directory. Si vous pensez que c'est une erreur, ouvrez un ticket de catégorie « Accès » en précisant le nom du partage et la justification métier. Vous pouvez aussi accéder à vos fichiers via Nextcloud." /></div>
+            <div className="col-span-full"><EmptyState type="general" title={noa("Aucun partage réseau accessible", 'loading')} description="Les partages réseau sont attribués selon votre fonction et votre équipe Active Directory. Si vous pensez que c'est une erreur, ouvrez un ticket de catégorie « Accès » en précisant le nom du partage et la justification métier. Vous pouvez aussi accéder à vos fichiers via Nextcloud." /></div>
           ) : shares.map((share, idx) => {
             const Icon = SHARE_ICONS[share.icon] || HardDrive;
             return (

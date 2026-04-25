@@ -31,6 +31,7 @@ import { isRoleAtLeast } from '@omnitech/shared';
 import { Avatar } from '@omnitech/ui';
 import { OmnitechLogo } from '@/components/omnitech-logo';
 import { getAvatarUrl } from '@/lib/avatar';
+import { NoaBadge } from '@/lib/noa/badge';
 import {
   LayoutDashboard,
   FileText,
@@ -860,6 +861,7 @@ export function Sidebar() {
                 {user.email}
               </div>
             </div>
+            <NoaBadge />
             <button
               type="button"
               onClick={() => logout()}
@@ -1007,6 +1009,8 @@ export function Sidebar() {
                 <PanelLeftClose className="h-4 w-4" />
               )}
             </button>
+
+            <NoaBadge />
 
             <div className="group/rail relative">
               <button

@@ -33,6 +33,24 @@ function maskValue(value: string): string {
 export class AppConfigController {
   constructor(private readonly configService: AppConfigService) {}
 
+  /**
+   * Endpoint public (utilisateurs authentifiés tous rôles) qui expose un
+   * sous-ensemble safe de la config : uniquement les feature flags (clés
+   * `feature.*`). Pas de secrets, pas de credentials. Utilisé par le runtime
+   * Noa pour décider si la persona humoristique est globalement active.
+   */
+  @Get('public/feature-flags')
+  async getPublicFeatureFlags() {
+    const all = await this.configService.findAll();
+    const data: Record<string, string> = {};
+    for (const item of all) {
+      if (item.key.startsWith('feature.')) {
+        data[item.key] = item.value;
+      }
+    }
+    return { data };
+  }
+
   @Get()
   @Roles(UserRole.SUPER_ADMIN)
   async findAll() {

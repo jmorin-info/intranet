@@ -1376,6 +1376,18 @@ const translations: Record<string, Record<string, string>> = {
     "glance.split.targetPane": "Page cible",
     "glance.split.handle": "Redimensionner la vue partagée",
     "glance.hint": "Glance · Alt+Clic",
+    // Mode humour Noa (persona stagiaire IA sarcastique). Ces clés couvrent
+    // l'admin (config) et le toggle utilisateur (profile + sidebar badge).
+    "noa.toggle.title": "Mode humour Noa",
+    "noa.toggle.label": "Activer Noa (mode humour)",
+    "noa.toggle.description": "Persona stagiaire IA, second-degré bureau. Réécrit certains messages d'UI sur les écrans non sensibles.",
+    "noa.toggle.disabledByAdmin": "Mode global désactivé par l'administrateur — préférence sauvegardée mais sans effet pour l'instant.",
+    "noa.toggle.confirmDisable": "Désactiver Noa ? L'interface redeviendra sérieuse.",
+    "noa.badge.title": "Mode Noa actif — désactiver dans /profile",
+    "noa.success.enabled": "Noa activée — bienvenue dans l'open-space ironique.",
+    "noa.success.disabled": "Noa désactivée. Retour au sérieux.",
+    "admin.config.noa.title": "Personnalité Noa (mode humour)",
+    "admin.config.noa.description": "Active la persona Noa (humour de bureau, second-degré). Désactivable par utilisateur. Désactivé sur les écrans sensibles.",
   },
   en: {
     // Nav
@@ -2732,6 +2744,17 @@ const translations: Record<string, Record<string, string>> = {
     "glance.split.targetPane": "Target page",
     "glance.split.handle": "Resize split view",
     "glance.hint": "Glance · Alt+Click",
+    // Noa humor mode (sarcastic AI intern persona) — admin/config + profile toggle.
+    "noa.toggle.title": "Noa humor mode",
+    "noa.toggle.label": "Enable Noa (humor mode)",
+    "noa.toggle.description": "AI intern persona, office sarcasm. Rewrites some UI messages on non-sensitive screens.",
+    "noa.toggle.disabledByAdmin": "Global mode disabled by administrator — preference saved but currently inactive.",
+    "noa.toggle.confirmDisable": "Disable Noa? The interface will return to serious mode.",
+    "noa.badge.title": "Noa mode active — disable in /profile",
+    "noa.success.enabled": "Noa enabled — welcome to the ironic open-space.",
+    "noa.success.disabled": "Noa disabled. Back to serious.",
+    "admin.config.noa.title": "Noa personality (humor mode)",
+    "admin.config.noa.description": "Enables the Noa persona (office humor, sarcasm). User-disengageable. Disabled on sensitive screens.",
   },
 };
 

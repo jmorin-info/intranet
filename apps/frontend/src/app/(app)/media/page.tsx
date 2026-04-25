@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button, Skeleton, EmptyState } from '@omnitech/ui';
+import { noa } from '@/lib/noa';
 import {
   Image as ImageIcon,
   Video,
@@ -250,7 +251,7 @@ function AlbumsGrid({
   if (albums.length === 0) {
     return (
       <EmptyState
-        title="Aucun album pour l'instant"
+        title={noa("Aucun album pour l'instant", 'loading')}
         description={
           canManage
             ? "Créez votre premier album depuis l'espace de gestion pour partager des photos et vidéos avec vos collègues."

@@ -20,6 +20,7 @@ import {
 import { PageHeader } from '@/components/layout/page-header';
 import { formatDate } from '@/lib/utils';
 import { logger } from '@/lib/logger';
+import { noa } from '@/lib/noa';
 import Image from 'next/image';
 import { Plus, Pin, Newspaper, User, Calendar, Star, Clock, Eye } from 'lucide-react';
 
@@ -229,7 +230,7 @@ export default function NewsPage() {
           ) : news.length === 0 ? (
             <EmptyState
               type="news"
-              title="Aucune actualité publiée"
+              title={noa("Aucune actualité publiée", 'loading')}
               description="Cet espace diffuse les communications officielles OMNITECH SECURITY : annonces RSSI, formations, alertes critiques et événements internes. Revenez prochainement pour découvrir les dernières nouvelles."
               action={isRoleAtLeast(user?.role ?? UserRole.COLLABORATEUR, UserRole.ADMIN) ? (
                 <Link href="/news/compose"><Button size="sm"><Plus className="h-4 w-4" /> Publier une actualité</Button></Link>

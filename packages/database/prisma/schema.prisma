@@ -193,6 +193,12 @@ model User {
   // Welcome checklist ("Démarrage rapide") on dashboard : explicit dismissal.
   // Also auto-hidden when all 5 items are completed or after 14 days.
   welcomeChecklistDismissedAt DateTime?
+  // Mode humour "Noa" — opt-in par utilisateur. Réécriture sarcastique de
+  // certains messages d'UI (zod, loaders, toasts succès) UNIQUEMENT si
+  // le feature flag global feature.humor.noa est ON et que l'utilisateur a
+  // explicitement coché cette case (admin OU profile). Exclusions dures
+  // côté frontend : routes /auth/*, /mfa/*, security, audit-logs, etc.
+  noaEnabled        Boolean   @default(false)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 

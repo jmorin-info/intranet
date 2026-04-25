@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { noaZodResolver } from '@/lib/noa/zod-resolver';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
@@ -51,7 +52,8 @@ export default function EditNewsPage() {
     reset,
     formState: { errors, isDirty },
   } = useForm<NewsForm>({
-    resolver: zodResolver(newsSchema),
+    // Mode humour Noa actif sur /news/* si user opt-in.
+    resolver: noaZodResolver(newsSchema),
   });
 
   const content = watch('content') || '';

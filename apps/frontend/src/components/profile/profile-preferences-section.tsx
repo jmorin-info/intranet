@@ -9,6 +9,7 @@ import { useUIStore } from "@/stores/ui-store";
 import { useGlanceStore } from "@/stores/glance-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useTranslation } from "@/lib/i18n";
+import { useNoaStore } from "@/lib/noa/runtime";
 import { replayWelcomeTour } from "@/components/onboarding/welcome-tour";
 import type { ApiError, NotifPrefs } from "./types";
 
@@ -20,6 +21,35 @@ export function ProfilePreferencesSection() {
   const setUser = useAuthStore((s) => s.setUser);
   const { t } = useTranslation();
   const [resettingTour, setResettingTour] = useState(false);
+
+  // Mode humour Noa — opt-in. Le toggle reste affiché même si le feature
+  // flag global est OFF (information utilisateur), on indique juste que la
+  // bascule est sans effet tant que l'admin n'active pas le mode.
+  const noaFlagEnabled = useNoaStore((s) => s.flagEnabled);
+  const noaUserEnabled = Boolean(user?.noaEnabled);
+  const [savingNoa, setSavingNoa] = useState(false);
+  const handleToggleNoa = async () => {
+    if (!user || savingNoa) return;
+    const next = !noaUserEnabled;
+    setSavingNoa(true);
+    try {
+      await api.patch("/users/me", { noaEnabled: next });
+      setUser({ ...user, noaEnabled: next });
+      toast.success(
+        next
+          ? "Noa activée — bienvenue dans l'open-space ironique."
+          : "Noa désactivée. Retour au sérieux.",
+      );
+    } catch (err) {
+      toast.error(
+        (err as ApiError)?.response?.data?.message ||
+          (err as ApiError)?.message ||
+          t("profile.preferenceError"),
+      );
+    } finally {
+      setSavingNoa(false);
+    }
+  };
 
   const handleReplayTour = async () => {
     setResettingTour(true);
@@ -240,6 +270,54 @@ export function ProfilePreferencesSection() {
             <Sparkles className="h-4 w-4" />
             {t("welcomeTour.replay.button")}
           </button>
+        </CardContent>
+      </Card>
+
+      {/* Mode humour Noa */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
+            <span aria-hidden="true" className="text-xl leading-none">🎭</span>
+            Mode humour Noa
+          </h2>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+            <div className="pr-4">
+              <p className="text-sm font-semibold text-seal-navy dark:text-white">
+                Activer Noa (mode humour)
+              </p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                Persona stagiaire IA, second-degré bureau. Réécrit certains
+                messages d&apos;UI (validations, chargements, succès) sur les
+                écrans non sensibles. Désactivée sur l&apos;authentification,
+                le MFA, la sécurité du profil, l&apos;audit, les incidents et
+                les pages réglementaires.
+                {!noaFlagEnabled && (
+                  <>
+                    {" "}
+                    <span className="text-amber-600 dark:text-amber-400">
+                      Mode global désactivé par l&apos;administrateur — votre
+                      préférence est sauvegardée mais sans effet pour l&apos;instant.
+                    </span>
+                  </>
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleNoa}
+              disabled={savingNoa}
+              aria-label="Activer/désactiver : mode humour Noa"
+              aria-checked={noaUserEnabled}
+              role="switch"
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60 ${noaUserEnabled ? "bg-primary" : "bg-gray-300 dark:bg-slate-600"}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${noaUserEnabled ? "translate-x-6" : "translate-x-1"}`}
+              />
+            </button>
+          </div>
         </CardContent>
       </Card>
 

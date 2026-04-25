@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { noaZodResolver } from "@/lib/noa/zod-resolver";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
@@ -73,6 +74,7 @@ interface UserRecord {
   departmentMemberships?: { department: { id: string; name: string } }[];
   mfaEnabled: boolean;
   mfaRequired?: boolean; // Politique MFA imposée par admin (pending activation)
+  noaEnabled?: boolean; // Mode humour Noa — opt-in admin/user
   lastLoginAt: string | null;
   createdAt: string;
   avatarUrl: string | null;
@@ -157,7 +159,9 @@ export default function AdminUsersPage() {
     reset: resetCreate,
     formState: { errors: createErrors, isSubmitting: createSubmitting },
   } = useForm<AdminUserCreateFormData>({
-    resolver: zodResolver(adminUserCreateSchema),
+    // noaZodResolver = zodResolver + filtre humour Noa quand active.
+    // Sur /admin/users la route n'est pas dans la whitelist Noa → no-op.
+    resolver: noaZodResolver(adminUserCreateSchema),
     mode: "onTouched",
     defaultValues: {
       firstName: "",
@@ -393,6 +397,26 @@ export default function AdminUsersPage() {
       fetchUsers();
     } catch {
       toast.error("Erreur lors de la d\u00e9sactivation MFA");
+    }
+  };
+
+  /**
+   * Bascule le flag noaEnabled pour un user. Pas de modal de confirmation —
+   * c'est un préréglage cosmétique, pas une action sensible. L'utilisateur
+   * peut le réactiver/désactiver lui-même depuis /profile.
+   */
+  const handleToggleNoaForUser = async (u: UserRecord) => {
+    const next = !u.noaEnabled;
+    try {
+      await api.patch(`/users/${u.id}`, { noaEnabled: next });
+      toast.success(
+        next
+          ? `Noa activée pour ${u.firstName} ${u.lastName}`
+          : `Noa désactivée pour ${u.firstName} ${u.lastName}`,
+      );
+      fetchUsers();
+    } catch {
+      toast.error("Erreur lors de la bascule Noa");
     }
   };
 
@@ -742,6 +766,18 @@ export default function AdminUsersPage() {
               aria-label={`R\u00e9initialiser le MFA de ${u.firstName} ${u.lastName}`}
             >
               <Smartphone className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => handleToggleNoaForUser(u)}
+              className={`rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 ${u.noaEnabled ? "text-amber-500" : "text-seal-gray-500 hover:text-amber-500"}`}
+              title={
+                u.noaEnabled
+                  ? "Mode humour Noa actif \u2014 cliquer pour d\u00e9sactiver"
+                  : "Activer Noa pour cet utilisateur"
+              }
+              aria-label={`${u.noaEnabled ? "D\u00e9sactiver" : "Activer"} Noa pour ${u.firstName} ${u.lastName}`}
+            >
+              <span aria-hidden="true" className="text-sm leading-none">\ud83c\udfad</span>
             </button>
             <button
               onClick={() => setToggleActiveUser(u)}
