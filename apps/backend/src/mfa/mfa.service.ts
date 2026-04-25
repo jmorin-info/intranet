@@ -448,7 +448,7 @@ export class MfaService {
   async releaseMfaRequirement(userId: string, actorId: string): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
-      data: { mfaRequired: false },
+      data: { mfaRequired: false, mfaEnforcedAt: null, mfaEnforcedById: null },
     });
     this.auditService
       .log({
@@ -464,5 +464,170 @@ export class MfaService {
           `Audit log failed (MFA_POLICY_RELEASED): ${err.message}`,
         ),
       );
+  }
+
+  /**
+   * Politique MFA per-user — pose ou retire `mfaRequired` sur un utilisateur
+   * cible avec traçabilité complète (mfaEnforcedAt + mfaEnforcedById). Audité
+   * en severity WARN. Notification utilisateur au prochain login (déjà géré
+   * via `mfaSetupRequired` retourné par /auth/login).
+   *
+   * @param targetUserId  Compte impacté.
+   * @param enforced      true = imposer le MFA, false = lever la politique.
+   * @param actorId       Admin SUPER_ADMIN qui pose l'action (audit + traçabilité).
+   * @param ctx           Contexte de la requête pour audit (ip, user-agent).
+   */
+  async setMfaPolicy(
+    targetUserId: string,
+    enforced: boolean,
+    actorId: string,
+    ctx?: { ip?: string; userAgent?: string },
+  ): Promise<{ message: string; mfaRequired: boolean }> {
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: {
+        id: true,
+        email: true,
+        mfaEnabled: true,
+        mfaRequired: true,
+      },
+    });
+    if (!target) throw new BadRequestException("Utilisateur introuvable");
+
+    if (enforced && target.mfaEnabled) {
+      // No-op : MFA déjà actif → la politique n'a aucun effet visible. On
+      // trace l'intention quand même mais on ne pose pas le flag pour éviter
+      // de polluer l'UI admin avec un badge "Forcé" sur un compte conforme.
+      this.auditService
+        .log({
+          userId: actorId,
+          ipAddress: ctx?.ip,
+          userAgent: ctx?.userAgent,
+          action: "MFA_POLICY_NOOP",
+          resourceType: "User",
+          resourceId: targetUserId,
+          metadata: { reason: "already_enabled", target: target.email },
+          severity: "INFO",
+        })
+        .catch((err) =>
+          this.logger.error(
+            `Audit log failed (MFA_POLICY_NOOP): ${err.message}`,
+          ),
+        );
+      return {
+        message:
+          "MFA déjà activé pour cet utilisateur — politique sans effet.",
+        mfaRequired: target.mfaRequired,
+      };
+    }
+
+    await this.prisma.user.update({
+      where: { id: targetUserId },
+      data: enforced
+        ? {
+            mfaRequired: true,
+            mfaEnforcedAt: new Date(),
+            mfaEnforcedById: actorId,
+          }
+        : {
+            mfaRequired: false,
+            mfaEnforcedAt: null,
+            mfaEnforcedById: null,
+          },
+    });
+
+    const action = enforced ? "MFA_POLICY_SET" : "MFA_POLICY_RELEASED";
+    this.auditService
+      .log({
+        userId: actorId,
+        ipAddress: ctx?.ip,
+        userAgent: ctx?.userAgent,
+        action,
+        resourceType: "User",
+        resourceId: targetUserId,
+        metadata: {
+          target: target.email,
+          enforced,
+          previousMfaRequired: target.mfaRequired,
+        },
+        severity: "WARN",
+      })
+      .catch((err) =>
+        this.logger.error(`Audit log failed (${action}): ${err.message}`),
+      );
+    this.logger.log(
+      `MFA policy ${enforced ? "set" : "released"} for user ${targetUserId} by ${actorId}`,
+    );
+
+    return {
+      message: enforced
+        ? "Politique MFA imposée — l'utilisateur devra activer son MFA à la prochaine connexion."
+        : "Politique MFA levée pour cet utilisateur.",
+      mfaRequired: enforced,
+    };
+  }
+
+  /**
+   * Re-validation MFA — appelée par `POST /mfa/revalidate` quand un endpoint
+   * sensible a renvoyé `MFA_REVALIDATION_REQUIRED`. Vérifie le code TOTP/secours
+   * et marque la session active comme fraîchement validée. Le frontend reçoit
+   * un nouvel access token avec `mfaValidatedAt = now` et peut retenter sa
+   * requête initiale.
+   *
+   * Contrainte de sécurité : ne fonctionne QUE pour un user MFA-actif.
+   * Sans MFA actif, la re-validation n'a aucun sens — on rejette en 400.
+   */
+  async revalidateMfa(
+    userId: string,
+    code: string,
+  ): Promise<{ valid: boolean; mfaValidatedAt: number }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+    if (!user.mfaEnabled || !user.mfaSecret) {
+      throw new BadRequestException("MFA non activé pour ce compte");
+    }
+    const valid = await this.verifyMfa(userId, code);
+    if (!valid) {
+      this.auditService
+        .log({
+          userId,
+          action: "MFA_REVALIDATE_FAILED",
+          resourceType: "User",
+          resourceId: userId,
+          severity: "WARN",
+        })
+        .catch((err) =>
+          this.logger.error(
+            `Audit log failed (MFA_REVALIDATE_FAILED): ${err.message}`,
+          ),
+        );
+      throw new UnauthorizedException("Code MFA invalide");
+    }
+    const now = Date.now();
+    // Met à jour TOUS les refresh tokens actifs de cet utilisateur — chaque
+    // device ouvert profite ainsi de la re-validation. Côté JWT, le claim sera
+    // ré-injecté à la prochaine rotation de l'access token (auto via interceptor).
+    await this.prisma.refreshToken.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: { mfaValidatedAt: new Date(now) },
+    });
+    this.auditService
+      .log({
+        userId,
+        action: "MFA_REVALIDATED",
+        resourceType: "User",
+        resourceId: userId,
+        severity: "INFO",
+      })
+      .catch((err) =>
+        this.logger.error(
+          `Audit log failed (MFA_REVALIDATED): ${err.message}`,
+        ),
+      );
+    return { valid: true, mfaValidatedAt: now };
   }
 }

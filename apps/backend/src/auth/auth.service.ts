@@ -95,12 +95,20 @@ export class AuthService {
     user: { id: string; email: string; role: string; departmentId?: string | null },
     ip: string,
     userAgent: string,
+    /**
+     * Si vrai, signe `mfaValidatedAt = now` dans le JWT — utilisé par
+     * `FreshMfaGuard` pour autoriser les endpoints sensibles pendant 12 h
+     * sans re-challenge. À passer UNIQUEMENT quand l'utilisateur vient de
+     * valider un code TOTP (login MFA in-line ou /mfa/revalidate).
+     */
+    mfaValidated = false,
   ) {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       role: user.role as UserRole,
       departmentId: user.departmentId ?? undefined,
+      ...(mfaValidated ? { mfaValidatedAt: Date.now() } : {}),
     };
 
     const accessToken = this.generateAccessToken(payload);
@@ -130,6 +138,10 @@ export class AuthService {
         expiresAt,
         ipAddress: ip,
         userAgent,
+        // Persiste le timestamp de validation MFA sur la session — survit aux
+        // rotations d'access token. Lu par `refreshTokens()` pour ré-injecter
+        // le claim dans le nouveau JWT.
+        mfaValidatedAt: mfaValidated ? new Date() : null,
       },
     });
 
@@ -220,11 +232,20 @@ export class AuthService {
       data: { revokedAt: new Date() },
     });
 
+    // Propage le claim MFA du précédent refresh token : sans cela, l'utilisateur
+    // serait re-challenge MFA à chaque rotation d'access token (15 min) sur les
+    // endpoints sensibles. Le claim n'est valide que pendant `maxAgeMs` côté
+    // FreshMfaGuard (12 h par défaut), donc cette propagation reste bornée.
+    const previousMfaValidatedAt = storedToken.mfaValidatedAt;
+
     const payload: JwtPayload = {
       sub: storedToken.user.id,
       email: storedToken.user.email,
       role: storedToken.user.role as UserRole,
       departmentId: storedToken.user.departmentId || undefined,
+      ...(previousMfaValidatedAt
+        ? { mfaValidatedAt: previousMfaValidatedAt.getTime() }
+        : {}),
     };
 
     const newAccessToken = this.generateAccessToken(payload);
@@ -241,6 +262,7 @@ export class AuthService {
         expiresAt,
         ipAddress: ip,
         userAgent,
+        mfaValidatedAt: previousMfaValidatedAt ?? null,
       },
     });
 

@@ -6,6 +6,14 @@ export interface JwtPayload {
   role: UserRole;
   departmentId?: string;
   iat?: number;
+  /**
+   * Timestamp (ms epoch) du dernier challenge MFA validé sur cette session.
+   * Sert au guard `FreshMfaGuard` pour exiger une re-validation périodique
+   * (par défaut 12 h) sur les endpoints sensibles (admin, signatures, incidents,
+   * compliance, politique MFA). Absent si l'utilisateur n'a jamais validé son
+   * MFA dans cette session.
+   */
+  mfaValidatedAt?: number;
 }
 
 export interface PaginationParams {
@@ -31,4 +39,9 @@ export interface RequestUser {
   role: UserRole;
   departmentId?: string;
   iat?: number;
+  /**
+   * Propagé depuis le JwtPayload — voir doc ci-dessus. Utilisé par
+   * `FreshMfaGuard` pour décider si une re-validation MFA est requise.
+   */
+  mfaValidatedAt?: number;
 }

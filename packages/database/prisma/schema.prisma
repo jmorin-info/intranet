@@ -168,6 +168,12 @@ model User {
   mfaRequired             Boolean   @default(false) // Politique MFA imposée par un admin : bloque la connexion tant que MFA n'est pas activé
   mfaSecret               String?
   backupCodes             String? // JSON array of hashed backup codes
+  // Traçabilité de l'application de la politique MFA per-user (qui a forcé,
+  // quand) — utilisé par le RSSI pour audits ISO 27001 A.5.36 (conformité). Le
+  // champ mfaEnforcedById est volontairement un String non-FK pour rester
+  // résilient à la suppression de l'admin actor (audit conservé).
+  mfaEnforcedAt           DateTime?
+  mfaEnforcedById         String?
   // Chartes
   chartesAcceptedAt       DateTime?
   // Notification preferences (per-channel × per-category) — nullable = defaults (all in-app/email ON, push only mentions+incidents)
@@ -317,6 +323,11 @@ model RefreshToken {
   ipAddress String?
   userAgent String?
   createdAt DateTime  @default(now())
+  // Timestamp du dernier challenge MFA validé sur cette session (login TOTP
+  // in-line ou /mfa/revalidate). Persisté ici pour survivre à la rotation des
+  // refresh tokens — sinon `FreshMfaGuard` exigerait une re-validation à chaque
+  // refresh d'access token (15 min). Null = MFA jamais validé sur cette session.
+  mfaValidatedAt DateTime?
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

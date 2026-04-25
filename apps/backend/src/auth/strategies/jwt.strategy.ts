@@ -86,6 +86,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: payload.role,
       departmentId: user.departmentId || undefined,
       iat: payload.iat,
+      // Propagé pour `FreshMfaGuard` — décide si une re-validation MFA est
+      // nécessaire pour les endpoints sensibles (admin, signatures, incidents,
+      // compliance). Signé au login lorsque l'utilisateur valide son MFA.
+      mfaValidatedAt: payload.mfaValidatedAt,
     };
   }
 }

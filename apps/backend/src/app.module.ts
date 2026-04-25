@@ -29,6 +29,8 @@ import { VeilleModule } from './veille/veille.module';
 import { SatisfactionModule } from './satisfaction/satisfaction.module';
 import { PublicModule } from './public/public.module';
 import { MfaModule } from './mfa/mfa.module';
+import { MfaRequiredGuard } from './mfa/mfa-required.guard';
+import { FreshMfaGuard } from './mfa/fresh-mfa.guard';
 import { ChartesModule } from './chartes/chartes.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { ScannerModule } from './scanner/scanner.module';
@@ -171,6 +173,13 @@ import { PcaModule } from './pca/pca.module';
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Ordre des APP_GUARD : ThrottlerGuard → JwtAuthGuard (déclaré au niveau
+    // controller via @UseGuards) → MfaRequiredGuard → FreshMfaGuard.
+    // MfaRequiredGuard bloque toute requête authentifiée d'un user soumis à
+    // la politique MFA mais non encore enrôlé (sauf @Public/@SkipMfaCheck).
+    // FreshMfaGuard ne s'active que si la route est annotée @RequireFreshMfa.
+    { provide: APP_GUARD, useClass: MfaRequiredGuard },
+    { provide: APP_GUARD, useClass: FreshMfaGuard },
   ],
 })
 export class AppModule implements NestModule {

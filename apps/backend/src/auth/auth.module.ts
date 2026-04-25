@@ -1,4 +1,4 @@
-import { Module, Logger } from '@nestjs/common';
+import { Module, Logger, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
@@ -18,7 +18,7 @@ const authModuleLogger = new Logger('AuthModule');
     PrismaModule,
     UsersModule,
     LdapModule,
-    MfaModule,
+    forwardRef(() => MfaModule),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: () => {
