@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUrl } from 'class-validator';
+import { IsString, IsOptional, IsUrl, IsBoolean } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -20,4 +20,9 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   teamsLink?: string;
+
+  // Opt-in mode humour Noa via /profile (l'utilisateur lui-même).
+  @IsOptional()
+  @IsBoolean()
+  noaEnabled?: boolean;
 }

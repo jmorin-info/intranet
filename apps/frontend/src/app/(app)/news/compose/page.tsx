@@ -4,9 +4,11 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { noaZodResolver } from '@/lib/noa/zod-resolver';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { noaToast } from '@/lib/noa/toast';
 import { useTranslation } from '@/lib/i18n';
 import { UserRole } from '@omnitech/shared';
 import DOMPurify from 'dompurify';
@@ -66,7 +68,8 @@ export default function ComposeNewsPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<NewsForm>({
-    resolver: zodResolver(newsSchema),
+    // Mode humour Noa actif sur /news/* si le user a opt-in.
+    resolver: noaZodResolver(newsSchema),
     mode: 'onTouched',
     defaultValues: {
       isPublished: true,
@@ -132,7 +135,8 @@ export default function ComposeNewsPage() {
         ...data,
         targetRoles: selectedRoles.length > 0 ? selectedRoles : undefined,
       });
-      toast.success(t('newsCompose.published'));
+      // noaToast filtre humour Noa quand active sur /news/*. Sinon = toast.success.
+      noaToast.success(t('newsCompose.published'));
 
       // Send broadcast notification if checkbox is checked
       if (notifyOnPublish && data.isPublished) {

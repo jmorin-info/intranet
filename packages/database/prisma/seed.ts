@@ -186,6 +186,12 @@ const appConfigs = [
   { key: 'review_reminder_days',  value: '30',                                    description: 'Days before next review date to send reminder' },
   { key: 'session_timeout_hours', value: '8',                                     description: 'User session timeout in hours' },
   { key: 'max_upload_size_mb',    value: '50',                                    description: 'Maximum file upload size in megabytes' },
+  // Mode humour Noa (persona stagiaire IA sarcastique). Désactivé par défaut.
+  // À activer depuis /admin/config (SUPER_ADMIN). Combiné à User.noaEnabled
+  // (opt-in par utilisateur), cela autorise la réécriture humoristique de
+  // certains messages d'UI. Exclusions dures côté frontend (auth, mfa, audit,
+  // emails sortants, logs Sentry, rapports ISO).
+  { key: 'feature.humor.noa',     value: 'false',                                 description: 'Active la persona Noa (humour de bureau, second-degré). Désactivable par utilisateur. Désactivé sur les écrans sensibles.' },
 ];
 
 // ---------------------------------------------------------------------------

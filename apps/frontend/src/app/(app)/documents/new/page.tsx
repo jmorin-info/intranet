@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { noaZodResolver } from '@/lib/noa/zod-resolver';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
@@ -223,7 +224,9 @@ export default function NewDocumentPage() {
     setValue,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<DocumentForm>({
-    resolver: zodResolver(documentSchema),
+    // Création de procédure : Noa filtrée par la whitelist runtime
+    // (/documents/* hors whitelist = no-op).
+    resolver: noaZodResolver(documentSchema),
     mode: 'onTouched',
     defaultValues: {
       isPublic: true,

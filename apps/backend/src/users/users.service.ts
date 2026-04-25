@@ -133,6 +133,7 @@ export class UsersService {
           jobTitle: true,
           phone: true,
           location: true,
+          noaEnabled: true,
         },
       }),
       this.prisma.user.count({ where }),
@@ -270,6 +271,7 @@ export class UsersService {
           departmentId: dto.departmentId || null,
         }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.noaEnabled !== undefined && { noaEnabled: dto.noaEnabled }),
       },
       select: {
         id: true,
@@ -280,6 +282,7 @@ export class UsersService {
         departmentId: true,
         department: true,
         isActive: true,
+        noaEnabled: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -608,6 +611,7 @@ export class UsersService {
       skills?: string;
       languages?: string;
       teamsLink?: string;
+      noaEnabled?: boolean;
     },
   ) {
     await this.findById(userId);
@@ -620,6 +624,7 @@ export class UsersService {
         ...(dto.skills !== undefined && { skills: dto.skills }),
         ...(dto.languages !== undefined && { languages: dto.languages }),
         ...(dto.teamsLink !== undefined && { teamsLink: dto.teamsLink }),
+        ...(dto.noaEnabled !== undefined && { noaEnabled: dto.noaEnabled }),
       },
       include: {
         department: true,

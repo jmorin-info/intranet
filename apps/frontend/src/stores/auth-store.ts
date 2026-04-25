@@ -32,6 +32,11 @@ export interface AuthUser {
   onboardingCompletedAt?: string | null;
   /** Dashboard welcome checklist dismissal timestamp. */
   welcomeChecklistDismissedAt?: string | null;
+  /**
+   * Mode humour Noa — opt-in par utilisateur (cf. profile + admin/users).
+   * Sans effet si le feature flag global `feature.humor.noa` est OFF.
+   */
+  noaEnabled?: boolean;
 }
 
 /**
@@ -90,6 +95,7 @@ function mapUser(raw: Record<string, unknown>): AuthUser {
     locale,
     onboardingCompletedAt: (raw.onboardingCompletedAt as string | null | undefined) ?? null,
     welcomeChecklistDismissedAt: (raw.welcomeChecklistDismissedAt as string | null | undefined) ?? null,
+    noaEnabled: Boolean(raw.noaEnabled),
   };
 }
 

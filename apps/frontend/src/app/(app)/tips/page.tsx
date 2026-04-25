@@ -9,6 +9,7 @@ import {
   SearchInput,
   EmptyState,
 } from '@omnitech/ui';
+import { noa } from '@/lib/noa';
 import {
   Lightbulb,
   ArrowRight,
@@ -493,7 +494,7 @@ export default function TipsPage() {
         {visible.length === 0 ? (
           <EmptyState
             type="search"
-            title="Aucune astuce trouvée"
+            title={noa("Aucune astuce trouvée", 'loading')}
             description="Aucune astuce ne correspond à votre recherche. Essayez un autre terme ou réinitialisez les filtres."
             action={
               <Button variant="outline" size="sm" onClick={resetFilters}>
