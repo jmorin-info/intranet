@@ -150,46 +150,46 @@ enum IncidentCategory {
 // =============================================================================
 
 model User {
-  id                      String    @id @default(uuid())
-  email                   String    @unique
-  passwordHash            String
-  firstName               String
-  lastName                String
-  role                    UserRole
-  departmentId            String?
-  isActive                Boolean   @default(true)
-  lastLoginAt             DateTime?
-  deletedAt               DateTime?
-  gdprConsentAt           DateTime?
-  gdprConsentIp           String?
-  avatarUrl               String?
+  id                          String    @id @default(uuid())
+  email                       String    @unique
+  passwordHash                String
+  firstName                   String
+  lastName                    String
+  role                        UserRole
+  departmentId                String?
+  isActive                    Boolean   @default(true)
+  lastLoginAt                 DateTime?
+  deletedAt                   DateTime?
+  gdprConsentAt               DateTime?
+  gdprConsentIp               String?
+  avatarUrl                   String?
   // MFA
-  mfaEnabled              Boolean   @default(false)
-  mfaRequired             Boolean   @default(false) // Politique MFA imposée par un admin : bloque la connexion tant que MFA n'est pas activé
-  mfaSecret               String?
-  backupCodes             String? // JSON array of hashed backup codes
+  mfaEnabled                  Boolean   @default(false)
+  mfaRequired                 Boolean   @default(false) // Politique MFA imposée par un admin : bloque la connexion tant que MFA n'est pas activé
+  mfaSecret                   String?
+  backupCodes                 String? // JSON array of hashed backup codes
   // Traçabilité de l'application de la politique MFA per-user (qui a forcé,
   // quand) — utilisé par le RSSI pour audits ISO 27001 A.5.36 (conformité). Le
   // champ mfaEnforcedById est volontairement un String non-FK pour rester
   // résilient à la suppression de l'admin actor (audit conservé).
-  mfaEnforcedAt           DateTime?
-  mfaEnforcedById         String?
+  mfaEnforcedAt               DateTime?
+  mfaEnforcedById             String?
   // Chartes
-  chartesAcceptedAt       DateTime?
+  chartesAcceptedAt           DateTime?
   // Notification preferences (per-channel × per-category) — nullable = defaults (all in-app/email ON, push only mentions+incidents)
   // Shape: { email: { tickets, documents, incidents, mentions: bool, digest: 'off'|'daily'|'weekly' }, inApp: {...}, push: {...} }
-  notificationPreferences Json?
+  notificationPreferences     Json?
   // UI language preference (persisted so it follows the user across devices). Fallback: 'fr'.
-  locale                  String?   @default("fr")
+  locale                      String?   @default("fr")
   // Tracks the most recent password change (admin reset, self-change, token reset).
   // Used by AccessReviewsService (PASSWORDS campaigns) to detect stale credentials.
   // Nullable: backfilled to createdAt for existing rows via the 20260424 migration.
-  passwordChangedAt DateTime?
+  passwordChangedAt           DateTime?
   // First-login guided tour : timestamp of completion. Null = tour not done
   // (triggers the welcome modal on next /dashboard mount if account age < 7d).
   // Reset to null via POST /users/me/onboarding-reset when user asks to
   // re-watch the tour from Profile > Preferences.
-  onboardingCompletedAt     DateTime?
+  onboardingCompletedAt       DateTime?
   // Welcome checklist ("Démarrage rapide") on dashboard : explicit dismissal.
   // Also auto-hidden when all 5 items are completed or after 14 days.
   welcomeChecklistDismissedAt DateTime?
@@ -198,106 +198,106 @@ model User {
   // le feature flag global feature.humor.noa est ON et que l'utilisateur a
   // explicitement coché cette case (admin OU profile). Exclusions dures
   // côté frontend : routes /auth/*, /mfa/*, security, audit-logs, etc.
-  noaEnabled        Boolean   @default(false)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  noaEnabled                  Boolean   @default(false)
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 
   // Relations
-  department                Department?              @relation(fields: [departmentId], references: [id])
-  charteSignatures          CharteSignature[]
-  onboardingSteps           OnboardingStep[]         @relation("OnboardingUser")
-  securityAlerts            SecurityAlert[]          @relation("AlertAuthor")
-  securityAlertReads        SecurityAlertRead[]
-  refreshTokens             RefreshToken[]
-  ownedDocuments            Document[]               @relation("DocumentOwner")
-  reviewedDocuments         Document[]               @relation("DocumentReviewer")
-  approvedDocuments         Document[]               @relation("DocumentApprover")
-  uploadedVersions          DocumentVersion[]        @relation("VersionUploader")
-  acknowledgments           DocumentAcknowledgment[]
-  validationRequests        ValidationRequest[]      @relation("ValidationRequester")
-  validationSteps           ValidationStep[]         @relation("ValidationAssignee")
-  signatureRequestsMade     SignatureRequest[]       @relation("SignatureRequester")
-  signatureRequestsSigned   SignatureRequest[]       @relation("SignatureSigner")
-  newsPosts                 NewsPost[]               @relation("NewsAuthor")
-  newsPostViews             NewsPostView[]
-  notifications             Notification[]
-  auditLogs                 AuditLog[]
-  dataExportRequests        DataExportRequest[]
-  appConfigUpdates          AppConfig[]              @relation("ConfigUpdater")
+  department                 Department?                 @relation(fields: [departmentId], references: [id])
+  charteSignatures           CharteSignature[]
+  onboardingSteps            OnboardingStep[]            @relation("OnboardingUser")
+  securityAlerts             SecurityAlert[]             @relation("AlertAuthor")
+  securityAlertReads         SecurityAlertRead[]
+  refreshTokens              RefreshToken[]
+  ownedDocuments             Document[]                  @relation("DocumentOwner")
+  reviewedDocuments          Document[]                  @relation("DocumentReviewer")
+  approvedDocuments          Document[]                  @relation("DocumentApprover")
+  uploadedVersions           DocumentVersion[]           @relation("VersionUploader")
+  acknowledgments            DocumentAcknowledgment[]
+  validationRequests         ValidationRequest[]         @relation("ValidationRequester")
+  validationSteps            ValidationStep[]            @relation("ValidationAssignee")
+  signatureRequestsMade      SignatureRequest[]          @relation("SignatureRequester")
+  signatureRequestsSigned    SignatureRequest[]          @relation("SignatureSigner")
+  newsPosts                  NewsPost[]                  @relation("NewsAuthor")
+  newsPostViews              NewsPostView[]
+  notifications              Notification[]
+  auditLogs                  AuditLog[]
+  dataExportRequests         DataExportRequest[]
+  appConfigUpdates           AppConfig[]                 @relation("ConfigUpdater")
   // Ticketing
-  ticketsCreated            Ticket[]                 @relation("TicketCreator")
-  ticketsAssigned           Ticket[]                 @relation("TicketAssignee")
-  ticketComments            TicketComment[]
+  ticketsCreated             Ticket[]                    @relation("TicketCreator")
+  ticketsAssigned            Ticket[]                    @relation("TicketAssignee")
+  ticketComments             TicketComment[]
   // Veille
-  veilleAcks                VeilleAck[]
+  veilleAcks                 VeilleAck[]
   // Satisfaction
-  satisfactionResponses     SatisfactionResponse[]
+  satisfactionResponses      SatisfactionResponse[]
   // External access (prestataires)
-  externalAccess            ExternalAccess[]
+  externalAccess             ExternalAccess[]
   // Profile enrichment
-  phone                     String?
-  jobTitle                  String?
-  location                  String?
-  managerId                 String?
-  skills                    String? // JSON array
-  languages                 String? // JSON array
-  teamsLink                 String?
+  phone                      String?
+  jobTitle                   String?
+  location                   String?
+  managerId                  String?
+  skills                     String? // JSON array
+  languages                  String? // JSON array
+  teamsLink                  String?
   // Multi-department membership
-  departmentMemberships     UserDepartment[]
+  departmentMemberships      UserDepartment[]
   // Wiki
-  wikiPages                 WikiPage[]               @relation("WikiAuthor")
+  wikiPages                  WikiPage[]                  @relation("WikiAuthor")
   // Web Push subscriptions
-  pushSubscriptions         PushSubscription[]
+  pushSubscriptions          PushSubscription[]
   // IT / Compliance exports (ISO 27001 evidence)
-  itExports                 ItExport[]               @relation("ItExportUploader")
+  itExports                  ItExport[]                  @relation("ItExportUploader")
   // Incidents & Remediations (ISO 27001 A.5.24)
-  incidentsReported         Incident[]               @relation("IncidentReporter")
-  incidentsAssigned         Incident[]               @relation("IncidentAssignee")
-  remediationsAssigned      Remediation[]            @relation("RemediationResponsible")
-  incidentTimeline          IncidentTimelineEntry[]  @relation("IncidentTimelineAuthor")
+  incidentsReported          Incident[]                  @relation("IncidentReporter")
+  incidentsAssigned          Incident[]                  @relation("IncidentAssignee")
+  remediationsAssigned       Remediation[]               @relation("RemediationResponsible")
+  incidentTimeline           IncidentTimelineEntry[]     @relation("IncidentTimelineAuthor")
   // Calendar events
-  calendarEvents            CalendarEvent[]          @relation("CalendarEventCreator")
+  calendarEvents             CalendarEvent[]             @relation("CalendarEventCreator")
   // P1.10 — événements du calendrier individuel (assigné aux tickets, etc.)
-  calendarUserEvents        CalendarEvent[]          @relation("CalendarEventUser")
+  calendarUserEvents         CalendarEvent[]             @relation("CalendarEventUser")
   // P1.10 — tokens d'abonnement iCal (révocables)
   calendarSubscriptionTokens CalendarSubscriptionToken[] @relation("CalendarSubscriptionUser")
   // Manager relation
-  manager                   User?                    @relation("UserManager", fields: [managerId], references: [id])
-  subordinates              User[]                   @relation("UserManager")
+  manager                    User?                       @relation("UserManager", fields: [managerId], references: [id])
+  subordinates               User[]                      @relation("UserManager")
   // Saved filters
-  savedFilters              SavedFilter[]            @relation("UserSavedFilters")
+  savedFilters               SavedFilter[]               @relation("UserSavedFilters")
   // === NEW MODELS 2026-04-13 === Approval workflows configurables (ISO 27001 A.5.1)
-  workflowsCreated          ApprovalWorkflow[]       @relation("WorkflowCreator")
-  workflowStepsApprover     WorkflowStep[]           @relation("StepApprover")
-  workflowStepsEscalate     WorkflowStep[]           @relation("StepEscalate")
-  approvalInstancesStarted  ApprovalInstance[]       @relation("InstanceStarter")
-  approvalStepDecisions     ApprovalStepInstance[]   @relation("StepDecider")
-  approvalStepAssignments   ApprovalStepInstance[]   @relation("StepAssignee")
+  workflowsCreated           ApprovalWorkflow[]          @relation("WorkflowCreator")
+  workflowStepsApprover      WorkflowStep[]              @relation("StepApprover")
+  workflowStepsEscalate      WorkflowStep[]              @relation("StepEscalate")
+  approvalInstancesStarted   ApprovalInstance[]          @relation("InstanceStarter")
+  approvalStepDecisions      ApprovalStepInstance[]      @relation("StepDecider")
+  approvalStepAssignments    ApprovalStepInstance[]      @relation("StepAssignee")
   // === Signature campaigns (ISO 27001 A.5.1 + A.6.2) === 2026-04-13
-  signatureCampaignsCreated SignatureCampaign[]      @relation("CampaignCreator")
-  campaignSignatures        CampaignSignature[]      @relation("SignatureRecipient")
+  signatureCampaignsCreated  SignatureCampaign[]         @relation("CampaignCreator")
+  campaignSignatures         CampaignSignature[]         @relation("SignatureRecipient")
   // === RAG / AI Search === 2026-04-14
-  ragQueries                RagQueryLog[]            @relation("RagQueryAuthor")
+  ragQueries                 RagQueryLog[]               @relation("RagQueryAuthor")
   // === Chat Unified (Mission 3 Phase 1) === 2026-04-20
-  chatSessions              ChatSession[]            @relation("ChatSessionAuthor")
-  chatFeedback              ChatMessageFeedback[]    @relation("ChatFeedbackAuthor")
+  chatSessions               ChatSession[]               @relation("ChatSessionAuthor")
+  chatFeedback               ChatMessageFeedback[]       @relation("ChatFeedbackAuthor")
   // === Chatbot share links === 2026-04-24 (polish 10 features)
-  chatbotShares             ChatbotShareLink[]       @relation("ChatbotShareOwner")
+  chatbotShares              ChatbotShareLink[]          @relation("ChatbotShareOwner")
   // === LDAP Pending Users === 2026-04-14
-  ldapPendingProcessed      LdapPendingUser[]        @relation("LdapPendingProcessor")
+  ldapPendingProcessed       LdapPendingUser[]           @relation("LdapPendingProcessor")
   // === Certifications de formation === 2026-04-16
-  certificates              Certificate[]            @relation("UserCertificates")
-  certificatesCreated       Certificate[]            @relation("CertificateCreator")
+  certificates               Certificate[]               @relation("UserCertificates")
+  certificatesCreated        Certificate[]               @relation("CertificateCreator")
   // === Testimonials === 2026-04-21
-  testimonialsSubmitted     Testimonial[]            @relation("TestimonialSubmitter")
-  testimonialsApproved      Testimonial[]            @relation("TestimonialApprover")
+  testimonialsSubmitted      Testimonial[]               @relation("TestimonialSubmitter")
+  testimonialsApproved       Testimonial[]               @relation("TestimonialApprover")
   // === Médiathèque === 2026-04-21
-  canManageMedia            Boolean                  @default(false)
-  mediaAlbumsCreated        MediaAlbum[]             @relation("MediaAlbumCreator")
-  mediaItemsUploaded        MediaItem[]              @relation("MediaItemUploader")
-  mediaDownloads            MediaItemDownload[]      @relation("MediaDownloader")
+  canManageMedia             Boolean                     @default(false)
+  mediaAlbumsCreated         MediaAlbum[]                @relation("MediaAlbumCreator")
+  mediaItemsUploaded         MediaItem[]                 @relation("MediaItemUploader")
+  mediaDownloads             MediaItemDownload[]         @relation("MediaDownloader")
   // === PCA / Continuité d'activité === 2026-04-24 (ISO 27001 A.5.30)
-  pcaRunsTriggered          PcaRun[]                 @relation("PcaRunTrigger")
+  pcaRunsTriggered           PcaRun[]                    @relation("PcaRunTrigger")
 
   @@index([departmentId])
   @@index([role])
@@ -321,14 +321,14 @@ model PushSubscription {
 }
 
 model RefreshToken {
-  id        String    @id @default(uuid())
-  userId    String
-  tokenHash String
-  expiresAt DateTime
-  revokedAt DateTime?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime  @default(now())
+  id             String    @id @default(uuid())
+  userId         String
+  tokenHash      String
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime  @default(now())
   // Timestamp du dernier challenge MFA validé sur cette session (login TOTP
   // in-line ou /mfa/revalidate). Persisté ici pour survivre à la rotation des
   // refresh tokens — sinon `FreshMfaGuard` exigerait une re-validation à chaque
@@ -414,6 +414,8 @@ model Document {
   @@index([approverId])
   @@index([status, classification])
   @@index([deletedAt, status])
+  /// idx pour documents.service.ts findAll : ACL collaborateur OR={ownerId:me} combiné au filtre status (documents.service.ts:279)
+  @@index([ownerId, status])
 }
 
 model DocumentVersion {
@@ -663,6 +665,10 @@ model AuditLog {
   @@index([resourceType, action])
   @@index([action, createdAt])
   @@index([severity])
+  /// idx pour audit.service.ts getStats : critical events sur une fenêtre de dates triés par createdAt (audit.service.ts:184)
+  @@index([severity, createdAt])
+  /// idx pour journal d'audit per-user filtré par action (audit.service.ts findMany combinant userId + action LIKE + orderBy createdAt)
+  @@index([userId, action, createdAt])
 }
 
 model DataExportRequest {
@@ -787,22 +793,22 @@ enum TicketSpacePermission {
 }
 
 model Ticket {
-  id           String         @id @default(uuid())
-  reference    String         @unique
-  title        String
-  description  String
-  category     TicketCategory @default(OTHER)
-  priority     TicketPriority @default(MEDIUM)
-  status       TicketStatus   @default(OPEN)
-  tags         String[]       @default([])
-  creatorId    String
-  assigneeId   String?
-  departmentId String?
+  id                     String         @id @default(uuid())
+  reference              String         @unique
+  title                  String
+  description            String
+  category               TicketCategory @default(OTHER)
+  priority               TicketPriority @default(MEDIUM)
+  status                 TicketStatus   @default(OPEN)
+  tags                   String[]       @default([])
+  creatorId              String
+  assigneeId             String?
+  departmentId           String?
   /// The space this ticket belongs to. Nullable for backward compatibility
   /// with pre-migration tickets (treated as default/IT space).
-  spaceId      String?
-  resolvedAt   DateTime?
-  closedAt     DateTime?
+  spaceId                String?
+  resolvedAt             DateTime?
+  closedAt               DateTime?
   // Dates métier (P1.10) — utilisées pour la synchro calendrier individuel
   // de l'assigné. Toutes nullables, patchables via PATCH /tickets/:id/dates.
   dueDate                DateTime?
@@ -810,8 +816,8 @@ model Ticket {
   materialReceivedDate   DateTime?
   deployedAt             DateTime?
   deploymentScheduledFor DateTime?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
 
   creator    User            @relation("TicketCreator", fields: [creatorId], references: [id])
   assignee   User?           @relation("TicketAssignee", fields: [assigneeId], references: [id])
@@ -830,6 +836,12 @@ model Ticket {
   @@index([assigneeId, status])
   @@index([spaceId, status])
   @@index([spaceId, createdAt])
+  /// idx pour findAll : filtre status + priority trié par createdAt (tickets.service.ts findAll)
+  @@index([status, priority, createdAt])
+  /// idx pour ACL non-admin : where.OR contient { departmentId } combiné au filtre status (tickets.service.ts:348,391)
+  @@index([departmentId, status])
+  /// idx pour P1.10 : tickets de l'assigné avec dueDate (synchro calendrier individuel + overdue queue)
+  @@index([assigneeId, dueDate])
 }
 
 model TicketComment {
@@ -1351,6 +1363,14 @@ model Incident {
   @@index([category])
   @@index([detectedAt])
   @@index([assignedToId])
+  /// idx pour incidents.service.ts findAll : where.deletedAt=null + orderBy detectedAt desc (couvre la liste paginée)
+  @@index([deletedAt, detectedAt])
+  /// idx pour ACL collaborateur : where.OR={reporterId:user.id} combiné au filtre status (incidents.service.ts:172)
+  @@index([reporterId, status])
+  /// idx pour ACL agent : where.OR={assignedToId:user.id} combiné au filtre status (incidents.service.ts:172)
+  @@index([assignedToId, status])
+  /// idx pour dashboard : count critical+open récents (incidents.service.ts getDashboard:466,474)
+  @@index([severity, status, detectedAt])
 }
 
 model Remediation {
@@ -1445,6 +1465,8 @@ model CalendarEvent {
   @@index([departmentId])
   @@index([userId, startDate])
   @@index([sourceType, sourceId])
+  /// idx pour agenda départemental : events d'un département dans une fenêtre temporelle
+  @@index([departmentId, startDate])
 }
 
 // =============================================================================
@@ -1986,20 +2008,20 @@ enum MediaType {
 }
 
 model MediaAlbum {
-  id             String          @id @default(uuid())
-  title          String
-  slug           String          @unique
-  description    String?
-  coverItemId    String?
+  id            String          @id @default(uuid())
+  title         String
+  slug          String          @unique
+  description   String?
+  coverItemId   String?
   // Image de couverture dédiée (upload distinct des items de l'album).
   // Stockée sous storage/media/albums/{id}/cover/. Si présente, prime sur
   // coverItem côté affichage public.
-  coverImageUrl  String?
-  visibility     MediaVisibility @default(INTERNAL)
-  departmentId   String?
-  createdById    String
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  coverImageUrl String?
+  visibility    MediaVisibility @default(INTERNAL)
+  departmentId  String?
+  createdById   String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   items      MediaItem[] @relation("AlbumItems")
   createdBy  User        @relation("MediaAlbumCreator", fields: [createdById], references: [id], onDelete: Restrict)
