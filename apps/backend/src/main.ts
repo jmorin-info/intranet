@@ -107,15 +107,54 @@ async function bootstrap() {
       frameguard: { action: 'sameorigin' },
       noSniff: true,
       xssFilter: true,
+      // COEP désactivé : OnlyOffice/DocuSeal/Stirling sont chargés en iframe et
+      // n'envoient pas Cross-Origin-Embedder-Policy compatible. Activer COEP
+      // casserait ces intégrations. Le risque résiduel (Spectre cross-origin)
+      // est mitigé par CORP same-site + COOP same-origin ci-dessous.
       crossOriginEmbedderPolicy: false,
-      // CORP : cross-origin pour que OnlyOffice/Stirling puissent charger les assets (logos, fichiers)
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      // COOP same-origin : isole le browsing context contre les attaques
+      // XS-Leaks (window.opener cross-origin) — ANSSI / OWASP A05.
+      crossOriginOpenerPolicy: { policy: 'same-origin' },
+      // CORP same-site : par défaut on protège les ressources contre l'embedding
+      // par un domaine tiers. Les routes qui doivent rester cross-origin
+      // (uploads servis à OnlyOffice depuis un autre port en dev) sont gérées
+      // au niveau du contrôleur si besoin. En prod, tout vit derrière BunkerWeb
+      // sur le même eTLD+1, donc same-site est suffisant.
+      crossOriginResourcePolicy: { policy: 'same-site' },
     }),
   );
 
-  const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
-    : ['http://localhost:3001', 'http://localhost:5173'];
+  // ─── CORS — séparation stricte dev / prod ───────────────────────────
+  // CORS_ORIGINS  : liste explicite des origines autorisées (prod + dev).
+  // CORS_ORIGINS_DEV : liste *additionnelle* injectée UNIQUEMENT hors prod
+  //   (typiquement les services internes OnlyOffice/Stirling sur ports
+  //   :8080/:8082, et les ports Vite dev). En staging/prod, ces origines ne
+  //   sont JAMAIS auto-injectées — il faut les déclarer dans CORS_ORIGINS si
+  //   réellement nécessaire.
+  const parseOrigins = (raw?: string): string[] =>
+    raw
+      ? raw
+          .split(',')
+          .map((o) => o.trim())
+          .filter(Boolean)
+      : [];
+
+  const baseOrigins = parseOrigins(process.env.CORS_ORIGINS);
+  const devOrigins = parseOrigins(process.env.CORS_ORIGINS_DEV);
+  const defaultDevOrigins = ['http://localhost:3001', 'http://localhost:5173'];
+
+  const allowedOrigins = isProduction
+    ? baseOrigins
+    : Array.from(
+        new Set([
+          ...(baseOrigins.length > 0 ? baseOrigins : defaultDevOrigins),
+          // Si CORS_ORIGINS_DEV n'est pas défini, on garde le comportement
+          // legacy (services internes OnlyOffice :8080 / Stirling :8082) en dev.
+          ...(devOrigins.length > 0
+            ? devOrigins
+            : ['http://localhost:8080', 'http://localhost:8082']),
+        ]),
+      );
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -123,12 +162,8 @@ async function bootstrap() {
       if (!origin) {
         return callback(null, true);
       }
-      // Origines autorisées explicitement par CORS_ORIGINS.
+      // Origines autorisées explicitement.
       if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      // Services internes (OnlyOffice / Stirling) : autorisés uniquement hors prod.
-      if (!isProduction && (origin.includes(':8082') || origin.includes(':8080'))) {
         return callback(null, true);
       }
       // Prod : tout le reste est refusé.

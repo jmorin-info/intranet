@@ -25,6 +25,11 @@ import { RequestUser } from "../common/interfaces";
 import { UserRole } from "../common/enums";
 import { UsersService } from "../users/users.service";
 import { SkipMfaCheck } from "../mfa/decorators/skip-mfa-check.decorator";
+import { AllowCrossSite } from "./decorators/allow-cross-site.decorator";
+import {
+  setRefreshTokenCookie,
+  clearRefreshTokenCookie,
+} from "../common/cookies.util";
 
 @Controller("auth")
 // Tous les endpoints d'auth doivent rester accessibles, y compris pour les
@@ -41,6 +46,9 @@ export class AuthController {
   ) {}
 
   @Public()
+  // Login peut être déclenché depuis un IdP externe (SSO) — Sec-Fetch-Site
+  // sera alors `cross-site`. On autorise explicitement cette navigation.
+  @AllowCrossSite()
   @Post("login")
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
@@ -77,7 +85,7 @@ export class AuthController {
         // FreshMfaGuard (autorise les endpoints sensibles pendant 12 h sans
         // re-challenge).
         const result = await this.authService.login(user, ip, userAgent, true);
-        this.setRefreshTokenCookie(res, result.refreshToken);
+        setRefreshTokenCookie(res, result.refreshToken);
         return result;
       }
 
@@ -101,7 +109,7 @@ export class AuthController {
 
     // Login (with optional mfaSetupRequired flag)
     const loginResult = await this.authService.login(user, ip, userAgent);
-    this.setRefreshTokenCookie(res, loginResult.refreshToken);
+    setRefreshTokenCookie(res, loginResult.refreshToken);
     if (mfaSetupRequired) {
       return { ...loginResult, mfaSetupRequired: true };
     }
@@ -133,7 +141,7 @@ export class AuthController {
 
     try {
       const result = await this.authService.refreshTokens(token, ip, userAgent);
-      this.setRefreshTokenCookie(res, result.refreshToken);
+      setRefreshTokenCookie(res, result.refreshToken);
       return result;
     } catch (err) {
       // Toute erreur de token (expiré, invalide, révoqué, malformé) DOIT renvoyer 401 — jamais 400.
@@ -169,7 +177,7 @@ export class AuthController {
         `logout cleanup failed for user ${user.id}: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
-    res.clearCookie("refreshToken", { path: "/api/v1/auth/refresh" });
+    clearRefreshTokenCookie(res);
     return { message: "Logged out successfully" };
   }
 
@@ -193,16 +201,5 @@ export class AuthController {
   @Get("me")
   async me(@CurrentUser() user: RequestUser) {
     return this.usersService.findById(user.id);
-  }
-
-  /** Store refresh token in a httpOnly cookie (ANSSI R16). */
-  private setRefreshTokenCookie(res: Response, refreshToken: string): void {
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      path: "/api/v1/auth/refresh",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
   }
 }
