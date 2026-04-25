@@ -1261,7 +1261,85 @@ function DocumentsContent() {
       )}
 
       {viewMode === 'table' && (loading || (docs?.data?.length ?? 0) > 0 || hasFilters || myDocsOnly || !!debouncedSearch) && (
-        <div aria-label="Liste des documents" role="region" className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-thin">
+        <>
+        {/* Mobile: cards layout (< md) — table view sur mobile = cards par défaut */}
+        <div className="md:hidden space-y-2">
+          {loading ? (
+            <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
+              Chargement…
+            </div>
+          ) : (docs?.data?.length ?? 0) === 0 ? (
+            <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
+              <FileText className="mx-auto mb-2 h-8 w-8 opacity-50" />
+              Aucun document
+            </div>
+          ) : (
+            (docs?.data || []).map((doc) => {
+              const classBadge = CARD_CLASS_BADGE[doc.classification || 'INTERNE'] || CARD_CLASS_BADGE.INTERNE;
+              const cardOverdue = doc.nextReviewDate && new Date(doc.nextReviewDate).getTime() < Date.now();
+              return (
+                <button
+                  key={doc.id}
+                  type="button"
+                  onClick={() => router.push(`/documents/${doc.id}`)}
+                  className={`w-full text-left rounded-card border-l-4 ${CLASS_COLORS[doc.classification || 'INTERNE'] || CLASS_COLORS.INTERNE} border-y border-r border-gray-200 dark:border-slate-700 p-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors min-h-[88px]`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[11px] font-mono text-seal-gray-500 dark:text-slate-500 truncate">
+                      {doc.reference}
+                    </span>
+                    <StatusBadge status={doc.status as never} className="text-[10px]" />
+                  </div>
+                  <p className="mt-1 text-sm font-semibold text-seal-navy dark:text-white line-clamp-2">
+                    {doc.title}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${classBadge.bg} ${classBadge.text}`}>
+                      {classBadge.label}
+                    </span>
+                    {cardOverdue && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#892034]/10 px-2 py-0.5 text-[10px] font-bold text-[#892034]">
+                        <AlertTriangle className="h-2.5 w-2.5" />
+                        À revoir
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-seal-gray-500 dark:text-slate-500 truncate">
+                    {doc.owner.firstName} {doc.owner.lastName} · {new Date(doc.updatedAt).toLocaleDateString('fr-FR')}
+                  </p>
+                </button>
+              );
+            })
+          )}
+          {docs && docs.meta.totalPages > 1 && (
+            <div className="flex items-center justify-between gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={filters.page <= 1}
+                onClick={() => setFilters({ page: filters.page - 1 })}
+                className="min-h-[44px]"
+              >
+                Précédent
+              </Button>
+              <span className="text-xs text-seal-gray-500">
+                {filters.page} / {docs.meta.totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={filters.page >= docs.meta.totalPages}
+                onClick={() => setFilters({ page: filters.page + 1 })}
+                className="min-h-[44px]"
+              >
+                Suivant
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop: full DataTable (>= md) */}
+        <div aria-label="Liste des documents" role="region" className="hidden md:block overflow-x-auto scrollbar-thin">
         {/* Select all header row */}
         {isAdmin && docs?.data && docs.data.length > 0 && (
           <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 dark:bg-slate-800/50 rounded-t-lg border-b border-gray-100 dark:border-slate-700">
@@ -1303,6 +1381,7 @@ function DocumentsContent() {
           emptyIcon={<FileText className="h-12 w-12 text-seal-gray-500/30 dark:text-slate-600" />}
         />
         </div>
+        </>
       )}
 
       {/* Vue cartes */}
