@@ -4,12 +4,13 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { MentionsModule } from '../mentions/mentions.module';
 import { MeilisearchModule } from '../search/meilisearch.module';
 import { AiModule } from '../ai/ai.module';
+import { CalendarModule } from '../calendar/calendar.module';
 import { TicketsController } from './tickets.controller';
 import { TicketsRepository } from './tickets.repository';
 import { TicketsService } from './tickets.service';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, MentionsModule, MeilisearchModule, AiModule],
+  imports: [PrismaModule, NotificationsModule, MentionsModule, MeilisearchModule, AiModule, CalendarModule],
   controllers: [TicketsController],
   providers: [TicketsRepository, TicketsService],
   exports: [TicketsService],

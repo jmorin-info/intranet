@@ -12,6 +12,7 @@ import { sanitizePlainText } from '../common/sanitize';
 import { parseEnumFilter, validateEnum } from '../common/validation-helpers';
 import { TicketsRepository } from './tickets.repository';
 import { AiService } from '../ai/ai.service';
+import { CalendarService } from '../calendar/calendar.service';
 
 const VALID_TICKET_STATUSES = ['OPEN', 'IN_PROGRESS', 'WAITING', 'RESOLVED', 'CLOSED'] as const;
 type TicketStatus = (typeof VALID_TICKET_STATUSES)[number];
@@ -49,7 +50,28 @@ export class TicketsService {
     @Optional() private readonly mentions?: MentionsService,
     @Optional() private readonly meili?: MeilisearchService,
     @Optional() private readonly aiService?: AiService,
+    @Optional() private readonly calendar?: CalendarService,
   ) {}
+
+  /**
+   * Hook : declenche la synchro calendrier individuel apres une modification
+   * de ticket. Non-bloquant — toute erreur est loguee mais ne fait pas echouer
+   * la mutation parent.
+   */
+  private syncCalendar(ticketId: string, oldAssigneeId?: string | null): void {
+    if (!this.calendar) return;
+    void (async () => {
+      try {
+        const fresh = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
+        if (!fresh) return;
+        await this.calendar!.syncFromTicket(fresh as any, oldAssigneeId);
+      } catch (err) {
+        this.logger.warn(
+          `Calendar sync failed for ticket ${ticketId}: ${(err as Error)?.message ?? err}`,
+        );
+      }
+    })();
+  }
 
   /**
    * Qualify a freshly-created ticket with AI suggestions (category, priority,
@@ -605,6 +627,12 @@ export class TicketsService {
 
     this.indexForMeili(updated);
 
+    // Calendrier individuel : si l'assigne change, on reattribue les events
+    // existants (et le service skip ceux qui n'ont pas de date associee).
+    if (data.assigneeId !== undefined && data.assigneeId !== ticket.assigneeId) {
+      this.syncCalendar(id, ticket.assigneeId);
+    }
+
     // Notify creator on status change
     if (data.status && ticket.creatorId !== userId) {
       await this.notifications.create({
@@ -618,6 +646,81 @@ export class TicketsService {
     }
 
     if (data.status) this.invalidateDashboardCache();
+
+    return updated;
+  }
+
+  /**
+   * Mise a jour des dates metier d'un ticket (P1.10).
+   * Acces : assigne, manager (REVIEWER+) ou admin.
+   *
+   * Pour chaque date :
+   *  - undefined  -> pas touche
+   *  - null       -> efface la date + event calendrier associe
+   *  - ISO string -> upsert
+   */
+  async updateDates(
+    id: string,
+    dates: {
+      dueDate?: string | null;
+      clientShipmentDate?: string | null;
+      materialReceivedDate?: string | null;
+      deployedAt?: string | null;
+      deploymentScheduledFor?: string | null;
+    },
+    currentUser: { id: string; role: string },
+  ): Promise<any> {
+    const ticket = await this.repo.findByIdRaw(id);
+    if (!ticket) throw new NotFoundException('Ticket introuvable');
+
+    const role = currentUser.role as UserRole;
+    const isManagerOrAbove = ROLE_HIERARCHY[role] >= ROLE_HIERARCHY[UserRole.REVIEWER];
+    const isAssignee = ticket.assigneeId === currentUser.id;
+    if (!isManagerOrAbove && !isAssignee) {
+      throw new ForbiddenException(
+        'Seul l\'assigne ou un manager peut modifier les dates metier du ticket',
+      );
+    }
+
+    const FIELDS = [
+      'dueDate',
+      'clientShipmentDate',
+      'materialReceivedDate',
+      'deployedAt',
+      'deploymentScheduledFor',
+    ] as const;
+
+    const updateData: any = {};
+    for (const field of FIELDS) {
+      if (!(field in dates)) continue;
+      const value = dates[field];
+      if (value === null) {
+        updateData[field] = null;
+      } else if (typeof value === 'string') {
+        const parsed = new Date(value);
+        if (isNaN(parsed.getTime())) {
+          throw new BadRequestException(`Date invalide: ${field}`);
+        }
+        updateData[field] = parsed;
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return ticket;
+    }
+
+    const updated = await this.repo.update(id, updateData);
+
+    await this.audit.log({
+      userId: currentUser.id,
+      action: 'TICKET_DATES_UPDATED',
+      resourceType: 'Ticket',
+      resourceId: id,
+      metadata: { reference: ticket.reference, fields: Object.keys(updateData) },
+    });
+
+    // Synchro calendrier individuel (non-bloquant)
+    this.syncCalendar(id);
 
     return updated;
   }

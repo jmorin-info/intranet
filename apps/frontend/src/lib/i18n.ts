@@ -331,6 +331,17 @@ const translations: Record<string, Record<string, string>> = {
     "tickets.detail.commentError": "Erreur lors de l'ajout du commentaire",
     "tickets.detail.statusSuccess": "Statut mis à jour",
     "tickets.detail.statusError": "Erreur lors de la mise à jour du statut",
+    // Dates métier (P1.10) — synchro calendrier individuel
+    "tickets.dates.title": "Dates clés",
+    "tickets.dates.hint": "Synchronisé vers le calendrier de l'assigné",
+    "tickets.dates.dueDate": "Échéance",
+    "tickets.dates.deploymentScheduledFor": "Déploiement programmé",
+    "tickets.dates.clientShipmentDate": "Envoi client",
+    "tickets.dates.materialReceivedDate": "Réception matériel",
+    "tickets.dates.deployedAt": "Déploiement réalisé",
+    "tickets.dates.notSet": "—",
+    "tickets.dates.saved": "Date enregistrée",
+    "tickets.dates.saveError": "Erreur lors de l'enregistrement de la date",
     // Documents new
     "documents.new.title": "Nouveau document",
     "documents.new.subtitle": "Créer un nouveau document GED",
@@ -822,6 +833,24 @@ const translations: Record<string, Record<string, string>> = {
     "calendar.form.allDay": "Journée entière",
     "calendar.form.department": "Département",
     "calendar.form.allDepartments": "— Tous les départements —",
+    // Export iCal / abonnement Outlook (P1.10)
+    "calendar.export.button": "Exporter vers Outlook",
+    "calendar.export.title": "Abonnement calendrier",
+    "calendar.export.description":
+      "Synchronisez ce calendrier dans Outlook, Google Agenda ou Apple Calendar. Les modifications sont propagées automatiquement.",
+    "calendar.export.urlLabel": "URL d'abonnement (token privé)",
+    "calendar.export.copy": "Copier",
+    "calendar.export.copied": "Copié !",
+    "calendar.export.copyError": "Impossible de copier l'URL",
+    "calendar.export.expiresAt": "Expire le",
+    "calendar.export.tokenError": "Impossible de générer l'URL d'abonnement",
+    "calendar.export.privacy":
+      "Ne partagez pas cette URL : elle donne accès à votre calendrier sans authentification.",
+    "calendar.export.howto.title": "Ajouter dans Outlook",
+    "calendar.export.howto.step1": "Outlook > Calendrier > Ajouter un calendrier > À partir d'Internet",
+    "calendar.export.howto.step2": "Collez l'URL ci-dessus et validez",
+    "calendar.export.howto.step3":
+      "Le calendrier se synchronise automatiquement (toutes les heures environ)",
     // Notifications admin broadcast
     "notifications.admin": "Administration",
     "notifications.adminDesc": "Envoyer une notification à des utilisateurs",
@@ -1659,6 +1688,17 @@ const translations: Record<string, Record<string, string>> = {
     "tickets.detail.commentError": "Error adding comment",
     "tickets.detail.statusSuccess": "Status updated",
     "tickets.detail.statusError": "Error updating status",
+    // Business dates (P1.10) — synced to assignee's individual calendar
+    "tickets.dates.title": "Key dates",
+    "tickets.dates.hint": "Synced to assignee's calendar",
+    "tickets.dates.dueDate": "Due date",
+    "tickets.dates.deploymentScheduledFor": "Scheduled deployment",
+    "tickets.dates.clientShipmentDate": "Client shipment",
+    "tickets.dates.materialReceivedDate": "Material received",
+    "tickets.dates.deployedAt": "Deployed on",
+    "tickets.dates.notSet": "—",
+    "tickets.dates.saved": "Date saved",
+    "tickets.dates.saveError": "Error saving date",
     // Documents new
     "documents.new.title": "New document",
     "documents.new.subtitle": "Create a new DMS document",
@@ -2140,6 +2180,24 @@ const translations: Record<string, Record<string, string>> = {
     "calendar.form.allDay": "All day",
     "calendar.form.department": "Department",
     "calendar.form.allDepartments": "— All departments —",
+    // Export iCal / Outlook subscription (P1.10)
+    "calendar.export.button": "Export to Outlook",
+    "calendar.export.title": "Calendar subscription",
+    "calendar.export.description":
+      "Sync this calendar to Outlook, Google Calendar or Apple Calendar. Changes propagate automatically.",
+    "calendar.export.urlLabel": "Subscription URL (private token)",
+    "calendar.export.copy": "Copy",
+    "calendar.export.copied": "Copied!",
+    "calendar.export.copyError": "Could not copy URL",
+    "calendar.export.expiresAt": "Expires on",
+    "calendar.export.tokenError": "Could not generate subscription URL",
+    "calendar.export.privacy":
+      "Do not share this URL: it grants unauthenticated access to your calendar.",
+    "calendar.export.howto.title": "Add to Outlook",
+    "calendar.export.howto.step1": "Outlook > Calendar > Add calendar > From Internet",
+    "calendar.export.howto.step2": "Paste the URL above and confirm",
+    "calendar.export.howto.step3":
+      "The calendar syncs automatically (about hourly)",
     // Notifications admin broadcast
     "notifications.admin": "Administration",
     "notifications.adminDesc": "Send a notification to users",

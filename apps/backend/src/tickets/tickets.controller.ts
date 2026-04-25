@@ -6,6 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import { UpdateTicketDatesDto } from './dto/update-ticket-dates.dto';
 import { TICKET_TEMPLATES } from './ticket-templates.constants';
 import { BulkAssignDto, BulkStatusDto } from '../common/dto/bulk-ids.dto';
 import { rowsToCsv, csvFilename, CsvColumn } from '../common/utils/csv-export';
@@ -259,6 +260,21 @@ export class TicketsController {
   @Roles(UserRole.ADMIN)
   update(@Param('id', ParseUUIDPipe) id: string, @Body() body: { status?: string; priority?: string; assigneeId?: string; tags?: string[] }, @CurrentUser() user: RequestUser) {
     return this.ticketsService.update(id, body, user.id);
+  }
+
+  /**
+   * Met a jour les dates metier d'un ticket (echeance, envoi, reception,
+   * deploiement programme/realise). Accessible a l'assigne, aux managers
+   * (REVIEWER+) et aux admins. Synchronise automatiquement le calendrier
+   * individuel de l'assigne (P1.10).
+   */
+  @Patch(':id/dates')
+  updateDates(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateTicketDatesDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ticketsService.updateDates(id, body, user);
   }
 
   @Delete(':id')
