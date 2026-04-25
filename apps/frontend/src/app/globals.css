@@ -1797,12 +1797,18 @@ main > [class*="space-y-"] {
   transform-origin: center center;
 }
 
+/* Variante split — animation un peu plus douce car le layout est plus large. */
+.glance-split {
+  animation-duration: 260ms;
+}
+
 .glance-hint {
   animation: fadeIn 120ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .glance-panel {
+  .glance-panel,
+  .glance-split {
     animation: fadeIn 120ms ease-out;
   }
 }
