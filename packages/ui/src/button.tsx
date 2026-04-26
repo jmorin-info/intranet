@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { haptic, type HapticPattern } from './haptic';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 font-semibold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none touch-manipulation select-none active:scale-[0.97] transition-transform duration-100',
+  'inline-flex items-center justify-center gap-2 font-semibold text-sm transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none touch-manipulation select-none active:scale-[0.97] transition-transform duration-100',
   {
     variants: {
       variant: {
@@ -14,9 +14,13 @@ const buttonVariants = cva(
         secondary:
           'bg-transparent border-2 border-seal-navy text-seal-navy hover:bg-seal-navy hover:text-white rounded-btn',
         danger: 'bg-[#892034] text-white hover:bg-[#6f1a2a] rounded-btn shadow-sm hover:shadow-md',
+        // Alias sémantique de `danger` (terminologie shadcn/ui)
+        destructive: 'bg-[#892034] text-white hover:bg-[#6f1a2a] rounded-btn shadow-sm hover:shadow-md',
         ghost: 'bg-transparent text-primary hover:bg-primary-light rounded-btn',
         outline:
           'bg-transparent border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-btn',
+        // Bouton lien : usage minimal, inline, navy SEAL souligné au hover
+        link: 'bg-transparent text-seal-navy dark:text-blue-300 underline-offset-4 hover:underline px-0 h-auto rounded-none shadow-none',
         // === Variantes SEAL System (look produit hypervision OMNITECH) ===
         // Bouton signature SEAL : orange plein → s'inverse au hover (transparent + bordure orange)
         seal: 'bg-[#F9964A] text-white border-2 border-[#F9964A] uppercase tracking-wider rounded-seal hover:bg-transparent hover:text-[#F9964A] font-semibold',
@@ -52,13 +56,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type={type ?? 'button'}
         className={cn(buttonVariants({ variant, size }), className)}
         disabled={disabled || loading}
+        aria-busy={loading || undefined}
+        aria-disabled={disabled || loading || undefined}
         onClick={(e) => {
           if (hapticPattern) haptic(hapticPattern);
           onClick?.(e);
         }}
         {...props}
       >
-        {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+        {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
         {children}
       </button>
     );
