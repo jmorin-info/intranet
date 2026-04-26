@@ -3,11 +3,13 @@ import {
   BadRequestException,
   UnauthorizedException,
   Logger,
+  Optional,
 } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { LdapService } from "../ldap/ldap.service";
+import { AppMetricsService } from "../health/app-metrics.service";
 import { generateSecret, generateURI, verifySync } from "otplib";
 import * as QRCode from "qrcode";
 import * as crypto from "crypto";
@@ -28,6 +30,7 @@ export class MfaService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly ldapService: LdapService,
+    @Optional() private readonly metrics?: AppMetricsService,
   ) {}
 
   /** Génère un nouveau secret TOTP et un QR code. */
@@ -127,9 +130,24 @@ export class MfaService {
     if (!user?.mfaEnabled || !user.mfaSecret) return true;
     // Verify TOTP code (with backup code fallback)
     const result = await verifySync({ token: code, secret: user.mfaSecret });
-    if (result?.valid === true) return true;
+    if (result?.valid === true) {
+      try {
+        this.metrics?.mfaVerifyAttemptsTotal.inc({ status: "success" });
+      } catch {
+        /* noop */
+      }
+      return true;
+    }
     // Try backup code as fallback
-    return this.verifyBackupCode(userId, code);
+    const backupOk = await this.verifyBackupCode(userId, code);
+    try {
+      this.metrics?.mfaVerifyAttemptsTotal.inc({
+        status: backupOk ? "success" : "failed",
+      });
+    } catch {
+      /* noop */
+    }
+    return backupOk;
   }
 
   /**
@@ -384,9 +402,7 @@ export class MfaService {
    * @param roles liste optionnelle de rôles à cibler (ex: ['ADMIN', 'SUPER_ADMIN']).
    *              Sans paramètre → tous les utilisateurs actifs.
    */
-  async enforceMfa(
-    roles?: string[],
-  ): Promise<{
+  async enforceMfa(roles?: string[]): Promise<{
     message: string;
     count: number;
     flagged: number;
@@ -515,8 +531,7 @@ export class MfaService {
           ),
         );
       return {
-        message:
-          "MFA déjà activé pour cet utilisateur — politique sans effet.",
+        message: "MFA déjà activé pour cet utilisateur — politique sans effet.",
         mfaRequired: target.mfaRequired,
       };
     }
@@ -624,9 +639,7 @@ export class MfaService {
         severity: "INFO",
       })
       .catch((err) =>
-        this.logger.error(
-          `Audit log failed (MFA_REVALIDATED): ${err.message}`,
-        ),
+        this.logger.error(`Audit log failed (MFA_REVALIDATED): ${err.message}`),
       );
     return { valid: true, mfaValidatedAt: now };
   }

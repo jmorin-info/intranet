@@ -1,17 +1,18 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsGateway } from '../notifications/notifications.gateway';
-import { Client } from 'ldapts';
-import * as bcrypt from 'bcrypt';
-import * as fs from 'fs';
+import { Injectable, Logger, Optional } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsGateway } from "../notifications/notifications.gateway";
+import { AppMetricsService } from "../health/app-metrics.service";
+import { Client } from "ldapts";
+import * as bcrypt from "bcrypt";
+import * as fs from "fs";
 
 export interface LdapConfig {
   enabled: boolean;
   url: string;
-  bindDN: string;           // svc_intranet@omnitech.security (UPN format)
+  bindDN: string; // svc_intranet@omnitech.security (UPN format)
   bindPassword: string;
-  searchBase: string;       // dc=omnitech,dc=security
-  searchFilter: string;     // (&(objectClass=user)(|(sAMAccountName={{username}})(userPrincipalName={{username}}@omnitech.security)))
+  searchBase: string; // dc=omnitech,dc=security
+  searchFilter: string; // (&(objectClass=user)(|(sAMAccountName={{username}})(userPrincipalName={{username}}@omnitech.security)))
   tlsRejectUnauthorized: boolean;
   emailAttribute: string;
   firstNameAttribute: string;
@@ -40,42 +41,57 @@ export class LdapService {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly notificationsGateway?: NotificationsGateway,
+    @Optional() private readonly metrics?: AppMetricsService,
   ) {}
 
   async getConfig(): Promise<LdapConfig> {
     const getVal = async (key: string, fallback: string) => {
       const config = await this.prisma.appConfig.findUnique({ where: { key } });
-      return config?.value || process.env[key.toUpperCase().replace(/\./g, '_')] || fallback;
+      return (
+        config?.value ||
+        process.env[key.toUpperCase().replace(/\./g, "_")] ||
+        fallback
+      );
     };
 
     return {
-      enabled: (await getVal('ldap.enabled', 'false')) === 'true',
-      url: await getVal('ldap.url', ''),
-      bindDN: await getVal('ldap.bind_dn', ''),
-      bindPassword: await getVal('ldap.bind_password', ''),
-      searchBase: await getVal('ldap.search_base', ''),
-      searchFilter: await getVal('ldap.search_filter', '(&(objectClass=user)(sAMAccountName={{username}}))'),
-      tlsRejectUnauthorized: (await getVal('ldap.tls_reject_unauthorized', 'false')) === 'true',
-      emailAttribute: await getVal('ldap.attr_email', 'mail'),
-      firstNameAttribute: await getVal('ldap.attr_firstname', 'givenName'),
-      lastNameAttribute: await getVal('ldap.attr_lastname', 'sn'),
-      groupAttribute: await getVal('ldap.attr_group', 'memberOf'),
-      roleMapping: JSON.parse(await getVal('ldap.role_mapping', '{}')),
-      defaultRole: await getVal('ldap.default_role', 'COLLABORATEUR'),
+      enabled: (await getVal("ldap.enabled", "false")) === "true",
+      url: await getVal("ldap.url", ""),
+      bindDN: await getVal("ldap.bind_dn", ""),
+      bindPassword: await getVal("ldap.bind_password", ""),
+      searchBase: await getVal("ldap.search_base", ""),
+      searchFilter: await getVal(
+        "ldap.search_filter",
+        "(&(objectClass=user)(sAMAccountName={{username}}))",
+      ),
+      tlsRejectUnauthorized:
+        (await getVal("ldap.tls_reject_unauthorized", "false")) === "true",
+      emailAttribute: await getVal("ldap.attr_email", "mail"),
+      firstNameAttribute: await getVal("ldap.attr_firstname", "givenName"),
+      lastNameAttribute: await getVal("ldap.attr_lastname", "sn"),
+      groupAttribute: await getVal("ldap.attr_group", "memberOf"),
+      roleMapping: JSON.parse(await getVal("ldap.role_mapping", "{}")),
+      defaultRole: await getVal("ldap.default_role", "COLLABORATEUR"),
     };
   }
 
-  private async withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+  private async withRetry<T>(
+    fn: () => Promise<T>,
+    retries = 3,
+    delay = 1000,
+  ): Promise<T> {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         return await fn();
       } catch (err) {
         if (attempt === retries) throw err;
-        this.logger.warn(`LDAP attempt ${attempt} failed, retrying in ${delay * attempt}ms...`);
-        await new Promise(r => setTimeout(r, delay * attempt));
+        this.logger.warn(
+          `LDAP attempt ${attempt} failed, retrying in ${delay * attempt}ms...`,
+        );
+        await new Promise((r) => setTimeout(r, delay * attempt));
       }
     }
-    throw new Error('LDAP retry exhausted');
+    throw new Error("LDAP retry exhausted");
   }
 
   /**
@@ -84,7 +100,10 @@ export class LdapService {
    * 2. Search for user by sAMAccountName or UPN
    * 3. Re-bind as found user with their password
    */
-  async authenticate(email: string, password: string): Promise<LdapUserInfo | null> {
+  async authenticate(
+    email: string,
+    password: string,
+  ): Promise<LdapUserInfo | null> {
     const config = await this.getConfig();
     if (!config.enabled) return null;
 
@@ -106,13 +125,17 @@ export class LdapService {
         this.logger.debug(`LDAPS: loaded CA bundle from ${caPath}`);
       } catch (err) {
         // Non-fatal: log and fall back to rejectUnauthorized behaviour.
-        this.logger.warn(`LDAPS: failed to read CA from ${caPath}: ${err instanceof Error ? err.message : err}`);
+        this.logger.warn(
+          `LDAPS: failed to read CA from ${caPath}: ${err instanceof Error ? err.message : err}`,
+        );
       }
     }
 
     // Warn explicitly if TLS verification is disabled — operators should know.
-    if (!config.tlsRejectUnauthorized && config.url.startsWith('ldaps://')) {
-      this.logger.debug('LDAPS: rejectUnauthorized=false (self-signed cert accepted). Set ldap.tls_reject_unauthorized=true + LDAP_CA_CERT_PATH in prod.');
+    if (!config.tlsRejectUnauthorized && config.url.startsWith("ldaps://")) {
+      this.logger.debug(
+        "LDAPS: rejectUnauthorized=false (self-signed cert accepted). Set ldap.tls_reject_unauthorized=true + LDAP_CA_CERT_PATH in prod.",
+      );
     }
 
     return new Client({
@@ -124,9 +147,13 @@ export class LdapService {
     });
   }
 
-  private async ldapAuthenticate(email: string, password: string, config: LdapConfig): Promise<LdapUserInfo | null> {
+  private async ldapAuthenticate(
+    email: string,
+    password: string,
+    config: LdapConfig,
+  ): Promise<LdapUserInfo | null> {
     // Extract username from email: retevenard@omnitech-security.fr -> retevenard
-    const username = email.split('@')[0]!;
+    const username = email.split("@")[0]!;
 
     const serviceClient = this.createClient(config);
 
@@ -134,7 +161,9 @@ export class LdapService {
       // Step 1: Bind with service account (UPN format)
       await serviceClient.bind(config.bindDN, config.bindPassword);
     } catch (err) {
-      this.logger.warn(`LDAP service bind failed: ${err instanceof Error ? err.message : err}`);
+      this.logger.warn(
+        `LDAP service bind failed: ${err instanceof Error ? err.message : err}`,
+      );
       await this.safeUnbind(serviceClient);
       return null;
     }
@@ -145,17 +174,19 @@ export class LdapService {
 
       const { searchEntries } = await serviceClient.search(config.searchBase, {
         filter,
-        scope: 'sub',
+        scope: "sub",
         attributes: [
-          'dn', 'sAMAccountName', 'userPrincipalName',
+          "dn",
+          "sAMAccountName",
+          "userPrincipalName",
           config.emailAttribute,
           config.firstNameAttribute,
           config.lastNameAttribute,
           config.groupAttribute,
-          'department',
-          'title',
-          'telephoneNumber',
-          'manager',
+          "department",
+          "title",
+          "telephoneNumber",
+          "manager",
         ],
       });
 
@@ -170,8 +201,8 @@ export class LdapService {
 
       const getAttr = (name: string): string => {
         const val = entry[name];
-        if (Array.isArray(val)) return String(val[0] ?? '');
-        return val != null ? String(val) : '';
+        if (Array.isArray(val)) return String(val[0] ?? "");
+        return val != null ? String(val) : "";
       };
       const getMultiAttr = (name: string): string[] => {
         const val = entry[name];
@@ -183,12 +214,12 @@ export class LdapService {
         email: getAttr(config.emailAttribute) || email,
         firstName: getAttr(config.firstNameAttribute),
         lastName: getAttr(config.lastNameAttribute),
-        department: getAttr('department'),
+        department: getAttr("department"),
         groups: getMultiAttr(config.groupAttribute),
         dn: foundDN,
-        jobTitle: getAttr('title') || undefined,
-        phone: getAttr('telephoneNumber') || undefined,
-        managerDN: getAttr('manager') || undefined,
+        jobTitle: getAttr("title") || undefined,
+        phone: getAttr("telephoneNumber") || undefined,
+        managerDN: getAttr("manager") || undefined,
       };
 
       await this.safeUnbind(serviceClient);
@@ -201,12 +232,16 @@ export class LdapService {
         this.logger.log(`LDAP auth OK: ${username} (${foundUser.email})`);
         return foundUser;
       } catch (err) {
-        this.logger.debug(`LDAP user bind failed for ${username}: ${err instanceof Error ? err.message : err}`);
+        this.logger.debug(
+          `LDAP user bind failed for ${username}: ${err instanceof Error ? err.message : err}`,
+        );
         await this.safeUnbind(userClient);
         return null;
       }
     } catch (err) {
-      this.logger.warn(`LDAP search failed: ${err instanceof Error ? err.message : err}`);
+      this.logger.warn(
+        `LDAP search failed: ${err instanceof Error ? err.message : err}`,
+      );
       await this.safeUnbind(serviceClient);
       return null;
     }
@@ -215,7 +250,9 @@ export class LdapService {
   /**
    * Test the LDAP connection by binding with the service account and performing a base search.
    */
-  async testConnection(config: LdapConfig): Promise<{ success: boolean; message: string; details?: string }> {
+  async testConnection(
+    config: LdapConfig,
+  ): Promise<{ success: boolean; message: string; details?: string }> {
     const startTime = Date.now();
     const client = this.createClient(config);
 
@@ -233,8 +270,8 @@ export class LdapService {
 
     try {
       const { searchEntries } = await client.search(config.searchBase, {
-        filter: '(objectClass=*)',
-        scope: 'base',
+        filter: "(objectClass=*)",
+        scope: "base",
       });
 
       const duration = Date.now() - startTime;
@@ -242,9 +279,10 @@ export class LdapService {
 
       return {
         success: true,
-        message: searchEntries.length > 0
-          ? `Connexion LDAPS réussie — bind et recherche OK`
-          : `Bind OK — base de recherche vide ou inaccessible`,
+        message:
+          searchEntries.length > 0
+            ? `Connexion LDAPS réussie — bind et recherche OK`
+            : `Bind OK — base de recherche vide ou inaccessible`,
         details: `URL: ${config.url} — Base: ${config.searchBase} — ${duration}ms`,
       };
     } catch (err) {
@@ -266,14 +304,31 @@ export class LdapService {
    * - Deactivates local users not found in AD (optional)
    */
   async syncAllUsers(deactivateMissing = false): Promise<{
-    created: number; updated: number; deactivated: number; errors: number; total: number;
+    created: number;
+    updated: number;
+    deactivated: number;
+    errors: number;
+    total: number;
   }> {
     const config = await this.getConfig();
-    if (!config.enabled) throw new Error('LDAP is not enabled');
+    if (!config.enabled) throw new Error("LDAP is not enabled");
 
     const client = this.createClient(config);
-    const stats: { created: number; updated: number; deactivated: number; errors: number; total: number; skipped: number } = {
-      created: 0, updated: 0, deactivated: 0, errors: 0, total: 0, skipped: 0,
+    const syncStart = process.hrtime.bigint();
+    const stats: {
+      created: number;
+      updated: number;
+      deactivated: number;
+      errors: number;
+      total: number;
+      skipped: number;
+    } = {
+      created: 0,
+      updated: 0,
+      deactivated: 0,
+      errors: 0,
+      total: 0,
+      skipped: 0,
     };
 
     try {
@@ -283,15 +338,23 @@ export class LdapService {
       const code = (err as any)?.code;
       // FIX: log code + URL explicitly (never the password) so operators can diagnose
       // "invalid credentials" vs "cert issue" vs "network unreachable".
-      this.logger.error(`LDAP bulk sync bind failed: ${detail} (code=${code ?? 'n/a'}, DN=${config.bindDN}, URL=${config.url})`);
+      this.logger.error(
+        `LDAP bulk sync bind failed: ${detail} (code=${code ?? "n/a"}, DN=${config.bindDN}, URL=${config.url})`,
+      );
       await this.safeUnbind(client);
-      throw new Error(`Impossible de se connecter au serveur LDAP (${config.url}): ${detail}`);
+      throw new Error(
+        `Impossible de se connecter au serveur LDAP (${config.url}): ${detail}`,
+      );
     }
 
     try {
       // Fetch ALL active AD users
-      const userFilter = await this.prisma.appConfig.findUnique({ where: { key: 'ldap.user_filter' } });
-      const filter = userFilter?.value || '(&(objectCategory=Person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))';
+      const userFilter = await this.prisma.appConfig.findUnique({
+        where: { key: "ldap.user_filter" },
+      });
+      const filter =
+        userFilter?.value ||
+        "(&(objectCategory=Person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))";
 
       // FIX (root cause): Active Directory hard-caps search results at MaxPageSize=1000 server-side.
       // Passing sizeLimit:5000 without paging triggers a `size limit exceeded` error and aborts
@@ -299,15 +362,19 @@ export class LdapService {
       // results in pages of 1000 transparently. Do NOT set sizeLimit: let the server paginate.
       const { searchEntries } = await client.search(config.searchBase, {
         filter,
-        scope: 'sub',
+        scope: "sub",
         attributes: [
-          'dn', 'sAMAccountName', 'userPrincipalName',
-          config.emailAttribute, config.firstNameAttribute,
-          config.lastNameAttribute, config.groupAttribute,
-          'department',
-          'title',
-          'telephoneNumber',
-          'manager',
+          "dn",
+          "sAMAccountName",
+          "userPrincipalName",
+          config.emailAttribute,
+          config.firstNameAttribute,
+          config.lastNameAttribute,
+          config.groupAttribute,
+          "department",
+          "title",
+          "telephoneNumber",
+          "manager",
         ],
         paged: { pageSize: 1000 },
       });
@@ -321,8 +388,8 @@ export class LdapService {
         try {
           const getAttr = (name: string): string => {
             const val = entry[name];
-            if (Array.isArray(val)) return String(val[0] ?? '');
-            return val != null ? String(val) : '';
+            if (Array.isArray(val)) return String(val[0] ?? "");
+            return val != null ? String(val) : "";
           };
           const getMultiAttr = (name: string): string[] => {
             const val = entry[name];
@@ -336,29 +403,33 @@ export class LdapService {
           // du searchBase. Sans ce fallback, les nouveaux utilisateurs étaient
           // silencieusement ignorés à chaque synchro.
           let email = getAttr(config.emailAttribute);
-          if (!email || !email.includes('@')) {
-            const upn = getAttr('userPrincipalName');
-            if (upn && upn.includes('@')) {
+          if (!email || !email.includes("@")) {
+            const upn = getAttr("userPrincipalName");
+            if (upn && upn.includes("@")) {
               email = upn;
-              this.logger.debug(`LDAP sync: fallback mail→userPrincipalName for ${entry.dn}`);
+              this.logger.debug(
+                `LDAP sync: fallback mail→userPrincipalName for ${entry.dn}`,
+              );
             } else {
-              const sam = getAttr('sAMAccountName');
+              const sam = getAttr("sAMAccountName");
               // Dérive le domaine du searchBase (ex: DC=omnitech,DC=security → omnitech.security)
-              const domain = (config.searchBase || '')
-                .split(',')
-                .filter((p) => p.toLowerCase().startsWith('dc='))
+              const domain = (config.searchBase || "")
+                .split(",")
+                .filter((p) => p.toLowerCase().startsWith("dc="))
                 .map((p) => p.slice(3))
-                .join('.');
+                .join(".");
               if (sam && domain) {
                 email = `${sam}@${domain}`;
-                this.logger.debug(`LDAP sync: fallback mail→sAMAccountName@domain for ${entry.dn} → ${email}`);
+                this.logger.debug(
+                  `LDAP sync: fallback mail→sAMAccountName@domain for ${entry.dn} → ${email}`,
+                );
               }
             }
           }
-          if (!email || !email.includes('@')) {
+          if (!email || !email.includes("@")) {
             // Log EXPLICITE pour traçabilité — les comptes sans aucun identifiant
             // email reconnaissable sont exclus mais on garde la trace.
-            const cn = getAttr('cn') || getAttr('displayName') || entry.dn;
+            const cn = getAttr("cn") || getAttr("displayName") || entry.dn;
             this.logger.warn(
               `LDAP sync: skipping entry without resolvable email: ${cn} (dn=${entry.dn})`,
             );
@@ -370,16 +441,18 @@ export class LdapService {
             email,
             firstName: getAttr(config.firstNameAttribute),
             lastName: getAttr(config.lastNameAttribute),
-            department: getAttr('department'),
+            department: getAttr("department"),
             groups: getMultiAttr(config.groupAttribute),
             dn: entry.dn,
-            jobTitle: getAttr('title') || undefined,
-            phone: getAttr('telephoneNumber') || undefined,
-            managerDN: getAttr('manager') || undefined,
+            jobTitle: getAttr("title") || undefined,
+            phone: getAttr("telephoneNumber") || undefined,
+            managerDN: getAttr("manager") || undefined,
           };
 
           // Check if user exists BEFORE sync to track create vs update
-          const existingBefore = await this.prisma.user.findUnique({ where: { email } });
+          const existingBefore = await this.prisma.user.findUnique({
+            where: { email },
+          });
           if (existingBefore) {
             // Mise à jour standard du profil, rôle préservé.
             await this.syncUser(ldapUser, config);
@@ -392,12 +465,17 @@ export class LdapService {
             // Si une entrée PENDING existe déjà pour cet email, on la
             // rafraîchit avec les dernières données AD (lastSeenAt).
             // Vérifie si une entrée pending existe déjà et son statut
-            const existingPending = await this.prisma.ldapPendingUser.findUnique({
-              where: { email },
-              select: { id: true, status: true },
-            });
+            const existingPending =
+              await this.prisma.ldapPendingUser.findUnique({
+                where: { email },
+                select: { id: true, status: true },
+              });
 
-            if (existingPending && (existingPending.status === 'REJECTED' || existingPending.status === 'APPROVED')) {
+            if (
+              existingPending &&
+              (existingPending.status === "REJECTED" ||
+                existingPending.status === "APPROVED")
+            ) {
               // L'admin a déjà pris une décision → on ne recrée PAS en PENDING.
               // On met juste à jour lastSeenAt pour le suivi AD.
               await this.prisma.ldapPendingUser.update({
@@ -409,15 +487,17 @@ export class LdapService {
               });
               syncedEmails.add(email.toLowerCase());
               stats.skipped++;
-              this.logger.debug(`LDAP pending skip (already ${existingPending.status}): ${email}`);
+              this.logger.debug(
+                `LDAP pending skip (already ${existingPending.status}): ${email}`,
+              );
             } else {
               // Nouvelle entrée OU entrée PENDING existante → upsert normal
               await this.prisma.ldapPendingUser.upsert({
                 where: { email },
                 create: {
                   email,
-                  firstName: ldapUser.firstName || email.split('@')[0]!,
-                  lastName: ldapUser.lastName || '',
+                  firstName: ldapUser.firstName || email.split("@")[0]!,
+                  lastName: ldapUser.lastName || "",
                   jobTitle: ldapUser.jobTitle || null,
                   phone: ldapUser.phone || null,
                   adDepartment: ldapUser.department || null,
@@ -440,59 +520,79 @@ export class LdapService {
           }
         } catch (err) {
           stats.errors++;
-          this.logger.warn(`LDAP sync error for ${entry.dn}: ${err instanceof Error ? err.message : err}`);
+          this.logger.warn(
+            `LDAP sync error for ${entry.dn}: ${err instanceof Error ? err.message : err}`,
+          );
         }
       }
 
       // Optionally deactivate users not found in AD
       if (deactivateMissing) {
         const localUsers = await this.prisma.user.findMany({
-          where: { isActive: true, role: { not: 'SUPER_ADMIN' } },
+          where: { isActive: true, role: { not: "SUPER_ADMIN" } },
           select: { id: true, email: true },
         });
 
         for (const localUser of localUsers) {
           if (!syncedEmails.has(localUser.email.toLowerCase())) {
             // Skip service accounts and prestataires
-            if (localUser.email.includes('prestataire') || localUser.email.includes('svc_')) continue;
+            if (
+              localUser.email.includes("prestataire") ||
+              localUser.email.includes("svc_")
+            )
+              continue;
 
             await this.prisma.user.update({
               where: { id: localUser.id },
               data: { isActive: false },
             });
             stats.deactivated++;
-            this.logger.log(`LDAP sync: deactivated ${localUser.email} (not in AD)`);
+            this.logger.log(
+              `LDAP sync: deactivated ${localUser.email} (not in AD)`,
+            );
           }
         }
       }
 
-      this.logger.log(`LDAP bulk sync complete: ${stats.created} created, ${stats.updated} updated, ${stats.deactivated} deactivated, ${stats.errors} errors, ${stats.skipped} skipped`);
+      this.logger.log(
+        `LDAP bulk sync complete: ${stats.created} created, ${stats.updated} updated, ${stats.deactivated} deactivated, ${stats.errors} errors, ${stats.skipped} skipped`,
+      );
 
       // Notifie les admins en temps réel si de nouveaux pending ont été détectés
       if (stats.created > 0 && this.notificationsGateway) {
         try {
           const pendingCount = await this.prisma.ldapPendingUser.count({
-            where: { status: 'PENDING' },
+            where: { status: "PENDING" },
           });
-          this.notificationsGateway.broadcast('ldap-pending-new', {
+          this.notificationsGateway.broadcast("ldap-pending-new", {
             newDetected: stats.created,
             totalPending: pendingCount,
             at: new Date().toISOString(),
           });
         } catch (err) {
-          this.logger.debug(`broadcast ldap-pending-new failed: ${err instanceof Error ? err.message : err}`);
+          this.logger.debug(
+            `broadcast ldap-pending-new failed: ${err instanceof Error ? err.message : err}`,
+          );
         }
       }
     } catch (err) {
       // FIX: propagate an explicit, UI-friendly error (controller surfaces `err.message`).
       const detail = err instanceof Error ? err.message : String(err);
       const code = (err as any)?.code;
-      this.logger.error(`LDAP bulk sync failed: ${detail} (code=${code ?? 'n/a'}, URL=${config.url}, base=${config.searchBase})`);
+      this.logger.error(
+        `LDAP bulk sync failed: ${detail} (code=${code ?? "n/a"}, URL=${config.url}, base=${config.searchBase})`,
+      );
       throw new Error(`Sync LDAP échouée: ${detail}`);
     } finally {
       // FIX: unbind is guaranteed even if an unexpected throw happens above,
       // preventing socket leaks on the ldapts connection pool.
       await this.safeUnbind(client);
+      try {
+        const elapsed = Number(process.hrtime.bigint() - syncStart) / 1e9;
+        this.metrics?.ldapSyncDurationSeconds.observe(elapsed);
+      } catch {
+        /* noop */
+      }
     }
 
     return stats;
@@ -509,19 +609,30 @@ export class LdapService {
   /**
    * Sync an LDAP user into the local database.
    */
-  async syncUser(ldapUser: LdapUserInfo, cachedConfig?: LdapConfig): Promise<{ id: string; email: string; role: string }> {
-    const config = cachedConfig || await this.getConfig();
+  async syncUser(
+    ldapUser: LdapUserInfo,
+    cachedConfig?: LdapConfig,
+  ): Promise<{ id: string; email: string; role: string }> {
+    const config = cachedConfig || (await this.getConfig());
 
     // Map AD groups to app role
     let role = config.defaultRole;
-    for (const [groupPattern, mappedRole] of Object.entries(config.roleMapping)) {
-      if (ldapUser.groups.some((g) => g.toLowerCase().includes(groupPattern.toLowerCase()))) {
+    for (const [groupPattern, mappedRole] of Object.entries(
+      config.roleMapping,
+    )) {
+      if (
+        ldapUser.groups.some((g) =>
+          g.toLowerCase().includes(groupPattern.toLowerCase()),
+        )
+      ) {
         role = mappedRole;
         break;
       }
     }
 
-    let user = await this.prisma.user.findUnique({ where: { email: ldapUser.email } });
+    let user = await this.prisma.user.findUnique({
+      where: { email: ldapUser.email },
+    });
 
     // Resolve managerId from manager DN if available
     let resolvedManagerId: string | undefined;
@@ -534,13 +645,16 @@ export class LdapService {
         if (cnMatch) {
           const managerCN = cnMatch[1];
           // Try to find manager by name parts
-          const nameParts = managerCN.split(' ');
+          const nameParts = managerCN.split(" ");
           if (nameParts.length >= 2) {
             const managerUser = await this.prisma.user.findFirst({
               where: {
                 isActive: true,
-                firstName: { contains: nameParts[0], mode: 'insensitive' },
-                lastName: { contains: nameParts[nameParts.length - 1], mode: 'insensitive' },
+                firstName: { contains: nameParts[0], mode: "insensitive" },
+                lastName: {
+                  contains: nameParts[nameParts.length - 1],
+                  mode: "insensitive",
+                },
               },
               select: { id: true },
             });
@@ -548,7 +662,9 @@ export class LdapService {
           }
         }
       } catch (err) {
-        this.logger.debug(`Failed to resolve manager DN ${ldapUser.managerDN}: ${err instanceof Error ? err.message : err}`);
+        this.logger.debug(
+          `Failed to resolve manager DN ${ldapUser.managerDN}: ${err instanceof Error ? err.message : err}`,
+        );
       }
     }
 
@@ -578,12 +694,15 @@ export class LdapService {
     } else {
       const email = ldapUser.email;
       // Better fallback: try to extract from displayName or email
-      const lastName = ldapUser.lastName
-        || (ldapUser.firstName.includes(' ') ? ldapUser.firstName.split(' ').slice(1).join(' ').toUpperCase() : '')
-        || email.split('@')[0]!.toUpperCase();
-      const firstName = ldapUser.firstName.includes(' ')
-        ? ldapUser.firstName.split(' ')[0]!
-        : ldapUser.firstName || email.split('@')[0]!;
+      const lastName =
+        ldapUser.lastName ||
+        (ldapUser.firstName.includes(" ")
+          ? ldapUser.firstName.split(" ").slice(1).join(" ").toUpperCase()
+          : "") ||
+        email.split("@")[0]!.toUpperCase();
+      const firstName = ldapUser.firstName.includes(" ")
+        ? ldapUser.firstName.split(" ")[0]!
+        : ldapUser.firstName || email.split("@")[0]!;
 
       const hash = await bcrypt.hash(`LDAP_${Date.now()}_${Math.random()}`, 10);
       user = await this.prisma.user.create({
@@ -599,7 +718,7 @@ export class LdapService {
           isActive: true,
           lastLoginAt: new Date(),
           gdprConsentAt: new Date(),
-          gdprConsentIp: 'LDAP_SYNC',
+          gdprConsentIp: "LDAP_SYNC",
           jobTitle: ldapUser.jobTitle || null,
           phone: ldapUser.phone || null,
           managerId: resolvedManagerId || null,
@@ -612,14 +731,16 @@ export class LdapService {
     // This preserves manual department assignments made by admins on the intranet
     if (ldapUser.department && !user.departmentId) {
       const dept = await this.prisma.department.findFirst({
-        where: { name: { contains: ldapUser.department, mode: 'insensitive' } },
+        where: { name: { contains: ldapUser.department, mode: "insensitive" } },
       });
       if (dept) {
         await this.prisma.user.update({
           where: { id: user.id },
           data: { departmentId: dept.id },
         });
-        this.logger.debug(`LDAP dept mapping (initial): ${user.email} → ${dept.name}`);
+        this.logger.debug(
+          `LDAP dept mapping (initial): ${user.email} → ${dept.name}`,
+        );
       }
     }
 
@@ -630,16 +751,18 @@ export class LdapService {
   // Workflow "Pending users" — validation admin après détection LDAP
   // =========================================================================
 
-  async listPendingUsers(status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL' = 'PENDING') {
+  async listPendingUsers(
+    status: "PENDING" | "APPROVED" | "REJECTED" | "ALL" = "PENDING",
+  ) {
     return this.prisma.ldapPendingUser.findMany({
-      where: status === 'ALL' ? {} : { status },
-      orderBy: { detectedAt: 'desc' },
+      where: status === "ALL" ? {} : { status },
+      orderBy: { detectedAt: "desc" },
       take: 200,
     });
   }
 
   async countPendingUsers(): Promise<number> {
-    return this.prisma.ldapPendingUser.count({ where: { status: 'PENDING' } });
+    return this.prisma.ldapPendingUser.count({ where: { status: "PENDING" } });
   }
 
   async approvePendingUser(
@@ -647,25 +770,31 @@ export class LdapService {
     params: { departmentId?: string; role: string },
     adminId: string,
   ) {
-    const pending = await this.prisma.ldapPendingUser.findUnique({ where: { id: pendingId } });
+    const pending = await this.prisma.ldapPendingUser.findUnique({
+      where: { id: pendingId },
+    });
     if (!pending) {
-      throw new Error('Demande introuvable');
+      throw new Error("Demande introuvable");
     }
-    if (pending.status !== 'PENDING') {
-      throw new Error('Demande déjà traitée');
+    if (pending.status !== "PENDING") {
+      throw new Error("Demande déjà traitée");
     }
     // Double-check : pas de doublon sur email
-    const existing = await this.prisma.user.findUnique({ where: { email: pending.email } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: pending.email },
+    });
     if (existing) {
       await this.prisma.ldapPendingUser.update({
         where: { id: pendingId },
         data: {
-          status: 'SUPERSEDED',
+          status: "SUPERSEDED",
           processedById: adminId,
           processedAt: new Date(),
         },
       });
-      throw new Error('Un utilisateur avec cet email existe déjà (demande marquée SUPERSEDED)');
+      throw new Error(
+        "Un utilisateur avec cet email existe déjà (demande marquée SUPERSEDED)",
+      );
     }
     const hash = await bcrypt.hash(`LDAP_${Date.now()}_${Math.random()}`, 10);
     const user = await this.prisma.user.create({
@@ -681,7 +810,7 @@ export class LdapService {
         isActive: true,
         lastLoginAt: null,
         gdprConsentAt: new Date(),
-        gdprConsentIp: 'LDAP_SYNC_APPROVED',
+        gdprConsentIp: "LDAP_SYNC_APPROVED",
         jobTitle: pending.jobTitle,
         phone: pending.phone,
         departmentId: params.departmentId ?? null,
@@ -690,30 +819,34 @@ export class LdapService {
     await this.prisma.ldapPendingUser.update({
       where: { id: pendingId },
       data: {
-        status: 'APPROVED',
+        status: "APPROVED",
         processedById: adminId,
         processedAt: new Date(),
       },
     });
     this.logger.log(
-      `LDAP pending approved → created user ${user.email} role=${params.role} dept=${params.departmentId || 'none'} by admin=${adminId}`,
+      `LDAP pending approved → created user ${user.email} role=${params.role} dept=${params.departmentId || "none"} by admin=${adminId}`,
     );
     return user;
   }
 
   async rejectPendingUser(pendingId: string, reason: string, adminId: string) {
-    const pending = await this.prisma.ldapPendingUser.findUnique({ where: { id: pendingId } });
-    if (!pending) throw new Error('Demande introuvable');
-    if (pending.status !== 'PENDING') throw new Error('Demande déjà traitée');
+    const pending = await this.prisma.ldapPendingUser.findUnique({
+      where: { id: pendingId },
+    });
+    if (!pending) throw new Error("Demande introuvable");
+    if (pending.status !== "PENDING") throw new Error("Demande déjà traitée");
     await this.prisma.ldapPendingUser.update({
       where: { id: pendingId },
       data: {
-        status: 'REJECTED',
+        status: "REJECTED",
         rejectReason: reason,
         processedById: adminId,
         processedAt: new Date(),
       },
     });
-    this.logger.log(`LDAP pending rejected: ${pending.email} reason="${reason}" by admin=${adminId}`);
+    this.logger.log(
+      `LDAP pending rejected: ${pending.email} reason="${reason}" by admin=${adminId}`,
+    );
   }
 }
