@@ -392,11 +392,13 @@ export default function SatisfactionPage() {
         {q.description && <p className="text-xs text-seal-gray-500 dark:text-slate-400">{q.description}</p>}
 
         {q.type === 'rating' && (
-          <div className="flex gap-1.5 py-1">
+          <div className="flex gap-1 py-1" role="radiogroup" aria-label="Note de 1 à 5 étoiles">
             {[1, 2, 3, 4, 5].map(n => (
               <button key={n} type="button" onClick={() => setValue(String(n))}
+                role="radio"
+                aria-checked={parseInt(value) === n}
                 aria-label={`Note ${n} sur 5`}
-                className="transition-transform hover:scale-125">
+                className="h-11 w-11 flex items-center justify-center rounded-lg transition-transform hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                 <Star className={`h-7 w-7 transition ${n <= (parseInt(value) || 0) ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-slate-600'}`} />
               </button>
             ))}
@@ -427,31 +429,37 @@ export default function SatisfactionPage() {
 
         {q.type === 'scale' && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-seal-gray-500">1</span>
-            <div className="flex gap-1">
+            <span className="text-xs text-seal-gray-500" aria-hidden="true">1</span>
+            <div className="flex gap-1 flex-wrap" role="radiogroup" aria-label="Échelle de 1 à 10">
               {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
                 <button key={n} type="button" onClick={() => setValue(String(n))}
-                  className={`h-8 w-8 rounded-lg text-xs font-medium transition ${
+                  role="radio"
+                  aria-checked={parseInt(value) === n}
+                  aria-label={`Note ${n} sur 10`}
+                  className={`h-11 w-11 sm:h-9 sm:w-9 rounded-lg text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     parseInt(value) === n
-                      ? 'bg-primary text-white scale-110'
+                      ? 'bg-primary text-white scale-110 shadow-md'
                       : parseInt(value) >= n
                         ? 'bg-primary/20 text-primary'
-                        : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200'
+                        : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600'
                   }`}>
                   {n}
                 </button>
               ))}
             </div>
-            <span className="text-xs text-seal-gray-500">10</span>
+            <span className="text-xs text-seal-gray-500" aria-hidden="true">10</span>
           </div>
         )}
 
         {q.type === 'yesno' && (
-          <div className="flex gap-3">
+          <div className="flex gap-3" role="radiogroup" aria-label="Oui ou Non">
             {[{ v: 'Oui', color: 'bg-emerald-50 border-emerald-300 text-emerald-700' }, { v: 'Non', color: 'bg-red-50 border-red-300 text-red-700' }].map(opt => (
               <button key={opt.v} type="button" onClick={() => setValue(opt.v)}
-                className={`flex-1 py-2.5 rounded-lg border text-sm font-medium transition ${
-                  value === opt.v ? opt.color : 'border-gray-200 dark:border-slate-600 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50'
+                role="radio"
+                aria-checked={value === opt.v}
+                aria-label={opt.v}
+                className={`flex-1 min-h-[44px] py-3 rounded-lg border-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                  value === opt.v ? opt.color : 'border-gray-200 dark:border-slate-600 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'
                 }`}>
                 {opt.v}
               </button>
@@ -573,7 +581,7 @@ export default function SatisfactionPage() {
       )}
 
       {/* Status filter chips */}
-      <div className="flex gap-1.5 items-center flex-wrap">
+      <div className="flex gap-1.5 items-center flex-wrap" role="group" aria-label="Filtrer les enquêtes par statut">
         {([
           { value: 'all' as const, label: 'Toutes' },
           { value: 'active' as const, label: 'Actives' },
@@ -582,7 +590,8 @@ export default function SatisfactionPage() {
           <button
             key={chip.value}
             onClick={() => setStatusFilter(chip.value)}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+            aria-pressed={statusFilter === chip.value}
+            className={`rounded-full px-3 min-h-[36px] text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               statusFilter === chip.value
                 ? 'bg-primary text-white'
                 : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
@@ -601,8 +610,17 @@ export default function SatisfactionPage() {
 
       {/* Surveys list */}
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-24 animate-pulse rounded-card bg-gray-100 dark:bg-slate-800" />)}
+        <div className="space-y-3" aria-busy="true" aria-label="Chargement des enquêtes">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="rounded-xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-1/3 rounded shimmer" />
+                <div className="h-4 w-16 rounded-full shimmer" />
+              </div>
+              <div className="h-3 w-2/3 rounded shimmer" />
+              <div className="h-2 w-full rounded-full shimmer mt-2" />
+            </div>
+          ))}
         </div>
       ) : surveys.length === 0 ? (
         <EmptyState

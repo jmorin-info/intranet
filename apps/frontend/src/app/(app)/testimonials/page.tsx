@@ -65,7 +65,7 @@ export default function TestimonialsPage() {
 
       {/* CTA principal */}
       <Card className="mb-6 border-dashed border-[#F9964A]/40 bg-gradient-to-br from-[#F9964A]/5 to-transparent">
-        <CardContent className="py-6 flex items-center gap-4">
+        <CardContent className="py-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F9964A]/15 flex-shrink-0">
             <Sparkles className="h-7 w-7 text-[#F9964A]" />
           </div>
@@ -82,6 +82,8 @@ export default function TestimonialsPage() {
             onClick={() => setDialogOpen(true)}
             disabled={hasPendingMine}
             title={hasPendingMine ? 'Vous avez déjà un témoignage en attente de modération' : ''}
+            aria-label={hasPendingMine ? 'Témoignage en attente de modération' : 'Partager mon avis sur l\'intranet'}
+            className="w-full sm:w-auto min-h-[44px] flex-shrink-0"
           >
             {hasPendingMine ? 'Témoignage en attente' : 'Partager mon avis'}
           </Button>
@@ -147,11 +149,30 @@ export default function TestimonialsPage() {
       </h2>
 
       {loading ? (
-        <div className="text-center text-sm text-seal-gray-500 py-8">Chargement…</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" aria-busy="true" aria-label="Chargement des témoignages">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 space-y-3">
+              <div className="h-3 w-full rounded shimmer" />
+              <div className="h-3 w-5/6 rounded shimmer" />
+              <div className="h-3 w-2/3 rounded shimmer" />
+              <div className="h-2.5 w-1/3 rounded shimmer mt-4" />
+            </div>
+          ))}
+        </div>
       ) : approved.length === 0 ? (
         <EmptyState
           title="Aucun témoignage publié pour l'instant"
           description="Soyez le premier à partager votre expérience ! Après modération, votre témoignage apparaîtra ici et sur le portail public /welcome (à partir de 3 témoignages approuvés)."
+          action={
+            <Button
+              size="sm"
+              onClick={() => setDialogOpen(true)}
+              disabled={hasPendingMine}
+              aria-label="Partager mon premier témoignage"
+            >
+              <Sparkles className="h-4 w-4" /> Partager mon témoignage
+            </Button>
+          }
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

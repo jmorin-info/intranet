@@ -214,8 +214,8 @@ export default function TimelinePage() {
         }
       />
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <Filter className="h-4 w-4 text-seal-gray-500 dark:text-slate-500" />
+      <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Filtres de la timeline">
+        <Filter className="h-4 w-4 text-seal-gray-500 dark:text-slate-500" aria-hidden="true" />
         {(Object.keys(KIND_META) as TimelineKind[]).map((k) => {
           const meta = KIND_META[k];
           const active = kindFilter.has(k);
@@ -224,7 +224,9 @@ export default function TimelinePage() {
               key={k}
               type="button"
               onClick={() => toggleKind(k)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition btn-lift ${
+              aria-pressed={active}
+              aria-label={`${active ? 'Masquer' : 'Afficher'} ${meta.label}`}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 min-h-[36px] sm:min-h-0 sm:py-1 text-xs font-semibold transition btn-lift ${
                 active ? meta.chip : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-500 opacity-60'
               }`}
             >

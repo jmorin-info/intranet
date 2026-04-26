@@ -440,13 +440,14 @@ export default function CalendarPage() {
       <div className="flex items-center justify-end mb-6 gap-2">
         <button
           onClick={goToday}
-          className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-slate-600 text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+          aria-label={t('calendar.today')}
+          className="px-4 min-h-[40px] text-xs font-medium rounded-lg border border-gray-200 dark:border-slate-600 text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {t('calendar.today')}
         </button>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col md:flex-row gap-6">
         {/* Calendar grid */}
         <div className="flex-1">
           <Card>
@@ -455,17 +456,17 @@ export default function CalendarPage() {
               <div className="flex items-center justify-between mb-4">
                 <button
                   onClick={prevMonth}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition"
+                  className="h-11 w-11 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label={t('calendar.prevMonth')}
                 >
                   <ChevronLeft className="h-5 w-5 text-seal-navy dark:text-white" />
                 </button>
-                <h2 className="text-lg font-medium text-seal-navy dark:text-white">
+                <h2 className="text-lg font-medium text-seal-navy dark:text-white" aria-live="polite">
                   {MONTHS_FR[month]} {year}
                 </h2>
                 <button
                   onClick={nextMonth}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition"
+                  className="h-11 w-11 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label={t('calendar.nextMonth')}
                 >
                   <ChevronRight className="h-5 w-5 text-seal-navy dark:text-white" />
@@ -501,9 +502,12 @@ export default function CalendarPage() {
                       <button
                         key={idx}
                         onClick={() => setSelectedDate(day)}
+                        aria-label={`${day.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}${dayEvents.length ? ` — ${dayEvents.length} évènement${dayEvents.length > 1 ? 's' : ''}` : ''}`}
+                        aria-pressed={isSelected}
                         className={[
                           'relative h-20 p-1.5 text-left transition-colors',
                           'bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:z-10',
                           !isCurrentMonth && 'opacity-40',
                           isSelected && 'ring-2 ring-primary ring-inset',
                         ].filter(Boolean).join(' ')}
@@ -575,8 +579,8 @@ export default function CalendarPage() {
           </Card>
         </div>
 
-        {/* Sidebar: selected day events */}
-        <div className="hidden md:block w-80 flex-shrink-0">
+        {/* Sidebar: selected day events (desktop) */}
+        <div className="hidden md:block w-80 flex-shrink-0" aria-label="Détails du jour sélectionné">
           <Card className="sticky top-24">
             <CardContent className="p-4">
               {selectedDate ? (
@@ -620,7 +624,7 @@ export default function CalendarPage() {
                         const evTime = (() => { try { const d = new Date(ev.date); const h = d.getHours(); const m = d.getMinutes(); return (h === 0 && m === 0) ? null : `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`; } catch { return null; } })();
                         const inner = (
                           <div
-                            className={`flex items-start gap-2.5 rounded-lg p-2.5 transition hover:ring-1 hover:ring-primary/30 ${config!.bg}`}
+                            className={`flex items-start gap-2.5 rounded-lg p-3 min-h-[44px] transition hover:ring-1 hover:ring-primary/30 ${config!.bg}`}
                             style={{ borderLeft: `3px solid ${catColor || (ev.color ? ev.color : 'transparent')}` }}
                           >
                             <Icon className={`h-4 w-4 mt-0.5 flex-shrink-0 ${iconColor}`} />
