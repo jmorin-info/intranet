@@ -4,6 +4,7 @@ import {
   AccessReviewCampaignStatus,
   AuditSeverity,
   IncidentStatus,
+  Prisma,
   SignatureCampaignStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -92,10 +93,10 @@ export class CyberScoreService {
         await this.prisma.cyberScoreSnapshot.create({
           data: {
             score,
-            // Prisma.JsonValue — on passe `as any` car Prisma v5 attend
-            // InputJsonValue/InputJsonObject et nos domaines sont typés stricts
-            // (CyberScoreDomain[]) — JSON compatible mais pas assignable direct.
-            domains: domains as any,
+            // Prisma v5 attend InputJsonValue ; nos domaines sont typés
+            // stricts (CyberScoreDomain[]) — JSON compatible mais pas
+            // assignable direct, on cast vers InputJsonValue.
+            domains: domains as unknown as Prisma.InputJsonValue,
           },
         });
       } catch (err: any) {

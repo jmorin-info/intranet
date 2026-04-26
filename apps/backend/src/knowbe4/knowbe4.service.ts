@@ -192,7 +192,16 @@ export class KnowBe4Service {
     let skipped = 0;
     let errors = 0;
 
-    for (const enrollment of enrollments as any[]) {
+    type Enrollment = {
+      status?: string;
+      user?: { email?: string };
+      enrollment_id?: string | number;
+      campaign_name?: string;
+      module_name?: string;
+      training_campaign?: { name?: string };
+      completion_date?: string;
+    };
+    for (const enrollment of enrollments as Enrollment[]) {
       try {
         const status: string | undefined = enrollment?.status;
         if (status !== 'Passed') {

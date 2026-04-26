@@ -50,6 +50,20 @@ export class RssiSmsiPdfGenerator {
 
     // Données métier — chaque appel est encapsulé pour ne pas casser le PDF
     // si une source est en panne (la section affichera "Non renseigné").
+    // safeOrNull retourne `T | null` — on ne peut pas typer fallback comme `T`
+    // sans surcharger les fonctions appelantes. Cette variante locale accepte
+    // un fallback `null` et retourne `Awaited<ReturnType> | null`.
+    const safeOrNull = async <T>(
+      fn: () => Promise<T>,
+      label: string,
+    ): Promise<T | null> => {
+      try {
+        return await fn();
+      } catch (err: any) {
+        this.logger.warn(`[smsi-pdf] ${label}: ${err?.message || err}`);
+        return null;
+      }
+    };
     const safe = async <T>(fn: () => Promise<T>, fallback: T, label: string): Promise<T> => {
       try {
         return await fn();
@@ -68,12 +82,12 @@ export class RssiSmsiPdfGenerator {
       snapshot,
       activeFrameworks,
     ] = await Promise.all([
-      safe(() => this.cyberScore.computeAndSnapshot({ persist: false }), null as any, 'cyber'),
-      safe(() => this.dashboard.getSmsiState(), null as any, 'smsi'),
-      safe(() => this.dashboard.getComplianceProgress(), null as any, 'compliance'),
-      safe(() => this.dashboard.getOperationalIndicators(), null as any, 'indicators'),
-      safe(() => this.dashboard.getIncidentTrend(), null as any, 'trend'),
-      safe(() => this.dashboard.getSnapshot(), null as any, 'snapshot'),
+      safeOrNull(() => this.cyberScore.computeAndSnapshot({ persist: false }), 'cyber'),
+      safeOrNull(() => this.dashboard.getSmsiState(), 'smsi'),
+      safeOrNull(() => this.dashboard.getComplianceProgress(), 'compliance'),
+      safeOrNull(() => this.dashboard.getOperationalIndicators(), 'indicators'),
+      safeOrNull(() => this.dashboard.getIncidentTrend(), 'trend'),
+      safeOrNull(() => this.dashboard.getSnapshot(), 'snapshot'),
       safe(
         () =>
           this.prisma.complianceFramework.findMany({
@@ -109,7 +123,10 @@ export class RssiSmsiPdfGenerator {
       marginX: 50,
       marginTop: 90,
       marginBottom: 70,
-      currentPage: null as any,
+      // RenderCtx.currentPage est défini après startContentPage() ; la valeur
+      // initiale est posée après création du pdfDoc — TODO: review type safety
+      // pour exposer `currentPage?: PDFPage` au lieu de la non-nullable.
+      currentPage: null as unknown as PDFPage,
       y: 0,
       classification: 'CONFIDENTIEL',
       usableW: 0,

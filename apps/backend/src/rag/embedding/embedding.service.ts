@@ -83,7 +83,8 @@ export class EmbeddingService {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ model, prompt: text }),
-          signal: controller.signal as any,
+          // Node fetch attend un AbortSignal DOM ; conversion locale.
+          signal: controller.signal as AbortSignal,
         });
 
         clearTimeout(timeout);

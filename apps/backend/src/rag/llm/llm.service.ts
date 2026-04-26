@@ -119,7 +119,9 @@ export class LlmService {
             temperature: options.temperature ?? 0.3,
           },
         }),
-        signal: controller.signal as any,
+        // Node fetch attend un AbortSignal compatible avec DOM ; les types
+        // diffèrent légèrement entre node:undici et le DOM lib, on contourne.
+        signal: controller.signal as AbortSignal,
       });
 
       if (!response.ok) {
@@ -174,7 +176,9 @@ export class LlmService {
             temperature: options.temperature ?? 0.3,
           },
         }),
-        signal: controller.signal as any,
+        // Node fetch attend un AbortSignal compatible avec DOM ; les types
+        // diffèrent légèrement entre node:undici et le DOM lib, on contourne.
+        signal: controller.signal as AbortSignal,
       });
 
       if (!response.ok) {

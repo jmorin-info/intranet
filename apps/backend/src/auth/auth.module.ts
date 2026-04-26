@@ -37,7 +37,12 @@ const authModuleLogger = new Logger('AuthModule');
             // ANSSI R28 — durée de vie access token réduite à 30min pour
             // les intranets. Le refresh token (7j, one-time use) gère la
             // continuité de session sans exposer un JWT longue durée.
-            expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN || '30m') as any,
+            // jsonwebtoken expiresIn accepte `number | StringValue` (ms-format)
+            // mais le type StringValue est non-exporté ; cast en `string` ici.
+            expiresIn:
+              (process.env.JWT_ACCESS_EXPIRES_IN || '30m') as
+              | `${number}`
+              | `${number}${'m' | 'h' | 'd' | 's'}`,
           },
         };
       },
