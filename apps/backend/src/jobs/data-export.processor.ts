@@ -26,9 +26,16 @@ export class DataExportProcessor extends WorkerHost {
     }
   }
 
-  async process(job: Job<DataExportJobData>): Promise<any> {
+  async process(job: Job<DataExportJobData>): Promise<{ downloadUrl: string }> {
     const { userId, exportRequestId } = job.data;
     this.logger.log(`Processing data export for user ${userId}`);
+
+    // Mark as PROCESSING — utile pour le polling client (`GET .../:id`)
+    // afin de distinguer "queued" de "running".
+    await this.prisma.dataExportRequest.update({
+      where: { id: exportRequestId },
+      data: { status: 'PROCESSING' },
+    });
 
     try {
       // Gather all user data
@@ -111,15 +118,19 @@ export class DataExportProcessor extends WorkerHost {
 
       const downloadUrl = `/storage/exports/${fileName}`;
 
-      // Update export request
+      // Update export request with COMPLETED state + filePath disk +
+      // downloadUrl client-facing.
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7-day expiry
 
       await this.prisma.dataExportRequest.update({
         where: { id: exportRequestId },
         data: {
+          status: 'COMPLETED',
           processedAt: new Date(),
+          completedAt: new Date(),
           downloadUrl,
+          filePath,
           expiresAt,
         },
       });
@@ -135,6 +146,16 @@ export class DataExportProcessor extends WorkerHost {
         `Data export failed for user ${userId}: ${err.message}`,
         err.stack,
       );
+      // Persiste l'erreur cote DB pour que le client puisse la voir via
+      // `GET .../:id`. La queue BullMQ continue ses retries (attempts=3).
+      // Au dernier echec, status reste FAILED et errorMessage est expose.
+      await this.prisma.dataExportRequest.update({
+        where: { id: exportRequestId },
+        data: {
+          status: 'FAILED',
+          errorMessage: err.message,
+        },
+      });
       throw error;
     }
   }

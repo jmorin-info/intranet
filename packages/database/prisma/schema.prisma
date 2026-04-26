@@ -683,18 +683,33 @@ model AuditLog {
   @@index([userId, action, createdAt])
 }
 
+enum DataExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model DataExportRequest {
-  id          String    @id @default(uuid())
-  userId      String
-  requestedAt DateTime  @default(now())
-  processedAt DateTime?
-  downloadUrl String?
-  expiresAt   DateTime?
+  id           String           @id @default(uuid())
+  userId       String
+  requestedAt  DateTime         @default(now())
+  processedAt  DateTime?
+  completedAt  DateTime?
+  status       DataExportStatus @default(PENDING)
+  // filePath = chemin disque relatif au STORAGE_PATH (utile au processor
+  // pour cleanup/relocalisation). downloadUrl reste l'URL côté API exposée
+  // au client, conservée pour rétrocompat.
+  filePath     String?
+  downloadUrl  String?
+  errorMessage String?
+  expiresAt    DateTime?
 
   // Relations
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([status])
 }
 
 model AppConfig {
