@@ -1291,8 +1291,11 @@ export default function QuizPage() {
                   <Button
                     onClick={() => {
                       const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/api\/?$/, '/api/v1');
-                      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '';
-                      window.open(`${apiUrl}/quiz/certificate/${result.auditLogId}?token=${encodeURIComponent(token || '')}`, '_blank');
+                      // ANSSI A.5.34 — JWT en cookie httpOnly same-origin :
+                      // `window.open` nav vers /api/v1/... attache le cookie
+                      // automatiquement (path=/api). Plus besoin du fallback
+                      // ?token=… qui exposait le JWT dans l'URL/historique.
+                      window.open(`${apiUrl}/quiz/certificate/${result.auditLogId}`, '_blank');
                     }}
                   >
                     <Download className="h-4 w-4 mr-1" /> Télécharger le certificat

@@ -10,12 +10,21 @@ const WEAK_JWT_DEFAULT = 'omnitech-access-secret-change-me';
 const jwtStrategyLogger = new Logger('JwtStrategy');
 
 /**
- * Extract JWT from:
- * 1. Authorization: Bearer <token> header (standard)
- * 2. ?token=<token> query parameter (for browser file downloads via window.open)
+ * Extract JWT from (in priority order) :
+ * 1. Cookie httpOnly `accessToken` — schéma cible (ANSSI A.5.34 / OWASP A05) :
+ *    le JWT n'est plus exposé à JS, immunisé contre XSS.
+ * 2. Authorization: Bearer <token> header — rétrocompat (sessions actives
+ *    avec token encore en localStorage côté frontend, ou clients API tiers).
+ * 3. ?token=<token> query parameter — uniquement pour les téléchargements
+ *    déclenchés par window.open() (PDF inline, etc.) où on ne peut pas
+ *    poser de header.
  */
-function extractJwt(req: Request): string | null {
-  // Try header first
+function extractJwt(req: Request & { cookies?: Record<string, string> }): string | null {
+  // Try cookie first (preferred path, anti-XSS)
+  const fromCookie = req.cookies?.accessToken;
+  if (fromCookie) return fromCookie;
+
+  // Fallback to Authorization header (legacy clients, tests, API consumers)
   const fromHeader = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
   if (fromHeader) return fromHeader;
 

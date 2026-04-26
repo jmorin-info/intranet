@@ -111,8 +111,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (data.mfaRequired) {
       throw Object.assign(new Error('MFA_REQUIRED'), { mfaRequired: true, email: data.email });
     }
-    localStorage.setItem('accessToken', data.accessToken);
-    // refreshToken is now stored in a httpOnly cookie by the backend (ANSSI R16)
+    // ANSSI A.5.34 / OWASP A05 — accessToken vit désormais en cookie httpOnly
+    // posé par le backend ; on ne le persiste plus en localStorage (anti-XSS).
+    // refreshToken est aussi en cookie httpOnly (déjà migré, ANSSI R16).
     // Flag prestataire who needs MFA setup (will be redirected by auth provider)
     if (data.mfaSetupRequired) {
       localStorage.setItem('mfaSetupRequired', 'true');
@@ -123,29 +124,30 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
-      // The refresh token cookie is sent automatically and cleared by the backend
+      // Both accessToken and refreshToken cookies are sent automatically and
+      // cleared server-side by the backend.
       await api.post('/auth/logout', {});
     } catch {
       // ignore logout errors
     }
+    // Cleanup rétrocompat — supprime le legacy localStorage des sessions
+    // précédentes (avant migration cookie). N'a aucun effet sur les sessions
+    // post-migration (la clé est déjà absente).
     localStorage.removeItem('accessToken');
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
 
   fetchMe: async () => {
     try {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        set({ user: null, isAuthenticated: false, isLoading: false });
-        return;
-      }
+      // Le JWT est désormais dans un cookie httpOnly envoyé automatiquement
+      // (axios `withCredentials: true`). On ne pré-vérifie plus la présence
+      // d'un token côté JS — on laisse le backend trancher via /auth/me.
+      // Si pas de cookie valide, on récupère 401 et on tombe dans le catch.
       const { data } = await api.get('/auth/me');
       hydrateLocaleFromUser(data as Record<string, unknown>);
       set({ user: mapUser(data), isAuthenticated: true, isLoading: false });
     } catch (err: unknown) {
-      // Only clear the token on a definitive auth failure (401/403).
-      // Network errors, aborts, or timeouts should NOT destroy a potentially valid token
-      // — the user may simply be offline or the request was aborted by a page reload.
+      // Cleanup rétrocompat du legacy localStorage en cas d'auth fail.
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 401 || status === 403) {
         localStorage.removeItem('accessToken');

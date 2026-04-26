@@ -1,20 +1,19 @@
 /**
- * Ajoute le JWT courant comme query param `?token=...` à une URL servie par
- * un endpoint backend protégé par JwtStrategy. Nécessaire pour les <img>,
- * <video> et téléchargements (window.open) qui ne peuvent pas envoyer le
- * header Authorization: Bearer.
+ * Renvoie l'URL telle quelle — depuis la migration cookie httpOnly
+ * (ANSSI A.5.34 / OWASP A05), le navigateur attache automatiquement le
+ * cookie `accessToken` aux requêtes same-origin (<img>, <video>,
+ * window.open vers /api/...). Plus besoin d'exposer le JWT en query param.
  *
- * Le backend (apps/backend/src/auth/strategies/jwt.strategy.ts::extractJwt)
- * accepte explicitement le token en query param pour ce cas d'usage.
- *
- * Retourne l'URL inchangée si pas de token (SSR ou non authentifié) : la
- * requête échouera en 401 côté navigateur, mais l'app ne plantera pas.
+ * Conservé en helper pour ne pas casser les call-sites qui l'enroulent
+ * autour des URLs media. Rétrocompat : si une session legacy a encore un
+ * token en localStorage et pas de cookie, on le réinjecte une dernière fois
+ * en query — le backend accepte les deux schémas via JwtStrategy.
  */
 export function withAuthToken(url: string | null | undefined): string {
   if (!url) return '';
   if (typeof window === 'undefined') return url;
-  const token = window.localStorage.getItem('accessToken');
-  if (!token) return url;
+  const legacyToken = window.localStorage.getItem('accessToken');
+  if (!legacyToken) return url;
   const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}token=${encodeURIComponent(token)}`;
+  return `${url}${separator}token=${encodeURIComponent(legacyToken)}`;
 }

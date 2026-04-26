@@ -181,9 +181,20 @@ export default function WelcomePage() {
   const [openDialog, setOpenDialog] = useState<DialogKey>(null);
   const { t } = useTranslation();
 
-  // Check auth status (don't redirect — let connected users see welcome too)
+  // Check auth status (don't redirect — let connected users see welcome too).
+  // ANSSI A.5.34 — JWT en cookie httpOnly : on ne peut plus inspecter le
+  // localStorage. On fait un ping discret sur /auth/me ; si 200 → user
+  // connecté, sinon → invité. Rétrocompat : on regarde aussi le legacy
+  // localStorage pour ne pas faire le ping inutile pendant la transition.
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem("accessToken"));
+    const legacyToken = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    if (legacyToken) {
+      setIsLoggedIn(true);
+      return;
+    }
+    fetch(`${API}/auth/me`, { credentials: "include", cache: "no-store" })
+      .then((r) => setIsLoggedIn(r.ok))
+      .catch(() => setIsLoggedIn(false));
   }, []);
 
   // Fetch public data. Wrapped in useCallback so we can also trigger it on

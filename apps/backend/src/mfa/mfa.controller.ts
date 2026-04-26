@@ -28,6 +28,7 @@ import { SetMfaPolicyDto } from "./dto/set-mfa-policy.dto";
 import { RevalidateMfaDto } from "./dto/revalidate-mfa.dto";
 import { SkipMfaCheck } from "./decorators/skip-mfa-check.decorator";
 import { RequireFreshMfa } from "./decorators/require-fresh-mfa.decorator";
+import { setAccessTokenCookie } from "../common/cookies.util";
 
 @Controller("mfa")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -157,6 +158,7 @@ export class MfaController {
   async revalidate(
     @CurrentUser() user: RequestUser,
     @Body() body: RevalidateMfaDto,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.mfaService.revalidateMfa(user.id, body.code);
 
@@ -178,6 +180,9 @@ export class MfaController {
       departmentId: dbUser.departmentId ?? undefined,
       mfaValidatedAt: result.mfaValidatedAt,
     });
+
+    // ANSSI A.5.34 / OWASP A05 — JWT en cookie httpOnly (anti-XSS).
+    setAccessTokenCookie(res, accessToken);
 
     return {
       accessToken,

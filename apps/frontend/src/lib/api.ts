@@ -50,11 +50,21 @@ function processQueue(error: unknown, token: string | null) {
   failedQueue = [];
 }
 
+// Le JWT est désormais transmis via cookie httpOnly `accessToken` (ANSSI A.5.34
+// / OWASP A05) — il est attaché automatiquement par le navigateur grâce à
+// `withCredentials: true` ci-dessus. Plus besoin d'un intercepteur Bearer
+// manuel (qui exigeait d'exposer le token au JS, donc à toute XSS).
+//
+// Rétrocompat : si une session legacy a encore un token en localStorage et pas
+// encore de cookie (1ʳᵉ requête après mise en prod), on le réinjecte une seule
+// fois en header Authorization. Le backend `JwtStrategy` accepte les deux
+// schémas. Au prochain refresh / login, le cookie sera posé et cette branche
+// deviendra inactive.
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const legacyToken = localStorage.getItem('accessToken');
+    if (legacyToken && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${legacyToken}`;
     }
   }
   return config;
@@ -69,8 +79,9 @@ api.interceptors.response.use(
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+        }).then(() => {
+          // Cookie has been rotated server-side — just retry, navigateur
+          // attache le nouveau cookie automatiquement.
           return api(originalRequest);
         });
       }
@@ -79,7 +90,10 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // The refresh token is sent automatically via httpOnly cookie
+        // Both tokens travel via httpOnly cookies. The backend rotates the
+        // accessToken cookie on success — no need to read/write the body
+        // token client-side. We still surface `accessToken` to processQueue
+        // for legacy waiters that still want to set Authorization headers.
         const { data } = await axios.post(
           `${API_URL}/auth/refresh`,
           {},
@@ -87,11 +101,12 @@ api.interceptors.response.use(
         );
 
         const { accessToken } = data;
-        localStorage.setItem('accessToken', accessToken);
+        // Cleanup éventuel reliquat localStorage post-migration cookie.
+        localStorage.removeItem('accessToken');
 
         processQueue(null, accessToken);
 
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        // Pas de Authorization header à reposer : le cookie suffit.
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);

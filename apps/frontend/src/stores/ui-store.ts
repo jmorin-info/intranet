@@ -120,7 +120,9 @@ export const useUIStore = create<UIState>((set) => ({
   setLocale: (locale, options) => {
     if (typeof window !== 'undefined') localStorage.setItem('locale', locale);
     set({ locale });
-    if (!options?.skipRemote && typeof window !== 'undefined' && localStorage.getItem('accessToken')) {
+    // ANSSI A.5.34 — On ne peut plus pré-vérifier la présence d'un JWT (cookie
+    // httpOnly). On envoie l'API call best-effort : si non auth, 401 silencieux.
+    if (!options?.skipRemote && typeof window !== 'undefined') {
       // Lazy import to keep ui-store free of an `api` dependency at module init.
       import('@/lib/api')
         .then(({ api }) => api.patch('/users/me/preferences', { locale }))

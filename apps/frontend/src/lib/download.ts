@@ -119,12 +119,12 @@ export async function downloadDocument(
   const apiUrl = (
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
   ).replace(/\/api\/?$/, "/api/v1");
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("accessToken") : "";
   const url = `${apiUrl}/documents/${documentId}/versions/${versionId}/download`;
 
+  // ANSSI A.5.34 — JWT vit en cookie httpOnly ; `credentials: 'include'`
+  // l'attache automatiquement (anti-XSS, plus de Bearer manuel).
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: "include",
   });
 
   if (!response.ok) throw new Error("Download failed");

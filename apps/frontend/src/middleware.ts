@@ -74,8 +74,18 @@ export function middleware(request: NextRequest) {
   // Allow public paths
   if (publicPaths.some((path) => pathname.startsWith(path))) {
     // Prevent redirect loops: authenticated users hitting /login are sent to /dashboard.
+    // On détecte la session via les cookies httpOnly (refreshToken OU
+    // accessToken — ce dernier ajouté par la migration ANSSI A.5.34 / OWASP A05
+    // qui sort le JWT de localStorage). Le refreshToken reste l'indicateur le
+    // plus fiable (path=/api/v1/auth/refresh), mais accessToken (path=/api)
+    // est aussi envoyé sur la nav vers /login uniquement si même origine —
+    // ici Next.js et l'API ne partagent pas le path, donc en pratique seul
+    // refreshToken sera envoyé sur /login. accessToken est gardé en filet
+    // de sécurité pour les déploiements où Nginx route différemment.
     if (pathname.startsWith("/login")) {
-      const hasSession = request.cookies.has("refreshToken");
+      const hasSession =
+        request.cookies.has("refreshToken") ||
+        request.cookies.has("accessToken");
       if (hasSession) {
         const dashboardUrl = new URL("/dashboard", request.url);
         return NextResponse.redirect(dashboardUrl);

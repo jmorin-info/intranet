@@ -149,11 +149,12 @@ export default function ChartesWallPage() {
   const currentCharte = chartes[current];
   const pdfFile = useMemo(() => {
     if (!currentCharte) return null;
+    // ANSSI A.5.34 — JWT en cookie httpOnly. react-pdf supporte
+    // `withCredentials` qui demande au navigateur d'attacher les cookies
+    // de l'origine cible (anti-XSS, plus de Bearer manuel).
     return {
       url: `${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/?$/, '/api/v1')}/chartes/${currentCharte.id}/pdf`,
-      httpHeaders: {
-        Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('accessToken') || '' : ''}`,
-      },
+      withCredentials: true,
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCharte?.id]);
