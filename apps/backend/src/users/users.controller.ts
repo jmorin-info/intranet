@@ -37,6 +37,8 @@ import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { UserRole } from "../common/enums";
 import { RequestUser } from "../common/interfaces";
 import { rowsToCsv, csvFilename, CsvColumn } from "../common/utils/csv-export";
+import { packageGdprExport } from "./gdpr-export-packager";
+import type { GdprPdfPayload } from "./gdpr-export-pdf";
 
 const AVATAR_STORAGE_PATH = path.resolve(
   process.cwd(),
@@ -414,16 +416,23 @@ export class UsersController {
       throw new BadRequestException("User context missing");
     }
     const data = await this.usersService.requestGdprExport(user.id);
-    const json = JSON.stringify(data, null, 2);
-    const buf = Buffer.from(json, "utf-8");
-    const date = new Date().toISOString().split("T")[0];
+
+    // Package the payload as a ZIP archive containing:
+    //  - data.json     (machine-readable, legal source of truth, unchanged)
+    //  - rapport.pdf   (human-readable summary, SEAL charter)
+    //  - audit-logs.csv (full audit logs for spreadsheet apps)
+    //  - README.txt    (explanations + integrity verification instructions)
+    const zip = await packageGdprExport(data as unknown as GdprPdfPayload);
 
     res.set({
-      "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="export-rgpd-${date}.json"`,
-      "Content-Length": buf.length.toString(),
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${zip.fileName}"`,
+      "Content-Length": zip.byteLength.toString(),
+      // Expose the data.json hash for clients that want to verify integrity
+      // without opening the PDF/README.
+      "X-Gdpr-Data-Sha256": zip.dataJsonHash,
     });
-    res.end(buf);
+    res.end(zip.buffer);
   }
 
   @Post(":id/reset-password")
