@@ -9,6 +9,7 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
+import type { DocumentCategory } from "@prisma/client";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
@@ -51,7 +52,7 @@ export class WorkflowsController {
     dto: {
       name: string;
       description?: string;
-      documentCategory?: string | null;
+      documentCategory?: DocumentCategory | null;
       isDefault?: boolean;
     },
     @CurrentUser() user: RequestUser,
@@ -73,7 +74,7 @@ export class WorkflowsController {
     dto: {
       name?: string;
       description?: string | null;
-      documentCategory?: string | null;
+      documentCategory?: DocumentCategory | null;
       isActive?: boolean;
       isDefault?: boolean;
     },

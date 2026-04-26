@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'crypto';
+import { SignatureCampaignStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -578,11 +579,11 @@ export class CampaignsService {
     );
     const anySigned = sigs.some((s: any) => s.status === 'SIGNED');
 
-    let newStatus: string | null = null;
+    let newStatus: SignatureCampaignStatus | null = null;
     if (allSigned && sigs.every((s: any) => s.status === 'SIGNED')) {
-      newStatus = 'COMPLETED';
+      newStatus = SignatureCampaignStatus.COMPLETED;
     } else if (anySigned) {
-      newStatus = 'IN_PROGRESS';
+      newStatus = SignatureCampaignStatus.IN_PROGRESS;
     }
     if (newStatus) {
       await this.prisma.signatureCampaign.update({
