@@ -5,6 +5,8 @@ import { cn } from './utils';
 import { X } from 'lucide-react';
 import { Button } from './button';
 
+type DialogSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
+
 interface DialogProps {
   open: boolean;
   onClose: () => void;
@@ -12,7 +14,31 @@ interface DialogProps {
   description?: string;
   children?: React.ReactNode;
   className?: string;
+  /**
+   * Taille du panneau (rétrocompat : `md` par défaut).
+   * - `sm|md|lg` : modale centrée, largeur croissante
+   * - `xl|full` : bottom-sheet sur mobile, modale large/plein écran sur desktop
+   */
+  size?: DialogSize;
 }
+
+const SIZE_PANEL: Record<DialogSize, string> = {
+  sm: 'sm:max-w-sm',
+  md: 'sm:max-w-lg',
+  lg: 'sm:max-w-2xl',
+  xl: 'sm:max-w-4xl',
+  full: 'sm:max-w-[min(96vw,1200px)]',
+};
+
+const SIZE_RADIUS: Record<DialogSize, string> = {
+  // Modales centrées (sm|md|lg) : conservation rendu existant.
+  sm: 'rounded-t-card rounded-b-none sm:rounded-card',
+  md: 'rounded-t-card rounded-b-none sm:rounded-card',
+  lg: 'rounded-t-card rounded-b-none sm:rounded-card',
+  // xl|full : bottom-sheet mobile (collé en bas), arrondis 2xl en haut.
+  xl: 'rounded-t-2xl rounded-b-none w-full sm:w-auto sm:rounded-2xl',
+  full: 'rounded-t-2xl rounded-b-none w-full sm:w-auto sm:rounded-2xl',
+};
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -36,7 +62,7 @@ function getVisibleFocusable(root: HTMLElement): HTMLElement[] {
   );
 }
 
-export function Dialog({ open, onClose, title, description, children, className }: DialogProps) {
+export function Dialog({ open, onClose, title, description, children, className, size = 'md' }: DialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -140,7 +166,7 @@ export function Dialog({ open, onClose, title, description, children, className 
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-end sm:items-start justify-center overflow-y-auto bg-black/50 p-0 sm:p-4 sm:pt-[5vh] sm:pb-[5vh] animate-fade-in-scale"
+      className="fixed inset-0 z-50 flex items-end sm:items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-0 sm:p-4 sm:pt-[5vh] sm:pb-[5vh] animate-fade-in-scale"
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
@@ -148,8 +174,9 @@ export function Dialog({ open, onClose, title, description, children, className 
       <div
         ref={panelRef}
         className={cn(
-          'bg-white dark:bg-slate-900 shadow-xl w-full sm:max-w-lg max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col animate-fade-in-scale',
-          'rounded-t-card rounded-b-none sm:rounded-card sm:rounded-b-card',
+          'bg-white dark:bg-slate-900 shadow-xl w-full max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col animate-fade-in-scale',
+          SIZE_PANEL[size],
+          SIZE_RADIUS[size],
           className,
         )}
         role="dialog"

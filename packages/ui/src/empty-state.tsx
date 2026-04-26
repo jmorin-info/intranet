@@ -1,6 +1,17 @@
 import React from 'react';
 import { cn } from './utils';
-import { FileX, Users, Newspaper, Bell, Search, FolderOpen, CheckCircle2, TicketIcon } from 'lucide-react';
+import {
+  FileX,
+  Users,
+  Newspaper,
+  Bell,
+  Search,
+  FolderOpen,
+  CheckCircle2,
+  TicketIcon,
+  type LucideIcon,
+} from 'lucide-react';
+import { Button } from './button';
 
 type EmptyStateType = 'documents' | 'users' | 'news' | 'notifications' | 'search' | 'general' | 'success' | 'tickets';
 
@@ -15,37 +26,80 @@ const iconMap: Record<EmptyStateType, { icon: React.ReactNode; bg: string }> = {
   tickets: { icon: <TicketIcon className="h-10 w-10 text-amber-400/60" />, bg: 'bg-amber-50 dark:bg-amber-900/20' },
 };
 
+type CtaClick = { label: string; onClick: () => void; href?: never };
+type CtaLink = { label: string; href: string; onClick?: never };
+type Cta = CtaClick | CtaLink;
+
 interface EmptyStateProps {
   type?: EmptyStateType;
+  /**
+   * Icône Lucide custom (composant). Prend le pas sur `type` si fournie.
+   * Permet aux écrans hors taxonomie d'afficher un visuel cohérent.
+   */
+  icon?: LucideIcon;
   title: string;
   description?: string;
+  /** Action principale typée (rétrocompat : utiliser `action` pour un noeud libre). */
+  cta?: Cta;
+  /** @deprecated Préférer `cta`. Conservé pour rétrocompatibilité. */
   action?: React.ReactNode;
   className?: string;
 }
 
 export function EmptyState({
   type = 'general',
+  icon: IconComponent,
   title,
   description,
+  cta,
   action,
   className,
 }: EmptyStateProps) {
   const { icon, bg } = iconMap[type];
+  const renderedIcon = IconComponent ? (
+    <IconComponent className="h-10 w-10 text-seal-navy/50 dark:text-blue-300/50" aria-hidden="true" />
+  ) : (
+    icon
+  );
+  const renderedBg = IconComponent ? 'bg-seal-navy/5 dark:bg-blue-900/20' : bg;
+
+  let renderedCta: React.ReactNode = action;
+  if (!renderedCta && cta) {
+    if ('href' in cta && cta.href) {
+      renderedCta = (
+        <a
+          href={cta.href}
+          className="inline-flex items-center justify-center gap-2 rounded-btn bg-[#F9964A] px-4 h-10 text-sm font-semibold text-white hover:bg-[#e67d1e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy focus-visible:ring-offset-2 transition-colors"
+        >
+          {cta.label}
+        </a>
+      );
+    } else if ('onClick' in cta && cta.onClick) {
+      renderedCta = (
+        <Button variant="primary" size="md" onClick={cta.onClick}>
+          {cta.label}
+        </Button>
+      );
+    }
+  }
+
   return (
-    <div className={cn(
-      'flex flex-col items-center justify-center py-16 px-6 rounded-2xl',
-      'bg-gradient-to-b from-gray-50/80 to-transparent dark:from-slate-800/40 dark:to-transparent',
-      className,
-    )}>
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center py-12 px-6 rounded-2xl',
+        'bg-gradient-to-b from-gray-50/80 to-transparent dark:from-slate-800/40 dark:to-transparent',
+        className,
+      )}
+    >
       <div className="animate-[fadeIn_0.5s_ease-out] flex flex-col items-center">
-        <div className={cn('rounded-2xl p-5 mb-5 ring-1 ring-black/5 dark:ring-white/5', bg)}>
-          {icon}
+        <div className={cn('rounded-2xl p-5 mb-5 ring-1 ring-black/5 dark:ring-white/5', renderedBg)}>
+          {renderedIcon}
         </div>
         <h3 className="text-lg font-semibold text-seal-navy dark:text-white">{title}</h3>
         {description && (
           <p className="mt-2 text-sm text-seal-gray-500 dark:text-slate-400 text-center max-w-sm leading-relaxed">{description}</p>
         )}
-        {action && <div className="mt-5">{action}</div>}
+        {renderedCta && <div className="mt-5">{renderedCta}</div>}
       </div>
     </div>
   );
