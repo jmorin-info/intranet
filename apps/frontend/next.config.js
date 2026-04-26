@@ -2,6 +2,11 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
 
+// next-intl — pointe vers la config server (i18n/request.ts) qui charge les
+// messages par locale. URLs sans préfixe locale (cf. i18n/config.ts).
+const createNextIntlPlugin = require("next-intl/plugin");
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
 // CSP est désormais émis par le middleware (src/middleware.ts) avec un nonce
 // par requête + 'strict-dynamic'. On garde ici uniquement les autres entêtes
 // de sécurité (statiques) — sinon ils écraseraient le CSP nonce-based.
@@ -119,7 +124,7 @@ const nextConfig = {
 // Sentry — opt-in. We always wrap the config (the Next.js plugin is a no-op
 // for runtime behaviour when no DSN is provided), but source-map upload
 // only happens when SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT are set.
-let exported = withBundleAnalyzer(nextConfig);
+let exported = withBundleAnalyzer(withNextIntl(nextConfig));
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { withSentryConfig } = require("@sentry/nextjs");
