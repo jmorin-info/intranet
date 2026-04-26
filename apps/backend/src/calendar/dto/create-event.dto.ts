@@ -11,6 +11,7 @@ import {
 } from 'class-validator';
 
 const CATEGORIES = ['AUDIT', 'FORMATION', 'COMITE', 'REUNION', 'MAINTENANCE', 'GENERAL'] as const;
+const VISIBILITIES = ['PRIVATE', 'TEAM', 'INTERNAL', 'PUBLIC'] as const;
 
 export class CreateCalendarEventDto {
   @IsString()
@@ -60,6 +61,11 @@ export class CreateCalendarEventDto {
   @IsString()
   @Matches(/^#[0-9a-fA-F]{6}$/, { message: 'color must be a valid hex color (e.g. #FF0000)' })
   color?: string;
+
+  // Portée multi-équipes (PRIVATE | TEAM | INTERNAL default | PUBLIC)
+  @IsOptional()
+  @IsIn(VISIBILITIES)
+  visibility?: string;
 }
 
 export class UpdateCalendarEventDto {
@@ -112,4 +118,8 @@ export class UpdateCalendarEventDto {
   @IsString()
   @Matches(/^#[0-9a-fA-F]{6}$/, { message: 'color must be a valid hex color (e.g. #FF0000)' })
   color?: string;
+
+  @IsOptional()
+  @IsIn(VISIBILITIES)
+  visibility?: string;
 }
