@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import type { Prisma, UserRole, WorkflowStepMode } from "@prisma/client";
+import type { DocumentCategory, Prisma, UserRole, WorkflowStepMode } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 /**
@@ -221,7 +221,7 @@ export class WorkflowsService {
     data: {
       name: string;
       description?: string;
-      documentCategory?: string | null;
+      documentCategory?: DocumentCategory | null;
       isDefault?: boolean;
     },
     userId: string,
@@ -230,7 +230,7 @@ export class WorkflowsService {
     if (data.isDefault) {
       await this.prisma.approvalWorkflow.updateMany({
         where: {
-          documentCategory: (data.documentCategory as any) ?? null,
+          documentCategory: data.documentCategory ?? null,
           isDefault: true,
         },
         data: { isDefault: false },
@@ -240,7 +240,7 @@ export class WorkflowsService {
       data: {
         name: data.name,
         description: data.description,
-        documentCategory: (data.documentCategory as any) ?? null,
+        documentCategory: data.documentCategory ?? null,
         isDefault: data.isDefault ?? false,
         createdById: userId,
       },
@@ -253,7 +253,7 @@ export class WorkflowsService {
     data: {
       name?: string;
       description?: string | null;
-      documentCategory?: string | null;
+      documentCategory?: DocumentCategory | null;
       isActive?: boolean;
       isDefault?: boolean;
     },
@@ -267,7 +267,7 @@ export class WorkflowsService {
       await this.prisma.approvalWorkflow.updateMany({
         where: {
           documentCategory:
-            (data.documentCategory as any) ?? existing.documentCategory,
+            data.documentCategory ?? existing.documentCategory,
           isDefault: true,
           id: { not: id },
         },
@@ -280,7 +280,7 @@ export class WorkflowsService {
       data: {
         name: data.name,
         description: data.description,
-        documentCategory: data.documentCategory as any,
+        documentCategory: data.documentCategory,
         isActive: data.isActive,
         isDefault: data.isDefault,
       },
@@ -552,8 +552,8 @@ export class WorkflowsService {
         workflowId,
         order: nextOrder,
         name: data.name,
-        mode: (data.mode as any) ?? "SINGLE",
-        approverRole: (data.approverRole as any) ?? null,
+        mode: data.mode ?? "SINGLE",
+        approverRole: data.approverRole ?? null,
         approverUserId: data.approverUserId ?? null,
         approverDeptId: data.approverDeptId ?? null,
         slaHours: data.slaHours ?? null,
@@ -913,7 +913,7 @@ export class WorkflowsService {
             step: {
               OR: [
                 { approverUserId: userId },
-                { approverRole: userRole as any },
+                { approverRole: userRole as UserRole },
                 ...(deptId ? [{ approverDeptId: deptId }] : []),
               ],
             },

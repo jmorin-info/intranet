@@ -14,6 +14,7 @@ import {
 } from "../search/meilisearch.service";
 import { CreateNewsDto } from "./dto/create-news.dto";
 import { UpdateNewsDto } from "./dto/update-news.dto";
+import { UserRole as PrismaUserRole } from "@prisma/client";
 import { UserRole } from "../common/enums";
 import { sanitizeRichText } from "../common/sanitize";
 import { CacheService } from "../common/cache/cache.service";
@@ -143,7 +144,7 @@ export class NewsService {
     if (
       post.isPublished &&
       post.targetRoles.length > 0 &&
-      !post.targetRoles.includes(currentUserRole as any)
+      !post.targetRoles.includes(currentUserRole as PrismaUserRole)
     ) {
       throw new NotFoundException("News post not found");
     }
@@ -157,7 +158,7 @@ export class NewsService {
     const isPublished = dto.isPublished ?? false;
     const targetRoles =
       dto.targetRoles && dto.targetRoles.length > 0
-        ? (dto.targetRoles as any[])
+        ? (dto.targetRoles as PrismaUserRole[])
         : [];
 
     const post = await this.prisma.newsPost.create({
@@ -250,7 +251,7 @@ export class NewsService {
       }
     }
     if (dto.targetRoles !== undefined)
-      updateData.targetRoles = dto.targetRoles as any[];
+      updateData.targetRoles = dto.targetRoles as PrismaUserRole[];
 
     const updated = await this.prisma.newsPost.update({
       where: { id },

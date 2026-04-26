@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditSeverity } from '../common/enums';
 
@@ -79,8 +80,10 @@ export class AuditService {
           action: params.action,
           resourceType: params.resourceType,
           resourceId: params.resourceId || null,
-          metadata: mergedMetadata as any,
-          severity: (params.severity as any) || 'INFO',
+          // Prisma.InputJsonValue ne tolère pas notre Record<string, unknown> :
+          // on cast localement vers JsonValue (legitimate JSON escape hatch).
+          metadata: mergedMetadata as Prisma.InputJsonValue,
+          severity: params.severity || 'INFO',
         },
       });
     } catch (error: unknown) {
@@ -164,7 +167,9 @@ export class AuditService {
    *  - `topFailedLoginIps` : top 10 IPs sur les échecs de connexion (via metadata)
    */
   async getStats(from: Date, to: Date) {
-    const where = { createdAt: { gte: from, lte: to } } as any;
+    const where: Prisma.AuditLogWhereInput = {
+      createdAt: { gte: from, lte: to },
+    };
 
     const [total, severityGroups, actionGroups, criticalEvents, failedLogins, failedLoginLogs] =
       await Promise.all([

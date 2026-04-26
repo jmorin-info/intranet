@@ -126,8 +126,8 @@ export class MentionsService {
             // TODO: review type safety — 'MENTION' n'est pas dans
             // l'enum Prisma NotificationType (cf. schema.prisma:53-67) :
             // l'INSERT côté DB échoue silencieusement. À ajouter via migration
-            // ALTER TYPE avant de retirer ce cast.
-            type: 'MENTION' as any,
+            // ALTER TYPE avant de garantir le runtime.
+            type: 'MENTION',
             title,
             body: `${params.sourceTitle}\n\n${excerpt}`,
             resourceType: params.sourceType,
