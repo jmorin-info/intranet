@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface AuditCheck {
@@ -90,13 +91,14 @@ export class AdAuditService {
       data: {
         action: 'AD_AUDIT_REPORT',
         resourceType: 'ADaudit',
+        // Prisma.InputJsonValue : objet JSON-sérialisable.
         metadata: {
           overallScore, pass, warning, fail, total,
           adChecks: adChecks.length,
           dbChecks: dbChecks.length,
           adDomain,
           adScore,
-        } as any,
+        } as Prisma.InputJsonValue,
         severity: overallScore >= 70 ? 'INFO' : overallScore >= 50 ? 'WARN' : 'CRITICAL',
       },
     });

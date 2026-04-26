@@ -339,10 +339,10 @@ export class MeilisearchService implements OnModuleInit {
       })
       .catch((err) => {
         this.logger.warn(`Lecture documents KO : ${err.message}`);
-        return [] as any[];
+        return [];
       });
 
-    const docsPayload: MeiliDocument[] = documents.map((d: any) => ({
+    const docsPayload: MeiliDocument[] = documents.map((d) => ({
       id: `document-${d.id}`,
       title: d.title ?? '',
       content: d.description ?? '',
@@ -369,10 +369,10 @@ export class MeilisearchService implements OnModuleInit {
       })
       .catch((err) => {
         this.logger.warn(`Lecture tickets KO : ${err.message}`);
-        return [] as any[];
+        return [];
       });
 
-    const ticketsPayload: MeiliDocument[] = tickets.map((t: any) => ({
+    const ticketsPayload: MeiliDocument[] = tickets.map((t) => ({
       id: `ticket-${t.id}`,
       title: `[${t.reference}] ${t.title ?? ''}`,
       content: t.description ?? '',
@@ -388,20 +388,20 @@ export class MeilisearchService implements OnModuleInit {
     await this.indexTickets(ticketsPayload);
 
     // Wiki
-    const wiki = await (this.prisma as any).wikiPage
-      ?.findMany({
+    const wiki = await this.prisma.wikiPage
+      .findMany({
         where: { isPublished: true },
         select: {
           id: true, title: true, content: true, slug: true,
           category: true, authorId: true, updatedAt: true,
         },
       })
-      .catch((err: any) => {
+      .catch((err: Error) => {
         this.logger.warn(`Lecture wiki KO : ${err.message}`);
-        return [] as any[];
-      }) ?? [];
+        return [];
+      });
 
-    const wikiPayload: MeiliDocument[] = (wiki as any[]).map((w) => ({
+    const wikiPayload: MeiliDocument[] = wiki.map((w) => ({
       id: `wiki-${w.id}`,
       title: w.title ?? '',
       content: this.stripHtml(w.content ?? ''),
@@ -410,25 +410,25 @@ export class MeilisearchService implements OnModuleInit {
       authorId: w.authorId,
       date: w.updatedAt?.toISOString?.() ?? null,
       category: w.category,
-      tags: [w.category].filter(Boolean),
+      tags: [w.category].filter((t): t is string => Boolean(t)),
     }));
     await this.indexWikiPages(wikiPayload);
 
     // News
-    const news = await (this.prisma as any).newsPost
-      ?.findMany({
+    const news = await this.prisma.newsPost
+      .findMany({
         where: { deletedAt: null, isPublished: true },
         select: {
           id: true, title: true, content: true, excerpt: true,
           slug: true, category: true, authorId: true, publishedAt: true,
         },
       })
-      .catch((err: any) => {
+      .catch((err: Error) => {
         this.logger.warn(`Lecture news KO : ${err.message}`);
-        return [] as any[];
-      }) ?? [];
+        return [];
+      });
 
-    const newsPayload: MeiliDocument[] = (news as any[]).map((n) => ({
+    const newsPayload: MeiliDocument[] = news.map((n) => ({
       id: `news-${n.id}`,
       title: n.title ?? '',
       content: this.stripHtml(n.content ?? n.excerpt ?? ''),
@@ -437,14 +437,14 @@ export class MeilisearchService implements OnModuleInit {
       authorId: n.authorId,
       date: n.publishedAt?.toISOString?.() ?? null,
       category: n.category,
-      tags: [n.category].filter(Boolean),
+      tags: [n.category].filter((t): t is string => Boolean(t)),
     }));
     await this.indexNews(newsPayload);
 
     // Runbooks — seules les runbooks publiees sont indexees (les drafts restent
     // hors de la recherche globale pour eviter toute fuite de contenu non pret).
-    const runbooks = await (this.prisma as any).runbook
-      ?.findMany({
+    const runbooks = await this.prisma.runbook
+      .findMany({
         where: { isPublished: true },
         select: {
           id: true, title: true, slug: true, description: true,
@@ -452,12 +452,12 @@ export class MeilisearchService implements OnModuleInit {
           authorId: true, updatedAt: true,
         },
       })
-      .catch((err: any) => {
+      .catch((err: Error) => {
         this.logger.warn(`Lecture runbooks KO : ${err.message}`);
-        return [] as any[];
-      }) ?? [];
+        return [];
+      });
 
-    const runbooksPayload: MeiliDocument[] = (runbooks as any[]).map((r) =>
+    const runbooksPayload: MeiliDocument[] = runbooks.map((r) =>
       this.runbookToMeiliDocument(r),
     );
     await this.indexRunbooks(runbooksPayload);
