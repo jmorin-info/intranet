@@ -40,15 +40,19 @@ function isPushSupported(): boolean {
   );
 }
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): BufferSource {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = atob(base64);
-  const buffer = new Uint8Array(rawData.length);
+  // Allocate a fresh ArrayBuffer (NOT SharedArrayBuffer) so the resulting
+  // Uint8Array is acceptable as `applicationServerKey` (which only accepts
+  // ArrayBuffer-backed views, not the lib-dom ArrayBufferLike union).
+  const buffer = new ArrayBuffer(rawData.length);
+  const view = new Uint8Array(buffer);
   for (let i = 0; i < rawData.length; ++i) {
-    buffer[i] = rawData.charCodeAt(i);
+    view[i] = rawData.charCodeAt(i);
   }
-  return buffer;
+  return view;
 }
 
 /**
