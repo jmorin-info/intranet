@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, Logger, Optional } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CacheService } from "../common/cache/cache.service";
 
 /**
  * Dashboard consolidé pour le RSSI : agrège les KPI de tous les modules
@@ -14,7 +15,10 @@ import { PrismaService } from '../prisma/prisma.service';
 export class RssiDashboardService {
   private readonly logger = new Logger(RssiDashboardService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly cache?: CacheService,
+  ) {}
 
   /**
    * Wrapper utilitaire — encapsule chaque requête pour qu'une erreur
@@ -34,6 +38,18 @@ export class RssiDashboardService {
    * casse tout le dashboard.
    */
   async getSnapshot() {
+    // Snapshot is heavy (~18 parallel COUNT queries across 10+ tables).
+    // 5-min freshness is acceptable for a strategic dashboard ; a manual
+    // refresh button on the UI can be implemented to skip the cache.
+    if (this.cache) {
+      return this.cache.wrap("rssi-dashboard:snapshot:global", 300, () =>
+        this.computeSnapshot(),
+      );
+    }
+    return this.computeSnapshot();
+  }
+
+  private async computeSnapshot() {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
@@ -71,17 +87,20 @@ export class RssiDashboardService {
     ] = await Promise.all([
       safe(
         this.prisma.incident.count({
-          where: { status: { notIn: ['CLOSED', 'RECOVERED'] as any } },
+          where: { status: { notIn: ["CLOSED", "RECOVERED"] as any } },
         }),
         0,
-        'openIncidents',
+        "openIncidents",
       ),
       safe(
         this.prisma.incident.count({
-          where: { severity: 'CRITICAL' as any, status: { notIn: ['CLOSED'] as any } },
+          where: {
+            severity: "CRITICAL" as any,
+            status: { notIn: ["CLOSED"] as any },
+          },
         }),
         0,
-        'criticalIncidents',
+        "criticalIncidents",
       ),
       safe(
         this.prisma.incident.count({
@@ -90,43 +109,45 @@ export class RssiDashboardService {
           },
         }),
         0,
-        'incidentsThisMonth',
+        "incidentsThisMonth",
       ),
       safe(
-        this.prisma.document.count({ where: { status: 'IN_REVIEW' as any } }),
+        this.prisma.document.count({ where: { status: "IN_REVIEW" as any } }),
         0,
-        'docsInReview',
+        "docsInReview",
       ),
       safe(
         this.prisma.document.count({
           where: {
-            status: 'APPROVED' as any,
+            status: "APPROVED" as any,
             updatedAt: { gte: thirtyDaysAgo },
           },
         }),
         0,
-        'docsApprovedLast30d',
+        "docsApprovedLast30d",
       ),
       safe(
         this.prisma.document.count({
           where: {
-            status: 'APPROVED' as any,
+            status: "APPROVED" as any,
             nextReviewDate: { lte: now },
           },
         }),
         0,
-        'docsDueForReview',
+        "docsDueForReview",
       ),
       safe(
-        this.prisma.ticket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] as any } } }),
+        this.prisma.ticket.count({
+          where: { status: { in: ["OPEN", "IN_PROGRESS"] as any } },
+        }),
         0,
-        'openTickets',
+        "openTickets",
       ),
       safe(
         (async () => {
           const recent = await this.prisma.ticket.findMany({
             where: {
-              status: 'CLOSED' as any,
+              status: "CLOSED" as any,
               updatedAt: { gte: thirtyDaysAgo },
             },
             select: { createdAt: true, updatedAt: true },
@@ -140,19 +161,25 @@ export class RssiDashboardService {
           return Math.round(totalMs / recent.length / 3600000);
         })(),
         0,
-        'ticketsAvgResolutionHours',
+        "ticketsAvgResolutionHours",
       ),
       safe(
-        this.prisma.veilleItem.count({ where: { publishedAt: { gte: sevenDaysAgo } } }),
+        this.prisma.veilleItem.count({
+          where: { publishedAt: { gte: sevenDaysAgo } },
+        }),
         0,
-        'alertsLast7d',
+        "alertsLast7d",
       ),
       safe(
-        this.prisma.veilleItem.count({ where: { severity: 'CRITICAL' } }),
+        this.prisma.veilleItem.count({ where: { severity: "CRITICAL" } }),
         0,
-        'alertsCritical',
+        "alertsCritical",
       ),
-      safe(this.prisma.charte.count({ where: { isActive: true } }), 0, 'chartesActive'),
+      safe(
+        this.prisma.charte.count({ where: { isActive: true } }),
+        0,
+        "chartesActive",
+      ),
       safe(
         (async () => {
           // On ne compte que les chartes actives qui ont au moins une version publiée,
@@ -166,56 +193,61 @@ export class RssiDashboardService {
             where: { isActive: true, deletedAt: null },
           });
           const signatures = await this.prisma.charteSignature.count();
-          return Math.max(0, chartesWithVersion * totalActiveUsers - signatures);
+          return Math.max(
+            0,
+            chartesWithVersion * totalActiveUsers - signatures,
+          );
         })(),
         0,
-        'chartesPendingSignatures',
+        "chartesPendingSignatures",
       ),
       safe(
         this.prisma.user.count({ where: { isActive: true, deletedAt: null } }),
         0,
-        'activeUsers',
+        "activeUsers",
       ),
       safe(
         this.prisma.user.count({
           where: { isActive: true, deletedAt: null, mfaEnabled: true },
         }),
         0,
-        'mfaEnabledUsers',
+        "mfaEnabledUsers",
       ),
       safe(
         this.prisma.accessReviewCampaign.count({
-          where: { status: { in: ['IN_PROGRESS', 'DRAFT'] as any } },
+          where: { status: { in: ["IN_PROGRESS", "DRAFT"] as any } },
         }),
         0,
-        'accessReviewsPending',
+        "accessReviewsPending",
       ),
       safe(
         this.prisma.accessReviewCampaign.count({
           where: {
-            status: { in: ['IN_PROGRESS', 'DRAFT'] as any },
+            status: { in: ["IN_PROGRESS", "DRAFT"] as any },
             dueDate: { lt: now },
           },
         }),
         0,
-        'accessReviewsOverdue',
-      ),
-      safe(
-        this.prisma.auditLog.count({
-          where: { createdAt: { gte: new Date(now.getTime() - 24 * 3600 * 1000) } },
-        }),
-        0,
-        'auditEventsLast24h',
+        "accessReviewsOverdue",
       ),
       safe(
         this.prisma.auditLog.count({
           where: {
             createdAt: { gte: new Date(now.getTime() - 24 * 3600 * 1000) },
-            action: 'LOGIN_FAILED' as any,
           },
         }),
         0,
-        'failedLoginsLast24h',
+        "auditEventsLast24h",
+      ),
+      safe(
+        this.prisma.auditLog.count({
+          where: {
+            createdAt: { gte: new Date(now.getTime() - 24 * 3600 * 1000) },
+            action: "LOGIN_FAILED" as any,
+          },
+        }),
+        0,
+        "failedLoginsLast24h",
       ),
     ]);
 
@@ -286,63 +318,63 @@ export class RssiDashboardService {
         this.prisma.document.count({
           where: {
             deletedAt: null,
-            status: 'APPROVED' as any,
-            category: { in: ['POLICY', 'PROCEDURE'] as any },
+            status: "APPROVED" as any,
+            category: { in: ["POLICY", "PROCEDURE"] as any },
           },
         }),
         0,
-        'activePolicies',
+        "activePolicies",
       ),
       // "Actifs critiques" = documents classifiés SECRET ou CONFIDENTIEL
       safe(
         this.prisma.document.count({
           where: {
             deletedAt: null,
-            classification: { in: ['SECRET', 'CONFIDENTIEL'] as any },
+            classification: { in: ["SECRET", "CONFIDENTIEL"] as any },
           },
         }),
         0,
-        'criticalAssets',
+        "criticalAssets",
       ),
       // "Risques ouverts" = incidents critiques/élevés non clôturés (proxy)
       safe(
         this.prisma.incident.count({
           where: {
-            severity: { in: ['CRITICAL', 'HIGH'] as any },
-            status: { notIn: ['CLOSED', 'RECOVERED'] as any },
+            severity: { in: ["CRITICAL", "HIGH"] as any },
+            status: { notIn: ["CLOSED", "RECOVERED"] as any },
           },
         }),
         0,
-        'openRisks',
+        "openRisks",
       ),
       // Dernière revue = dernière tâche conformité COMPLETED
       safe(
         this.prisma.complianceTask.findFirst({
-          where: { status: 'COMPLETED', lastCompletedAt: { not: null } },
-          orderBy: { lastCompletedAt: 'desc' },
+          where: { status: "COMPLETED", lastCompletedAt: { not: null } },
+          orderBy: { lastCompletedAt: "desc" },
           select: { lastCompletedAt: true, title: true },
         }),
         null,
-        'lastReview',
+        "lastReview",
       ),
       // Prochaine revue = prochaine tâche compliance non terminée
       safe(
         this.prisma.complianceTask.findFirst({
           where: {
-            status: { not: 'COMPLETED' },
+            status: { not: "COMPLETED" },
             nextDueDate: { gte: now },
           },
-          orderBy: { nextDueDate: 'asc' },
+          orderBy: { nextDueDate: "asc" },
           select: { nextDueDate: true, title: true },
         }),
         null,
-        'nextReview',
+        "nextReview",
       ),
       // Frameworks de conformité actifs
       safe(
         this.prisma.complianceFramework.count({ where: { isActive: true } }),
         0,
-        'activeFrameworks',
+        "activeFrameworks",
       ),
     ]);
 
@@ -382,16 +414,16 @@ export class RssiDashboardService {
         this.prisma.incident.findMany({
           where: { detectedAt: { gte: since } },
           select: { detectedAt: true, severity: true },
-          orderBy: { detectedAt: 'asc' },
+          orderBy: { detectedAt: "asc" },
         }),
         [] as Array<{ detectedAt: Date; severity: any }>,
-        'incidentsTrend',
+        "incidentsTrend",
       ),
       safe(
         this.prisma.incident.findMany({
           where: {
-            severity: { in: ['CRITICAL', 'HIGH'] as any },
-            status: { notIn: ['CLOSED'] as any },
+            severity: { in: ["CRITICAL", "HIGH"] as any },
+            status: { notIn: ["CLOSED"] as any },
           },
           select: {
             id: true,
@@ -401,11 +433,11 @@ export class RssiDashboardService {
             status: true,
             detectedAt: true,
           },
-          orderBy: [{ severity: 'asc' }, { detectedAt: 'desc' }],
+          orderBy: [{ severity: "asc" }, { detectedAt: "desc" }],
           take: 3,
         }),
         [],
-        'topSeverity',
+        "topSeverity",
       ),
     ]);
 
@@ -415,7 +447,10 @@ export class RssiDashboardService {
     for (const inc of incidents) {
       const idx = Math.min(
         29,
-        Math.max(0, Math.floor((inc.detectedAt.getTime() - since.getTime()) / dayMs)),
+        Math.max(
+          0,
+          Math.floor((inc.detectedAt.getTime() - since.getTime()) / dayMs),
+        ),
       );
       buckets[idx] = (buckets[idx] ?? 0) + 1;
     }
@@ -456,7 +491,7 @@ export class RssiDashboardService {
           },
         }),
         [],
-        'controls',
+        "controls",
       ),
       safe(
         this.prisma.complianceTask.findMany({
@@ -467,19 +502,26 @@ export class RssiDashboardService {
           },
         }),
         [],
-        'tasks',
+        "tasks",
       ),
     ]);
 
     const totalControls = controls.length;
-    const coveredControls = controls.filter((c) => (c._count?.documents ?? 0) > 0).length;
+    const coveredControls = controls.filter(
+      (c) => (c._count?.documents ?? 0) > 0,
+    ).length;
     const coveragePct =
-      totalControls > 0 ? Math.round((coveredControls / totalControls) * 100) : 0;
+      totalControls > 0
+        ? Math.round((coveredControls / totalControls) * 100)
+        : 0;
 
     // Ventilation par domaine (A.5, A.6, A.7, A.8)
-    const byDomain: Record<string, { total: number; covered: number; pct: number }> = {};
+    const byDomain: Record<
+      string,
+      { total: number; covered: number; pct: number }
+    > = {};
     for (const ctl of controls) {
-      const dom = ctl.domain || 'autre';
+      const dom = ctl.domain || "autre";
       if (!byDomain[dom]) byDomain[dom] = { total: 0, covered: 0, pct: 0 };
       byDomain[dom].total += 1;
       if ((ctl._count?.documents ?? 0) > 0) byDomain[dom].covered += 1;
@@ -490,9 +532,9 @@ export class RssiDashboardService {
     }
 
     const tasksTotal = tasks.length;
-    const tasksCompleted = tasks.filter((t) => t.status === 'COMPLETED').length;
+    const tasksCompleted = tasks.filter((t) => t.status === "COMPLETED").length;
     const tasksOverdue = tasks.filter(
-      (t) => t.status !== 'COMPLETED' && t.nextDueDate && t.nextDueDate < now,
+      (t) => t.status !== "COMPLETED" && t.nextDueDate && t.nextDueDate < now,
     ).length;
 
     return {
@@ -525,49 +567,54 @@ export class RssiDashboardService {
     const safe = <T>(p: Promise<T>, fallback: T, label: string): Promise<T> =>
       this.safe(p, fallback, label);
 
-    const [resolved, contained, edrIncidents, activeUsers, mfaUsers] = await Promise.all([
-      safe(
-        this.prisma.incident.findMany({
-          where: { detectedAt: { gte: since }, resolvedAt: { not: null } },
-          select: { detectedAt: true, resolvedAt: true },
-          take: 200,
-        }),
-        [],
-        'mttrIncidents',
-      ),
-      safe(
-        this.prisma.incident.findMany({
-          where: { detectedAt: { gte: since }, containedAt: { not: null } },
-          select: { detectedAt: true, containedAt: true },
-          take: 200,
-        }),
-        [],
-        'mttdIncidents',
-      ),
-      safe(
-        this.prisma.incident.findMany({
-          where: {
-            detectedAt: { gte: since },
-            category: { in: ['MALWARE', 'PHISHING', 'UNAUTHORIZED_ACCESS'] as any },
-          },
-          select: { detectedAt: true, containedAt: true },
-        }),
-        [],
-        'edrIncidents',
-      ),
-      safe(
-        this.prisma.user.count({ where: { isActive: true, deletedAt: null } }),
-        0,
-        'activeUsers',
-      ),
-      safe(
-        this.prisma.user.count({
-          where: { isActive: true, deletedAt: null, mfaEnabled: true },
-        }),
-        0,
-        'mfaEnabled',
-      ),
-    ]);
+    const [resolved, contained, edrIncidents, activeUsers, mfaUsers] =
+      await Promise.all([
+        safe(
+          this.prisma.incident.findMany({
+            where: { detectedAt: { gte: since }, resolvedAt: { not: null } },
+            select: { detectedAt: true, resolvedAt: true },
+            take: 200,
+          }),
+          [],
+          "mttrIncidents",
+        ),
+        safe(
+          this.prisma.incident.findMany({
+            where: { detectedAt: { gte: since }, containedAt: { not: null } },
+            select: { detectedAt: true, containedAt: true },
+            take: 200,
+          }),
+          [],
+          "mttdIncidents",
+        ),
+        safe(
+          this.prisma.incident.findMany({
+            where: {
+              detectedAt: { gte: since },
+              category: {
+                in: ["MALWARE", "PHISHING", "UNAUTHORIZED_ACCESS"] as any,
+              },
+            },
+            select: { detectedAt: true, containedAt: true },
+          }),
+          [],
+          "edrIncidents",
+        ),
+        safe(
+          this.prisma.user.count({
+            where: { isActive: true, deletedAt: null },
+          }),
+          0,
+          "activeUsers",
+        ),
+        safe(
+          this.prisma.user.count({
+            where: { isActive: true, deletedAt: null, mfaEnabled: true },
+          }),
+          0,
+          "mfaEnabled",
+        ),
+      ]);
 
     const avgHours = (
       rows: Array<{ a: Date | null; b: Date | null }>,
@@ -597,7 +644,8 @@ export class RssiDashboardService {
     ).length;
     const edrPct = edrTotal > 0 ? Math.round((edrFast / edrTotal) * 100) : null;
 
-    const mfaPct = activeUsers > 0 ? Math.round((mfaUsers / activeUsers) * 100) : 0;
+    const mfaPct =
+      activeUsers > 0 ? Math.round((mfaUsers / activeUsers) * 100) : 0;
 
     return {
       generatedAt: now.toISOString(),

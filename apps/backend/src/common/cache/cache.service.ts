@@ -1,5 +1,12 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import Redis from 'ioredis';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+  Optional,
+} from "@nestjs/common";
+import Redis from "ioredis";
+import { AppMetricsService } from "../../health/app-metrics.service";
 
 /**
  * Central Redis cache service.
@@ -16,11 +23,13 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
   private client: Redis | null = null;
   private isAvailable = false;
 
+  constructor(@Optional() private readonly metrics?: AppMetricsService) {}
+
   async onModuleInit() {
     try {
       this.client = new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        host: process.env.REDIS_HOST || "localhost",
+        port: parseInt(process.env.REDIS_PORT || "6379", 10),
         password: process.env.REDIS_PASSWORD || undefined,
         lazyConnect: true,
         enableOfflineQueue: false,
@@ -32,19 +41,19 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      this.client.on('error', (err) => {
+      this.client.on("error", (err) => {
         if (this.isAvailable) {
           this.logger.warn(`Redis error: ${err.message}`);
         }
         this.isAvailable = false;
       });
 
-      this.client.on('ready', () => {
+      this.client.on("ready", () => {
         this.isAvailable = true;
-        this.logger.log('Cache service connected to Redis');
+        this.logger.log("Cache service connected to Redis");
       });
 
-      this.client.on('end', () => {
+      this.client.on("end", () => {
         this.isAvailable = false;
       });
 
@@ -89,7 +98,7 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     try {
       const payload = JSON.stringify(value);
       if (ttlSeconds && ttlSeconds > 0) {
-        await this.client.set(key, payload, 'EX', ttlSeconds);
+        await this.client.set(key, payload, "EX", ttlSeconds);
       } else {
         await this.client.set(key, payload);
       }
@@ -107,7 +116,11 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
   async del(pattern: string): Promise<void> {
     if (!this.isAvailable || !this.client) return;
     try {
-      if (!pattern.includes('*') && !pattern.includes('?') && !pattern.includes('[')) {
+      if (
+        !pattern.includes("*") &&
+        !pattern.includes("?") &&
+        !pattern.includes("[")
+      ) {
         await this.client.del(pattern);
         return;
       }
@@ -117,7 +130,7 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
       let queued = 0;
 
       await new Promise<void>((resolve, reject) => {
-        stream.on('data', (keys: string[]) => {
+        stream.on("data", (keys: string[]) => {
           if (keys && keys.length > 0) {
             for (const k of keys) {
               pipeline.del(k);
@@ -125,8 +138,8 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
             }
           }
         });
-        stream.on('end', () => resolve());
-        stream.on('error', (err) => reject(err));
+        stream.on("end", () => resolve());
+        stream.on("error", (err) => reject(err));
       });
 
       if (queued > 0) {
@@ -149,10 +162,18 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     ttlSeconds: number,
     fn: () => Promise<T>,
   ): Promise<T> {
-    const cached = await this.get<T>(key);
+    let cached: T | null = null;
+    try {
+      cached = await this.get<T>(key);
+    } catch {
+      this.metrics?.incCacheOp("wrap", "error");
+      cached = null;
+    }
     if (cached !== null) {
+      this.metrics?.incCacheOp("wrap", "hit");
       return cached;
     }
+    this.metrics?.incCacheOp("wrap", "miss");
     const fresh = await fn();
     // Fire-and-forget the cache write; failure should never block the response.
     void this.set<T>(key, fresh, ttlSeconds);

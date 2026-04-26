@@ -5,15 +5,22 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-} from '@nestjs/common';
-import { Prisma, TicketSpace, TicketSpaceMember, TicketSpacePermission } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../audit/audit.service';
-import { RequestUser } from '../common/interfaces';
-import { ROLE_HIERARCHY, UserRole } from '../common/enums';
-import { slugify, generateUniqueSlug } from '../common/utils/slugify';
-import { CreateSpaceDto, UpdateSpaceDto } from './dto/create-space.dto';
-import { AddMemberDto, UpdateMemberDto } from './dto/member.dto';
+  Optional,
+} from "@nestjs/common";
+import {
+  Prisma,
+  TicketSpace,
+  TicketSpaceMember,
+  TicketSpacePermission,
+} from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import { AuditService } from "../audit/audit.service";
+import { CacheService } from "../common/cache/cache.service";
+import { RequestUser } from "../common/interfaces";
+import { ROLE_HIERARCHY, UserRole } from "../common/enums";
+import { slugify, generateUniqueSlug } from "../common/utils/slugify";
+import { CreateSpaceDto, UpdateSpaceDto } from "./dto/create-space.dto";
+import { AddMemberDto, UpdateMemberDto } from "./dto/member.dto";
 
 /**
  * Permissions order (low → high).
@@ -42,48 +49,68 @@ export class TicketSpacesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    @Optional() private readonly cache?: CacheService,
   ) {}
+
+  /** Wipe cached space lists across all users (called on every CRUD). */
+  private invalidateSpacesCache(): void {
+    if (!this.cache) return;
+    void this.cache.del("ticket-spaces:list:*");
+  }
 
   // ========================================================================
   // Queries
   // ========================================================================
 
   async listForUser(user: RequestUser): Promise<TicketSpace[]> {
-    if (this.isAdmin(user)) {
-      return this.prisma.ticketSpace.findMany({
-        where: { isActive: true },
-        orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
-      });
-    }
+    const fetch = async (): Promise<TicketSpace[]> => {
+      if (this.isAdmin(user)) {
+        return this.prisma.ticketSpace.findMany({
+          where: { isActive: true },
+          orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+        });
+      }
 
-    // User sees only spaces where he's a member (direct / via role / via dept)
-    const memberOf = await this.prisma.ticketSpaceMember.findMany({
-      where: {
-        OR: [
-          { userId: user.id },
-          { role: user.role },
-          ...(user.departmentId ? [{ departmentId: user.departmentId }] : []),
-        ],
-        space: { isActive: true },
-      },
-      select: { spaceId: true },
-    });
-    const spaceIds = [...new Set(memberOf.map((m) => m.spaceId))];
-    return this.prisma.ticketSpace.findMany({
-      where: { id: { in: spaceIds }, isActive: true },
-      orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
-    });
+      // User sees only spaces where he's a member (direct / via role / via dept)
+      const memberOf = await this.prisma.ticketSpaceMember.findMany({
+        where: {
+          OR: [
+            { userId: user.id },
+            { role: user.role },
+            ...(user.departmentId ? [{ departmentId: user.departmentId }] : []),
+          ],
+          space: { isActive: true },
+        },
+        select: { spaceId: true },
+      });
+      const spaceIds = [...new Set(memberOf.map((m) => m.spaceId))];
+      return this.prisma.ticketSpace.findMany({
+        where: { id: { in: spaceIds }, isActive: true },
+        orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+      });
+    };
+
+    // Cached 60s — invalidated on space create/update/delete + member add/update/remove.
+    // Key scoped per user (admin vs non-admin + role + dept matter for ACL).
+    if (!this.cache) return fetch();
+    const isAdmin = this.isAdmin(user) ? "admin" : "member";
+    const key = `ticket-spaces:list:${isAdmin}:user=${user.id}:role=${user.role}:dept=${user.departmentId ?? "-"}`;
+    return this.cache.wrap(key, 60, fetch);
   }
 
-  async getById(spaceId: string, user: RequestUser): Promise<TicketSpace & { members: TicketSpaceMember[] }> {
+  async getById(
+    spaceId: string,
+    user: RequestUser,
+  ): Promise<TicketSpace & { members: TicketSpaceMember[] }> {
     const space = await this.prisma.ticketSpace.findUnique({
       where: { id: spaceId },
-      include: { members: { orderBy: { createdAt: 'desc' } } },
+      include: { members: { orderBy: { createdAt: "desc" } } },
     });
-    if (!space) throw new NotFoundException('Espace de ticketing introuvable');
+    if (!space) throw new NotFoundException("Espace de ticketing introuvable");
 
     const check = await this.checkAccess(user, spaceId);
-    if (!check.allowed) throw new NotFoundException('Espace de ticketing introuvable');
+    if (!check.allowed)
+      throw new NotFoundException("Espace de ticketing introuvable");
 
     return space;
   }
@@ -120,7 +147,9 @@ export class TicketSpacesService {
 
   async create(user: RequestUser, dto: CreateSpaceDto): Promise<TicketSpace> {
     if (!this.isAdmin(user)) {
-      throw new ForbiddenException("Seul un administrateur peut créer un espace de ticketing.");
+      throw new ForbiddenException(
+        "Seul un administrateur peut créer un espace de ticketing.",
+      );
     }
     const name = dto.name.trim();
     const requestedSlug = dto.slug?.trim();
@@ -129,18 +158,26 @@ export class TicketSpacesService {
       : await generateUniqueSlug(
           name,
           async (candidate) =>
-            !!(await this.prisma.ticketSpace.findUnique({ where: { slug: candidate } })),
-          { maxLength: 80, fallback: 'espace' },
+            !!(await this.prisma.ticketSpace.findUnique({
+              where: { slug: candidate },
+            })),
+          { maxLength: 80, fallback: "espace" },
         );
 
     if (requestedSlug) {
-      const existing = await this.prisma.ticketSpace.findUnique({ where: { slug } });
+      const existing = await this.prisma.ticketSpace.findUnique({
+        where: { slug },
+      });
       if (existing) {
-        throw new ConflictException(`Un espace avec le slug "${slug}" existe déjà.`);
+        throw new ConflictException(
+          `Un espace avec le slug "${slug}" existe déjà.`,
+        );
       }
     }
 
-    const nameClash = await this.prisma.ticketSpace.findUnique({ where: { name } });
+    const nameClash = await this.prisma.ticketSpace.findUnique({
+      where: { name },
+    });
     if (nameClash) {
       throw new ConflictException(`Un espace nommé "${name}" existe déjà.`);
     }
@@ -160,53 +197,82 @@ export class TicketSpacesService {
     // Le créateur devient MANAGER automatiquement (sauf si c'est l'admin qui
     // crée pour quelqu'un d'autre — ici on garde simple et on l'ajoute).
     await this.prisma.ticketSpaceMember.create({
-      data: { spaceId: space.id, userId: user.id, permission: 'MANAGER' },
+      data: { spaceId: space.id, userId: user.id, permission: "MANAGER" },
     });
 
     await this.audit.log({
       userId: user.id,
-      action: 'TICKET_SPACE_CREATED',
-      resourceType: 'TicketSpace',
+      action: "TICKET_SPACE_CREATED",
+      resourceType: "TicketSpace",
       resourceId: space.id,
       metadata: { name, slug },
     });
 
+    this.invalidateSpacesCache();
     return space;
   }
 
-  async update(user: RequestUser, spaceId: string, dto: UpdateSpaceDto): Promise<TicketSpace> {
+  async update(
+    user: RequestUser,
+    spaceId: string,
+    dto: UpdateSpaceDto,
+  ): Promise<TicketSpace> {
     await this.requireManagerOrAdmin(user, spaceId);
     const space = await this.prisma.ticketSpace.update({
       where: { id: spaceId },
       data: {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description }
+          : {}),
         ...(dto.icon !== undefined ? { icon: dto.icon } : {}),
         ...(dto.color !== undefined ? { color: dto.color } : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
-        ...(dto.allowedCategories !== undefined ? { allowedCategories: dto.allowedCategories } : {}),
-        ...(dto.slaConfig !== undefined ? { slaConfig: dto.slaConfig as Prisma.InputJsonValue | Prisma.NullTypes.JsonNull } : {}),
-        ...(dto.config !== undefined ? { config: dto.config as Prisma.InputJsonValue | Prisma.NullTypes.JsonNull } : {}),
+        ...(dto.allowedCategories !== undefined
+          ? { allowedCategories: dto.allowedCategories }
+          : {}),
+        ...(dto.slaConfig !== undefined
+          ? {
+              slaConfig: dto.slaConfig as
+                | Prisma.InputJsonValue
+                | Prisma.NullTypes.JsonNull,
+            }
+          : {}),
+        ...(dto.config !== undefined
+          ? {
+              config: dto.config as
+                | Prisma.InputJsonValue
+                | Prisma.NullTypes.JsonNull,
+            }
+          : {}),
       },
     });
 
     await this.audit.log({
       userId: user.id,
-      action: 'TICKET_SPACE_UPDATED',
-      resourceType: 'TicketSpace',
+      action: "TICKET_SPACE_UPDATED",
+      resourceType: "TicketSpace",
       resourceId: space.id,
       metadata: dto as unknown as Record<string, unknown>,
     });
 
+    this.invalidateSpacesCache();
     return space;
   }
 
-  async delete(user: RequestUser, spaceId: string): Promise<{ message: string }> {
+  async delete(
+    user: RequestUser,
+    spaceId: string,
+  ): Promise<{ message: string }> {
     if (!this.isAdmin(user)) {
-      throw new ForbiddenException('Seul un administrateur peut supprimer un espace de ticketing.');
+      throw new ForbiddenException(
+        "Seul un administrateur peut supprimer un espace de ticketing.",
+      );
     }
-    const space = await this.prisma.ticketSpace.findUnique({ where: { id: spaceId } });
-    if (!space) throw new NotFoundException('Espace de ticketing introuvable');
+    const space = await this.prisma.ticketSpace.findUnique({
+      where: { id: spaceId },
+    });
+    if (!space) throw new NotFoundException("Espace de ticketing introuvable");
 
     if (space.isDefault) {
       throw new BadRequestException(
@@ -233,14 +299,17 @@ export class TicketSpacesService {
 
     await this.audit.log({
       userId: user.id,
-      action: 'TICKET_SPACE_DELETED',
-      resourceType: 'TicketSpace',
+      action: "TICKET_SPACE_DELETED",
+      resourceType: "TicketSpace",
       resourceId: spaceId,
-      severity: 'WARN',
+      severity: "WARN",
       metadata: { name: space.name, fallback: fallback.name },
     });
 
-    return { message: `Espace "${space.name}" supprimé (tickets réassignés à "${fallback.name}")` };
+    this.invalidateSpacesCache();
+    return {
+      message: `Espace "${space.name}" supprimé (tickets réassignés à "${fallback.name}")`,
+    };
   }
 
   // ========================================================================
@@ -267,7 +336,7 @@ export class TicketSpacesService {
     if (dto.departmentId) where.departmentId = dto.departmentId;
     const existing = await this.prisma.ticketSpaceMember.findFirst({ where });
     if (existing) {
-      throw new ConflictException('Ce membre existe déjà dans cet espace.');
+      throw new ConflictException("Ce membre existe déjà dans cet espace.");
     }
 
     const member = await this.prisma.ticketSpaceMember.create({
@@ -282,17 +351,18 @@ export class TicketSpacesService {
 
     await this.audit.log({
       userId: user.id,
-      action: 'TICKET_SPACE_MEMBER_ADDED',
-      resourceType: 'TicketSpace',
+      action: "TICKET_SPACE_MEMBER_ADDED",
+      resourceType: "TicketSpace",
       resourceId: spaceId,
       metadata: {
         memberId: member.id,
-        scope: dto.userId ? 'user' : dto.role ? 'role' : 'department',
+        scope: dto.userId ? "user" : dto.role ? "role" : "department",
         scopeValue: dto.userId ?? dto.role ?? dto.departmentId,
         permission: dto.permission,
       },
     });
 
+    this.invalidateSpacesCache();
     return member;
   }
 
@@ -303,9 +373,11 @@ export class TicketSpacesService {
     dto: UpdateMemberDto,
   ): Promise<TicketSpaceMember> {
     await this.requireManagerOrAdmin(user, spaceId);
-    const member = await this.prisma.ticketSpaceMember.findUnique({ where: { id: memberId } });
+    const member = await this.prisma.ticketSpaceMember.findUnique({
+      where: { id: memberId },
+    });
     if (!member || member.spaceId !== spaceId) {
-      throw new NotFoundException('Membre introuvable dans cet espace');
+      throw new NotFoundException("Membre introuvable dans cet espace");
     }
 
     const updated = await this.prisma.ticketSpaceMember.update({
@@ -315,26 +387,33 @@ export class TicketSpacesService {
 
     await this.audit.log({
       userId: user.id,
-      action: 'TICKET_SPACE_MEMBER_UPDATED',
-      resourceType: 'TicketSpace',
+      action: "TICKET_SPACE_MEMBER_UPDATED",
+      resourceType: "TicketSpace",
       resourceId: spaceId,
       metadata: { memberId, newPermission: dto.permission },
     });
 
+    this.invalidateSpacesCache();
     return updated;
   }
 
-  async removeMember(user: RequestUser, spaceId: string, memberId: string): Promise<void> {
+  async removeMember(
+    user: RequestUser,
+    spaceId: string,
+    memberId: string,
+  ): Promise<void> {
     await this.requireManagerOrAdmin(user, spaceId);
-    const member = await this.prisma.ticketSpaceMember.findUnique({ where: { id: memberId } });
+    const member = await this.prisma.ticketSpaceMember.findUnique({
+      where: { id: memberId },
+    });
     if (!member || member.spaceId !== spaceId) {
-      throw new NotFoundException('Membre introuvable dans cet espace');
+      throw new NotFoundException("Membre introuvable dans cet espace");
     }
 
     // Safety : on refuse de retirer le DERNIER manager (empêche de perdre la gestion)
-    if (member.permission === 'MANAGER') {
+    if (member.permission === "MANAGER") {
       const otherManagers = await this.prisma.ticketSpaceMember.count({
-        where: { spaceId, permission: 'MANAGER', id: { not: memberId } },
+        where: { spaceId, permission: "MANAGER", id: { not: memberId } },
       });
       if (otherManagers === 0 && !this.isAdmin(user)) {
         throw new BadRequestException(
@@ -347,12 +426,14 @@ export class TicketSpacesService {
 
     await this.audit.log({
       userId: user.id,
-      action: 'TICKET_SPACE_MEMBER_REMOVED',
-      resourceType: 'TicketSpace',
+      action: "TICKET_SPACE_MEMBER_REMOVED",
+      resourceType: "TicketSpace",
       resourceId: spaceId,
-      severity: 'WARN',
+      severity: "WARN",
       metadata: { memberId, wasPermission: member.permission },
     });
+
+    this.invalidateSpacesCache();
   }
 
   // ========================================================================
@@ -362,10 +443,10 @@ export class TicketSpacesService {
   async checkAccess(
     user: RequestUser,
     spaceId: string,
-    required: TicketSpacePermission = 'VIEWER',
+    required: TicketSpacePermission = "VIEWER",
   ): Promise<AccessCheck> {
     if (this.isAdmin(user)) {
-      return { allowed: true, level: 'MANAGER', isAdmin: true };
+      return { allowed: true, level: "MANAGER", isAdmin: true };
     }
 
     const members = await this.prisma.ticketSpaceMember.findMany({
@@ -384,15 +465,21 @@ export class TicketSpacesService {
 
     // Prend le permission le plus élevé parmi les membres du user
     const highest = members.reduce(
-      (acc, m) => (PERMISSION_RANK[m.permission] > PERMISSION_RANK[acc] ? m.permission : acc),
-      'VIEWER' as TicketSpacePermission,
+      (acc, m) =>
+        PERMISSION_RANK[m.permission] > PERMISSION_RANK[acc]
+          ? m.permission
+          : acc,
+      "VIEWER" as TicketSpacePermission,
     );
     const allowed = PERMISSION_RANK[highest] >= PERMISSION_RANK[required];
     return { allowed, level: highest, isAdmin: false };
   }
 
-  private async requireManagerOrAdmin(user: RequestUser, spaceId: string): Promise<void> {
-    const check = await this.checkAccess(user, spaceId, 'MANAGER');
+  private async requireManagerOrAdmin(
+    user: RequestUser,
+    spaceId: string,
+  ): Promise<void> {
+    const check = await this.checkAccess(user, spaceId, "MANAGER");
     if (!check.allowed) {
       throw new ForbiddenException(
         "Seuls les managers de cet espace (ou un administrateur global) peuvent effectuer cette action.",

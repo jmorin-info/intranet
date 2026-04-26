@@ -4,15 +4,19 @@ import {
   ConflictException,
   Logger,
   Optional,
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { MentionsService } from '../mentions/mentions.service';
-import { MeilisearchService, MeiliDocument } from '../search/meilisearch.service';
-import { CreateNewsDto } from './dto/create-news.dto';
-import { UpdateNewsDto } from './dto/update-news.dto';
-import { UserRole } from '../common/enums';
-import { sanitizeRichText } from '../common/sanitize';
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
+import { MentionsService } from "../mentions/mentions.service";
+import {
+  MeilisearchService,
+  MeiliDocument,
+} from "../search/meilisearch.service";
+import { CreateNewsDto } from "./dto/create-news.dto";
+import { UpdateNewsDto } from "./dto/update-news.dto";
+import { UserRole } from "../common/enums";
+import { sanitizeRichText } from "../common/sanitize";
+import { CacheService } from "../common/cache/cache.service";
 
 @Injectable()
 export class NewsService {
@@ -23,10 +27,20 @@ export class NewsService {
     private readonly notificationsService: NotificationsService,
     @Optional() private readonly mentions?: MentionsService,
     @Optional() private readonly meili?: MeilisearchService,
+    @Optional() private readonly cache?: CacheService,
   ) {}
 
+  /** Wipe cached news lists (any role / any page). Called on every mutation. */
+  private invalidateNewsListCache(): void {
+    if (!this.cache) return;
+    void this.cache.del("news:list:*");
+  }
+
   private stripHtml(html: string): string {
-    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return html
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   /**
@@ -36,18 +50,22 @@ export class NewsService {
     if (!this.meili) return;
     const payload: MeiliDocument = {
       id: `news-${post.id}`,
-      title: post.title ?? '',
-      content: this.stripHtml(post.content ?? post.excerpt ?? ''),
-      type: 'news',
+      title: post.title ?? "",
+      content: this.stripHtml(post.content ?? post.excerpt ?? ""),
+      type: "news",
       url: `/news/${post.slug ?? post.id}`,
       authorId: post.authorId ?? null,
       date: post.publishedAt?.toISOString?.() ?? null,
       category: post.category ?? null,
       tags: [post.category].filter(Boolean),
     };
-    void this.meili.indexOne('news', payload).catch((err) =>
-      this.logger.warn(`Meilisearch indexation failed for news ${post.id}: ${err?.message || err}`),
-    );
+    void this.meili
+      .indexOne("news", payload)
+      .catch((err) =>
+        this.logger.warn(
+          `Meilisearch indexation failed for news ${post.id}: ${err?.message || err}`,
+        ),
+      );
   }
 
   async findAll(
@@ -67,33 +85,41 @@ export class NewsService {
       ],
     };
 
-    const [data, total] = await Promise.all([
-      this.prisma.newsPost.findMany({
-        where,
-        include: {
-          author: {
-            select: { id: true, firstName: true, lastName: true },
+    const fetch = async () => {
+      const [data, total] = await Promise.all([
+        this.prisma.newsPost.findMany({
+          where,
+          include: {
+            author: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+            _count: {
+              select: { views: true },
+            },
           },
-          _count: {
-            select: { views: true },
-          },
-        },
-        orderBy: [{ isPinned: 'desc' }, { publishedAt: 'desc' }],
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.newsPost.count({ where }),
-    ]);
+          orderBy: [{ isPinned: "desc" }, { publishedAt: "desc" }],
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        this.prisma.newsPost.count({ where }),
+      ]);
 
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
     };
+
+    // News mutate slowly (creation = manual editorial action) → cache 120s.
+    // Key scoped by role + page + limit so each role sees a coherent ACL view.
+    if (!this.cache) return fetch();
+    const key = `news:list:role=${currentUserRole}:page=${page}:limit=${limit}`;
+    return this.cache.wrap(key, 120, fetch);
   }
 
   async findBySlug(slug: string, currentUserRole: UserRole) {
@@ -110,7 +136,7 @@ export class NewsService {
     });
 
     if (!post || post.deletedAt) {
-      throw new NotFoundException('News post not found');
+      throw new NotFoundException("News post not found");
     }
 
     // Check role access — empty targetRoles = visible to all
@@ -119,7 +145,7 @@ export class NewsService {
       post.targetRoles.length > 0 &&
       !post.targetRoles.includes(currentUserRole as any)
     ) {
-      throw new NotFoundException('News post not found');
+      throw new NotFoundException("News post not found");
     }
 
     return post;
@@ -129,9 +155,10 @@ export class NewsService {
     const slug = await this.generateSlug(dto.title);
 
     const isPublished = dto.isPublished ?? false;
-    const targetRoles = dto.targetRoles && dto.targetRoles.length > 0
-      ? (dto.targetRoles as any[])
-      : [];
+    const targetRoles =
+      dto.targetRoles && dto.targetRoles.length > 0
+        ? (dto.targetRoles as any[])
+        : [];
 
     const post = await this.prisma.newsPost.create({
       data: {
@@ -158,33 +185,40 @@ export class NewsService {
 
     // Notify all active users about the new article
     if (isPublished) {
-      this.notificationsService.broadcast({
-        type: 'NEWS_POSTED',
-        title: `Nouvel article : ${post.title}`,
-        body: post.excerpt || post.title,
-        resourceType: 'NewsPost',
-        resourceId: post.id,
-      }).catch(err => this.logger.warn(`News notification failed: ${err}`));
+      this.notificationsService
+        .broadcast({
+          type: "NEWS_POSTED",
+          title: `Nouvel article : ${post.title}`,
+          body: post.excerpt || post.title,
+          resourceType: "NewsPost",
+          resourceId: post.id,
+        })
+        .catch((err) => this.logger.warn(`News notification failed: ${err}`));
     }
 
     // Extract @mentions in title + excerpt + plain-text of content to notify individually
     if (this.mentions && isPublished) {
-      const authorName = `${post.author.firstName} ${post.author.lastName}`.trim() || 'Un auteur';
-      const plain = `${dto.title}\n${dto.excerpt || ''}\n${dto.content.replace(/<[^>]*>/g, ' ')}`;
+      const authorName =
+        `${post.author.firstName} ${post.author.lastName}`.trim() ||
+        "Un auteur";
+      const plain = `${dto.title}\n${dto.excerpt || ""}\n${dto.content.replace(/<[^>]*>/g, " ")}`;
       void this.mentions
         .parseAndNotify({
           text: plain,
           authorId,
           authorName,
-          sourceType: 'news',
+          sourceType: "news",
           sourceId: post.id,
           sourceTitle: post.title,
           link: `/news/${post.slug}`,
         })
-        .catch((err) => this.logger.warn(`mention parsing failed: ${err?.message || err}`));
+        .catch((err) =>
+          this.logger.warn(`mention parsing failed: ${err?.message || err}`),
+        );
     }
 
     this.indexForMeili(post);
+    this.invalidateNewsListCache();
 
     return post;
   }
@@ -193,7 +227,7 @@ export class NewsService {
     const post = await this.prisma.newsPost.findUnique({ where: { id } });
 
     if (!post || post.deletedAt) {
-      throw new NotFoundException('News post not found');
+      throw new NotFoundException("News post not found");
     }
 
     const updateData: any = {};
@@ -201,9 +235,12 @@ export class NewsService {
       updateData.title = sanitizeRichText(dto.title);
       updateData.slug = await this.generateSlug(dto.title);
     }
-    if (dto.content !== undefined) updateData.content = sanitizeRichText(dto.content);
-    if (dto.excerpt !== undefined) updateData.excerpt = sanitizeRichText(dto.excerpt);
-    if (dto.coverImageUrl !== undefined) updateData.coverImageUrl = dto.coverImageUrl;
+    if (dto.content !== undefined)
+      updateData.content = sanitizeRichText(dto.content);
+    if (dto.excerpt !== undefined)
+      updateData.excerpt = sanitizeRichText(dto.excerpt);
+    if (dto.coverImageUrl !== undefined)
+      updateData.coverImageUrl = dto.coverImageUrl;
     if (dto.category !== undefined) updateData.category = dto.category;
     if (dto.isPinned !== undefined) updateData.isPinned = dto.isPinned;
     if (dto.isPublished !== undefined) {
@@ -212,7 +249,8 @@ export class NewsService {
         updateData.publishedAt = new Date();
       }
     }
-    if (dto.targetRoles !== undefined) updateData.targetRoles = dto.targetRoles as any[];
+    if (dto.targetRoles !== undefined)
+      updateData.targetRoles = dto.targetRoles as any[];
 
     const updated = await this.prisma.newsPost.update({
       where: { id },
@@ -229,22 +267,26 @@ export class NewsService {
     const isPublished = updated.isPublished;
     if (this.mentions && editorId && contentChanged && isPublished) {
       const authorName =
-        `${updated.author.firstName} ${updated.author.lastName}`.trim() || 'Un auteur';
-      const plain = `${updated.title}\n${updated.content.replace(/<[^>]*>/g, ' ')}`;
+        `${updated.author.firstName} ${updated.author.lastName}`.trim() ||
+        "Un auteur";
+      const plain = `${updated.title}\n${updated.content.replace(/<[^>]*>/g, " ")}`;
       void this.mentions
         .parseAndNotify({
           text: plain,
           authorId: editorId,
           authorName,
-          sourceType: 'news',
+          sourceType: "news",
           sourceId: updated.id,
           sourceTitle: updated.title,
           link: `/news/${updated.slug}`,
         })
-        .catch((err) => this.logger.warn(`mention parsing failed: ${err?.message || err}`));
+        .catch((err) =>
+          this.logger.warn(`mention parsing failed: ${err?.message || err}`),
+        );
     }
 
     this.indexForMeili(updated);
+    this.invalidateNewsListCache();
 
     return updated;
   }
@@ -253,13 +295,14 @@ export class NewsService {
     const post = await this.prisma.newsPost.findUnique({ where: { id } });
 
     if (!post || post.deletedAt) {
-      throw new NotFoundException('Actualité introuvable');
+      throw new NotFoundException("Actualité introuvable");
     }
 
     // Libère le slug pour qu'une future actualité puisse réutiliser le même
     // titre. On suffixe avec timestamp pour garder l'audit trail tout en
     // dégageant le slug unique côté DB.
-    const releasedSlug = `${post.slug}.deleted-${Date.now().toString(36)}`.slice(0, 200);
+    const releasedSlug =
+      `${post.slug}.deleted-${Date.now().toString(36)}`.slice(0, 200);
 
     await this.prisma.newsPost.update({
       where: { id },
@@ -271,19 +314,20 @@ export class NewsService {
 
     // Désindexe de Meilisearch. Les actualités ne sont pas indexées par le
     // RAG (cf. enum RagSourceType) — pas besoin de removeFromIndex.
-    void this.meili?.deleteDocument('news', id);
+    void this.meili?.deleteDocument("news", id);
+    this.invalidateNewsListCache();
 
-    return { message: 'Actualité supprimée' };
+    return { message: "Actualité supprimée" };
   }
 
   async publish(id: string) {
     const post = await this.prisma.newsPost.findUnique({ where: { id } });
 
     if (!post || post.deletedAt) {
-      throw new NotFoundException('News post not found');
+      throw new NotFoundException("News post not found");
     }
 
-    return this.prisma.newsPost.update({
+    const published = await this.prisma.newsPost.update({
       where: { id },
       data: {
         isPublished: true,
@@ -295,6 +339,8 @@ export class NewsService {
         },
       },
     });
+    this.invalidateNewsListCache();
+    return published;
   }
 
   async recordView(newsPostId: string, userId: string) {
@@ -346,16 +392,17 @@ export class NewsService {
             },
           },
         },
-        orderBy: { viewedAt: 'desc' },
+        orderBy: { viewedAt: "desc" },
       }),
       this.prisma.user.count({
         where: { isActive: true, deletedAt: null },
       }),
     ]);
 
-    const readRate = totalActiveUsers > 0
-      ? Math.round((views.length / totalActiveUsers) * 100)
-      : 0;
+    const readRate =
+      totalActiveUsers > 0
+        ? Math.round((views.length / totalActiveUsers) * 100)
+        : 0;
 
     return {
       viewers: views.map((v) => ({
@@ -409,7 +456,7 @@ export class NewsService {
         _count: { select: { views: true } },
         author: { select: { firstName: true, lastName: true } },
       },
-      orderBy: { views: { _count: 'desc' } },
+      orderBy: { views: { _count: "desc" } },
       take: limit,
     });
     return articles;
@@ -417,20 +464,23 @@ export class NewsService {
 
   async getCategoryStats() {
     const stats = await this.prisma.newsPost.groupBy({
-      by: ['category'],
+      by: ["category"],
       _count: true,
       where: { isPublished: true, deletedAt: null },
     });
-    return stats.map(s => ({ category: s.category || 'Sans catégorie', count: s._count }));
+    return stats.map((s) => ({
+      category: s.category || "Sans catégorie",
+      count: s._count,
+    }));
   }
 
   private async generateSlug(title: string): Promise<string> {
     let slug = title
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
 
     const existing = await this.prisma.newsPost.findUnique({
       where: { slug },

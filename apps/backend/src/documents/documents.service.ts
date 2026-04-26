@@ -13,6 +13,7 @@ import { AuditService } from "../audit/audit.service";
 import { ScannerService } from "../scanner/scanner.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { CacheService } from "../common/cache/cache.service";
+import { AppMetricsService } from "../health/app-metrics.service";
 import { CreateDocumentDto } from "./dto/create-document.dto";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 import { DocumentFiltersDto } from "./dto/document-filters.dto";
@@ -173,6 +174,7 @@ export class DocumentsService {
     @Optional() private readonly meili?: MeilisearchService,
     @Optional() private readonly rag?: RagService,
     @Optional() private readonly workflowRules?: WorkflowRulesService,
+    @Optional() private readonly metrics?: AppMetricsService,
   ) {}
 
   /** Invalidate document + dashboard stats caches after mutations. */
@@ -689,6 +691,11 @@ export class DocumentsService {
     this.logger.warn(
       `Direct publish : document ${doc.id} ('${doc.title}') published by ${user.id} — workflow bypassed`,
     );
+    try {
+      this.metrics?.documentsApprovedTotal.inc();
+    } catch {
+      /* noop */
+    }
     return published;
   }
 
@@ -777,6 +784,11 @@ export class DocumentsService {
       `forceApprove doc ${id} by ${user.id} (${doc.status} → APPROVED, permanent=${makePermanent}, ${pendingInstances.length} workflow(s) annulé(s))`,
     );
 
+    try {
+      this.metrics?.documentsApprovedTotal.inc();
+    } catch {
+      /* noop */
+    }
     this.invalidateStatsCaches();
     return updated;
   }
