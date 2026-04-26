@@ -73,10 +73,10 @@ export function ProfilePersonalInfo({
   ] as const;
 
   return (
-    <Card className="shadow-sm rounded-xl">
+    <Card className="shadow-sm rounded-xl hover:shadow-md transition-shadow">
       <CardHeader>
-        <h2 className="text-lg font-medium text-seal-navy dark:text-white flex items-center gap-2">
-          <PenLine className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold text-seal-navy dark:text-white flex items-center gap-2">
+          <PenLine className="h-5 w-5 text-primary" aria-hidden="true" />
           Informations personnelles
         </h2>
       </CardHeader>
@@ -97,8 +97,9 @@ export function ProfilePersonalInfo({
             onClick={onSave}
             loading={savingProfile}
             disabled={savingProfile}
+            aria-label="Enregistrer les modifications du profil"
           >
-            <Save className="h-3.5 w-3.5" />{" "}
+            <Save className="h-3.5 w-3.5" aria-hidden="true" />{" "}
             {savingProfile ? "Enregistrement…" : "Enregistrer"}
           </Button>
         </div>

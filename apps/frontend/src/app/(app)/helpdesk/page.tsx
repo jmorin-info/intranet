@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { Suspense, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
+import React, { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   LifeBuoy,
   Sparkles,
@@ -15,30 +15,36 @@ import {
   BookOpen,
   HelpCircle,
   AlertTriangle,
-} from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth-store';
+} from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth-store";
 
 // The embedded chatbot is the SAME component as the FAB — it shares the same
 // zustand store (`useChatbotStore`), so the conversation history is unified.
 const AIChatbot = dynamic(
-  () => import('@/components/ai/ai-chatbot').then(m => ({ default: m.AIChatbot })),
+  () =>
+    import("@/components/ai/ai-chatbot").then((m) => ({
+      default: m.AIChatbot,
+    })),
   { ssr: false, loading: () => <div className="shimmer h-80 rounded-2xl" /> },
 );
 
 // Self-service is now a secondary tab (FAQ / templates).
 const SelfServicePortal = dynamic(
-  () => import('./SelfServicePortal').then(m => ({ default: m.SelfServicePortal })),
+  () =>
+    import("./SelfServicePortal").then((m) => ({
+      default: m.SelfServicePortal,
+    })),
   { ssr: false, loading: () => <div className="shimmer h-20 rounded-xl" /> },
 );
 
-type TabId = 'hub' | 'selfservice' | 'mytickets';
+type TabId = "hub" | "selfservice" | "mytickets";
 
 const tabs: Array<{ id: TabId; label: string; icon: typeof Sparkles }> = [
-  { id: 'hub', label: 'Hub support (IA)', icon: Sparkles },
-  { id: 'selfservice', label: 'Self-service', icon: Wrench },
-  { id: 'mytickets', label: 'Mes tickets', icon: Ticket },
+  { id: "hub", label: "Hub support (IA)", icon: Sparkles },
+  { id: "selfservice", label: "Self-service", icon: Wrench },
+  { id: "mytickets", label: "Mes tickets", icon: Ticket },
 ];
 
 interface MyTicket {
@@ -53,26 +59,29 @@ interface MyTicket {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  OPEN: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  IN_PROGRESS: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  WAITING: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
-  RESOLVED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-  CLOSED: 'bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-400',
+  OPEN: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  IN_PROGRESS:
+    "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  WAITING:
+    "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+  RESOLVED:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  CLOSED: "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-400",
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  OPEN: 'Ouvert',
-  IN_PROGRESS: 'En cours',
-  WAITING: 'En attente',
-  RESOLVED: 'Résolu',
-  CLOSED: 'Fermé',
+  OPEN: "Ouvert",
+  IN_PROGRESS: "En cours",
+  WAITING: "En attente",
+  RESOLVED: "Résolu",
+  CLOSED: "Fermé",
 };
 
 const PRIORITY_DOT: Record<string, string> = {
-  CRITICAL: 'bg-red-500',
-  HIGH: 'bg-amber-500',
-  MEDIUM: 'bg-blue-500',
-  LOW: 'bg-gray-400',
+  CRITICAL: "bg-red-500",
+  HIGH: "bg-amber-500",
+  MEDIUM: "bg-blue-500",
+  LOW: "bg-gray-400",
 };
 
 /**
@@ -89,20 +98,26 @@ function MyRecentTickets() {
     (async () => {
       if (!user) return;
       try {
-        const { data } = await api.get('/tickets', {
-          params: { userId: 'me', limit: 5 },
+        const { data } = await api.get("/tickets", {
+          params: { userId: "me", limit: 5 },
         });
         if (cancelled) return;
-        const list: MyTicket[] = Array.isArray(data?.tickets) ? data.tickets
-          : Array.isArray(data?.items) ? data.items
-          : Array.isArray(data) ? data : [];
+        const list: MyTicket[] = Array.isArray(data?.tickets)
+          ? data.tickets
+          : Array.isArray(data?.items)
+            ? data.items
+            : Array.isArray(data)
+              ? data
+              : [];
         setTickets(list.slice(0, 5));
       } catch (err) {
         if (cancelled) return;
-        setError((err as Error)?.message || 'Erreur de chargement');
+        setError((err as Error)?.message || "Erreur de chargement");
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   return (
@@ -127,63 +142,89 @@ function MyRecentTickets() {
 
       <div className="divide-y divide-gray-100 dark:divide-slate-800">
         {tickets === null && !error && (
-          <div className="px-4 py-8 text-center">
-            <div className="shimmer h-4 w-3/4 rounded mx-auto mb-2" />
-            <div className="shimmer h-4 w-1/2 rounded mx-auto" />
+          <div aria-busy="true" aria-live="polite">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3">
+                <div className="h-2 w-2 rounded-full shimmer flex-shrink-0" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2.5 w-16 rounded shimmer" />
+                    <div className="h-3 w-12 rounded-full shimmer" />
+                  </div>
+                  <div className="h-3.5 w-4/5 rounded shimmer" />
+                </div>
+                <div className="h-2.5 w-10 rounded shimmer flex-shrink-0" />
+              </div>
+            ))}
           </div>
         )}
         {error && (
-          <div className="px-4 py-5 text-center text-sm text-red-500 flex items-center justify-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
+          <div
+            role="alert"
+            className="px-4 py-5 text-center text-sm text-red-500 flex items-center justify-center gap-2"
+          >
+            <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             {error}
           </div>
         )}
         {tickets !== null && tickets.length === 0 && !error && (
           <div className="px-4 py-8 text-center">
+            <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-900/20 mb-2">
+              <Ticket
+                className="h-5 w-5 text-emerald-600 dark:text-emerald-400"
+                aria-hidden="true"
+              />
+            </div>
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-3">
-              Aucun ticket pour le moment.
+              Aucun ticket pour le moment — vous êtes à jour.
             </p>
             <Link
               href="/tickets?create=true"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#004469] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#003352] transition"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#004469] px-3 py-2 text-xs font-semibold text-white hover:bg-[#003352] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy focus-visible:ring-offset-2"
             >
-              <Ticket className="h-3.5 w-3.5" />
+              <Ticket className="h-3.5 w-3.5" aria-hidden="true" />
               Créer mon premier ticket
             </Link>
           </div>
         )}
-        {tickets !== null && tickets.map((t) => (
-          <Link
-            key={t.id}
-            href={`/tickets/${t.id}`}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition"
-          >
-            <span
-              aria-hidden
-              className={`h-2 w-2 rounded-full shrink-0 ${PRIORITY_DOT[t.priority] || 'bg-gray-300'}`}
-            />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-semibold text-seal-gray-500 dark:text-slate-500 uppercase">
-                  {t.reference}
-                </span>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_COLORS[t.status] || 'bg-gray-100 text-gray-600'}`}>
-                  {STATUS_LABELS[t.status] || t.status}
-                </span>
+        {tickets !== null &&
+          tickets.map((t) => (
+            <Link
+              key={t.id}
+              href={`/tickets/${t.id}`}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition"
+            >
+              <span
+                aria-hidden
+                className={`h-2 w-2 rounded-full shrink-0 ${PRIORITY_DOT[t.priority] || "bg-gray-300"}`}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-semibold text-seal-gray-500 dark:text-slate-500 uppercase">
+                    {t.reference}
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_COLORS[t.status] || "bg-gray-100 text-gray-600"}`}
+                  >
+                    {STATUS_LABELS[t.status] || t.status}
+                  </span>
+                </div>
+                <p className="text-sm text-seal-navy dark:text-white truncate mt-0.5">
+                  {t.title}
+                </p>
               </div>
-              <p className="text-sm text-seal-navy dark:text-white truncate mt-0.5">
-                {t.title}
-              </p>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-seal-gray-500 dark:text-slate-500 shrink-0">
-              <Clock className="h-3 w-3" />
-              {new Date(t.updatedAt || t.createdAt).toLocaleDateString('fr-FR', {
-                day: '2-digit',
-                month: 'short',
-              })}
-            </div>
-          </Link>
-        ))}
+              <div className="flex items-center gap-1 text-xs text-seal-gray-500 dark:text-slate-500 shrink-0">
+                <Clock className="h-3 w-3" />
+                {new Date(t.updatedAt || t.createdAt).toLocaleDateString(
+                  "fr-FR",
+                  {
+                    day: "2-digit",
+                    month: "short",
+                  },
+                )}
+              </div>
+            </Link>
+          ))}
       </div>
     </div>
   );
@@ -195,10 +236,29 @@ function MyRecentTickets() {
  */
 function QuickSuggestions({ onSetTab }: { onSetTab: (id: TabId) => void }) {
   const suggestions = [
-    { icon: HelpCircle, label: 'Réinitialiser mon mot de passe', href: '/helpdesk?tab=selfservice', onClick: () => onSetTab('selfservice') },
-    { icon: Wrench, label: 'Problème matériel / écran / imprimante', href: '/helpdesk?tab=selfservice', onClick: () => onSetTab('selfservice') },
-    { icon: BookOpen, label: 'Demander un accès dossier / application', href: '/helpdesk?tab=selfservice', onClick: () => onSetTab('selfservice') },
-    { icon: AlertTriangle, label: 'Signaler un incident de sécurité', href: '/incidents' },
+    {
+      icon: HelpCircle,
+      label: "Réinitialiser mon mot de passe",
+      href: "/helpdesk?tab=selfservice",
+      onClick: () => onSetTab("selfservice"),
+    },
+    {
+      icon: Wrench,
+      label: "Problème matériel / écran / imprimante",
+      href: "/helpdesk?tab=selfservice",
+      onClick: () => onSetTab("selfservice"),
+    },
+    {
+      icon: BookOpen,
+      label: "Demander un accès dossier / application",
+      href: "/helpdesk?tab=selfservice",
+      onClick: () => onSetTab("selfservice"),
+    },
+    {
+      icon: AlertTriangle,
+      label: "Signaler un incident de sécurité",
+      href: "/incidents",
+    },
   ];
 
   return (
@@ -216,7 +276,9 @@ function QuickSuggestions({ onSetTab }: { onSetTab: (id: TabId) => void }) {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#004469]/10 dark:bg-[#004469]/30 text-[#004469] dark:text-blue-400 shrink-0">
                 <s.icon className="h-4 w-4" />
               </div>
-              <span className="text-sm text-seal-navy dark:text-slate-200 flex-1">{s.label}</span>
+              <span className="text-sm text-seal-navy dark:text-slate-200 flex-1">
+                {s.label}
+              </span>
               <ChevronRight className="h-4 w-4 text-seal-gray-500 dark:text-slate-500 shrink-0" />
             </>
           );
@@ -250,21 +312,23 @@ function SupportPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const initialTab = searchParams.get('tab') as TabId | null;
+  const initialTab = searchParams.get("tab") as TabId | null;
   const [activeTab, setActiveTab] = useState<TabId>(
-    initialTab === 'selfservice' || initialTab === 'mytickets' ? initialTab : 'hub',
+    initialTab === "selfservice" || initialTab === "mytickets"
+      ? initialTab
+      : "hub",
   );
 
   const handleSetTab = (id: TabId) => {
     setActiveTab(id);
     const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', id);
+    params.set("tab", id);
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
   useEffect(() => {
-    const param = searchParams.get('tab') as TabId | null;
-    if (param === 'hub' || param === 'selfservice' || param === 'mytickets') {
+    const param = searchParams.get("tab") as TabId | null;
+    if (param === "hub" || param === "selfservice" || param === "mytickets") {
       setActiveTab(param);
     }
   }, [searchParams]);
@@ -279,25 +343,32 @@ function SupportPageInner() {
       />
 
       {/* Tab bar */}
-      <div className="flex items-center gap-1 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
-        {tabs.map(tab => (
+      <div
+        className="flex items-center gap-1 border-b border-gray-200 dark:border-slate-700 overflow-x-auto"
+        role="tablist"
+        aria-label="Sections du centre d'assistance"
+      >
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => handleSetTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm transition-colors whitespace-nowrap ${
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={`tab-${tab.id}`}
+            className={`flex items-center gap-2 px-3 sm:px-4 py-3 text-sm transition-colors whitespace-nowrap min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy focus-visible:ring-offset-2 rounded-t ${
               activeTab === tab.id
-                ? 'border-b-2 border-primary text-primary font-semibold'
-                : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
+                ? "border-b-2 border-primary text-primary font-semibold"
+                : "text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white"
             }`}
           >
-            <tab.icon className="h-4 w-4" />
+            <tab.icon className="h-4 w-4" aria-hidden="true" />
             {tab.label}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
-      {activeTab === 'hub' && (
+      {activeTab === "hub" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main column: chatbot + suggestions */}
           <div className="lg:col-span-2 space-y-6">
@@ -317,8 +388,8 @@ function SupportPageInner() {
                   L'assistant ne trouve pas ? Créez un ticket
                 </h4>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-                  Un agent du support prendra en charge votre demande.
-                  Catégorie et priorité seront pré-suggérées par l'IA.
+                  Un agent du support prendra en charge votre demande. Catégorie
+                  et priorité seront pré-suggérées par l'IA.
                 </p>
               </div>
               <Link
@@ -339,8 +410,8 @@ function SupportPageInner() {
           </div>
         </div>
       )}
-      {activeTab === 'selfservice' && <SelfServicePortal />}
-      {activeTab === 'mytickets' && <MyRecentTickets />}
+      {activeTab === "selfservice" && <SelfServicePortal />}
+      {activeTab === "mytickets" && <MyRecentTickets />}
     </div>
   );
 }
