@@ -10,6 +10,7 @@ import { useGlanceStore } from "@/stores/glance-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useTranslation } from "@/lib/i18n";
 import { useNoaStore } from "@/lib/noa/runtime";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { replayWelcomeTour } from "@/components/onboarding/welcome-tour";
 import type { ApiError, NotifPrefs } from "./types";
 
@@ -84,6 +85,12 @@ export function ProfilePreferencesSection() {
   });
   const [savingNotifPrefs, setSavingNotifPrefs] = useState(false);
 
+  // Browser-side push subscription (separate from server pref).
+  // The backend pref `pushBrowser` is a soft mute (the user said "I don't want pushes").
+  // The actual subscription lives in the SW + DB. We keep them in sync: enabling the
+  // toggle subscribes the browser if needed; disabling it unsubscribes.
+  const push = usePushNotifications();
+
   useEffect(() => {
     api
       .get("/users/me/notification-preferences")
@@ -106,6 +113,24 @@ export function ProfilePreferencesSection() {
     if (key === "emailSecurityAlerts") return; // cannot toggle
     const previous = notifPrefs;
     const updated = { ...notifPrefs, [key]: !notifPrefs[key] };
+
+    // Special-case: toggling pushBrowser ON also subscribes the browser
+    // (asks permission, registers the subscription server-side via /push/subscribe).
+    // Toggling it OFF unsubscribes the browser too.
+    if (key === "pushBrowser") {
+      if (updated.pushBrowser) {
+        const ok = await push.subscribe();
+        if (!ok) {
+          toast.error(
+            push.error || "Notifications push non activées (permission refusée ou non supportée)",
+          );
+          return;
+        }
+      } else {
+        await push.unsubscribe();
+      }
+    }
+
     setNotifPrefs(updated);
     setSavingNotifPrefs(true);
     try {
@@ -163,8 +188,15 @@ export function ProfilePreferencesSection() {
     {
       key: "pushBrowser" as const,
       label: "Push navigateur",
-      desc: "Notifications push dans le navigateur",
-      forced: false,
+      desc:
+        push.permission === "unsupported"
+          ? "Non supporté par ce navigateur (iOS Safari < 16 ?)"
+          : push.permission === "denied"
+            ? "Bloqué — réactivez les notifications dans les paramètres du navigateur"
+            : push.permission === "granted"
+              ? `Notifications push dans le navigateur${push.isSubscribed ? " (actives)" : ""}`
+              : "Notifications push dans le navigateur (autorisation requise)",
+      forced: push.permission === "unsupported" || push.permission === "denied",
     },
   ];
 
