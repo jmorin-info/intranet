@@ -64,32 +64,52 @@ unset PGPASSFILE
 
 # --- 2. Verify backup integrity ---
 if [ -f "$DB_BACKUP" ] && command -v pg_restore &>/dev/null; then
-  log "2/4 — Verifying backup integrity..."
+  log "2/5 — Verifying backup integrity..."
   if gunzip -c "$DB_BACKUP" | pg_restore --list > /dev/null 2>&1; then
     log "  Integrity check: PASSED"
   else
     log "  WARNING: Integrity check failed"
   fi
 else
-  log "2/4 — Integrity check skipped"
+  log "2/5 — Integrity check skipped"
+fi
+
+# --- 2b. SHA-256 checksums (preuve d'intégrité — ISO 27001 A.8.13) ---
+if command -v sha256sum >/dev/null 2>&1; then
+  if [ -f "$DB_BACKUP" ]; then
+    sha256sum "$DB_BACKUP" > "${DB_BACKUP}.sha256" 2>/dev/null && \
+      log "  SHA-256 DB     : $(awk '{print $1}' "${DB_BACKUP}.sha256")"
+  fi
 fi
 
 # --- 3. Storage files backup ---
-log "3/4 — Storage files..."
+log "3/5 — Storage files..."
 STORAGE_BACKUP="${BACKUP_DIR}/storage_${TIMESTAMP}.tar.gz"
 STORAGE_PATH="${STORAGE_PATH:-${PROJECT_DIR}/storage}"
 if [ -d "$STORAGE_PATH" ]; then
   tar -czf "$STORAGE_BACKUP" -C "$(dirname "$STORAGE_PATH")" "$(basename "$STORAGE_PATH")" 2>/dev/null
   log "  Storage backup: $(du -h "$STORAGE_BACKUP" | cut -f1)"
+  if [ -f "$STORAGE_BACKUP" ] && command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$STORAGE_BACKUP" > "${STORAGE_BACKUP}.sha256" 2>/dev/null && \
+      log "  SHA-256 storage: $(awk '{print $1}' "${STORAGE_BACKUP}.sha256")"
+  fi
 else
   log "  WARNING: Storage dir not found: $STORAGE_PATH"
 fi
 
 # --- 4. Retention cleanup ---
-log "4/4 — Cleaning backups older than ${RETENTION_DAYS} days..."
-DELETED=$(find "$BACKUP_DIR" -name "*.gz" -mtime "+${RETENTION_DAYS}" -delete -print | wc -l)
-DELETED_LOGS=$(find "$BACKUP_DIR" -name "*.log" -mtime "+${RETENTION_DAYS}" -delete -print | wc -l)
-log "  Deleted: ${DELETED} backup files, ${DELETED_LOGS} log files"
+log "4/5 — Cleaning backups older than ${RETENTION_DAYS} days..."
+# Délégué à backup-cleanup.sh si disponible (rotation 7d/4w/12m), sinon flat
+if [ -x "${PROJECT_DIR}/scripts/backup-cleanup.sh" ]; then
+  log "  Délégué à backup-cleanup.sh (rotation 7d/4w/12m)"
+  "${PROJECT_DIR}/scripts/backup-cleanup.sh" >> "$LOG_FILE" 2>&1 || \
+    log "  WARNING: backup-cleanup.sh a retourné non-zéro (continuer quand même)"
+else
+  DELETED=$(find "$BACKUP_DIR" -name "*.gz" -mtime "+${RETENTION_DAYS}" -delete -print | wc -l)
+  DELETED_SHA=$(find "$BACKUP_DIR" -name "*.sha256" -mtime "+${RETENTION_DAYS}" -delete -print | wc -l)
+  DELETED_LOGS=$(find "$BACKUP_DIR" -name "*.log" -mtime "+${RETENTION_DAYS}" -delete -print | wc -l)
+  log "  Deleted: ${DELETED} backup files, ${DELETED_SHA} sha256 files, ${DELETED_LOGS} log files"
+fi
 
 # --- 5. SMB remote copy (if configured) ---
 SMB_SHARE="${SMB_BACKUP_SHARE:-}"
@@ -99,7 +119,7 @@ SMB_PASS="${SMB_BACKUP_PASSWORD:-}"
 SMB_DOMAIN="${SMB_BACKUP_DOMAIN:-omnitech.security}"
 
 if [ -n "$SMB_SHARE" ] && [ -n "$SMB_USER" ]; then
-  log "5/5 — Copie vers partage réseau ${SMB_SHARE}..."
+  log "5/5 — Copie vers partage réseau ${SMB_SHARE}"
   mkdir -p "$SMB_MOUNT"
 
   # Monte le partage si pas déjà monté
@@ -119,12 +139,15 @@ if [ -n "$SMB_SHARE" ] && [ -n "$SMB_USER" ]; then
   fi
 
   if mountpoint -q "$SMB_MOUNT" 2>/dev/null; then
-    # Copie les fichiers de backup du jour
+    # Copie les fichiers de backup du jour (dump + checksums)
     cp "$DB_BACKUP" "${SMB_MOUNT}/" 2>/dev/null && log "  DB copié vers réseau"
+    [ -f "${DB_BACKUP}.sha256" ] && cp "${DB_BACKUP}.sha256" "${SMB_MOUNT}/" 2>/dev/null
     [ -f "$STORAGE_BACKUP" ] && cp "$STORAGE_BACKUP" "${SMB_MOUNT}/" 2>/dev/null && log "  Storage copié vers réseau"
+    [ -f "${STORAGE_BACKUP}.sha256" ] && cp "${STORAGE_BACKUP}.sha256" "${SMB_MOUNT}/" 2>/dev/null
 
     # Nettoyage réseau (même rétention)
     find "$SMB_MOUNT" -name "*.gz" -mtime "+${RETENTION_DAYS}" -delete 2>/dev/null
+    find "$SMB_MOUNT" -name "*.sha256" -mtime "+${RETENTION_DAYS}" -delete 2>/dev/null
 
     # Démonte proprement
     umount "$SMB_MOUNT" 2>/dev/null

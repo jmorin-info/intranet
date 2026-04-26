@@ -1,0 +1,25 @@
+# OMNITECH Intranet — Rotation des logs backup / drill / restore
+# À déposer dans /etc/logrotate.d/omnitech-backup
+#
+# Garde 12 semaines d'historique (~3 mois) compressées, suffisant pour
+# enquêter sur un incident sans saturer /var/log.
+
+/var/log/omnitech/backup.log
+/var/log/omnitech/backup-drill.log
+/var/log/omnitech/backup-restore.log
+/var/log/omnitech/backup-cleanup.log
+/var/log/omnitech/test-backup-restore.log
+{
+    weekly
+    rotate 12
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root root
+    sharedscripts
+    postrotate
+        # Si on log via systemd-journald aussi, lui dire de relire
+        true
+    endscript
+}

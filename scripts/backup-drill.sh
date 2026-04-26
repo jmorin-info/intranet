@@ -86,13 +86,18 @@ cleanup() {
   # Nettoie le PGPASSFILE
   [ -n "${PGPASS_FILE:-}" ] && rm -f "$PGPASS_FILE" 2>/dev/null || true
 
-  # Drop la DB drill quoi qu'il arrive
+  # Drop la DB drill quoi qu'il arrive (en superuser si dispo)
   if [ "${DRILL_DB_CREATED:-0}" = "1" ]; then
     log "Cleanup — drop DB ${DRILL_DB}"
-    PGPASSWORD="$POSTGRES_PASSWORD" dropdb \
-      -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
-      --if-exists "$DRILL_DB" 2>>"$LOG_FILE" || \
-      log "WARNING: drop DB ${DRILL_DB} a échoué — à vérifier manuellement"
+    if [ "${USE_SUPERUSER:-0}" = "1" ] && command -v sudo >/dev/null 2>&1; then
+      sudo -u postgres dropdb --if-exists "$DRILL_DB" 2>>"$LOG_FILE" || \
+        log "WARNING: drop DB ${DRILL_DB} a échoué — à vérifier manuellement"
+    else
+      PGPASSWORD="$POSTGRES_PASSWORD" dropdb \
+        -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
+        --if-exists "$DRILL_DB" 2>>"$LOG_FILE" || \
+        log "WARNING: drop DB ${DRILL_DB} a échoué — à vérifier manuellement"
+    fi
   fi
 
   local duration=$(( $(date +%s) - START_TS ))
@@ -159,17 +164,40 @@ echo "${DB_HOST}:${DB_PORT}:*:${POSTGRES_USER}:${POSTGRES_PASSWORD}" > "$PGPASS_
 export PGPASSFILE="$PGPASS_FILE"
 
 # --- 2. Drop + Create DB drill ---
+# Restore en superuser local (peer auth) parce que le dump contient
+# CREATE EXTENSION vector que l'utilisateur applicatif ne peut pas créer.
+# Si sudo n'est pas disponible, on retombe sur l'utilisateur applicatif
+# (échouera si vector pas pré-créé sur template1).
+USE_SUPERUSER=0
+if command -v sudo >/dev/null 2>&1 && sudo -n -u postgres true 2>/dev/null; then
+  USE_SUPERUSER=1
+  log "Mode restore : sudo -u postgres (superuser)"
+else
+  log "Mode restore : ${POSTGRES_USER} (app user) — vector requis sur template1"
+fi
+
 log "1/5 — Préparation base temporaire ${DRILL_DB}"
-dropdb -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
-  --if-exists "$DRILL_DB" 2>>"$LOG_FILE" || {
-    fail "dropdb initial impossible — droits Postgres ?"
+if [ "$USE_SUPERUSER" = "1" ]; then
+  sudo -u postgres dropdb --if-exists "$DRILL_DB" 2>>"$LOG_FILE" || {
+    fail "dropdb initial impossible (superuser)"
     exit 1
   }
-createdb -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
-  -O "$POSTGRES_USER" "$DRILL_DB" 2>>"$LOG_FILE" || {
-    fail "createdb ${DRILL_DB} impossible — droits Postgres ?"
+  sudo -u postgres createdb -O "$POSTGRES_USER" "$DRILL_DB" 2>>"$LOG_FILE" || {
+    fail "createdb ${DRILL_DB} impossible (superuser)"
     exit 1
   }
+else
+  dropdb -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
+    --if-exists "$DRILL_DB" 2>>"$LOG_FILE" || {
+      fail "dropdb initial impossible — droits Postgres ?"
+      exit 1
+    }
+  createdb -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
+    -O "$POSTGRES_USER" "$DRILL_DB" 2>>"$LOG_FILE" || {
+      fail "createdb ${DRILL_DB} impossible — droits Postgres ?"
+      exit 1
+    }
+fi
 DRILL_DB_CREATED=1
 
 # --- 3. Restore ---
@@ -178,13 +206,22 @@ log "2/5 — Restauration du dump (pg_restore)"
 # pg_restore sait lire un dump custom ; on pipe le gunzip
 RESTORE_LOG=$(mktemp)
 set +e
-gunzip -c "$LATEST_BACKUP" | pg_restore \
-  -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
-  -d "$DRILL_DB" \
-  --no-owner --no-acl --exit-on-error \
-  --single-transaction \
-  > "$RESTORE_LOG" 2>&1
-RC=$?
+if [ "$USE_SUPERUSER" = "1" ]; then
+  gunzip -c "$LATEST_BACKUP" | sudo -u postgres pg_restore \
+    -d "$DRILL_DB" \
+    --no-owner --no-acl --exit-on-error \
+    --single-transaction \
+    > "$RESTORE_LOG" 2>&1
+  RC=$?
+else
+  gunzip -c "$LATEST_BACKUP" | pg_restore \
+    -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
+    -d "$DRILL_DB" \
+    --no-owner --no-acl --exit-on-error \
+    --single-transaction \
+    > "$RESTORE_LOG" 2>&1
+  RC=$?
+fi
 set -e
 
 if [ "$RC" != "0" ]; then
@@ -203,11 +240,19 @@ run_count() {
   local table="$1"
   local min="$2"
   local count
-  count=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
-    -d "$DRILL_DB" -tAc "SELECT count(*) FROM \"${table}\";" 2>>"$LOG_FILE") || {
-      fail "SELECT COUNT(*) échoué sur ${table}"
-      return 1
-    }
+  if [ "$USE_SUPERUSER" = "1" ]; then
+    count=$(sudo -u postgres psql -d "$DRILL_DB" -tAc \
+      "SELECT count(*) FROM \"${table}\";" 2>>"$LOG_FILE") || {
+        fail "SELECT COUNT(*) échoué sur ${table}"
+        return 1
+      }
+  else
+    count=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
+      -d "$DRILL_DB" -tAc "SELECT count(*) FROM \"${table}\";" 2>>"$LOG_FILE") || {
+        fail "SELECT COUNT(*) échoué sur ${table}"
+        return 1
+      }
+  fi
   count=$(echo "$count" | tr -d '[:space:]')
   log "   ${table}: ${count} (min ${min})"
   if ! [[ "$count" =~ ^[0-9]+$ ]]; then
@@ -234,10 +279,16 @@ fi
 # --- 5. Checks d'intégrité additionnels ---
 log "4/5 — Checks d'intégrité schema"
 # Au moins une migration Prisma appliquée
-MIG_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
-  -d "$DRILL_DB" -tAc \
-  "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL;" \
-  2>>"$LOG_FILE" || echo 0)
+if [ "$USE_SUPERUSER" = "1" ]; then
+  MIG_COUNT=$(sudo -u postgres psql -d "$DRILL_DB" -tAc \
+    "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL;" \
+    2>>"$LOG_FILE" || echo 0)
+else
+  MIG_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$POSTGRES_USER" \
+    -d "$DRILL_DB" -tAc \
+    "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL;" \
+    2>>"$LOG_FILE" || echo 0)
+fi
 MIG_COUNT=$(echo "$MIG_COUNT" | tr -d '[:space:]')
 log "   Migrations Prisma appliquées : ${MIG_COUNT:-0}"
 if [ "${MIG_COUNT:-0}" -lt 1 ]; then
