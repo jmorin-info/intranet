@@ -22,12 +22,12 @@ export function ProfileRgpdSection() {
           responseType: "blob",
         },
       );
-      const blob = new Blob([response.data], { type: "application/json" });
+      const blob = new Blob([response.data], { type: "application/zip" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       const date = new Date().toISOString().split("T")[0];
-      link.setAttribute("download", `export-rgpd-${date}.json`);
+      link.setAttribute("download", `export-rgpd-${date}.zip`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
@@ -64,8 +64,10 @@ export function ProfileRgpdSection() {
       <CardContent>
         <p className="text-sm text-seal-gray-500 mb-4">
           Conformément au RGPD, vous pouvez télécharger l&apos;ensemble de vos
-          données personnelles au format JSON (profil, documents, tickets,
-          notifications, journaux).
+          données personnelles dans une archive ZIP contenant : un fichier JSON
+          structuré, un rapport PDF lisible, un export CSV des journaux
+          d&apos;audit et un README expliquant comment vérifier
+          l&apos;intégrité.
         </p>
         <Button
           variant="secondary"
@@ -73,7 +75,7 @@ export function ProfileRgpdSection() {
           loading={requestingExport}
         >
           <Download className="h-4 w-4" />
-          Exporter mes données
+          Télécharger mes données (ZIP)
         </Button>
       </CardContent>
     </Card>
