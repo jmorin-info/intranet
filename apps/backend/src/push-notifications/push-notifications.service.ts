@@ -67,6 +67,32 @@ export class PushNotificationsService implements OnModuleInit {
     return this.vapidPublicKey;
   }
 
+  /**
+   * Détecte la plateforme cliente à partir d'un User-Agent et/ou d'un
+   * indice explicite fourni par le client. Permet de tracer si la
+   * souscription provient de Safari iOS (PWA installée) ou autre.
+   *
+   * Heuristique basique — se contente d'inspecter les motifs UA usuels.
+   * Le client peut surcharger via le champ `platform` de la requête, ce
+   * qui est plus fiable côté frontend (matchMedia('(display-mode: standalone)')
+   * + 'standalone' in navigator).
+   */
+  static detectPlatform(userAgent?: string, hint?: string): string {
+    const allowed = new Set(['ios', 'macos', 'android', 'desktop', 'unknown']);
+    if (hint && allowed.has(hint)) return hint;
+    if (!userAgent) return 'unknown';
+    const ua = userAgent.toLowerCase();
+    // iPad sur iPadOS 13+ rapporte "Macintosh" — on lève l'ambiguïté
+    // via la présence du Touch UI (point tactile). Faute d'accès au DOM
+    // côté backend, on s'appuie surtout sur le hint client.
+    if (/iphone|ipod/.test(ua)) return 'ios';
+    if (/ipad/.test(ua)) return 'ios';
+    if (/android/.test(ua)) return 'android';
+    if (/macintosh|mac os x/.test(ua)) return 'macos';
+    if (/windows|linux|cros/.test(ua)) return 'desktop';
+    return 'unknown';
+  }
+
   /** Upsert a push subscription for a user. */
   async subscribe(
     userId: string,
@@ -74,13 +100,29 @@ export class PushNotificationsService implements OnModuleInit {
     p256dh: string,
     auth: string,
     userAgent?: string,
-  ): Promise<{ id: string }> {
+    platform?: string,
+  ): Promise<{ id: string; platform: string }> {
+    const detected = PushNotificationsService.detectPlatform(userAgent, platform);
     const sub = await this.prisma.pushSubscription.upsert({
       where: { endpoint },
-      create: { userId, endpoint, p256dh, auth, userAgent: userAgent ?? null },
-      update: { userId, p256dh, auth, userAgent: userAgent ?? null, lastUsed: new Date() },
+      create: {
+        userId,
+        endpoint,
+        p256dh,
+        auth,
+        userAgent: userAgent ?? null,
+        platform: detected,
+      },
+      update: {
+        userId,
+        p256dh,
+        auth,
+        userAgent: userAgent ?? null,
+        platform: detected,
+        lastUsed: new Date(),
+      },
     });
-    return { id: sub.id };
+    return { id: sub.id, platform: detected };
   }
 
   /** Remove a push subscription by endpoint (per-user safety check). */

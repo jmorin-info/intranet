@@ -33,6 +33,31 @@ export class PushNotificationsController {
     };
   }
 
+  /**
+   * Capacités Web Push exposées au frontend pour orchestrer le flow
+   * d'autorisation côté client (notamment Safari iOS, qui n'autorise
+   * `Notification.requestPermission()` qu'après installation à
+   * l'écran d'accueil).
+   *
+   * `supportsSafari` indique simplement que le serveur sait gérer les
+   * souscriptions Safari Web Push (web-push >= 3.5.0, ce qui est notre
+   * cas) — le frontend reste seul juge de la compatibilité réelle du
+   * navigateur courant.
+   */
+  @Get('capabilities')
+  getCapabilities() {
+    return {
+      enabled: this.service.isEnabled(),
+      vapidPublicKey: this.service.getVapidPublicKey(),
+      // Aligné sur le standard Web Push depuis iOS 16.4 (mars 2023) /
+      // macOS Safari 16. La lib `web-push` >= 3.5.0 est compatible nativement.
+      supportsSafari: true,
+      // Plateformes que le frontend peut déclarer. Sert aussi à valider
+      // côté UI le statut "non supporté" sans deviner.
+      knownPlatforms: ['ios', 'macos', 'android', 'desktop', 'unknown'],
+    };
+  }
+
   @Post('subscribe')
   async subscribe(
     @Body() dto: SubscribeDto,
@@ -46,6 +71,7 @@ export class PushNotificationsController {
       dto.keys.p256dh,
       dto.keys.auth,
       userAgent,
+      dto.platform,
     );
     if (this.audit) {
       void this.audit
@@ -60,6 +86,7 @@ export class PushNotificationsController {
             // Only the host part of the endpoint URL is kept — never the full
             // URL (which is technically a per-device identifier).
             endpointHost: safeEndpointHost(dto.endpoint),
+            platform: result.platform,
           },
         })
         .catch(() => undefined);
