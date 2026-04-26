@@ -48,6 +48,11 @@ function hydrateLocaleFromUser(raw: Record<string, unknown>): void {
   if (typeof window === 'undefined') return;
   const serverLocale = raw.locale as string | undefined | null;
   if (serverLocale !== 'fr' && serverLocale !== 'en') return;
+  // Toujours écrire le cookie NEXT_LOCALE au login : pour next-intl côté
+  // RSC. setLocale() écrit aussi le cookie, mais on bypasse l'API call si
+  // la valeur est déjà en sync (skipRemote: true).
+  const oneYear = 60 * 60 * 24 * 365;
+  document.cookie = `NEXT_LOCALE=${serverLocale}; Max-Age=${oneYear}; Path=/; SameSite=Lax`;
   const current = localStorage.getItem('locale');
   if (current === serverLocale) return;
   // Lazy require to dodge circular deps

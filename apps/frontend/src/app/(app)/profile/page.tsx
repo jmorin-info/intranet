@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useNotificationStore } from "@/stores/notification-store";
-import { useTranslation } from "@/lib/i18n";
+import { useTranslations } from "next-intl";
 
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfilePersonalInfo } from "@/components/profile/profile-personal-info";
@@ -55,7 +55,7 @@ import type {
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
-  const { t } = useTranslation();
+  const t = useTranslations("profile");
   const unreadNotifCount = useNotificationStore((s) => s.unreadCount);
 
   // -------- Editable profile fields (sync with user) --------
@@ -122,12 +122,12 @@ export default function ProfilePage() {
           subordinates: data.subordinates,
         });
       }
-      toast.success(t("profile.updated"));
+      toast.success(t("updated"));
     } catch (err) {
       toast.error(
         (err as ApiError)?.response?.data?.message ||
           (err as ApiError)?.message ||
-          t("profile.updateError"),
+          t("updateError"),
       );
     } finally {
       setSavingProfile(false);

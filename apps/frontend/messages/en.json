@@ -120,7 +120,9 @@
     "languageHint": "Your language follows your account across devices.",
     "darkMode": "Dark mode",
     "saved": "Preferences saved",
-    "saveError": "Could not save preferences"
+    "saveError": "Could not save preferences",
+    "updated": "Profile updated",
+    "updateError": "Could not update profile"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -130,7 +132,10 @@
     "myTickets": "My tickets",
     "recentNews": "Recent news",
     "quickActions": "Quick actions",
-    "noActivity": "No recent activity"
+    "quickAccess": "Quick access",
+    "noActivity": "No recent activity",
+    "loadError": "Could not load the dashboard. Check your connection.",
+    "retry": "Retry"
   },
   "header": {
     "search": "Search",

@@ -818,6 +818,7 @@ function DarkModeToggle() {
 function LanguageToggle() {
   const { t } = useTranslation();
   const { locale, setLocale } = useUIStore();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -877,6 +878,10 @@ function LanguageToggle() {
                 onClick={() => {
                   setLocale(lang.value);
                   setOpen(false);
+                  // next-intl reads the cookie via src/i18n/request.ts on the
+                  // next RSC render — router.refresh() triggers it without a
+                  // hard reload (preserves client state, sidebar scroll, etc.).
+                  router.refresh();
                 }}
                 className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-800 ${
                   active

@@ -120,7 +120,9 @@
     "languageHint": "La langue suivra votre compte sur tous vos appareils.",
     "darkMode": "Mode sombre",
     "saved": "Préférences enregistrées",
-    "saveError": "Impossible d'enregistrer les préférences"
+    "saveError": "Impossible d'enregistrer les préférences",
+    "updated": "Profil mis à jour",
+    "updateError": "Impossible de mettre à jour le profil"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -130,7 +132,10 @@
     "myTickets": "Mes tickets",
     "recentNews": "Actualités récentes",
     "quickActions": "Actions rapides",
-    "noActivity": "Aucune activité récente"
+    "quickAccess": "Accès rapide",
+    "noActivity": "Aucune activité récente",
+    "loadError": "Impossible de charger le tableau de bord. Vérifiez votre connexion.",
+    "retry": "Réessayer"
   },
   "header": {
     "search": "Rechercher",

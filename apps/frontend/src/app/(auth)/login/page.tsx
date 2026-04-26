@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@omnitech/ui';
 import { Shield, Lock, Mail, Key, UserCheck } from 'lucide-react';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslations } from 'next-intl';
 import { loginSchema, type LoginFormData } from '@/lib/validation/schemas';
 
 type LoginForm = LoginFormData;
@@ -20,7 +20,9 @@ function LoginPageInner() {
   const searchParams = useSearchParams();
   const rawSessionExpired = searchParams?.get('reason') === 'session_expired';
   const login = useAuthStore(s => s.login);
-  const { t } = useTranslation();
+  const t = useTranslations('auth.login');
+  const tMfa = useTranslations('auth.mfa');
+  const tTrust = useTranslations('auth.trust');
   const [loading, setLoading] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   // Only show "session expired" if the user actually had a previous session
@@ -55,7 +57,7 @@ function LoginPageInner() {
     try {
       await login(data.email, data.password, data.mfaCode || undefined);
       localStorage.setItem('had_session', '1');
-      toast.success(t('login.success'));
+      toast.success(t('loginSuccess'));
       // Hard navigation to ensure SW cache is bypassed after login
       const redirect = searchParams?.get('redirect') || '/dashboard';
       window.location.href = redirect;
@@ -68,7 +70,7 @@ function LoginPageInner() {
         return;
       }
       // requireMfaSetup is now handled by auth-provider redirect to /mfa
-      const message = err.response?.data?.message || 'Identifiants incorrects';
+      const message = err.response?.data?.message || t('invalidCredentials');
       toast.error(message);
     } finally {
       setLoading(false);
@@ -76,23 +78,23 @@ function LoginPageInner() {
   };
 
   const onMfaSubmit = async () => {
-    if (mfaCode.length !== 6 || !pendingCredentials) { toast.error(t('login.mfaRequired')); return; }
+    if (mfaCode.length !== 6 || !pendingCredentials) { toast.error(tMfa('required')); return; }
     setLoading(true);
     try {
       await login(pendingCredentials.email, pendingCredentials.password, mfaCode);
       localStorage.setItem('had_session', '1');
-      toast.success(t('login.success'));
+      toast.success(t('loginSuccess'));
       // Hard navigation to ensure SW cache is bypassed after login
       const redirect = searchParams?.get('redirect') || '/dashboard';
       window.location.href = redirect;
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } }; message?: string };
-      const msg = err.response?.data?.message || err.message || 'Code MFA invalide';
+      const msg = err.response?.data?.message || err.message || tMfa('invalid');
       if (msg === 'MFA_REQUIRED') {
         // Edge case: backend still wants MFA — don't show error, just stay on MFA screen
-        toast.error(t('login.mfaRetry'));
+        toast.error(tMfa('retry'));
       } else {
-        toast.error(msg === 'Code MFA invalide' ? t('login.mfaInvalid') : msg);
+        toast.error(msg === tMfa('invalid') ? tMfa('invalid') : msg);
       }
       setMfaCode('');
     } finally {
@@ -179,9 +181,9 @@ function LoginPageInner() {
               <div>
                 <div className="mb-6 text-center">
                   <Key className="h-12 w-12 text-primary mx-auto mb-3" />
-                  <h2 className="text-2xl font-semibold text-seal-navy dark:text-white">{t('auth.mfaTitle')}</h2>
+                  <h2 className="text-2xl font-semibold text-seal-navy dark:text-white">{tMfa('title')}</h2>
                   <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-                    {t('auth.mfaSubtitle')}
+                    {tMfa('subtitle')}
                   </p>
                 </div>
                 <div className="space-y-4">
@@ -195,10 +197,10 @@ function LoginPageInner() {
                     onKeyDown={(e) => { if (e.key === 'Enter') onMfaSubmit(); }}
                   />
                   <Button onClick={onMfaSubmit} loading={loading} className="w-full" disabled={mfaCode.length !== 6}>
-                    {t('auth.mfaVerify')}
+                    {tMfa('verify')}
                   </Button>
                   <button onClick={() => { setMfaRequired(false); setMfaCode(''); }} className="w-full text-xs text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
-                    {t('auth.mfaBack')}
+                    {tMfa('back')}
                   </button>
                 </div>
               </div>
@@ -208,53 +210,53 @@ function LoginPageInner() {
             {sessionExpired && (
               <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5 text-xs font-medium text-amber-800 dark:text-amber-300">
                 <Lock className="h-4 w-4 flex-shrink-0" />
-                {t('login.sessionExpired')}
+                {t('sessionExpired')}
               </div>
             )}
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-seal-navy dark:text-white">{t('auth.login')}</h2>
+              <h2 className="text-2xl font-semibold text-seal-navy dark:text-white">{t('title')}</h2>
               <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-                {t('auth.loginSubtitle')}
+                {t('subtitle')}
               </p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-1">
                 <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
-                  {t('auth.email')}
+                  {t('email')}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-seal-gray-500 dark:text-slate-400" />
                   <input
                     {...register('email')}
                     type="email"
-                    placeholder="prenom.nom@omnitech-security.fr"
+                    placeholder={t('emailPlaceholder')}
                     className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-navy dark:text-white py-2.5 pl-10 pr-4 text-sm placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                     autoComplete="email"
                     autoFocus
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">{errors.email.message || t('login.emailInvalid')}</p>
+                  <p className="text-red-500 text-xs mt-1">{errors.email.message || t('emailInvalid')}</p>
                 )}
               </div>
 
               <div className="space-y-1">
                 <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
-                  {t('auth.password')}
+                  {t('password')}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-seal-gray-500 dark:text-slate-400" />
                   <input
                     {...register('password')}
                     type="password"
-                    placeholder="Votre mot de passe"
+                    placeholder={t('passwordPlaceholder')}
                     className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-navy dark:text-white py-2.5 pl-10 pr-4 text-sm placeholder:text-seal-gray-500 dark:placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                     autoComplete="current-password"
                   />
                 </div>
                 {errors.password && (
-                  <p className="text-red-500 text-xs mt-1">{errors.password.message || t('login.passwordRequired')}</p>
+                  <p className="text-red-500 text-xs mt-1">{errors.password.message || t('passwordRequired')}</p>
                 )}
               </div>
 
@@ -264,12 +266,12 @@ function LoginPageInner() {
                 disabled={loading || isSubmitting}
                 className="w-full mt-2 bg-gradient-to-r from-[#F68D2E] to-[#e67d1e] border-0 hover:from-[#e67d1e] hover:to-[#d06a10]"
               >
-                {t('auth.submit')}
+                {t('submit')}
               </Button>
 
               <div className="text-right mt-2">
                 <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                  {t('auth.forgotPassword')}
+                  {t('forgotPassword')}
                 </Link>
               </div>
             </form>
@@ -279,17 +281,16 @@ function LoginPageInner() {
               <div className="mt-4 rounded-lg border border-seal-blue/20 dark:border-slate-600 bg-[#296DC1]/5 dark:bg-slate-800/50 px-4 py-3 animate-[fadeIn_0.3s_ease-out]">
                 <div className="flex items-center gap-2 mb-1">
                   <UserCheck className="h-4 w-4 text-[#296DC1] dark:text-blue-400" />
-                  <span className="text-xs font-semibold text-[#296DC1] dark:text-blue-400">{t('login.contractorAccess')}</span>
+                  <span className="text-xs font-semibold text-[#296DC1] dark:text-blue-400">{t('contractorAccess')}</span>
                 </div>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400 leading-relaxed">
-                  Connectez-vous avec les identifiants fournis par OMNITECH Security.
-                  En cas de difficulté, contactez votre référent projet.
+                  {t('contractorHint')}
                 </p>
               </div>
             )}
 
             <p className="mt-6 text-center text-xs text-seal-gray-500 dark:text-slate-400">
-              {t('login.consent.full')}
+              {t('consent')}
             </p>
 
             <div className="mt-3 text-center">
@@ -298,7 +299,7 @@ function LoginPageInner() {
                 onClick={() => setIsPrestataire((v) => !v)}
                 className="text-xs text-seal-gray-500/60 dark:text-slate-500 hover:text-[#296DC1] dark:hover:text-blue-400 transition-colors"
               >
-                {isPrestataire ? t('login.contractorBack') : t('login.contractorQuestion')}
+                {isPrestataire ? t('contractorBack') : t('contractorQuestion')}
               </button>
             </div>
               </div>
@@ -306,18 +307,18 @@ function LoginPageInner() {
           </div>
 
           {/* Trust bullets — présents en plus du panneau gauche pour rester visibles en mobile */}
-          <div className="mt-5 grid grid-cols-3 gap-2 text-center" aria-label="Garanties de confiance">
+          <div className="mt-5 grid grid-cols-3 gap-2 text-center" aria-label={tTrust('hostingFr')}>
             <div className="flex flex-col items-center gap-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 px-2 py-2">
               <span className="text-base" aria-hidden>🇫🇷</span>
-              <span className="text-[10px] font-semibold text-seal-navy dark:text-white leading-tight">Hébergement FR</span>
+              <span className="text-[10px] font-semibold text-seal-navy dark:text-white leading-tight">{tTrust('hostingFr')}</span>
             </div>
             <div className="flex flex-col items-center gap-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 px-2 py-2">
               <Shield className="h-4 w-4 text-[#006233]" aria-hidden />
-              <span className="text-[10px] font-semibold text-seal-navy dark:text-white leading-tight">ISO 27001</span>
+              <span className="text-[10px] font-semibold text-seal-navy dark:text-white leading-tight">{tTrust('iso27001')}</span>
             </div>
             <div className="flex flex-col items-center gap-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 px-2 py-2">
               <Lock className="h-4 w-4 text-[#296DC1]" aria-hidden />
-              <span className="text-[10px] font-semibold text-seal-navy dark:text-white leading-tight">100% souverain</span>
+              <span className="text-[10px] font-semibold text-seal-navy dark:text-white leading-tight">{tTrust('sovereign')}</span>
             </div>
           </div>
 
@@ -326,15 +327,15 @@ function LoginPageInner() {
               href="/welcome"
               className="inline-block text-sm px-4 py-2 rounded-btn border border-gray-300 dark:border-slate-600 text-seal-gray-500 dark:text-slate-300 hover:border-[#F68D2E] hover:text-[#F68D2E] dark:hover:border-[#F68D2E] dark:hover:text-[#F68D2E] hover:shadow-[0_0_12px_rgba(246,141,46,0.2)] transition-all duration-200"
             >
-              {t('login.discoverIntranet')}
+              {t('discoverIntranet')}
             </Link>
           </div>
 
           <p className="mt-4 text-center text-[11px] text-seal-gray-500/70 dark:text-slate-500">
-            OMNITECH Security &copy; {new Date().getFullYear()} — Tous droits réservés
+            OMNITECH Security &copy; {new Date().getFullYear()} — {t('rightsReserved')}
           </p>
           <p className="mt-1 text-center text-[10px] text-seal-gray-500/40 dark:text-slate-600 flex items-center justify-center gap-2">
-            <Link href="/trust" className="hover:text-[#F68D2E] transition-colors">Centre de confiance</Link>
+            <Link href="/trust" className="hover:text-[#F68D2E] transition-colors">{t('trustCenter')}</Link>
             <span aria-hidden>·</span>
             <span>Powered by OMNITECH Intranet v2.4</span>
           </p>

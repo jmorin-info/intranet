@@ -118,7 +118,15 @@ export const useUIStore = create<UIState>((set) => ({
     }),
 
   setLocale: (locale, options) => {
-    if (typeof window !== 'undefined') localStorage.setItem('locale', locale);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('locale', locale);
+      // Cookie `NEXT_LOCALE` — lu par src/i18n/request.ts au prochain SSR.
+      // SameSite=Lax pour fonctionner en navigation (incluant les redirects),
+      // 1 an, path racine. Pas de Secure ici : posé par JS ; le cookie httpOnly
+      // posé par le backend (`/users/me/preferences`) est en complément.
+      const oneYear = 60 * 60 * 24 * 365;
+      document.cookie = `NEXT_LOCALE=${locale}; Max-Age=${oneYear}; Path=/; SameSite=Lax`;
+    }
     set({ locale });
     // ANSSI A.5.34 — On ne peut plus pré-vérifier la présence d'un JWT (cookie
     // httpOnly). On envoie l'API call best-effort : si non auth, 401 silencieux.

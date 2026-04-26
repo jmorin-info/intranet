@@ -33,7 +33,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useAIOrchestrator } from '@/lib/ai-orchestrator';
 import { useAISuggestions } from '@/lib/ai-ux';
 import { useUIVisibility } from '@/lib/ui-os/execution';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslations } from 'next-intl';
 import { AISuggestionBar } from '@/components/ai/ai-suggestion-bar';
 import { AIExplainabilityHints } from '@/components/ai/ai-explainability-hints';
 import { QuickLinks } from '@/components/widgets/quick-links';
@@ -100,7 +100,7 @@ const defaultPrefs: DashboardWidgetPrefs = {
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
-  const { t } = useTranslation();
+  const t = useTranslations('dashboard');
   const aiSuggestions = useAISuggestions('dashboard');
   // Side-effect hooks: trigger AI orchestration + UI visibility sync.
   useAIOrchestrator('DASHBOARD');
@@ -175,9 +175,9 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="py-8 text-center">
             <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-3" />
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('dashboard.loadError')}</p>
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('loadError')}</p>
             <Button className="mt-4" onClick={() => { data.setError(false); window.location.reload(); }}>
-              {t('action.retry')}
+              {t('retry')}
             </Button>
           </CardContent>
         </Card>
@@ -240,7 +240,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 lg:col-span-2">
                 <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">
-                  Accès rapide
+                  {t('quickAccess')}
                 </p>
                 <QuickLinks />
               </div>
