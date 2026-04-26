@@ -2,6 +2,9 @@ import { Module } from "@nestjs/common";
 import { MulterModule } from "@nestjs/platform-express";
 import { DocumentsController } from "./documents.controller";
 import { DocumentsService } from "./documents.service";
+import { DocumentPermissionsController } from "./document-permissions.controller";
+import { DocumentPermissionsService } from "./document-permissions.service";
+import { DocumentSharesService } from "./document-shares.service";
 import { WorkflowController } from "./workflow/workflow.controller";
 import { WorkflowService } from "./workflow/workflow.service";
 import { AcknowledgmentsController } from "./acknowledgments/acknowledgments.controller";
@@ -34,14 +37,25 @@ import { WorkflowRulesModule } from "../workflow-rules/workflow-rules.module";
     WorkflowController,
     GedDashboardController,
     AcknowledgmentsController,
+    // DocumentPermissionsController déclare des routes statiques :id/permissions
+    // et :id/shares. Il doit également être enregistré AVANT DocumentsController
+    // (pour la cohérence d'ordre, même si les segments diffèrent).
+    DocumentPermissionsController,
     DocumentsController,
   ],
   providers: [
     DocumentsService,
+    DocumentPermissionsService,
+    DocumentSharesService,
     WorkflowService,
     AcknowledgmentsService,
     GedDashboardService,
   ],
-  exports: [DocumentsService, AcknowledgmentsService],
+  exports: [
+    DocumentsService,
+    AcknowledgmentsService,
+    DocumentPermissionsService,
+    DocumentSharesService,
+  ],
 })
 export class DocumentsModule {}

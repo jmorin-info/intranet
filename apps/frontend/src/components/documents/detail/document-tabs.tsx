@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Shield,
   MessageSquare,
+  ShieldCheck,
 } from "lucide-react";
 
 export interface TabDef {
@@ -53,6 +54,8 @@ export function buildDocumentTabs(args: {
   commentsCount: number;
   hasIsoAnalysis: boolean;
   isoAnalysisCount: number;
+  /** Affiche l'onglet "Partage et permissions" — uniquement pour owner/ADMIN+. */
+  showSharing?: boolean;
 }): TabDef[] {
   const {
     canPreview,
@@ -63,6 +66,7 @@ export function buildDocumentTabs(args: {
     commentsCount,
     hasIsoAnalysis,
     isoAnalysisCount,
+    showSharing,
   } = args;
   return [
     ...(canPreview && !isNative
@@ -124,6 +128,15 @@ export function buildDocumentTabs(args: {
             label: "Analyse ISO",
             count: isoAnalysisCount,
             icon: <Shield className="h-3.5 w-3.5" />,
+          },
+        ]
+      : []),
+    ...(showSharing
+      ? [
+          {
+            id: "sharing",
+            label: "Partage et permissions",
+            icon: <ShieldCheck className="h-3.5 w-3.5" />,
           },
         ]
       : []),

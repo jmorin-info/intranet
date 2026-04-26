@@ -212,6 +212,55 @@ export class DocumentsService {
   }
 
   /**
+   * Récupère les département-IDs de l'utilisateur (UserDepartment.userId multi-
+   * membership + legacy User.departmentId mono-membership). Utilisé par le
+   * résolveur ACL granulaire (DocumentPermission.departmentId).
+   */
+  private async getUserDepartmentIds(userId: string): Promise<string[]> {
+    const [user, memberships] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { departmentId: true },
+      }),
+      this.prisma.userDepartment.findMany({
+        where: { userId },
+        select: { departmentId: true },
+      }),
+    ]);
+    const ids = new Set<string>();
+    if (user?.departmentId) ids.add(user.departmentId);
+    for (const m of memberships) ids.add(m.departmentId);
+    return Array.from(ids);
+  }
+
+  /**
+   * Vérifie si un utilisateur dispose d'une permission explicite valide
+   * (non expirée) sur un document, soit via user direct, soit via
+   * département, soit via rôle. Retourne true si au moins une perm match.
+   */
+  private async hasExplicitPermission(
+    userId: string,
+    documentId: string,
+    role: UserRole,
+  ): Promise<boolean> {
+    const dptIds = await this.getUserDepartmentIds(userId);
+    const now = new Date();
+    const perm = await this.prisma.documentPermission.findFirst({
+      where: {
+        documentId,
+        OR: [
+          { userId },
+          ...(dptIds.length > 0 ? [{ departmentId: { in: dptIds } }] : []),
+          { role },
+        ],
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+      },
+      select: { id: true },
+    });
+    return perm !== null;
+  }
+
+  /**
    * Classification-based access check (ISO 27001 A.5.12 + A.5.15).
    * Throws ForbiddenException if the user's role is not sufficient
    * for the document's classification level.
@@ -265,40 +314,73 @@ export class DocumentsService {
     // Role-based filtering (ISO 27001 A.5.15 — Access control)
     const userRole = (currentUser.role || "").toUpperCase() as UserRole;
     this.logger.debug(`findAll: user=${currentUser.id} role=${userRole}`);
+
+    // === GED Permissions granulaires (Phase 1 MVP) === 2026-04-26
+    // Récupère les département-IDs (multi-membership + legacy) pour matcher
+    // les permissions explicites par dpt. Une seule requête, ~10 ms en P95.
+    const userDepartmentIds = await this.getUserDepartmentIds(currentUser.id);
+    const now = new Date();
+    const explicitPermissionMatch = {
+      permissions: {
+        some: {
+          AND: [
+            { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+            {
+              OR: [
+                { userId: currentUser.id },
+                ...(userDepartmentIds.length > 0
+                  ? [{ departmentId: { in: userDepartmentIds } }]
+                  : []),
+                { role: userRole },
+              ],
+            },
+          ],
+        },
+      },
+    };
+
     if (userRole === UserRole.PRESTATAIRE) {
       // Prestataires: CONTRACT documents + public approved docs only
+      // + permissions explicites (audit/migration/contrat ad-hoc)
       where.AND.push({
         OR: [
           { category: "CONTRACT", status: "APPROVED" },
           { isPublic: true, status: "APPROVED" },
+          explicitPermissionMatch,
         ],
       });
     } else if (userRole === UserRole.COLLABORATEUR) {
       // Collaborateurs (ISO 27001 A.5.12):
       //   PUBLIC + INTERNE = visible (approved only)
-      //   CONFIDENTIEL + SECRET = invisible (sauf s'ils sont propriétaire)
+      //   CONFIDENTIEL + SECRET = invisible (sauf s'ils sont propriétaire ou
+      //   bénéficient d'une permission explicite)
       where.AND.push({
         OR: [
           { status: "APPROVED", classification: { in: ["PUBLIC", "INTERNE"] } },
           { ownerId: currentUser.id },
+          explicitPermissionMatch,
         ],
       });
     } else if (userRole === UserRole.AUDITEUR) {
       // Auditeurs: PUBLIC + INTERNE + CONFIDENTIEL approved (pas SECRET)
+      // + permissions explicites
       where.AND.push({
         OR: [
           {
             status: "APPROVED",
             classification: { in: ["PUBLIC", "INTERNE", "CONFIDENTIEL"] },
           },
+          explicitPermissionMatch,
         ],
       });
     } else if (userRole === UserRole.REVIEWER) {
-      // Reviewers: tout sauf SECRET (sauf s'ils sont propriétaire)
+      // Reviewers: tout sauf SECRET (sauf s'ils sont propriétaire ou
+      // bénéficient d'une permission explicite SECRET)
       where.AND.push({
         OR: [
           { classification: { in: ["PUBLIC", "INTERNE", "CONFIDENTIEL"] } },
           { ownerId: currentUser.id },
+          explicitPermissionMatch,
         ],
       });
     }
@@ -475,6 +557,19 @@ export class DocumentsService {
     const userRole = (currentUser.role || "").toUpperCase() as UserRole;
     const isOwner = document.ownerId === currentUser.id;
     const classification = document.classification || "INTERNE";
+
+    // === GED Permissions granulaires (Phase 1 MVP) === 2026-04-26
+    // Si l'utilisateur dispose d'une permission explicite valide, on
+    // court-circuite les checks de classification (ADMIN+/DIRECTION et
+    // owner court-circuitent déjà via les branches existantes).
+    const roleLevelForBypass = ROLE_HIERARCHY[userRole] ?? 0;
+    if (
+      !isOwner &&
+      roleLevelForBypass < ROLE_HIERARCHY[UserRole.DIRECTION] &&
+      (await this.hasExplicitPermission(currentUser.id, id, userRole))
+    ) {
+      return enrichIsoControls(document);
+    }
 
     if (userRole === UserRole.PRESTATAIRE) {
       // Prestataires: only CONTRACT + APPROVED or public + APPROVED

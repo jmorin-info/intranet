@@ -172,6 +172,9 @@ export default function DocumentDetailPage() {
     (canEdit || doc.reviewer?.id === user.id) &&
     (doc.status === "DRAFT" || doc.status === "IN_REVIEW");
 
+  // L'onglet "Partage et permissions" est visible pour le propriétaire et
+  // les ADMIN+ (le backend revérifie strictement via canAdmin()).
+  const showSharing = canEdit;
   const tabs = buildDocumentTabs({
     canPreview,
     isNative: !!doc.isNative,
@@ -181,6 +184,7 @@ export default function DocumentDetailPage() {
     commentsCount: ctx.comments.length,
     hasIsoAnalysis: !!ctx.isoAnalysis,
     isoAnalysisCount: ctx.isoAnalysis?.length || 0,
+    showSharing,
   });
 
   return (

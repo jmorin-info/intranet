@@ -298,6 +298,10 @@ model User {
   mediaDownloads             MediaItemDownload[]         @relation("MediaDownloader")
   // === PCA / Continuité d'activité === 2026-04-24 (ISO 27001 A.5.30)
   pcaRunsTriggered           PcaRun[]                    @relation("PcaRunTrigger")
+  // === Permissions GED granulaires === 2026-04-26 (ISO 27001 A.5.15)
+  documentPermissions        DocumentPermission[]        @relation("DocPermUser")
+  documentPermissionsGranted DocumentPermission[]        @relation("DocPermGrantedBy")
+  documentSharesCreated      DocumentShare[]             @relation("DocShareCreatedBy")
 
   @@index([departmentId])
   @@index([role])
@@ -358,6 +362,8 @@ model Department {
   workflowStepsDept WorkflowStep[]   @relation("StepDept")
   // === Médiathèque === 2026-04-21
   mediaAlbums       MediaAlbum[]
+  // === Permissions GED granulaires === 2026-04-26
+  documentPermissions DocumentPermission[]
 }
 
 model UserDepartment {
@@ -405,6 +411,9 @@ model Document {
   isoControls        DocumentIsoControl[]
   frameworkLinks     FrameworkDocumentLink[]
   validationRequests ValidationRequest[]
+  // === Permissions GED granulaires (ISO 27001 A.5.15) === 2026-04-26
+  permissions        DocumentPermission[]
+  shares             DocumentShare[]
 
   @@index([reference, deletedAt])
   @@index([status, nextReviewDate])
@@ -2173,4 +2182,75 @@ model PcaRun {
   @@index([scenarioId, startedAt])
   @@index([status])
   @@index([triggeredBy])
+}
+
+// === Permissions GED granulaires (Phase 1 — MVP) === 2026-04-26
+// ISO 27001 A.5.15 (Access Control) + A.5.18 (Privileged access management)
+//
+// `DocumentPermission` accorde un niveau d'accès cumulatif (READ → COMMENT →
+// EDIT → ADMIN) à UNE cible parmi {user, department, role}. La contrainte XOR
+// est appliquée par check constraint Postgres (voir migration SQL associée)
+// + côté code (Zod) en garde-fou.
+//
+// Précédence (résolveur ACL côté service) :
+//   1. owner du document → ADMIN automatique
+//   2. permission explicite par user
+//   3. permission explicite par department (via UserDepartment memberships)
+//   4. permission explicite par role
+//   5. fallback classification + isPublic (compat existante, pas de breaking)
+model DocumentPermission {
+  id           String    @id @default(uuid())
+  documentId   String
+  // XOR : exactement une des 3 cibles est non-null
+  userId       String?
+  departmentId String?
+  role         String? // 'EMPLOYEE' | 'MANAGER' | 'ADMIN' | rôles UserRole
+  level        String // 'READ' | 'COMMENT' | 'EDIT' | 'ADMIN' (cumulatif)
+  expiresAt    DateTime?
+  grantedById  String
+  createdAt    DateTime  @default(now())
+
+  document   Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User?       @relation("DocPermUser", fields: [userId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  grantedBy  User        @relation("DocPermGrantedBy", fields: [grantedById], references: [id])
+
+  @@index([documentId])
+  @@index([userId])
+  @@index([departmentId])
+  @@index([expiresAt])
+  @@index([documentId, level])
+}
+
+// `DocumentShare` : lien de partage public token-based avec expiration et
+// protection optionnelle par mot de passe (bcrypt 12 rounds). Permet la
+// diffusion contrôlée à des tiers sans création de compte. ISO 27001 A.5.14
+// (Information transfer) + A.5.10 (Information security in supplier rels).
+//
+// `requiresAuth=true` impose que le destinataire soit authentifié sur
+// l'intranet pour accéder au lien (cas : partage interne avec traçabilité
+// nominative). `requiresAuth=false` = lien anonyme (mot de passe + MFA fresh
+// requis lors de la création).
+model DocumentShare {
+  id             String    @id @default(uuid())
+  documentId     String
+  token          String    @unique // crypto.randomBytes(32).toString('base64url')
+  passwordHash   String? // bcrypt 12 rounds, null = pas de mot de passe
+  expiresAt      DateTime?
+  maxDownloads   Int? // null = illimité
+  downloadCount  Int       @default(0)
+  requiresAuth   Boolean   @default(false)
+  createdById    String
+  revokedAt      DateTime?
+  lastAccessedAt DateTime?
+  failedAttempts Int       @default(0) // 5 mauvais mdp consécutifs → invalide
+  createdAt      DateTime  @default(now())
+
+  document  Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("DocShareCreatedBy", fields: [createdById], references: [id])
+
+  @@index([documentId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([createdById])
 }
