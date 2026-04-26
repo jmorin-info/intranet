@@ -37,11 +37,18 @@ export function HubLanding({ title, subtitle, accent, variant, icon: HeaderIcon,
         <span
           className="flex h-14 w-14 items-center justify-center rounded-2xl shadow-card"
           style={{ backgroundColor: `${accent}1a`, color: accent }}
+          aria-hidden="true"
         >
           <HeaderIcon className="h-7 w-7" />
         </span>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-seal-navy dark:text-white" style={{ color: 'var(--tw-text-opacity,1) ' }}>
+        <div className="min-w-0">
+          <p
+            className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-1"
+            style={{ color: accent }}
+          >
+            Hub OMNITECH
+          </p>
+          <h1 className="text-2xl md:text-3xl font-light tracking-tight text-seal-navy dark:text-white">
             {title}
           </h1>
           <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">{subtitle}</p>
@@ -52,13 +59,20 @@ export function HubLanding({ title, subtitle, accent, variant, icon: HeaderIcon,
         {visible.map((card) => {
           const Icon = card.icon;
           return (
-            <Link key={card.href} href={card.href} className="block group">
+            <Link
+              key={card.href}
+              href={card.href}
+              className="block group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 rounded-card"
+              style={{ ['--tw-ring-color' as string]: accent }}
+              aria-label={`${card.title} — ${card.description}`}
+            >
               <Card variant={variant} hoverable className="h-full transition-transform duration-150 group-hover:-translate-y-0.5">
                 <CardContent className="py-5">
                   <div className="flex items-start gap-3">
                     <span
                       className="flex h-10 w-10 items-center justify-center rounded-lg flex-shrink-0"
                       style={{ backgroundColor: `${accent}14`, color: accent }}
+                      aria-hidden="true"
                     >
                       <Icon className="h-5 w-5" />
                     </span>
@@ -73,6 +87,7 @@ export function HubLanding({ title, subtitle, accent, variant, icon: HeaderIcon,
                               'flex items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white min-w-[18px] h-[18px]',
                             )}
                             style={{ backgroundColor: accent }}
+                            aria-label={`${card.badge} éléments`}
                           >
                             {card.badge}
                           </span>
@@ -89,6 +104,11 @@ export function HubLanding({ title, subtitle, accent, variant, icon: HeaderIcon,
           );
         })}
       </div>
+
+      {/* Trust strip — référence intranet OMNITECH */}
+      <p className="mt-10 text-center text-[10px] uppercase tracking-[0.2em] text-seal-gray-500 dark:text-slate-500">
+        Intranet OMNITECH Security · Conforme ISO 27001:2022 · NIS2 · ANSSI
+      </p>
     </div>
   );
 }

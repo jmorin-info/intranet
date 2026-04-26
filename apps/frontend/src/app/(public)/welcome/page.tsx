@@ -370,7 +370,7 @@ export default function WelcomePage() {
               <div className="mb-6">
                 <OmnitechLogo size="lg" variant="full" className="text-white" />
               </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light text-white leading-[1.1]">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light text-white leading-[1.1] tracking-tight">
                 Bienvenue sur
                 <br />
                 l&apos;intranet{" "}
@@ -378,14 +378,23 @@ export default function WelcomePage() {
                   OMNITECH&nbsp;Security
                 </span>
               </h1>
-              <p className="text-white/60 mt-6 text-lg sm:text-xl max-w-lg leading-relaxed">
-                Plateforme sécurisée de collaboration et de gouvernance — au
-                service de la sûreté des sites à risques.
+              <p className="text-white/75 mt-6 text-lg sm:text-xl max-w-xl leading-relaxed font-light">
+                Plateforme de gouvernance documentaire ISO 27001 — sécurisée,
+                certifiée, française.
+              </p>
+              <p className="text-white/50 mt-3 text-sm sm:text-base max-w-xl leading-relaxed">
+                Au service de la sûreté des sites à risques : collaboration
+                tracée, classification réglementaire, conformité NIS2 / ANSSI.
               </p>
               <div className="flex flex-wrap items-center gap-4 mt-10">
                 <Link
                   href={isLoggedIn ? "/dashboard" : "/login"}
-                  className="flex items-center gap-2.5 bg-gradient-to-r from-[#F68D2E] to-[#e67d1e] hover:from-[#e67d1e] hover:to-[#d06a10] rounded-xl px-8 py-4 text-base font-semibold text-white transition-all shadow-[0_0_24px_rgba(246,141,46,0.5)] hover:shadow-[0_0_36px_rgba(246,141,46,0.7)] hover:scale-[1.03] active:scale-[0.98]"
+                  className="flex items-center gap-2.5 bg-gradient-to-r from-[#F68D2E] to-[#e67d1e] hover:from-[#e67d1e] hover:to-[#d06a10] rounded-xl px-8 py-4 text-base font-semibold text-white transition-all shadow-[0_0_24px_rgba(246,141,46,0.5)] hover:shadow-[0_0_36px_rgba(246,141,46,0.7)] hover:scale-[1.03] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F68D2E] focus-visible:ring-offset-2 focus-visible:ring-offset-[#003654]"
+                  aria-label={
+                    isLoggedIn
+                      ? "Retour au tableau de bord"
+                      : "Accéder à mon espace collaborateur"
+                  }
                 >
                   {isLoggedIn
                     ? t("portal.backToDashboard")
@@ -393,11 +402,34 @@ export default function WelcomePage() {
                   <ArrowRight className="h-5 w-5" />
                 </Link>
                 <a
-                  href="#documents-publics"
-                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 rounded-xl px-6 py-4 text-sm text-white/70 hover:text-white transition-colors"
+                  href="#services"
+                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 rounded-xl px-6 py-4 text-sm text-white/80 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  aria-label="Découvrir la plateforme et ses services"
                 >
-                  <Eye className="h-4 w-4" /> Voir les documents
+                  <ChevronRight className="h-4 w-4" /> Découvrir la plateforme
                 </a>
+                <a
+                  href="#documents-publics"
+                  className="flex items-center gap-2 text-sm text-white/55 hover:text-white/90 transition-colors px-2 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded"
+                  aria-label="Consulter les documents publics"
+                >
+                  <Eye className="h-4 w-4" /> Documents publics
+                </a>
+              </div>
+              {/* Trust strip — référentiels en un coup d'oeil */}
+              <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-white/45 uppercase tracking-[0.18em] font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <BadgeCheck className="h-3.5 w-3.5 text-emerald-400/90" />
+                  ISO 27001:2022
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Shield className="h-3.5 w-3.5 text-sky-400/90" />
+                  NIS2
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5 text-amber-400/90" />
+                  ANSSI · EBIOS RM
+                </span>
               </div>
             </div>
             {info && (
@@ -712,7 +744,9 @@ export default function WelcomePage() {
       <section className="bg-[#004469] dark:bg-slate-900 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-semibold text-white">Chiffres clés</h2>
+            <h2 className="text-2xl sm:text-3xl font-light text-white tracking-tight">
+              Chiffres clés
+            </h2>
             <p className="text-sm text-white/50 mt-2">
               L&apos;intranet OMNITECH en quelques chiffres
             </p>
@@ -1217,7 +1251,7 @@ export default function WelcomePage() {
       <section className="py-16 bg-white dark:bg-slate-900">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-semibold text-[#004469] dark:text-white">
+            <h2 className="text-2xl sm:text-3xl font-light text-[#004469] dark:text-white tracking-tight">
               Conformité et référentiels
             </h2>
             <p className="text-sm text-[#837274] dark:text-slate-400 mt-2">
@@ -1225,9 +1259,44 @@ export default function WelcomePage() {
               conformité multi-référentiels
             </p>
           </div>
+          {/* Bandeau visuel — chips de référentiels en un coup d'oeil */}
+          <ul
+            className="flex flex-wrap items-center justify-center gap-2 mb-10"
+            aria-label="Référentiels appliqués"
+          >
+            {[
+              { label: "ISO 27001:2022", tone: "emerald" },
+              { label: "NIS2", tone: "sky" },
+              { label: "ANSSI", tone: "amber" },
+              { label: "EBIOS RM", tone: "amber" },
+              { label: "RGPD", tone: "violet" },
+              { label: "PSSI", tone: "navy" },
+            ].map((chip) => {
+              const tones: Record<string, string> = {
+                emerald:
+                  "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:ring-emerald-700/40",
+                sky: "bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-900/20 dark:text-sky-300 dark:ring-sky-700/40",
+                amber:
+                  "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:ring-amber-700/40",
+                violet:
+                  "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:ring-violet-700/40",
+                navy: "bg-[#004469]/5 text-[#004469] ring-[#004469]/20 dark:bg-[#004469]/30 dark:text-white dark:ring-white/10",
+              };
+              return (
+                <li key={chip.label}>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold ring-1 ${tones[chip.tone]}`}
+                  >
+                    <BadgeCheck className="h-3 w-3" aria-hidden="true" />
+                    {chip.label}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 p-6 text-center">
-              <div className="h-14 w-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-4">
+            <div className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 p-6 text-center hover:shadow-card-hover hover:border-emerald-300 dark:hover:border-emerald-700 transition-all">
+              <div className="h-14 w-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-4 ring-4 ring-emerald-50 dark:ring-emerald-900/10">
                 <BadgeCheck className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
               </div>
               <h3 className="font-semibold text-[#004469] dark:text-white">
@@ -1238,9 +1307,12 @@ export default function WelcomePage() {
                 (SMSI). Classification documentaire A.5.12, gestion des accès
                 A.5.15, gestion des incidents A.5.24.
               </p>
+              <p className="mt-4 text-[10px] uppercase tracking-widest font-semibold text-emerald-700 dark:text-emerald-400">
+                Certifié · SMSI actif
+              </p>
             </div>
-            <div className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 p-6 text-center">
-              <div className="h-14 w-14 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+            <div className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 p-6 text-center hover:shadow-card-hover hover:border-sky-300 dark:hover:border-sky-700 transition-all">
+              <div className="h-14 w-14 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4 ring-4 ring-blue-50 dark:ring-blue-900/10">
                 <Shield className="h-7 w-7 text-blue-600 dark:text-blue-400" />
               </div>
               <h3 className="font-semibold text-[#004469] dark:text-white">
@@ -1251,9 +1323,12 @@ export default function WelcomePage() {
                 et des systèmes d&apos;information. Notification des incidents,
                 gouvernance et gestion des risques.
               </p>
+              <p className="mt-4 text-[10px] uppercase tracking-widest font-semibold text-sky-700 dark:text-sky-400">
+                Entité essentielle
+              </p>
             </div>
-            <div className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 p-6 text-center">
-              <div className="h-14 w-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
+            <div className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 p-6 text-center hover:shadow-card-hover hover:border-amber-300 dark:hover:border-amber-700 transition-all">
+              <div className="h-14 w-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4 ring-4 ring-amber-50 dark:ring-amber-900/10">
                 <Lock className="h-7 w-7 text-amber-600 dark:text-amber-400" />
               </div>
               <h3 className="font-semibold text-[#004469] dark:text-white">
@@ -1263,6 +1338,9 @@ export default function WelcomePage() {
                 Analyse de risques selon la méthode EBIOS Risk Manager de
                 l&apos;ANSSI. Gouvernance RSSI, PSSI validée par la Direction et
                 plan de continuité d&apos;activité.
+              </p>
+              <p className="mt-4 text-[10px] uppercase tracking-widest font-semibold text-amber-700 dark:text-amber-400">
+                Référentiel souverain
               </p>
             </div>
           </div>
@@ -1664,6 +1742,25 @@ export default function WelcomePage() {
                 avancée et l&apos;hypervision SEAL System pour les sites à
                 risques.
               </p>
+              {/* Logo SEAL System (signature hyperviseur historique) */}
+              <div className="mt-5 flex items-center gap-2.5 opacity-80 hover:opacity-100 transition-opacity">
+                <img
+                  src="/seal-logo.svg"
+                  alt="SEAL System"
+                  className="h-9 w-auto"
+                  loading="lazy"
+                  width={36}
+                  height={36}
+                />
+                <div className="leading-tight">
+                  <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">
+                    Powered by
+                  </p>
+                  <p className="text-xs text-white font-semibold">
+                    SEAL System
+                  </p>
+                </div>
+              </div>
             </div>
             <div>
               <h4 className="text-white font-semibold text-sm mb-3">
