@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
@@ -8,16 +9,32 @@ import { useNotificationStore } from "@/stores/notification-store";
 import { useTranslation } from "@/lib/i18n";
 
 import { ProfileHeader } from "@/components/profile/profile-header";
-import { ProfileEditModal } from "@/components/profile/profile-edit-modal";
 import { ProfilePersonalInfo } from "@/components/profile/profile-personal-info";
 import { ProfileManagerTeam } from "@/components/profile/profile-manager-team";
 import { ProfileSecuritySection } from "@/components/profile/profile-security-section";
-import { ProfileChangePassword } from "@/components/profile/profile-change-password";
-import { ProfilePreferencesSection } from "@/components/profile/profile-preferences-section";
-import { ProfileRgpdSection } from "@/components/profile/profile-rgpd-section";
 import { ProfileActivitySection } from "@/components/profile/profile-activity-section";
 import { ProfileDocumentsSection } from "@/components/profile/profile-documents-section";
 import { ProfileTicketsSection } from "@/components/profile/profile-tickets-section";
+
+// Conditional / below-the-fold sections — chargées dynamiquement pour réduire
+// le First Load JS (~317 KB → cible). Pas de SSR (composants client-only avec
+// formulaires + state local), skeleton léger pour préserver le layout.
+const ProfileEditModal = dynamic(
+  () => import("@/components/profile/profile-edit-modal").then((m) => ({ default: m.ProfileEditModal })),
+  { ssr: false },
+);
+const ProfileChangePassword = dynamic(
+  () => import("@/components/profile/profile-change-password").then((m) => ({ default: m.ProfileChangePassword })),
+  { ssr: false, loading: () => <div className="shimmer h-32 rounded-xl" /> },
+);
+const ProfilePreferencesSection = dynamic(
+  () => import("@/components/profile/profile-preferences-section").then((m) => ({ default: m.ProfilePreferencesSection })),
+  { ssr: false, loading: () => <div className="shimmer h-32 rounded-xl" /> },
+);
+const ProfileRgpdSection = dynamic(
+  () => import("@/components/profile/profile-rgpd-section").then((m) => ({ default: m.ProfileRgpdSection })),
+  { ssr: false, loading: () => <div className="shimmer h-32 rounded-xl" /> },
+);
 import {
   ProfileDepartmentCard,
   ProfileNotificationsSummary,

@@ -1,5 +1,5 @@
-/* eslint-disable @next/next/no-img-element */
 import React from 'react';
+import Image from 'next/image';
 
 interface OmnitechLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -20,25 +20,27 @@ export function OmnitechLogo({ size = 'md', variant = 'full', className }: Omnit
 
   if (variant === 'icon') {
     return (
-      <img
+      <Image
         src={isWhite ? '/logo-icon-white.png' : '/logo-icon.png'}
         alt="OMNITECH Security"
         width={s.icon}
         height={s.icon}
         className={`object-contain ${className || ''}`}
         style={{ width: s.icon, height: s.icon }}
+        priority
       />
     );
   }
 
   return (
-    <img
+    <Image
       src={isWhite ? '/logo-full-white.png' : '/logo-full.png'}
       alt="OMNITECH Security"
       width={s.full.w}
       height={s.full.h}
       className={`object-contain ${className || ''}`}
-      style={{ height: s.full.h }}
+      style={{ height: s.full.h, width: 'auto' }}
+      priority
     />
   );
 }

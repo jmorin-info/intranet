@@ -13,6 +13,7 @@
  * À afficher en mode F11 sur un Chromium dédié.
  */
 import { Suspense, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { useTranslation } from '@/lib/i18n';
@@ -162,8 +163,7 @@ function KioskInner() {
       {/* Header : logo + horloge + météo */}
       <header className="absolute top-0 inset-x-0 flex items-center justify-between px-16 py-10 z-10">
         <div className="flex items-center gap-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-full-white.png" alt="OMNITECH" width={200} height={48} className="h-12" />
+          <Image src="/logo-full-white.png" alt="OMNITECH" width={200} height={48} className="h-12" priority />
           <div className="h-10 w-px bg-white/30" />
           <p className="text-xs uppercase tracking-[0.4em] text-white/60">Intranet Kiosque</p>
         </div>
