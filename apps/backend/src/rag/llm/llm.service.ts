@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from "@nestjs/common";
 
 /**
  * Service LLM unifié avec fallback chain (P1.8.1.2).
@@ -32,9 +32,12 @@ export class LlmService {
 
   /** Renvoie la chaîne ordonnée des modèles : primary, fallback, emergency. */
   private getModelChain(): string[] {
-    const primary = process.env.OLLAMA_LLM_MODEL_PRIMARY || process.env.OLLAMA_MODEL || 'mistral';
-    const fallback = process.env.OLLAMA_LLM_MODEL_FALLBACK || 'phi3:mini';
-    const emergency = process.env.OLLAMA_LLM_MODEL_EMERGENCY || 'qwen2:0.5b';
+    const primary =
+      process.env.OLLAMA_LLM_MODEL_PRIMARY ||
+      process.env.OLLAMA_MODEL ||
+      "mistral";
+    const fallback = process.env.OLLAMA_LLM_MODEL_FALLBACK || "phi3:mini";
+    const emergency = process.env.OLLAMA_LLM_MODEL_EMERGENCY || "qwen2:0.5b";
     return [primary, fallback, emergency];
   }
 
@@ -46,7 +49,10 @@ export class LlmService {
    * Génère une réponse avec fallback automatique.
    * Loggue chaque escalade de manière structurée.
    */
-  async generate(prompt: string, options: GenerateOptions = {}): Promise<GenerateResult> {
+  async generate(
+    prompt: string,
+    options: GenerateOptions = {},
+  ): Promise<GenerateResult> {
     const chain = this.getModelChain();
     const start = Date.now();
 
@@ -59,10 +65,13 @@ export class LlmService {
         try {
           const text = await this.callOllama(model, prompt, options);
           this.metrics.fallbacksByLevel[level]++;
-          this.metrics.callsByModel.set(model, (this.metrics.callsByModel.get(model) || 0) + 1);
+          this.metrics.callsByModel.set(
+            model,
+            (this.metrics.callsByModel.get(model) || 0) + 1,
+          );
           if (level > 0) {
             this.logger.warn({
-              msg: 'llm.fallback_used',
+              msg: "llm.fallback_used",
               level,
               model,
               primary: chain[0],
@@ -78,7 +87,7 @@ export class LlmService {
           const isLastAttempt = attempt === retries;
           if (!isLastAttempt) {
             this.logger.warn({
-              msg: 'llm.retry',
+              msg: "llm.retry",
               model,
               attempt: attempt + 1,
               error: (err as Error).message,
@@ -87,29 +96,35 @@ export class LlmService {
             continue;
           }
           this.logger.error({
-            msg: 'llm.escalate',
+            msg: "llm.escalate",
             failedModel: model,
-            nextModel: chain[level + 1] || 'NONE',
+            nextModel: chain[level + 1] || "NONE",
             error: (err as Error).message,
           });
         }
       }
     }
 
-    throw new Error(`All LLM models in chain failed: ${chain.join(', ')}`);
+    throw new Error(`All LLM models in chain failed: ${chain.join(", ")}`);
   }
 
   /** Stream tokens via Ollama (avec fallback non transparent en streaming). */
-  async *generateStream(prompt: string, options: GenerateOptions = {}): AsyncGenerator<string> {
+  async *generateStream(
+    prompt: string,
+    options: GenerateOptions = {},
+  ): AsyncGenerator<string> {
     const model = this.getActiveModel();
-    const url = `${process.env.OLLAMA_URL || 'http://localhost:11434'}/api/generate`;
+    const url = `${process.env.OLLAMA_URL || "http://localhost:11434"}/api/generate`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    const timeout = setTimeout(
+      () => controller.abort(),
+      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    );
 
     try {
       const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model,
           prompt,
@@ -119,7 +134,9 @@ export class LlmService {
             temperature: options.temperature ?? 0.3,
           },
         }),
-        signal: controller.signal as any,
+        // Node fetch attend un AbortSignal compatible avec DOM ; les types
+        // diffèrent légèrement entre node:undici et le DOM lib, on contourne.
+        signal: controller.signal as AbortSignal,
       });
 
       if (!response.ok) {
@@ -128,12 +145,12 @@ export class LlmService {
 
       const reader = response.body as AsyncIterable<Uint8Array>;
       const decoder = new TextDecoder();
-      let buffer = '';
+      let buffer = "";
 
       for await (const chunk of reader) {
         buffer += decoder.decode(chunk, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
@@ -154,7 +171,7 @@ export class LlmService {
     prompt: string,
     options: GenerateOptions,
   ): Promise<string> {
-    const url = `${process.env.OLLAMA_URL || 'http://localhost:11434'}/api/generate`;
+    const url = `${process.env.OLLAMA_URL || "http://localhost:11434"}/api/generate`;
     const controller = new AbortController();
     const timeout = setTimeout(
       () => controller.abort(),
@@ -163,8 +180,8 @@ export class LlmService {
 
     try {
       const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model,
           prompt,
@@ -174,25 +191,33 @@ export class LlmService {
             temperature: options.temperature ?? 0.3,
           },
         }),
-        signal: controller.signal as any,
+        // Node fetch attend un AbortSignal compatible avec DOM ; les types
+        // diffèrent légèrement entre node:undici et le DOM lib, on contourne.
+        signal: controller.signal as AbortSignal,
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama ${model} returned ${response.status}: ${response.statusText}`);
+        throw new Error(
+          `Ollama ${model} returned ${response.status}: ${response.statusText}`,
+        );
       }
       const data = (await response.json()) as { response?: string };
-      return data.response?.trim() ?? '';
+      return data.response?.trim() ?? "";
     } finally {
       clearTimeout(timeout);
     }
   }
 
   /** Health check : vérifie que le modèle primary répond. */
-  async healthCheck(): Promise<{ model: string; healthy: boolean; latencyMs: number }> {
+  async healthCheck(): Promise<{
+    model: string;
+    healthy: boolean;
+    latencyMs: number;
+  }> {
     const model = this.getActiveModel();
     const start = Date.now();
     try {
-      await this.callOllama(model, 'OK', { maxTokens: 5, timeoutMs: 5000 });
+      await this.callOllama(model, "OK", { maxTokens: 5, timeoutMs: 5000 });
       return { model, healthy: true, latencyMs: Date.now() - start };
     } catch {
       return { model, healthy: false, latencyMs: Date.now() - start };

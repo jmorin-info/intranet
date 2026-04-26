@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { createHash } from 'crypto';
+import { Injectable, Logger } from "@nestjs/common";
+import { createHash } from "crypto";
 
 /**
  * Service d'embedding sémantique via Ollama (P1.2).
@@ -19,11 +19,11 @@ export class EmbeddingService {
 
   /** Vérifie si le service d'embedding sémantique est activé. */
   isEnabled(): boolean {
-    return process.env.RAG_SEMANTIC_ENABLED === 'true';
+    return process.env.RAG_SEMANTIC_ENABLED === "true";
   }
 
   getModelId(): string {
-    return process.env.OLLAMA_EMBEDDING_MODEL || 'bge-m3';
+    return process.env.OLLAMA_EMBEDDING_MODEL || "bge-m3";
   }
 
   getDimension(): number {
@@ -36,7 +36,9 @@ export class EmbeddingService {
    */
   async embed(text: string): Promise<number[]> {
     if (!this.isEnabled()) {
-      throw new Error('RAG_SEMANTIC_ENABLED is false — semantic embeddings unavailable');
+      throw new Error(
+        "RAG_SEMANTIC_ENABLED is false — semantic embeddings unavailable",
+      );
     }
 
     const cacheKey = this.computeCacheKey(text);
@@ -71,7 +73,7 @@ export class EmbeddingService {
    * Appel Ollama /api/embeddings avec retry exponentiel.
    */
   private async callOllamaEmbedding(text: string): Promise<number[]> {
-    const url = `${process.env.OLLAMA_URL || 'http://localhost:11434'}/api/embeddings`;
+    const url = `${process.env.OLLAMA_URL || "http://localhost:11434"}/api/embeddings`;
     const model = this.getModelId();
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -80,16 +82,19 @@ export class EmbeddingService {
         const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
         const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ model, prompt: text }),
-          signal: controller.signal as any,
+          // Node fetch attend un AbortSignal DOM ; conversion locale.
+          signal: controller.signal as AbortSignal,
         });
 
         clearTimeout(timeout);
 
         if (!response.ok) {
-          throw new Error(`Ollama embedding returned ${response.status}: ${response.statusText}`);
+          throw new Error(
+            `Ollama embedding returned ${response.status}: ${response.statusText}`,
+          );
         }
 
         const data = (await response.json()) as { embedding?: number[] };
@@ -104,7 +109,7 @@ export class EmbeddingService {
         const isLastAttempt = attempt === MAX_RETRIES - 1;
         if (isLastAttempt) {
           this.logger.error({
-            msg: 'embedding.call_failed',
+            msg: "embedding.call_failed",
             model,
             attempts: MAX_RETRIES,
             error: (err as Error).message,
@@ -114,7 +119,7 @@ export class EmbeddingService {
         // Backoff exponentiel
         const delay = BASE_DELAY_MS * Math.pow(2, attempt);
         this.logger.warn({
-          msg: 'embedding.retry',
+          msg: "embedding.retry",
           attempt: attempt + 1,
           delayMs: delay,
           error: (err as Error).message,
@@ -124,13 +129,13 @@ export class EmbeddingService {
     }
 
     // Unreachable, mais TypeScript est content
-    throw new Error('embedding: max retries exhausted');
+    throw new Error("embedding: max retries exhausted");
   }
 
   /** Clé de cache : SHA-256(model + text) */
   private computeCacheKey(text: string): string {
-    return createHash('sha256')
+    return createHash("sha256")
       .update(`${this.getModelId()}:${text}`)
-      .digest('hex');
+      .digest("hex");
   }
 }

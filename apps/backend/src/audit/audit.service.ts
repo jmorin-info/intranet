@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditSeverity } from '../common/enums';
+import { Injectable, Logger } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import { AuditSeverity } from "../common/enums";
 
 export interface AuditLogParams {
   userId?: string;
@@ -10,7 +11,7 @@ export interface AuditLogParams {
   resourceType: string;
   resourceId?: string;
   metadata?: Record<string, unknown>;
-  severity?: 'INFO' | 'WARN' | 'CRITICAL';
+  severity?: "INFO" | "WARN" | "CRITICAL";
 }
 
 @Injectable()
@@ -79,13 +80,18 @@ export class AuditService {
           action: params.action,
           resourceType: params.resourceType,
           resourceId: params.resourceId || null,
-          metadata: mergedMetadata as any,
-          severity: (params.severity as any) || 'INFO',
+          // Prisma.InputJsonValue ne tolère pas notre Record<string, unknown> :
+          // on cast localement vers JsonValue (legitimate JSON escape hatch).
+          metadata: mergedMetadata as Prisma.InputJsonValue,
+          severity: params.severity || "INFO",
         },
       });
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to create audit log: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to create audit log: ${err.message}`,
+        err.stack,
+      );
     }
   }
 
@@ -103,7 +109,8 @@ export class AuditService {
     const where: any = {};
 
     if (filters?.userId) where.userId = filters.userId;
-    if (filters?.action) where.action = { contains: filters.action, mode: 'insensitive' };
+    if (filters?.action)
+      where.action = { contains: filters.action, mode: "insensitive" };
     if (filters?.resourceType) where.resourceType = filters.resourceType;
     if (filters?.severity) {
       const validSeverities = Object.values(AuditSeverity) as string[];
@@ -117,7 +124,7 @@ export class AuditService {
     // bulk services). Permet aux admins de retrouver rapidement les actions
     // groupées dans le journal ISO 27001 A.5.36.
     if (filters?.bulk) {
-      where.metadata = { path: ['bulk'], equals: true };
+      where.metadata = { path: ["bulk"], equals: true };
     }
 
     if (filters?.dateFrom || filters?.dateTo) {
@@ -132,8 +139,12 @@ export class AuditService {
     const [data, total] = await Promise.all([
       this.prisma.auditLog.findMany({
         where,
-        include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
-        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { id: true, email: true, firstName: true, lastName: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -164,49 +175,73 @@ export class AuditService {
    *  - `topFailedLoginIps` : top 10 IPs sur les échecs de connexion (via metadata)
    */
   async getStats(from: Date, to: Date) {
-    const where = { createdAt: { gte: from, lte: to } } as any;
+    const where: Prisma.AuditLogWhereInput = {
+      createdAt: { gte: from, lte: to },
+    };
 
-    const [total, severityGroups, actionGroups, criticalEvents, failedLogins, failedLoginLogs] =
-      await Promise.all([
-        this.prisma.auditLog.count({ where }),
-        this.prisma.auditLog.groupBy({
-          by: ['severity'],
-          where,
-          _count: { _all: true },
-        }),
-        this.prisma.auditLog.groupBy({
-          by: ['action'],
-          where,
-          _count: { _all: true },
-          orderBy: { _count: { action: 'desc' } },
-          take: 5,
-        }),
-        this.prisma.auditLog.findMany({
-          where: { ...where, severity: 'CRITICAL' as any },
-          include: {
-            user: { select: { id: true, email: true, firstName: true, lastName: true } },
+    const [
+      total,
+      severityGroups,
+      actionGroups,
+      criticalEvents,
+      failedLogins,
+      failedLoginLogs,
+    ] = await Promise.all([
+      this.prisma.auditLog.count({ where }),
+      this.prisma.auditLog.groupBy({
+        by: ["severity"],
+        where,
+        _count: { _all: true },
+      }),
+      this.prisma.auditLog.groupBy({
+        by: ["action"],
+        where,
+        _count: { _all: true },
+        orderBy: { _count: { action: "desc" } },
+        take: 5,
+      }),
+      this.prisma.auditLog.findMany({
+        where: { ...where, severity: AuditSeverity.CRITICAL },
+        include: {
+          user: {
+            select: { id: true, email: true, firstName: true, lastName: true },
           },
-          orderBy: { createdAt: 'desc' },
-          take: 100,
-        }),
-        this.prisma.auditLog.count({
-          where: { ...where, action: { contains: 'LOGIN_FAILED', mode: 'insensitive' } },
-        }),
-        this.prisma.auditLog.findMany({
-          where: { ...where, action: { contains: 'LOGIN_FAILED', mode: 'insensitive' } },
-          select: { ipAddress: true, metadata: true },
-          take: 1000,
-        }),
-      ]);
+        },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
+      this.prisma.auditLog.count({
+        where: {
+          ...where,
+          action: { contains: "LOGIN_FAILED", mode: "insensitive" },
+        },
+      }),
+      this.prisma.auditLog.findMany({
+        where: {
+          ...where,
+          action: { contains: "LOGIN_FAILED", mode: "insensitive" },
+        },
+        select: { ipAddress: true, metadata: true },
+        take: 1000,
+      }),
+    ]);
 
     // Agrégat top 10 IPs sur les échecs de login (ipAddress ou metadata.ip)
     const ipCounts = new Map<string, number>();
     for (const row of failedLoginLogs) {
-      const metaIp =
-        row.metadata && typeof row.metadata === 'object'
-          ? (row.metadata as any).ip || (row.metadata as any).ipAddress
+      // Prisma.JsonValue dynamique — extraction défensive de l'IP éventuelle.
+      const meta =
+        row.metadata &&
+        typeof row.metadata === "object" &&
+        !Array.isArray(row.metadata)
+          ? (row.metadata as Record<string, unknown>)
           : null;
-      const ip = row.ipAddress || metaIp || 'inconnue';
+      const metaIp =
+        meta &&
+        (typeof meta.ip === "string" || typeof meta.ipAddress === "string")
+          ? (meta.ip as string) || (meta.ipAddress as string)
+          : null;
+      const ip = row.ipAddress || metaIp || "inconnue";
       ipCounts.set(ip, (ipCounts.get(ip) || 0) + 1);
     }
     const topFailedLoginIps = Array.from(ipCounts.entries())
@@ -214,7 +249,10 @@ export class AuditService {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    const bySeverity = { INFO: 0, WARN: 0, CRITICAL: 0 } as Record<string, number>;
+    const bySeverity = { INFO: 0, WARN: 0, CRITICAL: 0 } as Record<
+      string,
+      number
+    >;
     for (const g of severityGroups) {
       bySeverity[g.severity as string] = g._count._all;
     }
@@ -224,7 +262,10 @@ export class AuditService {
       to: to.toISOString(),
       total,
       bySeverity,
-      topActions: actionGroups.map((g) => ({ action: g.action, count: g._count._all })),
+      topActions: actionGroups.map((g) => ({
+        action: g.action,
+        count: g._count._all,
+      })),
       criticalEvents,
       failedLogins,
       topFailedLoginIps,
@@ -242,7 +283,7 @@ export class AuditService {
           select: { id: true, email: true, firstName: true, lastName: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 }

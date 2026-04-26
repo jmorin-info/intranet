@@ -1,4 +1,13 @@
 import { Injectable, Logger, Optional } from "@nestjs/common";
+import {
+  AccessReviewCampaignStatus,
+  DocumentCategory,
+  DocumentStatus,
+  IncidentCategory,
+  IncidentSeverity,
+  IncidentStatus,
+  TicketStatus,
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CacheService } from "../common/cache/cache.service";
 
@@ -87,7 +96,11 @@ export class RssiDashboardService {
     ] = await Promise.all([
       safe(
         this.prisma.incident.count({
-          where: { status: { notIn: ["CLOSED", "RECOVERED"] as any } },
+          where: {
+            status: {
+              notIn: [IncidentStatus.CLOSED, IncidentStatus.RECOVERED],
+            },
+          },
         }),
         0,
         "openIncidents",
@@ -95,8 +108,8 @@ export class RssiDashboardService {
       safe(
         this.prisma.incident.count({
           where: {
-            severity: "CRITICAL" as any,
-            status: { notIn: ["CLOSED"] as any },
+            severity: IncidentSeverity.CRITICAL,
+            status: { notIn: [IncidentStatus.CLOSED] },
           },
         }),
         0,
@@ -112,14 +125,16 @@ export class RssiDashboardService {
         "incidentsThisMonth",
       ),
       safe(
-        this.prisma.document.count({ where: { status: "IN_REVIEW" as any } }),
+        this.prisma.document.count({
+          where: { status: DocumentStatus.IN_REVIEW },
+        }),
         0,
         "docsInReview",
       ),
       safe(
         this.prisma.document.count({
           where: {
-            status: "APPROVED" as any,
+            status: DocumentStatus.APPROVED,
             updatedAt: { gte: thirtyDaysAgo },
           },
         }),
@@ -129,7 +144,7 @@ export class RssiDashboardService {
       safe(
         this.prisma.document.count({
           where: {
-            status: "APPROVED" as any,
+            status: DocumentStatus.APPROVED,
             nextReviewDate: { lte: now },
           },
         }),
@@ -138,7 +153,9 @@ export class RssiDashboardService {
       ),
       safe(
         this.prisma.ticket.count({
-          where: { status: { in: ["OPEN", "IN_PROGRESS"] as any } },
+          where: {
+            status: { in: [TicketStatus.OPEN, TicketStatus.IN_PROGRESS] },
+          },
         }),
         0,
         "openTickets",
@@ -147,7 +164,7 @@ export class RssiDashboardService {
         (async () => {
           const recent = await this.prisma.ticket.findMany({
             where: {
-              status: "CLOSED" as any,
+              status: TicketStatus.CLOSED,
               updatedAt: { gte: thirtyDaysAgo },
             },
             select: { createdAt: true, updatedAt: true },
@@ -215,7 +232,14 @@ export class RssiDashboardService {
       ),
       safe(
         this.prisma.accessReviewCampaign.count({
-          where: { status: { in: ["ACTIVE", "DRAFT"] as any } },
+          where: {
+            status: {
+              in: [
+                AccessReviewCampaignStatus.ACTIVE,
+                AccessReviewCampaignStatus.DRAFT,
+              ],
+            },
+          },
         }),
         0,
         "accessReviewsPending",
@@ -223,7 +247,12 @@ export class RssiDashboardService {
       safe(
         this.prisma.accessReviewCampaign.count({
           where: {
-            status: { in: ["ACTIVE", "DRAFT"] as any },
+            status: {
+              in: [
+                AccessReviewCampaignStatus.ACTIVE,
+                AccessReviewCampaignStatus.DRAFT,
+              ],
+            },
             dueDate: { lt: now },
           },
         }),
@@ -243,7 +272,8 @@ export class RssiDashboardService {
         this.prisma.auditLog.count({
           where: {
             createdAt: { gte: new Date(now.getTime() - 24 * 3600 * 1000) },
-            action: "LOGIN_FAILED" as any,
+            // AuditLog.action est un String libre côté schéma, pas un enum.
+            action: "LOGIN_FAILED",
           },
         }),
         0,
@@ -318,8 +348,10 @@ export class RssiDashboardService {
         this.prisma.document.count({
           where: {
             deletedAt: null,
-            status: "APPROVED" as any,
-            category: { in: ["POLICY", "PROCEDURE"] as any },
+            status: DocumentStatus.APPROVED,
+            category: {
+              in: [DocumentCategory.POLICY, DocumentCategory.PROCEDURE],
+            },
           },
         }),
         0,
@@ -330,7 +362,9 @@ export class RssiDashboardService {
         this.prisma.document.count({
           where: {
             deletedAt: null,
-            classification: { in: ["SECRET", "CONFIDENTIEL"] as any },
+            // Document.classification est un String libre dans le schéma
+            // (PUBLIC | INTERNE | CONFIDENTIEL | SECRET).
+            classification: { in: ["SECRET", "CONFIDENTIEL"] },
           },
         }),
         0,
@@ -340,8 +374,12 @@ export class RssiDashboardService {
       safe(
         this.prisma.incident.count({
           where: {
-            severity: { in: ["CRITICAL", "HIGH"] as any },
-            status: { notIn: ["CLOSED", "RECOVERED"] as any },
+            severity: {
+              in: [IncidentSeverity.CRITICAL, IncidentSeverity.HIGH],
+            },
+            status: {
+              notIn: [IncidentStatus.CLOSED, IncidentStatus.RECOVERED],
+            },
           },
         }),
         0,
@@ -422,8 +460,10 @@ export class RssiDashboardService {
       safe(
         this.prisma.incident.findMany({
           where: {
-            severity: { in: ["CRITICAL", "HIGH"] as any },
-            status: { notIn: ["CLOSED"] as any },
+            severity: {
+              in: [IncidentSeverity.CRITICAL, IncidentSeverity.HIGH],
+            },
+            status: { notIn: [IncidentStatus.CLOSED] },
           },
           select: {
             id: true,
@@ -592,7 +632,11 @@ export class RssiDashboardService {
             where: {
               detectedAt: { gte: since },
               category: {
-                in: ["MALWARE", "PHISHING", "UNAUTHORIZED_ACCESS"] as any,
+                in: [
+                  IncidentCategory.MALWARE,
+                  IncidentCategory.PHISHING,
+                  IncidentCategory.UNAUTHORIZED_ACCESS,
+                ],
               },
             },
             select: { detectedAt: true, containedAt: true },

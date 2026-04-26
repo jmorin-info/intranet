@@ -5,25 +5,28 @@ import {
   Logger,
   NotFoundException,
   Optional,
-} from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
-import { sanitizeRichText } from '../common/sanitize';
-import { UserRole } from '../common/enums';
-import { RequestUser } from '../common/interfaces';
-import { slugify, generateUniqueSlug } from '../common/utils/slugify';
-import { MentionsService } from '../mentions/mentions.service';
-import { RagService } from '../rag/rag.service';
-import { MeilisearchService, MeiliDocument } from '../search/meilisearch.service';
-import { CacheService } from '../common/cache/cache.service';
+} from "@nestjs/common";
+import * as fs from "fs";
+import * as path from "path";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import { sanitizeRichText } from "../common/sanitize";
+import { UserRole } from "../common/enums";
+import { RequestUser } from "../common/interfaces";
+import { slugify, generateUniqueSlug } from "../common/utils/slugify";
+import { MentionsService } from "../mentions/mentions.service";
+import { RagService } from "../rag/rag.service";
+import {
+  MeilisearchService,
+  MeiliDocument,
+} from "../search/meilisearch.service";
+import { CacheService } from "../common/cache/cache.service";
 import {
   CreateWikiPageDto,
   UpdateWikiPageDto,
   WikiVisibility,
-} from './dto/create-wiki-page.dto';
-import { ShareWikiPageDto } from './dto/share-wiki-page.dto';
+} from "./dto/create-wiki-page.dto";
+import { ShareWikiPageDto } from "./dto/share-wiki-page.dto";
 
 const EDIT_LOCK_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -46,30 +49,45 @@ export class WikiService {
   private autoSlug(title: string): Promise<string> {
     return generateUniqueSlug(
       title,
-      async (candidate) => !!(await this.prisma.wikiPage.findUnique({ where: { slug: candidate } })),
-      { maxLength: 200, fallback: 'wiki-page' },
+      async (candidate) =>
+        !!(await this.prisma.wikiPage.findUnique({
+          where: { slug: candidate },
+        })),
+      { maxLength: 200, fallback: "wiki-page" },
     );
   }
 
   /**
    * Push a wiki page to Meilisearch (non-blocking).
    */
-  private indexForMeili(page: { id: string; title: string; content: string; slug?: string | null; category?: string | null; authorId?: string | null; updatedAt?: Date | null }): void {
+  private indexForMeili(page: {
+    id: string;
+    title: string;
+    content: string;
+    slug?: string | null;
+    category?: string | null;
+    authorId?: string | null;
+    updatedAt?: Date | null;
+  }): void {
     if (!this.meili) return;
     const doc: MeiliDocument = {
       id: `wiki-${page.id}`,
-      title: page.title ?? '',
-      content: this.stripHtml(page.content ?? ''),
-      type: 'wiki',
+      title: page.title ?? "",
+      content: this.stripHtml(page.content ?? ""),
+      type: "wiki",
       url: `/wiki/${page.slug ?? page.id}`,
       authorId: page.authorId ?? null,
       date: page.updatedAt?.toISOString?.() ?? null,
       category: page.category ?? null,
       tags: [page.category].filter(Boolean) as string[],
     };
-    void this.meili.indexOne('wiki', doc).catch((err) =>
-      this.logger.warn(`Meilisearch indexation failed for wiki ${page.id}: ${err?.message || err}`),
-    );
+    void this.meili
+      .indexOne("wiki", doc)
+      .catch((err) =>
+        this.logger.warn(
+          `Meilisearch indexation failed for wiki ${page.id}: ${err?.message || err}`,
+        ),
+      );
   }
 
   /**
@@ -77,7 +95,7 @@ export class WikiService {
    * suitable for @mention scanning.
    */
   private stripHtml(content: string): string {
-    return content.replace(/<[^>]*>/g, ' ');
+    return content.replace(/<[^>]*>/g, " ");
   }
 
   /**
@@ -85,25 +103,34 @@ export class WikiService {
    * searchable by the AI assistant. Runs asynchronously and never blocks
    * the caller.
    */
-  private indexForRag(page: { id: string; title: string; content: string }): void {
+  private indexForRag(page: {
+    id: string;
+    title: string;
+    content: string;
+  }): void {
     if (!this.rag) return;
     const plainText = `${page.title}\n\n${this.stripHtml(page.content)}`;
     void this.rag
-      .indexSource('WIKI', page.id, plainText, { title: page.title })
+      .indexSource("WIKI", page.id, plainText, { title: page.title })
       .catch((err) =>
-        this.logger.warn(`RAG indexation failed for wiki ${page.id}: ${err?.message || err}`),
+        this.logger.warn(
+          `RAG indexation failed for wiki ${page.id}: ${err?.message || err}`,
+        ),
       );
   }
 
   private resolveAuthorName(
-    author: { firstName?: string | null; lastName?: string | null } | null | undefined,
+    author:
+      | { firstName?: string | null; lastName?: string | null }
+      | null
+      | undefined,
     fallbackEmail?: string | null,
   ): string {
     if (author) {
-      const name = `${author.firstName ?? ''} ${author.lastName ?? ''}`.trim();
+      const name = `${author.firstName ?? ""} ${author.lastName ?? ""}`.trim();
       if (name) return name;
     }
-    return fallbackEmail || 'Un utilisateur';
+    return fallbackEmail || "Un utilisateur";
   }
 
   /**
@@ -118,14 +145,14 @@ export class WikiService {
 
     const orClauses: Prisma.WikiPageWhereInput[] = [
       { authorId: user.id },
-      { visibility: 'PUBLIC' },
+      { visibility: "PUBLIC" },
       { collaborators: { has: user.id } },
       { allowedRoles: { has: user.role } },
     ];
 
     if (user.departmentId) {
       orClauses.push({
-        visibility: 'DEPARTMENT',
+        visibility: "DEPARTMENT",
         ownerDepartmentId: user.departmentId,
       });
     }
@@ -136,16 +163,16 @@ export class WikiService {
   private canView(page: any, user: RequestUser): boolean {
     if (isPrivilegedRole(user.role)) return true;
     if (page.authorId === user.id) return true;
-    if (page.visibility === 'PUBLIC') return true;
+    if (page.visibility === "PUBLIC") return true;
     if (
-      page.visibility === 'DEPARTMENT' &&
+      page.visibility === "DEPARTMENT" &&
       user.departmentId &&
       page.ownerDepartmentId === user.departmentId
     ) {
       return true;
     }
     if (
-      page.visibility === 'ROLE' &&
+      page.visibility === "ROLE" &&
       Array.isArray(page.allowedRoles) &&
       page.allowedRoles.includes(user.role)
     ) {
@@ -187,15 +214,15 @@ export class WikiService {
 
     if (filters?.search) {
       const searchOr: Prisma.WikiPageWhereInput[] = [
-        { title: { contains: filters.search, mode: 'insensitive' } },
-        { content: { contains: filters.search, mode: 'insensitive' } },
-        { category: { contains: filters.search, mode: 'insensitive' } },
+        { title: { contains: filters.search, mode: "insensitive" } },
+        { content: { contains: filters.search, mode: "insensitive" } },
+        { category: { contains: filters.search, mode: "insensitive" } },
       ];
       // Combine with existing OR (visibility). Prisma does not allow two OR
       // at the same level, so we wrap both in an AND.
       const existingOr = where.OR;
       delete where.OR;
-      (where as any).AND = [
+      where.AND = [
         ...(existingOr ? [{ OR: existingOr }] : []),
         { OR: searchOr },
       ];
@@ -224,7 +251,7 @@ export class WikiService {
           select: { id: true, firstName: true, lastName: true },
         },
       },
-      orderBy: needsScoring ? undefined : { updatedAt: 'desc' },
+      orderBy: needsScoring ? undefined : { updatedAt: "desc" },
     });
 
     if (!needsScoring) {
@@ -234,10 +261,12 @@ export class WikiService {
     const searchLower = filters!.search!.toLowerCase();
     const terms = searchLower.split(/\s+/).filter((t) => t.length >= 2);
 
-    const scored = rows.map((row) => {
-      const titleLower = (row.title ?? '').toLowerCase();
-      const contentLower = ((row as any).content as string ?? '').toLowerCase();
-      const catLower = (row.category ?? '').toLowerCase();
+    // `content` est sélectionné conditionnellement (needsScoring=true ici).
+    type RowWithContent = (typeof rows)[number] & { content?: string };
+    const scored = (rows as RowWithContent[]).map((row) => {
+      const titleLower = (row.title ?? "").toLowerCase();
+      const contentLower = (row.content ?? "").toLowerCase();
+      const catLower = (row.category ?? "").toLowerCase();
 
       let score = 0;
       for (const term of terms) {
@@ -246,8 +275,11 @@ export class WikiService {
         // Category matches worth 3 pts each
         if (catLower.includes(term)) score += 3;
         // Content occurrence count, 1 pt each (capped at 10)
-        const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-        const hits = ((row as any).content as string ?? '').match(re);
+        const re = new RegExp(
+          term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+          "gi",
+        );
+        const hits = (row.content ?? "").match(re);
         score += Math.min(hits?.length ?? 0, 10);
       }
       // Bonus for exact phrase match
@@ -258,7 +290,7 @@ export class WikiService {
 
       // Build excerpt: ~150 chars around first match in content
       let excerpt: string | null = null;
-      const rawContent = (row as any).content as string ?? '';
+      const rawContent = row.content ?? "";
       const plainContent = this.stripHtml(rawContent);
       const plainLower = plainContent.toLowerCase();
       let firstIdx = -1;
@@ -269,20 +301,24 @@ export class WikiService {
       if (firstIdx !== -1) {
         const start = Math.max(0, firstIdx - 40);
         const end = Math.min(plainContent.length, firstIdx + 110);
-        const prefix = start > 0 ? '...' : '';
-        const suffix = end < plainContent.length ? '...' : '';
+        const prefix = start > 0 ? "..." : "";
+        const suffix = end < plainContent.length ? "..." : "";
         excerpt = `${prefix}${plainContent.slice(start, end).trim()}${suffix}`;
       } else {
         excerpt = plainContent.slice(0, 150).trim() || null;
       }
 
       // Omit full content from response
-      const { content: _content, ...rest } = row as any;
+      const { content: _content, ...rest } = row;
       void _content;
       return { ...rest, score, excerpt };
     });
 
-    scored.sort((a, b) => b.score - a.score || (b.updatedAt as Date).getTime() - (a.updatedAt as Date).getTime());
+    scored.sort(
+      (a, b) =>
+        b.score - a.score ||
+        (b.updatedAt as Date).getTime() - (a.updatedAt as Date).getTime(),
+    );
     return scored;
   }
 
@@ -293,25 +329,27 @@ export class WikiService {
     user: RequestUser,
     q: string,
     limit = 5,
-  ): Promise<Array<{ id: string; title: string; slug: string; category: string | null }>> {
+  ): Promise<
+    Array<{ id: string; title: string; slug: string; category: string | null }>
+  > {
     const where: Prisma.WikiPageWhereInput = {
       ...this.buildVisibilityFilter(user),
       isPublished: true,
-      title: { contains: q, mode: 'insensitive' },
+      title: { contains: q, mode: "insensitive" },
     };
 
     // Merge visibility OR with title filter via AND
     const existingOr = where.OR;
     if (existingOr) {
       delete where.OR;
-      (where as any).AND = [{ OR: existingOr }, { title: where.title }];
+      where.AND = [{ OR: existingOr }, { title: where.title }];
       delete where.title;
     }
 
     return this.prisma.wikiPage.findMany({
       where,
       select: { id: true, title: true, slug: true, category: true },
-      orderBy: { title: 'asc' },
+      orderBy: { title: "asc" },
       take: Math.min(Math.max(limit, 1), 20),
     });
   }
@@ -341,7 +379,9 @@ export class WikiService {
 
     return Array.from(counts.entries())
       .map(([category, count]) => ({ category, count }))
-      .sort((a, b) => b.count - a.count || a.category.localeCompare(b.category));
+      .sort(
+        (a, b) => b.count - a.count || a.category.localeCompare(b.category),
+      );
   }
 
   async findBySlug(slug: string, user: RequestUser) {
@@ -353,18 +393,19 @@ export class WikiService {
         },
       },
     });
-    if (!page) throw new NotFoundException('Wiki page not found');
+    if (!page) throw new NotFoundException("Wiki page not found");
     if (!this.canView(page, user)) {
-      throw new ForbiddenException('You cannot access this wiki page');
+      throw new ForbiddenException("You cannot access this wiki page");
     }
     return page;
   }
 
   async create(data: CreateWikiPageDto, authorId: string) {
     // Auto-génère le slug depuis le titre si non fourni (ou normalise si fourni)
-    const rawSlug = typeof data.slug === 'string' ? data.slug.trim() : '';
+    const rawSlug = typeof data.slug === "string" ? data.slug.trim() : "";
     const slug = rawSlug
-      ? slugify(rawSlug, { maxLength: 200 }) || await this.autoSlug(data.title)
+      ? slugify(rawSlug, { maxLength: 200 }) ||
+        (await this.autoSlug(data.title))
       : await this.autoSlug(data.title);
 
     const page = await this.prisma.wikiPage.create({
@@ -375,7 +416,7 @@ export class WikiService {
         category: data.category || null,
         isPublished: data.isPublished ?? true,
         authorId,
-        visibility: data.visibility ?? 'PUBLIC',
+        visibility: data.visibility ?? "PUBLIC",
         ownerDepartmentId: data.ownerDepartmentId ?? null,
         allowedRoles: data.allowedRoles ?? [],
         collaborators: data.collaborators ?? [],
@@ -395,7 +436,7 @@ export class WikiService {
           text: this.stripHtml(page.content),
           authorId,
           authorName,
-          sourceType: 'wiki',
+          sourceType: "wiki",
           sourceId: page.id,
           sourceTitle: page.title,
           link: `/wiki/${page.slug}`,
@@ -422,10 +463,10 @@ export class WikiService {
    * the owner department when the user has one.
    */
   async createPersonalPage(data: CreateWikiPageDto, user: RequestUser) {
-    const visibility: WikiVisibility = data.visibility ?? 'PRIVATE';
+    const visibility: WikiVisibility = data.visibility ?? "PRIVATE";
     const ownerDepartmentId: string | undefined =
-      visibility === 'DEPARTMENT'
-        ? data.ownerDepartmentId ?? user.departmentId ?? undefined
+      visibility === "DEPARTMENT"
+        ? (data.ownerDepartmentId ?? user.departmentId ?? undefined)
         : data.ownerDepartmentId;
     return this.create(
       {
@@ -439,10 +480,10 @@ export class WikiService {
 
   async update(id: string, data: UpdateWikiPageDto, user: RequestUser) {
     const existing = await this.prisma.wikiPage.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Wiki page not found');
+    if (!existing) throw new NotFoundException("Wiki page not found");
 
     if (!this.canEdit(existing, user)) {
-      throw new ForbiddenException('You cannot edit this wiki page');
+      throw new ForbiddenException("You cannot edit this wiki page");
     }
 
     // If another user holds a non-expired lock, block the save.
@@ -452,7 +493,7 @@ export class WikiService {
       existing.editLockExpiresAt &&
       existing.editLockExpiresAt.getTime() > Date.now()
     ) {
-      throw new ConflictException('Page is locked by another user');
+      throw new ConflictException("Page is locked by another user");
     }
 
     // Snapshot the previous content as a version entry before overwriting.
@@ -474,7 +515,9 @@ export class WikiService {
       where: { id },
       data: {
         ...rest,
-        ...(data.title !== undefined && { title: sanitizeRichText(data.title) }),
+        ...(data.title !== undefined && {
+          title: sanitizeRichText(data.title),
+        }),
         ...(data.content !== undefined && {
           content: sanitizeRichText(data.content),
         }),
@@ -504,7 +547,7 @@ export class WikiService {
             text: this.stripHtml(updated.content),
             authorId: user.id,
             authorName,
-            sourceType: 'wiki',
+            sourceType: "wiki",
             sourceId: updated.id,
             sourceTitle: updated.title,
             link: `/wiki/${updated.slug}`,
@@ -533,17 +576,19 @@ export class WikiService {
 
   async delete(id: string, user: RequestUser) {
     const existing = await this.prisma.wikiPage.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Page wiki introuvable');
+    if (!existing) throw new NotFoundException("Page wiki introuvable");
 
     if (!isPrivilegedRole(user.role) && existing.authorId !== user.id) {
-      throw new ForbiddenException('Vous ne pouvez pas supprimer cette page wiki.');
+      throw new ForbiddenException(
+        "Vous ne pouvez pas supprimer cette page wiki.",
+      );
     }
 
     const deleted = await this.prisma.wikiPage.delete({ where: { id } });
 
     // Désindexation complète
-    void this.meili?.deleteDocument('wiki', id);
-    void this.rag?.removeFromIndex('WIKI' as never, id).catch(() => undefined);
+    void this.meili?.deleteDocument("wiki", id);
+    void this.rag?.removeFromIndex("WIKI" as never, id).catch(() => undefined);
 
     // Removing a page can change backlinks of others; clear the cache.
     this.invalidateBacklinkCache();
@@ -559,22 +604,22 @@ export class WikiService {
   async recordFeedback(
     pageId: string,
     user: RequestUser,
-    body: { rating: 'up' | 'down'; comment?: string },
+    body: { rating: "up" | "down"; comment?: string },
   ) {
     const page = await this.prisma.wikiPage.findUnique({
       where: { id: pageId },
       select: { id: true, title: true, slug: true },
     });
-    if (!page) throw new NotFoundException('Wiki page not found');
-    if (body.rating !== 'up' && body.rating !== 'down') {
-      throw new NotFoundException('Invalid rating');
+    if (!page) throw new NotFoundException("Wiki page not found");
+    if (body.rating !== "up" && body.rating !== "down") {
+      throw new NotFoundException("Invalid rating");
     }
 
     await this.prisma.auditLog.create({
       data: {
         userId: user.id,
-        action: 'WIKI_FEEDBACK',
-        resourceType: 'WikiPage',
+        action: "WIKI_FEEDBACK",
+        resourceType: "WikiPage",
         resourceId: page.id,
         metadata: {
           rating: body.rating,
@@ -582,7 +627,7 @@ export class WikiService {
           title: page.title,
           slug: page.slug,
         },
-        severity: 'INFO',
+        severity: "INFO",
       },
     });
 
@@ -595,10 +640,10 @@ export class WikiService {
    */
   async shareWith(id: string, dto: ShareWikiPageDto, user: RequestUser) {
     const existing = await this.prisma.wikiPage.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Wiki page not found');
+    if (!existing) throw new NotFoundException("Wiki page not found");
 
     if (!isPrivilegedRole(user.role) && existing.authorId !== user.id) {
-      throw new ForbiddenException('Only the author or an admin can share');
+      throw new ForbiddenException("Only the author or an admin can share");
     }
 
     return this.prisma.wikiPage.update({
@@ -628,9 +673,9 @@ export class WikiService {
    */
   async acquireEditLock(id: string, user: RequestUser) {
     const page = await this.prisma.wikiPage.findUnique({ where: { id } });
-    if (!page) throw new NotFoundException('Wiki page not found');
+    if (!page) throw new NotFoundException("Wiki page not found");
     if (!this.canEdit(page, user)) {
-      throw new ForbiddenException('You cannot edit this wiki page');
+      throw new ForbiddenException("You cannot edit this wiki page");
     }
 
     const now = Date.now();
@@ -665,7 +710,7 @@ export class WikiService {
 
   async releaseEditLock(id: string, user: RequestUser) {
     const page = await this.prisma.wikiPage.findUnique({ where: { id } });
-    if (!page) throw new NotFoundException('Wiki page not found');
+    if (!page) throw new NotFoundException("Wiki page not found");
 
     // Only the lock holder or an admin can release the lock.
     if (
@@ -673,7 +718,7 @@ export class WikiService {
       page.editLockUserId !== user.id &&
       !isPrivilegedRole(user.role)
     ) {
-      throw new ForbiddenException('Lock held by another user');
+      throw new ForbiddenException("Lock held by another user");
     }
 
     await this.prisma.wikiPage.update({
@@ -685,15 +730,15 @@ export class WikiService {
 
   async getVersions(id: string, user: RequestUser, take = 50, skip = 0) {
     const page = await this.prisma.wikiPage.findUnique({ where: { id } });
-    if (!page) throw new NotFoundException('Wiki page not found');
+    if (!page) throw new NotFoundException("Wiki page not found");
     if (!this.canView(page, user)) {
-      throw new ForbiddenException('You cannot access this wiki page');
+      throw new ForbiddenException("You cannot access this wiki page");
     }
 
     const [items, total] = await Promise.all([
       this.prisma.wikiPageVersion.findMany({
         where: { pageId: id },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         take: Math.min(Math.max(take, 1), 100),
         skip: Math.max(skip, 0),
         select: {
@@ -739,9 +784,9 @@ export class WikiService {
    */
   async findBacklinks(id: string, user: RequestUser) {
     const page = await this.prisma.wikiPage.findUnique({ where: { id } });
-    if (!page) throw new NotFoundException('Wiki page not found');
+    if (!page) throw new NotFoundException("Wiki page not found");
     if (!this.canView(page, user)) {
-      throw new ForbiddenException('You cannot access this wiki page');
+      throw new ForbiddenException("You cannot access this wiki page");
     }
 
     const slug = page.slug;
@@ -829,14 +874,14 @@ export class WikiService {
       },
     });
 
-    const escapedSlug = slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedSlug = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Matches:
     //   [[slug]]          or [[Title|slug]]
     //   /wiki/slug        (href or plain path — bounded by non-slug chars)
     //   [text](/wiki/slug)  (markdown link targeting the slug)
     const patterns = [
-      new RegExp(`\\[\\[(?:[^\\]|]*\\|)?${escapedSlug}\\s*\\]\\]`, 'i'),
-      new RegExp(`/wiki/${escapedSlug}(?=[^A-Za-z0-9_-]|$)`, 'i'),
+      new RegExp(`\\[\\[(?:[^\\]|]*\\|)?${escapedSlug}\\s*\\]\\]`, "i"),
+      new RegExp(`/wiki/${escapedSlug}(?=[^A-Za-z0-9_-]|$)`, "i"),
     ];
 
     const matches: Array<{
@@ -854,11 +899,11 @@ export class WikiService {
     }> = [];
 
     for (const r of rows) {
-      const content = r.content ?? '';
+      const content = r.content ?? "";
       if (!patterns.some((p) => p.test(content))) continue;
 
       // Build an excerpt around the first match.
-      const plain = this.stripHtml(content).replace(/\s+/g, ' ').trim();
+      const plain = this.stripHtml(content).replace(/\s+/g, " ").trim();
       const idx = patterns.reduce<number>((acc, p) => {
         if (acc >= 0) return acc;
         const m = p.exec(plain);
@@ -866,12 +911,15 @@ export class WikiService {
       }, -1);
       const snippet =
         idx >= 0
-          ? plain.slice(Math.max(0, idx - 80), Math.min(plain.length, idx + 160))
+          ? plain.slice(
+              Math.max(0, idx - 80),
+              Math.min(plain.length, idx + 160),
+            )
           : plain.slice(0, 200);
       const excerpt =
-        (idx > 80 ? '…' : '') +
+        (idx > 80 ? "…" : "") +
         snippet +
-        (plain.length > (idx >= 0 ? idx + 160 : 200) ? '…' : '');
+        (plain.length > (idx >= 0 ? idx + 160 : 200) ? "…" : "");
 
       matches.push({
         id: r.id,
@@ -880,7 +928,7 @@ export class WikiService {
         category: r.category,
         updatedAt: r.updatedAt.toISOString(),
         authorId: r.authorId,
-        visibility: r.visibility ?? 'PUBLIC',
+        visibility: r.visibility ?? "PUBLIC",
         ownerDepartmentId: r.ownerDepartmentId,
         allowedRoles: r.allowedRoles ?? [],
         collaborators: r.collaborators ?? [],
@@ -897,29 +945,25 @@ export class WikiService {
    */
   private invalidateBacklinkCache(): void {
     if (!this.cache) return;
-    void this.cache.del('wiki:backlinks:*').catch(() => {
+    void this.cache.del("wiki:backlinks:*").catch(() => {
       /* noop — cache invalidation is best-effort */
     });
   }
 
-  async restoreVersion(
-    pageId: string,
-    versionId: string,
-    user: RequestUser,
-  ) {
+  async restoreVersion(pageId: string, versionId: string, user: RequestUser) {
     const page = await this.prisma.wikiPage.findUnique({
       where: { id: pageId },
     });
-    if (!page) throw new NotFoundException('Wiki page not found');
+    if (!page) throw new NotFoundException("Wiki page not found");
     if (!this.canEdit(page, user)) {
-      throw new ForbiddenException('You cannot edit this wiki page');
+      throw new ForbiddenException("You cannot edit this wiki page");
     }
 
     const version = await this.prisma.wikiPageVersion.findUnique({
       where: { id: versionId },
     });
     if (!version || version.pageId !== pageId) {
-      throw new NotFoundException('Version not found');
+      throw new NotFoundException("Version not found");
     }
 
     // Snapshot the current state before restoring.
@@ -947,9 +991,7 @@ export class WikiService {
 
   // ---- Attachments ----
 
-  private parseAttachments(
-    raw: string | null | undefined,
-  ): Array<{
+  private parseAttachments(raw: string | null | undefined): Array<{
     name: string;
     url: string;
     size: number;
@@ -969,9 +1011,9 @@ export class WikiService {
     const page = await this.prisma.wikiPage.findUnique({
       where: { id: pageId },
     });
-    if (!page) throw new NotFoundException('Wiki page not found');
+    if (!page) throw new NotFoundException("Wiki page not found");
     if (!this.canView(page, user)) {
-      throw new ForbiddenException('You cannot access this wiki page');
+      throw new ForbiddenException("You cannot access this wiki page");
     }
     return this.parseAttachments(page.attachments);
   }
@@ -984,9 +1026,9 @@ export class WikiService {
     const page = await this.prisma.wikiPage.findUnique({
       where: { id: pageId },
     });
-    if (!page) throw new NotFoundException('Wiki page not found');
+    if (!page) throw new NotFoundException("Wiki page not found");
     if (!this.canEdit(page, user)) {
-      throw new ForbiddenException('You cannot edit this wiki page');
+      throw new ForbiddenException("You cannot edit this wiki page");
     }
 
     const attachments = this.parseAttachments(page.attachments);
@@ -1007,24 +1049,18 @@ export class WikiService {
     return attachment;
   }
 
-  async removeAttachment(
-    pageId: string,
-    user: RequestUser,
-    filename: string,
-  ) {
+  async removeAttachment(pageId: string, user: RequestUser, filename: string) {
     const page = await this.prisma.wikiPage.findUnique({
       where: { id: pageId },
     });
-    if (!page) throw new NotFoundException('Wiki page not found');
+    if (!page) throw new NotFoundException("Wiki page not found");
     if (!this.canEdit(page, user)) {
-      throw new ForbiddenException('You cannot edit this wiki page');
+      throw new ForbiddenException("You cannot edit this wiki page");
     }
 
     const attachments = this.parseAttachments(page.attachments);
-    const idx = attachments.findIndex(
-      (a) => path.basename(a.url) === filename,
-    );
-    if (idx === -1) throw new NotFoundException('Attachment not found');
+    const idx = attachments.findIndex((a) => path.basename(a.url) === filename);
+    if (idx === -1) throw new NotFoundException("Attachment not found");
 
     const [removed] = attachments.splice(idx, 1);
 

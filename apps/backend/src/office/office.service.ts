@@ -1,12 +1,18 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../prisma/prisma.service';
-import { StorageService } from '../storage/storage.service';
-import { AuditService } from '../audit/audit.service';
-import { UserRole, ROLE_HIERARCHY } from '../common/enums';
-import { RequestUser } from '../common/interfaces';
-import * as crypto from 'crypto';
-import * as fs from 'fs';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+  Optional,
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { PrismaService } from "../prisma/prisma.service";
+import { StorageService } from "../storage/storage.service";
+import { AuditService } from "../audit/audit.service";
+import { UserRole, ROLE_HIERARCHY } from "../common/enums";
+import { RequestUser } from "../common/interfaces";
+import * as crypto from "crypto";
+import * as fs from "fs";
 
 /**
  * OnlyOffice Docs Server integration service.
@@ -73,21 +79,31 @@ export class OfficeService {
     // est @Global(), donc en runtime Nest l'injecte toujours.
     @Optional() private readonly audit?: AuditService,
   ) {
-    this.enabled = process.env.ONLYOFFICE_ENABLED === 'true';
-    this.documentServerUrl = (process.env.ONLYOFFICE_DOCUMENT_SERVER_URL || 'http://localhost:8082').replace(/\/$/, '');
-    this.jwtSecret = process.env.ONLYOFFICE_JWT_SECRET || '';
-    this.allowUnsigned = process.env.ONLYOFFICE_ALLOW_UNSIGNED === 'true';
-    this.fileTokenSecret = process.env.JWT_ACCESS_SECRET || process.env.ONLYOFFICE_JWT_SECRET || 'insecure-dev-only';
+    this.enabled = process.env.ONLYOFFICE_ENABLED === "true";
+    this.documentServerUrl = (
+      process.env.ONLYOFFICE_DOCUMENT_SERVER_URL || "http://localhost:8082"
+    ).replace(/\/$/, "");
+    this.jwtSecret = process.env.ONLYOFFICE_JWT_SECRET || "";
+    this.allowUnsigned = process.env.ONLYOFFICE_ALLOW_UNSIGNED === "true";
+    this.fileTokenSecret =
+      process.env.JWT_ACCESS_SECRET ||
+      process.env.ONLYOFFICE_JWT_SECRET ||
+      "insecure-dev-only";
 
     // L'URL du backend telle que vue depuis OnlyOffice Docs (conteneur → conteneur en Docker).
     // On retire un trailing `/api` éventuel et un slash final pour éviter les URLs doublées
     // type `http://backend:3000/api/api/office/file`.
-    const rawInternal = process.env.ONLYOFFICE_INTERNAL_URL || process.env.APP_URL || 'http://localhost:3000';
-    this.internalBackendUrl = rawInternal.replace(/\/api\/?$/, '').replace(/\/$/, '');
+    const rawInternal =
+      process.env.ONLYOFFICE_INTERNAL_URL ||
+      process.env.APP_URL ||
+      "http://localhost:3000";
+    this.internalBackendUrl = rawInternal
+      .replace(/\/api\/?$/, "")
+      .replace(/\/$/, "");
 
     if (this.enabled && !this.jwtSecret) {
       this.logger.warn(
-        'OnlyOffice activé mais ONLYOFFICE_JWT_SECRET non défini — si votre Docs Server a JWT activé (défaut depuis v7.2), il rejettera les configs non signées',
+        "OnlyOffice activé mais ONLYOFFICE_JWT_SECRET non défini — si votre Docs Server a JWT activé (défaut depuis v7.2), il rejettera les configs non signées",
       );
     }
     if (this.enabled) {
@@ -126,9 +142,16 @@ export class OfficeService {
   /**
    * Vérifie la santé du service OnlyOffice Docs Server.
    */
-  async healthCheck(): Promise<{ ok: boolean; version?: string; message: string }> {
+  async healthCheck(): Promise<{
+    ok: boolean;
+    version?: string;
+    message: string;
+  }> {
     if (!this.enabled) {
-      return { ok: false, message: 'OnlyOffice désactivé (ONLYOFFICE_ENABLED != true)' };
+      return {
+        ok: false,
+        message: "OnlyOffice désactivé (ONLYOFFICE_ENABLED != true)",
+      };
     }
     try {
       const response = await fetch(`${this.documentServerUrl}/healthcheck`, {
@@ -139,8 +162,8 @@ export class OfficeService {
       }
       const text = await response.text();
       // OnlyOffice retourne "true" ou "false"
-      if (text.trim().toLowerCase() === 'true') {
-        return { ok: true, message: 'OnlyOffice Docs Server en ligne' };
+      if (text.trim().toLowerCase() === "true") {
+        return { ok: true, message: "OnlyOffice Docs Server en ligne" };
       }
       return { ok: false, message: `Healthcheck KO : ${text}` };
     } catch (err) {
@@ -159,8 +182,8 @@ export class OfficeService {
     viewable: string[];
   } {
     return {
-      editable: ['docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'txt', 'csv'],
-      viewable: ['doc', 'xls', 'ppt', 'pdf', 'rtf', 'epub', 'fb2'],
+      editable: ["docx", "xlsx", "pptx", "odt", "ods", "odp", "txt", "csv"],
+      viewable: ["doc", "xls", "ppt", "pdf", "rtf", "epub", "fb2"],
     };
   }
 
@@ -168,13 +191,14 @@ export class OfficeService {
    * Déduit le type de document OnlyOffice à partir de l'extension.
    * word | cell | slide | pdf
    */
-  getDocumentType(extension: string): 'word' | 'cell' | 'slide' | 'pdf' {
-    const ext = extension.toLowerCase().replace('.', '');
-    if (['docx', 'doc', 'odt', 'rtf', 'txt', 'epub', 'fb2'].includes(ext)) return 'word';
-    if (['xlsx', 'xls', 'ods', 'csv'].includes(ext)) return 'cell';
-    if (['pptx', 'ppt', 'odp'].includes(ext)) return 'slide';
-    if (ext === 'pdf') return 'pdf';
-    return 'word';
+  getDocumentType(extension: string): "word" | "cell" | "slide" | "pdf" {
+    const ext = extension.toLowerCase().replace(".", "");
+    if (["docx", "doc", "odt", "rtf", "txt", "epub", "fb2"].includes(ext))
+      return "word";
+    if (["xlsx", "xls", "ods", "csv"].includes(ext)) return "cell";
+    if (["pptx", "ppt", "odp"].includes(ext)) return "slide";
+    if (ext === "pdf") return "pdf";
+    return "word";
   }
 
   /**
@@ -195,14 +219,14 @@ export class OfficeService {
     userId: string,
   ): string {
     const payload = {
-      purpose: 'onlyoffice-file-access',
+      purpose: "onlyoffice-file-access",
       documentVersionId,
       documentId,
       userId,
     };
     return this.jwtService.sign(payload, {
       secret: this.fileTokenSecret,
-      expiresIn: '4h',
+      expiresIn: "4h",
     });
   }
 
@@ -213,10 +237,15 @@ export class OfficeService {
     token: string,
   ): { documentVersionId: string; documentId?: string; userId: string } | null {
     try {
-      const payload = this.jwtService.verify(token, {
+      const payload = this.jwtService.verify<{
+        purpose: string;
+        documentVersionId: string;
+        documentId?: string;
+        userId: string;
+      }>(token, {
         secret: this.fileTokenSecret,
-      }) as any;
-      if (payload.purpose !== 'onlyoffice-file-access') return null;
+      });
+      if (payload.purpose !== "onlyoffice-file-access") return null;
       return {
         documentVersionId: payload.documentVersionId,
         documentId: payload.documentId,
@@ -232,10 +261,10 @@ export class OfficeService {
    * OnlyOffice Docs vérifie cette signature avant d'ouvrir un document.
    */
   private signConfig(config: any): string {
-    if (!this.jwtSecret) return '';
+    if (!this.jwtSecret) return "";
     return this.jwtService.sign(config, {
       secret: this.jwtSecret,
-      expiresIn: '8h',
+      expiresIn: "8h",
     });
   }
 
@@ -250,10 +279,10 @@ export class OfficeService {
   async buildEditorConfig(
     documentId: string,
     currentUser: RequestUser,
-    mode: 'edit' | 'view' = 'edit',
+    mode: "edit" | "view" = "edit",
   ) {
     if (!this.enabled) {
-      throw new ForbiddenException('OnlyOffice désactivé');
+      throw new ForbiddenException("OnlyOffice désactivé");
     }
 
     // Garde dure contre le cas "canvas vide" silencieux : si OnlyOffice Docs a
@@ -266,9 +295,9 @@ export class OfficeService {
     if (this.enabled && !this.jwtSecret && !this.allowUnsigned) {
       throw new ForbiddenException(
         "OnlyOffice est activé mais ONLYOFFICE_JWT_SECRET n'est pas défini dans l'environnement backend. " +
-          'Les configs non signées sont silencieusement rejetées par Docs Server v7.2+ (canvas vide). ' +
-          'Solution : (1) définir ONLYOFFICE_JWT_SECRET avec la même valeur que le conteneur Docs, ' +
-          'OU (2) démarrer le conteneur avec JWT_ENABLED=false et définir ONLYOFFICE_ALLOW_UNSIGNED=true côté backend.',
+          "Les configs non signées sont silencieusement rejetées par Docs Server v7.2+ (canvas vide). " +
+          "Solution : (1) définir ONLYOFFICE_JWT_SECRET avec la même valeur que le conteneur Docs, " +
+          "OU (2) démarrer le conteneur avec JWT_ENABLED=false et définir ONLYOFFICE_ALLOW_UNSIGNED=true côté backend.",
       );
     }
 
@@ -276,25 +305,25 @@ export class OfficeService {
       where: { id: documentId },
       include: {
         versions: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           take: 1,
         },
       },
     });
 
     if (!document || document.deletedAt) {
-      throw new NotFoundException('Document introuvable');
+      throw new NotFoundException("Document introuvable");
     }
 
     const currentVersion = document.versions[0];
     if (!currentVersion) {
-      throw new NotFoundException('Aucune version disponible pour ce document');
+      throw new NotFoundException("Aucune version disponible pour ce document");
     }
 
     // Extraction du nom + extension
-    const fileName = currentVersion.fileUrl.split('/').pop() || 'document';
+    const fileName = currentVersion.fileUrl.split("/").pop() || "document";
     const extensionMatch = fileName.match(/\.([^.?]+)(\?|$)/);
-    const extension = extensionMatch ? extensionMatch[1].toLowerCase() : 'docx';
+    const extension = extensionMatch ? extensionMatch[1].toLowerCase() : "docx";
     const documentType = this.getDocumentType(extension);
 
     // Vérifie si le format est éditable par OnlyOffice
@@ -317,11 +346,11 @@ export class OfficeService {
     //   - OBSOLETE / ARCHIVED : lecture seule — il faut d'abord réouvrir
     //     (`POST /documents/:id/reopen`).
     const isEditableStatus =
-      document.status === 'DRAFT' ||
-      document.status === 'IN_REVIEW' ||
-      (document.status === 'APPROVED' && (isOwner || isAdmin));
+      document.status === "DRAFT" ||
+      document.status === "IN_REVIEW" ||
+      (document.status === "APPROVED" && (isOwner || isAdmin));
     const canEdit =
-      mode === 'edit' &&
+      mode === "edit" &&
       isFormatEditable &&
       (isOwner || isReviewer || isAdmin) &&
       isEditableStatus;
@@ -332,65 +361,66 @@ export class OfficeService {
     // pourquoi il ne peut pas enregistrer.
     let canEditReason: {
       code:
-        | 'OK'
-        | 'VIEW_MODE'
-        | 'FORMAT_READONLY'
-        | 'NOT_AUTHORIZED'
-        | 'STATUS_OBSOLETE'
-        | 'STATUS_ARCHIVED'
-        | 'STATUS_APPROVED_NOT_OWNER';
+        | "OK"
+        | "VIEW_MODE"
+        | "FORMAT_READONLY"
+        | "NOT_AUTHORIZED"
+        | "STATUS_OBSOLETE"
+        | "STATUS_ARCHIVED"
+        | "STATUS_APPROVED_NOT_OWNER";
       message: string;
       actionHint?: string;
     };
     if (canEdit) {
-      canEditReason = { code: 'OK', message: 'Édition autorisée.' };
-    } else if (mode !== 'edit') {
+      canEditReason = { code: "OK", message: "Édition autorisée." };
+    } else if (mode !== "edit") {
       canEditReason = {
-        code: 'VIEW_MODE',
-        message: 'Éditeur ouvert en lecture seule (mode=view).',
-        actionHint: 'Ouvrir sans le paramètre ?mode=view pour éditer.',
+        code: "VIEW_MODE",
+        message: "Éditeur ouvert en lecture seule (mode=view).",
+        actionHint: "Ouvrir sans le paramètre ?mode=view pour éditer.",
       };
     } else if (!isFormatEditable) {
       canEditReason = {
-        code: 'FORMAT_READONLY',
+        code: "FORMAT_READONLY",
         message: `Le format .${extension} n'est pas modifiable dans OnlyOffice.`,
         actionHint:
-          'Uploadez une nouvelle version au format .docx / .xlsx / .pptx pour éditer en ligne.',
+          "Uploadez une nouvelle version au format .docx / .xlsx / .pptx pour éditer en ligne.",
       };
     } else if (!(isOwner || isReviewer || isAdmin)) {
       canEditReason = {
-        code: 'NOT_AUTHORIZED',
+        code: "NOT_AUTHORIZED",
         message:
           "Vous n'êtes ni propriétaire, ni relecteur, ni administrateur de ce document.",
         actionHint:
           "Demandez au propriétaire de vous ajouter comme relecteur, ou contactez un administrateur.",
       };
-    } else if (document.status === 'OBSOLETE') {
+    } else if (document.status === "OBSOLETE") {
       canEditReason = {
-        code: 'STATUS_OBSOLETE',
-        message: 'Ce document est marqué OBSOLETE, l\'édition directe est bloquée.',
+        code: "STATUS_OBSOLETE",
+        message:
+          "Ce document est marqué OBSOLETE, l'édition directe est bloquée.",
         actionHint:
           "Réimportez une nouvelle version via « Réimporter » sur la page document — le doc repassera en brouillon.",
       };
-    } else if (document.status === 'ARCHIVED') {
+    } else if (document.status === "ARCHIVED") {
       canEditReason = {
-        code: 'STATUS_ARCHIVED',
-        message: 'Ce document est ARCHIVÉ, l\'édition est bloquée.',
+        code: "STATUS_ARCHIVED",
+        message: "Ce document est ARCHIVÉ, l'édition est bloquée.",
         actionHint:
           "Utilisez « Réouvrir » sur la page document pour le repasser en brouillon éditable.",
       };
-    } else if (document.status === 'APPROVED' && !(isOwner || isAdmin)) {
+    } else if (document.status === "APPROVED" && !(isOwner || isAdmin)) {
       canEditReason = {
-        code: 'STATUS_APPROVED_NOT_OWNER',
+        code: "STATUS_APPROVED_NOT_OWNER",
         message:
-          'Ce document est APPROUVÉ. Seul le propriétaire ou un administrateur peut encore le modifier.',
+          "Ce document est APPROUVÉ. Seul le propriétaire ou un administrateur peut encore le modifier.",
         actionHint:
           "Pour une révision formelle, utilisez « Réouvrir » ou contactez le propriétaire.",
       };
     } else {
       canEditReason = {
-        code: 'NOT_AUTHORIZED',
-        message: 'Édition non autorisée (raison inconnue).',
+        code: "NOT_AUTHORIZED",
+        message: "Édition non autorisée (raison inconnue).",
       };
     }
 
@@ -439,22 +469,22 @@ export class OfficeService {
       },
       documentType,
       editorConfig: {
-        mode: canEdit ? 'edit' : 'view',
-        lang: 'fr-FR',
+        mode: canEdit ? "edit" : "view",
+        lang: "fr-FR",
         callbackUrl: canEdit ? callbackUrl : undefined,
         user: {
           id: currentUser.id,
-          name: `${(currentUser as any).firstName || ''} ${(currentUser as any).lastName || currentUser.email}`.trim(),
+          name: `${currentUser.firstName || ""} ${currentUser.lastName || currentUser.email}`.trim(),
         },
         customization: {
           autosave: true,
           forcesave: true,
           toolbarNoTabs: false,
           hideRightMenu: false,
-          uiTheme: 'theme-classic-light',
+          uiTheme: "theme-classic-light",
           logo: {
-            image: `${this.internalBackendUrl.replace('/api', '')}/logo-icon.png`,
-            imageDark: `${this.internalBackendUrl.replace('/api', '')}/logo-icon-white.png`,
+            image: `${this.internalBackendUrl.replace("/api", "")}/logo-icon.png`,
+            imageDark: `${this.internalBackendUrl.replace("/api", "")}/logo-icon-white.png`,
           },
         },
       },
@@ -470,7 +500,7 @@ export class OfficeService {
       config.token = this.signConfig(config);
       if (!config.token) {
         throw new ForbiddenException(
-          'Échec de signature de la config OnlyOffice — signConfig() a retourné une chaîne vide.',
+          "Échec de signature de la config OnlyOffice — signConfig() a retourné une chaîne vide.",
         );
       }
     }
@@ -515,7 +545,11 @@ export class OfficeService {
     message: string;
   }> {
     if (!this.enabled) {
-      return { ok: false, internalBackendUrl: this.internalBackendUrl, message: 'OnlyOffice désactivé' };
+      return {
+        ok: false,
+        internalBackendUrl: this.internalBackendUrl,
+        message: "OnlyOffice désactivé",
+      };
     }
     try {
       const response = await fetch(`${this.internalBackendUrl}/api/health`, {
@@ -545,18 +579,20 @@ export class OfficeService {
    *   0 = ok, 6 = invalid token / JWT mismatch, 5 = command not correct, etc.
    */
   async testCommandService(): Promise<{
-    jwtMatch: boolean | 'unknown';
+    jwtMatch: boolean | "unknown";
     jwtMessage: string;
     httpStatus?: number;
     responseBody?: string;
   }> {
     if (!this.enabled) {
-      return { jwtMatch: 'unknown', jwtMessage: 'OnlyOffice désactivé' };
+      return { jwtMatch: "unknown", jwtMessage: "OnlyOffice désactivé" };
     }
 
     const url = `${this.documentServerUrl}/coauthoring/CommandService.ashx`;
-    const payload: any = { c: 'version' };
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const payload: any = { c: "version" };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
 
     // Si le backend a un secret, on envoie le body SIGNÉ (format JWT_IN_BODY).
     // Docs Server l'accepte aussi en header Authorization: Bearer.
@@ -565,7 +601,7 @@ export class OfficeService {
       try {
         const signed = this.jwtService.sign(payload, {
           secret: this.jwtSecret,
-          expiresIn: '5m',
+          expiresIn: "5m",
         });
         payload.token = signed;
         headers.Authorization = `Bearer ${signed}`;
@@ -580,7 +616,7 @@ export class OfficeService {
 
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers,
         body: bodyToSend,
         signal: AbortSignal.timeout(5000),
@@ -595,20 +631,20 @@ export class OfficeService {
 
       if (!response.ok) {
         return {
-          jwtMatch: 'unknown',
+          jwtMatch: "unknown",
           jwtMessage: `HTTP ${response.status} — ${text.slice(0, 200)}`,
           httpStatus: response.status,
           responseBody: text.slice(0, 500),
         };
       }
 
-      if (parsed && typeof parsed.error === 'number') {
+      if (parsed && typeof parsed.error === "number") {
         if (parsed.error === 0) {
           return {
-            jwtMatch: this.jwtSecret ? true : 'unknown',
+            jwtMatch: this.jwtSecret ? true : "unknown",
             jwtMessage: this.jwtSecret
-              ? 'Secret JWT accepté par Docs Server — les configs signées seront rendues correctement.'
-              : 'Docs Server accepte les appels non signés (JWT_ENABLED=false côté conteneur).',
+              ? "Secret JWT accepté par Docs Server — les configs signées seront rendues correctement."
+              : "Docs Server accepte les appels non signés (JWT_ENABLED=false côté conteneur).",
             httpStatus: response.status,
             responseBody: text.slice(0, 500),
           };
@@ -617,14 +653,14 @@ export class OfficeService {
           return {
             jwtMatch: false,
             jwtMessage:
-              'Docs Server a rejeté le token (error=6, invalid JWT). Le secret backend et conteneur ne correspondent pas, ' +
-              'ou le conteneur a JWT_ENABLED=true mais le backend ne signe pas.',
+              "Docs Server a rejeté le token (error=6, invalid JWT). Le secret backend et conteneur ne correspondent pas, " +
+              "ou le conteneur a JWT_ENABLED=true mais le backend ne signe pas.",
             httpStatus: response.status,
             responseBody: text.slice(0, 500),
           };
         }
         return {
-          jwtMatch: this.jwtSecret ? true : 'unknown',
+          jwtMatch: this.jwtSecret ? true : "unknown",
           jwtMessage: `Docs Server a répondu error=${parsed.error} (pas un problème JWT).`,
           httpStatus: response.status,
           responseBody: text.slice(0, 500),
@@ -632,14 +668,14 @@ export class OfficeService {
       }
 
       return {
-        jwtMatch: 'unknown',
+        jwtMatch: "unknown",
         jwtMessage: `Réponse inattendue : ${text.slice(0, 200)}`,
         httpStatus: response.status,
         responseBody: text.slice(0, 500),
       };
     } catch (err) {
       return {
-        jwtMatch: 'unknown',
+        jwtMatch: "unknown",
         jwtMessage: `Échec fetch CommandService : ${err instanceof Error ? err.message : err}`,
       };
     }
@@ -654,16 +690,18 @@ export class OfficeService {
    */
   async dropSession(key: string): Promise<{ ok: boolean; message: string }> {
     if (!this.enabled) {
-      return { ok: false, message: 'OnlyOffice désactivé' };
+      return { ok: false, message: "OnlyOffice désactivé" };
     }
     const url = `${this.documentServerUrl}/coauthoring/CommandService.ashx`;
-    const payload: any = { c: 'drop', key, users: [] };
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const payload: any = { c: "drop", key, users: [] };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
     if (this.jwtSecret) {
       try {
         const signed = this.jwtService.sign(payload, {
           secret: this.jwtSecret,
-          expiresIn: '1m',
+          expiresIn: "1m",
         });
         payload.token = signed;
         headers.Authorization = `Bearer ${signed}`;
@@ -673,16 +711,21 @@ export class OfficeService {
     }
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers,
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(3000),
       });
       const text = await response.text();
-      this.logger.debug(`dropSession key=${key} → HTTP ${response.status} body=${text.slice(0, 200)}`);
+      this.logger.debug(
+        `dropSession key=${key} → HTTP ${response.status} body=${text.slice(0, 200)}`,
+      );
       return { ok: response.ok, message: text };
     } catch (err) {
-      return { ok: false, message: err instanceof Error ? err.message : String(err) };
+      return {
+        ok: false,
+        message: err instanceof Error ? err.message : String(err),
+      };
     }
   }
 
@@ -735,7 +778,7 @@ export class OfficeService {
 
     const downloadUrl = callbackData?.url;
     if (!downloadUrl) {
-      this.logger.warn('OnlyOffice callback sans URL de téléchargement');
+      this.logger.warn("OnlyOffice callback sans URL de téléchargement");
       return { error: 1 };
     }
 
@@ -748,7 +791,7 @@ export class OfficeService {
         document: {
           include: {
             versions: {
-              orderBy: { createdAt: 'desc' },
+              orderBy: { createdAt: "desc" },
               take: 1,
             },
           },
@@ -757,7 +800,9 @@ export class OfficeService {
     });
 
     if (!currentVersion) {
-      this.logger.warn(`OnlyOffice callback: version introuvable ${documentVersionId}`);
+      this.logger.warn(
+        `OnlyOffice callback: version introuvable ${documentVersionId}`,
+      );
       return { error: 1 };
     }
 
@@ -797,9 +842,9 @@ export class OfficeService {
       // Mêmes règles que dans getEditorConfig() : APPROVED éditable par
       // owner/admin (minor version bump), OBSOLETE/ARCHIVED exige réouverture.
       const isEditableStatus =
-        doc.status === 'DRAFT' ||
-        doc.status === 'IN_REVIEW' ||
-        (doc.status === 'APPROVED' && (isOwner || isAdmin));
+        doc.status === "DRAFT" ||
+        doc.status === "IN_REVIEW" ||
+        (doc.status === "APPROVED" && (isOwner || isAdmin));
       const stillCanEdit =
         (isOwner || isReviewer || isAdmin) &&
         isEditableStatus &&
@@ -810,14 +855,14 @@ export class OfficeService {
         );
         await this.audit?.log({
           userId,
-          action: 'DOCUMENT_VERSION_CREATED_VIA_OFFICE_DENIED',
-          resourceType: 'Document',
+          action: "DOCUMENT_VERSION_CREATED_VIA_OFFICE_DENIED",
+          resourceType: "Document",
           resourceId: documentId,
           metadata: {
-            reason: 'permissions_revoked_between_open_and_save',
+            reason: "permissions_revoked_between_open_and_save",
             documentStatus: doc.status,
           },
-          severity: 'WARN',
+          severity: "WARN",
         });
         return { error: 1 };
       }
@@ -829,13 +874,13 @@ export class OfficeService {
       // reprendre l'édition.
       const [pendingValidation, pendingSignature] = await Promise.all([
         this.prisma.validationRequest.findFirst({
-          where: { documentId, status: 'PENDING' },
+          where: { documentId, status: "PENDING" },
           select: { id: true },
         }),
         this.prisma.signatureRequest.findFirst({
           where: {
             documentVersionId: currentVersion.id,
-            status: 'PENDING',
+            status: "PENDING",
           },
           select: { id: true },
         }),
@@ -847,15 +892,15 @@ export class OfficeService {
         );
         await this.audit?.log({
           userId,
-          action: 'DOCUMENT_VERSION_CREATED_VIA_OFFICE_DENIED',
-          resourceType: 'Document',
+          action: "DOCUMENT_VERSION_CREATED_VIA_OFFICE_DENIED",
+          resourceType: "Document",
           resourceId: documentId,
           metadata: {
-            reason: 'workflow_in_progress',
+            reason: "workflow_in_progress",
             pendingValidation: !!pendingValidation,
             pendingSignature: !!pendingSignature,
           },
-          severity: 'WARN',
+          severity: "WARN",
         });
         return { error: 1 };
       }
@@ -872,7 +917,10 @@ export class OfficeService {
       const buffer = Buffer.from(await response.arrayBuffer());
 
       // Calcule le nouveau hash
-      const newChecksum = crypto.createHash('sha256').update(buffer).digest('hex');
+      const newChecksum = crypto
+        .createHash("sha256")
+        .update(buffer)
+        .digest("hex");
 
       // Si le hash est identique, pas besoin de créer une nouvelle version.
       // On compare au hash de la version la PLUS RÉCENTE du document (et pas
@@ -887,9 +935,10 @@ export class OfficeService {
       }
 
       // Extraction du nom + extension depuis l'URL de la version courante
-      const originalFileName = currentVersion.fileUrl.split('/').pop() || 'document.docx';
+      const originalFileName =
+        currentVersion.fileUrl.split("/").pop() || "document.docx";
       const extMatch = originalFileName.match(/\.([^.]+)$/);
-      const extension = extMatch ? extMatch[1] : 'docx';
+      const extension = extMatch ? extMatch[1] : "docx";
       const mimeType = this.getMimeTypeFromExtension(extension);
 
       // Règle versionning OMNITECH :
@@ -899,7 +948,8 @@ export class OfficeService {
       //   - APPROVED : on crée une nouvelle version mineure (traçabilité des
       //     modifs post-approbation — les acks antérieurs restent preuve de
       //     communication de la version N au temps T).
-      const isDraftOverwrite = doc.status === 'DRAFT' || doc.status === 'IN_REVIEW';
+      const isDraftOverwrite =
+        doc.status === "DRAFT" || doc.status === "IN_REVIEW";
 
       type VersionRow = {
         id: string;
@@ -923,11 +973,11 @@ export class OfficeService {
         const uploadedFile = await this.storage.upload(
           {
             buffer,
-            originalname: `${latestVersion.versionNumber || 'v1'}_${Date.now()}.${extension}`,
+            originalname: `${latestVersion.versionNumber || "v1"}_${Date.now()}.${extension}`,
             mimetype: mimeType,
             size: buffer.length,
           } as Express.Multer.File,
-          `documents/${documentId}/${latestVersion.versionNumber || 'draft'}`,
+          `documents/${documentId}/${latestVersion.versionNumber || "draft"}`,
         );
 
         newVersionNumber = latestVersion.versionNumber;
@@ -940,7 +990,7 @@ export class OfficeService {
             fileType: mimeType,
             fileSizeBytes: buffer.length,
             checksum: newChecksum,
-            changeLog: 'Brouillon mis à jour via éditeur OnlyOffice',
+            changeLog: "Brouillon mis à jour via éditeur OnlyOffice",
             uploadedById: userId,
           },
         });
@@ -957,7 +1007,7 @@ export class OfficeService {
         }
       } else {
         // APPROVED → bump mineur (traçabilité ISO post-publication)
-        const oldVersionNumber = latestVersion.versionNumber || '1.0';
+        const oldVersionNumber = latestVersion.versionNumber || "1.0";
         const numMatch = oldVersionNumber.match(/(\d+)(?:\.(\d+))?/);
         const major = numMatch ? parseInt(numMatch[1], 10) : 1;
         const minor = numMatch && numMatch[2] ? parseInt(numMatch[2], 10) : 0;
@@ -983,7 +1033,7 @@ export class OfficeService {
               fileType: mimeType,
               fileSizeBytes: buffer.length,
               checksum: newChecksum,
-              changeLog: 'Modifié via éditeur OnlyOffice',
+              changeLog: "Modifié via éditeur OnlyOffice",
               uploadedById: userId,
             },
           });
@@ -996,19 +1046,19 @@ export class OfficeService {
       }
 
       this.logger.log(
-        `OnlyOffice save: document ${doc.reference} → ${isDraftOverwrite ? 'overwrite' : 'bump'} v${newVersionNumber} (${buffer.length} bytes)`,
+        `OnlyOffice save: document ${doc.reference} → ${isDraftOverwrite ? "overwrite" : "bump"} v${newVersionNumber} (${buffer.length} bytes)`,
       );
 
       // BUG FIX #6 — Audit trail explicite.
       // Les modifications post-APPROVED sont loguées en WARN (traçabilité
       // conformité : un doc publié qui change doit être visible dans l'audit).
-      const isPostApprovalEdit = doc.status === 'APPROVED';
+      const isPostApprovalEdit = doc.status === "APPROVED";
       await this.audit?.log({
         userId,
         action: isPostApprovalEdit
-          ? 'DOCUMENT_VERSION_CREATED_VIA_OFFICE_POST_APPROVAL'
-          : 'DOCUMENT_VERSION_CREATED_VIA_OFFICE',
-        resourceType: 'Document',
+          ? "DOCUMENT_VERSION_CREATED_VIA_OFFICE_POST_APPROVAL"
+          : "DOCUMENT_VERSION_CREATED_VIA_OFFICE",
+        resourceType: "Document",
         resourceId: documentId,
         metadata: {
           oldVersionId: latestVersion.id,
@@ -1019,12 +1069,12 @@ export class OfficeService {
           checksum: newChecksum,
           changeLog: isPostApprovalEdit
             ? `Modifié via OnlyOffice après approbation (version mineure ${newVersionNumber})`
-            : 'Modifié via éditeur OnlyOffice',
+            : "Modifié via éditeur OnlyOffice",
           onlyOfficeStatus: status,
           docStatus: doc.status,
           isPostApprovalEdit,
         },
-        severity: isPostApprovalEdit ? 'WARN' : 'INFO',
+        severity: isPostApprovalEdit ? "WARN" : "INFO",
       });
 
       // Si édition post-approval, notifier l'approbateur original (pour info
@@ -1034,10 +1084,10 @@ export class OfficeService {
           await this.prisma.notification.create({
             data: {
               userId: doc.approverId,
-              type: 'DOC_PUBLISHED',
+              type: "DOC_PUBLISHED",
               title: `Document modifié après approbation : ${doc.title}`,
               body: `${doc.reference} a été mis à jour (v${newVersionNumber}) après avoir été publié. Vérifiez que le changement ne remet pas en cause l'approbation.`,
-              resourceType: 'Document',
+              resourceType: "Document",
               resourceId: documentId,
             },
           });
@@ -1058,10 +1108,10 @@ export class OfficeService {
           await this.prisma.notification.create({
             data: {
               userId: doc.reviewerId,
-              type: 'DOC_REVIEW_NEEDED',
+              type: "DOC_REVIEW_NEEDED",
               title: `Nouvelle version: ${doc.title}`,
               body: `${doc.reference} a été mis à jour via l'éditeur (v${newVersionNumber}).`,
-              resourceType: 'Document',
+              resourceType: "Document",
               resourceId: documentId,
             },
           });
@@ -1095,7 +1145,7 @@ export class OfficeService {
       // n'arrive PAS ici avec un doc APPROVED. Le bloc ci-dessous est donc
       // volontairement un no-op documentaire ; il subsistera comme ancre si
       // la politique `canEdit` change un jour.
-      if (doc.status === 'APPROVED') {
+      if (doc.status === "APPROVED") {
         this.logger.warn(
           `OnlyOffice save inattendu sur doc APPROVED ${documentId} — ` +
             `aucune invalidation d'ack effectuée (voir commentaire #8).`,
@@ -1112,14 +1162,14 @@ export class OfficeService {
       // créée tant que l'upload storage n'a pas abouti, donc rien à rollback.
       await this.audit?.log({
         userId,
-        action: 'DOCUMENT_VERSION_CREATED_VIA_OFFICE_FAILED',
-        resourceType: 'Document',
+        action: "DOCUMENT_VERSION_CREATED_VIA_OFFICE_FAILED",
+        resourceType: "Document",
         resourceId: documentId,
         metadata: {
           error: err instanceof Error ? err.message : String(err),
           onlyOfficeStatus: status,
         },
-        severity: 'CRITICAL',
+        severity: "CRITICAL",
       });
       return { error: 1 };
     } finally {
@@ -1134,38 +1184,42 @@ export class OfficeService {
    */
   async getFileStreamForOnlyOffice(
     documentVersionId: string,
-  ): Promise<{ stream: NodeJS.ReadableStream; fileName: string; contentType: string }> {
+  ): Promise<{
+    stream: NodeJS.ReadableStream;
+    fileName: string;
+    contentType: string;
+  }> {
     const version = await this.prisma.documentVersion.findUnique({
       where: { id: documentVersionId },
     });
     if (!version) {
-      throw new NotFoundException('Version introuvable');
+      throw new NotFoundException("Version introuvable");
     }
     const stream = this.storage.getFileStream(version.fileUrl);
-    const fileName = version.fileUrl.split('/').pop() || 'document';
+    const fileName = version.fileUrl.split("/").pop() || "document";
     return {
       stream,
       fileName,
-      contentType: version.fileType || 'application/octet-stream',
+      contentType: version.fileType || "application/octet-stream",
     };
   }
 
   private getMimeTypeFromExtension(ext: string): string {
     const map: Record<string, string> = {
-      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      doc: 'application/msword',
-      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      xls: 'application/vnd.ms-excel',
-      pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      ppt: 'application/vnd.ms-powerpoint',
-      odt: 'application/vnd.oasis.opendocument.text',
-      ods: 'application/vnd.oasis.opendocument.spreadsheet',
-      odp: 'application/vnd.oasis.opendocument.presentation',
-      pdf: 'application/pdf',
-      txt: 'text/plain',
-      csv: 'text/csv',
-      rtf: 'application/rtf',
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      doc: "application/msword",
+      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      xls: "application/vnd.ms-excel",
+      pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      ppt: "application/vnd.ms-powerpoint",
+      odt: "application/vnd.oasis.opendocument.text",
+      ods: "application/vnd.oasis.opendocument.spreadsheet",
+      odp: "application/vnd.oasis.opendocument.presentation",
+      pdf: "application/pdf",
+      txt: "text/plain",
+      csv: "text/csv",
+      rtf: "application/rtf",
     };
-    return map[ext.toLowerCase()] || 'application/octet-stream';
+    return map[ext.toLowerCase()] || "application/octet-stream";
   }
 }

@@ -3,10 +3,11 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
-import { createHmac, timingSafeEqual } from 'crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
+} from "@nestjs/common";
+import { createHmac, timingSafeEqual } from "crypto";
+import { SignatureCampaignStatus } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 /**
  * Service de gestion des campagnes de signature DocuSeal.
@@ -50,9 +51,9 @@ export class CampaignsService {
     private readonly notifications: NotificationsService,
   ) {
     this.docusealApiUrl =
-      process.env.DOCUSEAL_API_URL || 'http://localhost:7000/api';
-    this.docusealApiKey = process.env.DOCUSEAL_API_KEY || '';
-    this.docusealWebhookSecret = process.env.DOCUSEAL_WEBHOOK_SECRET || '';
+      process.env.DOCUSEAL_API_URL || "http://localhost:7000/api";
+    this.docusealApiKey = process.env.DOCUSEAL_API_KEY || "";
+    this.docusealWebhookSecret = process.env.DOCUSEAL_WEBHOOK_SECRET || "";
   }
 
   // ------------------------------------------------------------------
@@ -60,18 +61,18 @@ export class CampaignsService {
   // ------------------------------------------------------------------
 
   async createFromCharte(charteId: string, options: CreateCampaignOptions) {
-    const charte = await (this.prisma as any).charte.findUnique({
+    const charte = await this.prisma.charte.findUnique({
       where: { id: charteId },
     });
     if (!charte) {
       throw new NotFoundException(`Charte ${charteId} introuvable`);
     }
 
-    const campaign = await (this.prisma as any).signatureCampaign.create({
+    const campaign = await this.prisma.signatureCampaign.create({
       data: {
         title: options.title || `Signature : ${charte.title}`,
         description: options.description ?? null,
-        sourceType: 'CHARTE',
+        sourceType: "CHARTE",
         sourceId: charteId,
         targetAllActiveUsers: options.targetAllActiveUsers ?? false,
         targetRoles: options.targetRoles ?? [],
@@ -79,7 +80,7 @@ export class CampaignsService {
         docusealTemplateId: options.docusealTemplateId ?? null,
         dueAt: options.dueAt ?? null,
         createdById: options.createdById,
-        status: 'DRAFT',
+        status: "DRAFT",
       },
     });
     this.logger.log(
@@ -88,27 +89,24 @@ export class CampaignsService {
     return campaign;
   }
 
-  async createFromDocument(
-    documentId: string,
-    options: CreateCampaignOptions,
-  ) {
+  async createFromDocument(documentId: string, options: CreateCampaignOptions) {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
     });
     if (!document) {
       throw new NotFoundException(`Document ${documentId} introuvable`);
     }
-    if (document.status !== 'APPROVED') {
+    if (document.status !== "APPROVED") {
       throw new BadRequestException(
-        'Seuls les documents APPROVED peuvent declencher une campagne',
+        "Seuls les documents APPROVED peuvent declencher une campagne",
       );
     }
 
-    const campaign = await (this.prisma as any).signatureCampaign.create({
+    const campaign = await this.prisma.signatureCampaign.create({
       data: {
         title: options.title || `Signature : ${document.title}`,
         description: options.description ?? null,
-        sourceType: 'DOCUMENT_POLICY',
+        sourceType: "DOCUMENT_POLICY",
         sourceId: documentId,
         targetAllActiveUsers: options.targetAllActiveUsers ?? false,
         targetRoles: options.targetRoles ?? [],
@@ -116,7 +114,7 @@ export class CampaignsService {
         docusealTemplateId: options.docusealTemplateId ?? null,
         dueAt: options.dueAt ?? null,
         createdById: options.createdById,
-        status: 'DRAFT',
+        status: "DRAFT",
       },
     });
     this.logger.log(
@@ -177,13 +175,13 @@ export class CampaignsService {
   // ------------------------------------------------------------------
 
   async launch(campaignId: string) {
-    const campaign = await (this.prisma as any).signatureCampaign.findUnique({
+    const campaign = await this.prisma.signatureCampaign.findUnique({
       where: { id: campaignId },
     });
     if (!campaign) {
       throw new NotFoundException(`Campagne ${campaignId} introuvable`);
     }
-    if (campaign.status !== 'DRAFT') {
+    if (campaign.status !== "DRAFT") {
       throw new BadRequestException(
         `Campagne deja lancee (statut: ${campaign.status})`,
       );
@@ -192,14 +190,14 @@ export class CampaignsService {
     const users = await this.resolveTargetUsers(campaign);
     if (users.length === 0) {
       throw new BadRequestException(
-        'Aucun utilisateur cible pour cette campagne',
+        "Aucun utilisateur cible pour cette campagne",
       );
     }
 
     // Creation de la submission groupee DocuSeal
     // TODO: tester — structure du payload a verifier contre l'API reelle.
     let submissionGroupId: string | null = null;
-    let docusealSubmitters: DocusealSubmissionResponse['submitters'] = [];
+    let docusealSubmitters: DocusealSubmissionResponse["submitters"] = [];
     if (campaign.docusealTemplateId) {
       try {
         const body = {
@@ -208,18 +206,20 @@ export class CampaignsService {
           submitters: users.map((u) => ({
             email: u.email,
             name: `${u.firstName} ${u.lastName}`,
-            role: 'Signataire',
+            role: "Signataire",
           })),
         };
-        const resp = await this.docusealFetch('/submissions', {
-          method: 'POST',
+        const resp = await this.docusealFetch("/submissions", {
+          method: "POST",
           body: JSON.stringify(body),
         });
-        if (resp && typeof resp === 'object') {
-          submissionGroupId = String(
-            (resp as any).id || (resp as any).submission_id || '',
-          ) || null;
-          docusealSubmitters = (resp as any).submitters || [];
+        if (resp && typeof resp === "object") {
+          const typedResp = resp as DocusealSubmissionResponse & {
+            submission_id?: number | string;
+          };
+          submissionGroupId =
+            String(typedResp.id || typedResp.submission_id || "") || null;
+          docusealSubmitters = typedResp.submitters || [];
         }
       } catch (err: any) {
         this.logger.error(
@@ -239,7 +239,7 @@ export class CampaignsService {
         (s: any) => s?.email === u.email,
       );
       try {
-        await (this.prisma as any).campaignSignature.upsert({
+        await this.prisma.campaignSignature.upsert({
           where: {
             campaignId_userId: { campaignId, userId: u.id },
           },
@@ -247,7 +247,7 @@ export class CampaignsService {
           create: {
             campaignId,
             userId: u.id,
-            status: 'PENDING',
+            status: "PENDING",
             sentAt: now,
             docusealSubmissionId: submitter?.id ? String(submitter.id) : null,
             docusealSlug: submitter?.slug ?? null,
@@ -257,14 +257,17 @@ export class CampaignsService {
         await this.notifications
           .create({
             userId: u.id,
-            type: 'SIGNATURE_REQUEST',
+            // TODO: review type safety — 'SIGNATURE_REQUEST' n'est pas dans
+            // l'enum Prisma NotificationType (cf. schema.prisma:53-67).
+            // Utiliser SIGNATURE_NEEDED ou étendre l'enum via migration.
+            type: "SIGNATURE_REQUEST",
             title: `Signature requise : ${campaign.title}`,
             body:
               campaign.description ||
-              'Une nouvelle politique necessite votre signature.',
-            resourceType: 'SIGNATURE_CAMPAIGN',
+              "Une nouvelle politique necessite votre signature.",
+            resourceType: "SIGNATURE_CAMPAIGN",
             resourceId: campaignId,
-          } as any)
+          })
           .catch((e) =>
             this.logger.warn(
               `Notification signature echouee pour ${u.id}: ${e?.message || e}`,
@@ -277,10 +280,10 @@ export class CampaignsService {
       }
     }
 
-    const updated = await (this.prisma as any).signatureCampaign.update({
+    const updated = await this.prisma.signatureCampaign.update({
       where: { id: campaignId },
       data: {
-        status: 'SENT',
+        status: "SENT",
         sentAt: now,
         docusealSubmissionGroupId: submissionGroupId,
       },
@@ -297,21 +300,17 @@ export class CampaignsService {
   // ------------------------------------------------------------------
 
   async handleWebhook(payload: any) {
-    const eventType: string =
-      payload?.event_type || payload?.type || 'unknown';
+    const eventType: string = payload?.event_type || payload?.type || "unknown";
     const data = payload?.data || payload;
 
     this.logger.log(`Webhook campagne signature : ${eventType}`);
 
     const submissionId =
-      data?.submission?.id ||
-      data?.submission_id ||
-      data?.id ||
-      null;
+      data?.submission?.id || data?.submission_id || data?.id || null;
     const email = data?.email || data?.submitter?.email;
 
     if (!submissionId && !email) {
-      this.logger.warn('Webhook sans identifiant exploitable');
+      this.logger.warn("Webhook sans identifiant exploitable");
       return { ignored: true };
     }
 
@@ -321,16 +320,16 @@ export class CampaignsService {
 
     let signature: any = null;
     if (whereSig) {
-      signature = await (this.prisma as any).campaignSignature.findFirst({
+      signature = await this.prisma.campaignSignature.findFirst({
         where: whereSig,
       });
     }
     if (!signature && email) {
       const user = await this.prisma.user.findUnique({ where: { email } });
       if (user) {
-        signature = await (this.prisma as any).campaignSignature.findFirst({
-          where: { userId: user.id, status: { in: ['PENDING', 'OPENED'] } },
-          orderBy: { sentAt: 'desc' },
+        signature = await this.prisma.campaignSignature.findFirst({
+          where: { userId: user.id, status: { in: ["PENDING", "OPENED"] } },
+          orderBy: { sentAt: "desc" },
         });
       }
     }
@@ -344,30 +343,31 @@ export class CampaignsService {
 
     const now = new Date();
     const patch: any = {};
-    if (eventType === 'form.viewed' || eventType === 'submission.viewed') {
-      patch.status = signature.status === 'PENDING' ? 'OPENED' : signature.status;
+    if (eventType === "form.viewed" || eventType === "submission.viewed") {
+      patch.status =
+        signature.status === "PENDING" ? "OPENED" : signature.status;
       patch.openedAt = signature.openedAt ?? now;
     } else if (
-      eventType === 'form.completed' ||
-      eventType === 'submission.completed'
+      eventType === "form.completed" ||
+      eventType === "submission.completed"
     ) {
-      patch.status = 'SIGNED';
+      patch.status = "SIGNED";
       patch.signedAt = now;
-    } else if (eventType === 'form.declined') {
-      patch.status = 'DECLINED';
+    } else if (eventType === "form.declined") {
+      patch.status = "DECLINED";
     }
 
     if (Object.keys(patch).length === 0) {
       return { ignored: true };
     }
 
-    await (this.prisma as any).campaignSignature.update({
+    await this.prisma.campaignSignature.update({
       where: { id: signature.id },
       data: patch,
     });
 
     // Mise a jour statut campagne si tout est signe
-    if (patch.status === 'SIGNED') {
+    if (patch.status === "SIGNED") {
       await this.refreshCampaignAggregate(signature.campaignId);
     }
 
@@ -378,7 +378,7 @@ export class CampaignsService {
     if (!this.docusealWebhookSecret) {
       // Pas de secret configure : on laisse passer mais on log
       this.logger.warn(
-        'DOCUSEAL_WEBHOOK_SECRET non configure — verification desactivee',
+        "DOCUSEAL_WEBHOOK_SECRET non configure — verification desactivee",
       );
       return true;
     }
@@ -389,9 +389,9 @@ export class CampaignsService {
       if (headerSignature === this.docusealWebhookSecret) return true;
 
       // HMAC-SHA256
-      const computed = createHmac('sha256', this.docusealWebhookSecret)
+      const computed = createHmac("sha256", this.docusealWebhookSecret)
         .update(rawBody)
-        .digest('hex');
+        .digest("hex");
       const a = Buffer.from(computed);
       const b = Buffer.from(headerSignature);
       if (a.length !== b.length) return false;
@@ -409,17 +409,17 @@ export class CampaignsService {
   // ------------------------------------------------------------------
 
   async sendReminders(campaignId: string) {
-    const campaign = await (this.prisma as any).signatureCampaign.findUnique({
+    const campaign = await this.prisma.signatureCampaign.findUnique({
       where: { id: campaignId },
     });
     if (!campaign) {
       throw new NotFoundException(`Campagne ${campaignId} introuvable`);
     }
 
-    const pending = await (this.prisma as any).campaignSignature.findMany({
+    const pending = await this.prisma.campaignSignature.findMany({
       where: {
         campaignId,
-        status: { in: ['PENDING', 'OPENED'] },
+        status: { in: ["PENDING", "OPENED"] },
       },
       include: { user: { select: { id: true, email: true } } },
     });
@@ -430,16 +430,20 @@ export class CampaignsService {
       try {
         await this.notifications.create({
           userId: sig.userId,
-          type: 'SIGNATURE_REMINDER' as any,
+          // TODO: review type safety — 'SIGNATURE_REMINDER' n'est pas dans
+          // l'enum Prisma NotificationType (cf. schema.prisma:53-67) : l'INSERT
+          // côté DB échoue silencieusement. Utiliser SIGNATURE_NEEDED ou
+          // étendre l'enum via migration ALTER TYPE.
+          type: "SIGNATURE_REMINDER",
           title: `Rappel : ${campaign.title}`,
           body: campaign.dueAt
-            ? `Signature attendue avant le ${new Date(campaign.dueAt).toLocaleDateString('fr-FR')}.`
-            : 'Merci de proceder a la signature de ce document.',
-          resourceType: 'SIGNATURE_CAMPAIGN',
+            ? `Signature attendue avant le ${new Date(campaign.dueAt).toLocaleDateString("fr-FR")}.`
+            : "Merci de proceder a la signature de ce document.",
+          resourceType: "SIGNATURE_CAMPAIGN",
           resourceId: campaignId,
-        } as any);
+        });
 
-        await (this.prisma as any).campaignSignature.update({
+        await this.prisma.campaignSignature.update({
           where: { id: sig.id },
           data: {
             remindersSent: { increment: 1 },
@@ -454,7 +458,7 @@ export class CampaignsService {
       }
     }
 
-    await (this.prisma as any).signatureCampaign.update({
+    await this.prisma.signatureCampaign.update({
       where: { id: campaignId },
       data: {
         remindersSent: { increment: 1 },
@@ -462,7 +466,9 @@ export class CampaignsService {
       },
     });
 
-    this.logger.log(`Rappels campagne ${campaignId} : ${sent}/${pending.length}`);
+    this.logger.log(
+      `Rappels campagne ${campaignId} : ${sent}/${pending.length}`,
+    );
     return { sent, total: pending.length };
   }
 
@@ -471,7 +477,7 @@ export class CampaignsService {
   // ------------------------------------------------------------------
 
   async getStatus(campaignId: string) {
-    const campaign = await (this.prisma as any).signatureCampaign.findUnique({
+    const campaign = await this.prisma.signatureCampaign.findUnique({
       where: { id: campaignId },
       include: { signatures: true },
     });
@@ -481,22 +487,22 @@ export class CampaignsService {
 
     const total = campaign.signatures.length;
     const signed = campaign.signatures.filter(
-      (s: any) => s.status === 'SIGNED',
+      (s: any) => s.status === "SIGNED",
     ).length;
     const opened = campaign.signatures.filter(
-      (s: any) => s.status === 'OPENED',
+      (s: any) => s.status === "OPENED",
     ).length;
     const declined = campaign.signatures.filter(
-      (s: any) => s.status === 'DECLINED',
+      (s: any) => s.status === "DECLINED",
     ).length;
     const expired = campaign.signatures.filter(
-      (s: any) => s.status === 'EXPIRED',
+      (s: any) => s.status === "EXPIRED",
     ).length;
     const pending = total - signed - declined - expired;
     const now = new Date();
     const late =
       campaign.dueAt && campaign.dueAt < now
-        ? campaign.signatures.filter((s: any) => s.status !== 'SIGNED').length
+        ? campaign.signatures.filter((s: any) => s.status !== "SIGNED").length
         : 0;
 
     return {
@@ -516,20 +522,25 @@ export class CampaignsService {
   }
 
   async findAll() {
-    return (this.prisma as any).signatureCampaign.findMany({
-      orderBy: { createdAt: 'desc' },
+    return this.prisma.signatureCampaign.findMany({
+      orderBy: { createdAt: "desc" },
       include: { _count: { select: { signatures: true } } },
     });
   }
 
   async findOne(id: string) {
-    const campaign = await (this.prisma as any).signatureCampaign.findUnique({
+    const campaign = await this.prisma.signatureCampaign.findUnique({
       where: { id },
       include: {
         signatures: {
           include: {
             user: {
-              select: { id: true, email: true, firstName: true, lastName: true },
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              },
             },
           },
         },
@@ -541,15 +552,15 @@ export class CampaignsService {
   }
 
   async findMyPending(userId: string) {
-    return (this.prisma as any).campaignSignature.findMany({
+    return this.prisma.campaignSignature.findMany({
       where: {
         userId,
-        status: { in: ['PENDING', 'OPENED'] },
+        status: { in: ["PENDING", "OPENED"] },
       },
       include: {
         campaign: true,
       },
-      orderBy: { sentAt: 'desc' },
+      orderBy: { sentAt: "desc" },
     });
   }
 
@@ -558,24 +569,24 @@ export class CampaignsService {
   // ------------------------------------------------------------------
 
   async refreshCampaignAggregate(campaignId: string) {
-    const sigs = await (this.prisma as any).campaignSignature.findMany({
+    const sigs = await this.prisma.campaignSignature.findMany({
       where: { campaignId },
       select: { status: true },
     });
     if (sigs.length === 0) return;
     const allSigned = sigs.every(
-      (s: any) => s.status === 'SIGNED' || s.status === 'DECLINED',
+      (s: any) => s.status === "SIGNED" || s.status === "DECLINED",
     );
-    const anySigned = sigs.some((s: any) => s.status === 'SIGNED');
+    const anySigned = sigs.some((s: any) => s.status === "SIGNED");
 
-    let newStatus: string | null = null;
-    if (allSigned && sigs.every((s: any) => s.status === 'SIGNED')) {
-      newStatus = 'COMPLETED';
+    let newStatus: SignatureCampaignStatus | null = null;
+    if (allSigned && sigs.every((s: any) => s.status === "SIGNED")) {
+      newStatus = SignatureCampaignStatus.COMPLETED;
     } else if (anySigned) {
-      newStatus = 'IN_PROGRESS';
+      newStatus = SignatureCampaignStatus.IN_PROGRESS;
     }
     if (newStatus) {
-      await (this.prisma as any).signatureCampaign.update({
+      await this.prisma.signatureCampaign.update({
         where: { id: campaignId },
         data: { status: newStatus },
       });
@@ -594,13 +605,13 @@ export class CampaignsService {
         ...init,
         signal: controller.signal as AbortSignal,
         headers: {
-          'Content-Type': 'application/json',
-          'X-Auth-Token': this.docusealApiKey,
+          "Content-Type": "application/json",
+          "X-Auth-Token": this.docusealApiKey,
           ...(init.headers || {}),
         },
       });
       if (!resp.ok) {
-        const txt = await resp.text().catch(() => '');
+        const txt = await resp.text().catch(() => "");
         throw new Error(`DocuSeal ${resp.status}: ${txt}`);
       }
       return await resp.json().catch(() => ({}));

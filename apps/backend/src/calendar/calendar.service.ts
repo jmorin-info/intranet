@@ -1,25 +1,33 @@
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
-import { randomBytes } from 'crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateCalendarEventDto, UpdateCalendarEventDto } from './dto/create-event.dto';
-import { UserRole, ROLE_HIERARCHY } from '../common/enums';
-import { buildICal, ICalEvent } from './ical.util';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  Logger,
+} from "@nestjs/common";
+import { randomBytes } from "crypto";
+import { PrismaService } from "../prisma/prisma.service";
+import {
+  CreateCalendarEventDto,
+  UpdateCalendarEventDto,
+} from "./dto/create-event.dto";
+import { UserRole, ROLE_HIERARCHY } from "../common/enums";
+import { buildICal, ICalEvent } from "./ical.util";
 
 /**
  * Mapping date metier ticket -> couleur + libelle (FR) pour les evenements
  * synchronises vers le calendrier individuel de l'assigne.
  */
 const TICKET_DATE_FIELDS = {
-  dueDate: { label: 'Echeance', color: '#dc2626' }, // red
-  deployedAt: { label: 'Deploiement realise', color: '#16a34a' }, // green
-  clientShipmentDate: { label: 'Envoi client', color: '#2563eb' }, // blue
-  materialReceivedDate: { label: 'Reception materiel', color: '#d97706' }, // amber
-  deploymentScheduledFor: { label: 'Deploiement programme', color: '#7c3aed' }, // violet
+  dueDate: { label: "Echeance", color: "#dc2626" }, // red
+  deployedAt: { label: "Deploiement realise", color: "#16a34a" }, // green
+  clientShipmentDate: { label: "Envoi client", color: "#2563eb" }, // blue
+  materialReceivedDate: { label: "Reception materiel", color: "#d97706" }, // amber
+  deploymentScheduledFor: { label: "Deploiement programme", color: "#7c3aed" }, // violet
 } as const;
 
 export type TicketDateField = keyof typeof TICKET_DATE_FIELDS;
 
-const TICKET_SOURCE_TYPE = 'TICKET';
+const TICKET_SOURCE_TYPE = "TICKET";
 
 const SUBSCRIPTION_TOKEN_DAYS = 30;
 
@@ -32,13 +40,13 @@ const SUBSCRIPTION_TOKEN_DAYS = 30;
  *              token-based, mais la portée elle-même n'autorise pas plus que
  *              INTERNAL côté JSON authentifié)
  */
-export type EventVisibility = 'PRIVATE' | 'TEAM' | 'INTERNAL' | 'PUBLIC';
+export type EventVisibility = "PRIVATE" | "TEAM" | "INTERNAL" | "PUBLIC";
 
 const VALID_VISIBILITIES: ReadonlyArray<EventVisibility> = [
-  'PRIVATE',
-  'TEAM',
-  'INTERNAL',
-  'PUBLIC',
+  "PRIVATE",
+  "TEAM",
+  "INTERNAL",
+  "PUBLIC",
 ];
 
 @Injectable()
@@ -63,10 +71,16 @@ export class CalendarService {
     const where: any = { deletedAt: null };
 
     if (filters.dateFrom) {
-      where.startDate = { ...(where.startDate || {}), gte: new Date(filters.dateFrom) };
+      where.startDate = {
+        ...(where.startDate || {}),
+        gte: new Date(filters.dateFrom),
+      };
     }
     if (filters.dateTo) {
-      where.startDate = { ...(where.startDate || {}), lte: new Date(filters.dateTo) };
+      where.startDate = {
+        ...(where.startDate || {}),
+        lte: new Date(filters.dateTo),
+      };
     }
     if (filters.category) {
       where.category = filters.category;
@@ -87,7 +101,7 @@ export class CalendarService {
           createdBy: { select: { id: true, firstName: true, lastName: true } },
           department: { select: { id: true, name: true, code: true } },
         },
-        orderBy: { startDate: 'asc' },
+        orderBy: { startDate: "asc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -126,7 +140,9 @@ export class CalendarService {
       where: { userId },
       select: { departmentId: true },
     });
-    const userDeptIds = memberships.map((m: { departmentId: string }) => m.departmentId);
+    const userDeptIds = memberships.map(
+      (m: { departmentId: string }) => m.departmentId,
+    );
 
     // Récupère aussi le département principal de l'utilisateur (champ legacy
     // User.departmentId, distinct des memberships multi-dpt).
@@ -139,16 +155,13 @@ export class CalendarService {
     }
 
     const visibilityClauses: any[] = [
-      { visibility: 'INTERNAL' },
-      { visibility: 'PUBLIC' },
-      { AND: [{ visibility: 'PRIVATE' }, { createdById: userId }] },
+      { visibility: "INTERNAL" },
+      { visibility: "PUBLIC" },
+      { AND: [{ visibility: "PRIVATE" }, { createdById: userId }] },
     ];
     if (userDeptIds.length > 0) {
       visibilityClauses.push({
-        AND: [
-          { visibility: 'TEAM' },
-          { departmentId: { in: userDeptIds } },
-        ],
+        AND: [{ visibility: "TEAM" }, { departmentId: { in: userDeptIds } }],
       });
     }
 
@@ -177,7 +190,7 @@ export class CalendarService {
         createdBy: { select: { id: true, firstName: true, lastName: true } },
         department: { select: { id: true, name: true, code: true } },
       },
-      orderBy: { startDate: 'asc' },
+      orderBy: { startDate: "asc" },
       take: options.take ?? 1000,
     });
   }
@@ -203,7 +216,7 @@ export class CalendarService {
         createdBy: { select: { id: true, firstName: true, lastName: true } },
         department: { select: { id: true, name: true, code: true } },
       },
-      orderBy: { startDate: 'asc' },
+      orderBy: { startDate: "asc" },
       take: options.take ?? 1000,
     });
   }
@@ -221,15 +234,17 @@ export class CalendarService {
         createdBy: { select: { id: true, firstName: true, lastName: true } },
         department: { select: { id: true, name: true, code: true } },
       },
-      orderBy: { startDate: 'asc' },
+      orderBy: { startDate: "asc" },
       take: 50,
     });
   }
 
   async create(dto: CreateCalendarEventDto, userId: string) {
-    const visibility = dto.visibility && VALID_VISIBILITIES.includes(dto.visibility as EventVisibility)
-      ? dto.visibility
-      : 'INTERNAL';
+    const visibility =
+      dto.visibility &&
+      VALID_VISIBILITIES.includes(dto.visibility as EventVisibility)
+        ? dto.visibility
+        : "INTERNAL";
     return this.prisma.calendarEvent.create({
       data: {
         title: dto.title,
@@ -237,7 +252,7 @@ export class CalendarService {
         startDate: new Date(dto.startDate),
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
         allDay: dto.allDay ?? false,
-        category: dto.category || 'GENERAL',
+        category: dto.category || "GENERAL",
         location: dto.location,
         createdById: userId,
         departmentId: dto.departmentId || undefined,
@@ -253,13 +268,22 @@ export class CalendarService {
     });
   }
 
-  async update(id: string, dto: UpdateCalendarEventDto, userId: string, userRole: string) {
+  async update(
+    id: string,
+    dto: UpdateCalendarEventDto,
+    userId: string,
+    userRole: string,
+  ) {
     const event = await this.prisma.calendarEvent.findUnique({ where: { id } });
-    if (!event || event.deletedAt) throw new NotFoundException('Événement introuvable');
+    if (!event || event.deletedAt)
+      throw new NotFoundException("Événement introuvable");
 
-    const isAdmin = ROLE_HIERARCHY[userRole as UserRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
+    const isAdmin =
+      ROLE_HIERARCHY[userRole as UserRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
     if (event.createdById !== userId && !isAdmin) {
-      throw new ForbiddenException('Seul le créateur ou un administrateur peut modifier cet événement');
+      throw new ForbiddenException(
+        "Seul le créateur ou un administrateur peut modifier cet événement",
+      );
     }
 
     const data: any = {};
@@ -270,11 +294,15 @@ export class CalendarService {
     if (dto.allDay !== undefined) data.allDay = dto.allDay;
     if (dto.category !== undefined) data.category = dto.category;
     if (dto.location !== undefined) data.location = dto.location;
-    if (dto.departmentId !== undefined) data.departmentId = dto.departmentId || null;
+    if (dto.departmentId !== undefined)
+      data.departmentId = dto.departmentId || null;
     if (dto.isRecurring !== undefined) data.isRecurring = dto.isRecurring;
     if (dto.recurrence !== undefined) data.recurrence = dto.recurrence;
     if (dto.color !== undefined) data.color = dto.color;
-    if (dto.visibility !== undefined && VALID_VISIBILITIES.includes(dto.visibility as EventVisibility)) {
+    if (
+      dto.visibility !== undefined &&
+      VALID_VISIBILITIES.includes(dto.visibility as EventVisibility)
+    ) {
       data.visibility = dto.visibility;
     }
 
@@ -290,11 +318,15 @@ export class CalendarService {
 
   async delete(id: string, userId: string, userRole: string) {
     const event = await this.prisma.calendarEvent.findUnique({ where: { id } });
-    if (!event || event.deletedAt) throw new NotFoundException('Événement introuvable');
+    if (!event || event.deletedAt)
+      throw new NotFoundException("Événement introuvable");
 
-    const isAdmin = ROLE_HIERARCHY[userRole as UserRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
+    const isAdmin =
+      ROLE_HIERARCHY[userRole as UserRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
     if (event.createdById !== userId && !isAdmin) {
-      throw new ForbiddenException('Seul le créateur ou un administrateur peut supprimer cet événement');
+      throw new ForbiddenException(
+        "Seul le créateur ou un administrateur peut supprimer cet événement",
+      );
     }
 
     // Soft delete
@@ -335,7 +367,7 @@ export class CalendarService {
       // Si l'assigne a change : reattribuer tous les events TICKET du ticket
       // au nouvel utilisateur (ou null si plus d'assigne).
       if (oldAssigneeId !== undefined && oldAssigneeId !== ticket.assigneeId) {
-        await (this.prisma as any).calendarEvent.updateMany({
+        await this.prisma.calendarEvent.updateMany({
           where: {
             sourceType: TICKET_SOURCE_TYPE,
             sourceId: { startsWith: `${ticket.id}:` },
@@ -351,14 +383,14 @@ export class CalendarService {
         const sourceId = `${ticket.id}:${field}`;
         const meta = TICKET_DATE_FIELDS[field];
 
-        const existing = await (this.prisma as any).calendarEvent.findFirst({
+        const existing = await this.prisma.calendarEvent.findFirst({
           where: { sourceType: TICKET_SOURCE_TYPE, sourceId },
         });
 
         if (!value) {
           // Date deleted -> soft-delete event si present
           if (existing && !existing.deletedAt) {
-            await (this.prisma as any).calendarEvent.update({
+            await this.prisma.calendarEvent.update({
               where: { id: existing.id },
               data: { deletedAt: new Date() },
             });
@@ -371,7 +403,7 @@ export class CalendarService {
         const description = `Ticket ${ticket.reference}\n${meta.label}`;
 
         if (existing) {
-          await (this.prisma as any).calendarEvent.update({
+          await this.prisma.calendarEvent.update({
             where: { id: existing.id },
             data: {
               title,
@@ -387,13 +419,13 @@ export class CalendarService {
           // createdById = assigneeId si dispo, sinon on saute (besoin d'un user
           // pour la FK NOT NULL). Si pas d'assigne, pas d'event individuel.
           if (!ticket.assigneeId) continue;
-          await (this.prisma as any).calendarEvent.create({
+          await this.prisma.calendarEvent.create({
             data: {
               title,
               description,
               startDate,
               allDay: true,
-              category: 'GENERAL',
+              category: "GENERAL",
               color: meta.color,
               createdById: ticket.assigneeId,
               userId: ticket.assigneeId,
@@ -418,19 +450,23 @@ export class CalendarService {
    * Mint un token d'abonnement iCal valable 30 jours pour l'utilisateur.
    * Si un token actif existe deja, on le retourne (idempotent).
    */
-  async getOrCreateSubscriptionToken(userId: string): Promise<{ token: string; expiresAt: Date; url?: string }> {
+  async getOrCreateSubscriptionToken(
+    userId: string,
+  ): Promise<{ token: string; expiresAt: Date; url?: string }> {
     const now = new Date();
-    const existing = await (this.prisma as any).calendarSubscriptionToken.findFirst({
+    const existing = await this.prisma.calendarSubscriptionToken.findFirst({
       where: { userId, expiresAt: { gt: now } },
-      orderBy: { expiresAt: 'desc' },
+      orderBy: { expiresAt: "desc" },
     });
     if (existing) {
       return { token: existing.token, expiresAt: existing.expiresAt };
     }
 
-    const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date(now.getTime() + SUBSCRIPTION_TOKEN_DAYS * 24 * 3600 * 1000);
-    const created = await (this.prisma as any).calendarSubscriptionToken.create({
+    const token = randomBytes(32).toString("hex");
+    const expiresAt = new Date(
+      now.getTime() + SUBSCRIPTION_TOKEN_DAYS * 24 * 3600 * 1000,
+    );
+    const created = await this.prisma.calendarSubscriptionToken.create({
       data: { userId, token, expiresAt },
     });
     return { token: created.token, expiresAt: created.expiresAt };
@@ -441,13 +477,21 @@ export class CalendarService {
    * en supprimant tous ses tokens, puis en crée un nouveau). À appeler depuis
    * POST /users/me/calendar-token.
    */
-  async regenerateSubscriptionToken(userId: string): Promise<{ token: string; expiresAt: Date }> {
-    await (this.prisma as any).calendarSubscriptionToken.deleteMany({ where: { userId } });
-    const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + SUBSCRIPTION_TOKEN_DAYS * 24 * 3600 * 1000);
-    const created = await (this.prisma as any).calendarSubscriptionToken.create({
-      data: { userId, token, expiresAt },
+  async regenerateSubscriptionToken(
+    userId: string,
+  ): Promise<{ token: string; expiresAt: Date }> {
+    await (this.prisma as any).calendarSubscriptionToken.deleteMany({
+      where: { userId },
     });
+    const token = randomBytes(32).toString("hex");
+    const expiresAt = new Date(
+      Date.now() + SUBSCRIPTION_TOKEN_DAYS * 24 * 3600 * 1000,
+    );
+    const created = await (this.prisma as any).calendarSubscriptionToken.create(
+      {
+        data: { userId, token, expiresAt },
+      },
+    );
     return { token: created.token, expiresAt: created.expiresAt };
   }
 
@@ -457,9 +501,11 @@ export class CalendarService {
    * DELETE /users/me/calendar-token.
    */
   async revokeSubscriptionTokens(userId: string): Promise<{ revoked: number }> {
-    const res = await (this.prisma as any).calendarSubscriptionToken.deleteMany({
-      where: { userId },
-    });
+    const res = await (this.prisma as any).calendarSubscriptionToken.deleteMany(
+      {
+        where: { userId },
+      },
+    );
     return { revoked: res.count ?? 0 };
   }
 
@@ -477,13 +523,15 @@ export class CalendarService {
     token: string,
     options: { scope?: string; calendarBaseUrl?: string } = {},
   ): Promise<{ ics: string; filename: string }> {
-    const tokenRow = await (this.prisma as any).calendarSubscriptionToken.findUnique({
+    const tokenRow = await this.prisma.calendarSubscriptionToken.findUnique({
       where: { token },
-      include: { user: { select: { id: true, firstName: true, lastName: true } } },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true } },
+      },
     });
-    if (!tokenRow) throw new NotFoundException('Token invalide');
+    if (!tokenRow) throw new NotFoundException("Token invalide");
     if (tokenRow.expiresAt < new Date()) {
-      throw new NotFoundException('Token expire');
+      throw new NotFoundException("Token expire");
     }
 
     const userId = tokenRow.userId;
@@ -491,23 +539,22 @@ export class CalendarService {
     // Met à jour lastUsedAt en best-effort (non bloquant pour la réponse).
     (this.prisma as any).calendarSubscriptionToken
       .update({ where: { id: tokenRow.id }, data: { lastUsedAt: new Date() } })
-      .catch((err: any) => this.logger.debug?.(`lastUsedAt update failed: ${err?.message ?? err}`));
+      .catch((err: any) =>
+        this.logger.debug?.(`lastUsedAt update failed: ${err?.message ?? err}`),
+      );
 
-    const scope = (options.scope || 'all').toLowerCase();
+    const scope = (options.scope || "all").toLowerCase();
     let events: any[];
-    let scopeLabel = '';
+    let scopeLabel = "";
 
-    if (scope === 'all' || scope === 'mine') {
+    if (scope === "all" || scope === "mine") {
       events = await this.getEventsForUser(userId, { take: 1000 });
-      scopeLabel = scope === 'mine' ? 'Mes événements' : 'Tous';
+      scopeLabel = scope === "mine" ? "Mes événements" : "Tous";
     } else {
       // Department slug = lowercase code or id
       const dept = await this.prisma.department.findFirst({
         where: {
-          OR: [
-            { code: { equals: scope, mode: 'insensitive' } },
-            { id: scope },
-          ],
+          OR: [{ code: { equals: scope, mode: "insensitive" } }, { id: scope }],
         },
         select: { id: true, name: true, code: true },
       });
@@ -536,21 +583,25 @@ export class CalendarService {
       color: e.color,
       rrule: e.recurrence ?? null,
       lastModified: e.updatedAt ?? null,
-      url: options.calendarBaseUrl ? `${options.calendarBaseUrl}/calendar` : undefined,
+      url: options.calendarBaseUrl
+        ? `${options.calendarBaseUrl}/calendar`
+        : undefined,
     }));
 
-    const fullName = `${tokenRow.user?.firstName ?? ''} ${tokenRow.user?.lastName ?? ''}`.trim();
-    const calendarName = scope === 'all' || scope === 'mine'
-      ? `OMNITECH — ${fullName || 'Calendrier'}`
-      : `OMNITECH — ${scopeLabel}`;
+    const fullName =
+      `${tokenRow.user?.firstName ?? ""} ${tokenRow.user?.lastName ?? ""}`.trim();
+    const calendarName =
+      scope === "all" || scope === "mine"
+        ? `OMNITECH — ${fullName || "Calendrier"}`
+        : `OMNITECH — ${scopeLabel}`;
 
     const ics = buildICal({
-      prodId: '-//OMNITECH Security//Intranet//FR',
+      prodId: "-//OMNITECH Security//Intranet//FR",
       calendarName,
       events: icalEvents,
     });
 
-    const filename = `omnitech-${scope === 'all' || scope === 'mine' ? userId : scope}.ics`;
+    const filename = `omnitech-${scope === "all" || scope === "mine" ? userId : scope}.ics`;
     return { ics, filename };
   }
 }

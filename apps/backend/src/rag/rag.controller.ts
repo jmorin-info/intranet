@@ -1,24 +1,38 @@
-import { Body, Controller, Get, Param, Post, Res, UseGuards, ParseUUIDPipe, BadRequestException, NotFoundException, ForbiddenException, GoneException } from '@nestjs/common';
-import { Response } from 'express';
-import { Throttle } from '@nestjs/throttler';
-import { randomBytes } from 'node:crypto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { Public } from '../auth/decorators/public.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '../common/enums';
-import { RequestUser } from '../common/interfaces';
-import { RagService, RagSearchContext } from './rag.service';
-import { InputGuardService } from './guardrails/input-guard.service';
-import { PrismaService } from '../prisma/prisma.service';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Res,
+  UseGuards,
+  ParseUUIDPipe,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+  GoneException,
+} from "@nestjs/common";
+import { Response } from "express";
+import { Throttle } from "@nestjs/throttler";
+import { randomBytes } from "node:crypto";
+import { Prisma } from "@prisma/client";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { UserThrottlerGuard } from "../auth/guards/user-throttler.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { Public } from "../auth/decorators/public.decorator";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { UserRole } from "../common/enums";
+import { RequestUser } from "../common/interfaces";
+import { RagService, RagSearchContext } from "./rag.service";
+import { InputGuardService } from "./guardrails/input-guard.service";
+import { PrismaService } from "../prisma/prisma.service";
 
 /**
  * Contrôleur RAG / AI Search.
  * Toutes les routes nécessitent une session authentifiée.
  */
-@Controller('rag')
+@Controller("rag")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class RagController {
   constructor(
@@ -28,13 +42,13 @@ export class RagController {
   ) {}
 
   /** Pose une question au moteur RAG (avec filtrage RBAC ISO 27001 A.5.15 + guardrails P0.2). */
-  @Post('ask')
+  @Post("ask")
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async ask(
     @Body() body: { question: string },
     @CurrentUser() user: RequestUser,
   ) {
-    const raw = (body?.question ?? '').trim();
+    const raw = (body?.question ?? "").trim();
 
     // Guardrails input (P0.2)
     const guard = this.inputGuard.validate(raw, user.id);
@@ -42,7 +56,11 @@ export class RagController {
       return { answer: guard.reason, sources: [], durationMs: 0 };
     }
 
-    const ctx: RagSearchContext = { userId: user.id, role: user.role, departmentId: user.departmentId };
+    const ctx: RagSearchContext = {
+      userId: user.id,
+      role: user.role,
+      departmentId: user.departmentId,
+    };
     return this.ragService.answer(guard.sanitizedQuery, user.id, ctx);
   }
 
@@ -50,7 +68,7 @@ export class RagController {
    * SSE streaming version of /ask.
    * Sends `token` events as the LLM generates, then a final `done` event with sources + metadata.
    */
-  @Post('ask-stream')
+  @Post("ask-stream")
   // 60 requêtes/min/utilisateur — éviter qu'un user abuse du chatbot LLM
   // (coût compute / quotas API), tout en laissant de la marge pour un usage normal.
   @UseGuards(UserThrottlerGuard)
@@ -60,26 +78,34 @@ export class RagController {
     @CurrentUser() user: RequestUser,
     @Res() res: Response,
   ) {
-    const raw = (body?.question ?? '').trim();
+    const raw = (body?.question ?? "").trim();
 
     // SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no'); // disable nginx buffering
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no"); // disable nginx buffering
     res.flushHeaders();
 
     // Guardrails input (P0.2)
     const guard = this.inputGuard.validate(raw, user.id);
     if (!guard.allowed) {
-      res.write(`data: ${JSON.stringify({ type: 'token', token: guard.reason })}\n\n`);
-      res.write(`data: ${JSON.stringify({ type: 'done', sources: [], retrievalConfidence: 0, durationMs: 0 })}\n\n`);
+      res.write(
+        `data: ${JSON.stringify({ type: "token", token: guard.reason })}\n\n`,
+      );
+      res.write(
+        `data: ${JSON.stringify({ type: "done", sources: [], retrievalConfidence: 0, durationMs: 0 })}\n\n`,
+      );
       res.end();
       return;
     }
 
     const question = guard.sanitizedQuery;
-    const ctx: RagSearchContext = { userId: user.id, role: user.role, departmentId: user.departmentId };
+    const ctx: RagSearchContext = {
+      userId: user.id,
+      role: user.role,
+      departmentId: user.departmentId,
+    };
 
     const write = (data: Record<string, unknown>) => {
       if (!res.writableEnded) {
@@ -91,14 +117,14 @@ export class RagController {
       await this.ragService.answerStream(
         question,
         user.id,
-        (token) => write({ type: 'token', token }),
-        (meta) => write({ type: 'meta', ...meta }),
+        (token) => write({ type: "token", token }),
+        (meta) => write({ type: "meta", ...meta }),
         ctx,
       );
     } catch (err) {
-      write({ type: 'error', message: (err as Error).message });
+      write({ type: "error", message: (err as Error).message });
     } finally {
-      write({ type: 'done' });
+      write({ type: "done" });
       if (!res.writableEnded) res.end();
     }
   }
@@ -112,10 +138,16 @@ export class RagController {
    * Prisma. Les utilisateurs standards utilisent /rag/ask qui filtre
    * par RBAC ISO 27001 A.5.15 dans la couche RagService.answer().
    */
-  @Get('documents/:id/ai-summary')
-  @Roles(UserRole.REVIEWER, UserRole.AUDITEUR, UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get("documents/:id/ai-summary")
+  @Roles(
+    UserRole.REVIEWER,
+    UserRole.AUDITEUR,
+    UserRole.DIRECTION,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  async documentSummary(@Param('id', ParseUUIDPipe) id: string) {
+  async documentSummary(@Param("id", ParseUUIDPipe) id: string) {
     try {
       return await this.ragService.summarizeDocument(id);
     } catch (err) {
@@ -131,9 +163,14 @@ export class RagController {
    * ticket (creator / assignee / dept) — sans ce garde, n'importe quel
    * user pouvait fuiter le titre/description d'un ticket via son UUID.
    */
-  @Get('tickets/:id/ai-suggest')
-  @Roles(UserRole.REVIEWER, UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  async ticketSuggestion(@Param('id', ParseUUIDPipe) id: string) {
+  @Get("tickets/:id/ai-suggest")
+  @Roles(
+    UserRole.REVIEWER,
+    UserRole.DIRECTION,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
+  async ticketSuggestion(@Param("id", ParseUUIDPipe) id: string) {
     try {
       return await this.ragService.suggestTicketResponse(id);
     } catch (err) {
@@ -149,15 +186,17 @@ export class RagController {
    * PRIVATE+collaborators). `askAboutArticle` ne fait pas de check —
    * sans ce garde, un user pouvait lire les pages PRIVATE d'autrui.
    */
-  @Post('wiki/:id/ask')
+  @Post("wiki/:id/ask")
   async wikiAsk(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() body: { question: string },
     @CurrentUser() user: RequestUser,
   ) {
-    const question = (body?.question ?? '').trim();
+    const question = (body?.question ?? "").trim();
     if (question.length < 2) {
-      return { answer: 'Veuillez saisir une question d\'au moins 2 caractères.' };
+      return {
+        answer: "Veuillez saisir une question d'au moins 2 caractères.",
+      };
     }
     // ACL : reproduire la logique WikiService.canView avant de laisser le LLM
     // reformuler le contenu de l'article (sinon on bypassse la visibilité
@@ -172,7 +211,7 @@ export class RagController {
         collaborators: true,
       },
     });
-    if (!page) throw new NotFoundException('Wiki page not found');
+    if (!page) throw new NotFoundException("Wiki page not found");
     const isPrivileged =
       user.role === UserRole.ADMIN ||
       user.role === UserRole.SUPER_ADMIN ||
@@ -180,17 +219,17 @@ export class RagController {
     const canView =
       isPrivileged ||
       page.authorId === user.id ||
-      page.visibility === 'PUBLIC' ||
-      (page.visibility === 'DEPARTMENT' &&
+      page.visibility === "PUBLIC" ||
+      (page.visibility === "DEPARTMENT" &&
         !!user.departmentId &&
         page.ownerDepartmentId === user.departmentId) ||
-      (page.visibility === 'ROLE' &&
+      (page.visibility === "ROLE" &&
         Array.isArray(page.allowedRoles) &&
         (page.allowedRoles as string[]).includes(user.role)) ||
       (Array.isArray(page.collaborators) &&
         (page.collaborators as string[]).includes(user.id));
     if (!canView) {
-      throw new ForbiddenException('You cannot access this wiki page');
+      throw new ForbiddenException("You cannot access this wiki page");
     }
     try {
       return await this.ragService.askAboutArticle(id, question);
@@ -200,14 +239,14 @@ export class RagController {
   }
 
   /** Réindexation complète (admin uniquement). */
-  @Post('reindex')
+  @Post("reindex")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async reindex() {
     return this.ragService.reindexAll();
   }
 
   /** Statistiques (chunks par type, dernières requêtes). */
-  @Get('stats')
+  @Get("stats")
   async stats() {
     return this.ragService.getStats();
   }
@@ -227,41 +266,45 @@ export class RagController {
    *   - taille max 1000 chars (garde-fou DB + abus)
    *   - si JSON, la clé `reason` (string ≤ 64 chars) et `comment` (string ≤ 500 chars)
    */
-  @Post(':id/feedback')
+  @Post(":id/feedback")
   async feedback(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() body: { rating: number; feedback?: string },
   ) {
     const { rating, feedback } = body ?? {};
 
     // Validate rating
-    if (rating === undefined || rating === null || ![-1, 0, 1].includes(rating)) {
-      throw new BadRequestException('rating must be -1, 0, or 1');
+    if (
+      rating === undefined ||
+      rating === null ||
+      ![-1, 0, 1].includes(rating)
+    ) {
+      throw new BadRequestException("rating must be -1, 0, or 1");
     }
 
     // Validate feedback payload (text or JSON)
     if (feedback !== undefined && feedback !== null) {
-      if (typeof feedback !== 'string') {
-        throw new BadRequestException('feedback must be a string');
+      if (typeof feedback !== "string") {
+        throw new BadRequestException("feedback must be a string");
       }
       if (feedback.length > 1000) {
-        throw new BadRequestException('feedback must be ≤ 1000 characters');
+        throw new BadRequestException("feedback must be ≤ 1000 characters");
       }
       // If it looks like JSON, soft-validate shape
-      if (feedback.startsWith('{')) {
+      if (feedback.startsWith("{")) {
         try {
           const parsed = JSON.parse(feedback);
-          if (parsed.reason && typeof parsed.reason !== 'string') {
-            throw new BadRequestException('feedback.reason must be a string');
+          if (parsed.reason && typeof parsed.reason !== "string") {
+            throw new BadRequestException("feedback.reason must be a string");
           }
           if (parsed.reason && parsed.reason.length > 64) {
-            throw new BadRequestException('feedback.reason too long');
+            throw new BadRequestException("feedback.reason too long");
           }
-          if (parsed.comment && typeof parsed.comment !== 'string') {
-            throw new BadRequestException('feedback.comment must be a string');
+          if (parsed.comment && typeof parsed.comment !== "string") {
+            throw new BadRequestException("feedback.comment must be a string");
           }
           if (parsed.comment && parsed.comment.length > 500) {
-            throw new BadRequestException('feedback.comment too long');
+            throw new BadRequestException("feedback.comment too long");
           }
         } catch (err) {
           if (err instanceof BadRequestException) throw err;
@@ -271,12 +314,14 @@ export class RagController {
     }
 
     // Verify the query log exists
-    const existing = await (this.prisma as any).ragQueryLog.findUnique({ where: { id } });
+    const existing = await this.prisma.ragQueryLog.findUnique({
+      where: { id },
+    });
     if (!existing) {
-      throw new NotFoundException('RagQueryLog not found');
+      throw new NotFoundException("RagQueryLog not found");
     }
 
-    const updated = await (this.prisma as any).ragQueryLog.update({
+    const updated = await this.prisma.ragQueryLog.update({
       where: { id },
       data: {
         rating,
@@ -295,13 +340,13 @@ export class RagController {
    * Retour : `{ token, url, expiresAt }` — l'URL pointe vers le frontend
    * (/share/conversation/:token) qui consommera GET /rag/conversations/share/:token.
    */
-  @Post('conversations/share')
+  @Post("conversations/share")
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async createShareLink(
     @Body()
     body: {
       messages: Array<{
-        role: 'user' | 'assistant';
+        role: "user" | "assistant";
         content: string;
         timestamp?: number;
         sources?: unknown;
@@ -312,26 +357,30 @@ export class RagController {
   ) {
     const messages = Array.isArray(body?.messages) ? body.messages : [];
     if (messages.length === 0) {
-      throw new BadRequestException('messages must be a non-empty array');
+      throw new BadRequestException("messages must be a non-empty array");
     }
     if (messages.length > 100) {
-      throw new BadRequestException('cannot share more than 100 messages');
+      throw new BadRequestException("cannot share more than 100 messages");
     }
     // Garde-fou taille payload
-    const totalChars = messages.reduce((acc, m) => acc + (m.content?.length ?? 0), 0);
+    const totalChars = messages.reduce(
+      (acc, m) => acc + (m.content?.length ?? 0),
+      0,
+    );
     if (totalChars > 200_000) {
-      throw new BadRequestException('conversation too large to share');
+      throw new BadRequestException("conversation too large to share");
     }
 
     const ttlDays = Math.min(Math.max(1, body.ttlDays ?? 7), 30);
     const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
-    const token = randomBytes(24).toString('hex');
+    const token = randomBytes(24).toString("hex");
 
-    const created = await (this.prisma as any).chatbotShareLink.create({
+    const created = await this.prisma.chatbotShareLink.create({
       data: {
         token,
         ownerId: user.id,
-        payload: messages as any,
+        // Prisma.InputJsonValue : sérialisation directe du payload conversation.
+        payload: messages as unknown as Prisma.InputJsonValue,
         expiresAt,
       },
     });
@@ -350,22 +399,22 @@ export class RagController {
    * Feature 10 — Lecture d'une conversation partagée (read-only, public).
    * Pas d'authentification requise. Refuse si expiré.
    */
-  @Get('conversations/share/:token')
+  @Get("conversations/share/:token")
   @Public()
   @Throttle({ default: { limit: 60, ttl: 60000 } })
-  async getShareLink(@Param('token') token: string) {
+  async getShareLink(@Param("token") token: string) {
     if (!token || token.length < 16) {
-      throw new BadRequestException('invalid token');
+      throw new BadRequestException("invalid token");
     }
-    const link = await (this.prisma as any).chatbotShareLink.findUnique({
+    const link = await this.prisma.chatbotShareLink.findUnique({
       where: { token },
     });
-    if (!link) throw new NotFoundException('share link not found');
+    if (!link) throw new NotFoundException("share link not found");
     if (link.expiresAt < new Date()) {
-      throw new GoneException('share link expired');
+      throw new GoneException("share link expired");
     }
     // Compteur de vues (best-effort, non bloquant)
-    void (this.prisma as any).chatbotShareLink
+    void this.prisma.chatbotShareLink
       .update({ where: { id: link.id }, data: { viewCount: { increment: 1 } } })
       .catch(() => undefined);
 

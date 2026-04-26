@@ -1,4 +1,5 @@
 import { Injectable, Logger, Optional } from "@nestjs/common";
+import { UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsGateway } from "../notifications/notifications.gateway";
 import { AppMetricsService } from "../health/app-metrics.service";
@@ -335,7 +336,7 @@ export class LdapService {
       await client.bind(config.bindDN, config.bindPassword);
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
-      const code = (err as any)?.code;
+      const code = (err as { code?: string | number } | null)?.code;
       // FIX: log code + URL explicitly (never the password) so operators can diagnose
       // "invalid credentials" vs "cert issue" vs "network unreachable".
       this.logger.error(
@@ -578,7 +579,7 @@ export class LdapService {
     } catch (err) {
       // FIX: propagate an explicit, UI-friendly error (controller surfaces `err.message`).
       const detail = err instanceof Error ? err.message : String(err);
-      const code = (err as any)?.code;
+      const code = (err as { code?: string | number } | null)?.code;
       this.logger.error(
         `LDAP bulk sync failed: ${detail} (code=${code ?? "n/a"}, URL=${config.url}, base=${config.searchBase})`,
       );
@@ -714,7 +715,7 @@ export class LdapService {
           // LDAP : auth externe — on initialise tout de meme passwordChangedAt
           // pour eviter les faux positifs dans les campagnes PASSWORDS.
           passwordChangedAt: new Date(),
-          role: role as any,
+          role: role as UserRole,
           isActive: true,
           lastLoginAt: new Date(),
           gdprConsentAt: new Date(),
@@ -806,7 +807,7 @@ export class LdapService {
         // LDAP : auth externe — initialise passwordChangedAt pour cohérence
         // avec les campagnes PASSWORDS de la revue d'accès.
         passwordChangedAt: new Date(),
-        role: params.role as any,
+        role: params.role as UserRole,
         isActive: true,
         lastLoginAt: null,
         gdprConsentAt: new Date(),

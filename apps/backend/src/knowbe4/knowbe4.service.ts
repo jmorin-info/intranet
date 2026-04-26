@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import axios, { AxiosInstance } from 'axios';
-import { PrismaService } from '../prisma/prisma.service';
-import { AppConfigService } from '../config/config.service';
-import { CertificatesService } from '../certificates/certificates.service';
+import { Injectable, Logger } from "@nestjs/common";
+import axios, { AxiosInstance } from "axios";
+import { PrismaService } from "../prisma/prisma.service";
+import { AppConfigService } from "../config/config.service";
+import { CertificatesService } from "../certificates/certificates.service";
 
 interface CacheEntry<T> {
   data: T;
@@ -35,18 +35,18 @@ export class KnowBe4Service {
   }
 
   private async getApiUrl(): Promise<string> {
-    const url = await this.getConfigValue('knowbe4_api_url', 'KNOWBE4_API_URL');
-    return url || 'https://eu.api.knowbe4.com/v1';
+    const url = await this.getConfigValue("knowbe4_api_url", "KNOWBE4_API_URL");
+    return url || "https://eu.api.knowbe4.com/v1";
   }
 
   private async getApiToken(): Promise<string | null> {
-    return this.getConfigValue('knowbe4_api_token', 'KNOWBE4_API_TOKEN');
+    return this.getConfigValue("knowbe4_api_token", "KNOWBE4_API_TOKEN");
   }
 
   private async buildClient(): Promise<AxiosInstance | null> {
     const token = await this.getApiToken();
     if (!token) {
-      this.logger.warn('KnowBe4 API token not configured');
+      this.logger.warn("KnowBe4 API token not configured");
       return null;
     }
     const baseURL = await this.getApiUrl();
@@ -54,7 +54,7 @@ export class KnowBe4Service {
       baseURL,
       headers: {
         Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
+        Accept: "application/json",
       },
       timeout: 30_000,
     });
@@ -83,18 +83,21 @@ export class KnowBe4Service {
   // ---------------------------------------------------------------------------
 
   async getAccount(): Promise<Record<string, unknown> | null> {
-    const cached = this.getCached<Record<string, unknown>>('account');
+    const cached = this.getCached<Record<string, unknown>>("account");
     if (cached) return cached;
 
     const client = await this.buildClient();
     if (!client) return null;
 
     try {
-      const { data } = await client.get('/account');
-      this.setCache('account', data);
+      const { data } = await client.get("/account");
+      this.setCache("account", data);
       return data as Record<string, unknown>;
     } catch (err: unknown) {
-      this.logger.error('Failed to fetch KnowBe4 account', (err as Error).message);
+      this.logger.error(
+        "Failed to fetch KnowBe4 account",
+        (err as Error).message,
+      );
       return null;
     }
   }
@@ -108,32 +111,38 @@ export class KnowBe4Service {
     if (!client) return null;
 
     try {
-      const { data } = await client.get('/users', {
+      const { data } = await client.get("/users", {
         params: { per_page: perPage },
       });
       const result = data as unknown[];
       this.setCache(cacheKey, result);
       return result;
     } catch (err: unknown) {
-      this.logger.error('Failed to fetch KnowBe4 users', (err as Error).message);
+      this.logger.error(
+        "Failed to fetch KnowBe4 users",
+        (err as Error).message,
+      );
       return null;
     }
   }
 
   async getCampaigns(): Promise<unknown[] | null> {
-    const cached = this.getCached<unknown[]>('campaigns');
+    const cached = this.getCached<unknown[]>("campaigns");
     if (cached) return cached;
 
     const client = await this.buildClient();
     if (!client) return null;
 
     try {
-      const { data } = await client.get('/training/campaigns');
+      const { data } = await client.get("/training/campaigns");
       const result = data as unknown[];
-      this.setCache('campaigns', result);
+      this.setCache("campaigns", result);
       return result;
     } catch (err: unknown) {
-      this.logger.error('Failed to fetch KnowBe4 campaigns', (err as Error).message);
+      this.logger.error(
+        "Failed to fetch KnowBe4 campaigns",
+        (err as Error).message,
+      );
       return null;
     }
   }
@@ -147,14 +156,17 @@ export class KnowBe4Service {
     if (!client) return null;
 
     try {
-      const { data } = await client.get('/training/enrollments', {
+      const { data } = await client.get("/training/enrollments", {
         params: { per_page: perPage },
       });
       const result = data as unknown[];
       this.setCache(cacheKey, result);
       return result;
     } catch (err: unknown) {
-      this.logger.error('Failed to fetch KnowBe4 enrollments', (err as Error).message);
+      this.logger.error(
+        "Failed to fetch KnowBe4 enrollments",
+        (err as Error).message,
+      );
       return null;
     }
   }
@@ -192,10 +204,19 @@ export class KnowBe4Service {
     let skipped = 0;
     let errors = 0;
 
-    for (const enrollment of enrollments as any[]) {
+    type Enrollment = {
+      status?: string;
+      user?: { email?: string };
+      enrollment_id?: string | number;
+      campaign_name?: string;
+      module_name?: string;
+      training_campaign?: { name?: string };
+      completion_date?: string;
+    };
+    for (const enrollment of enrollments as Enrollment[]) {
       try {
         const status: string | undefined = enrollment?.status;
-        if (status !== 'Passed') {
+        if (status !== "Passed") {
           skipped++;
           continue;
         }
@@ -208,7 +229,7 @@ export class KnowBe4Service {
 
         // Find the intranet user by email
         const user = await this.prisma.user.findFirst({
-          where: { email: { equals: userEmail, mode: 'insensitive' } },
+          where: { email: { equals: userEmail, mode: "insensitive" } },
           select: { id: true },
         });
         if (!user) {
@@ -217,18 +238,21 @@ export class KnowBe4Service {
         }
 
         const moduleName: string =
-          enrollment?.module_name || enrollment?.campaign_name || 'KnowBe4 Training';
+          enrollment?.module_name ||
+          enrollment?.campaign_name ||
+          "KnowBe4 Training";
         const completionDate: string | undefined = enrollment?.completion_date;
 
         // Check for existing certificate to avoid duplicates
-        const enrollmentId: string | number | undefined = enrollment?.enrollment_id;
+        const enrollmentId: string | number | undefined =
+          enrollment?.enrollment_id;
         const certName = `[KB4] ${moduleName}`;
 
         const existing = await this.prisma.certificate.findFirst({
           where: {
             userId: user.id,
             name: certName,
-            certType: 'KNOWBE4',
+            certType: "KNOWBE4",
           },
         });
 
@@ -240,20 +264,23 @@ export class KnowBe4Service {
         await this.certificatesService.create(
           {
             name: certName,
-            certType: 'KNOWBE4',
+            certType: "KNOWBE4",
             obtainedAt: completionDate
               ? new Date(completionDate).toISOString()
               : new Date().toISOString(),
             notes: enrollmentId
               ? `KnowBe4 enrollment #${enrollmentId}`
-              : 'Synced from KnowBe4',
+              : "Synced from KnowBe4",
             userId: user.id,
           },
           triggeredById,
         );
         created++;
       } catch (err: unknown) {
-        this.logger.error('Error syncing KB4 enrollment', (err as Error).message);
+        this.logger.error(
+          "Error syncing KB4 enrollment",
+          (err as Error).message,
+        );
         errors++;
       }
     }

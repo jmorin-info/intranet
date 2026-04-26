@@ -7,6 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { HibpService } from "../auth/hibp.service";
@@ -482,7 +483,7 @@ export class UsersService {
         welcomeChecklistDismissedAt: true,
       },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException("User not found");
 
     const now = new Date();
     const accountAgeDays = Math.floor(
@@ -510,8 +511,10 @@ export class UsersService {
       const docViewCount = await this.prisma.auditLog.count({
         where: {
           userId,
-          resourceType: 'Document',
-          action: { in: ['DOCUMENT_VIEWED', 'DOCUMENT_DOWNLOADED', 'DOCUMENT_OPENED'] },
+          resourceType: "Document",
+          action: {
+            in: ["DOCUMENT_VIEWED", "DOCUMENT_DOWNLOADED", "DOCUMENT_OPENED"],
+          },
         },
       });
       docsDone = docViewCount >= 3;
@@ -519,8 +522,8 @@ export class UsersService {
 
     // Quiz — au moins un QUIZ_COMPLETED avec un score > 0
     const quizLog = await this.prisma.auditLog.findFirst({
-      where: { userId, action: 'QUIZ_COMPLETED' },
-      orderBy: { createdAt: 'desc' },
+      where: { userId, action: "QUIZ_COMPLETED" },
+      orderBy: { createdAt: "desc" },
       select: { metadata: true },
     });
     const quizScore = quizLog
@@ -529,11 +532,11 @@ export class UsersService {
     const quizDone = quizScore > 0;
 
     const items = [
-      { key: 'profile', done: profileDone, href: '/profile' },
-      { key: 'mfa', done: mfaDone, href: '/profile#security' },
-      { key: 'charte', done: charteDone, href: '/chartes' },
-      { key: 'docs', done: docsDone, href: '/documents' },
-      { key: 'quiz', done: quizDone, href: '/quiz' },
+      { key: "profile", done: profileDone, href: "/profile" },
+      { key: "mfa", done: mfaDone, href: "/profile#security" },
+      { key: "charte", done: charteDone, href: "/chartes" },
+      { key: "docs", done: docsDone, href: "/documents" },
+      { key: "quiz", done: quizDone, href: "/quiz" },
     ];
 
     const doneCount = items.filter((i) => i.done).length;
@@ -596,7 +599,9 @@ export class UsersService {
       unreadNotificationsCount,
       quizBestScore:
         quizAttempts.length > 0
-          ? ((quizAttempts[0].metadata as any)?.percentage ?? null)
+          ? // Prisma.JsonValue dynamique — extraction défensive
+            (((quizAttempts[0].metadata as Record<string, unknown> | null)
+              ?.percentage as number | null) ?? null)
           : null,
       department: user.department,
       departments,
@@ -729,7 +734,10 @@ export class UsersService {
     const merged = {
       ...current,
       ...prefs,
-      ...(incomingLocale !== undefined && { language: incomingLocale, locale: incomingLocale }),
+      ...(incomingLocale !== undefined && {
+        language: incomingLocale,
+        locale: incomingLocale,
+      }),
       notificationPrefs: {
         ...current.notificationPrefs,
         ...(prefs.notificationPrefs || {}),
@@ -1113,14 +1121,18 @@ export class UsersService {
       },
       update: {
         enabled,
-        ...(config !== undefined && { config: config as any }),
+        ...(config !== undefined && {
+          config: config as Prisma.InputJsonValue,
+        }),
       },
       create: {
         module,
         scopeType: "USER",
         scopeValue: userId,
         enabled,
-        ...(config !== undefined && { config: config as any }),
+        ...(config !== undefined && {
+          config: config as Prisma.InputJsonValue,
+        }),
       },
     });
 

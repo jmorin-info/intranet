@@ -4,6 +4,7 @@ import {
   ConflictException,
   Logger,
 } from "@nestjs/common";
+import { UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateDepartmentDto } from "./dto/create-department.dto";
 import { UpdateDepartmentDto } from "./dto/update-department.dto";
@@ -30,7 +31,9 @@ export class DepartmentsService {
           where: {
             deletedAt: null,
             isActive: true,
-            role: { in: ["DIRECTION", "ADMIN", "SUPER_ADMIN"] as any },
+            role: {
+              in: [UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN],
+            },
           },
           select: {
             id: true,

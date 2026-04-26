@@ -1,7 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
-import { PrismaService } from '../prisma/prisma.service';
-import { CampaignsService } from './campaigns.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { Cron } from "@nestjs/schedule";
+import {
+  CampaignSignatureStatus,
+  SignatureCampaignStatus,
+} from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import { CampaignsService } from "./campaigns.service";
 
 /**
  * Cron des campagnes de signature — tous les jours a 9h.
@@ -18,13 +22,18 @@ export class CampaignsCron {
     private readonly campaigns: CampaignsService,
   ) {}
 
-  @Cron('0 9 * * *')
+  @Cron("0 9 * * *")
   async dailyReminderSweep() {
-    this.logger.log('Cron signature campaigns — debut');
+    this.logger.log("Cron signature campaigns — debut");
     try {
-      const campaigns = await (this.prisma as any).signatureCampaign.findMany({
+      const campaigns = await this.prisma.signatureCampaign.findMany({
         where: {
-          status: { in: ['SENT', 'IN_PROGRESS'] },
+          status: {
+            in: [
+              SignatureCampaignStatus.SENT,
+              SignatureCampaignStatus.IN_PROGRESS,
+            ],
+          },
         },
       });
 
@@ -91,16 +100,21 @@ export class CampaignsCron {
 
   private async markExpired(campaignId: string) {
     try {
-      await (this.prisma as any).campaignSignature.updateMany({
+      await this.prisma.campaignSignature.updateMany({
         where: {
           campaignId,
-          status: { in: ['PENDING', 'OPENED'] },
+          status: {
+            in: [
+              CampaignSignatureStatus.PENDING,
+              CampaignSignatureStatus.OPENED,
+            ],
+          },
         },
-        data: { status: 'EXPIRED' },
+        data: { status: CampaignSignatureStatus.EXPIRED },
       });
-      await (this.prisma as any).signatureCampaign.update({
+      await this.prisma.signatureCampaign.update({
         where: { id: campaignId },
-        data: { status: 'EXPIRED' },
+        data: { status: SignatureCampaignStatus.EXPIRED },
       });
       this.logger.warn(`Campagne ${campaignId} marquee EXPIRED`);
     } catch (err: any) {

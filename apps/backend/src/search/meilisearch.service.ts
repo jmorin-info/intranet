@@ -1,5 +1,5 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import axios, { AxiosInstance } from 'axios';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import axios, { AxiosInstance } from "axios";
 
 /** Lightweight Meilisearch HTTP client (avoids ESM import issues with SDK) */
 class MeiliClient {
@@ -7,14 +7,23 @@ class MeiliClient {
   constructor(host: string, apiKey: string) {
     this.http = axios.create({
       baseURL: host,
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
       timeout: 30_000,
     });
   }
-  async health() { return (await this.http.get('/health')).data; }
-  async getIndex(uid: string) { return (await this.http.get(`/indexes/${uid}`)).data; }
+  async health() {
+    return (await this.http.get("/health")).data;
+  }
+  async getIndex(uid: string) {
+    return (await this.http.get(`/indexes/${uid}`)).data;
+  }
   async createIndex(uid: string, opts: { primaryKey?: string }) {
-    return (await this.http.post('/indexes', { uid, primaryKey: opts.primaryKey })).data;
+    return (
+      await this.http.post("/indexes", { uid, primaryKey: opts.primaryKey })
+    ).data;
   }
   async updateSettings(uid: string, settings: Record<string, unknown>) {
     return (await this.http.patch(`/indexes/${uid}/settings`, settings)).data;
@@ -25,10 +34,20 @@ class MeiliClient {
   async deleteDocument(uid: string, docId: string) {
     return (await this.http.delete(`/indexes/${uid}/documents/${docId}`)).data;
   }
-  async multiSearch(body: { queries: Array<{ indexUid: string; q: string; limit?: number; filter?: string; attributesToHighlight?: string[] }> }) {
-    return (await this.http.post('/multi-search', body)).data;
+  async multiSearch(body: {
+    queries: Array<{
+      indexUid: string;
+      q: string;
+      limit?: number;
+      filter?: string;
+      attributesToHighlight?: string[];
+    }>;
+  }) {
+    return (await this.http.post("/multi-search", body)).data;
   }
-  async getStats() { return (await this.http.get('/stats')).data; }
+  async getStats() {
+    return (await this.http.get("/stats")).data;
+  }
   index(uid: string) {
     const http = this.http;
     return {
@@ -50,7 +69,7 @@ class MeiliClient {
     };
   }
 }
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from "../prisma/prisma.service";
 
 /**
  * Service Meilisearch — recherche federee pour l'intranet OMNITECH.
@@ -68,7 +87,7 @@ export interface MeiliDocument {
   id: string;
   title: string;
   content: string;
-  type: 'document' | 'ticket' | 'wiki' | 'news' | 'runbook';
+  type: "document" | "ticket" | "wiki" | "news" | "runbook";
   url: string;
   author?: string | null;
   authorId?: string | null;
@@ -96,11 +115,11 @@ export interface MeiliSearchResponse {
   byIndex?: Record<string, { hits: MeiliDocument[]; total: number }>;
 }
 
-const INDEX_WIKI = 'wiki';
-const INDEX_DOCUMENTS = 'documents';
-const INDEX_NEWS = 'news';
-const INDEX_TICKETS = 'tickets';
-const INDEX_RUNBOOKS = 'runbooks';
+const INDEX_WIKI = "wiki";
+const INDEX_DOCUMENTS = "documents";
+const INDEX_NEWS = "news";
+const INDEX_TICKETS = "tickets";
+const INDEX_RUNBOOKS = "runbooks";
 
 const ALL_INDEXES = [
   INDEX_WIKI,
@@ -110,8 +129,22 @@ const ALL_INDEXES = [
   INDEX_RUNBOOKS,
 ] as const;
 
-const SEARCHABLE_ATTRIBUTES = ['title', 'content', 'summary', 'category', 'reference', 'tags', 'slug'];
-const FILTERABLE_ATTRIBUTES = ['category', 'status', 'classification', 'authorId', 'type'];
+const SEARCHABLE_ATTRIBUTES = [
+  "title",
+  "content",
+  "summary",
+  "category",
+  "reference",
+  "tags",
+  "slug",
+];
+const FILTERABLE_ATTRIBUTES = [
+  "category",
+  "status",
+  "classification",
+  "authorId",
+  "type",
+];
 
 @Injectable()
 export class MeilisearchService implements OnModuleInit {
@@ -120,20 +153,22 @@ export class MeilisearchService implements OnModuleInit {
   readonly enabled: boolean;
 
   constructor(private readonly prisma: PrismaService) {
-    this.enabled = process.env.MEILISEARCH_ENABLED === 'true';
+    this.enabled = process.env.MEILISEARCH_ENABLED === "true";
   }
 
   async onModuleInit(): Promise<void> {
     if (!this.enabled) {
-      this.logger.log('Meilisearch desactive (MEILISEARCH_ENABLED != true)');
+      this.logger.log("Meilisearch desactive (MEILISEARCH_ENABLED != true)");
       return;
     }
 
-    const host = process.env.MEILISEARCH_URL || 'http://localhost:7700';
-    const apiKey = process.env.MEILISEARCH_MASTER_KEY || '';
+    const host = process.env.MEILISEARCH_URL || "http://localhost:7700";
+    const apiKey = process.env.MEILISEARCH_MASTER_KEY || "";
 
     if (!apiKey) {
-      this.logger.warn('MEILISEARCH_MASTER_KEY vide — le service sera non-fonctionnel.');
+      this.logger.warn(
+        "MEILISEARCH_MASTER_KEY vide — le service sera non-fonctionnel.",
+      );
       return;
     }
 
@@ -143,7 +178,9 @@ export class MeilisearchService implements OnModuleInit {
       this.logger.log(`Meilisearch connecte (status: ${health.status})`);
       await this.ensureAllIndexes();
     } catch (err) {
-      this.logger.warn(`Meilisearch init echouee (non-bloquant) : ${(err as Error).message}`);
+      this.logger.warn(
+        `Meilisearch init echouee (non-bloquant) : ${(err as Error).message}`,
+      );
       this.client = null;
     }
   }
@@ -159,7 +196,7 @@ export class MeilisearchService implements OnModuleInit {
   private async ensureIndex(uid: string): Promise<void> {
     if (!this.client) return;
     try {
-      await this.client.createIndex(uid, { primaryKey: 'id' });
+      await this.client.createIndex(uid, { primaryKey: "id" });
     } catch {
       // index already exists — ignore
     }
@@ -168,14 +205,14 @@ export class MeilisearchService implements OnModuleInit {
     await index.updateSettings({
       searchableAttributes: SEARCHABLE_ATTRIBUTES,
       filterableAttributes: FILTERABLE_ATTRIBUTES,
-      sortableAttributes: ['date'],
+      sortableAttributes: ["date"],
     });
   }
 
   async ensureAllIndexes(): Promise<void> {
     if (!this.client) return;
     await Promise.all(ALL_INDEXES.map((idx) => this.ensureIndex(idx)));
-    this.logger.log('Tous les index Meilisearch configures');
+    this.logger.log("Tous les index Meilisearch configures");
   }
 
   // ==========================================================================
@@ -214,30 +251,39 @@ export class MeilisearchService implements OnModuleInit {
       await index.addDocuments(docs);
       this.logger.log(`${docs.length} document(s) pousse(s) vers ${uid}`);
     } catch (err) {
-      this.logger.error(`pushToIndex(${uid}) a echoue : ${(err as Error).message}`);
+      this.logger.error(
+        `pushToIndex(${uid}) a echoue : ${(err as Error).message}`,
+      );
     }
   }
 
   /** Supprime un document d'un index. */
-  async deleteDocument(type: MeiliDocument['type'], id: string): Promise<void> {
+  async deleteDocument(type: MeiliDocument["type"], id: string): Promise<void> {
     if (!this.client) return;
     const uid = this.indexForType(type);
     try {
       const index = this.client.index(uid);
       await index.deleteDocument(id);
     } catch (err) {
-      this.logger.error(`deleteDocument(${uid}, ${id}) a echoue : ${(err as Error).message}`);
+      this.logger.error(
+        `deleteDocument(${uid}, ${id}) a echoue : ${(err as Error).message}`,
+      );
     }
   }
 
-  private indexForType(type: MeiliDocument['type']): string {
+  private indexForType(type: MeiliDocument["type"]): string {
     switch (type) {
-      case 'ticket': return INDEX_TICKETS;
-      case 'wiki': return INDEX_WIKI;
-      case 'news': return INDEX_NEWS;
-      case 'runbook': return INDEX_RUNBOOKS;
-      case 'document':
-      default: return INDEX_DOCUMENTS;
+      case "ticket":
+        return INDEX_TICKETS;
+      case "wiki":
+        return INDEX_WIKI;
+      case "news":
+        return INDEX_NEWS;
+      case "runbook":
+        return INDEX_RUNBOOKS;
+      case "document":
+      default:
+        return INDEX_DOCUMENTS;
     }
   }
 
@@ -245,14 +291,19 @@ export class MeilisearchService implements OnModuleInit {
   // Index one item (used by hooks)
   // ==========================================================================
 
-  async indexOne(type: MeiliDocument['type'], doc: MeiliDocument): Promise<void> {
+  async indexOne(
+    type: MeiliDocument["type"],
+    doc: MeiliDocument,
+  ): Promise<void> {
     if (!this.client) return;
     const uid = this.indexForType(type);
     try {
       const index = this.client.index(uid);
       await index.addDocuments([doc]);
     } catch (err) {
-      this.logger.error(`indexOne(${uid}, ${doc.id}) a echoue : ${(err as Error).message}`);
+      this.logger.error(
+        `indexOne(${uid}, ${doc.id}) a echoue : ${(err as Error).message}`,
+      );
     }
   }
 
@@ -270,7 +321,7 @@ export class MeilisearchService implements OnModuleInit {
 
     const limit = Math.min(filters.limit ?? 20, 100);
     const targetIndexes: readonly string[] = filters.type
-      ? [this.indexForType(filters.type as MeiliDocument['type'])]
+      ? [this.indexForType(filters.type as MeiliDocument["type"])]
       : ALL_INDEXES;
 
     try {
@@ -279,12 +330,13 @@ export class MeilisearchService implements OnModuleInit {
         q: query,
         limit,
         filter: filters.filter || undefined,
-        attributesToHighlight: ['title', 'content'],
+        attributesToHighlight: ["title", "content"],
       }));
 
       const data: any = await this.client.multiSearch({ queries });
 
-      const byIndex: Record<string, { hits: MeiliDocument[]; total: number }> = {};
+      const byIndex: Record<string, { hits: MeiliDocument[]; total: number }> =
+        {};
       let allHits: MeiliDocument[] = [];
       let total = 0;
 
@@ -300,7 +352,9 @@ export class MeilisearchService implements OnModuleInit {
 
       return { hits: allHits, total, byIndex };
     } catch (err) {
-      this.logger.error(`search("${query}") a echoue : ${(err as Error).message}`);
+      this.logger.error(
+        `search("${query}") a echoue : ${(err as Error).message}`,
+      );
       return { hits: [], total: 0 };
     }
   }
@@ -310,7 +364,10 @@ export class MeilisearchService implements OnModuleInit {
   // ==========================================================================
 
   private stripHtml(html: string): string {
-    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return html
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   async reindexAll(): Promise<{
@@ -321,7 +378,7 @@ export class MeilisearchService implements OnModuleInit {
     runbooks: number;
   }> {
     if (!this.client) {
-      this.logger.warn('reindexAll appele mais Meilisearch desactive — no-op.');
+      this.logger.warn("reindexAll appele mais Meilisearch desactive — no-op.");
       return { documents: 0, tickets: 0, wiki: 0, news: 0, runbooks: 0 };
     }
 
@@ -332,21 +389,27 @@ export class MeilisearchService implements OnModuleInit {
       .findMany({
         where: { deletedAt: null },
         select: {
-          id: true, title: true, description: true, reference: true,
-          category: true, classification: true, status: true,
-          ownerId: true, createdAt: true,
+          id: true,
+          title: true,
+          description: true,
+          reference: true,
+          category: true,
+          classification: true,
+          status: true,
+          ownerId: true,
+          createdAt: true,
         },
       })
       .catch((err) => {
         this.logger.warn(`Lecture documents KO : ${err.message}`);
-        return [] as any[];
+        return [];
       });
 
-    const docsPayload: MeiliDocument[] = documents.map((d: any) => ({
+    const docsPayload: MeiliDocument[] = documents.map((d) => ({
       id: `document-${d.id}`,
-      title: d.title ?? '',
-      content: d.description ?? '',
-      type: 'document' as const,
+      title: d.title ?? "",
+      content: d.description ?? "",
+      type: "document" as const,
       url: `/documents/${d.id}`,
       authorId: d.ownerId,
       date: d.createdAt?.toISOString?.() ?? null,
@@ -362,21 +425,27 @@ export class MeilisearchService implements OnModuleInit {
     const tickets = await this.prisma.ticket
       .findMany({
         select: {
-          id: true, reference: true, title: true, description: true,
-          status: true, priority: true, category: true,
-          creatorId: true, createdAt: true,
+          id: true,
+          reference: true,
+          title: true,
+          description: true,
+          status: true,
+          priority: true,
+          category: true,
+          creatorId: true,
+          createdAt: true,
         },
       })
       .catch((err) => {
         this.logger.warn(`Lecture tickets KO : ${err.message}`);
-        return [] as any[];
+        return [];
       });
 
-    const ticketsPayload: MeiliDocument[] = tickets.map((t: any) => ({
+    const ticketsPayload: MeiliDocument[] = tickets.map((t) => ({
       id: `ticket-${t.id}`,
-      title: `[${t.reference}] ${t.title ?? ''}`,
-      content: t.description ?? '',
-      type: 'ticket' as const,
+      title: `[${t.reference}] ${t.title ?? ""}`,
+      content: t.description ?? "",
+      type: "ticket" as const,
       url: `/tickets/${t.id}`,
       authorId: t.creatorId,
       date: t.createdAt?.toISOString?.() ?? null,
@@ -388,76 +457,93 @@ export class MeilisearchService implements OnModuleInit {
     await this.indexTickets(ticketsPayload);
 
     // Wiki
-    const wiki = await (this.prisma as any).wikiPage
-      ?.findMany({
+    const wiki = await this.prisma.wikiPage
+      .findMany({
         where: { isPublished: true },
         select: {
-          id: true, title: true, content: true, slug: true,
-          category: true, authorId: true, updatedAt: true,
+          id: true,
+          title: true,
+          content: true,
+          slug: true,
+          category: true,
+          authorId: true,
+          updatedAt: true,
         },
       })
-      .catch((err: any) => {
+      .catch((err: Error) => {
         this.logger.warn(`Lecture wiki KO : ${err.message}`);
-        return [] as any[];
-      }) ?? [];
+        return [];
+      });
 
-    const wikiPayload: MeiliDocument[] = (wiki as any[]).map((w) => ({
+    const wikiPayload: MeiliDocument[] = wiki.map((w) => ({
       id: `wiki-${w.id}`,
-      title: w.title ?? '',
-      content: this.stripHtml(w.content ?? ''),
-      type: 'wiki' as const,
+      title: w.title ?? "",
+      content: this.stripHtml(w.content ?? ""),
+      type: "wiki" as const,
       url: `/wiki/${w.slug ?? w.id}`,
       authorId: w.authorId,
       date: w.updatedAt?.toISOString?.() ?? null,
       category: w.category,
-      tags: [w.category].filter(Boolean),
+      tags: [w.category].filter((t): t is string => Boolean(t)),
     }));
     await this.indexWikiPages(wikiPayload);
 
     // News
-    const news = await (this.prisma as any).newsPost
-      ?.findMany({
+    const news = await this.prisma.newsPost
+      .findMany({
         where: { deletedAt: null, isPublished: true },
         select: {
-          id: true, title: true, content: true, excerpt: true,
-          slug: true, category: true, authorId: true, publishedAt: true,
+          id: true,
+          title: true,
+          content: true,
+          excerpt: true,
+          slug: true,
+          category: true,
+          authorId: true,
+          publishedAt: true,
         },
       })
-      .catch((err: any) => {
+      .catch((err: Error) => {
         this.logger.warn(`Lecture news KO : ${err.message}`);
-        return [] as any[];
-      }) ?? [];
+        return [];
+      });
 
-    const newsPayload: MeiliDocument[] = (news as any[]).map((n) => ({
+    const newsPayload: MeiliDocument[] = news.map((n) => ({
       id: `news-${n.id}`,
-      title: n.title ?? '',
-      content: this.stripHtml(n.content ?? n.excerpt ?? ''),
-      type: 'news' as const,
+      title: n.title ?? "",
+      content: this.stripHtml(n.content ?? n.excerpt ?? ""),
+      type: "news" as const,
       url: `/news/${n.slug ?? n.id}`,
       authorId: n.authorId,
       date: n.publishedAt?.toISOString?.() ?? null,
       category: n.category,
-      tags: [n.category].filter(Boolean),
+      tags: [n.category].filter((t): t is string => Boolean(t)),
     }));
     await this.indexNews(newsPayload);
 
     // Runbooks — seules les runbooks publiees sont indexees (les drafts restent
     // hors de la recherche globale pour eviter toute fuite de contenu non pret).
-    const runbooks = await (this.prisma as any).runbook
-      ?.findMany({
+    const runbooks = await this.prisma.runbook
+      .findMany({
         where: { isPublished: true },
         select: {
-          id: true, title: true, slug: true, description: true,
-          content: true, category: true, version: true,
-          authorId: true, updatedAt: true,
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          content: true,
+          category: true,
+          version: true,
+          authorId: true,
+          updatedAt: true,
         },
       })
-      .catch((err: any) => {
+      .catch((err: Error) => {
         this.logger.warn(`Lecture runbooks KO : ${err.message}`);
-        return [] as any[];
-      }) ?? [];
+        return [];
+      });
 
-    const runbooksPayload: MeiliDocument[] = (runbooks as any[]).map((r) =>
+    const runbooksPayload: MeiliDocument[] = runbooks.map((r) =>
       this.runbookToMeiliDocument(r),
     );
     await this.indexRunbooks(runbooksPayload);
@@ -493,7 +579,7 @@ export class MeilisearchService implements OnModuleInit {
     // `content` est du JSON array of steps — on le rend cherchable en
     // concatenant les champs textuels principaux (title/label/description)
     // s'ils existent, sinon fallback sur la chaine brute.
-    let stepsText = '';
+    let stepsText = "";
     if (r.content) {
       try {
         const parsed = JSON.parse(r.content);
@@ -501,22 +587,22 @@ export class MeilisearchService implements OnModuleInit {
           stepsText = parsed
             .map((s: any) =>
               [s?.title, s?.label, s?.description, s?.command, s?.content]
-                .filter((v) => typeof v === 'string')
-                .join(' '),
+                .filter((v) => typeof v === "string")
+                .join(" "),
             )
-            .join(' ')
+            .join(" ")
             .trim();
         }
       } catch {
         stepsText = r.content;
       }
     }
-    const summary = (r.description ?? '').slice(0, 500) || null;
+    const summary = (r.description ?? "").slice(0, 500) || null;
     return {
       id: `runbook-${r.id}`,
-      title: r.title ?? '',
-      content: this.stripHtml(`${r.description ?? ''} ${stepsText}`.trim()),
-      type: 'runbook',
+      title: r.title ?? "",
+      content: this.stripHtml(`${r.description ?? ""} ${stepsText}`.trim()),
+      type: "runbook",
       url: `/runbooks/${r.slug ?? r.id}`,
       slug: r.slug ?? null,
       summary,
@@ -537,13 +623,17 @@ export class MeilisearchService implements OnModuleInit {
    */
   async isHealthy(): Promise<{ ok: boolean; status?: string; error?: string }> {
     if (!this.client || !this.enabled) {
-      return { ok: false, status: 'disabled' };
+      return { ok: false, status: "disabled" };
     }
     try {
       const res = await this.client.health();
-      return { ok: true, status: res?.status ?? 'available' };
+      return { ok: true, status: res?.status ?? "available" };
     } catch (err) {
-      return { ok: false, status: 'unreachable', error: (err as Error).message };
+      return {
+        ok: false,
+        status: "unreachable",
+        error: (err as Error).message,
+      };
     }
   }
 

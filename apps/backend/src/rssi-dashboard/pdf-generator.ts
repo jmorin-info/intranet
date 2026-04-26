@@ -1,9 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage, degrees } from 'pdf-lib';
-import * as crypto from 'crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { CyberScoreService } from '../cyber-score/cyber-score.service';
-import { RssiDashboardService } from './rssi-dashboard.service';
+import { Injectable, Logger } from "@nestjs/common";
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+  PDFFont,
+  PDFPage,
+  degrees,
+} from "pdf-lib";
+import * as crypto from "crypto";
+import { PrismaService } from "../prisma/prisma.service";
+import { CyberScoreService } from "../cyber-score/cyber-score.service";
+import { RssiDashboardService } from "./rssi-dashboard.service";
 
 export interface SmsiPdfResult {
   buffer: Buffer;
@@ -46,11 +53,31 @@ export class RssiSmsiPdfGenerator {
   async generate(opts: SmsiPdfOptions): Promise<SmsiPdfResult> {
     const exportId = crypto.randomUUID();
     const generatedAt = new Date();
-    const version = opts.version || `1.${generatedAt.getFullYear()}.${generatedAt.getMonth() + 1}`;
+    const version =
+      opts.version ||
+      `1.${generatedAt.getFullYear()}.${generatedAt.getMonth() + 1}`;
 
     // Données métier — chaque appel est encapsulé pour ne pas casser le PDF
     // si une source est en panne (la section affichera "Non renseigné").
-    const safe = async <T>(fn: () => Promise<T>, fallback: T, label: string): Promise<T> => {
+    // safeOrNull retourne `T | null` — on ne peut pas typer fallback comme `T`
+    // sans surcharger les fonctions appelantes. Cette variante locale accepte
+    // un fallback `null` et retourne `Awaited<ReturnType> | null`.
+    const safeOrNull = async <T>(
+      fn: () => Promise<T>,
+      label: string,
+    ): Promise<T | null> => {
+      try {
+        return await fn();
+      } catch (err: any) {
+        this.logger.warn(`[smsi-pdf] ${label}: ${err?.message || err}`);
+        return null;
+      }
+    };
+    const safe = async <T>(
+      fn: () => Promise<T>,
+      fallback: T,
+      label: string,
+    ): Promise<T> => {
       try {
         return await fn();
       } catch (err: any) {
@@ -68,12 +95,15 @@ export class RssiSmsiPdfGenerator {
       snapshot,
       activeFrameworks,
     ] = await Promise.all([
-      safe(() => this.cyberScore.computeAndSnapshot({ persist: false }), null as any, 'cyber'),
-      safe(() => this.dashboard.getSmsiState(), null as any, 'smsi'),
-      safe(() => this.dashboard.getComplianceProgress(), null as any, 'compliance'),
-      safe(() => this.dashboard.getOperationalIndicators(), null as any, 'indicators'),
-      safe(() => this.dashboard.getIncidentTrend(), null as any, 'trend'),
-      safe(() => this.dashboard.getSnapshot(), null as any, 'snapshot'),
+      safeOrNull(
+        () => this.cyberScore.computeAndSnapshot({ persist: false }),
+        "cyber",
+      ),
+      safeOrNull(() => this.dashboard.getSmsiState(), "smsi"),
+      safeOrNull(() => this.dashboard.getComplianceProgress(), "compliance"),
+      safeOrNull(() => this.dashboard.getOperationalIndicators(), "indicators"),
+      safeOrNull(() => this.dashboard.getIncidentTrend(), "trend"),
+      safeOrNull(() => this.dashboard.getSnapshot(), "snapshot"),
       safe(
         () =>
           this.prisma.complianceFramework.findMany({
@@ -81,7 +111,7 @@ export class RssiSmsiPdfGenerator {
             select: { name: true, version: true },
           }),
         [],
-        'frameworks',
+        "frameworks",
       ),
     ]);
 
@@ -109,9 +139,12 @@ export class RssiSmsiPdfGenerator {
       marginX: 50,
       marginTop: 90,
       marginBottom: 70,
-      currentPage: null as any,
+      // RenderCtx.currentPage est défini après startContentPage() ; la valeur
+      // initiale est posée après création du pdfDoc — TODO: review type safety
+      // pour exposer `currentPage?: PDFPage` au lieu de la non-nullable.
+      currentPage: null as unknown as PDFPage,
       y: 0,
-      classification: 'CONFIDENTIEL',
+      classification: "CONFIDENTIEL",
       usableW: 0,
     };
     ctx.usableW = ctx.pageW - ctx.marginX * 2;
@@ -126,97 +159,103 @@ export class RssiSmsiPdfGenerator {
 
     // ─── CHAPITRE: Synthèse direction ─────────────────────────────────────
     this.startContentPage(ctx);
-    this.h1(ctx, 'Synthèse direction');
+    this.h1(ctx, "Synthèse direction");
     this.paragraph(
       ctx,
       "Cette synthèse présente les cinq indicateurs majeurs du Système de Management de la Sécurité de l'Information (SMSI) sur la dernière période. Elle vise une lecture en moins d'une minute par la direction.",
     );
     this.kpiGrid(ctx, [
       {
-        label: 'Cyber-score',
-        value: cyber?.score != null ? `${cyber.score}/100` : 'Non renseigné',
+        label: "Cyber-score",
+        value: cyber?.score != null ? `${cyber.score}/100` : "Non renseigné",
         caption: cyber?.trends
           ? `Var. 7j ${this.formatDelta(cyber.trends.delta7d)} - Var. 30j ${this.formatDelta(cyber.trends.delta30d)}`
-          : '-',
+          : "-",
       },
       {
-        label: 'Conformité ISO 27001',
-        value: compliance ? `${compliance.controls.pct}%` : 'Non renseigné',
+        label: "Conformité ISO 27001",
+        value: compliance ? `${compliance.controls.pct}%` : "Non renseigné",
         caption: compliance
           ? `${compliance.controls.covered}/${compliance.controls.total} contrôles`
-          : '—',
+          : "—",
       },
       {
-        label: 'Incidents 30j',
-        value: incidentTrend ? String(incidentTrend.total) : '0',
+        label: "Incidents 30j",
+        value: incidentTrend ? String(incidentTrend.total) : "0",
         caption: incidentTrend
           ? `${incidentTrend.top.length} critiques/élevés actifs`
-          : '—',
+          : "—",
       },
       {
-        label: 'MTTR / MTTD',
+        label: "MTTR / MTTD",
         value:
           indicators?.mttrHours != null
-            ? `${indicators.mttrHours}h / ${indicators.mttdHours ?? '—'}h`
-            : 'Non renseigné',
-        caption: 'moyenne 30j',
+            ? `${indicators.mttrHours}h / ${indicators.mttdHours ?? "—"}h`
+            : "Non renseigné",
+        caption: "moyenne 30j",
       },
       {
-        label: 'Couverture MFA',
-        value: indicators?.mfaPct != null ? `${indicators.mfaPct}%` : 'Non renseigné',
+        label: "Couverture MFA",
+        value:
+          indicators?.mfaPct != null
+            ? `${indicators.mfaPct}%`
+            : "Non renseigné",
         caption: indicators
           ? `${indicators.mfaEnabledUsers}/${indicators.mfaActiveUsers} utilisateurs`
-          : '—',
+          : "—",
       },
     ]);
 
     // ─── CHAPITRE 4 — Contexte ────────────────────────────────────────────
     this.startContentPage(ctx);
-    this.h1(ctx, '4. Contexte de l\'organisation');
-    this.h2(ctx, '4.1 Compréhension de l\'organisation et de son contexte');
+    this.h1(ctx, "4. Contexte de l'organisation");
+    this.h2(ctx, "4.1 Compréhension de l'organisation et de son contexte");
     this.paragraph(
       ctx,
-      'OMNITECH SECURITY opère dans le secteur de la sécurité physique et numérique. Le périmètre du SMSI couvre l\'ensemble des systèmes d\'information internes (intranet, GED, messagerie, postes de travail) ainsi que les services exposés aux clients et prestataires.',
+      "OMNITECH SECURITY opère dans le secteur de la sécurité physique et numérique. Le périmètre du SMSI couvre l'ensemble des systèmes d'information internes (intranet, GED, messagerie, postes de travail) ainsi que les services exposés aux clients et prestataires.",
     );
-    this.h2(ctx, '4.2 Compréhension des besoins et attentes des parties intéressées');
-    this.paragraph(
+    this.h2(
       ctx,
-      `Parties intéressées identifiées : direction, collaborateurs (${snapshot?.users?.active ?? '—'} utilisateurs actifs), clients, fournisseurs (DocuSeal, LDAP, hébergeur), autorités (CNIL, ANSSI). Leurs exigences sont collectées via revues de direction trimestrielles et analyses contractuelles.`,
+      "4.2 Compréhension des besoins et attentes des parties intéressées",
     );
-    this.h2(ctx, '4.3 Détermination du périmètre du SMSI');
     this.paragraph(
       ctx,
-      `Le SMSI couvre ${activeFrameworks.length > 0 ? activeFrameworks.map((f: { name: string; version: string }) => `${f.name} v${f.version}`).join(', ') : 'le référentiel ISO 27001:2022'}. Les actifs critiques sont au nombre de ${smsiState?.criticalAssets ?? 'Non renseigné — voir page Documents'} (documents classifiés CONFIDENTIEL/SECRET).`,
+      `Parties intéressées identifiées : direction, collaborateurs (${snapshot?.users?.active ?? "—"} utilisateurs actifs), clients, fournisseurs (DocuSeal, LDAP, hébergeur), autorités (CNIL, ANSSI). Leurs exigences sont collectées via revues de direction trimestrielles et analyses contractuelles.`,
+    );
+    this.h2(ctx, "4.3 Détermination du périmètre du SMSI");
+    this.paragraph(
+      ctx,
+      `Le SMSI couvre ${activeFrameworks.length > 0 ? activeFrameworks.map((f: { name: string; version: string }) => `${f.name} v${f.version}`).join(", ") : "le référentiel ISO 27001:2022"}. Les actifs critiques sont au nombre de ${smsiState?.criticalAssets ?? "Non renseigné — voir page Documents"} (documents classifiés CONFIDENTIEL/SECRET).`,
     );
 
     // ─── CHAPITRE 5 — Leadership ──────────────────────────────────────────
     this.startContentPage(ctx);
-    this.h1(ctx, '5. Leadership');
-    this.h2(ctx, '5.1 Leadership et engagement');
+    this.h1(ctx, "5. Leadership");
+    this.h2(ctx, "5.1 Leadership et engagement");
     this.paragraph(
       ctx,
-      `La direction d\'OMNITECH SECURITY s\'engage formellement dans la mise en œuvre, le maintien et l\'amélioration continue du SMSI. ${smsiState?.lastReview ? `Dernière revue de direction réalisée le ${this.formatDate(smsiState.lastReview.date)} (« ${smsiState.lastReview.title} »).` : 'Dernière revue de direction : Non renseigné — voir page Conformité.'}`,
+      `La direction d\'OMNITECH SECURITY s\'engage formellement dans la mise en œuvre, le maintien et l\'amélioration continue du SMSI. ${smsiState?.lastReview ? `Dernière revue de direction réalisée le ${this.formatDate(smsiState.lastReview.date)} (« ${smsiState.lastReview.title} »).` : "Dernière revue de direction : Non renseigné — voir page Conformité."}`,
     );
     this.paragraph(
       ctx,
-      `Prochaine revue planifiée : ${smsiState?.nextReview ? `${this.formatDate(smsiState.nextReview.date)} — ${smsiState.nextReview.title}` : 'Non renseigné — voir page Conformité.'}`,
+      `Prochaine revue planifiée : ${smsiState?.nextReview ? `${this.formatDate(smsiState.nextReview.date)} — ${smsiState.nextReview.title}` : "Non renseigné — voir page Conformité."}`,
     );
-    this.h2(ctx, '5.2 Politique');
+    this.h2(ctx, "5.2 Politique");
     this.paragraph(
       ctx,
-      `Le SMSI repose sur ${smsiState?.activePolicies ?? 'Non renseigné — voir page Documents'} politiques et procédures approuvées et publiées. Elles couvrent le contrôle d\'accès, la classification des informations, la gestion des incidents et la continuité.`,
+      `Le SMSI repose sur ${smsiState?.activePolicies ?? "Non renseigné — voir page Documents"} politiques et procédures approuvées et publiées. Elles couvrent le contrôle d\'accès, la classification des informations, la gestion des incidents et la continuité.`,
     );
 
     // ─── CHAPITRE 6 — Planification ──────────────────────────────────────
     this.startContentPage(ctx);
-    this.h1(ctx, '6. Planification');
-    this.h2(ctx, '6.1 Actions face aux risques et opportunités');
+    this.h1(ctx, "6. Planification");
+    this.h2(ctx, "6.1 Actions face aux risques et opportunités");
     this.paragraph(
       ctx,
-      `Risques opérationnels ouverts (incidents critiques/élevés non clôturés) : ${smsiState?.openRisks ?? 'Non renseigné'}. Tâches de conformité en retard : ${compliance?.tasks.overdue ?? 'Non renseigné'} sur ${compliance?.tasks.total ?? 0}.`,
+      `Risques opérationnels ouverts (incidents critiques/élevés non clôturés) : ${smsiState?.openRisks ?? "Non renseigné"}. Tâches de conformité en retard : ${compliance?.tasks.overdue ?? "Non renseigné"} sur ${compliance?.tasks.total ?? 0}.`,
     );
     if (incidentTrend?.top && incidentTrend.top.length > 0) {
-      this.paragraph(ctx, 'Top 3 incidents prioritaires :');
+      this.paragraph(ctx, "Top 3 incidents prioritaires :");
       for (const inc of incidentTrend.top) {
         this.bullet(
           ctx,
@@ -224,24 +263,27 @@ export class RssiSmsiPdfGenerator {
         );
       }
     }
-    this.h2(ctx, '6.2 Objectifs de sécurité de l\'information et plans pour les atteindre');
+    this.h2(
+      ctx,
+      "6.2 Objectifs de sécurité de l'information et plans pour les atteindre",
+    );
     this.paragraph(
       ctx,
-      `Objectif global de conformité ISO 27001 : ${compliance ? `${compliance.controls.pct}% atteint sur ${compliance.controls.total} contrôles` : 'Non renseigné'}. Objectif MFA : ${indicators?.mfaPct ?? 'Non renseigné'}% (cible 100%).`,
+      `Objectif global de conformité ISO 27001 : ${compliance ? `${compliance.controls.pct}% atteint sur ${compliance.controls.total} contrôles` : "Non renseigné"}. Objectif MFA : ${indicators?.mfaPct ?? "Non renseigné"}% (cible 100%).`,
     );
 
     // ─── CHAPITRE 7 — Support ────────────────────────────────────────────
     this.startContentPage(ctx);
-    this.h1(ctx, '7. Support');
-    this.h2(ctx, '7.1 Ressources');
+    this.h1(ctx, "7. Support");
+    this.h2(ctx, "7.1 Ressources");
     this.paragraph(
       ctx,
-      `Effectif actif : ${snapshot?.users?.active ?? 'Non renseigné'} collaborateurs. Tickets ouverts (charge actuelle) : ${snapshot?.tickets?.open ?? 'Non renseigné'} avec une résolution moyenne de ${snapshot?.tickets?.avgResolutionHours ?? '—'}h.`,
+      `Effectif actif : ${snapshot?.users?.active ?? "Non renseigné"} collaborateurs. Tickets ouverts (charge actuelle) : ${snapshot?.tickets?.open ?? "Non renseigné"} avec une résolution moyenne de ${snapshot?.tickets?.avgResolutionHours ?? "—"}h.`,
     );
-    this.h2(ctx, '7.2 Compétences');
+    this.h2(ctx, "7.2 Compétences");
     this.paragraph(
       ctx,
-      'La sensibilisation des collaborateurs est assurée par la signature des chartes (politique d\'usage, charte informatique) et les campagnes de quiz/phishing simulé.',
+      "La sensibilisation des collaborateurs est assurée par la signature des chartes (politique d'usage, charte informatique) et les campagnes de quiz/phishing simulé.",
     );
     if (snapshot?.chartes) {
       this.paragraph(
@@ -252,16 +294,16 @@ export class RssiSmsiPdfGenerator {
 
     // ─── CHAPITRE 8 — Fonctionnement ─────────────────────────────────────
     this.startContentPage(ctx);
-    this.h1(ctx, '8. Fonctionnement');
-    this.h2(ctx, '8.1 Planification et maîtrise opérationnelles');
+    this.h1(ctx, "8. Fonctionnement");
+    this.h2(ctx, "8.1 Planification et maîtrise opérationnelles");
     this.paragraph(
       ctx,
-      `Les processus opérationnels du SMSI sont supervisés via les indicateurs MTTR (Mean Time To Resolve) et MTTD (Mean Time To Detect) : MTTR = ${indicators?.mttrHours ?? '—'}h, MTTD = ${indicators?.mttdHours ?? '—'}h sur 30 jours.`,
+      `Les processus opérationnels du SMSI sont supervisés via les indicateurs MTTR (Mean Time To Resolve) et MTTD (Mean Time To Detect) : MTTR = ${indicators?.mttrHours ?? "—"}h, MTTD = ${indicators?.mttdHours ?? "—"}h sur 30 jours.`,
     );
-    this.h2(ctx, '8.2 Appréciation des risques');
+    this.h2(ctx, "8.2 Appréciation des risques");
     this.paragraph(
       ctx,
-      'L\'appréciation des risques est conduite à partir des incidents historiques, du flux de veille (CVE critiques) et des résultats de campagnes d\'access-review.',
+      "L'appréciation des risques est conduite à partir des incidents historiques, du flux de veille (CVE critiques) et des résultats de campagnes d'access-review.",
     );
     if (snapshot?.accessReviews) {
       this.paragraph(
@@ -269,65 +311,65 @@ export class RssiSmsiPdfGenerator {
         `Access-reviews : ${snapshot.accessReviews.pending} en cours, dont ${snapshot.accessReviews.overdue} en retard.`,
       );
     }
-    this.h2(ctx, '8.3 Traitement des risques');
+    this.h2(ctx, "8.3 Traitement des risques");
     this.paragraph(
       ctx,
-      'Le traitement des risques est documenté via les remédiations attachées à chaque incident (modèle Remediation) et via les tâches de conformité (modèle ComplianceTask).',
+      "Le traitement des risques est documenté via les remédiations attachées à chaque incident (modèle Remediation) et via les tâches de conformité (modèle ComplianceTask).",
     );
 
     // ─── CHAPITRE 9 — Évaluation des performances ────────────────────────
     this.startContentPage(ctx);
-    this.h1(ctx, '9. Évaluation des performances');
-    this.h2(ctx, '9.1 Surveillance, mesure, analyse et évaluation');
+    this.h1(ctx, "9. Évaluation des performances");
+    this.h2(ctx, "9.1 Surveillance, mesure, analyse et évaluation");
     this.paragraph(
       ctx,
-      'Les indicateurs sont produits en continu par l\'intranet OMNITECH (cyber-score quotidien, snapshots hebdomadaires, dashboard RSSI temps réel).',
+      "Les indicateurs sont produits en continu par l'intranet OMNITECH (cyber-score quotidien, snapshots hebdomadaires, dashboard RSSI temps réel).",
     );
     if (cyber?.domains) {
-      this.paragraph(ctx, 'Détail par domaine ISO 27001 (cyber-score) :');
+      this.paragraph(ctx, "Détail par domaine ISO 27001 (cyber-score) :");
       for (const dom of cyber.domains) {
         this.bullet(ctx, `${dom.name} (${dom.iso}) — ${dom.score}/100`);
       }
     }
-    this.h2(ctx, '9.2 Audit interne');
+    this.h2(ctx, "9.2 Audit interne");
     this.paragraph(
       ctx,
-      `Sur la période, ${snapshot?.audit?.eventsLast24h ?? 'Non renseigné'} événements d\'audit ont été enregistrés (24h glissantes). Connexions échouées : ${snapshot?.audit?.failedLoginsLast24h ?? '—'}.`,
+      `Sur la période, ${snapshot?.audit?.eventsLast24h ?? "Non renseigné"} événements d\'audit ont été enregistrés (24h glissantes). Connexions échouées : ${snapshot?.audit?.failedLoginsLast24h ?? "—"}.`,
     );
-    this.h2(ctx, '9.3 Revue de direction');
+    this.h2(ctx, "9.3 Revue de direction");
     this.paragraph(
       ctx,
       smsiState?.lastReview
-        ? `Dernière revue : ${this.formatDate(smsiState.lastReview.date)} — « ${smsiState.lastReview.title} ». Prochaine revue : ${smsiState?.nextReview ? this.formatDate(smsiState.nextReview.date) : 'à planifier'}.`
-        : 'Aucune revue de direction enregistrée. Non renseigné — voir page Conformité.',
+        ? `Dernière revue : ${this.formatDate(smsiState.lastReview.date)} — « ${smsiState.lastReview.title} ». Prochaine revue : ${smsiState?.nextReview ? this.formatDate(smsiState.nextReview.date) : "à planifier"}.`
+        : "Aucune revue de direction enregistrée. Non renseigné — voir page Conformité.",
     );
 
     // ─── CHAPITRE 10 — Amélioration ──────────────────────────────────────
     this.startContentPage(ctx);
-    this.h1(ctx, '10. Amélioration');
-    this.h2(ctx, '10.1 Non-conformités et actions correctives');
+    this.h1(ctx, "10. Amélioration");
+    this.h2(ctx, "10.1 Non-conformités et actions correctives");
     this.paragraph(
       ctx,
-      `Tâches de conformité en retard : ${compliance?.tasks.overdue ?? 'Non renseigné'}. Documents en retard de revue : ${snapshot?.documents?.dueForReview ?? '—'}.`,
+      `Tâches de conformité en retard : ${compliance?.tasks.overdue ?? "Non renseigné"}. Documents en retard de revue : ${snapshot?.documents?.dueForReview ?? "—"}.`,
     );
     if (compliance?.byDomain) {
-      this.paragraph(ctx, 'Couverture par domaine de l\'Annexe A :');
+      this.paragraph(ctx, "Couverture par domaine de l'Annexe A :");
       for (const [dom, v] of Object.entries(compliance.byDomain)) {
         const dv = v as { covered: number; total: number; pct: number };
         this.bullet(ctx, `${dom} — ${dv.covered}/${dv.total} (${dv.pct}%)`);
       }
     }
-    this.h2(ctx, '10.2 Amélioration continue');
+    this.h2(ctx, "10.2 Amélioration continue");
     this.paragraph(
       ctx,
-      'Le SMSI est révisé en boucle PDCA : revues de direction trimestrielles, mises à jour mensuelles du cyber-score, ajustement continu du registre des risques en fonction des incidents et de la veille.',
+      "Le SMSI est révisé en boucle PDCA : revues de direction trimestrielles, mises à jour mensuelles du cyber-score, ajustement continu du registre des risques en fonction des incidents et de la veille.",
     );
 
     // ─── FINALISATION ────────────────────────────────────────────────────
 
     // Hash sur un payload canonique (déterministe : on n'inclut PAS la date pour un hash reproductible si on regenere — cependant on inclut exportId pour le distinguer)
     const canonicalPayload = JSON.stringify({
-      title: 'Rapport SMSI ISO 27001:2022',
+      title: "Rapport SMSI ISO 27001:2022",
       version,
       author: opts.author,
       exportId,
@@ -335,25 +377,43 @@ export class RssiSmsiPdfGenerator {
       compliancePct: compliance?.controls.pct ?? null,
       mfaPct: indicators?.mfaPct ?? null,
     });
-    const hash = crypto.createHash('sha256').update(canonicalPayload).digest('hex');
+    const hash = crypto
+      .createHash("sha256")
+      .update(canonicalPayload)
+      .digest("hex");
 
-    pdfDoc.setTitle('Rapport SMSI ISO 27001:2022 — OMNITECH SECURITY');
+    pdfDoc.setTitle("Rapport SMSI ISO 27001:2022 — OMNITECH SECURITY");
     pdfDoc.setAuthor(opts.author);
-    pdfDoc.setSubject('Rapport SMSI structuré ISO 27001:2022');
-    pdfDoc.setCreator('OMNITECH Intranet');
+    pdfDoc.setSubject("Rapport SMSI structuré ISO 27001:2022");
+    pdfDoc.setCreator("OMNITECH Intranet");
     pdfDoc.setProducer(`OMNITECH Intranet (pdf-lib) — export ${exportId}`);
     pdfDoc.setCreationDate(generatedAt);
-    pdfDoc.setKeywords(['OMNITECH', 'SMSI', 'ISO27001', 'CONFIDENTIEL', `sha256:${hash}`]);
+    pdfDoc.setKeywords([
+      "OMNITECH",
+      "SMSI",
+      "ISO27001",
+      "CONFIDENTIEL",
+      `sha256:${hash}`,
+    ]);
 
     // Filigrane + footer sur toutes les pages
     const pages = pdfDoc.getPages();
     pages.forEach((page, idx) => {
       this.drawWatermark(ctx, page);
-      this.drawFooter(ctx, page, hash, idx + 1, pages.length, exportId, opts.author, generatedAt);
+      this.drawFooter(
+        ctx,
+        page,
+        hash,
+        idx + 1,
+        pages.length,
+        exportId,
+        opts.author,
+        generatedAt,
+      );
     });
 
     const bytes = await pdfDoc.save();
-    const fileName = `omnitech-smsi-iso27001-${generatedAt.toISOString().split('T')[0]}-${exportId.slice(0, 8)}.pdf`;
+    const fileName = `omnitech-smsi-iso27001-${generatedAt.toISOString().split("T")[0]}-${exportId.slice(0, 8)}.pdf`;
 
     this.logger.log(
       `[smsi-pdf] generated export=${exportId} by=${opts.author} hash=${hash.slice(0, 16)}... pages=${pages.length}`,
@@ -401,28 +461,28 @@ export class RssiSmsiPdfGenerator {
       color: ctx.colorOrange,
     });
 
-    page.drawText('OMNITECH SECURITY', {
+    page.drawText("OMNITECH SECURITY", {
       x: ctx.marginX,
       y: ctx.pageH - 110,
       size: 26,
       font: ctx.fontBold,
       color: rgb(1, 1, 1),
     });
-    page.drawText('Rapport SMSI', {
+    page.drawText("Rapport SMSI", {
       x: ctx.marginX,
       y: ctx.pageH - 170,
       size: 36,
       font: ctx.fontBold,
       color: rgb(1, 1, 1),
     });
-    page.drawText('ISO/IEC 27001:2022', {
+    page.drawText("ISO/IEC 27001:2022", {
       x: ctx.marginX,
       y: ctx.pageH - 210,
       size: 18,
       font: ctx.font,
       color: rgb(0.85, 0.9, 0.95),
     });
-    page.drawText('Système de Management de la Sécurité de l\'Information', {
+    page.drawText("Système de Management de la Sécurité de l'Information", {
       x: ctx.marginX,
       y: ctx.pageH - 240,
       size: 11,
@@ -443,11 +503,14 @@ export class RssiSmsiPdfGenerator {
     });
 
     const lines: Array<[string, string]> = [
-      ['Période', this.formatDate(info.generatedAt.toISOString())],
-      ['Version', info.version],
-      ['Auteur', info.author],
-      ['Classification', ctx.classification],
-      ['Cyber-score', info.cyberScore != null ? `${info.cyberScore}/100` : 'Non renseigné'],
+      ["Période", this.formatDate(info.generatedAt.toISOString())],
+      ["Version", info.version],
+      ["Auteur", info.author],
+      ["Classification", ctx.classification],
+      [
+        "Cyber-score",
+        info.cyberScore != null ? `${info.cyberScore}/100` : "Non renseigné",
+      ],
     ];
     let cy = boxY + 165;
     for (const [k, v] of lines) {
@@ -469,7 +532,7 @@ export class RssiSmsiPdfGenerator {
     }
 
     // Mention CONFIDENTIEL
-    page.drawText('DOCUMENT CONFIDENTIEL', {
+    page.drawText("DOCUMENT CONFIDENTIEL", {
       x: ctx.marginX,
       y: 200,
       size: 14,
@@ -477,7 +540,7 @@ export class RssiSmsiPdfGenerator {
       color: ctx.colorRed,
     });
     page.drawText(
-      'Diffusion restreinte — Direction et fonctions sécurité — Ne pas reproduire sans autorisation.',
+      "Diffusion restreinte — Direction et fonctions sécurité — Ne pas reproduire sans autorisation.",
       {
         x: ctx.marginX,
         y: 180,
@@ -509,7 +572,7 @@ export class RssiSmsiPdfGenerator {
       height: 2,
       color: ctx.colorOrange,
     });
-    page.drawText('OMNITECH SECURITY — Rapport SMSI ISO 27001:2022', {
+    page.drawText("OMNITECH SECURITY — Rapport SMSI ISO 27001:2022", {
       x: ctx.marginX,
       y: ctx.pageH - 32,
       size: 11,
@@ -631,7 +694,7 @@ export class RssiSmsiPdfGenerator {
     for (let i = 0; i < lines.length; i++) {
       this.ensureSpace(ctx, 14);
       if (i === 0) {
-        ctx.currentPage.drawText('•', {
+        ctx.currentPage.drawText("•", {
           x: ctx.marginX,
           y: ctx.y,
           size: 11,
@@ -715,7 +778,7 @@ export class RssiSmsiPdfGenerator {
   ): string[] {
     const words = text.split(/\s+/);
     const lines: string[] = [];
-    let current = '';
+    let current = "";
     for (const word of words) {
       const test = current ? `${current} ${word}` : word;
       if (fontRef.widthOfTextAtSize(test, size) > maxW && current) {
@@ -730,12 +793,12 @@ export class RssiSmsiPdfGenerator {
   }
 
   private formatDate(iso: string | null): string {
-    if (!iso) return 'Non renseigné';
+    if (!iso) return "Non renseigné";
     try {
-      return new Date(iso).toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
+      return new Date(iso).toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
       });
     } catch {
       return iso;
@@ -743,7 +806,7 @@ export class RssiSmsiPdfGenerator {
   }
 
   private formatDelta(delta: number | null): string {
-    if (delta == null) return 'n/a';
+    if (delta == null) return "n/a";
     if (delta > 0) return `+${delta}`;
     return String(delta);
   }

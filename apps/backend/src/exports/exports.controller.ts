@@ -1,19 +1,19 @@
-import { Body, Controller, Logger, Post, Res, UseGuards } from '@nestjs/common';
-import type { Response } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { RequestUser } from '../common/interfaces';
-import { SignedPdfService, SignedPdfInput } from './signed-pdf.service';
+import { Body, Controller, Logger, Post, Res, UseGuards } from "@nestjs/common";
+import type { Response } from "express";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import type { RequestUser } from "../common/interfaces";
+import { SignedPdfService, SignedPdfInput } from "./signed-pdf.service";
 
 interface GeneratePdfDto {
   title: string;
   subtitle?: string;
-  sections: SignedPdfInput['sections'];
+  sections: SignedPdfInput["sections"];
   reference?: string;
   context?: string;
 }
 
-@Controller('exports')
+@Controller("exports")
 @UseGuards(JwtAuthGuard)
 export class ExportsController {
   private readonly logger = new Logger(ExportsController.name);
@@ -27,7 +27,7 @@ export class ExportsController {
    * Limite de taille : 1 Mo de payload JSON (validation implicite via
    * NestJS global body-parser).
    */
-  @Post('pdf')
+  @Post("pdf")
   async exportPdf(
     @Body() dto: GeneratePdfDto,
     @CurrentUser() user: RequestUser,
@@ -39,8 +39,7 @@ export class ExportsController {
       sections: dto.sections || [],
       metadata: {
         author:
-          `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim() ||
-          user.email,
+          `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
         authorEmail: user.email,
         reference: dto.reference,
         context: dto.context,
@@ -48,12 +47,12 @@ export class ExportsController {
     });
 
     res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${result.fileName}"`,
-      'X-Export-Id': result.exportId,
-      'X-Export-Hash': result.hash,
-      'X-Export-GeneratedAt': result.generatedAt,
-      'Cache-Control': 'private, no-store',
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${result.fileName}"`,
+      "X-Export-Id": result.exportId,
+      "X-Export-Hash": result.hash,
+      "X-Export-GeneratedAt": result.generatedAt,
+      "Cache-Control": "private, no-store",
     });
     res.send(result.buffer);
   }

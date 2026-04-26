@@ -1,25 +1,46 @@
 import {
-  Controller, Get, Post, Param, Query, Body, Req, Res, UseGuards,
-  BadRequestException, NotFoundException, HttpCode, HttpStatus, Logger,
-} from '@nestjs/common';
-import { SkipThrottle } from '@nestjs/throttler';
-import { Request, Response } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Public } from '../auth/decorators/public.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtService } from '@nestjs/jwt';
-import { OfficeService } from '../office/office.service';
-import { EphemeralSessionService } from './ephemeral-session.service';
-import { RequestUser } from '../common/interfaces';
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  Body,
+  Req,
+  Res,
+  UseGuards,
+  BadRequestException,
+  NotFoundException,
+  HttpCode,
+  HttpStatus,
+  Logger,
+} from "@nestjs/common";
+import { SkipThrottle } from "@nestjs/throttler";
+import { Request, Response } from "express";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { Public } from "../auth/decorators/public.decorator";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { JwtService } from "@nestjs/jwt";
+import { OfficeService } from "../office/office.service";
+import { EphemeralSessionService } from "./ephemeral-session.service";
+import { RequestUser } from "../common/interfaces";
 
-const EDITABLE_EXT = ['docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'txt', 'csv'];
-const VIEWABLE_EXT = ['doc', 'xls', 'ppt', 'pdf', 'rtf', 'epub', 'fb2'];
+const EDITABLE_EXT = [
+  "docx",
+  "xlsx",
+  "pptx",
+  "odt",
+  "ods",
+  "odp",
+  "txt",
+  "csv",
+];
+const VIEWABLE_EXT = ["doc", "xls", "ppt", "pdf", "rtf", "epub", "fb2"];
 
 /**
  * Routes "Ouvrir dans OnlyOffice" pour les fichiers SMB
  * (chemin parallèle au flow GED qui passe par un Document persisté).
  */
-@Controller('fileserver/smb-office')
+@Controller("fileserver/smb-office")
 export class SmbOfficeController {
   private readonly logger = new Logger(SmbOfficeController.name);
 
@@ -33,37 +54,37 @@ export class SmbOfficeController {
    * Crée une session éphémère pour le fichier SMB et renvoie une config OnlyOffice
    * prête à être passée à `DocsAPI.DocEditor`.
    */
-  @Post('open')
+  @Post("open")
   @UseGuards(JwtAuthGuard)
   async openFile(
-    @Body() body: { path: string; mode?: 'edit' | 'view' },
+    @Body() body: { path: string; mode?: "edit" | "view" },
     @CurrentUser() user: RequestUser,
   ) {
     if (!body?.path) {
       throw new BadRequestException('Le champ "path" est requis');
     }
     if (!this.officeService.isEnabled()) {
-      throw new BadRequestException('OnlyOffice est désactivé côté backend');
+      throw new BadRequestException("OnlyOffice est désactivé côté backend");
     }
 
-    const mode: 'edit' | 'view' = body.mode === 'view' ? 'view' : 'edit';
+    const mode: "edit" | "view" = body.mode === "view" ? "view" : "edit";
 
     // Détermine l'extension et la capacité d'édition
-    const fileNameRaw = body.path.replace(/\\/g, '/').split('/').pop() || '';
+    const fileNameRaw = body.path.replace(/\\/g, "/").split("/").pop() || "";
     const extMatch = fileNameRaw.match(/\.([^.]+)$/);
-    const extension = extMatch ? extMatch[1]!.toLowerCase() : '';
+    const extension = extMatch ? extMatch[1]!.toLowerCase() : "";
     const isEditableFormat = EDITABLE_EXT.includes(extension);
     const isViewableFormat = VIEWABLE_EXT.includes(extension);
     if (!isEditableFormat && !isViewableFormat) {
       throw new BadRequestException(
-        `Extension .${extension || '?'} non supportée par OnlyOffice`,
+        `Extension .${extension || "?"} non supportée par OnlyOffice`,
       );
     }
 
     // Tous les utilisateurs ayant accès au partage peuvent éditer (l'autorisation
     // SMB est gérée par le serveur AD côté FileserverService). La distinction
     // viewer/editor reste utile pour les formats legacy non éditables.
-    const canEdit = mode === 'edit' && isEditableFormat;
+    const canEdit = mode === "edit" && isEditableFormat;
 
     const { session, token } = this.sessions.createSession({
       rawPath: body.path,
@@ -77,10 +98,10 @@ export class SmbOfficeController {
     const internalBackendUrl = (
       process.env.ONLYOFFICE_INTERNAL_URL ||
       process.env.APP_URL ||
-      'http://localhost:3000'
+      "http://localhost:3000"
     )
-      .replace(/\/api\/?$/, '')
-      .replace(/\/$/, '');
+      .replace(/\/api\/?$/, "")
+      .replace(/\/$/, "");
 
     const fileUrl = `${internalBackendUrl}/api/fileserver/smb-office/file/${session.sessionId}?token=${token}`;
     const callbackUrl = `${internalBackendUrl}/api/fileserver/smb-office/callback/${session.sessionId}?token=${token}`;
@@ -108,19 +129,18 @@ export class SmbOfficeController {
       },
       documentType,
       editorConfig: {
-        mode: canEdit ? 'edit' : 'view',
-        lang: 'fr-FR',
+        mode: canEdit ? "edit" : "view",
+        lang: "fr-FR",
         callbackUrl: canEdit ? callbackUrl : undefined,
         user: {
           id: user.id,
-          name:
-            `${(user as any).firstName || ''} ${(user as any).lastName || user.email}`.trim(),
+          name: `${user.firstName || ""} ${user.lastName || user.email}`.trim(),
         },
         customization: {
           autosave: true,
           forcesave: true,
           toolbarNoTabs: false,
-          uiTheme: 'theme-classic-light',
+          uiTheme: "theme-classic-light",
         },
       },
     };
@@ -130,7 +150,7 @@ export class SmbOfficeController {
     if (onlyofficeSecret) {
       config.token = this.jwtService.sign(config, {
         secret: onlyofficeSecret,
-        expiresIn: '8h',
+        expiresIn: "8h",
       });
     }
 
@@ -150,28 +170,30 @@ export class SmbOfficeController {
    */
   @Public()
   @SkipThrottle()
-  @Get('file/:sessionId')
+  @Get("file/:sessionId")
   async downloadFile(
-    @Param('sessionId') sessionId: string,
-    @Query('token') token: string,
+    @Param("sessionId") sessionId: string,
+    @Query("token") token: string,
     @Res() res: Response,
   ) {
     if (!token) {
-      throw new BadRequestException('Token manquant');
+      throw new BadRequestException("Token manquant");
     }
     const tokenSessionId = this.sessions.verifyToken(token);
     if (!tokenSessionId || tokenSessionId !== sessionId) {
-      throw new NotFoundException('Token invalide ou expiré');
+      throw new NotFoundException("Token invalide ou expiré");
     }
 
     const { buffer, fileName } = this.sessions.getFileBuffer(sessionId);
-    this.logger.log(`[smb-office/file] streaming sessionId=${sessionId} bytes=${buffer.length}`);
+    this.logger.log(
+      `[smb-office/file] streaming sessionId=${sessionId} bytes=${buffer.length}`,
+    );
     res.set({
-      'Content-Type': 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
-      'Cache-Control': 'private, no-cache',
-      'Access-Control-Allow-Origin': '*',
-      'Content-Length': buffer.length.toString(),
+      "Content-Type": "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${encodeURIComponent(fileName)}"`,
+      "Cache-Control": "private, no-cache",
+      "Access-Control-Allow-Origin": "*",
+      "Content-Length": buffer.length.toString(),
     });
     res.send(buffer);
   }
@@ -182,21 +204,25 @@ export class SmbOfficeController {
    */
   @Public()
   @SkipThrottle()
-  @Post('callback/:sessionId')
+  @Post("callback/:sessionId")
   @HttpCode(HttpStatus.OK)
   async handleCallback(
-    @Param('sessionId') sessionId: string,
-    @Query('token') token: string,
+    @Param("sessionId") sessionId: string,
+    @Query("token") token: string,
     @Body() body: any,
     @Req() _req: Request,
   ): Promise<{ error: number }> {
     if (!token) {
-      this.logger.warn(`[smb-office/callback] token manquant sessionId=${sessionId}`);
+      this.logger.warn(
+        `[smb-office/callback] token manquant sessionId=${sessionId}`,
+      );
       return { error: 1 };
     }
     const tokenSessionId = this.sessions.verifyToken(token);
     if (!tokenSessionId || tokenSessionId !== sessionId) {
-      this.logger.warn(`[smb-office/callback] token invalide sessionId=${sessionId}`);
+      this.logger.warn(
+        `[smb-office/callback] token invalide sessionId=${sessionId}`,
+      );
       return { error: 1 };
     }
 
@@ -214,7 +240,9 @@ export class SmbOfficeController {
 
     const downloadUrl = body?.url;
     if (!downloadUrl) {
-      this.logger.warn(`[smb-office/callback] pas d'URL de téléchargement sessionId=${sessionId}`);
+      this.logger.warn(
+        `[smb-office/callback] pas d'URL de téléchargement sessionId=${sessionId}`,
+      );
       return { error: 1 };
     }
 
@@ -243,4 +271,3 @@ export class SmbOfficeController {
     }
   }
 }
-

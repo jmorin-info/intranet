@@ -1,14 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
 
-export type NotificationChannel = 'email' | 'inApp' | 'push';
+export type NotificationChannel = "email" | "inApp" | "push";
 export type NotificationCategory =
-  | 'tickets'
-  | 'documents'
-  | 'incidents'
-  | 'mentions';
+  | "tickets"
+  | "documents"
+  | "incidents"
+  | "mentions";
 
-export type DigestFrequency = 'off' | 'daily' | 'weekly';
+export type DigestFrequency = "off" | "daily" | "weekly";
 
 export interface EmailChannelPrefs {
   tickets: boolean;
@@ -49,7 +50,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
     documents: true,
     incidents: true,
     mentions: true,
-    digest: 'daily',
+    digest: "daily",
   },
   inApp: {
     tickets: true,
@@ -74,10 +75,16 @@ export function categoryFromType(
 ): NotificationCategory | null {
   if (!type) return null;
   const t = String(type).toUpperCase();
-  if (t.startsWith('TICKET_')) return 'tickets';
-  if (t.startsWith('DOC_') || t === 'SIGNATURE_NEEDED' || t === 'ACK_REQUIRED' || t === 'REVIEW_OVERDUE') return 'documents';
-  if (t === 'INCIDENT_CREATED' || t.startsWith('INCIDENT_')) return 'incidents';
-  if (t === 'MENTION' || t.endsWith('_MENTION')) return 'mentions';
+  if (t.startsWith("TICKET_")) return "tickets";
+  if (
+    t.startsWith("DOC_") ||
+    t === "SIGNATURE_NEEDED" ||
+    t === "ACK_REQUIRED" ||
+    t === "REVIEW_OVERDUE"
+  )
+    return "documents";
+  if (t === "INCIDENT_CREATED" || t.startsWith("INCIDENT_")) return "incidents";
+  if (t === "MENTION" || t.endsWith("_MENTION")) return "mentions";
   return null;
 }
 
@@ -95,12 +102,13 @@ export class NotificationPreferencesService {
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { notificationPreferences: true } as any,
+        select: { notificationPreferences: true },
       });
-      const raw = (user as any)?.notificationPreferences;
-      return this.mergeWithDefaults(raw);
+      return this.mergeWithDefaults(user?.notificationPreferences);
     } catch (err) {
-      this.logger.warn(`Failed to load prefs for ${userId}: ${err instanceof Error ? err.message : err}`);
+      this.logger.warn(
+        `Failed to load prefs for ${userId}: ${err instanceof Error ? err.message : err}`,
+      );
       return { ...DEFAULT_NOTIFICATION_PREFERENCES };
     }
   }
@@ -121,13 +129,20 @@ export class NotificationPreferencesService {
     };
 
     // Normalise digest value
-    if (next.email.digest !== 'off' && next.email.digest !== 'daily' && next.email.digest !== 'weekly') {
-      next.email.digest = 'daily';
+    if (
+      next.email.digest !== "off" &&
+      next.email.digest !== "daily" &&
+      next.email.digest !== "weekly"
+    ) {
+      next.email.digest = "daily";
     }
 
     await this.prisma.user.update({
       where: { id: userId },
-      data: { notificationPreferences: next as any } as any,
+      // Prisma.InputJsonValue : sérialisation directe des préférences typées.
+      data: {
+        notificationPreferences: next as unknown as Prisma.InputJsonValue,
+      },
     });
 
     return next;
@@ -150,19 +165,26 @@ export class NotificationPreferencesService {
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { notificationPreferences: true } as any,
+        select: { notificationPreferences: true },
       });
-      const raw = (user as any)?.notificationPreferences;
+      const raw = user?.notificationPreferences;
       if (!raw) return true; // no prefs yet → default-allow (backward compat)
 
       const prefs = this.mergeWithDefaults(raw);
-      if (channel === 'push') {
-        if (category === 'documents') return false; // documents never in push matrix
-        return Boolean((prefs.push as any)[category]);
+      if (channel === "push") {
+        if (category === "documents") return false; // documents never in push matrix
+        // PushChannelPrefs has all keys except 'documents' — typed indexing.
+        return Boolean(
+          (prefs.push as Record<NotificationCategory, boolean>)[category],
+        );
       }
-      return Boolean((prefs[channel] as any)[category]);
+      return Boolean(
+        (prefs[channel] as Record<NotificationCategory, boolean>)[category],
+      );
     } catch (err) {
-      this.logger.warn(`Pref check failed (${channel}/${type}): ${err instanceof Error ? err.message : err}`);
+      this.logger.warn(
+        `Pref check failed (${channel}/${type}): ${err instanceof Error ? err.message : err}`,
+      );
       return true; // fail-open
     }
   }
@@ -177,8 +199,14 @@ export class NotificationPreferencesService {
 
   private mergeWithDefaults(raw: unknown): NotificationPreferences {
     const d = DEFAULT_NOTIFICATION_PREFERENCES;
-    if (!raw || typeof raw !== 'object') return { email: { ...d.email }, inApp: { ...d.inApp }, push: { ...d.push } };
-    const obj = raw as any;
+    if (!raw || typeof raw !== "object")
+      return {
+        email: { ...d.email },
+        inApp: { ...d.inApp },
+        push: { ...d.push },
+      };
+    // Prisma.JsonValue dynamique : on copie les sous-objets quand présents.
+    const obj = raw as Partial<NotificationPreferences>;
     return {
       email: { ...d.email, ...(obj.email || {}) },
       inApp: { ...d.inApp, ...(obj.inApp || {}) },

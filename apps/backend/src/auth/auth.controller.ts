@@ -118,8 +118,7 @@ export class AuthController {
     // frontend redirige vers la page d'enrôlement MFA avant toute autre action.
     const mfaSetupRequired =
       !user.mfaEnabled &&
-      (user.role === UserRole.PRESTATAIRE ||
-        (user as any).mfaRequired === true);
+      (user.role === UserRole.PRESTATAIRE || user.mfaRequired === true);
 
     // Login (with optional mfaSetupRequired flag)
     const loginResult = await this.authService.login(user, ip, userAgent);

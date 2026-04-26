@@ -12,6 +12,11 @@ import {
   MeiliDocument,
 } from "../search/meilisearch.service";
 import { Cron } from "@nestjs/schedule";
+import {
+  Prisma,
+  TicketPriority as PrismaTicketPriority,
+  TicketStatus as PrismaTicketStatus,
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { AuditService } from "../audit/audit.service";
@@ -58,18 +63,18 @@ const SLA_HOURS: Record<string, number> = {
 // Mapping catégorie → rôle/mot-clé pour suggestion d'assignation
 const CATEGORY_ASSIGNEES: Record<
   string,
-  { role?: string; departmentKeyword?: string; label: string }
+  { role?: UserRole; departmentKeyword?: string; label: string }
 > = {
   SECURITY: {
-    role: "ADMIN",
+    role: UserRole.ADMIN,
     departmentKeyword: "ssi",
     label: "RSSI / Équipe SSI",
   },
   NETWORK: { departmentKeyword: "réseau", label: "Équipe réseau" },
   HARDWARE: { departmentKeyword: "support", label: "Support IT" },
   SOFTWARE: { departmentKeyword: "dev", label: "Équipe développement" },
-  ACCESS: { role: "ADMIN", label: "Administrateur" },
-  OTHER: { role: "ADMIN", label: "Administrateur" },
+  ACCESS: { role: UserRole.ADMIN, label: "Administrateur" },
+  OTHER: { role: UserRole.ADMIN, label: "Administrateur" },
 };
 
 @Injectable()
@@ -101,7 +106,7 @@ export class TicketsService {
           where: { id: ticketId },
         });
         if (!fresh) return;
-        await this.calendar!.syncFromTicket(fresh as any, oldAssigneeId);
+        await this.calendar!.syncFromTicket(fresh, oldAssigneeId);
       } catch (err) {
         this.logger.warn(
           `Calendar sync failed for ticket ${ticketId}: ${(err as Error)?.message ?? err}`,
@@ -220,18 +225,23 @@ export class TicketsService {
       })
       .catch(() => null);
     if (!row) return null;
-    const meta = (row.metadata as any) || {};
+    // Prisma.JsonValue dynamique — extraction défensive
+    const meta = (row.metadata as Record<string, unknown> | null) ?? {};
     return {
-      suggestedCategory: meta.suggestedCategory || "OTHER",
-      suggestedPriority: meta.suggestedPriority || "MEDIUM",
+      suggestedCategory: (meta.suggestedCategory as string) || "OTHER",
+      suggestedPriority: (meta.suggestedPriority as string) || "MEDIUM",
       suggestedTags: Array.isArray(meta.suggestedTags)
-        ? meta.suggestedTags
+        ? (meta.suggestedTags as string[])
         : [],
-      riskFlags: Array.isArray(meta.riskFlags) ? meta.riskFlags : [],
+      riskFlags: Array.isArray(meta.riskFlags)
+        ? (meta.riskFlags as string[])
+        : [],
       confidence: typeof meta.confidence === "number" ? meta.confidence : 0,
-      userCategory: meta.userCategory || "OTHER",
-      userPriority: meta.userPriority || "MEDIUM",
-      differs: meta.differs || { category: false, priority: false },
+      userCategory: (meta.userCategory as string) || "OTHER",
+      userPriority: (meta.userPriority as string) || "MEDIUM",
+      differs: (meta.differs as
+        | { category: boolean; priority: boolean }
+        | undefined) || { category: false, priority: false },
       createdAt: row.createdAt,
     };
   }
@@ -350,17 +360,22 @@ export class TicketsService {
     role: string;
     departmentId?: string | null;
   }) {
-    const spaces =
-      (await (this.prisma as any).ticketSpace
-        ?.findMany?.({
-          where: { isActive: true },
-          orderBy: [{ isDefault: "desc" }, { name: "asc" }],
-          include: {
-            _count: { select: { tickets: true } },
-            members: true,
-          },
-        })
-        .catch(() => [])) ?? [];
+    type SpaceWithMembers = Prisma.TicketSpaceGetPayload<{
+      include: {
+        _count: { select: { tickets: true } };
+        members: true;
+      };
+    }>;
+    const spaces: SpaceWithMembers[] = await this.prisma.ticketSpace
+      .findMany({
+        where: { isActive: true },
+        orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+        include: {
+          _count: { select: { tickets: true } },
+          members: true,
+        },
+      })
+      .catch(() => [] as SpaceWithMembers[]);
 
     if (!currentUser) return spaces;
 
@@ -387,17 +402,15 @@ export class TicketsService {
    * Get a single space by slug or id.
    */
   async findSpaceBySlugOrId(slugOrId: string) {
-    return (
-      (this.prisma as any).ticketSpace
-        ?.findFirst?.({
-          where: {
-            OR: [{ slug: slugOrId }, { id: slugOrId }],
-            isActive: true,
-          },
-          include: { members: true },
-        })
-        .catch(() => null) ?? null
-    );
+    return this.prisma.ticketSpace
+      .findFirst({
+        where: {
+          OR: [{ slug: slugOrId }, { id: slugOrId }],
+          isActive: true,
+        },
+        include: { members: true },
+      })
+      .catch(() => null);
   }
 
   async findAll(
@@ -474,8 +487,8 @@ export class TicketsService {
       }
       where.spaceId = filters.spaceId;
     } else if (filters.spaceSlug) {
-      const space = await (this.prisma as any).ticketSpace
-        ?.findUnique?.({ where: { slug: filters.spaceSlug } })
+      const space = await this.prisma.ticketSpace
+        .findUnique({ where: { slug: filters.spaceSlug } })
         .catch(() => null);
       if (space) {
         if (
@@ -495,7 +508,7 @@ export class TicketsService {
 
     if (filters.status) {
       const parsed = parseEnumFilter(filters.status, VALID_TICKET_STATUSES);
-      if (parsed) where.status = parsed as any;
+      if (parsed) where.status = parsed;
     }
     if (filters.priority) {
       const parsed = validateEnum(filters.priority, VALID_TICKET_PRIORITIES);
@@ -573,8 +586,8 @@ export class TicketsService {
       const isAssignee = ticket.assigneeId === currentUser.id;
       const sameDepartment =
         currentUser.departmentId &&
-        (ticket as any).departmentId &&
-        (ticket as any).departmentId === currentUser.departmentId;
+        ticket.departmentId &&
+        ticket.departmentId === currentUser.departmentId;
 
       if (!isCreator && !isAssignee && !sameDepartment) {
         throw new ForbiddenException("Accès refusé");
@@ -618,8 +631,8 @@ export class TicketsService {
     // default space (if one is configured).
     let spaceId: string | null = data.spaceId || null;
     if (!spaceId) {
-      const defaultSpace = await (this.prisma as any).ticketSpace
-        ?.findFirst?.({ where: { isDefault: true, isActive: true } })
+      const defaultSpace = await this.prisma.ticketSpace
+        .findFirst({ where: { isDefault: true, isActive: true } })
         .catch(() => null);
       if (defaultSpace) spaceId = defaultSpace.id;
     }
@@ -635,15 +648,15 @@ export class TicketsService {
           reference: ref,
           title: sanitizePlainText(data.title),
           description: sanitizePlainText(data.description),
-          category: (validateEnum(data.category, VALID_TICKET_CATEGORIES) ||
-            "OTHER") as any,
-          priority: (validateEnum(data.priority, VALID_TICKET_PRIORITIES) ||
-            "MEDIUM") as any,
+          category:
+            validateEnum(data.category, VALID_TICKET_CATEGORIES) || "OTHER",
+          priority:
+            validateEnum(data.priority, VALID_TICKET_PRIORITIES) || "MEDIUM",
           tags: mergedTags,
           creatorId: userId,
           departmentId,
           ...(spaceId ? { spaceId } : {}),
-        } as any);
+        });
         break;
       } catch (err: any) {
         const isRefConflict =
@@ -673,7 +686,7 @@ export class TicketsService {
           userId: admin.id,
           type: "TICKET_CREATED",
           title: `Nouveau ticket ${ticket.reference}`,
-          body: `${(ticket as any).creator?.firstName ?? ""} ${(ticket as any).creator?.lastName ?? ""}: ${data.title}`,
+          body: `${ticket.creator?.firstName ?? ""} ${ticket.creator?.lastName ?? ""}: ${data.title}`,
           resourceType: "Ticket",
           resourceId: ticket.id,
         }),
@@ -732,7 +745,7 @@ export class TicketsService {
           where: {
             isActive: true,
             deletedAt: null,
-            role: mapping.role as any,
+            role: mapping.role,
           },
           select: { id: true, firstName: true, lastName: true },
         });
@@ -780,7 +793,9 @@ export class TicketsService {
     }
     if (
       data.priority &&
-      !VALID_TICKET_PRIORITIES.includes(data.priority as any)
+      !VALID_TICKET_PRIORITIES.includes(
+        data.priority as (typeof VALID_TICKET_PRIORITIES)[number],
+      )
     ) {
       throw new BadRequestException(
         `Priorité invalide: ${data.priority}. Valeurs acceptées: ${VALID_TICKET_PRIORITIES.join(", ")}`,
@@ -1264,7 +1279,7 @@ export class TicketsService {
       updatePromises.push(
         this.repo.updateMany(
           { id: { in: ids } },
-          { priority: newPriority as any },
+          { priority: newPriority as PrismaTicketPriority },
         ),
       );
     }
@@ -1294,7 +1309,9 @@ export class TicketsService {
 
   async getAnalytics() {
     const resolvedWhere = {
-      status: { in: ["RESOLVED", "CLOSED"] as any },
+      status: {
+        in: [PrismaTicketStatus.RESOLVED, PrismaTicketStatus.CLOSED],
+      },
       resolvedAt: { not: null },
     };
 
