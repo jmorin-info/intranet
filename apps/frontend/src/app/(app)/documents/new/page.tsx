@@ -217,11 +217,21 @@ export default function NewDocumentPage() {
   const [duplicates, setDuplicates] = useState<Array<{ id: string; title: string; reference: string; status: string }>>([]);
   const duplicateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Auto-save brouillon localStorage : protège l'utilisateur contre la perte
+  // d'un formulaire long (10 min de saisie) en cas d'expiration de session,
+  // crash navigateur ou fermeture d'onglet par erreur. Restoration au mount,
+  // sauvegarde toutes les 2s avec debounce. Clé scoped par user pour éviter
+  // qu'un user voie le brouillon d'un autre sur poste partagé.
+  const DRAFT_KEY = 'documents/new/draft';
+  const draftSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
+
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<DocumentForm>({
     // Création de procédure : Noa filtrée par la whitelist runtime
@@ -233,6 +243,56 @@ export default function NewDocumentPage() {
       category: (searchParams.get('category') as DocumentCategory) || undefined,
     },
   });
+
+  // Restoration brouillon au mount (1x)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.savedAt && Date.now() - parsed.savedAt < 7 * 24 * 3600_000) {
+          // Brouillon < 7 jours → restaurer (au-delà : on considère obsolète)
+          if (parsed.values) reset(parsed.values);
+          if (parsed.selectedControls) setSelectedControls(parsed.selectedControls);
+          if (parsed.selectedReviewerId) setSelectedReviewerId(parsed.selectedReviewerId);
+          if (typeof parsed.isPermanent === 'boolean') setIsPermanent(parsed.isPermanent);
+          if (typeof parsed.directPublish === 'boolean') setDirectPublish(parsed.directPublish);
+          setDraftRestored(true);
+          // Auto-dismiss l'indicateur après 6s
+          setTimeout(() => setDraftRestored(false), 6000);
+        }
+      }
+    } catch {
+      /* localStorage indisponible ou JSON corrompu — ignore silencieusement */
+    }
+  }, [reset]);
+
+  // Auto-save sur changement form (debounce 2s)
+  const watchedAll = watch();
+  useEffect(() => {
+    if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    if (!isDirty) return;
+    draftSaveTimer.current = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({
+            savedAt: Date.now(),
+            values: watchedAll,
+            selectedControls,
+            selectedReviewerId,
+            isPermanent,
+            directPublish,
+          }),
+        );
+      } catch {
+        /* quota dépassé / mode privé : ignore */
+      }
+    }, 2000);
+    return () => {
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    };
+  }, [watchedAll, selectedControls, selectedReviewerId, isPermanent, directPublish, isDirty]);
 
   useEffect(() => {
     api.get('/iso-controls', { params: { limit: 100 } }).then(({ data }) => {
@@ -379,6 +439,8 @@ export default function NewDocumentPage() {
         });
       }
       toast.success('Brouillon enregistré');
+      // Brouillon serveur enregistré → purger le brouillon localStorage
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
       router.push(`/documents/${doc.id}`);
     } catch (error: unknown) {
       const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Erreur';
@@ -420,6 +482,9 @@ export default function NewDocumentPage() {
           ? 'Document publié directement (workflow court-circuité)'
           : t('documents.new.success'),
       );
+      // Brouillon submitted avec succès → purger pour ne pas le re-restaurer
+      // au prochain /documents/new
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
       router.push(`/documents/${doc.id}`);
     } catch (error: unknown) {
       const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || t('documents.new.error');
@@ -446,6 +511,43 @@ export default function NewDocumentPage() {
           </button>
         }
       />
+
+      {/* Indicateur restauration brouillon (auto-dismiss 6s) */}
+      {draftRestored && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200 animate-fade-in-up"
+        >
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-200 text-xs font-bold dark:bg-emerald-800">
+            ✓
+          </span>
+          <div className="flex-1">
+            <p className="font-medium">Brouillon restauré automatiquement</p>
+            <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80 mt-0.5">
+              Les modifications de votre dernière session ont été récupérées.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+              window.location.reload();
+            }}
+            className="text-xs font-semibold underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded"
+          >
+            Repartir de zéro
+          </button>
+          <button
+            type="button"
+            onClick={() => setDraftRestored(false)}
+            className="text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded"
+            aria-label="Fermer la notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Wizard stepper */}
       <Card>
