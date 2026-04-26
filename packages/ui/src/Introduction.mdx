@@ -1,0 +1,43 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Introduction" />
+
+# OMNITECH SECURITY — Design System (`@omnitech/ui`)
+
+Bibliothèque de composants React utilisée par l'intranet OMNITECH SECURITY.
+Charte SEAL System — couleurs PANTONE officielles.
+
+## Charte graphique
+
+| Token            | Hex        | PANTONE   | Usage                              |
+| ---------------- | ---------- | --------- | ---------------------------------- |
+| `seal-orange`    | `#F9964A`  | 715C      | Accent signature, CTA primaires    |
+| `primary`        | `#F68D2E`  | 715C web  | Boutons, accent navigation         |
+| `seal-navy`      | `#004469`  | —         | Texte principal, bordures focus    |
+| `seal-blue`      | `#296DC1`  | 660C      | Variantes info / process           |
+| `seal-green`     | `#006233`  | 349C      | Success, conformité ISO            |
+| `seal-bordeaux`  | `#892034`  | 202C      | Destructive, erreurs critiques     |
+
+## Mode sombre
+
+Toggle Light/Dark dans la barre d'outils Storybook
+(addon `@storybook/addon-themes`). La classe `dark` est posée sur la racine,
+identique au comportement Next.js du frontend (`darkMode: 'class'`).
+
+## Composants
+
+- **Primitives** : Button, Input, Textarea, Select, Badge, Avatar, Skeleton
+- **Layout** : Card (+ Header / Content / Footer), Tabs
+- **Feedback** : Dialog (+ ConfirmDialog), Tooltip, EmptyState
+- **Data** : DataTable, SearchInput
+- **Métier OMNITECH** : StatusBadge, SignatureBadge, IsoControlBadge, FileUploadZone, WorkflowTimeline
+
+## Démarrage
+
+```bash
+pnpm --filter @omnitech/ui storybook
+# → http://localhost:6006
+
+pnpm --filter @omnitech/ui build-storybook
+# → packages/ui/storybook-static/
+```
