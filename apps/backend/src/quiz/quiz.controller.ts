@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Query, Param, UseGuards, ParseUUIDPipe, Res } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Query, Param, UseGuards, ParseUUIDPipe, Res, ForbiddenException } from '@nestjs/common';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -30,8 +30,18 @@ export class QuizController {
   }
 
   @Get('certificate/:auditLogId')
-  async getCertificate(@Param('auditLogId', ParseUUIDPipe) auditLogId: string, @Res() res: Response) {
+  async getCertificate(
+    @Param('auditLogId', ParseUUIDPipe) auditLogId: string,
+    @CurrentUser() user: RequestUser,
+    @Res() res: Response,
+  ) {
     const data = await this.quizService.getCertificateData(auditLogId);
+    // IDOR fix: a user can only fetch their own certificate. Admins/super-admins
+    // can access any certificate (audit / re-issuance).
+    const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+    if (!isAdmin && data.userId !== user.id) {
+      throw new ForbiddenException('Vous ne pouvez consulter que vos propres certificats.');
+    }
     const html = this.quizService.generateCertificate(
       data.userId, data.userName, data.campaignTitle, data.score, data.total, data.date, data.auditLogId,
     );

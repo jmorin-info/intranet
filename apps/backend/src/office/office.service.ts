@@ -860,8 +860,12 @@ export class OfficeService {
         return { error: 1 };
       }
 
-      // Télécharge le fichier modifié depuis OnlyOffice Docs
-      const response = await fetch(downloadUrl);
+      // Télécharge le fichier modifié depuis OnlyOffice Docs.
+      // Timeout 60s : éviter de bloquer le callback save indéfiniment si Docs Server est indisponible
+      // (sinon Docs Server retentera et on accumule des versions ratées).
+      const response = await fetch(downloadUrl, {
+        signal: AbortSignal.timeout(60_000),
+      });
       if (!response.ok) {
         throw new Error(`Download failed: ${response.status}`);
       }

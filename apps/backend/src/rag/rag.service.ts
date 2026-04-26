@@ -703,7 +703,10 @@ export class RagService {
   async callLlm(prompt: string, maxTokens = 500): Promise<string> {
     const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
     const model = process.env.OLLAMA_MODEL || 'mistral';
+    const timeoutMs = parseInt(process.env.OLLAMA_TIMEOUT_MS || '60000', 10);
 
+    // Ajout timeout : sans signal d'abort, fetch peut pendre indéfiniment si
+    // Ollama ne répond pas (CPU thrashing, deadlock, etc.) → bloque la requête HTTP appelante.
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -713,6 +716,7 @@ export class RagService {
         stream: false,
         options: { num_predict: maxTokens },
       }),
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
     if (!response.ok) {
@@ -730,6 +734,7 @@ export class RagService {
   async *callLlmStream(prompt: string, maxTokens = 500): AsyncGenerator<string> {
     const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
     const model = process.env.OLLAMA_MODEL || 'mistral';
+    const timeoutMs = parseInt(process.env.OLLAMA_STREAM_TIMEOUT_MS || '120000', 10);
 
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
@@ -740,6 +745,9 @@ export class RagService {
         stream: true,
         options: { num_predict: maxTokens },
       }),
+      // Timeout d'init de connexion uniquement — le streaming peut durer plus longtemps,
+      // mais le 1er byte doit arriver dans la fenêtre.
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
     if (!response.ok) {

@@ -119,9 +119,11 @@ export class IsoAnalyzerController {
   }
 
   /**
-   * Auto-suggest classification, category and tags for a document
+   * Auto-suggest classification, category and tags for a document.
+   * Restreint aux rédacteurs/admins : appelle le LLM (coûteux, risque DoS si exposé à tout user authentifié).
    */
   @Post('classify')
+  @Roles(UserRole.ADMIN, UserRole.REVIEWER, UserRole.SUPER_ADMIN, UserRole.AUDITEUR)
   async suggestClassification(
     @Body() body: { title: string; description: string },
   ) {

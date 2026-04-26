@@ -13,6 +13,9 @@ export class SignaturesService {
   private readonly logger = new Logger(SignaturesService.name);
   private readonly docusealApiUrl: string;
   private readonly docusealApiKey: string;
+  /** Timeout par défaut sur les appels DocuSeal — sans cela, fetch peut pendre indéfiniment
+   *  si le service est down/lent et bloquer tout le pool de requêtes Nest. */
+  private readonly DOCUSEAL_TIMEOUT_MS = 10_000;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -68,6 +71,7 @@ export class SignaturesService {
             },
           ],
         }),
+        signal: AbortSignal.timeout(this.DOCUSEAL_TIMEOUT_MS),
       });
 
       if (response.ok) {
@@ -265,6 +269,7 @@ export class SignaturesService {
     try {
       const response = await fetch(`${this.docusealApiUrl}/templates`, {
         headers: { 'X-Auth-Token': this.docusealApiKey },
+        signal: AbortSignal.timeout(this.DOCUSEAL_TIMEOUT_MS),
       });
       if (!response.ok) {
         this.logger.warn(
@@ -293,7 +298,10 @@ export class SignaturesService {
     try {
       const response = await fetch(
         `${this.docusealApiUrl}/submissions/${id}`,
-        { headers: { 'X-Auth-Token': this.docusealApiKey } },
+        {
+          headers: { 'X-Auth-Token': this.docusealApiKey },
+          signal: AbortSignal.timeout(this.DOCUSEAL_TIMEOUT_MS),
+        },
       );
       if (!response.ok) {
         this.logger.warn(
@@ -316,6 +324,7 @@ export class SignaturesService {
     try {
       const response = await fetch(`${this.docusealApiUrl}/submissions`, {
         headers: { 'X-Auth-Token': this.docusealApiKey },
+        signal: AbortSignal.timeout(this.DOCUSEAL_TIMEOUT_MS),
       });
       if (!response.ok) {
         this.logger.warn(
