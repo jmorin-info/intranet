@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { createHmac, timingSafeEqual } from "crypto";
-import { SignatureCampaignStatus } from "@prisma/client";
+import { NotificationType, SignatureCampaignStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 
@@ -257,10 +257,7 @@ export class CampaignsService {
         await this.notifications
           .create({
             userId: u.id,
-            // TODO: review type safety — 'SIGNATURE_REQUEST' n'est pas dans
-            // l'enum Prisma NotificationType (cf. schema.prisma:53-67).
-            // Utiliser SIGNATURE_NEEDED ou étendre l'enum via migration.
-            type: "SIGNATURE_REQUEST",
+            type: NotificationType.SIGNATURE_REQUEST,
             title: `Signature requise : ${campaign.title}`,
             body:
               campaign.description ||
@@ -430,11 +427,7 @@ export class CampaignsService {
       try {
         await this.notifications.create({
           userId: sig.userId,
-          // TODO: review type safety — 'SIGNATURE_REMINDER' n'est pas dans
-          // l'enum Prisma NotificationType (cf. schema.prisma:53-67) : l'INSERT
-          // côté DB échoue silencieusement. Utiliser SIGNATURE_NEEDED ou
-          // étendre l'enum via migration ALTER TYPE.
-          type: "SIGNATURE_REMINDER",
+          type: NotificationType.SIGNATURE_REMINDER,
           title: `Rappel : ${campaign.title}`,
           body: campaign.dueAt
             ? `Signature attendue avant le ${new Date(campaign.dueAt).toLocaleDateString("fr-FR")}.`

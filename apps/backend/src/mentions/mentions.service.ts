@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { NotificationType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 
@@ -136,11 +137,7 @@ export class MentionsService {
         this.notifications
           .create({
             userId: r.id,
-            // TODO: review type safety — 'MENTION' n'est pas dans
-            // l'enum Prisma NotificationType (cf. schema.prisma:53-67) :
-            // l'INSERT côté DB échoue silencieusement. À ajouter via migration
-            // ALTER TYPE avant de garantir le runtime.
-            type: "MENTION",
+            type: NotificationType.MENTION,
             title,
             body: `${params.sourceTitle}\n\n${excerpt}`,
             resourceType: params.sourceType,
