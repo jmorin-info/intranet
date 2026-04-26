@@ -14,6 +14,7 @@ import { ScannerService } from "../scanner/scanner.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { CacheService } from "../common/cache/cache.service";
 import { AppMetricsService } from "../health/app-metrics.service";
+import { DocumentsRepository } from "./documents.repository";
 import { CreateDocumentDto } from "./dto/create-document.dto";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 import { DocumentFiltersDto } from "./dto/document-filters.dto";
@@ -170,6 +171,7 @@ export class DocumentsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly repo: DocumentsRepository,
     private readonly storageService: StorageService,
     private readonly auditService: AuditService,
     private readonly scannerService: ScannerService,
@@ -450,31 +452,14 @@ export class DocumentsService {
         : "updatedAt";
       const sortOrder = filters.sortOrder === "asc" ? "asc" : "desc";
 
-      [data, total] = await Promise.all([
-        this.prisma.document.findMany({
-          where,
-          include: {
-            owner: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-            isoControls: {
-              include: { isoControl: true },
-            },
-            _count: {
-              select: { acknowledgments: true, versions: true },
-            },
-          },
-          orderBy: { [sortBy]: sortOrder },
-          skip: (page - 1) * limit,
-          take: limit,
-        }),
-        this.prisma.document.count({ where }),
-      ]);
+      // Repository pattern : l'include partage (owner + isoControls + counts)
+      // est encapsule dans DocumentsRepository.findManyWithCount.
+      [data, total] = await this.repo.findManyWithCount(
+        where,
+        { [sortBy]: sortOrder },
+        (page - 1) * limit,
+        limit,
+      );
     } catch (err) {
       this.logger.error(
         `findAll Prisma error: ${err instanceof Error ? err.message : err}`,
@@ -495,63 +480,11 @@ export class DocumentsService {
   }
 
   async findById(id: string, currentUser: RequestUser) {
-    const document = await this.prisma.document.findUnique({
-      where: { id },
-      include: {
-        owner: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-        reviewer: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-        approver: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-        versions: {
-          orderBy: { createdAt: "desc" },
-          include: {
-            uploadedBy: {
-              select: { id: true, firstName: true, lastName: true },
-            },
-            signatureRequests: {
-              include: {
-                signer: {
-                  select: { id: true, firstName: true, lastName: true },
-                },
-                requestedBy: {
-                  select: { id: true, firstName: true, lastName: true },
-                },
-              },
-            },
-          },
-        },
-        isoControls: {
-          include: { isoControl: true },
-        },
-        acknowledgments: {
-          select: {
-            id: true,
-            userId: true,
-            acknowledgedAt: true,
-            user: { select: { id: true, firstName: true, lastName: true } },
-          },
-        },
-        validationRequests: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          include: {
-            steps: {
-              orderBy: { createdAt: "desc" },
-              include: {
-                assignedTo: {
-                  select: { id: true, firstName: true, lastName: true },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    // Repository pattern (cf. docs/architecture/REPOSITORY_PATTERN.md) :
+    // l'include detail (versions + signatures + ACK + validationRequests)
+    // est centralise dans DocumentsRepository.findById. Le service garde
+    // la logique RBAC + classification check + ACL granulaire.
+    const document = await this.repo.findById(id);
 
     if (!document || document.deletedAt) {
       throw new NotFoundException("Document introuvable");
@@ -2025,17 +1958,10 @@ export class DocumentsService {
         approachingReview,
         topContributors,
       ] = await Promise.all([
-        this.prisma.document.count({ where: { deletedAt: null } }),
-        this.prisma.document.groupBy({
-          by: ["category"],
-          _count: true,
-          where: { deletedAt: null },
-        }),
-        this.prisma.document.groupBy({
-          by: ["status"],
-          _count: true,
-          where: { deletedAt: null },
-        }),
+        // Repository pattern : count + groupBy via DocumentsRepository.
+        this.repo.count({ deletedAt: null }),
+        this.repo.groupByCategory({ deletedAt: null }),
+        this.repo.groupByStatus({ deletedAt: null }),
         this.prisma.document.groupBy({
           by: ["classification"],
           _count: true,
