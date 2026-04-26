@@ -215,7 +215,7 @@ export class RssiDashboardService {
       ),
       safe(
         this.prisma.accessReviewCampaign.count({
-          where: { status: { in: ["IN_PROGRESS", "DRAFT"] as any } },
+          where: { status: { in: ["ACTIVE", "DRAFT"] as any } },
         }),
         0,
         "accessReviewsPending",
@@ -223,7 +223,7 @@ export class RssiDashboardService {
       safe(
         this.prisma.accessReviewCampaign.count({
           where: {
-            status: { in: ["IN_PROGRESS", "DRAFT"] as any },
+            status: { in: ["ACTIVE", "DRAFT"] as any },
             dueDate: { lt: now },
           },
         }),

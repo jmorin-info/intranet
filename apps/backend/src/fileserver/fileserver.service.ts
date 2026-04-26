@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { execSync } from 'child_process';
 import * as crypto from 'crypto';
 import * as path from 'path';
@@ -158,22 +158,45 @@ export class FileserverService {
     if (!share) throw new NotFoundException('Partage introuvable');
     if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException('Accès non autorisé à ce partage');
 
-    const safePath = dirPath.replace(/\.\./g, '').replace(/^\/+/, '');
+    // Sanitize path : pas de traversal `..`, pas de leading `/`, conversion
+    // des séparateurs `/` → `\` (smbclient attend du Windows-style sur les
+    // sous-dossiers profonds — les `/` peuvent casser silencieusement la
+    // navigation au-delà de 2-3 niveaux selon la version smbclient).
+    const safePath = dirPath
+      .replace(/\.\./g, '')
+      .replace(/^\/+/, '')
+      .replace(/\//g, '\\');
     const creds = this.getCredentials(userId);
 
     try {
+      // Timeout 30s (au lieu de 10s) pour les dossiers profonds avec beaucoup
+      // d'entrées : un large `ls` peut être lent sur SMB derrière le LAN.
       const smbPath = safePath ? `cd "${safePath}"; ls` : 'ls';
       const cmd = `smbclient "//${this.host}/${shareName}" -U "${creds.user}%${creds.password}" -c "${smbPath}" 2>&1`;
-      const output = execSync(cmd, { timeout: 10000, encoding: 'utf-8' });
+      const output = execSync(cmd, {
+        timeout: 30000,
+        encoding: 'utf-8',
+        maxBuffer: 10 * 1024 * 1024, // 10 MB — gros dossiers OK
+      });
 
       if (output.includes('NT_STATUS_ACCESS_DENIED')) {
         throw new ForbiddenException('Accès refusé — vos droits ne permettent pas d\'accéder à ce partage');
       }
+      if (output.includes('NT_STATUS_OBJECT_PATH_NOT_FOUND') || output.includes('NT_STATUS_OBJECT_NAME_NOT_FOUND')) {
+        throw new NotFoundException('Dossier introuvable');
+      }
 
       const items: FileItem[] = [];
+      // Parser plus permissif : accepte les lignes où les attributs DOS
+      // peuvent être vides (fichiers sans flag), et les noms longs avec
+      // espaces (group capture non greedy + lookahead sur 2+ espaces).
+      // Format attendu : `  <name>  <attrs?>  <size>  <day>  <date+time+year>`
+      const lineRe = /^\s{2}(.+?)\s{2,}([DAHRSN]*)\s+(\d+)\s+(\w{3}\s+\w{3}\s+[\d:]+\s+\d{4}|\w{3}\s+\d+\s+[\d:]+\s+\d{4})/;
+      let parsedAny = false;
       for (const line of output.split('\n')) {
-        const match = line.match(/^\s{2}(.+?)\s{2,}([DAHRS]*)\s+(\d+)\s+\w{3}\s+(\w{3}\s+\d+\s+[\d:]+\s+\d{4})/);
+        const match = line.match(lineRe);
         if (match) {
+          parsedAny = true;
           const name = match[1]!.trim();
           if (name === '.' || name === '..') continue;
           items.push({
@@ -185,13 +208,31 @@ export class FileserverService {
         }
       }
 
+      // Sanity : si le smbclient a renvoyé des lignes mais aucune n'a matché
+      // notre regex, on log un sample pour diagnostiquer le format inattendu
+      // (locale différente, version smbclient récente, etc.) au lieu de
+      // retourner silencieusement [].
+      if (!parsedAny && output.trim().length > 0 && !output.includes('NT_STATUS_')) {
+        this.logger.warn(
+          `SMB list parse miss (${shareName}/${safePath}) — sample: ${output.split('\n').slice(0, 3).join(' | ').slice(0, 300)}`,
+        );
+      }
+
       return items.sort((a, b) => {
         if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
         return a.name.localeCompare(b.name);
       });
     } catch (err) {
-      if (err instanceof ForbiddenException) throw err;
-      this.logger.warn(`SMB list failed: ${shareName}/${safePath}`);
+      if (err instanceof ForbiddenException || err instanceof NotFoundException) throw err;
+      const errMsg = (err as { message?: string; code?: string })?.message ?? '';
+      this.logger.warn(`SMB list failed: ${shareName}/${safePath} — ${errMsg.slice(0, 200)}`);
+      // En cas de timeout, signaler à l'utilisateur plutôt que de retourner
+      // silencieusement un dossier vide (UX très perturbant — bug observé).
+      if (errMsg.includes('ETIMEDOUT') || errMsg.includes('timed out')) {
+        throw new InternalServerErrorException(
+          `Le partage ${shareName} ne répond pas (timeout 30s). Réseau ou serveur SMB lent — réessayez ou contactez l'IT.`,
+        );
+      }
       return [];
     }
   }

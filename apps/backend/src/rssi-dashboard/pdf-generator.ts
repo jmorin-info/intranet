@@ -136,8 +136,8 @@ export class RssiSmsiPdfGenerator {
         label: 'Cyber-score',
         value: cyber?.score != null ? `${cyber.score}/100` : 'Non renseigné',
         caption: cyber?.trends
-          ? `Δ7j ${this.formatDelta(cyber.trends.delta7d)} • Δ30j ${this.formatDelta(cyber.trends.delta30d)}`
-          : '—',
+          ? `Var. 7j ${this.formatDelta(cyber.trends.delta7d)} - Var. 30j ${this.formatDelta(cyber.trends.delta30d)}`
+          : '-',
       },
       {
         label: 'Conformité ISO 27001',

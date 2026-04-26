@@ -355,7 +355,7 @@ export class CyberScoreService {
       safe(
         () =>
           this.prisma.accessReviewCampaign.count({
-            where: { status: { in: ['IN_PROGRESS' as any, 'DRAFT' as any] } },
+            where: { status: { in: ['ACTIVE' as any, 'DRAFT' as any] } },
           }),
         0,
         'accessReviewsOpen',
@@ -364,7 +364,7 @@ export class CyberScoreService {
         () =>
           this.prisma.accessReviewCampaign.count({
             where: {
-              status: { in: ['IN_PROGRESS' as any, 'DRAFT' as any] },
+              status: { in: ['ACTIVE' as any, 'DRAFT' as any] },
               dueDate: { lt: now },
             },
           }),
@@ -376,7 +376,7 @@ export class CyberScoreService {
       safe(
         () =>
           this.prisma.signatureCampaign.count({
-            where: { status: { in: ['ACTIVE' as any, 'DRAFT' as any] } },
+            where: { status: { in: ['SENT' as any, 'IN_PROGRESS' as any, 'DRAFT' as any] } },
           }),
         0,
         'gdprActiveCampaigns',
