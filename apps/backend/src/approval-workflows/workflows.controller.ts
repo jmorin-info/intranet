@@ -229,7 +229,7 @@ export class WorkflowsController {
     return this.service.getPendingForUser(
       user.id,
       user.role,
-      (user as any).departmentId ?? null,
+      user.departmentId ?? null,
     );
   }
 }

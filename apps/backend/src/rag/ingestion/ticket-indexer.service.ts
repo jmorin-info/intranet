@@ -45,12 +45,13 @@ export class TicketIndexerService {
     cutoffDate.setFullYear(cutoffDate.getFullYear() - MAX_AGE_YEARS);
 
     // Get already-indexed ticket IDs
-    const existingChunks = await (this.prisma as any).ragChunk.findMany({
-      where: { sourceType: 'TICKET' },
+    const existingChunks = await this.prisma.ragChunk.findMany({
+      // 'TICKET' n'est pas dans l'enum Prisma RagSourceType (cf. TODO ci-dessous).
+      where: { sourceType: 'TICKET' as never },
       select: { sourceId: true },
       distinct: ['sourceId'],
-    }).catch(() => []);
-    const indexedIds = new Set(existingChunks.map((c: any) => c.sourceId));
+    }).catch(() => [] as Array<{ sourceId: string }>);
+    const indexedIds = new Set(existingChunks.map((c) => c.sourceId));
 
     let cursor: string | undefined;
 
@@ -79,8 +80,8 @@ export class TicketIndexerService {
         }
 
         // Build resolution from comments (le modèle n'a pas de champ resolutionNotes)
-        const resolutionText = (ticket as any).comments
-          ?.map((c: any) => c.content)
+        const resolutionText = ticket.comments
+          ?.map((c) => c.content)
           ?.join('\n') || '';
 
         // Skip tickets without meaningful resolution content
@@ -118,13 +119,14 @@ export class TicketIndexerService {
 
         try {
           // TODO: review type safety — 'TICKET' n'est pas dans l'enum Prisma
-          // RagSourceType (cf. schema.prisma:1801-1807). Étendre l'enum via
-          // migration ALTER TYPE avant de retirer ce cast.
-          await this.ragService.indexSource('TICKET' as any, ticket.id, sanitizedText, {
+          // RagSourceType (cf. schema.prisma:1801-1807) ni dans le type local
+          // SourceType de RagService. Étendre l'enum via migration ALTER TYPE
+          // avant de retirer ce cast.
+          await this.ragService.indexSource('TICKET' as 'DOCUMENT', ticket.id, sanitizedText, {
             type: 'TICKET',
             ticketId: ticket.id,
             title: ticket.title,
-            category: (ticket as any).category || 'GENERAL',
+            category: ticket.category || 'GENERAL',
             resolvedAt: ticket.resolvedAt?.toISOString(),
             classification: 'INTERNE',
             piiSanitized: true,
@@ -133,8 +135,9 @@ export class TicketIndexerService {
 
           // Embed the newly created chunks
           if (this.embeddingService.isEnabled()) {
-            const chunks = await (this.prisma as any).ragChunk.findMany({
-              where: { sourceType: 'TICKET', sourceId: ticket.id, embedding: null },
+            const chunks = await this.prisma.ragChunk.findMany({
+              // 'TICKET' n'est pas dans l'enum Prisma RagSourceType — voir TODO indexSource.
+              where: { sourceType: 'TICKET' as never, sourceId: ticket.id },
             });
             for (const chunk of chunks) {
               try {

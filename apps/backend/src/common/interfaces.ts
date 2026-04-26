@@ -37,7 +37,14 @@ export interface RequestUser {
   id: string;
   email: string;
   role: UserRole;
-  departmentId?: string;
+  departmentId?: string | null;
+  /**
+   * Optionnels — peuvent être remplis par la JwtStrategy quand l'enrichissement
+   * user (firstName/lastName/mfaRequired) est activé. Sinon non disponibles.
+   */
+  firstName?: string;
+  lastName?: string;
+  mfaRequired?: boolean;
   iat?: number;
   /**
    * Propagé depuis le JwtPayload — voir doc ci-dessus. Utilisé par

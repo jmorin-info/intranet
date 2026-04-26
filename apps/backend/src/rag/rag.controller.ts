@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Res, UseGuards, ParseUUIDPipe, BadR
 import { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { randomBytes } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
@@ -271,12 +272,12 @@ export class RagController {
     }
 
     // Verify the query log exists
-    const existing = await (this.prisma as any).ragQueryLog.findUnique({ where: { id } });
+    const existing = await this.prisma.ragQueryLog.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('RagQueryLog not found');
     }
 
-    const updated = await (this.prisma as any).ragQueryLog.update({
+    const updated = await this.prisma.ragQueryLog.update({
       where: { id },
       data: {
         rating,
@@ -327,11 +328,12 @@ export class RagController {
     const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
     const token = randomBytes(24).toString('hex');
 
-    const created = await (this.prisma as any).chatbotShareLink.create({
+    const created = await this.prisma.chatbotShareLink.create({
       data: {
         token,
         ownerId: user.id,
-        payload: messages as any,
+        // Prisma.InputJsonValue : sérialisation directe du payload conversation.
+        payload: messages as unknown as Prisma.InputJsonValue,
         expiresAt,
       },
     });
@@ -357,7 +359,7 @@ export class RagController {
     if (!token || token.length < 16) {
       throw new BadRequestException('invalid token');
     }
-    const link = await (this.prisma as any).chatbotShareLink.findUnique({
+    const link = await this.prisma.chatbotShareLink.findUnique({
       where: { token },
     });
     if (!link) throw new NotFoundException('share link not found');
@@ -365,7 +367,7 @@ export class RagController {
       throw new GoneException('share link expired');
     }
     // Compteur de vues (best-effort, non bloquant)
-    void (this.prisma as any).chatbotShareLink
+    void this.prisma.chatbotShareLink
       .update({ where: { id: link.id }, data: { viewCount: { increment: 1 } } })
       .catch(() => undefined);
 

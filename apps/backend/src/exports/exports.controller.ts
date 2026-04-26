@@ -39,7 +39,7 @@ export class ExportsController {
       sections: dto.sections || [],
       metadata: {
         author:
-          `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim() ||
+          `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
           user.email,
         authorEmail: user.email,
         reference: dto.reference,

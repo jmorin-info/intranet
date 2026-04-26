@@ -112,7 +112,7 @@ export class AuthController {
     const mfaSetupRequired =
       !user.mfaEnabled &&
       (user.role === UserRole.PRESTATAIRE ||
-        (user as any).mfaRequired === true);
+        user.mfaRequired === true);
 
     // Login (with optional mfaSetupRequired flag)
     const loginResult = await this.authService.login(user, ip, userAgent);

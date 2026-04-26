@@ -57,7 +57,7 @@ export class VeilleController {
       limit: 10000,
       dateFrom,
     });
-    const rows = (result as any)?.data ?? [];
+    const rows = result.data;
 
     type VeilleRow = {
       title: string;

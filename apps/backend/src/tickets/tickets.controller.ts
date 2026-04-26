@@ -158,7 +158,7 @@ export class TicketsController {
       },
       user,
     );
-    const rows = (result as any)?.data ?? [];
+    const rows = result.data;
 
     type TicketRow = {
       reference: string;

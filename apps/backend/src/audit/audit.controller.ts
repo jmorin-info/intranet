@@ -91,7 +91,7 @@ export class AuditController {
       page: 1,
       limit: 1000,
     });
-    const rows = (result as any)?.data ?? [];
+    const rows = result.data;
 
     type AuditRow = {
       createdAt: Date | string;

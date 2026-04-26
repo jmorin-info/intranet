@@ -195,7 +195,7 @@ export class CalendarService {
       // Si l'assigne a change : reattribuer tous les events TICKET du ticket
       // au nouvel utilisateur (ou null si plus d'assigne).
       if (oldAssigneeId !== undefined && oldAssigneeId !== ticket.assigneeId) {
-        await (this.prisma as any).calendarEvent.updateMany({
+        await this.prisma.calendarEvent.updateMany({
           where: {
             sourceType: TICKET_SOURCE_TYPE,
             sourceId: { startsWith: `${ticket.id}:` },
@@ -211,14 +211,14 @@ export class CalendarService {
         const sourceId = `${ticket.id}:${field}`;
         const meta = TICKET_DATE_FIELDS[field];
 
-        const existing = await (this.prisma as any).calendarEvent.findFirst({
+        const existing = await this.prisma.calendarEvent.findFirst({
           where: { sourceType: TICKET_SOURCE_TYPE, sourceId },
         });
 
         if (!value) {
           // Date deleted -> soft-delete event si present
           if (existing && !existing.deletedAt) {
-            await (this.prisma as any).calendarEvent.update({
+            await this.prisma.calendarEvent.update({
               where: { id: existing.id },
               data: { deletedAt: new Date() },
             });
@@ -231,7 +231,7 @@ export class CalendarService {
         const description = `Ticket ${ticket.reference}\n${meta.label}`;
 
         if (existing) {
-          await (this.prisma as any).calendarEvent.update({
+          await this.prisma.calendarEvent.update({
             where: { id: existing.id },
             data: {
               title,
@@ -247,7 +247,7 @@ export class CalendarService {
           // createdById = assigneeId si dispo, sinon on saute (besoin d'un user
           // pour la FK NOT NULL). Si pas d'assigne, pas d'event individuel.
           if (!ticket.assigneeId) continue;
-          await (this.prisma as any).calendarEvent.create({
+          await this.prisma.calendarEvent.create({
             data: {
               title,
               description,
@@ -280,7 +280,7 @@ export class CalendarService {
    */
   async getOrCreateSubscriptionToken(userId: string): Promise<{ token: string; expiresAt: Date; url?: string }> {
     const now = new Date();
-    const existing = await (this.prisma as any).calendarSubscriptionToken.findFirst({
+    const existing = await this.prisma.calendarSubscriptionToken.findFirst({
       where: { userId, expiresAt: { gt: now } },
       orderBy: { expiresAt: 'desc' },
     });
@@ -290,7 +290,7 @@ export class CalendarService {
 
     const token = randomBytes(32).toString('hex');
     const expiresAt = new Date(now.getTime() + SUBSCRIPTION_TOKEN_DAYS * 24 * 3600 * 1000);
-    const created = await (this.prisma as any).calendarSubscriptionToken.create({
+    const created = await this.prisma.calendarSubscriptionToken.create({
       data: { userId, token, expiresAt },
     });
     return { token: created.token, expiresAt: created.expiresAt };
@@ -302,7 +302,7 @@ export class CalendarService {
    * autorisation est la connaissance du token).
    */
   async exportIcsByToken(token: string, calendarBaseUrl?: string): Promise<{ ics: string; filename: string }> {
-    const tokenRow = await (this.prisma as any).calendarSubscriptionToken.findUnique({
+    const tokenRow = await this.prisma.calendarSubscriptionToken.findUnique({
       where: { token },
       include: { user: { select: { id: true, firstName: true, lastName: true } } },
     });

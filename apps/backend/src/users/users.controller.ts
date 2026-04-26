@@ -111,7 +111,7 @@ export class UsersController {
       { page: 1, limit: 10000 },
       { role, departmentId, search },
     );
-    const rows = (result as any)?.data ?? [];
+    const rows = result.data;
 
     type UserRow = {
       firstName: string;

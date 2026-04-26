@@ -114,7 +114,7 @@ export class SmbOfficeController {
         user: {
           id: user.id,
           name:
-            `${(user as any).firstName || ''} ${(user as any).lastName || user.email}`.trim(),
+            `${user.firstName || ''} ${user.lastName || user.email}`.trim(),
         },
         customization: {
           autosave: true,

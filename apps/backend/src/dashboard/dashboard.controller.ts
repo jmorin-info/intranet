@@ -60,7 +60,7 @@ export class DashboardController {
       }),
 
       // Pinned news
-      (this.prisma as any).newsPost.findMany({
+      this.prisma.newsPost.findMany({
         where: { isPublished: true, isPinned: true, deletedAt: null },
         orderBy: { publishedAt: 'desc' },
         take: 4,

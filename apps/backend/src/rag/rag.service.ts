@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TextExtractorService } from './text-extractor.service';
 import { EmbeddingService } from './embedding/embedding.service';
@@ -26,7 +27,7 @@ type SourceType = 'DOCUMENT' | 'WIKI' | 'PROCEDURE' | 'RUNBOOK' | 'FAQ';
 export interface RagSearchContext {
   userId: string;
   role: string;
-  departmentId?: string;
+  departmentId?: string | null;
 }
 
 interface RagSource {
@@ -143,8 +144,6 @@ export class RagService {
 
   /**
    * Index a single source: purge existing chunks then create new ones.
-   * Uses `(this.prisma as any).ragChunk` because the generated Prisma client
-   * may not yet include the RagChunk model.
    */
   async indexSource(
     sourceType: SourceType,
@@ -152,7 +151,7 @@ export class RagService {
     content: string,
     metadata?: Record<string, unknown>,
   ): Promise<number> {
-    const ragChunk = (this.prisma as any).ragChunk;
+    const ragChunk = this.prisma.ragChunk;
 
     // Purge old chunks
     await ragChunk.deleteMany({
@@ -170,7 +169,8 @@ export class RagService {
           chunkIndex: i,
           content: chunks[i],
           tokenCount: Math.ceil(chunks[i].length / 4),
-          metadata: metadata ?? undefined,
+          // Prisma.InputJsonValue : metadata est un Record<string, unknown>.
+          metadata: (metadata ?? undefined) as Prisma.InputJsonValue | undefined,
         },
       }).catch((err: Error) => {
         this.logger.warn(`Failed to create chunk ${i} for ${sourceType}/${sourceId}: ${err.message}`);
@@ -188,7 +188,7 @@ export class RagService {
    * Safe to call on a source that's not indexed (no-op).
    */
   async removeFromIndex(sourceType: SourceType, sourceId: string): Promise<number> {
-    const ragChunk = (this.prisma as any).ragChunk;
+    const ragChunk = this.prisma.ragChunk;
     const result = await ragChunk.deleteMany({
       where: { sourceType, sourceId },
     }).catch((err: Error) => {
@@ -476,7 +476,7 @@ export class RagService {
     const terms = this.tokenizeQuery(query);
     if (terms.length === 0) return [];
 
-    const ragChunk = (this.prisma as any).ragChunk;
+    const ragChunk = this.prisma.ragChunk;
 
     // Pre-filter: find chunks containing at least one term
     let candidates: any[] = [];
@@ -538,14 +538,21 @@ export class RagService {
     // Normalize scores
     const maxScore = top.length > 0 ? top[0].score : 1;
 
-    return top.map(({ chunk, score }) => ({
-      sourceType: chunk.sourceType as SourceType,
-      sourceId: chunk.sourceId as string,
-      title: (chunk.metadata as any)?.title ?? chunk.sourceId,
-      snippet: this.buildSnippet(chunk.content, terms),
-      score: maxScore > 0 ? score / maxScore : 0,
-      classification: (chunk.metadata as any)?.classification,
-    }));
+    return top.map(({ chunk, score }) => {
+      // Prisma.JsonValue dynamique — extraction défensive du metadata
+      const meta =
+        chunk.metadata && typeof chunk.metadata === 'object' && !Array.isArray(chunk.metadata)
+          ? (chunk.metadata as Record<string, unknown>)
+          : {};
+      return {
+        sourceType: chunk.sourceType as SourceType,
+        sourceId: chunk.sourceId as string,
+        title: (meta.title as string | undefined) ?? chunk.sourceId,
+        snippet: this.buildSnippet(chunk.content, terms),
+        score: maxScore > 0 ? score / maxScore : 0,
+        classification: meta.classification as string | undefined,
+      };
+    });
   }
 
   // =========================================================================
@@ -1130,14 +1137,18 @@ Réponse :`;
 
   /** Aggregated stats for the admin page. */
   async getStats(): Promise<Record<string, unknown>> {
-    const ragChunk = (this.prisma as any).ragChunk;
+    const ragChunk = this.prisma.ragChunk;
 
-    let chunksByType: any[] = [];
+    let chunksByType: Array<{ sourceType: string; _count: { id: number } }> = [];
     try {
-      chunksByType = await ragChunk.groupBy({
+      // Prisma's groupBy a une signature `T extends RagChunkGroupByArgs &
+      // any[]` qui force l'argument à être déclaré comme tuple sinon TS rejette
+      // l'objet seul. On contourne avec un cast structurel sur l'arg d'entrée.
+      chunksByType = (await ragChunk.groupBy({
         by: ['sourceType'],
         _count: { id: true },
-      });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)) as Array<{ sourceType: string; _count: { id: number } }>;
     } catch (err) {
       this.logger.warn(`Failed to get chunk stats: ${(err as Error).message}`);
     }
