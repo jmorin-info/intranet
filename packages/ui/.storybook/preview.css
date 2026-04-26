@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ============================================
+   OMNITECH Security — Design tokens (charte SEAL System)
+   Sous-ensemble de `apps/frontend/src/app/globals.css` couvrant ce dont
+   les composants @omnitech/ui ont besoin pour s'afficher correctement
+   en isolation Storybook.
+   ============================================ */
+:root {
+  --color-primary: #f68d2e;
+  --color-primary-dark: #d97420;
+  --color-primary-light: #fef3e2;
+  --color-navy: #004469;
+  --color-navy-light: rgba(0, 68, 105, 0.08);
+  --color-taupe: #837274;
+  --color-surface: #f5f5f5;
+  --color-card: #ffffff;
+  --color-text: #1a1a1a;
+  --color-text-muted: #837274;
+  --color-border: #e5e7eb;
+
+  --seal-orange: #f9964a;
+  --seal-orange-light: #ffcc99;
+  --seal-blue: #296dc1;
+  --seal-green: #006233;
+  --seal-bordeaux: #892034;
+  --seal-navy: #004469;
+  --seal-taupe: #837274;
+  --seal-gray-100: #dadde2;
+  --seal-gray-300: #8f94a4;
+  --seal-gray-400: #676d7f;
+  --seal-gray-500: #454955;
+  --seal-gray-600: #3c3f4a;
+  --seal-yellow-50: #fef0da;
+  --seal-radius: 6px;
+
+  --font-body:
+    'Century Gothic', 'CenturyGothic', 'AppleGothic', 'Nunito',
+    'Trebuchet MS', sans-serif;
+  --radius-card: 12px;
+  --radius-btn: 8px;
+  --shadow-card:
+    0 1px 2px rgba(0, 68, 105, 0.04), 0 1px 3px rgba(0, 68, 105, 0.06);
+  --shadow-card-hover:
+    0 4px 16px rgba(0, 68, 105, 0.1), 0 2px 6px rgba(249, 150, 74, 0.08);
+}
+
+.dark {
+  --color-surface: #0f172a;
+  --color-card: #1e293b;
+  --color-text: #e2e8f0;
+  --color-text-muted: #94a3b8;
+  --color-border: #334155;
+  --color-navy: #60a5fa;
+  --color-navy-light: rgba(96, 165, 250, 0.1);
+  --color-primary-light: rgba(246, 141, 46, 0.15);
+}
+
+html,
+body,
+#storybook-root {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark mode background pour la preview */
+html.dark,
+body.dark,
+.dark #storybook-root {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* Animation utilisée par Dialog (`animate-fade-in-scale`) */
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.2s ease-out both;
+}
+
+/* Animation utilisée par EmptyState (`animate-[fadeIn_0.5s_ease-out]`) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
