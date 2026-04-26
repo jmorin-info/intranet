@@ -614,8 +614,9 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
       question: string,
       assistantId: string,
     ): Promise<{ ok: boolean; aborted: boolean }> => {
-      const token =
-        typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      // ANSSI A.5.34 — JWT vit en cookie httpOnly. `credentials: 'include'`
+      // demande au navigateur d'attacher le cookie. On ne lit plus le token
+      // depuis localStorage (anti-XSS).
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(
         /\/api\/?$/,
         '/api/v1',
@@ -627,10 +628,8 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
       try {
         res = await fetch(`${baseUrl}/rag/ask-stream`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ question }),
           signal: controller.signal,
         });

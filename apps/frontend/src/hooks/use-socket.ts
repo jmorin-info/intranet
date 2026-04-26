@@ -54,11 +54,16 @@ export function useSocket(): void {
       return;
     }
 
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
+    // ANSSI A.5.34 — JWT en cookie httpOnly. On fournit le token via `auth`
+    // s'il subsiste un legacy localStorage (rétrocompat session pré-migration),
+    // sinon on s'appuie sur `withCredentials: true` pour que le navigateur
+    // attache automatiquement le cookie au handshake WebSocket. Le serveur
+    // accepte les deux schémas via JwtStrategy.
+    const legacyToken = localStorage.getItem('accessToken');
 
     const socket = io(`${WS_URL}/notifications`, {
-      auth: { token },
+      ...(legacyToken ? { auth: { token: legacyToken } } : {}),
+      withCredentials: true,
       // Monté sur /api/socket.io côté serveur (cf. apps/backend/src/socket-io-adapter.ts)
       // pour passer à travers le reverse proxy frontal qui ne route que /api/*.
       path: '/api/socket.io',

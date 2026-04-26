@@ -185,13 +185,13 @@ export default function ProcedureViewerPage() {
     inline = false,
   ) => {
     try {
-      const token = localStorage.getItem("accessToken");
       const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(
         /\/api\/?$/,
         "/api/v1",
       );
+      // ANSSI A.5.34 — JWT en cookie httpOnly, `credentials: 'include'` suffit.
       const response = await fetch(`${apiBase}${url}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       if (!response.ok) throw new Error("Download failed");
       const blob = await response.blob();
@@ -219,13 +219,13 @@ export default function ProcedureViewerPage() {
 
   useEffect(() => {
     if (!downloadPath) return;
-    const token = localStorage.getItem("accessToken");
     const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(
       /\/api\/?$/,
       "/api/v1",
     );
+    // ANSSI A.5.34 — JWT en cookie httpOnly, `credentials: 'include'` suffit.
     fetch(`${apiBase}${downloadPath}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
     })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load");

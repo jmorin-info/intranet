@@ -270,8 +270,9 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
     let streamStarted = false;
 
     try {
-      // Try SSE streaming first
-      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      // Try SSE streaming first.
+      // ANSSI A.5.34 — JWT vit en cookie httpOnly. `credentials: 'include'`
+      // demande au navigateur d'attacher le cookie (anti-XSS).
       // NEXT_PUBLIC_API_URL ends in /api — backend routes are mounted under /api/v1.
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/?$/, '/api/v1');
       const controller = new AbortController();
@@ -279,10 +280,8 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
 
       const sseRes = await fetch(`${baseUrl}/rag/ask-stream`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ question: q }),
         signal: controller.signal,
       });

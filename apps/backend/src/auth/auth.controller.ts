@@ -29,6 +29,8 @@ import { AllowCrossSite } from "./decorators/allow-cross-site.decorator";
 import {
   setRefreshTokenCookie,
   clearRefreshTokenCookie,
+  setAccessTokenCookie,
+  clearAccessTokenCookie,
 } from "../common/cookies.util";
 
 @Controller("auth")
@@ -86,6 +88,11 @@ export class AuthController {
         // re-challenge).
         const result = await this.authService.login(user, ip, userAgent, true);
         setRefreshTokenCookie(res, result.refreshToken);
+        // ANSSI A.5.34 / OWASP A05 — JWT en cookie httpOnly (anti-XSS).
+        // On renvoie aussi le token dans le body pour rétrocompat front
+        // (le frontend ne le persiste plus en localStorage mais peut le lire
+        // en transitoire pendant la migration).
+        setAccessTokenCookie(res, result.accessToken);
         return result;
       }
 
@@ -110,6 +117,8 @@ export class AuthController {
     // Login (with optional mfaSetupRequired flag)
     const loginResult = await this.authService.login(user, ip, userAgent);
     setRefreshTokenCookie(res, loginResult.refreshToken);
+    // ANSSI A.5.34 / OWASP A05 — JWT en cookie httpOnly (anti-XSS).
+    setAccessTokenCookie(res, loginResult.accessToken);
     if (mfaSetupRequired) {
       return { ...loginResult, mfaSetupRequired: true };
     }
@@ -142,6 +151,8 @@ export class AuthController {
     try {
       const result = await this.authService.refreshTokens(token, ip, userAgent);
       setRefreshTokenCookie(res, result.refreshToken);
+      // ANSSI A.5.34 / OWASP A05 — JWT en cookie httpOnly (anti-XSS).
+      setAccessTokenCookie(res, result.accessToken);
       return result;
     } catch (err) {
       // Toute erreur de token (expiré, invalide, révoqué, malformé) DOIT renvoyer 401 — jamais 400.
@@ -178,6 +189,7 @@ export class AuthController {
       );
     }
     clearRefreshTokenCookie(res);
+    clearAccessTokenCookie(res);
     return { message: "Logged out successfully" };
   }
 

@@ -49,10 +49,9 @@ function MfaRevalidatePageInner() {
     }
     setSubmitting(true);
     try {
-      const { data } = await api.post('/mfa/revalidate', { code });
-      if (data?.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
-      }
+      // ANSSI A.5.34 — le backend pose le nouveau accessToken en cookie
+      // httpOnly ; on n'a plus rien à persister côté JS.
+      await api.post('/mfa/revalidate', { code });
       toast.success(t('mfa.revalidate.success'));
       // On utilise window.location pour forcer une re-évaluation complète des
       // hooks d'authentification (sinon Next garde le store en mémoire avec

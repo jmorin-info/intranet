@@ -3,22 +3,18 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-function isTokenValid(token: string | null): boolean {
-  if (!token) return false;
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1] || ''));
-    return payload.exp * 1000 > Date.now() + 60_000;
-  } catch {
-    return false;
-  }
-}
-
 export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    router.replace(isTokenValid(token) ? '/dashboard' : '/welcome');
+    // Depuis la migration cookie httpOnly (ANSSI A.5.34), le JWT n'est plus
+    // lisible côté JS pour pré-décoder son `exp`. On envoie systématiquement
+    // l'utilisateur vers /dashboard ; AuthProvider (fetchMe) tranchera et
+    // redirigera vers /login si la session est invalide.
+    // Optimisation possible : tester un cookie d'indicateur de session
+    // (non sensible, lisible JS) si on veut éviter le flash dashboard→login
+    // pour les utilisateurs déconnectés. Pas implémenté pour l'instant.
+    router.replace('/dashboard');
   }, [router]);
 
   // Pas de splash ici — la page de destination (AuthProvider ou /welcome)

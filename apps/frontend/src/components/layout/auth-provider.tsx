@@ -175,13 +175,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, startHealthPolling, startAdminPolling]);
 
   // Session timeout warning (ISO 27001 — auto-logout + warning).
-  // Stratégie améliorée :
-  //  - Tant qu'il reste > 5 min : silence total.
-  //  - Entre 5 min et 90 s : TENTATIVE DE REFRESH SILENCIEUX en arrière-plan (si
-  //    refresh token valide, aucun popup n'apparaît, l'utilisateur ne voit rien).
-  //  - Si le refresh échoue ET qu'il reste < 90 s : on affiche le popup pour laisser
-  //    à l'utilisateur le choix final.
-  //  - Check toutes les 60 s au lieu de 30 s (moins de bruit CPU).
+  // Depuis la migration cookie httpOnly (ANSSI A.5.34), le JWT n'est plus
+  // lisible côté JS — on ne peut donc plus inspecter `exp` du payload.
+  // Stratégie : on déclenche un refresh silencieux préventif toutes les 12 min
+  // (TTL access = 15 min ; marge de 3 min pour absorber les jitters).
+  // En cas d'échec du refresh silencieux, l'intercepteur axios prendra le
+  // relais sur la prochaine 401 et redirigera vers /login.
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -191,58 +190,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (silentRefreshInFlight) return;
       silentRefreshInFlight = true;
       try {
-        // Refresh token is sent via httpOnly cookie (withCredentials: true on api instance).
-        // No need to read from localStorage — the cookie is attached automatically.
-        const { data } = await api.post('/auth/refresh', {});
-        if (data?.accessToken) localStorage.setItem('accessToken', data.accessToken);
+        // Le refresh token est envoyé via cookie httpOnly (withCredentials: true).
+        // Le backend rotate aussi le cookie accessToken — rien à persister côté JS.
+        await api.post('/auth/refresh', {});
       } catch {
-        // Silent failure — on laisse le prochain check afficher le popup si besoin.
+        // Silent failure — au prochain appel API, l'intercepteur 401 forcera
+        // la redirection /login si la session est vraiment morte.
       } finally {
         silentRefreshInFlight = false;
       }
     };
 
-    const checkExpiry = () => {
-      const token = localStorage.getItem('accessToken');
-      if (!token) return;
-      try {
-        const parts = token.split('.');
-        if (parts.length !== 3) return;
-        const payload = JSON.parse(atob(parts[1]!));
-        const expiresAt = payload.exp * 1000;
-        const remaining = expiresAt - Date.now();
-
-        if (remaining <= 0) {
-          localStorage.removeItem('accessToken');
-          // Redirect to login with session_expired reason for user feedback
-          window.location.href = '/login?reason=session_expired';
-          return;
-        }
-        if (remaining <= 90_000) {
-          // Moins de 1 min 30 s : popup en dernier recours
-          setShowTimeoutWarning(true);
-          return;
-        }
-        if (remaining <= 5 * 60_000) {
-          // Moins de 5 min : refresh silencieux, pas de popup
-          void trySilentRefresh();
-        }
-      } catch {}
-    };
-
-    // Run once immediately puis toutes les 60 s
-    checkExpiry();
-    const interval = setInterval(checkExpiry, 60_000);
+    // Premier refresh silencieux 12 min après le mount, puis toutes les 12 min.
+    const interval = setInterval(() => void trySilentRefresh(), 12 * 60_000);
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
   const handleExtendSession = async () => {
     try {
-      // Refresh token is sent via httpOnly cookie automatically (withCredentials: true).
-      const { data } = await api.post('/auth/refresh', {});
-      if (data?.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
-      }
+      // Refresh token + accessToken sont gérés via cookies httpOnly.
+      await api.post('/auth/refresh', {});
       setShowTimeoutWarning(false);
     } catch {
       localStorage.removeItem('accessToken');

@@ -49,13 +49,13 @@ export async function authenticatedDownload(
   inline = false,
 ): Promise<void> {
   try {
-    const token = localStorage.getItem("accessToken");
     const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(
       /\/api\/?$/,
       "/api/v1",
     );
+    // ANSSI A.5.34 — JWT en cookie httpOnly, `credentials: 'include'` suffit.
     const response = await fetch(`${apiBase}${url}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
     });
     if (!response.ok) throw new Error("Download failed");
     const blob = await response.blob();
