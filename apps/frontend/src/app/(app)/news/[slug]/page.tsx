@@ -237,9 +237,31 @@ export default function NewsArticlePage() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto space-y-6">
-        <Skeleton className="h-8 w-96" />
-        <Skeleton className="h-64 w-full rounded-card" />
+      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in-up">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-5 w-32 shimmer" />
+          <Skeleton className="h-7 w-24 shimmer" />
+        </div>
+        <Skeleton className="h-64 w-full rounded-card shimmer" />
+        <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-20 rounded-full shimmer" />
+            <Skeleton className="h-5 w-28 rounded-full shimmer" />
+          </div>
+          <Skeleton className="h-8 w-3/4 shimmer" />
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-7 w-7 rounded-full shimmer" />
+            <Skeleton className="h-4 w-32 shimmer" />
+            <Skeleton className="h-4 w-24 shimmer" />
+          </div>
+          <hr className="border-gray-100 dark:border-slate-700" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full shimmer" />
+            <Skeleton className="h-4 w-11/12 shimmer" />
+            <Skeleton className="h-4 w-10/12 shimmer" />
+            <Skeleton className="h-4 w-9/12 shimmer" />
+          </div>
+        </div>
       </div>
     );
   }

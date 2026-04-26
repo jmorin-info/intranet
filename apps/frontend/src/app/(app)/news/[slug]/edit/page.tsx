@@ -121,9 +121,36 @@ export default function EditNewsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-96 rounded-card" />
+      <div className="max-w-3xl mx-auto space-y-6 animate-fade-in-up">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-11 w-11 rounded-xl shimmer" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-48 shimmer" />
+              <Skeleton className="h-3 w-64 shimmer" />
+            </div>
+          </div>
+          <Skeleton className="h-9 w-28 rounded-btn shimmer" />
+        </div>
+        <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 space-y-4">
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-20 shimmer" />
+            <Skeleton className="h-10 w-full shimmer" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-24 shimmer" />
+            <Skeleton className="h-10 w-full shimmer" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Skeleton className="h-10 w-full shimmer" />
+            <Skeleton className="h-10 w-full shimmer" />
+          </div>
+          <Skeleton className="h-64 w-full rounded-lg shimmer" />
+          <div className="flex justify-between pt-4">
+            <Skeleton className="h-9 w-24 rounded-btn shimmer" />
+            <Skeleton className="h-9 w-32 rounded-btn shimmer" />
+          </div>
+        </div>
       </div>
     );
   }

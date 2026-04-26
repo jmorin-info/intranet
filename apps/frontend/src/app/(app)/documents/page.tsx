@@ -1746,8 +1746,23 @@ function DocumentsContent() {
               {/* Mobile: cards layout (< md) — table view sur mobile = cards par défaut */}
               <div className="md:hidden space-y-2">
                 {loading ? (
-                  <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
-                    Chargement…
+                  <div className="space-y-2" aria-label="Chargement des documents" aria-busy="true">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className="rounded-card border-l-4 border-l-gray-200 dark:border-l-slate-700 border-y border-r border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="h-3 w-24 rounded shimmer" />
+                          <div className="h-5 w-16 rounded-full shimmer" />
+                        </div>
+                        <div className="h-4 w-11/12 rounded shimmer" />
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-4 w-16 rounded-full shimmer" />
+                          <div className="h-3 w-20 rounded shimmer ml-auto" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (docs?.data?.length ?? 0) === 0 ? (
                   <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
