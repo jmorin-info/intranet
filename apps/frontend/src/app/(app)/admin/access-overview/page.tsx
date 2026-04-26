@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Vue 360° des accès effectifs (`/admin/access-overview`).
@@ -20,8 +20,8 @@
  * front-end). Pas de switch d'auth, pas d'appel privilégié.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -30,7 +30,7 @@ import {
   Skeleton,
   Select,
   Button,
-} from '@omnitech/ui';
+} from "@omnitech/ui";
 import {
   KeyRound,
   Eye,
@@ -42,19 +42,15 @@ import {
   X,
   Info,
   Crown,
-} from 'lucide-react';
-import {
-  UserRole,
-  USER_ROLE_LABELS,
-  ROLE_HIERARCHY,
-} from '@omnitech/shared';
-import { PageHeader } from '@/components/layout/page-header';
-import { RoleGuard } from '@/components/role-guard';
-import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
-import { api } from '@/lib/api';
-import { logger } from '@/lib/logger';
-import { useAuthStore } from '@/stores/auth-store';
-import { useTranslation } from '@/lib/i18n';
+} from "lucide-react";
+import { UserRole, USER_ROLE_LABELS, ROLE_HIERARCHY } from "@omnitech/shared";
+import { PageHeader } from "@/components/layout/page-header";
+import { RoleGuard } from "@/components/role-guard";
+import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
+import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
+import { useAuthStore } from "@/stores/auth-store";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -79,19 +75,19 @@ interface ModuleDef {
 interface SpaceConfig {
   id: string;
   module: string;
-  scopeType: 'GLOBAL' | 'DEPARTMENT' | 'ROLE' | 'USER';
+  scopeType: "GLOBAL" | "DEPARTMENT" | "ROLE" | "USER";
   scopeValue: string | null;
   enabled: boolean;
 }
 
 const SECTION_LABELS: Record<string, string> = {
-  monEspace: 'Mon espace',
-  work: 'Travail & connaissance',
-  security: 'Sécurité & conformité',
-  admin: 'Administration',
-  transverse: 'Transversal',
+  monEspace: "Mon espace",
+  work: "Travail & connaissance",
+  security: "Sécurité & conformité",
+  admin: "Administration",
+  transverse: "Transversal",
 };
-const SECTION_ORDER = ['monEspace', 'work', 'security', 'admin', 'transverse'];
+const SECTION_ORDER = ["monEspace", "work", "security", "admin", "transverse"];
 
 // Reproduit la résolution backend (cf. SpacesService.getModulesForUser).
 // Priorité : USER > ROLE > DEPARTMENT > GLOBAL > default(true).
@@ -101,59 +97,76 @@ function resolveEnabled(args: {
   role: string;
   departmentId: string | null;
   configs: SpaceConfig[];
-}): { enabled: boolean; source: 'USER' | 'ROLE' | 'DEPARTMENT' | 'GLOBAL' | 'DEFAULT' | 'ALWAYS_ON' | 'ADMIN_OVERRIDE' } {
+}): {
+  enabled: boolean;
+  source:
+    | "USER"
+    | "ROLE"
+    | "DEPARTMENT"
+    | "GLOBAL"
+    | "DEFAULT"
+    | "ALWAYS_ON"
+    | "ADMIN_OVERRIDE";
+} {
   const { module, userId, role, departmentId, configs } = args;
-  if (module.alwaysOn) return { enabled: true, source: 'ALWAYS_ON' };
+  if (module.alwaysOn) return { enabled: true, source: "ALWAYS_ON" };
 
   let enabled = true;
-  let source: 'USER' | 'ROLE' | 'DEPARTMENT' | 'GLOBAL' | 'DEFAULT' | 'ALWAYS_ON' | 'ADMIN_OVERRIDE' = 'DEFAULT';
+  let source:
+    | "USER"
+    | "ROLE"
+    | "DEPARTMENT"
+    | "GLOBAL"
+    | "DEFAULT"
+    | "ALWAYS_ON"
+    | "ADMIN_OVERRIDE" = "DEFAULT";
 
   const g = configs.find(
-    (c) => c.module === module.code && c.scopeType === 'GLOBAL',
+    (c) => c.module === module.code && c.scopeType === "GLOBAL",
   );
   if (g) {
     enabled = g.enabled;
-    source = 'GLOBAL';
+    source = "GLOBAL";
   }
   if (departmentId) {
     const d = configs.find(
       (c) =>
         c.module === module.code &&
-        c.scopeType === 'DEPARTMENT' &&
+        c.scopeType === "DEPARTMENT" &&
         c.scopeValue === departmentId,
     );
     if (d) {
       enabled = d.enabled;
-      source = 'DEPARTMENT';
+      source = "DEPARTMENT";
     }
   }
   const r = configs.find(
     (c) =>
       c.module === module.code &&
-      c.scopeType === 'ROLE' &&
+      c.scopeType === "ROLE" &&
       c.scopeValue === role,
   );
   if (r) {
     enabled = r.enabled;
-    source = 'ROLE';
+    source = "ROLE";
   }
   const u = configs.find(
     (c) =>
       c.module === module.code &&
-      c.scopeType === 'USER' &&
+      c.scopeType === "USER" &&
       c.scopeValue === userId,
   );
   if (u) {
     enabled = u.enabled;
-    source = 'USER';
+    source = "USER";
   }
   // Mirror backend: ADMIN/SUPER_ADMIN voient toujours admin module
   if (
-    module.code === 'admin' &&
+    module.code === "admin" &&
     ROLE_HIERARCHY[role as UserRole] >= ROLE_HIERARCHY[UserRole.ADMIN]
   ) {
     enabled = true;
-    if (source !== 'USER' && source !== 'ROLE') source = 'ADMIN_OVERRIDE';
+    if (source !== "USER" && source !== "ROLE") source = "ADMIN_OVERRIDE";
   }
   return { enabled, source };
 }
@@ -171,41 +184,41 @@ export default function AccessOverviewPage() {
 
   // selectedUserId = user inspecté (sélecteur)
   // simulationActive = true → on prétend "voir comme" cet utilisateur
-  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [simulationActive, setSimulationActive] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
       const [usersRes, modulesRes, configsRes] = await Promise.allSettled([
-        api.get('/users/directory', { params: { limit: 200 } }),
-        api.get('/spaces/modules'),
-        api.get('/spaces/configs'),
+        api.get("/users/directory", { params: { limit: 200 } }),
+        api.get("/spaces/modules"),
+        api.get("/spaces/configs"),
       ]);
-      if (usersRes.status === 'fulfilled') {
+      if (usersRes.status === "fulfilled") {
         const list: DirectoryUser[] =
           usersRes.value.data?.data || usersRes.value.data || [];
         setUsers(Array.isArray(list) ? list : []);
       } else {
         logger.error(usersRes.reason, {
-          page: 'admin/access-overview',
-          context: 'load users',
+          page: "admin/access-overview",
+          context: "load users",
         });
       }
-      if (modulesRes.status === 'fulfilled') {
+      if (modulesRes.status === "fulfilled") {
         setModules(modulesRes.value.data?.modules || []);
       } else {
         logger.error(modulesRes.reason, {
-          page: 'admin/access-overview',
-          context: 'load modules',
+          page: "admin/access-overview",
+          context: "load modules",
         });
       }
-      if (configsRes.status === 'fulfilled') {
+      if (configsRes.status === "fulfilled") {
         setConfigs(configsRes.value.data?.data || []);
       } else {
         logger.error(configsRes.reason, {
-          page: 'admin/access-overview',
-          context: 'load configs',
+          page: "admin/access-overview",
+          context: "load configs",
         });
       }
     } finally {
@@ -226,7 +239,7 @@ export default function AccessOverviewPage() {
   const modulesBySection = useMemo(() => {
     const map = new Map<string, ModuleDef[]>();
     for (const m of modules) {
-      const sec = m.section ?? 'transverse';
+      const sec = m.section ?? "transverse";
       const list = map.get(sec) ?? [];
       list.push(m);
       map.set(sec, list);
@@ -257,7 +270,7 @@ export default function AccessOverviewPage() {
 
   const userOptions = useMemo(
     () => [
-      { value: '', label: '— Sélectionner un utilisateur —' },
+      { value: "", label: "— Sélectionner un utilisateur —" },
       ...users.map((u) => ({
         value: u.id,
         label: `${u.lastName.toUpperCase()} ${u.firstName} (${USER_ROLE_LABELS[u.role as UserRole] || u.role})`,
@@ -273,8 +286,8 @@ export default function AccessOverviewPage() {
       <div className="space-y-6">
         <AdminGroupTabs group="identity" />
         <PageHeader
-          title={t('admin.access.overview.title') as string}
-          subtitle={t('admin.access.overview.subtitle') as string}
+          title={t("admin.access.overview.title") as string}
+          subtitle={t("admin.access.overview.subtitle") as string}
           icon={KeyRound}
           hub="admin"
         />
@@ -284,22 +297,29 @@ export default function AccessOverviewPage() {
           <Info className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
           <div className="space-y-1">
             <p className="text-seal-navy dark:text-white font-semibold">
-              {t('admin.access.overview.bannerTitle') as string}
+              {t("admin.access.overview.bannerTitle") as string}
             </p>
             <p className="text-seal-gray-500 dark:text-slate-400 text-xs">
-              {t('admin.access.overview.bannerDesc') as string}{' '}
+              {t("admin.access.overview.bannerDesc") as string}{" "}
               <Link
                 href="/admin/config"
                 className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
               >
                 <Settings className="h-3.5 w-3.5" /> Configuration globale
-              </Link>{' '}
-              ·{' '}
+              </Link>{" "}
+              ·{" "}
               <Link
-                href="/admin/spaces"
+                href="/admin/access?tab=departments"
                 className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
               >
-                <Layers className="h-3.5 w-3.5" /> Espaces & départements
+                <Layers className="h-3.5 w-3.5" /> Départements & modules
+              </Link>{" "}
+              ·{" "}
+              <Link
+                href="/admin/access?tab=users"
+                className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+              >
+                <KeyRound className="h-3.5 w-3.5" /> Override par utilisateur
               </Link>
             </p>
           </div>
@@ -312,23 +332,23 @@ export default function AccessOverviewPage() {
               <div>
                 <h2 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                   <Eye className="h-4 w-4" />
-                  {t('admin.access.overview.selectUser') as string}
+                  {t("admin.access.overview.selectUser") as string}
                 </h2>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-                  {t('admin.access.overview.selectHelp') as string}
+                  {t("admin.access.overview.selectHelp") as string}
                 </p>
               </div>
               {selectedUser && isSuperAdmin && (
                 <Button
-                  variant={simulationActive ? 'primary' : 'outline'}
+                  variant={simulationActive ? "primary" : "outline"}
                   size="sm"
                   onClick={() => setSimulationActive((v) => !v)}
                   aria-pressed={simulationActive}
                 >
                   <Eye className="h-4 w-4" />
                   {simulationActive
-                    ? (t('admin.access.overview.simulationOn') as string)
-                    : (t('admin.access.overview.simulate') as string)}
+                    ? (t("admin.access.overview.simulationOn") as string)
+                    : (t("admin.access.overview.simulate") as string)}
                 </Button>
               )}
             </div>
@@ -344,17 +364,17 @@ export default function AccessOverviewPage() {
                   setSimulationActive(false);
                 }}
                 options={userOptions}
-                aria-label={t('admin.access.overview.selectUser') as string}
+                aria-label={t("admin.access.overview.selectUser") as string}
               />
             )}
             {simulationActive && selectedUser && (
               <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-900/40 px-3 py-2 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
                 <Crown className="h-4 w-4" />
-                {t('admin.access.overview.simulationNotice') as string}{' '}
+                {t("admin.access.overview.simulationNotice") as string}{" "}
                 <span className="font-semibold">
                   {selectedUser.firstName} {selectedUser.lastName}
-                </span>{' '}
-                · {t('admin.access.overview.readOnly') as string}
+                </span>{" "}
+                · {t("admin.access.overview.readOnly") as string}
               </div>
             )}
           </CardContent>
@@ -368,14 +388,14 @@ export default function AccessOverviewPage() {
               <Card>
                 <CardContent className="py-4">
                   <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
-                    {t('admin.access.overview.role') as string}
+                    {t("admin.access.overview.role") as string}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-primary" />
                     {USER_ROLE_LABELS[selectedUser.role as UserRole] ||
                       selectedUser.role}
                     <Badge variant="navy" className="font-mono text-[10px]">
-                      L{ROLE_HIERARCHY[selectedUser.role as UserRole] ?? '?'}
+                      L{ROLE_HIERARCHY[selectedUser.role as UserRole] ?? "?"}
                     </Badge>
                   </p>
                 </CardContent>
@@ -383,11 +403,11 @@ export default function AccessOverviewPage() {
               <Card>
                 <CardContent className="py-4">
                   <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
-                    {t('admin.access.overview.department') as string}
+                    {t("admin.access.overview.department") as string}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-primary" />
-                    {selectedUser.department?.name || '—'}
+                    {selectedUser.department?.name || "—"}
                     {selectedUser.department && (
                       <Badge variant="navy" className="font-mono text-[10px]">
                         {selectedUser.department.code}
@@ -399,13 +419,13 @@ export default function AccessOverviewPage() {
               <Card>
                 <CardContent className="py-4">
                   <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
-                    {t('admin.access.overview.modules') as string}
+                    {t("admin.access.overview.modules") as string}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
                     <KeyRound className="h-4 w-4 text-primary" />
-                    {effective.allowed} / {effective.total}{' '}
+                    {effective.allowed} / {effective.total}{" "}
                     <span className="text-xs font-normal text-seal-gray-500 dark:text-slate-400">
-                      {t('admin.access.overview.allowed') as string}
+                      {t("admin.access.overview.allowed") as string}
                     </span>
                   </p>
                 </CardContent>
@@ -416,10 +436,10 @@ export default function AccessOverviewPage() {
             <Card>
               <CardHeader>
                 <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
-                  {t('admin.access.overview.tableTitle') as string}
+                  {t("admin.access.overview.tableTitle") as string}
                 </h3>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-                  {t('admin.access.overview.tableHelp') as string}
+                  {t("admin.access.overview.tableHelp") as string}
                 </p>
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
@@ -430,10 +450,10 @@ export default function AccessOverviewPage() {
                         Module
                       </th>
                       <th className="text-center px-3 py-2 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">
-                        {t('admin.access.overview.effective') as string}
+                        {t("admin.access.overview.effective") as string}
                       </th>
                       <th className="text-left px-3 py-2 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">
-                        {t('admin.access.overview.source') as string}
+                        {t("admin.access.overview.source") as string}
                       </th>
                     </tr>
                   </thead>
@@ -505,7 +525,7 @@ export default function AccessOverviewPage() {
         {!loading && !selectedUser && (
           <Card>
             <CardContent className="py-10 text-center text-seal-gray-500 dark:text-slate-400 text-sm">
-              {t('admin.access.overview.empty') as string}
+              {t("admin.access.overview.empty") as string}
             </CardContent>
           </Card>
         )}
@@ -518,24 +538,45 @@ function SourceBadge({
   source,
 }: {
   source:
-    | 'USER'
-    | 'ROLE'
-    | 'DEPARTMENT'
-    | 'GLOBAL'
-    | 'DEFAULT'
-    | 'ALWAYS_ON'
-    | 'ADMIN_OVERRIDE';
+    | "USER"
+    | "ROLE"
+    | "DEPARTMENT"
+    | "GLOBAL"
+    | "DEFAULT"
+    | "ALWAYS_ON"
+    | "ADMIN_OVERRIDE";
 }) {
   const map: Record<string, { label: string; cls: string }> = {
-    USER: { label: 'USER', cls: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
-    ROLE: { label: 'ROLE', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-    DEPARTMENT: { label: 'DEPT', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
-    GLOBAL: { label: 'GLOBAL', cls: 'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300' },
-    DEFAULT: { label: 'défaut', cls: 'bg-gray-50 text-gray-500 dark:bg-slate-800 dark:text-slate-500' },
-    ALWAYS_ON: { label: 'always-on', cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' },
-    ADMIN_OVERRIDE: { label: 'admin', cls: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300' },
+    USER: {
+      label: "USER",
+      cls: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+    },
+    ROLE: {
+      label: "ROLE",
+      cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    },
+    DEPARTMENT: {
+      label: "DEPT",
+      cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+    },
+    GLOBAL: {
+      label: "GLOBAL",
+      cls: "bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300",
+    },
+    DEFAULT: {
+      label: "défaut",
+      cls: "bg-gray-50 text-gray-500 dark:bg-slate-800 dark:text-slate-500",
+    },
+    ALWAYS_ON: {
+      label: "always-on",
+      cls: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300",
+    },
+    ADMIN_OVERRIDE: {
+      label: "admin",
+      cls: "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300",
+    },
   };
-  const cfg = map[source] ?? { label: source, cls: '' };
+  const cfg = map[source] ?? { label: source, cls: "" };
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider ${cfg.cls}`}

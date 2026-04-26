@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Dashboard monitoring système — style Nextcloud.
@@ -11,12 +11,18 @@
  * Poll auto toutes les 30 secondes.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { api } from '@/lib/api';
-import { PageHeader } from '@/components/layout/page-header';
-import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
-import { Card, CardContent, CardHeader, EmptyState, Skeleton } from '@omnitech/ui';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { api } from "@/lib/api";
+import { PageHeader } from "@/components/layout/page-header";
+import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  EmptyState,
+  Skeleton,
+} from "@omnitech/ui";
 import {
   Activity,
   Cpu,
@@ -27,7 +33,7 @@ import {
   Database,
   Users,
   RefreshCw,
-} from 'lucide-react';
+} from "lucide-react";
 
 // -----------------------------------------------------------------------------
 // Types — must match backend contracts
@@ -69,10 +75,13 @@ interface StoragePerUserRow {
 // -----------------------------------------------------------------------------
 
 function formatBytes(bytes: number): string {
-  if (!bytes || bytes <= 0) return '0 o';
+  if (!bytes || bytes <= 0) return "0 o";
   const k = 1024;
-  const sizes = ['o', 'Ko', 'Mo', 'Go', 'To'];
-  const i = Math.min(sizes.length - 1, Math.floor(Math.log(bytes) / Math.log(k)));
+  const sizes = ["o", "Ko", "Mo", "Go", "To"];
+  const i = Math.min(
+    sizes.length - 1,
+    Math.floor(Math.log(bytes) / Math.log(k)),
+  );
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
@@ -86,15 +95,15 @@ function formatUptime(seconds: number): string {
 }
 
 function gaugeColor(pct: number): string {
-  if (pct >= 90) return 'bg-red-500';
-  if (pct >= 70) return 'bg-amber-500';
-  return 'bg-emerald-500';
+  if (pct >= 90) return "bg-red-500";
+  if (pct >= 70) return "bg-amber-500";
+  return "bg-emerald-500";
 }
 
 function gaugeText(pct: number): string {
-  if (pct >= 90) return 'text-red-600 dark:text-red-400';
-  if (pct >= 70) return 'text-amber-600 dark:text-amber-400';
-  return 'text-emerald-600 dark:text-emerald-400';
+  if (pct >= 90) return "text-red-600 dark:text-red-400";
+  if (pct >= 70) return "text-amber-600 dark:text-amber-400";
+  return "text-emerald-600 dark:text-emerald-400";
 }
 
 /** CPU load as a percentage: load avg / cpu cores. */
@@ -105,11 +114,11 @@ function loadPct(load: number, cores: number): number {
 
 function formatHourLabel(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
 function initials(firstName: string, lastName: string): string {
-  return `${firstName?.[0] ?? ''}${lastName?.[0] ?? ''}`.toUpperCase() || '?';
+  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
 }
 
 // -----------------------------------------------------------------------------
@@ -134,7 +143,7 @@ function RamDonut({ pct }: { pct: number }) {
   const c = 2 * Math.PI * r;
   const offset = c * (1 - clamped / 100);
   const colorHex =
-    clamped >= 90 ? '#dc2626' : clamped >= 70 ? '#f59e0b' : '#10b981';
+    clamped >= 90 ? "#dc2626" : clamped >= 70 ? "#f59e0b" : "#10b981";
   return (
     <div className="relative h-24 w-24">
       <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90">
@@ -157,7 +166,7 @@ function RamDonut({ pct }: { pct: number }) {
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+          style={{ transition: "stroke-dashoffset 0.5s ease" }}
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
@@ -193,11 +202,11 @@ function BarChart({ data }: { data: HourlyBucket[] }) {
         })}
       </div>
       <div className="flex justify-between text-[10px] text-seal-gray-500 dark:text-slate-500 mt-1 px-1">
-        <span>{data[0] ? formatHourLabel(data[0].hour) : ''}</span>
+        <span>{data[0] ? formatHourLabel(data[0].hour) : ""}</span>
         <span>
           {data.length > 0 && data[data.length - 1]
             ? formatHourLabel(data[data.length - 1]!.hour)
-            : ''}
+            : ""}
         </span>
       </div>
     </div>
@@ -224,8 +233,12 @@ function KpiTile({
         <Icon className="h-5 w-5" />
       </div>
       <div>
-        <p className="text-xl font-semibold text-seal-navy dark:text-white">{value}</p>
-        <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">{label}</p>
+        <p className="text-xl font-semibold text-seal-navy dark:text-white">
+          {value}
+        </p>
+        <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
+          {label}
+        </p>
       </div>
     </div>
   );
@@ -234,6 +247,17 @@ function KpiTile({
 // -----------------------------------------------------------------------------
 // Main page
 // -----------------------------------------------------------------------------
+
+function formatRelativeUpdate(date: Date | null, now: number): string {
+  if (!date) return "";
+  const diff = Math.max(0, Math.floor((now - date.getTime()) / 1000));
+  if (diff < 5) return "à l'instant";
+  if (diff < 60) return `il y a ${diff} s`;
+  const min = Math.floor(diff / 60);
+  if (min < 60) return `il y a ${min} min`;
+  const h = Math.floor(min / 60);
+  return `il y a ${h} h`;
+}
 
 export default function SystemMonitoringPage() {
   const [resources, setResources] = useState<SystemResources | null>(null);
@@ -244,34 +268,41 @@ export default function SystemMonitoringPage() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [tick, setTick] = useState(() => Date.now());
 
   const PAGE_SIZE = 20;
+
+  // Tick une fois par seconde pour que "Mis à jour il y a X s" reste vivant.
+  useEffect(() => {
+    const id = setInterval(() => setTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
       const [resR, useR, stoR] = await Promise.allSettled([
-        api.get<SystemResources>('/system-monitoring/resources'),
-        api.get<IntranetUsage>('/system-monitoring/intranet-usage'),
-        api.get<StoragePerUserRow[]>('/system-monitoring/storage-per-user', {
+        api.get<SystemResources>("/system-monitoring/resources"),
+        api.get<IntranetUsage>("/system-monitoring/intranet-usage"),
+        api.get<StoragePerUserRow[]>("/system-monitoring/storage-per-user", {
           params: { limit: 200 },
         }),
       ]);
-      if (resR.status === 'fulfilled') setResources(resR.value.data);
-      if (useR.status === 'fulfilled') setUsage(useR.value.data);
-      if (stoR.status === 'fulfilled') setStorage(stoR.value.data);
+      if (resR.status === "fulfilled") setResources(resR.value.data);
+      if (useR.status === "fulfilled") setUsage(useR.value.data);
+      if (stoR.status === "fulfilled") setStorage(stoR.value.data);
       if (
-        resR.status === 'rejected' &&
-        useR.status === 'rejected' &&
-        stoR.status === 'rejected'
+        resR.status === "rejected" &&
+        useR.status === "rejected" &&
+        stoR.status === "rejected"
       ) {
-        setError('Impossible de charger les données de monitoring.');
+        setError("Impossible de charger les données de monitoring.");
       } else {
         setError(null);
       }
       setLastUpdate(new Date());
     } catch (e) {
-      setError((e as Error).message || 'Erreur inconnue');
+      setError((e as Error).message || "Erreur inconnue");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -284,10 +315,7 @@ export default function SystemMonitoringPage() {
     return () => clearInterval(id);
   }, [load]);
 
-  const maxTotalBytes = useMemo(
-    () => (storage[0]?.totalBytes ?? 0),
-    [storage],
-  );
+  const maxTotalBytes = useMemo(() => storage[0]?.totalBytes ?? 0, [storage]);
 
   const pagedStorage = useMemo(
     () => storage.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
@@ -327,12 +355,30 @@ export default function SystemMonitoringPage() {
         hub="admin"
         actions={
           <div className="flex items-center gap-2 text-xs text-seal-gray-500 dark:text-slate-400">
-            {refreshing && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-            {lastUpdate && (
-              <span>
-                MAJ : {lastUpdate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            {refreshing ? (
+              <span className="inline-flex items-center gap-1.5">
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                Actualisation…
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-emerald-500"
+                  aria-hidden="true"
+                />
+                Mis à jour {formatRelativeUpdate(lastUpdate, tick)}
               </span>
             )}
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="ml-1 inline-flex items-center gap-1 rounded-md border border-seal-gray-100 dark:border-slate-700 px-2 py-1 hover:bg-seal-gray-100/60 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Actualiser maintenant"
+              disabled={refreshing}
+            >
+              <RefreshCw className="h-3 w-3" />
+              Actualiser
+            </button>
           </div>
         }
       />
@@ -359,16 +405,18 @@ export default function SystemMonitoringPage() {
                 <Cpu className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs text-seal-gray-500 dark:text-slate-400">CPU</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                  CPU
+                </p>
                 <p className="text-sm font-semibold text-seal-navy dark:text-white">
-                  {resources ? `${resources.cpu.count} cœurs` : '—'}
+                  {resources ? `${resources.cpu.count} cœurs` : "—"}
                 </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
               {resources ? (
                 <>
-                  {(['1m', '5m', '15m'] as const).map((label, i) => {
+                  {(["1m", "5m", "15m"] as const).map((label, i) => {
                     const load = resources.cpu.loadAvg[i] ?? 0;
                     const pct = loadPct(load, resources.cpu.count);
                     return (
@@ -402,11 +450,13 @@ export default function SystemMonitoringPage() {
                 <MemoryStick className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Mémoire RAM</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                  Mémoire RAM
+                </p>
                 <p className="text-sm font-semibold text-seal-navy dark:text-white">
                   {resources
                     ? `${(resources.memory.totalMb / 1024).toFixed(1)} Go totaux`
-                    : '—'}
+                    : "—"}
                 </p>
               </div>
             </CardHeader>
@@ -416,13 +466,17 @@ export default function SystemMonitoringPage() {
                   <RamDonut pct={resources.memory.usagePct} />
                   <div className="flex-1 space-y-1 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-seal-gray-500 dark:text-slate-400">Utilisée</span>
+                      <span className="text-seal-gray-500 dark:text-slate-400">
+                        Utilisée
+                      </span>
                       <span className="font-medium">
                         {(resources.memory.usedMb / 1024).toFixed(1)} Go
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-seal-gray-500 dark:text-slate-400">Libre</span>
+                      <span className="text-seal-gray-500 dark:text-slate-400">
+                        Libre
+                      </span>
                       <span className="font-medium">
                         {(resources.memory.freeMb / 1024).toFixed(1)} Go
                       </span>
@@ -442,9 +496,11 @@ export default function SystemMonitoringPage() {
                 <HardDrive className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Disque</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                  Disque
+                </p>
                 <p className="text-sm font-semibold text-seal-navy dark:text-white">
-                  {resources ? `${resources.disk.totalGb} Go` : '—'}
+                  {resources ? `${resources.disk.totalGb} Go` : "—"}
                 </p>
               </div>
             </CardHeader>
@@ -455,7 +511,9 @@ export default function SystemMonitoringPage() {
                     <span className="text-seal-gray-500 dark:text-slate-400">
                       Utilisé : {resources.disk.usedGb} Go
                     </span>
-                    <span className={`font-semibold ${gaugeText(resources.disk.usagePct)}`}>
+                    <span
+                      className={`font-semibold ${gaugeText(resources.disk.usagePct)}`}
+                    >
                       {resources.disk.usagePct}%
                     </span>
                   </div>
@@ -480,22 +538,26 @@ export default function SystemMonitoringPage() {
                 <Clock className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Uptime</p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                  Uptime
+                </p>
                 <p className="text-sm font-semibold text-seal-navy dark:text-white">
-                  {resources ? formatUptime(resources.uptime.secondsTotal) : '—'}
+                  {resources
+                    ? formatUptime(resources.uptime.secondsTotal)
+                    : "—"}
                 </p>
               </div>
             </CardHeader>
             <CardContent>
               {resources ? (
                 <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
-                  Démarrage :{' '}
-                  {new Date(resources.uptime.bootTime).toLocaleString('fr-FR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
+                  Démarrage :{" "}
+                  {new Date(resources.uptime.bootTime).toLocaleString("fr-FR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                 </p>
               ) : (
@@ -517,25 +579,25 @@ export default function SystemMonitoringPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           <KpiTile
             label="Requêtes API"
-            value={usage?.apiRequests24h.toLocaleString('fr-FR') ?? '—'}
+            value={usage?.apiRequests24h.toLocaleString("fr-FR") ?? "—"}
             icon={TrendingUp}
             accent="#296DC1"
           />
           <KpiTile
             label="Utilisateurs actifs"
-            value={usage?.activeUsers24h.toLocaleString('fr-FR') ?? '—'}
+            value={usage?.activeUsers24h.toLocaleString("fr-FR") ?? "—"}
             icon={Users}
             accent="#006233"
           />
           <KpiTile
             label="Documents uploadés"
-            value={usage?.documentsUploaded24h.toLocaleString('fr-FR') ?? '—'}
+            value={usage?.documentsUploaded24h.toLocaleString("fr-FR") ?? "—"}
             icon={Database}
             accent="#F9964A"
           />
           <KpiTile
             label="Médias uploadés"
-            value={usage?.mediaUploaded24h.toLocaleString('fr-FR') ?? '—'}
+            value={usage?.mediaUploaded24h.toLocaleString("fr-FR") ?? "—"}
             icon={Database}
             accent="#892034"
           />
@@ -582,7 +644,7 @@ export default function SystemMonitoringPage() {
               </p>
             </div>
             <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-              Total affiché :{' '}
+              Total affiché :{" "}
               <span className="font-semibold text-seal-navy dark:text-white">
                 {formatBytes(storage.reduce((s, r) => s + r.totalBytes, 0))}
               </span>
@@ -603,8 +665,12 @@ export default function SystemMonitoringPage() {
                       <tr className="border-b border-seal-gray-100 dark:border-slate-800 text-left text-[11px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
                         <th className="px-4 py-2 font-medium">Utilisateur</th>
                         <th className="px-4 py-2 font-medium">Département</th>
-                        <th className="px-4 py-2 font-medium text-right">Documents</th>
-                        <th className="px-4 py-2 font-medium text-right">Médias</th>
+                        <th className="px-4 py-2 font-medium text-right">
+                          Documents
+                        </th>
+                        <th className="px-4 py-2 font-medium text-right">
+                          Médias
+                        </th>
                         <th className="px-4 py-2 font-medium">Total</th>
                         <th className="px-4 py-2 font-medium w-20" />
                       </tr>
@@ -613,7 +679,10 @@ export default function SystemMonitoringPage() {
                       {pagedStorage.map((row) => {
                         const pct =
                           maxTotalBytes > 0
-                            ? Math.max(2, (row.totalBytes / maxTotalBytes) * 100)
+                            ? Math.max(
+                                2,
+                                (row.totalBytes / maxTotalBytes) * 100,
+                              )
                             : 0;
                         return (
                           <tr
@@ -636,7 +705,7 @@ export default function SystemMonitoringPage() {
                               </div>
                             </td>
                             <td className="px-4 py-3 text-xs text-seal-gray-500 dark:text-slate-400">
-                              {row.department ?? '—'}
+                              {row.department ?? "—"}
                             </td>
                             <td className="px-4 py-3 text-right text-xs tabular-nums">
                               {formatBytes(row.documentsBytes)}
@@ -687,7 +756,9 @@ export default function SystemMonitoringPage() {
                       <button
                         className="px-3 py-1 rounded border border-seal-gray-100 dark:border-slate-700 disabled:opacity-40 hover:bg-seal-gray-100/50 dark:hover:bg-slate-800"
                         disabled={page >= totalPages - 1}
-                        onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                        onClick={() =>
+                          setPage((p) => Math.min(totalPages - 1, p + 1))
+                        }
                       >
                         Suivant
                       </button>

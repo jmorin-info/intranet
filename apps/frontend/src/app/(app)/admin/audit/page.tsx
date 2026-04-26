@@ -78,9 +78,14 @@ export default function AdminAuditPage() {
           subtitle="ISO 27001 A.5.36 — Journal d'audit sécurité (table + frise)"
           icon={ClipboardList}
           hub="admin"
+          meta={
+            <Tabs
+              tabs={tabs}
+              activeTab={activeTab}
+              onChange={handleTabChange}
+            />
+          }
         />
-
-        <Tabs tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
 
         {activeTab === "log" ? <AuditLogView /> : <AuditTimelineView />}
       </div>
