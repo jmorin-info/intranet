@@ -355,9 +355,7 @@ export default function WorkflowRulesAdminPage() {
                             .join(", ")}
                     </td>
                     <td className="p-3">
-                      <Badge variant="secondary">
-                        {rule.steps?.length ?? 0}
-                      </Badge>
+                      <Badge variant="info">{rule.steps?.length ?? 0}</Badge>
                     </td>
                     <td className="p-3">
                       {rule.isActive ? (
