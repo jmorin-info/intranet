@@ -195,7 +195,7 @@ export class WikiService {
       // at the same level, so we wrap both in an AND.
       const existingOr = where.OR;
       delete where.OR;
-      (where as any).AND = [
+      where.AND = [
         ...(existingOr ? [{ OR: existingOr }] : []),
         { OR: searchOr },
       ];
@@ -234,9 +234,11 @@ export class WikiService {
     const searchLower = filters!.search!.toLowerCase();
     const terms = searchLower.split(/\s+/).filter((t) => t.length >= 2);
 
-    const scored = rows.map((row) => {
+    // `content` est sélectionné conditionnellement (needsScoring=true ici).
+    type RowWithContent = (typeof rows)[number] & { content?: string };
+    const scored = (rows as RowWithContent[]).map((row) => {
       const titleLower = (row.title ?? '').toLowerCase();
-      const contentLower = ((row as any).content as string ?? '').toLowerCase();
+      const contentLower = (row.content ?? '').toLowerCase();
       const catLower = (row.category ?? '').toLowerCase();
 
       let score = 0;
@@ -247,7 +249,7 @@ export class WikiService {
         if (catLower.includes(term)) score += 3;
         // Content occurrence count, 1 pt each (capped at 10)
         const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-        const hits = ((row as any).content as string ?? '').match(re);
+        const hits = (row.content ?? '').match(re);
         score += Math.min(hits?.length ?? 0, 10);
       }
       // Bonus for exact phrase match
@@ -258,7 +260,7 @@ export class WikiService {
 
       // Build excerpt: ~150 chars around first match in content
       let excerpt: string | null = null;
-      const rawContent = (row as any).content as string ?? '';
+      const rawContent = row.content ?? '';
       const plainContent = this.stripHtml(rawContent);
       const plainLower = plainContent.toLowerCase();
       let firstIdx = -1;
@@ -277,7 +279,7 @@ export class WikiService {
       }
 
       // Omit full content from response
-      const { content: _content, ...rest } = row as any;
+      const { content: _content, ...rest } = row;
       void _content;
       return { ...rest, score, excerpt };
     });
@@ -304,7 +306,7 @@ export class WikiService {
     const existingOr = where.OR;
     if (existingOr) {
       delete where.OR;
-      (where as any).AND = [{ OR: existingOr }, { title: where.title }];
+      where.AND = [{ OR: existingOr }, { title: where.title }];
       delete where.title;
     }
 

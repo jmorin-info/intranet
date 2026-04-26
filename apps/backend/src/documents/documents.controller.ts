@@ -147,9 +147,7 @@ export class DocumentsController {
       { ...filters, page: "1", limit: "1000" },
       user,
     );
-    const rows = Array.isArray(result)
-      ? (result as any[])
-      : ((result as any)?.data ?? []);
+    const rows = result.data;
 
     type DocRow = {
       reference: string;
@@ -515,7 +513,7 @@ export class DocumentsController {
     let classification = "INTERNE";
     try {
       const doc = await this.documentsService.findById(id, user);
-      const cls = (doc as any)?.classification;
+      const cls = doc?.classification;
       if (typeof cls === "string" && cls.length > 0)
         classification = cls.toUpperCase();
     } catch {

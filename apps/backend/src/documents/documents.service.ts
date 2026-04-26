@@ -18,6 +18,7 @@ import { CreateDocumentDto } from "./dto/create-document.dto";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 import { DocumentFiltersDto } from "./dto/document-filters.dto";
 import { RequestUser } from "../common/interfaces";
+import type { UserRole as PrismaUserRole } from "@prisma/client";
 import { UserRole, ROLE_HIERARCHY } from "../common/enums";
 import { ISO_CONTROLS_FR } from "../iso-controls/iso-controls-fr.map";
 import { sanitizePlainText } from "../common/sanitize";
@@ -31,6 +32,9 @@ import { WorkflowRulesService } from "../workflow-rules/workflow-rules.service";
 
 /** Enrich any object that has nested isoControls[].isoControl with titleFr */
 function enrichIsoControls<T>(doc: T): T {
+  // Generic helper : on travaille sur le type Prisma incluant `isoControls`,
+  // mais comme `T` est paramétrique, on garde un cast structurel any-local.
+  // TODO: review type safety — typer T extends { isoControls?: ... }.
   const d = doc as any;
   if (d?.isoControls && Array.isArray(d.isoControls)) {
     d.isoControls = d.isoControls.map((link: any) => {
@@ -1714,7 +1718,7 @@ export class DocumentsService {
       where: {
         isActive: true,
         deletedAt: null,
-        ...(roleFilter ? { role: { in: roleFilter as any } } : {}),
+        ...(roleFilter ? { role: { in: roleFilter as PrismaUserRole[] } } : {}),
       },
       select: { id: true },
     });
