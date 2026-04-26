@@ -1,0 +1,37 @@
+[Unit]
+Description=OMNITECH Intranet Backend (NestJS)
+Documentation=https://intranet.omnitech-security.fr/docs
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/omnitech/intranet
+EnvironmentFile=/opt/omnitech/intranet/.env
+ExecStart=/usr/bin/pnpm --filter @omnitech/backend start
+Restart=on-failure
+RestartSec=5
+
+# Hardening (ISO 27001 A.8.31)
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+# Logs
+StandardOutput=append:/var/log/omnitech/backend.log
+StandardError=append:/var/log/omnitech/backend.log
+SyslogIdentifier=omnitech-backend
+
+# Limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
