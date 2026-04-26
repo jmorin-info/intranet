@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Res, UseGuards, ParseUUIDPipe, BadRequestException, NotFoundException, GoneException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Res, UseGuards, ParseUUIDPipe, BadRequestException, NotFoundException, ForbiddenException, GoneException } from '@nestjs/common';
 import { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { randomBytes } from 'node:crypto';
@@ -103,8 +103,17 @@ export class RagController {
     }
   }
 
-  /** Résumé IA d'un document. */
+  /**
+   * Résumé IA d'un document.
+   *
+   * Sécurité : restreint à REVIEWER+ pour éviter qu'un user lambda
+   * puisse résumer (et donc lire indirectement) n'importe quel document
+   * via son UUID — `summarizeDocument` ne fait aucun check ACL côté
+   * Prisma. Les utilisateurs standards utilisent /rag/ask qui filtre
+   * par RBAC ISO 27001 A.5.15 dans la couche RagService.answer().
+   */
   @Get('documents/:id/ai-summary')
+  @Roles(UserRole.REVIEWER, UserRole.AUDITEUR, UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async documentSummary(@Param('id', ParseUUIDPipe) id: string) {
     try {
@@ -114,8 +123,16 @@ export class RagController {
     }
   }
 
-  /** Suggestion IA de réponse pour un ticket. */
+  /**
+   * Suggestion IA de réponse pour un ticket.
+   *
+   * Sécurité : réservé aux agents support (REVIEWER+). Le service
+   * `suggestTicketResponse` ne vérifie pas que l'appelant a accès au
+   * ticket (creator / assignee / dept) — sans ce garde, n'importe quel
+   * user pouvait fuiter le titre/description d'un ticket via son UUID.
+   */
   @Get('tickets/:id/ai-suggest')
+  @Roles(UserRole.REVIEWER, UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async ticketSuggestion(@Param('id', ParseUUIDPipe) id: string) {
     try {
       return await this.ragService.suggestTicketResponse(id);
@@ -124,15 +141,56 @@ export class RagController {
     }
   }
 
-  /** Question sur un article wiki. */
+  /**
+   * Question sur un article wiki.
+   *
+   * Sécurité : on délègue au WikiService.findBySlug-équivalent pour
+   * appliquer le filtre de visibilité (PUBLIC / DEPARTMENT / ROLE /
+   * PRIVATE+collaborators). `askAboutArticle` ne fait pas de check —
+   * sans ce garde, un user pouvait lire les pages PRIVATE d'autrui.
+   */
   @Post('wiki/:id/ask')
   async wikiAsk(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: { question: string },
+    @CurrentUser() user: RequestUser,
   ) {
     const question = (body?.question ?? '').trim();
     if (question.length < 2) {
       return { answer: 'Veuillez saisir une question d\'au moins 2 caractères.' };
+    }
+    // ACL : reproduire la logique WikiService.canView avant de laisser le LLM
+    // reformuler le contenu de l'article (sinon on bypassse la visibilité
+    // PRIVATE / DEPARTMENT / ROLE).
+    const page = await this.prisma.wikiPage.findUnique({
+      where: { id },
+      select: {
+        authorId: true,
+        visibility: true,
+        ownerDepartmentId: true,
+        allowedRoles: true,
+        collaborators: true,
+      },
+    });
+    if (!page) throw new NotFoundException('Wiki page not found');
+    const isPrivileged =
+      user.role === UserRole.ADMIN ||
+      user.role === UserRole.SUPER_ADMIN ||
+      user.role === UserRole.AUDITEUR;
+    const canView =
+      isPrivileged ||
+      page.authorId === user.id ||
+      page.visibility === 'PUBLIC' ||
+      (page.visibility === 'DEPARTMENT' &&
+        !!user.departmentId &&
+        page.ownerDepartmentId === user.departmentId) ||
+      (page.visibility === 'ROLE' &&
+        Array.isArray(page.allowedRoles) &&
+        (page.allowedRoles as string[]).includes(user.role)) ||
+      (Array.isArray(page.collaborators) &&
+        (page.collaborators as string[]).includes(user.id));
+    if (!canView) {
+      throw new ForbiddenException('You cannot access this wiki page');
     }
     try {
       return await this.ragService.askAboutArticle(id, question);
