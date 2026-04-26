@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { Bell, X } from 'lucide-react';
+import { detectPlatform, getWebPushReadiness } from '@/lib/platform-detection';
 
 const STORAGE_KEY = 'omnitech.push.prompt.dismissed';
 const SUBSCRIBED_KEY = 'omnitech.push.subscribed';
@@ -35,6 +36,12 @@ export function PushNotificationManager() {
     if (!('serviceWorker' in navigator)) return;
     if (!('PushManager' in window)) return;
     if (!('Notification' in window)) return;
+
+    // Safari iOS : si la PWA n'est pas installée, on ne propose PAS le
+    // bandeau (Safari iOS bloque `Notification.requestPermission()` hors
+    // mode standalone). La pédagogie d'installation est portée par le
+    // composant `<PushNotificationsPrompt />` dans `/profile`.
+    if (getWebPushReadiness() === 'ios-needs-install') return;
 
     // Already subscribed: try silent re-sync (in case sub was rotated)
     if (Notification.permission === 'granted') {
@@ -71,6 +78,7 @@ export function PushNotificationManager() {
         endpoint: json.endpoint,
         keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
         userAgent: navigator.userAgent,
+        platform: detectPlatform(),
       });
       localStorage.setItem(SUBSCRIBED_KEY, '1');
     } catch {
@@ -110,6 +118,7 @@ export function PushNotificationManager() {
         endpoint: json.endpoint,
         keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
         userAgent: navigator.userAgent,
+        platform: detectPlatform(),
       });
 
       localStorage.setItem(SUBSCRIBED_KEY, '1');

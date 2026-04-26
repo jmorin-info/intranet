@@ -12,6 +12,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useNoaStore } from "@/lib/noa/runtime";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { replayWelcomeTour } from "@/components/onboarding/welcome-tour";
+import { PushNotificationsPrompt } from "@/components/notifications/push-notifications-prompt";
 import type { ApiError, NotifPrefs } from "./types";
 
 export function ProfilePreferencesSection() {
@@ -202,6 +203,11 @@ export function ProfilePreferencesSection() {
 
   return (
     <>
+      {/* Safari Web Push : pédagogie iOS + activation explicite. Le composant
+          se masque tout seul si la plateforme n'est pas pertinente (browser
+          incompatible non-iOS) ou si l'utilisateur a déjà fermé le bandeau iOS. */}
+      <PushNotificationsPrompt />
+
       {/* Notification preferences */}
       <Card>
         <CardHeader>

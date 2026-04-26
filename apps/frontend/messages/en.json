@@ -176,5 +176,31 @@
     "tryDifferent": "Try adjusting your search criteria.",
     "createFirst": "Create your first item to get started.",
     "comeBackLater": "Come back later for updates."
+  },
+  "notifications": {
+    "safari": {
+      "title": "Push notifications",
+      "description": "Get critical alerts (incidents, assigned tickets, mentions) directly on this device.",
+      "enable": "Enable notifications",
+      "enabling": "Enabling…",
+      "disable": "Disable",
+      "disabling": "Disabling…",
+      "activeBadge": "Active on this device",
+      "enableSuccess": "Push notifications enabled on this device",
+      "enableError": "Could not enable notifications. Check the browser's permission settings.",
+      "disableSuccess": "Push notifications disabled on this device",
+      "denied": "Notifications are blocked in browser settings. Re-enable them for this device to activate this option.",
+      "unsupported": "This browser does not support push notifications.",
+      "iosInstallTitle": "Enable notifications on iPhone / iPad",
+      "iosInstallDescription": "On iOS, Apple requires the intranet to be added to the Home Screen before push notifications can be enabled. This is a one-time setup per device.",
+      "iosStep1": "Tap the Share icon in the Safari toolbar.",
+      "iosStep2": "Choose \"Add to Home Screen\" from the list.",
+      "iosStep3": "Reopen the intranet from the installed icon, then come back here to enable notifications.",
+      "iosScreenshotPlaceholder": "Screenshot coming soon: Share icon → Add to Home Screen",
+      "iosNote": "Requires iOS 16.4 or later (iPhone and iPad).",
+      "iosInstalledHint": "PWA installed on Home Screen — you can now enable notifications.",
+      "serverNotReady": "The server does not seem to be configured for Safari notifications. Contact your administrator.",
+      "dismiss": "Hide this banner"
+    }
   }
 }

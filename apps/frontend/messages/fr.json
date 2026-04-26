@@ -176,5 +176,31 @@
     "tryDifferent": "Essayez de modifier vos critères de recherche.",
     "createFirst": "Créez votre premier élément pour commencer.",
     "comeBackLater": "Revenez plus tard pour voir les nouveautés."
+  },
+  "notifications": {
+    "safari": {
+      "title": "Notifications push",
+      "description": "Recevez les alertes critiques (incidents, tickets assignés, mentions) directement sur cet appareil.",
+      "enable": "Activer les notifications",
+      "enabling": "Activation…",
+      "disable": "Désactiver",
+      "disabling": "Désactivation…",
+      "activeBadge": "Actives sur cet appareil",
+      "enableSuccess": "Notifications push activées sur cet appareil",
+      "enableError": "Impossible d'activer les notifications. Vérifiez les autorisations du navigateur.",
+      "disableSuccess": "Notifications push désactivées sur cet appareil",
+      "denied": "Les notifications sont bloquées dans les paramètres du navigateur. Réautorisez-les pour cet appareil pour activer cette option.",
+      "unsupported": "Ce navigateur ne supporte pas les notifications push.",
+      "iosInstallTitle": "Activer les notifications sur iPhone / iPad",
+      "iosInstallDescription": "Sur iOS, Apple impose que l'intranet soit ajouté à l'écran d'accueil avant de pouvoir activer les notifications push. C'est une étape unique, à faire une seule fois par appareil.",
+      "iosStep1": "Touchez l'icône Partager dans la barre Safari.",
+      "iosStep2": "Choisissez « Sur l'écran d'accueil » dans la liste.",
+      "iosStep3": "Rouvrez l'intranet depuis l'icône installée puis revenez ici pour activer les notifications.",
+      "iosScreenshotPlaceholder": "Capture à venir : icône Partager → Sur l'écran d'accueil",
+      "iosNote": "Compatible avec iOS 16.4 et versions ultérieures (iPhone et iPad).",
+      "iosInstalledHint": "PWA installée à l'écran d'accueil — vous pouvez activer les notifications.",
+      "serverNotReady": "Le serveur ne semble pas configuré pour les notifications Safari. Contactez votre administrateur.",
+      "dismiss": "Masquer ce bandeau"
+    }
   }
 }

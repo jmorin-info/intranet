@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { detectPlatform } from '@/lib/platform-detection';
 
 /**
  * Permission state of the browser Notifications API.
@@ -142,6 +143,9 @@ export function usePushNotifications(): UsePushNotificationsResult {
         endpoint: json.endpoint,
         keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
         userAgent: navigator.userAgent,
+        // Hint plateforme — fournit au backend une détection plus fiable
+        // (matchMedia + UA quirks d'iPadOS) que le simple parsing UA.
+        platform: detectPlatform(),
       });
 
       try {
