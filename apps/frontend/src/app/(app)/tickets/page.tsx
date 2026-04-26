@@ -25,7 +25,6 @@ import dynamic from 'next/dynamic';
 import type { SmartFilter } from '@/lib/smart-filter';
 import { PageHeader } from '@/components/layout/page-header';
 import { ExportButton } from '@/components/ui/export-button';
-import { RichTextEditor } from '@/components/editor/rich-text-editor';
 import { eventBus, createEvent, useEntityEvents } from '@/lib/events';
 import { useAISuggestions } from '@/lib/ai-ux';
 import { AISuggestionBar } from '@/components/ai/ai-suggestion-bar';
@@ -45,6 +44,12 @@ const SavedFiltersBar = dynamic(
 const SmartFilterBar = dynamic(
   () => import('@/components/ui/smart-filter-bar'),
   { ssr: false, loading: () => <div className="shimmer h-20 rounded-xl" /> },
+);
+// RichTextEditor — uniquement mounté dans la modale de création (showCreate=true).
+// Lazy pour éviter de payer le coût toolbar/contentEditable au First Load.
+const RichTextEditor = dynamic(
+  () => import('@/components/editor/rich-text-editor').then((m) => ({ default: m.RichTextEditor })),
+  { ssr: false, loading: () => <div className="shimmer h-40 rounded-lg" /> },
 );
 
 // --- Animated counter hook ---------------------------------------------------

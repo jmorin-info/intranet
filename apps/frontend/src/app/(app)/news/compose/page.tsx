@@ -11,7 +11,9 @@ import { api } from '@/lib/api';
 import { noaToast } from '@/lib/noa/toast';
 import { useTranslation } from '@/lib/i18n';
 import { UserRole } from '@omnitech/shared';
-import DOMPurify from 'dompurify';
+// DOMPurify chargé dynamiquement — utilisé uniquement dans le panneau aperçu
+// (showPreview), donc inutile dans le First Load JS.
+import type DOMPurifyType from 'dompurify';
 import {
   Card,
   CardContent,
@@ -59,6 +61,16 @@ export default function ComposeNewsPage() {
   const [notifyOnPublish, setNotifyOnPublish] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
+  // DOMPurify lazy-loaded — n'entre dans le bundle qu'au moment où l'utilisateur
+  // ouvre l'aperçu live (showPreview=true).
+  const [domPurify, setDomPurify] = useState<typeof DOMPurifyType | null>(null);
+  useEffect(() => {
+    if (showPreview && !domPurify) {
+      import('dompurify').then((mod) => {
+        setDomPurify(() => mod.default);
+      });
+    }
+  }, [showPreview, domPurify]);
 
   const {
     register,
@@ -464,11 +476,13 @@ export default function ComposeNewsPage() {
                 </p>
               )}
               <hr className="border-gray-100 dark:border-slate-700" />
-              {content ? (
+              {content && domPurify ? (
                 <div
                   className="prose prose-sm max-w-none prose-headings:text-seal-navy dark:prose-headings:text-white prose-a:text-primary dark:prose-p:text-slate-300 dark:prose-li:text-slate-300 dark:prose-strong:text-white"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
+                  dangerouslySetInnerHTML={{ __html: domPurify.sanitize(content) }}
                 />
+              ) : content && !domPurify ? (
+                <p className="text-sm text-seal-gray-500 dark:text-slate-500 italic">Chargement de l&apos;aperçu...</p>
               ) : (
                 <p className="text-sm text-seal-gray-500 dark:text-slate-500 italic">Le contenu apparaîtra ici...</p>
               )}

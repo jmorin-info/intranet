@@ -16,11 +16,18 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   images: {
+    // Restreint à l'origine prod + dev local (sécurité + perf : '**' était
+    // trop permissif — exposait le loader d'images Next à n'importe quel
+    // hôte HTTPS, augmentant la surface SSRF + le risque DoS via le proxy
+    // d'images Next). Les avatars LDAP sont servis localement (/storage/avatars/),
+    // donc pas besoin d'autoriser un host externe pour eux.
+    // Les images externes des news utilisent déjà `unoptimized` côté composant,
+    // donc elles ne traversent pas ce loader.
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**",
-      },
+      { protocol: "https", hostname: "intranet.omnitech-security.fr" },
+      { protocol: "https", hostname: "vaultwarden.omnitech-security.fr" },
+      { protocol: "http", hostname: "localhost" },
+      { protocol: "http", hostname: "127.0.0.1" },
     ],
   },
   webpack: (config) => {

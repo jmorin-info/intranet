@@ -25,6 +25,7 @@ import { useSidebarCounters } from '@/hooks/use-sidebar-counters';
 import { useUIStore } from '@/stores/ui-store';
 import { useHealthStore } from '@/stores/health-store';
 import { useAdminCountsStore } from '@/stores/admin-counts-store';
+import Image from 'next/image';
 import { useTranslation } from '@/lib/i18n';
 import { UserRole } from '@omnitech/shared';
 import { isRoleAtLeast } from '@omnitech/shared';
@@ -921,14 +922,14 @@ export function Sidebar() {
             className="flex h-13 w-13 items-center justify-center rounded-xl mb-3 hover:bg-white/10 transition-all duration-200 ring-1 ring-white/5 hover:ring-[#F9964A]/40"
             style={{ height: 52, width: 52 }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src="/logo-icon-white.png"
               alt="OMNITECH"
               width={52}
               height={52}
               className="object-contain drop-shadow-sm"
               style={{ width: 52, height: 52 }}
+              priority
             />
           </Link>
 
@@ -1054,12 +1055,14 @@ export function Sidebar() {
                 href="/dashboard"
                 className="flex items-center gap-2.5 px-4 pt-5 pb-4 border-b border-white/5 hover:bg-white/[0.02] transition-colors"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src="/logo-full-white.png"
                   alt="OMNITECH Security"
+                  width={160}
+                  height={40}
                   className="h-10 w-auto object-contain drop-shadow-sm"
-                  style={{ height: 40 }}
+                  style={{ height: 40, width: 'auto' }}
+                  priority
                 />
               </Link>
 

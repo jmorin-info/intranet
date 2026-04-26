@@ -49,23 +49,46 @@ import {
   useActionsRequises,
 } from '@/components/dashboard/dashboard-quick-actions';
 import { DashboardRecentPages } from '@/components/dashboard/dashboard-recent-pages';
-import { DashboardAdminPanel } from '@/components/dashboard/dashboard-admin-panel';
 import { DashboardStatsGrid } from '@/components/dashboard/dashboard-stats-grid';
 import { DashboardWidgetsGrid } from '@/components/dashboard/dashboard-widgets-grid';
-import { SmartInsightsWidget } from '@/components/dashboard/dashboard-smart-insights';
-import { DashboardProviderView } from '@/components/dashboard/dashboard-provider-view';
-import { DashboardOnboardingCard } from '@/components/dashboard/dashboard-onboarding-card';
-import { WelcomeChecklist } from '@/components/dashboard/welcome-checklist';
-import { DashboardFooterShortcuts } from '@/components/dashboard/dashboard-footer-shortcuts';
 import { DashboardTabs, type DashboardView } from '@/components/dashboard/dashboard-tabs';
-import {
-  DashboardSettingsPanel,
-  type DashboardWidgetPrefs,
-} from '@/components/dashboard/dashboard-settings-panel';
+import { type DashboardWidgetPrefs } from '@/components/dashboard/dashboard-settings-panel';
 import { useDashboardData } from '@/components/dashboard/use-dashboard-data';
 
 const RssiDashboardSummary = dynamic(
   () => import('@/components/widgets/rssi-dashboard-summary').then((m) => m.RssiDashboardSummary),
+  { ssr: false },
+);
+
+// Conditional / role-gated sections — chargées dynamiquement pour réduire le
+// First Load JS (~314 KB → cible). Pas de SSR (composants client-only avec
+// state local), skeleton léger pour préserver le layout.
+const DashboardSettingsPanel = dynamic(
+  () => import('@/components/dashboard/dashboard-settings-panel').then((m) => ({ default: m.DashboardSettingsPanel })),
+  { ssr: false, loading: () => <div className="shimmer h-40 rounded-xl" /> },
+);
+const DashboardOnboardingCard = dynamic(
+  () => import('@/components/dashboard/dashboard-onboarding-card').then((m) => ({ default: m.DashboardOnboardingCard })),
+  { ssr: false },
+);
+const DashboardProviderView = dynamic(
+  () => import('@/components/dashboard/dashboard-provider-view').then((m) => ({ default: m.DashboardProviderView })),
+  { ssr: false, loading: () => <div className="shimmer h-64 rounded-xl" /> },
+);
+const DashboardAdminPanel = dynamic(
+  () => import('@/components/dashboard/dashboard-admin-panel').then((m) => ({ default: m.DashboardAdminPanel })),
+  { ssr: false },
+);
+const SmartInsightsWidget = dynamic(
+  () => import('@/components/dashboard/dashboard-smart-insights').then((m) => ({ default: m.SmartInsightsWidget })),
+  { ssr: false },
+);
+const WelcomeChecklist = dynamic(
+  () => import('@/components/dashboard/welcome-checklist').then((m) => ({ default: m.WelcomeChecklist })),
+  { ssr: false },
+);
+const DashboardFooterShortcuts = dynamic(
+  () => import('@/components/dashboard/dashboard-footer-shortcuts').then((m) => ({ default: m.DashboardFooterShortcuts })),
   { ssr: false },
 );
 
