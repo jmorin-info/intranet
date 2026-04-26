@@ -15,6 +15,8 @@ import type { Response } from 'express';
 import { rowsToCsv, csvFilename, CsvColumn } from '../common/utils/csv-export';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
+import { UserThrottle } from '../auth/decorators/user-throttle.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -143,7 +145,10 @@ export class SignaturesController {
   }
 
   @Patch(':id/sign')
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  // Anti-abus signature : 20 signatures/h par utilisateur (un signataire
+  // légitime ne signe pas 20 documents en une heure).
+  @UseGuards(UserThrottlerGuard)
+  @UserThrottle({ limit: 20, ttl: 60 * 60_000 })
   async signDirectly(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
