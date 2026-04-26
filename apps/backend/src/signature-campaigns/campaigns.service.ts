@@ -430,6 +430,10 @@ export class CampaignsService {
       try {
         await this.notifications.create({
           userId: sig.userId,
+          // TODO: review type safety — 'SIGNATURE_REMINDER' n'est pas dans
+          // l'enum Prisma NotificationType (cf. schema.prisma:53-67) : l'INSERT
+          // côté DB échoue silencieusement. Utiliser SIGNATURE_NEEDED ou
+          // étendre l'enum via migration ALTER TYPE.
           type: 'SIGNATURE_REMINDER' as any,
           title: `Rappel : ${campaign.title}`,
           body: campaign.dueAt

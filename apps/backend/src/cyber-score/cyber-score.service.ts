@@ -1,5 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import {
+  AccessReviewCampaignStatus,
+  AuditSeverity,
+  IncidentStatus,
+  SignatureCampaignStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -301,7 +307,7 @@ export class CyberScoreService {
           this.prisma.incident.count({
             where: {
               detectedAt: { gte: d30 },
-              status: { notIn: ['CLOSED' as any, 'RECOVERED' as any] },
+              status: { notIn: [IncidentStatus.CLOSED, IncidentStatus.RECOVERED] },
             },
           }),
         0,
@@ -312,7 +318,7 @@ export class CyberScoreService {
           this.prisma.incident.count({
             where: {
               detectedAt: { gte: d30 },
-              status: { in: ['CLOSED' as any, 'RECOVERED' as any] },
+              status: { in: [IncidentStatus.CLOSED, IncidentStatus.RECOVERED] },
             },
           }),
         0,
@@ -347,7 +353,7 @@ export class CyberScoreService {
       safe(
         () =>
           this.prisma.auditLog.count({
-            where: { createdAt: { gte: d30 }, severity: 'CRITICAL' as any },
+            where: { createdAt: { gte: d30 }, severity: AuditSeverity.CRITICAL },
           }),
         0,
         'auditCriticalLast30d',
@@ -355,7 +361,14 @@ export class CyberScoreService {
       safe(
         () =>
           this.prisma.accessReviewCampaign.count({
-            where: { status: { in: ['ACTIVE' as any, 'DRAFT' as any] } },
+            where: {
+              status: {
+                in: [
+                  AccessReviewCampaignStatus.ACTIVE,
+                  AccessReviewCampaignStatus.DRAFT,
+                ],
+              },
+            },
           }),
         0,
         'accessReviewsOpen',
@@ -364,7 +377,12 @@ export class CyberScoreService {
         () =>
           this.prisma.accessReviewCampaign.count({
             where: {
-              status: { in: ['ACTIVE' as any, 'DRAFT' as any] },
+              status: {
+                in: [
+                  AccessReviewCampaignStatus.ACTIVE,
+                  AccessReviewCampaignStatus.DRAFT,
+                ],
+              },
               dueDate: { lt: now },
             },
           }),
@@ -376,7 +394,15 @@ export class CyberScoreService {
       safe(
         () =>
           this.prisma.signatureCampaign.count({
-            where: { status: { in: ['SENT' as any, 'IN_PROGRESS' as any, 'DRAFT' as any] } },
+            where: {
+              status: {
+                in: [
+                  SignatureCampaignStatus.SENT,
+                  SignatureCampaignStatus.IN_PROGRESS,
+                  SignatureCampaignStatus.DRAFT,
+                ],
+              },
+            },
           }),
         0,
         'gdprActiveCampaigns',
@@ -394,7 +420,10 @@ export class CyberScoreService {
       safe(
         () =>
           this.prisma.itExport.count({
-            where: { category: 'BACKUP' as any },
+            // ItExport.category est un String libre côté schéma (codes
+            // catégorie tels que AD_AUDIT, FORTIGATE_CONFIG, BACKUP), pas un
+            // enum Prisma : pas besoin de cast.
+            where: { category: 'BACKUP' },
           }),
         0,
         'backupCount',

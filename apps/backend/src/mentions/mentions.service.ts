@@ -123,6 +123,10 @@ export class MentionsService {
         this.notifications
           .create({
             userId: r.id,
+            // TODO: review type safety — 'MENTION' n'est pas dans
+            // l'enum Prisma NotificationType (cf. schema.prisma:53-67) :
+            // l'INSERT côté DB échoue silencieusement. À ajouter via migration
+            // ALTER TYPE avant de retirer ce cast.
             type: 'MENTION' as any,
             title,
             body: `${params.sourceTitle}\n\n${excerpt}`,

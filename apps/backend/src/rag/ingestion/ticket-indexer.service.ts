@@ -117,6 +117,9 @@ export class TicketIndexerService {
         }
 
         try {
+          // TODO: review type safety — 'TICKET' n'est pas dans l'enum Prisma
+          // RagSourceType (cf. schema.prisma:1801-1807). Étendre l'enum via
+          // migration ALTER TYPE avant de retirer ce cast.
           await this.ragService.indexSource('TICKET' as any, ticket.id, sanitizedText, {
             type: 'TICKET',
             ticketId: ticket.id,

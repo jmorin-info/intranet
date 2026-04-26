@@ -182,7 +182,7 @@ export class AuditService {
           take: 5,
         }),
         this.prisma.auditLog.findMany({
-          where: { ...where, severity: 'CRITICAL' as any },
+          where: { ...where, severity: AuditSeverity.CRITICAL },
           include: {
             user: { select: { id: true, email: true, firstName: true, lastName: true } },
           },
