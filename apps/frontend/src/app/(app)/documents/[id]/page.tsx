@@ -16,8 +16,9 @@ import {
   Skeleton,
   Card,
   CardContent,
+  EmptyState,
 } from "@omnitech/ui";
-import { ArrowLeft, FileText, PenLine } from "lucide-react";
+import { ArrowLeft, PenLine } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { EntityBreadcrumb } from "@/components/ui/entity-breadcrumb";
 
@@ -55,15 +56,57 @@ export default function DocumentDetailPage() {
 
   if (ctx.loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
+      <div className="space-y-6 animate-fade-in-up">
+        {/* Breadcrumb */}
+        <Skeleton className="h-4 w-56 shimmer" />
+        {/* Header card */}
         <Card>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-6 w-64" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex-1 min-w-0 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-5 w-20 rounded-full shimmer" />
+                  <Skeleton className="h-5 w-24 rounded-full shimmer" />
+                  <Skeleton className="h-5 w-16 rounded-full shimmer" />
+                </div>
+                <Skeleton className="h-4 w-32 shimmer" />
+                <Skeleton className="h-7 w-3/4 shimmer" />
+                <Skeleton className="h-4 w-full shimmer" />
+                <Skeleton className="h-4 w-5/6 shimmer" />
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Skeleton className="h-9 w-24 rounded-btn shimmer" />
+                <Skeleton className="h-9 w-28 rounded-btn shimmer" />
+              </div>
+            </div>
           </CardContent>
         </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          <div className="lg:col-span-3 space-y-4">
+            {/* Workflow timeline */}
+            <Skeleton className="h-20 w-full rounded-card shimmer" />
+            {/* Tabs */}
+            <div className="flex items-center gap-1 border-b border-gray-200 dark:border-slate-700">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-9 w-24 shimmer" />
+              ))}
+            </div>
+            {/* Tab content */}
+            <Card>
+              <CardContent className="space-y-3 p-6">
+                <Skeleton className="h-4 w-full shimmer" />
+                <Skeleton className="h-4 w-11/12 shimmer" />
+                <Skeleton className="h-4 w-10/12 shimmer" />
+                <Skeleton className="h-4 w-9/12 shimmer" />
+              </CardContent>
+            </Card>
+          </div>
+          {/* Sidebar */}
+          <div className="lg:col-span-1 space-y-3">
+            <Skeleton className="h-32 w-full rounded-card shimmer" />
+            <Skeleton className="h-24 w-full rounded-card shimmer" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -71,21 +114,21 @@ export default function DocumentDetailPage() {
   const { doc, user } = ctx;
   if (!doc || !user)
     return (
-      <div className="max-w-5xl mx-auto py-12 text-center">
-        <FileText className="h-12 w-12 text-seal-gray-500/30 mx-auto mb-4" />
-        <p className="text-lg font-medium text-seal-navy dark:text-white">
-          Document introuvable
-        </p>
-        <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-          Ce document n&apos;existe pas ou vous n&apos;y avez pas accès.
-        </p>
-        <Button
-          variant="outline"
-          className="mt-4"
-          onClick={() => router.push("/documents")}
-        >
-          <ArrowLeft className="h-4 w-4" /> {t("documents.detail.back")}
-        </Button>
+      <div className="max-w-5xl mx-auto py-12">
+        <EmptyState
+          type="documents"
+          title="Document introuvable"
+          description="Ce document n'existe pas, a été supprimé, ou vous n'y avez pas accès. Vérifiez vos droits ou retournez à la liste."
+          action={
+            <Button
+              variant="outline"
+              onClick={() => router.push("/documents")}
+              aria-label="Retour à la liste des documents"
+            >
+              <ArrowLeft className="h-4 w-4" /> {t("documents.detail.back")}
+            </Button>
+          }
+        />
       </div>
     );
 

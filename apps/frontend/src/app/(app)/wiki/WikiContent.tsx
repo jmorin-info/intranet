@@ -2742,8 +2742,8 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
         </p>
       )}
 
-      <div className="flex items-center gap-3">
-        <div ref={searchContainerRef} className="relative flex-1">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div ref={searchContainerRef} className="relative flex-1 min-w-0">
           <SearchInput
             value={search}
             onChange={(val: string) => {
@@ -2823,43 +2823,46 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             </div>
           )}
         </div>
-        <Select
-          options={[
-            { value: 'recent', label: 'Plus récents' },
-            { value: 'alpha', label: 'Alphabétique' },
-          ]}
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as 'recent' | 'alpha')}
-          className="w-44"
-        />
-        {/* View mode toggle */}
-        <div className="flex items-center gap-0.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5">
-          <button
-            onClick={() => setListViewMode('grid')}
-            className={`p-1.5 rounded transition-colors ${
-              listViewMode === 'grid'
-                ? 'bg-primary/10 text-primary'
-                : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
-            }`}
-            title="Vue grille"
-            aria-label="Vue grille"
-            aria-pressed={listViewMode === 'grid'}
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setListViewMode('category')}
-            className={`p-1.5 rounded transition-colors ${
-              listViewMode === 'category'
-                ? 'bg-primary/10 text-primary'
-                : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
-            }`}
-            title="Vue par catégorie"
-            aria-label="Vue par catégorie"
-            aria-pressed={listViewMode === 'category'}
-          >
-            <FolderOpen className="h-4 w-4" />
-          </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Select
+            options={[
+              { value: 'recent', label: 'Plus récents' },
+              { value: 'alpha', label: 'Alphabétique' },
+            ]}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'recent' | 'alpha')}
+            className="flex-1 sm:flex-none sm:w-44"
+            aria-label="Trier les pages"
+          />
+          {/* View mode toggle */}
+          <div className="flex items-center gap-0.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 flex-shrink-0">
+            <button
+              onClick={() => setListViewMode('grid')}
+              className={`p-2 rounded transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center ${
+                listViewMode === 'grid'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
+              }`}
+              title="Vue grille"
+              aria-label="Vue grille"
+              aria-pressed={listViewMode === 'grid'}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setListViewMode('category')}
+              className={`p-2 rounded transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center ${
+                listViewMode === 'category'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
+              }`}
+              title="Vue par catégorie"
+              aria-label="Vue par catégorie"
+              aria-pressed={listViewMode === 'category'}
+            >
+              <FolderOpen className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
