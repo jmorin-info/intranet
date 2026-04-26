@@ -319,12 +319,18 @@ model PushSubscription {
   p256dh    String
   auth      String
   userAgent String?
+  // Plateforme cliente détectée à la souscription : 'ios' (Safari iOS),
+  // 'macos' (Safari macOS), 'android', 'desktop' (Chrome/Firefox/Edge desktop)
+  // ou 'unknown'. Utilisée pour la traçabilité et le diagnostic des échecs
+  // d'envoi par plateforme. Voir docs/architecture/SAFARI_PUSH_NOTIFICATIONS.md.
+  platform  String?
   createdAt DateTime @default(now())
   lastUsed  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([platform])
 }
 
 model RefreshToken {
