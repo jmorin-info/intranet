@@ -15,12 +15,17 @@ export class FrameworksController {
     return this.frameworksService.findAll();
   }
 
+  // Détail framework + résumé conformité = données sensibles (taux de
+  // couverture interne ISO/NIST). On restreint à REVIEWER+ pour aligner
+  // avec /rssi-dashboard et /access-reviews.
   @Get(':id')
+  @Roles(UserRole.REVIEWER, UserRole.AUDITEUR, UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   findById(@Param('id', ParseUUIDPipe) id: string) {
     return this.frameworksService.findById(id);
   }
 
   @Get(':id/summary')
+  @Roles(UserRole.REVIEWER, UserRole.AUDITEUR, UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   getSummary(@Param('id', ParseUUIDPipe) id: string) {
     return this.frameworksService.getComplianceSummary(id);
   }

@@ -177,8 +177,20 @@ export class WorkflowsController {
 
   /**
    * Retourne l'instance active (PENDING) pour un document, ou 404 si aucune.
+   *
+   * Sécurité : restreint aux acteurs de la chaîne d'approbation (REVIEWER+,
+   * DIRECTION, ADMIN). Sans cette garde, n'importe quel utilisateur pouvait
+   * énumérer les workflows en cours et fuiter l'identité (id, nom, email)
+   * des approbateurs configurés sur n'importe quel document.
    */
   @Get("instance/for-document/:documentId")
+  @Roles(
+    UserRole.REVIEWER,
+    UserRole.AUDITEUR,
+    UserRole.DIRECTION,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
   async getActiveInstanceForDocument(
     @Param("documentId", ParseUUIDPipe) documentId: string,
   ) {

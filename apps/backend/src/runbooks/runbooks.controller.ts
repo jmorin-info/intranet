@@ -46,8 +46,20 @@ export class RunbooksController {
   }
 
   @Patch('executions/:execId')
-  async updateExecution(@Param('execId', ParseUUIDPipe) execId: string, @Body() body: { stepsData: string; isComplete?: boolean }) {
-    return this.runbooksService.updateExecution(execId, body.stepsData, body.isComplete || false);
+  async updateExecution(
+    @Param('execId', ParseUUIDPipe) execId: string,
+    @Body() body: { stepsData: string; isComplete?: boolean },
+    @CurrentUser() user: RequestUser,
+  ) {
+    // IDOR fix : seul l'exécutant (ou un ADMIN+) peut modifier une exécution
+    // de runbook. Sans ce check, n'importe quel user authentifié pouvait
+    // PATCH les exécutions des autres (état des étapes, marquer terminé).
+    return this.runbooksService.updateExecution(
+      execId,
+      body.stepsData,
+      body.isComplete || false,
+      user,
+    );
   }
 
   @Get(':id/executions')

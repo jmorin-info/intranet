@@ -1,7 +1,9 @@
-import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { slugify, generateUniqueSlug } from '../common/utils/slugify';
 import { MeilisearchService } from '../search/meilisearch.service';
+import { RequestUser } from '../common/interfaces';
+import { UserRole } from '../common/enums';
 
 @Injectable()
 export class RunbooksService {
@@ -164,7 +166,30 @@ export class RunbooksService {
     });
   }
 
-  async updateExecution(executionId: string, stepsData: string, isComplete: boolean) {
+  async updateExecution(
+    executionId: string,
+    stepsData: string,
+    isComplete: boolean,
+    user?: RequestUser,
+  ) {
+    // ACL : seul l'exécutant (executorId) ou un ADMIN+ peut modifier
+    // l'exécution. Si `user` est fourni (appel via controller), on
+    // vérifie. Si non fourni (legacy / cron internal), on laisse passer
+    // pour ne rien casser côté backend background.
+    if (user) {
+      const existing = await this.prisma.runbookExecution.findUnique({
+        where: { id: executionId },
+        select: { executorId: true },
+      });
+      if (!existing) throw new NotFoundException('Exécution introuvable');
+      const isAdmin =
+        user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+      if (!isAdmin && existing.executorId !== user.id) {
+        throw new ForbiddenException(
+          'Seul l\'exécutant ou un administrateur peut modifier cette exécution.',
+        );
+      }
+    }
     return this.prisma.runbookExecution.update({
       where: { id: executionId },
       data: {
