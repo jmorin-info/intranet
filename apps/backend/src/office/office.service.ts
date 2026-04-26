@@ -213,9 +213,14 @@ export class OfficeService {
     token: string,
   ): { documentVersionId: string; documentId?: string; userId: string } | null {
     try {
-      const payload = this.jwtService.verify(token, {
+      const payload = this.jwtService.verify<{
+        purpose: string;
+        documentVersionId: string;
+        documentId?: string;
+        userId: string;
+      }>(token, {
         secret: this.fileTokenSecret,
-      }) as any;
+      });
       if (payload.purpose !== 'onlyoffice-file-access') return null;
       return {
         documentVersionId: payload.documentVersionId,
@@ -444,7 +449,7 @@ export class OfficeService {
         callbackUrl: canEdit ? callbackUrl : undefined,
         user: {
           id: currentUser.id,
-          name: `${(currentUser as any).firstName || ''} ${(currentUser as any).lastName || currentUser.email}`.trim(),
+          name: `${currentUser.firstName || ''} ${currentUser.lastName || currentUser.email}`.trim(),
         },
         customization: {
           autosave: true,

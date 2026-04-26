@@ -336,7 +336,7 @@ export class LdapService {
       await client.bind(config.bindDN, config.bindPassword);
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
-      const code = (err as any)?.code;
+      const code = (err as { code?: string | number } | null)?.code;
       // FIX: log code + URL explicitly (never the password) so operators can diagnose
       // "invalid credentials" vs "cert issue" vs "network unreachable".
       this.logger.error(
@@ -579,7 +579,7 @@ export class LdapService {
     } catch (err) {
       // FIX: propagate an explicit, UI-friendly error (controller surfaces `err.message`).
       const detail = err instanceof Error ? err.message : String(err);
-      const code = (err as any)?.code;
+      const code = (err as { code?: string | number } | null)?.code;
       this.logger.error(
         `LDAP bulk sync failed: ${detail} (code=${code ?? "n/a"}, URL=${config.url}, base=${config.searchBase})`,
       );

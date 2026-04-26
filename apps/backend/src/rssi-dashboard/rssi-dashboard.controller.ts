@@ -63,13 +63,13 @@ export class RssiDashboardController {
   @Post('report.pdf')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async generateReport(@Req() req: Request, @Res() res: Response) {
-    const user = (req as any).user as
-      | {
-          email?: string;
-          firstName?: string;
-          lastName?: string;
-        }
-      | undefined;
+    const user = (req as Request & {
+      user?: {
+        email?: string;
+        firstName?: string;
+        lastName?: string;
+      };
+    }).user;
     const author = user
       ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() ||
         user.email ||

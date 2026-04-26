@@ -597,7 +597,9 @@ export class UsersService {
       unreadNotificationsCount,
       quizBestScore:
         quizAttempts.length > 0
-          ? ((quizAttempts[0].metadata as any)?.percentage ?? null)
+          ? // Prisma.JsonValue dynamique — extraction défensive
+            ((quizAttempts[0].metadata as Record<string, unknown> | null)?.percentage as number | null) ??
+            null
           : null,
       department: user.department,
       departments,

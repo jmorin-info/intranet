@@ -504,11 +504,12 @@ export class ReportsService {
       `Alertes sécurité actives: ${activeAlerts ?? 0}.`,
       `Incidents critiques ce mois (AuditLog severity=CRITICAL): ${criticalIncidentsMonth}.`,
     ];
-    if (smsiIndicators && (smsiIndicators as any).openTicketsByPriority) {
-      const p = (smsiIndicators as any).openTicketsByPriority as Record<
-        string,
-        number
-      >;
+    const smsiInd = smsiIndicators as
+      | { openTicketsByPriority?: Record<string, number> }
+      | null
+      | undefined;
+    if (smsiInd?.openTicketsByPriority) {
+      const p = smsiInd.openTicketsByPriority;
       smsiLines.push(
         `Tickets ouverts par priorité: CRITICAL=${p.CRITICAL ?? 0} · HIGH=${p.HIGH ?? 0} · MEDIUM=${p.MEDIUM ?? 0} · LOW=${p.LOW ?? 0}.`,
       );
@@ -528,7 +529,13 @@ export class ReportsService {
         `Tickets ouverts (OPEN + IN_PROGRESS): ${openTickets}.`,
         `Tickets résolus ce mois: ${resolvedTicketsMonth}.`,
         dashboardStats
-          ? `Signatures en attente: ${(dashboardStats as any).pendingSignatures ?? 0} · Acquittements en attente: ${(dashboardStats as any).pendingAcknowledgments ?? 0}.`
+          ? (() => {
+              const ds = dashboardStats as {
+                pendingSignatures?: number;
+                pendingAcknowledgments?: number;
+              };
+              return `Signatures en attente: ${ds.pendingSignatures ?? 0} · Acquittements en attente: ${ds.pendingAcknowledgments ?? 0}.`;
+            })()
           : "",
       ].filter(Boolean),
     });
@@ -571,7 +578,7 @@ export class ReportsService {
     });
 
     const authorName =
-      `${(user as any).firstName || ""} ${(user as any).lastName || ""}`.trim() ||
+      `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
       user.email;
 
     const result = await this.signedPdfService.generate({
@@ -647,19 +654,20 @@ export class ReportsService {
     });
 
     const rows = logs.map((log) => {
-      const meta = (log.metadata as any) || {};
+      // Prisma.JsonValue dynamique — extraction défensive
+      const meta = (log.metadata as Record<string, unknown> | null) ?? {};
       return {
         Date: log.createdAt.toISOString().split("T")[0],
         Utilisateur: log.user
           ? `${log.user.firstName} ${log.user.lastName}`
           : "Inconnu",
         Email: log.user?.email || "",
-        Quiz: meta.campaignTitle || "Quiz Sécurité OMNITECH",
+        Quiz: (meta.campaignTitle as string) || "Quiz Sécurité OMNITECH",
         Score: meta.score != null ? `${meta.score}/${meta.total}` : "",
         Pourcentage: meta.percentage != null ? `${meta.percentage}%` : "",
         Résultat:
           meta.percentage != null
-            ? meta.percentage >= 70
+            ? typeof meta.percentage === "number" && meta.percentage >= 70
               ? "Réussi"
               : "Échoué"
             : "",

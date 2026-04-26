@@ -225,18 +225,21 @@ export class TicketsService {
       })
       .catch(() => null);
     if (!row) return null;
-    const meta = (row.metadata as any) || {};
+    // Prisma.JsonValue dynamique — extraction défensive
+    const meta = (row.metadata as Record<string, unknown> | null) ?? {};
     return {
-      suggestedCategory: meta.suggestedCategory || "OTHER",
-      suggestedPriority: meta.suggestedPriority || "MEDIUM",
+      suggestedCategory: (meta.suggestedCategory as string) || "OTHER",
+      suggestedPriority: (meta.suggestedPriority as string) || "MEDIUM",
       suggestedTags: Array.isArray(meta.suggestedTags)
-        ? meta.suggestedTags
+        ? (meta.suggestedTags as string[])
         : [],
-      riskFlags: Array.isArray(meta.riskFlags) ? meta.riskFlags : [],
+      riskFlags: Array.isArray(meta.riskFlags) ? (meta.riskFlags as string[]) : [],
       confidence: typeof meta.confidence === "number" ? meta.confidence : 0,
-      userCategory: meta.userCategory || "OTHER",
-      userPriority: meta.userPriority || "MEDIUM",
-      differs: meta.differs || { category: false, priority: false },
+      userCategory: (meta.userCategory as string) || "OTHER",
+      userPriority: (meta.userPriority as string) || "MEDIUM",
+      differs:
+        (meta.differs as { category: boolean; priority: boolean } | undefined) ||
+        { category: false, priority: false },
       createdAt: row.createdAt,
     };
   }

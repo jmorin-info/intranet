@@ -148,8 +148,9 @@ export class SpacesService {
       );
       if (userCfg) enabled = userCfg.enabled;
 
-      // Always-on modules cannot be disabled
-      if ((mod as any).alwaysOn) enabled = true;
+      // Always-on modules cannot be disabled. AVAILABLE_MODULES utilise une
+      // union d'objets (avec/sans `alwaysOn`) — narrowing structurel ici.
+      if ('alwaysOn' in mod && mod.alwaysOn) enabled = true;
 
       // Admins always see the admin module
       if (mod.code === 'admin' && isAdmin) enabled = true;
@@ -282,7 +283,7 @@ export class SpacesService {
           code: mod.code,
           label: mod.label,
           section: mod.section,
-          alwaysOn: (mod as any).alwaysOn ?? false,
+          alwaysOn: ('alwaysOn' in mod && mod.alwaysOn) ?? false,
           // Si aucune règle n'existe, le module hérite du scope global
           // (par défaut: activé). On retourne `null` dans ce cas pour que
           // l'UI puisse afficher "hérité" plutôt qu'un état explicite.

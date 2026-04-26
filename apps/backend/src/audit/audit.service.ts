@@ -207,9 +207,14 @@ export class AuditService {
     // Agrégat top 10 IPs sur les échecs de login (ipAddress ou metadata.ip)
     const ipCounts = new Map<string, number>();
     for (const row of failedLoginLogs) {
+      // Prisma.JsonValue dynamique — extraction défensive de l'IP éventuelle.
+      const meta =
+        row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+          ? (row.metadata as Record<string, unknown>)
+          : null;
       const metaIp =
-        row.metadata && typeof row.metadata === 'object'
-          ? (row.metadata as any).ip || (row.metadata as any).ipAddress
+        meta && (typeof meta.ip === 'string' || typeof meta.ipAddress === 'string')
+          ? (meta.ip as string) || (meta.ipAddress as string)
           : null;
       const ip = row.ipAddress || metaIp || 'inconnue';
       ipCounts.set(ip, (ipCounts.get(ip) || 0) + 1);
