@@ -456,7 +456,34 @@ export default function TicketDetailPage() {
   };
 
   if (loading) {
-    return <div className="space-y-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-64 rounded-card" /></div>;
+    return (
+      <div className="max-w-4xl mx-auto space-y-6" aria-busy="true" aria-label="Chargement du ticket">
+        <Skeleton className="h-4 w-48" />
+        <div className="flex items-start gap-4">
+          <Skeleton className="h-9 w-9 rounded-lg" />
+          <div className="flex-1 space-y-3">
+            <div className="flex gap-2 flex-wrap">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+            <Skeleton className="h-7 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
+            <Skeleton className="h-32 rounded-card" />
+            <Skeleton className="h-48 rounded-card" />
+            <Skeleton className="h-64 rounded-card" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-40 rounded-card" />
+            <Skeleton className="h-32 rounded-card" />
+          </div>
+        </div>
+      </div>
+    );
   }
   if (!ticket) return null;
 
@@ -465,8 +492,8 @@ export default function TicketDetailPage() {
       <EntityBreadcrumb module="Tickets" href="/tickets" current={ticket.reference} />
 
       {/* Header */}
-      <div className="flex items-start gap-4">
-        <button onClick={() => router.back()} className="mt-1 rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-primary" aria-label="Retour à la liste des tickets">
+      <div className="flex items-start gap-3 sm:gap-4">
+        <button onClick={() => router.back()} className="mt-1 h-11 w-11 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary flex-shrink-0" aria-label="Retour à la liste des tickets">
           <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
         </button>
         <div className="flex-1">
@@ -557,8 +584,14 @@ export default function TicketDetailPage() {
           <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
             {t('tickets.detail.createdBy')} {ticket.creator.firstName} {ticket.creator.lastName} — {formatDateTime(ticket.createdAt)}
           </p>
-          <div className="mt-2 no-print">
-            <Button variant="outline" size="sm" onClick={() => window.print()}>
+          <div className="mt-2 no-print flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.print()}
+              aria-label="Imprimer ce ticket"
+              className="min-h-[40px]"
+            >
               <Printer className="h-4 w-4" />
               Imprimer
             </Button>
@@ -993,7 +1026,8 @@ export default function TicketDetailPage() {
                     onClick={handleComment}
                     loading={sending}
                     disabled={!comment.trim()}
-                    className="flex-shrink-0 transition-transform active:scale-95 touch-manipulation"
+                    aria-label={isInternalComment ? 'Envoyer la note interne' : 'Envoyer le commentaire'}
+                    className="flex-shrink-0 transition-transform active:scale-95 touch-manipulation min-h-[44px] min-w-[44px]"
                     size="sm"
                   >
                     <Send className="h-4 w-4" />

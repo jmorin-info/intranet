@@ -27,7 +27,10 @@ import {
   AlertTriangle,
   Calendar,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock,
+  Filter as FilterIcon,
   Plus,
   RefreshCw,
   ShieldAlert,
@@ -239,6 +242,9 @@ export default function IncidentsPage() {
   const [severityFilter, setSeverityFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
+
+  // Mobile: collapsible filters drawer
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Create modal
   const [createOpen, setCreateOpen] = useState(false);
@@ -494,7 +500,8 @@ export default function IncidentsPage() {
             />
             <Button
               onClick={() => setCreateOpen(true)}
-              className="bg-seal-bordeaux hover:bg-seal-bordeaux/90 text-white shadow-md text-sm font-semibold px-5 py-2.5"
+              aria-label="Signaler un nouvel incident de sécurité"
+              className="bg-seal-bordeaux hover:bg-seal-bordeaux/90 text-white shadow-md text-sm font-semibold px-5 py-2.5 min-h-[44px]"
             >
               <ShieldAlert className="h-4 w-4 mr-1.5" />
               {t('incidents.new')}
@@ -517,9 +524,37 @@ export default function IncidentsPage() {
       {/* Filters */}
       <Card className="shadow-sm rounded-xl">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* Mobile toggle: 5 filters → drawer */}
+          {(() => {
+            const activeFiltersCount = [search, statusFilter, severityFilter, categoryFilter, dateFrom].filter(Boolean).length;
+            return (
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((o) => !o)}
+                aria-expanded={filtersOpen}
+                aria-controls="incidents-filters-panel"
+                className="md:hidden w-full flex items-center justify-between gap-2 mb-3 px-3 min-h-[44px] rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-seal-navy dark:text-white"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <FilterIcon className="h-4 w-4 text-primary" />
+                  Filtres
+                  {activeFiltersCount > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary text-white text-[10px] font-semibold px-1.5">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </span>
+                {filtersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+            );
+          })()}
+          <div
+            id="incidents-filters-panel"
+            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 ${filtersOpen ? '' : 'hidden md:grid'}`}
+          >
             <Input
               placeholder="Recherche par référence, titre..."
+              aria-label="Rechercher un incident"
               value={search}
               onChange={(e) => {
                 setPage(1);
@@ -527,6 +562,7 @@ export default function IncidentsPage() {
               }}
             />
             <Select
+              aria-label="Filtrer par statut"
               options={STATUS_OPTIONS}
               value={statusFilter}
               onChange={(e) => {
@@ -535,6 +571,7 @@ export default function IncidentsPage() {
               }}
             />
             <Select
+              aria-label="Filtrer par sévérité"
               options={SEVERITY_OPTIONS}
               value={severityFilter}
               onChange={(e) => {
@@ -543,6 +580,7 @@ export default function IncidentsPage() {
               }}
             />
             <Select
+              aria-label="Filtrer par catégorie"
               options={CATEGORY_OPTIONS}
               value={categoryFilter}
               onChange={(e) => {
@@ -552,6 +590,7 @@ export default function IncidentsPage() {
             />
             <Input
               type="date"
+              aria-label="Filtrer à partir de la date"
               value={dateFrom}
               onChange={(e) => {
                 setPage(1);
@@ -582,15 +621,33 @@ export default function IncidentsPage() {
               ))}
             </div>
           ) : !incidents || incidents.data.length === 0 ? (
-            <EmptyState
-              title="Aucun incident de sécurité"
-              description="L'absence d'incidents est une bonne nouvelle. En cas d'événement suspect (intrusion, phishing, fuite de données), déclarez-le immédiatement pour déclencher le protocole d'investigation et assurer la traçabilité ISO 27001."
-              action={
-                <Button size="sm" onClick={() => setCreateOpen(true)}>
-                  <Plus className="h-4 w-4" /> Signaler un incident
-                </Button>
-              }
-            />
+            (() => {
+              const hasFilters = !!(debouncedSearch || statusFilter || severityFilter || categoryFilter || dateFrom);
+              return (
+                <EmptyState
+                  type={hasFilters ? 'search' : 'success'}
+                  title={hasFilters ? 'Aucun incident pour ces critères' : 'Aucun incident actif — bonne posture sécurité'}
+                  description={
+                    hasFilters
+                      ? "Aucun incident ne correspond aux filtres sélectionnés. Modifiez vos critères ou réinitialisez les filtres pour élargir la recherche."
+                      : "L'absence d'incident traduit une bonne hygiène cyber. En cas d'évènement suspect (phishing, intrusion, fuite), déclarez-le immédiatement pour déclencher l'investigation ISO 27001 (A.5.24-A.5.28)."
+                  }
+                  action={
+                    hasFilters ? (
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setSearch(''); setStatusFilter(''); setSeverityFilter(''); setCategoryFilter(''); setDateFrom(''); setPage(1);
+                      }}>
+                        Réinitialiser les filtres
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => setCreateOpen(true)} aria-label="Signaler un incident de sécurité">
+                        <Plus className="h-4 w-4" /> Signaler un incident
+                      </Button>
+                    )
+                  }
+                />
+              );
+            })()
           ) : (
             <div className="animate-fade-in-up">
               <DataTable

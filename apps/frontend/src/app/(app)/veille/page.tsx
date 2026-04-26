@@ -1396,7 +1396,7 @@ export default function VeillePage() {
                   onChange={(e) => setFilter(e.target.value)}
                   className="w-full sm:w-36"
                 />
-                <div className="flex items-center gap-1 border rounded-lg p-0.5 dark:border-slate-700">
+                <div className="flex items-center gap-1 border rounded-lg p-0.5 dark:border-slate-700" role="group" aria-label="Période de la veille">
                   {(
                     [
                       { id: "week", label: "7 jours" },
@@ -1407,7 +1407,8 @@ export default function VeillePage() {
                     <button
                       key={p.id}
                       onClick={() => setPeriod(p.id)}
-                      className={`px-2.5 py-1 text-[11px] rounded font-semibold transition ${period === p.id ? "bg-primary text-white" : "text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700"}`}
+                      aria-pressed={period === p.id}
+                      className={`px-3 min-h-[36px] text-[11px] rounded font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${period === p.id ? "bg-primary text-white" : "text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700"}`}
                     >
                       {p.label}
                     </button>
@@ -1583,11 +1584,12 @@ export default function VeillePage() {
                           </div>
                         </div>
                         {canAck && !item.isProcessed && (
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                          <div className="flex items-center gap-1 flex-shrink-0" role="group" aria-label="Actions sur l'alerte">
                             <button
                               onClick={() => handleAck(item.id, "APPLIED")}
-                              className="p-1.5 rounded-lg text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition duration-200"
-                              title="Marquer comme traite"
+                              className="h-9 w-9 sm:h-8 sm:w-8 flex items-center justify-center rounded-lg text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                              title="Marquer comme traité"
+                              aria-label="Marquer cette alerte comme appliquée"
                             >
                               <CheckCircle2 className="h-4 w-4" />
                             </button>
@@ -1595,8 +1597,9 @@ export default function VeillePage() {
                               onClick={() =>
                                 handleAck(item.id, "NOT_APPLICABLE")
                               }
-                              className="p-1.5 rounded-lg text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition duration-200"
+                              className="h-9 w-9 sm:h-8 sm:w-8 flex items-center justify-center rounded-lg text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                               title="Non applicable"
+                              aria-label="Marquer cette alerte comme non applicable"
                             >
                               <X className="h-4 w-4" />
                             </button>
@@ -1604,8 +1607,9 @@ export default function VeillePage() {
                               onClick={() =>
                                 handleAck(item.id, "RISK_ACCEPTED")
                               }
-                              className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition duration-200"
-                              title="Risque accepte"
+                              className="h-9 w-9 sm:h-8 sm:w-8 flex items-center justify-center rounded-lg text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                              title="Risque accepté"
+                              aria-label="Accepter le risque pour cette alerte"
                             >
                               <Shield className="h-4 w-4" />
                             </button>

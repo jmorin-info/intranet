@@ -712,10 +712,17 @@ export default function QuizPage() {
               <Card className="border-2 border-dashed border-gray-200 dark:border-slate-700 shadow-none flex items-center justify-center">
                 <CardContent className="py-8 text-center">
                   <GraduationCap className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-seal-gray-500 dark:text-slate-400">Aucune campagne de quiz pour le moment</p>
+                  <p className="text-sm font-medium text-seal-gray-500 dark:text-slate-400">Aucune campagne ciblée pour le moment</p>
                   <p className="text-xs text-seal-gray-500/70 dark:text-slate-500 mt-1 max-w-xs mx-auto">
-                    Les campagnes de sensibilisation à la cybersécurité créées par les administrateurs apparaîtront ici.
+                    {isAdmin
+                      ? 'Créez votre première campagne pour évaluer la posture cyber des collaborateurs.'
+                      : 'Les campagnes de sensibilisation cybersécurité diffusées par le RSSI apparaîtront ici. Le quiz par défaut reste disponible.'}
                   </p>
+                  {isAdmin && (
+                    <Button size="sm" className="mt-4" onClick={() => setShowCreateDialog(true)} aria-label="Créer une nouvelle campagne de quiz">
+                      <Plus className="h-4 w-4" /> Créer une campagne
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -1049,14 +1056,21 @@ export default function QuizPage() {
       {quizState === 'in-progress' && questions[currentIndex] && (
         <>
           {/* Progress bar */}
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-seal-gray-500 dark:text-slate-400">
+          <div className="space-y-1 sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm py-2 -mx-1 px-1">
+            <div className="flex justify-between text-xs font-semibold text-seal-gray-500 dark:text-slate-400">
               <span>Question {currentIndex + 1} / {questions.length}</span>
-              <span>{Math.round(progress)}%</span>
+              <span className="tabular-nums">{Math.round(progress)}%</span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+            <div
+              className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden"
+              role="progressbar"
+              aria-valuenow={Math.round(progress)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Progression du quiz : ${Math.round(progress)}%`}
+            >
               <div
-                className="bg-primary h-2 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-primary to-seal-blue h-full rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -1116,7 +1130,9 @@ export default function QuizPage() {
                       key={idx}
                       onClick={() => handleAnswer(idx)}
                       disabled={showExplanation}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${optionClass}`}
+                      aria-label={`Réponse ${String.fromCharCode(65 + idx)} : ${option}`}
+                      aria-pressed={isSelected}
+                      className={`w-full text-left p-4 min-h-[56px] rounded-lg border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${optionClass}`}
                     >
                       <div className="flex items-center gap-3">
                         <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-current text-xs font-semibold flex-shrink-0">
