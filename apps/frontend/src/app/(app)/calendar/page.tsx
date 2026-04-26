@@ -25,6 +25,10 @@ import {
   Share2,
   Copy,
   Check,
+  RefreshCw,
+  Trash2,
+  Filter,
+  Users,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -53,6 +57,7 @@ interface CustomCalendarEvent {
   category: string;
   location?: string;
   departmentId?: string;
+  visibility?: 'PRIVATE' | 'TEAM' | 'INTERNAL' | 'PUBLIC';
   color?: string;
   createdBy?: { id: string; firstName: string; lastName: string };
   department?: { id: string; name: string; code: string } | null;
@@ -169,6 +174,13 @@ const EVENT_CATEGORIES = [
   { value: 'MAINTENANCE', label: 'Maintenance' },
 ];
 
+const EVENT_VISIBILITIES: { value: 'PRIVATE' | 'TEAM' | 'INTERNAL' | 'PUBLIC'; label: string; help: string }[] = [
+  { value: 'PRIVATE', label: 'Privé', help: 'Visible uniquement par moi' },
+  { value: 'TEAM', label: 'Équipe', help: 'Visible par les membres du département' },
+  { value: 'INTERNAL', label: 'Interne', help: 'Visible par tous les utilisateurs authentifiés' },
+  { value: 'PUBLIC', label: 'Public', help: 'Visible y compris par les externes' },
+];
+
 export default function CalendarPage() {
   const { t } = useTranslation();
   const user = useAuthStore(s => s.user);
@@ -184,16 +196,49 @@ export default function CalendarPage() {
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [eventForm, setEventForm] = useState({
     title: '', description: '', startDate: '', endDate: '', category: 'GENERAL', allDay: false, location: '', departmentId: '',
+    visibility: 'INTERNAL' as 'PRIVATE' | 'TEAM' | 'INTERNAL' | 'PUBLIC',
   });
+
+  // Multi-team filter (sélection multi-checkbox des départements visibles)
+  // Persisté en localStorage : l'utilisateur retrouve sa sélection au reload.
+  const [selectedDeptIds, setSelectedDeptIds] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = window.localStorage.getItem('omnitech.calendar.deptFilter');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
   // Export iCal / abonnement Outlook (P1.10)
   const [showExport, setShowExport] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [exportUrl, setExportUrl] = useState<string>('');
+  const [exportToken, setExportToken] = useState<string>('');
   const [exportExpiresAt, setExportExpiresAt] = useState<string>('');
   const [exportCopied, setExportCopied] = useState(false);
+  const [exportRegenerating, setExportRegenerating] = useState(false);
+  const [exportRevoking, setExportRevoking] = useState(false);
+  const [exportScope, setExportScope] = useState<string>('all');
 
   const isReviewer = user && isRoleAtLeast(user.role, UserRole.REVIEWER);
+
+  /**
+   * Construit l'URL d'abonnement iCal à partir d'un token + scope.
+   * Scope :
+   *   - "all"  → /calendar/all.ics?token=xxx (tous les events visibles)
+   *   - "mine" → /calendar/mine.ics?token=xxx (events où je suis owner/assigné)
+   *   - <code-département> → /calendar/<code>.ics?token=xxx
+   */
+  const buildExportUrl = useCallback((token: string, scope: string) => {
+    const apiBase = (api.defaults?.baseURL ?? '').replace(/\/$/, '');
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const absoluteApi = apiBase.startsWith('http') ? apiBase : `${origin}${apiBase}`;
+    const safeScope = scope && /^[a-zA-Z0-9_\-]+$/.test(scope) ? scope : 'all';
+    return `${absoluteApi}/calendar/${safeScope}.ics?token=${encodeURIComponent(token)}`;
+  }, []);
 
   /**
    * Récupère (ou crée) le token d'abonnement iCal côté backend, puis construit
@@ -202,15 +247,15 @@ export default function CalendarPage() {
   const handleOpenExport = useCallback(async () => {
     setShowExport(true);
     setExportCopied(false);
-    if (exportUrl) return;
+    if (exportToken) {
+      setExportUrl(buildExportUrl(exportToken, exportScope));
+      return;
+    }
     setExportLoading(true);
     try {
       const { data } = await api.get<{ token: string; expiresAt: string }>('/calendar/subscription-token');
-      const apiBase = (api.defaults?.baseURL ?? '').replace(/\/$/, '');
-      // Si baseURL est relatif (ex. "/api"), on construit avec window.location
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const absoluteApi = apiBase.startsWith('http') ? apiBase : `${origin}${apiBase}`;
-      setExportUrl(`${absoluteApi}/calendar/export.ics?token=${encodeURIComponent(data.token)}`);
+      setExportToken(data.token);
+      setExportUrl(buildExportUrl(data.token, exportScope));
       setExportExpiresAt(data.expiresAt);
     } catch (err) {
       logger.error(err, { context: 'calendar.export.tokenFailed' });
@@ -219,7 +264,7 @@ export default function CalendarPage() {
     } finally {
       setExportLoading(false);
     }
-  }, [exportUrl, t]);
+  }, [exportToken, exportScope, buildExportUrl, t]);
 
   const handleCopyExportUrl = useCallback(async () => {
     if (!exportUrl) return;
@@ -232,6 +277,71 @@ export default function CalendarPage() {
       toast.error(t('calendar.export.copyError'));
     }
   }, [exportUrl, t]);
+
+  /**
+   * Régénère le token d'abonnement (révoque l'ancien). Appelle
+   * POST /calendar/subscription-token. L'URL précédente devient invalide.
+   */
+  const handleRegenerateToken = useCallback(async () => {
+    setExportRegenerating(true);
+    try {
+      const { data } = await api.post<{ token: string; expiresAt: string }>('/calendar/subscription-token');
+      setExportToken(data.token);
+      setExportUrl(buildExportUrl(data.token, exportScope));
+      setExportExpiresAt(data.expiresAt);
+      toast.success('Token régénéré — l\'URL précédente n\'est plus valide.');
+    } catch (err) {
+      logger.error(err, { context: 'calendar.export.regenerateFailed' });
+      toast.error('Impossible de régénérer le token');
+    } finally {
+      setExportRegenerating(false);
+    }
+  }, [buildExportUrl, exportScope]);
+
+  /**
+   * Révoque tous les tokens d'abonnement de l'utilisateur. Toute URL
+   * d'abonnement précédemment partagée cesse de fonctionner.
+   */
+  const handleRevokeToken = useCallback(async () => {
+    if (typeof window !== 'undefined' && !window.confirm('Révoquer le token désactivera toutes les URL d\'abonnement déjà distribuées. Continuer ?')) {
+      return;
+    }
+    setExportRevoking(true);
+    try {
+      await api.delete('/calendar/subscription-token');
+      setExportToken('');
+      setExportUrl('');
+      setExportExpiresAt('');
+      toast.success('Token révoqué');
+      setShowExport(false);
+    } catch (err) {
+      logger.error(err, { context: 'calendar.export.revokeFailed' });
+      toast.error('Impossible de révoquer le token');
+    } finally {
+      setExportRevoking(false);
+    }
+  }, []);
+
+  // Recompute URL quand scope change
+  useEffect(() => {
+    if (exportToken) {
+      setExportUrl(buildExportUrl(exportToken, exportScope));
+    }
+  }, [exportScope, exportToken, buildExportUrl]);
+
+  // Persist multi-team filter
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem('omnitech.calendar.deptFilter', JSON.stringify(selectedDeptIds));
+    } catch { /* noop */ }
+  }, [selectedDeptIds]);
+
+  const toggleDept = useCallback((id: string) => {
+    setSelectedDeptIds((prev) => prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]);
+  }, []);
+
+  const clearDeptFilter = useCallback(() => setSelectedDeptIds([]), []);
 
   // Load departments
   useEffect(() => {
@@ -247,11 +357,15 @@ export default function CalendarPage() {
   const fetchAllEvents = useCallback(async () => {
     setLoading(true);
     try {
+      const calendarParams: Record<string, unknown> = { limit: 200 };
+      if (selectedDeptIds.length > 0) {
+        calendarParams.departmentIds = selectedDeptIds.join(',');
+      }
       const [newsRes, complianceRes, docsRes, calendarRes] = await Promise.allSettled([
         api.get('/news', { params: { limit: 200 } }),
         api.get('/compliance-tasks'),
         api.get('/documents', { params: { limit: 200 } }),
-        api.get('/calendar/events', { params: { limit: 200 } }),
+        api.get('/calendar/events', { params: calendarParams }),
       ]);
 
       const items: CalendarEvent[] = [];
@@ -328,7 +442,7 @@ export default function CalendarPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedDeptIds]);
 
   useEffect(() => {
     fetchAllEvents();
@@ -347,6 +461,7 @@ export default function CalendarPage() {
         startDate: new Date(eventForm.startDate).toISOString(),
         category: eventForm.category,
         allDay: eventForm.allDay,
+        visibility: eventForm.visibility,
       };
       if (eventForm.description) payload.description = eventForm.description;
       if (eventForm.endDate) payload.endDate = new Date(eventForm.endDate).toISOString();
@@ -357,7 +472,7 @@ export default function CalendarPage() {
       toast.success('Événement créé');
       setShowCreate(false);
       setCreationAttempted(false);
-      setEventForm({ title: '', description: '', startDate: '', endDate: '', category: 'GENERAL', allDay: false, location: '', departmentId: '' });
+      setEventForm({ title: '', description: '', startDate: '', endDate: '', category: 'GENERAL', allDay: false, location: '', departmentId: '', visibility: 'INTERNAL' });
       fetchAllEvents();
     } catch (err) {
       toast.error((err as any)?.response?.data?.message || (err as any)?.message || 'Erreur lors de la création');
@@ -426,6 +541,16 @@ export default function CalendarPage() {
               <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block" /> {t('calendar.legendReview')}</span>
               <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" /> Événement</span>
             </div>
+            {departments.length > 0 && (
+              <Button variant="outline" onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters} aria-label="Filtres équipes">
+                <Filter className="h-4 w-4" />
+                Équipes {selectedDeptIds.length > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-semibold">
+                    {selectedDeptIds.length}
+                  </span>
+                )}
+              </Button>
+            )}
             <Button variant="outline" onClick={handleOpenExport} loading={exportLoading}>
               <Share2 className="h-4 w-4" /> {t('calendar.export.button')}
             </Button>
@@ -437,6 +562,56 @@ export default function CalendarPage() {
           </>
         }
       />
+
+      {/* Multi-team filter panel — toggle via le bouton Équipes */}
+      {showFilters && departments.length > 0 && (
+        <Card className="mb-4 animate-fade-in-up">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="h-4 w-4 text-seal-gray-500" />
+              <h3 className="text-sm font-medium text-seal-navy dark:text-white">Filtrer par équipe</h3>
+              {selectedDeptIds.length > 0 && (
+                <button
+                  onClick={clearDeptFilter}
+                  className="ml-auto text-xs text-primary hover:underline"
+                >
+                  Effacer ({selectedDeptIds.length})
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {departments.map((d) => {
+                const checked = selectedDeptIds.includes(d.id);
+                return (
+                  <label
+                    key={d.id}
+                    className={[
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs cursor-pointer transition',
+                      checked
+                        ? 'bg-primary/10 border-primary/50 text-primary font-medium'
+                        : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700',
+                    ].join(' ')}
+                  >
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={checked}
+                      onChange={() => toggleDept(d.id)}
+                      aria-label={`Filtrer par ${d.name}`}
+                    />
+                    {checked && <Check className="h-3 w-3" />}
+                    {d.name}
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mt-2">
+              Aucune sélection = toutes les équipes visibles. Sélection persistée dans ce navigateur.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex items-center justify-end mb-6 gap-2">
         <button
           onClick={goToday}
@@ -733,7 +908,7 @@ export default function CalendarPage() {
       )}
 
       {/* Create event modal */}
-      <Dialog open={showCreate} onClose={() => { setShowCreate(false); setCreationAttempted(false); setEventForm({ title: '', description: '', startDate: '', endDate: '', category: 'GENERAL', allDay: false, location: '', departmentId: '' }); }} title={t('calendar.newEvent')} description={t('calendar.newEvent.description')}>
+      <Dialog open={showCreate} onClose={() => { setShowCreate(false); setCreationAttempted(false); setEventForm({ title: '', description: '', startDate: '', endDate: '', category: 'GENERAL', allDay: false, location: '', departmentId: '', visibility: 'INTERNAL' }); }} title={t('calendar.newEvent')} description={t('calendar.newEvent.description')}>
         <div className="space-y-4" onKeyDown={(e) => {
           if (e.key !== 'Enter') return;
           const tag = (e.target as HTMLElement).tagName;
@@ -759,10 +934,29 @@ export default function CalendarPage() {
             </label>
           </div>
           {departments.length > 0 && (
-            <Select label={t('calendar.form.department')} options={[{ value: '', label: t('calendar.form.allDepartments') }, ...departments.map(d => ({ value: d.id, label: d.name }))]} value={eventForm.departmentId} onChange={(e) => setEventForm({ ...eventForm, departmentId: e.target.value })} />
+            <div className="grid grid-cols-2 gap-3">
+              <Select label={t('calendar.form.department')} options={[{ value: '', label: t('calendar.form.allDepartments') }, ...departments.map(d => ({ value: d.id, label: d.name }))]} value={eventForm.departmentId} onChange={(e) => setEventForm({ ...eventForm, departmentId: e.target.value })} />
+              <Select
+                label="Visibilité"
+                options={EVENT_VISIBILITIES.map(v => ({ value: v.value, label: v.label }))}
+                value={eventForm.visibility}
+                onChange={(e) => setEventForm({ ...eventForm, visibility: e.target.value as 'PRIVATE' | 'TEAM' | 'INTERNAL' | 'PUBLIC' })}
+              />
+            </div>
           )}
+          {departments.length === 0 && (
+            <Select
+              label="Visibilité"
+              options={EVENT_VISIBILITIES.map(v => ({ value: v.value, label: v.label }))}
+              value={eventForm.visibility}
+              onChange={(e) => setEventForm({ ...eventForm, visibility: e.target.value as 'PRIVATE' | 'TEAM' | 'INTERNAL' | 'PUBLIC' })}
+            />
+          )}
+          <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 -mt-2">
+            {EVENT_VISIBILITIES.find(v => v.value === eventForm.visibility)?.help}
+          </p>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 dark:border-slate-700">
-            <Button variant="outline" onClick={() => { setShowCreate(false); setCreationAttempted(false); setEventForm({ title: '', description: '', startDate: '', endDate: '', category: 'GENERAL', allDay: false, location: '', departmentId: '' }); }}>{t('common.cancel')}</Button>
+            <Button variant="outline" onClick={() => { setShowCreate(false); setCreationAttempted(false); setEventForm({ title: '', description: '', startDate: '', endDate: '', category: 'GENERAL', allDay: false, location: '', departmentId: '', visibility: 'INTERNAL' }); }}>{t('common.cancel')}</Button>
             <Button onClick={handleCreateEvent} loading={creating}>{t('common.create')}</Button>
           </div>
         </div>
@@ -780,6 +974,17 @@ export default function CalendarPage() {
             <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('common.loading')}</p>
           ) : (
             <>
+              {/* Scope selector — équipe / mes events / tous */}
+              <Select
+                label="Quel calendrier publier ?"
+                value={exportScope}
+                onChange={(e) => setExportScope(e.target.value)}
+                options={[
+                  { value: 'all', label: 'Tous les événements visibles' },
+                  { value: 'mine', label: 'Mes événements uniquement' },
+                  ...departments.map((d) => ({ value: d.code.toLowerCase(), label: `Équipe ${d.name}` })),
+                ]}
+              />
               <div>
                 <label className="block text-xs font-medium text-seal-gray-600 dark:text-slate-300 mb-1">
                   {t('calendar.export.urlLabel')}
@@ -804,13 +1009,44 @@ export default function CalendarPage() {
                   </p>
                 )}
               </div>
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 p-3 text-xs text-seal-navy dark:text-blue-100">
-                <p className="font-semibold mb-1">{t('calendar.export.howto.title')}</p>
-                <ol className="list-decimal pl-4 space-y-0.5">
-                  <li>{t('calendar.export.howto.step1')}</li>
-                  <li>{t('calendar.export.howto.step2')}</li>
-                  <li>{t('calendar.export.howto.step3')}</li>
-                </ol>
+
+              {/* Token management : régénérer / révoquer */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRegenerateToken}
+                  loading={exportRegenerating}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Régénérer
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRevokeToken}
+                  loading={exportRevoking}
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-red-500" /> Révoquer
+                </Button>
+                <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 ml-auto">
+                  La régénération invalide l&apos;URL précédemment partagée.
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 p-3 text-xs text-seal-navy dark:text-blue-100 space-y-3">
+                <p className="font-semibold">Comment s&apos;abonner&nbsp;?</p>
+                <div>
+                  <p className="font-medium">Outlook (Web/Desktop)</p>
+                  <p className="text-[11px] opacity-90">Calendrier &gt; Ajouter un calendrier &gt; <em>S&apos;abonner depuis le Web</em>, collez l&apos;URL.</p>
+                </div>
+                <div>
+                  <p className="font-medium">Apple Calendar (macOS / iOS)</p>
+                  <p className="text-[11px] opacity-90">Fichier &gt; Nouvel abonnement de calendrier (macOS) ou Réglages &gt; Calendrier &gt; Comptes &gt; Ajouter un compte &gt; Autre &gt; Ajouter un calendrier avec abonnement (iOS).</p>
+                </div>
+                <div>
+                  <p className="font-medium">Google Calendar</p>
+                  <p className="text-[11px] opacity-90">Autres agendas &gt; + &gt; <em>À partir de l&apos;URL</em>, collez l&apos;URL.</p>
+                </div>
               </div>
               <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                 {t('calendar.export.privacy')}

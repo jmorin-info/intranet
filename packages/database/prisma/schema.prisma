@@ -1451,7 +1451,7 @@ model CalendarEvent {
   createdById  String
   departmentId String?
   isRecurring  Boolean   @default(false)
-  recurrence   String? // iCalendar RRULE format
+  recurrence   String? // iCalendar RRULE format (FREQ=WEEKLY;BYDAY=MO,TU,...)
   color        String? // hex color for display
   // P1.10 — Calendrier individuel (synchro tickets) :
   //   userId    = utilisateur "propriétaire" de l'événement (ex. assigné ticket)
@@ -1460,9 +1460,19 @@ model CalendarEvent {
   userId       String?
   sourceType   String?
   sourceId     String?
+  // Multi-équipes / portée de visibilité (2026-04-26) :
+  //   PRIVATE   : visible par le créateur uniquement
+  //   TEAM      : visible par les membres du department lié (createdById ou departmentId)
+  //   INTERNAL  : visible par tous les utilisateurs authentifiés (default)
+  //   PUBLIC    : visible y compris par les utilisateurs externes/portail
+  visibility   String     @default("INTERNAL")
+  // Idempotence import iCal (RFC 5545 UID) — utilisé par /import et /sync
+  // pour upsert sans dupliquer un évènement déjà importé. NULL pour les
+  // events créés en interne (UID local = `<id>@omnitech-intranet`).
+  externalUid  String?    @unique
   deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   createdBy  User        @relation("CalendarEventCreator", fields: [createdById], references: [id])
   user       User?       @relation("CalendarEventUser", fields: [userId], references: [id])
@@ -1476,6 +1486,8 @@ model CalendarEvent {
   @@index([sourceType, sourceId])
   /// idx pour agenda départemental : events d'un département dans une fenêtre temporelle
   @@index([departmentId, startDate])
+  /// idx pour filtrage visibility (queries getEventsForUser)
+  @@index([visibility, startDate])
 }
 
 // =============================================================================
@@ -1486,11 +1498,13 @@ model CalendarEvent {
 // sur l'endpoint d'export pour rester compatible Outlook "Ajouter calendrier
 // > À partir d'Internet". Le token est révocable (delete) et expirable.
 model CalendarSubscriptionToken {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  userId     String
+  token      String    @unique
+  expiresAt  DateTime
+  // Dernier hit sur l'endpoint d'export (audit / nettoyage tokens dormants)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   user User @relation("CalendarSubscriptionUser", fields: [userId], references: [id], onDelete: Cascade)
 
