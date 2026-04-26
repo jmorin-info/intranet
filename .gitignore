@@ -6,6 +6,9 @@ dist/
 .env
 .env.local
 .env.production
+# VAPID keys (Web Push) — NEVER commit
+vapid-keys.txt
+vapid-keys.json
 uploads/
 storage/
 *.log
