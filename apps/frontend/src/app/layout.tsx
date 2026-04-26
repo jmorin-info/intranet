@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Toaster } from "sonner";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { DarkModeInit } from "@/components/dark-mode-init";
 import { ChunkErrorRecovery } from "@/components/chunk-error-recovery";
@@ -26,8 +28,13 @@ export default async function RootLayout({
   // sous une CSP strict-dynamic.
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
+  // next-intl : locale + messages négociés par src/i18n/request.ts.
+  // `lang` est posé sur <html> pour conformité a11y (WCAG 3.1.1).
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <meta name="robots" content="noindex, nofollow" />
         {/* Icons : multi-size explicit pour que Windows / macOS / iOS / Android
@@ -107,14 +114,16 @@ export default async function RootLayout({
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         <div id="__app" suppressHydrationWarning>
-          <ChunkErrorRecovery />
-          {children}
-          <Toaster
-            position="top-center"
-            richColors
-            closeButton
-            toastOptions={{ style: { fontFamily: "var(--font-body)" } }}
-          />
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <ChunkErrorRecovery />
+            {children}
+            <Toaster
+              position="top-center"
+              richColors
+              closeButton
+              toastOptions={{ style: { fontFamily: "var(--font-body)" } }}
+            />
+          </NextIntlClientProvider>
         </div>
       </body>
     </html>
