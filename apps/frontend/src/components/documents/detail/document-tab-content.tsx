@@ -20,6 +20,8 @@ import { DocumentHistoryPanel } from "./document-history-panel";
 import { DocumentCommentsPanel } from "./document-comments-panel";
 import { DocumentIsoPanel } from "./document-iso-panel";
 import { DocumentInlineEditPanel } from "./document-inline-edit-panel";
+import { PermissionsPanel } from "@/app/(app)/documents/[id]/_components/PermissionsPanel";
+import { SharesPanel } from "@/app/(app)/documents/[id]/_components/SharesPanel";
 
 interface DocumentTabContentProps {
   activeTab: string;
@@ -190,6 +192,17 @@ export function DocumentTabContent(props: DocumentTabContentProps) {
         analyzing={analyzing}
         onAutoAssign={onAutoAssignIso}
       />
+    );
+  }
+  if (activeTab === "sharing") {
+    // canEdit est un bon proxy pour "peut administrer" (owner ou ADMIN+)
+    // pour cette MVP. Le backend revérifie strictement via canAdmin().
+    const canAdmin = canEdit;
+    return (
+      <div className="space-y-4">
+        <PermissionsPanel documentId={doc.id} canAdmin={canAdmin} />
+        <SharesPanel documentId={doc.id} canAdmin={canAdmin} />
+      </div>
     );
   }
   return null;
