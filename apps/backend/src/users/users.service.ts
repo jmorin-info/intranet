@@ -7,6 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { HibpService } from "../auth/hibp.service";
@@ -1113,14 +1114,14 @@ export class UsersService {
       },
       update: {
         enabled,
-        ...(config !== undefined && { config: config as any }),
+        ...(config !== undefined && { config: config as Prisma.InputJsonValue }),
       },
       create: {
         module,
         scopeType: "USER",
         scopeValue: userId,
         enabled,
-        ...(config !== undefined && { config: config as any }),
+        ...(config !== undefined && { config: config as Prisma.InputJsonValue }),
       },
     });
 

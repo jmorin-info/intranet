@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface QuizQuestion {
@@ -177,7 +178,8 @@ export class QuizService {
         userId,
         action: 'QUIZ_COMPLETED',
         resourceType: 'Quiz',
-        metadata: { score, total, percentage: Math.round((score / total) * 100), answers, campaignTitle: campaignTitle || 'Quiz Sécurité OMNITECH' } as any,
+        // Prisma.InputJsonValue : on construit un objet JSON-sérialisable.
+        metadata: { score, total, percentage: Math.round((score / total) * 100), answers, campaignTitle: campaignTitle || 'Quiz Sécurité OMNITECH' } as Prisma.InputJsonValue,
         severity: score / total >= 0.7 ? 'INFO' : 'WARN',
       },
     });
@@ -217,9 +219,10 @@ export class QuizService {
     // Best score per user
     const bestScores = new Map<string, { user: any; score: number; total: number; date: Date }>();
     for (const r of results) {
-      const meta = r.metadata as any;
-      if (!bestScores.has(r.userId!) || meta.percentage > (bestScores.get(r.userId!)!.score / bestScores.get(r.userId!)!.total * 100)) {
-        bestScores.set(r.userId!, { user: r.user, score: meta.score, total: meta.total, date: r.createdAt });
+      // Prisma.JsonValue dynamique — extraction défensive
+      const meta = (r.metadata as Record<string, number> | null) ?? {};
+      if (!bestScores.has(r.userId!) || (meta.percentage ?? 0) > (bestScores.get(r.userId!)!.score / bestScores.get(r.userId!)!.total * 100)) {
+        bestScores.set(r.userId!, { user: r.user, score: meta.score ?? 0, total: meta.total ?? 0, date: r.createdAt });
       }
     }
     return Array.from(bestScores.values()).sort((a, b) => (b.score / b.total) - (a.score / a.total)).slice(0, 20);
@@ -244,12 +247,15 @@ export class QuizService {
       include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
     });
     if (!log || log.action !== 'QUIZ_COMPLETED') throw new NotFoundException('Quiz result not found');
-    const meta = log.metadata as any;
-    if (!meta || meta.percentage < 70) throw new NotFoundException('Quiz not passed — no certificate available');
+    // Prisma.JsonValue dynamique — extraction défensive
+    const meta = (log.metadata as Record<string, unknown> | null) ?? null;
+    if (!meta || (typeof meta.percentage !== 'number') || meta.percentage < 70) {
+      throw new NotFoundException('Quiz not passed — no certificate available');
+    }
     return {
       userId: log.userId!,
       userName: `${log.user?.firstName ?? ''} ${log.user?.lastName ?? ''}`.trim() || log.user?.email || 'Utilisateur',
-      campaignTitle: meta.campaignTitle || 'Quiz Sécurité OMNITECH',
+      campaignTitle: (meta.campaignTitle as string) || 'Quiz Sécurité OMNITECH',
       score: meta.score as number,
       total: meta.total as number,
       percentage: meta.percentage as number,
@@ -339,8 +345,16 @@ export class QuizService {
 
     const totalUsers = await this.prisma.user.count({ where: { isActive: true, deletedAt: null } });
     const uniqueParticipants = new Set(completions.map(c => c.userId)).size;
+    // Prisma.JsonValue dynamique — extraction défensive
+    const pct = (m: Prisma.JsonValue | null): number => {
+      if (m && typeof m === 'object' && !Array.isArray(m)) {
+        const p = (m as Record<string, unknown>).percentage;
+        return typeof p === 'number' ? p : 0;
+      }
+      return 0;
+    };
     const averageScore = completions.length > 0
-      ? completions.reduce((sum, c) => sum + ((c.metadata as any)?.percentage || 0), 0) / completions.length
+      ? completions.reduce((sum, c) => sum + pct(c.metadata), 0) / completions.length
       : 0;
 
     // By department
@@ -349,7 +363,7 @@ export class QuizService {
       const dept = c.user?.departmentId || 'unknown';
       const current = byDepartment.get(dept) || { count: 0, totalScore: 0 };
       current.count++;
-      current.totalScore += (c.metadata as any)?.percentage || 0;
+      current.totalScore += pct(c.metadata);
       byDepartment.set(dept, current);
     }
 
@@ -359,7 +373,7 @@ export class QuizService {
       participationRate: totalUsers > 0 ? Math.round((uniqueParticipants / totalUsers) * 100) : 0,
       averageScore: Math.round(averageScore),
       totalCompletions: completions.length,
-      passingRate: Math.round((completions.filter(c => ((c.metadata as any)?.percentage || 0) >= 70).length / Math.max(completions.length, 1)) * 100),
+      passingRate: Math.round((completions.filter((c) => pct(c.metadata) >= 70).length / Math.max(completions.length, 1)) * 100),
     };
   }
 }
