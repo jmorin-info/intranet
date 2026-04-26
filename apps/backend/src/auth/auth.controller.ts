@@ -16,6 +16,8 @@ import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { MfaService } from "../mfa/mfa.service";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { UserThrottlerGuard } from "./guards/user-throttler.guard";
+import { UserThrottle } from "./decorators/user-throttle.decorator";
 import { Public } from "./decorators/public.decorator";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import { LoginDto } from "./dto/login.dto";
@@ -53,7 +55,12 @@ export class AuthController {
   @AllowCrossSite()
   @Post("login")
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  // Anti brute-force ANSSI R59 : 5 tentatives/min. Avant authentification,
+  // le tracker retombe automatiquement sur l'IP (le guard ne dispose pas de
+  // req.user puisque la route est @Public). Le ThrottlerGuard global (300/min IP)
+  // continue de s'appliquer en plus.
+  @UseGuards(UserThrottlerGuard)
+  @UserThrottle({ limit: 5, ttl: 60_000 })
   async login(
     @Body() loginDto: LoginDto,
     @Req() req: Request,
