@@ -26,6 +26,7 @@ import {
   MeiliDocument,
 } from "../search/meilisearch.service";
 import { RagService } from "../rag/rag.service";
+import { WorkflowRulesService } from "../workflow-rules/workflow-rules.service";
 
 /** Enrich any object that has nested isoControls[].isoControl with titleFr */
 function enrichIsoControls<T>(doc: T): T {
@@ -171,6 +172,7 @@ export class DocumentsService {
     private readonly cacheService: CacheService,
     @Optional() private readonly meili?: MeilisearchService,
     @Optional() private readonly rag?: RagService,
+    @Optional() private readonly workflowRules?: WorkflowRulesService,
   ) {}
 
   /** Invalidate document + dashboard stats caches after mutations. */
@@ -610,6 +612,37 @@ export class DocumentsService {
     this.logger.log(`Document created: ${reference} by user ${userId}`);
     this.indexForMeili(document);
     this.invalidateStatsCaches();
+
+    // ---- Approbation N+1 dynamique : règles WorkflowRule -------------------
+    // On cherche une règle applicable au contexte du document. Si match, on
+    // instancie le workflow correspondant à la place du fallback `reviewerId`.
+    // Toute erreur ici est non bloquante — on log et on retombe sur le
+    // comportement historique pour ne pas casser la création de doc.
+    if (this.workflowRules) {
+      try {
+        const author = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { departmentId: true },
+        });
+        const rule = await this.workflowRules.findApplicableRule({
+          classification: document.classification ?? null,
+          category: document.category ?? null,
+          departmentId: author?.departmentId ?? null,
+        });
+        if (rule) {
+          await this.workflowRules.instantiateWorkflow(
+            { id: rule.id, name: rule.name, steps: rule.steps },
+            { id: document.id, currentVersionId: null },
+            userId,
+          );
+        }
+      } catch (err) {
+        this.logger.warn(
+          `WorkflowRule instantiation skipped for ${document.id}: ${(err as Error).message}`,
+        );
+      }
+    }
+
     return enrichIsoControls(document);
   }
 

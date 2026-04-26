@@ -1,18 +1,19 @@
-import { Module } from '@nestjs/common';
-import { MulterModule } from '@nestjs/platform-express';
-import { DocumentsController } from './documents.controller';
-import { DocumentsService } from './documents.service';
-import { WorkflowController } from './workflow/workflow.controller';
-import { WorkflowService } from './workflow/workflow.service';
-import { AcknowledgmentsController } from './acknowledgments/acknowledgments.controller';
-import { AcknowledgmentsService } from './acknowledgments/acknowledgments.service';
-import { GedDashboardController } from './ged-dashboard.controller';
-import { GedDashboardService } from './ged-dashboard.service';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { ScannerModule } from '../scanner/scanner.module';
-import { IsoAnalyzerModule } from '../iso-analyzer/iso-analyzer.module';
-import { MentionsModule } from '../mentions/mentions.module';
-import { MeilisearchModule } from '../search/meilisearch.module';
+import { Module } from "@nestjs/common";
+import { MulterModule } from "@nestjs/platform-express";
+import { DocumentsController } from "./documents.controller";
+import { DocumentsService } from "./documents.service";
+import { WorkflowController } from "./workflow/workflow.controller";
+import { WorkflowService } from "./workflow/workflow.service";
+import { AcknowledgmentsController } from "./acknowledgments/acknowledgments.controller";
+import { AcknowledgmentsService } from "./acknowledgments/acknowledgments.service";
+import { GedDashboardController } from "./ged-dashboard.controller";
+import { GedDashboardService } from "./ged-dashboard.service";
+import { NotificationsModule } from "../notifications/notifications.module";
+import { ScannerModule } from "../scanner/scanner.module";
+import { IsoAnalyzerModule } from "../iso-analyzer/iso-analyzer.module";
+import { MentionsModule } from "../mentions/mentions.module";
+import { MeilisearchModule } from "../search/meilisearch.module";
+import { WorkflowRulesModule } from "../workflow-rules/workflow-rules.module";
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { MeilisearchModule } from '../search/meilisearch.module';
     IsoAnalyzerModule,
     MentionsModule,
     MeilisearchModule,
+    WorkflowRulesModule,
   ],
   controllers: [
     // IMPORTANT: WorkflowController et GedDashboardController déclarent des routes

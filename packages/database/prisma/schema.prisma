@@ -1607,6 +1607,15 @@ model ApprovalStepInstance {
   decidedAt    DateTime?
   escalatedAt  DateTime?
   dueAt        DateTime?
+  // Champs ajoutés 2026-04-26 — Approbation N+1 dynamique (WorkflowRule).
+  // `level` représente le palier hiérarchique (1 = N+1, 2 = N+2…) — utile
+  // quand on instancie un workflow depuis une WorkflowRule où chaque step
+  // déclare son niveau. `parallelGroupId` regroupe N step-instances qui
+  // doivent être traitées en parallèle (même niveau hiérarchique). `deadlineAt`
+  // est calculé à partir du champ `deadlineHours` de la règle.
+  level           Int?      @default(1)
+  parallelGroupId String?
+  deadlineAt      DateTime?
 
   instance   ApprovalInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   step       WorkflowStep     @relation(fields: [stepId], references: [id])
@@ -1617,6 +1626,9 @@ model ApprovalStepInstance {
   @@index([stepId])
   @@index([decision, dueAt])
   @@index([assignedToId])
+  @@index([level])
+  @@index([parallelGroupId])
+  @@index([deadlineAt])
 }
 
 enum ApprovalDecision {
@@ -1627,6 +1639,62 @@ enum ApprovalDecision {
 }
 
 // === END NEW MODELS 2026-04-13 ===
+
+// ============================================================
+// WorkflowRule — Approbation N+1 dynamique (ISO 27001 A.5.1)
+// Ajouté le 2026-04-26
+// ------------------------------------------------------------
+// Une règle décrit comment instancier un workflow d'approbation
+// en fonction de critères évalués à la création d'un document
+// (catégorie, classification, département…). Le matching se fait
+// par ordre croissant de `priority` ; la première règle dont la
+// condition matche est retenue.
+//
+// `condition` (JSONB) : map clé→valeur, ex.
+//   {
+//     "classification": ["CONFIDENTIEL","SECRET"],  // OR sur la valeur
+//     "category":       "POLICY",                   // égalité stricte
+//     "departmentId":   ["dept-1","dept-2"],
+//     "minAmount":      10000                        // seuil numérique
+//   }
+//
+// `steps` (JSONB) : tableau ordonné de paliers. Chaque palier =
+//   {
+//     "level":          1,
+//     "approverRole":   "ADMIN",      // ou approverUserId / approverDeptId
+//     "deadlineHours":  72,
+//     "parallel":       false,        // true ⇒ même level, paralléliser
+//     "parallelGroupId":"grp-rssi",   // optionnel
+//     "name":           "Validation RSSI"
+//   }
+//
+// Les mutations CRUD sont auditées dans WorkflowRuleAuditLog.
+// ============================================================
+
+model WorkflowRule {
+  id          String   @id @default(uuid())
+  name        String
+  priority    Int      @default(100)
+  condition   Json
+  steps       Json
+  isActive    Boolean  @default(true)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([priority, isActive])
+}
+
+model WorkflowRuleAuditLog {
+  id        String   @id @default(uuid())
+  ruleId    String?
+  actorId   String?
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([ruleId, createdAt])
+}
 
 // ============================================================
 // DocuSeal : campagnes automatisees (ISO 27001 A.5.1 + A.6.2)
