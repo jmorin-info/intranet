@@ -17,7 +17,13 @@ const CONFIDENCE_THRESHOLD = 0.3;
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-type SourceType = "DOCUMENT" | "WIKI" | "PROCEDURE" | "RUNBOOK" | "FAQ";
+type SourceType =
+  | "DOCUMENT"
+  | "WIKI"
+  | "PROCEDURE"
+  | "RUNBOOK"
+  | "FAQ"
+  | "TICKET";
 
 /**
  * Contexte RBAC pour le filtrage pré-retrieval (ISO 27001 Annex A.5.15, A.8.3).

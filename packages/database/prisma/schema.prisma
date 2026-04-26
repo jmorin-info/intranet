@@ -64,6 +64,9 @@ enum NotificationType {
   TICKET_CREATED
   TICKET_UPDATED
   TICKET_SLA_BREACH
+  MENTION
+  SIGNATURE_REQUEST
+  SIGNATURE_REMINDER
 }
 
 enum AuditSeverity {
@@ -1827,6 +1830,7 @@ enum RagSourceType {
   PROCEDURE
   RUNBOOK
   FAQ
+  TICKET
 }
 
 model RagQueryLog {
