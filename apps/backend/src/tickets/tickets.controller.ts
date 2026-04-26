@@ -4,6 +4,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
+import { UserThrottle } from '../auth/decorators/user-throttle.decorator';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDatesDto } from './dto/update-ticket-dates.dto';
@@ -252,6 +254,10 @@ export class TicketsController {
   }
 
   @Post()
+  // Anti-spam helpdesk : 30 tickets/h par utilisateur (un humain n'en
+  // crée pas 30 en une heure ; au-delà c'est un script ou un bug front).
+  @UseGuards(UserThrottlerGuard)
+  @UserThrottle({ limit: 30, ttl: 60 * 60_000 })
   create(@Body() body: CreateTicketDto, @CurrentUser() user: RequestUser) {
     return this.ticketsService.create(body, user.id);
   }

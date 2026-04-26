@@ -16,6 +16,7 @@ import { Request } from "express";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { UserThrottlerGuard } from "../auth/guards/user-throttler.guard";
+import { UserThrottle } from "../auth/decorators/user-throttle.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { MfaService } from "./mfa.service";
@@ -60,6 +61,9 @@ export class MfaController {
   }
 
   @Post("verify")
+  // Anti brute-force MFA : 5 essais / 5 min par utilisateur (ANSSI R28).
+  @UseGuards(UserThrottlerGuard)
+  @UserThrottle({ limit: 5, ttl: 5 * 60_000 })
   async verify(@CurrentUser() user: RequestUser, @Body("code") code: string) {
     const valid = await this.mfaService.verifyMfa(user.id, code);
     return { valid };

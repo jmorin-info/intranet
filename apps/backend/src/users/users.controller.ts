@@ -27,6 +27,7 @@ import { UsersService } from "./users.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { UserThrottlerGuard } from "../auth/guards/user-throttler.guard";
+import { UserThrottle } from "../auth/decorators/user-throttle.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { CreateUserDto } from "./dto/create-user.dto";
@@ -407,7 +408,7 @@ export class UsersController {
   // RGPD : 1 export par utilisateur par heure max — protège contre l'abus
   // (génère un dump complet des données perso, coûteux côté DB).
   @UseGuards(UserThrottlerGuard)
-  @Throttle({ default: { limit: 1, ttl: 3600000 } })
+  @UserThrottle({ limit: 1, ttl: 60 * 60_000 })
   async requestGdprExport(
     @CurrentUser() user: RequestUser,
     @Res() res: Response,
@@ -437,7 +438,11 @@ export class UsersController {
 
   @Post(":id/reset-password")
   @Roles(UserRole.ADMIN)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  // Anti-abus admin : 3 resets/h par admin authentifié — un admin légitime
+  // ne reset jamais 3 mots de passe par heure ; au-delà c'est probablement
+  // un compte compromis. Tracker = req.user.id (admin), pas la cible.
+  @UseGuards(UserThrottlerGuard)
+  @UserThrottle({ limit: 3, ttl: 60 * 60_000 })
   async resetPassword(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: ResetPasswordDto,

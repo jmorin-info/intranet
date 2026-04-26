@@ -15,6 +15,8 @@ import {
 import { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
+import { UserThrottle } from '../auth/decorators/user-throttle.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RequestUser } from '../common/interfaces';
 import { ChatbotUnifiedGuard } from './guards/chatbot-unified.guard';
@@ -89,7 +91,12 @@ export class ChatController {
   // ------------------------------------------------------------- Ask stream
 
   @Post('ask-stream')
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  // Anti-spam Ollama : 60 messages/h par utilisateur (les requêtes LLM sont
+  // coûteuses en GPU/CPU ; un humain n'envoie pas plus d'une question/min en
+  // moyenne sur la durée). Remplace l'ancien throttle 10/min/IP qui pénalisait
+  // les bureaux derrière NAT.
+  @UseGuards(UserThrottlerGuard)
+  @UserThrottle({ limit: 60, ttl: 60 * 60_000 })
   async askStream(
     @Body() dto: AskStreamDto,
     @CurrentUser() user: RequestUser,
