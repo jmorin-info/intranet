@@ -71,24 +71,33 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
       if ('serviceWorker' in navigator) {
-        // TEMPORARY: purge all service workers and caches after major rebuild session.
-        // This ensures all clients get fresh assets. Re-enable SW registration after cleanup.
-        navigator.serviceWorker.getRegistrations().then(function(regs) {
-          Promise.all(regs.map(function(r) { return r.unregister(); }));
-          if (typeof caches !== 'undefined') {
-            caches.keys().then(function(keys) {
-              keys.forEach(function(k) { caches.delete(k); });
-            });
-          }
-        }).catch(function() {});
+        // Register the OMNITECH service worker (public/sw.js).
+        // ISO 27001 A.5.30 — ICT readiness for business continuity.
+        // The SW handles offline fallback, static asset caching, and safe
+        // GET API stale-while-revalidate. CSP-safe: /sw.js is excluded from
+        // the nonce-based CSP rewrite by middleware.ts.
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
+        });
 
-        // ChunkLoadError recovery
+        // ChunkLoadError recovery — keep purge fallback only on chunk error.
         window.addEventListener('error', function(e) {
           var msg = (e && (e.message || (e.error && e.error.message))) || '';
           if (/Loading chunk [^ ]+ failed|ChunkLoadError/i.test(msg)) {
             if (window.__chunkRecoveryDone) return;
             window.__chunkRecoveryDone = true;
-            window.location.reload();
+            // Purge SW + caches before reload to avoid serving the stale chunk again.
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              return Promise.all(regs.map(function(r) { return r.unregister(); }));
+            }).catch(function() {}).finally(function() {
+              if (typeof caches !== 'undefined') {
+                caches.keys().then(function(keys) {
+                  return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                }).catch(function() {}).finally(function() { window.location.reload(); });
+              } else {
+                window.location.reload();
+              }
+            });
           }
         });
       }

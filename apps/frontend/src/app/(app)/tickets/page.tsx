@@ -1352,7 +1352,97 @@ export default function TicketsPage() {
       )}
 
       {viewMode === 'table' && !fetchError && (
-        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-thin">
+        <>
+        {/* Mobile: cards layout (< md) */}
+        <div className="md:hidden space-y-2">
+          {loading ? (
+            <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
+              Chargement…
+            </div>
+          ) : sortedFilteredTickets.length === 0 ? (
+            <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
+              <Ticket className="mx-auto mb-2 h-8 w-8 opacity-50" />
+              {t('tickets.empty')}
+            </div>
+          ) : (
+            sortedFilteredTickets.map((ticket) => {
+              const sla = getSlaStatus(ticket);
+              return (
+                <button
+                  key={ticket.id}
+                  type="button"
+                  onClick={() => router.push(`/tickets/${ticket.id}`)}
+                  className="w-full text-left rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors min-h-[88px]"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[11px] font-mono text-seal-gray-500 dark:text-slate-500">
+                      {ticket.reference}
+                    </span>
+                    <StatusBadge status={ticket.status as any} />
+                  </div>
+                  <p className="mt-1 text-sm font-semibold text-seal-navy dark:text-white line-clamp-2">
+                    {ticket.title}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <Badge variant={categoryBadgeVariant(ticket.category)}>
+                      {categoryLabel(ticket.category)}
+                    </Badge>
+                    <Badge
+                      variant={
+                        ticket.priority === 'URGENT' || ticket.priority === 'HIGH'
+                          ? 'error'
+                          : ticket.priority === 'MEDIUM'
+                          ? 'warning'
+                          : 'navy'
+                      }
+                    >
+                      {ticket.priority}
+                    </Badge>
+                    {sla && (
+                      <span className="text-[10px] font-medium text-amber-600">{sla}</span>
+                    )}
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-[11px] text-seal-gray-500 dark:text-slate-400">
+                    <span className="truncate">
+                      {ticket.assignee
+                        ? `Assigné: ${ticket.assignee.firstName} ${ticket.assignee.lastName.charAt(0)}.`
+                        : 'Non assigné'}
+                    </span>
+                    <span className="flex-shrink-0">{formatRelativeTime(ticket.createdAt)}</span>
+                  </div>
+                </button>
+              );
+            })
+          )}
+          {tickets && tickets.meta.totalPages > 1 && (
+            <div className="flex items-center justify-between gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+                className="min-h-[44px]"
+              >
+                Précédent
+              </Button>
+              <span className="text-xs text-seal-gray-500">
+                {page} / {tickets.meta.totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page >= tickets.meta.totalPages}
+                onClick={() => setPage(page + 1)}
+                className="min-h-[44px]"
+              >
+                Suivant
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop: full DataTable (>= md) */}
+        <div className="hidden md:block overflow-x-auto scrollbar-thin">
         {!loading && tickets?.data?.length === 0 && !statusFilter && !priorityFilter && !categoryFilter && !assigneeFilter && !myTicketsOnly && !searchQuery ? (
           <EmptyState
             type="tickets"
@@ -1402,6 +1492,7 @@ export default function TicketsPage() {
           />
         )}
         </div>
+        </>
       )}
 
       {viewMode === 'kanban' && !fetchError && (

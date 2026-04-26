@@ -1059,23 +1059,120 @@ export default function AdminUsersPage() {
           </div>
         )}
 
-        <DataTable
-          columns={columns}
-          data={users}
-          keyExtractor={(u) => u.id}
-          loading={loading}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSort={handleSort}
-          page={page}
-          totalPages={totalPages}
-          total={total}
-          onPageChange={setPage}
-          emptyMessage="Aucun utilisateur trouv\u00e9"
-          emptyIcon={
-            <Users className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />
-          }
-        />
+        {/* Mobile: cards layout (< md) */}
+        <div className="md:hidden space-y-2">
+          {loading ? (
+            <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
+              Chargement\u2026
+            </div>
+          ) : users.length === 0 ? (
+            <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
+              <Users className="mx-auto mb-2 h-8 w-8 opacity-50" />
+              Aucun utilisateur trouv\u00e9
+            </div>
+          ) : (
+            users.map((u) => (
+              <div
+                key={u.id}
+                className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 flex items-start gap-3 min-h-[72px]"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(u.id)}
+                  onChange={() => toggleSelect(u.id)}
+                  className="mt-1 h-5 w-5 rounded border-gray-300 dark:border-slate-600 text-primary focus:ring-primary/20"
+                  aria-label={`S\u00e9lectionner ${u.firstName} ${u.lastName}`}
+                />
+                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-semibold text-primary">
+                    {u.firstName.charAt(0)}{u.lastName.charAt(0)}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">
+                    {u.firstName} {u.lastName}
+                  </p>
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">
+                    {u.email}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <Badge variant={ROLE_BADGE_VARIANT[u.role] as any}>
+                      {USER_ROLE_LABELS[u.role]}
+                    </Badge>
+                    <Badge variant={u.isActive ? "success" : "error"}>
+                      {u.isActive ? "Actif" : "Inactif"}
+                    </Badge>
+                    {u.department?.name && (
+                      <Badge variant="primary">{u.department.name}</Badge>
+                    )}
+                    {u.mfaEnabled ? (
+                      <Shield className="h-4 w-4 text-emerald-500" aria-label="MFA activ\u00e9" />
+                    ) : u.mfaRequired ? (
+                      <Lock className="h-4 w-4 text-amber-500" aria-label="MFA obligatoire" />
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-[11px] text-seal-gray-500 dark:text-slate-500">
+                    {u.lastLoginAt ? `Connect\u00e9 ${formatRelativeTime(u.lastLoginAt)}` : "Jamais connect\u00e9"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setEditRoleUser(u); setEditRoleValue(u.role); }}
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800"
+                  aria-label={`Modifier le r\u00f4le de ${u.firstName} ${u.lastName}`}
+                >
+                  <Shield className="h-4 w-4" />
+                </button>
+              </div>
+            ))
+          )}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+                className="min-h-[44px]"
+              >
+                Pr\u00e9c\u00e9dent
+              </Button>
+              <span className="text-xs text-seal-gray-500">
+                {page} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page >= totalPages}
+                onClick={() => setPage(page + 1)}
+                className="min-h-[44px]"
+              >
+                Suivant
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop: full DataTable (>= md) */}
+        <div className="hidden md:block">
+          <DataTable
+            columns={columns}
+            data={users}
+            keyExtractor={(u) => u.id}
+            loading={loading}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            onPageChange={setPage}
+            emptyMessage="Aucun utilisateur trouv\u00e9"
+            emptyIcon={
+              <Users className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />
+            }
+          />
+        </div>
       </div>
 
       {/* ================================================================ */}
