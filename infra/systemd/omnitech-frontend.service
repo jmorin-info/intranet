@@ -1,0 +1,36 @@
+[Unit]
+Description=OMNITECH Intranet Frontend (Next.js 15)
+Documentation=https://intranet.omnitech-security.fr/docs
+After=network.target omnitech-backend.service
+Wants=omnitech-backend.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/omnitech/intranet
+EnvironmentFile=/opt/omnitech/intranet/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/pnpm --filter @omnitech/frontend start
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+# Logs
+StandardOutput=append:/var/log/omnitech/frontend.log
+StandardError=append:/var/log/omnitech/frontend.log
+SyslogIdentifier=omnitech-frontend
+
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
