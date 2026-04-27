@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { AdminBackupController } from "./admin-backup.controller";
 import { AdminBackupService } from "./admin-backup.service";
 import { AdminWebdavController } from "./admin-webdav.controller";
+import { AdminChatFeedbackController } from "./admin-chat-feedback.controller";
 import { PrismaModule } from "../prisma/prisma.module";
 import { AuditModule } from "../audit/audit.module";
 
@@ -13,7 +14,11 @@ import { AuditModule } from "../audit/audit.module";
  */
 @Module({
   imports: [PrismaModule, AuditModule],
-  controllers: [AdminBackupController, AdminWebdavController],
+  controllers: [
+    AdminBackupController,
+    AdminWebdavController,
+    AdminChatFeedbackController,
+  ],
   providers: [AdminBackupService],
   exports: [AdminBackupService],
 })
