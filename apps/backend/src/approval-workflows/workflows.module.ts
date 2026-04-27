@@ -1,19 +1,22 @@
-import { Module } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
-import { WorkflowsController } from './workflows.controller';
-import { WorkflowsService } from './workflows.service';
+import { Module } from "@nestjs/common";
+import { PrismaModule } from "../prisma/prisma.module";
+import { WorkflowsController } from "./workflows.controller";
+import { WorkflowsService } from "./workflows.service";
+import { WorkflowEngineService } from "./workflow-engine.service";
 
 /**
- * ApprovalWorkflowsModule — Module scaffold pour les workflows d'approbation
- * configurables (ISO 27001 A.5.1).
+ * ApprovalWorkflowsModule — Workflows d'approbation configurables (ISO 27001
+ * A.5.1) + éditeur visuel DAG (item #24).
  *
- * Non enregistré dans app.module.ts pour l'instant : à brancher manuellement
- * après la migration Prisma.
+ * Composants :
+ *  - WorkflowsService : CRUD templates + démarrage / décision d'instances.
+ *  - WorkflowEngineService : sérialisation / validation DAG + évaluation
+ *    runtime des transitions BRANCH (conditions JSON).
  */
 @Module({
   imports: [PrismaModule],
   controllers: [WorkflowsController],
-  providers: [WorkflowsService],
-  exports: [WorkflowsService],
+  providers: [WorkflowsService, WorkflowEngineService],
+  exports: [WorkflowsService, WorkflowEngineService],
 })
 export class ApprovalWorkflowsModule {}
