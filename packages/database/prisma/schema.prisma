@@ -335,6 +335,8 @@ model User {
   delegationsGiven           ApprovalDelegation[]        @relation("DelegationFrom")
   delegationsReceived        ApprovalDelegation[]        @relation("DelegationTo")
   approvalAuditEntries       ApprovalAuditLog[]          @relation("ApprovalAuditActor")
+  // === Wave D — Templates de documents === 2026-04-28
+  documentTemplatesCreated   DocumentTemplate[]          @relation("DocTemplateCreator")
 
   @@index([departmentId])
   @@index([role])
@@ -438,6 +440,8 @@ model Document {
   scanStatus       String           @default("PENDING") // PENDING | CLEAN | INFECTED | ERROR
   content          String? // HTML content (inline editor) — null when document is uploaded
   isNative         Boolean          @default(false) // true = born-in-intranet, false = uploaded
+  // === Wave D — Templates de documents === 2026-04-28
+  fromTemplateId   String?          // si rempli, document instancié depuis ce template
   deletedAt        DateTime?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -454,6 +458,8 @@ model Document {
   // === Permissions GED granulaires (ISO 27001 A.5.15) === 2026-04-26
   permissions        DocumentPermission[]
   shares             DocumentShare[]
+  // === Templates (Wave D) ===
+  fromTemplate       DocumentTemplate?        @relation(fields: [fromTemplateId], references: [id], onDelete: SetNull)
 
   @@index([reference, deletedAt])
   @@index([status, nextReviewDate])
@@ -465,6 +471,7 @@ model Document {
   @@index([deletedAt, status])
   /// idx pour documents.service.ts findAll : ACL collaborateur OR={ownerId:me} combiné au filtre status (documents.service.ts:279)
   @@index([ownerId, status])
+  @@index([fromTemplateId])
 }
 
 model DocumentVersion {
@@ -1264,59 +1271,12 @@ model WikiPage {
 
   author   User              @relation("WikiAuthor", fields: [authorId], references: [id])
   versions WikiPageVersion[]
-  backlinks WikiPageBacklink[] @relation("FromPageBacklinks")
-  tags      WikiPageTag[]
 
   @@index([authorId])
   @@index([category])
   @@index([slug])
   @@index([visibility])
   @@index([ownerDepartmentId])
-}
-
-/// Backlinks bidirectionnels [[slug]] — index persistant alimenté à chaque
-/// création/update de WikiPage. Permet l'endpoint /wiki/pages/:slug/backlinks
-/// sans rescanner tout le contenu Markdown à chaque appel.
-model WikiPageBacklink {
-  id              String   @id @default(uuid())
-  fromPageId      String
-  toPageSlug      String
-  occurrenceCount Int      @default(1)
-  createdAt       DateTime @default(now())
-
-  fromPage WikiPage @relation("FromPageBacklinks", fields: [fromPageId], references: [id], onDelete: Cascade)
-
-  @@unique([fromPageId, toPageSlug])
-  @@index([toPageSlug])
-  @@index([fromPageId])
-}
-
-/// Tags persistants pour les pages wiki — alternative au champ libre `category`.
-/// Slug normalisé pour les filtres URL ; colorHex optionnelle pour les badges.
-model WikiTag {
-  id        String   @id @default(uuid())
-  slug      String   @unique
-  name      String
-  colorHex  String?
-  createdAt DateTime @default(now())
-
-  pages WikiPageTag[]
-
-  @@index([slug])
-}
-
-/// Relation many-to-many WikiPage <-> WikiTag.
-model WikiPageTag {
-  pageId    String
-  tagId     String
-  createdAt DateTime @default(now())
-
-  page WikiPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  tag  WikiTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([pageId, tagId])
-  @@unique([pageId, tagId])
-  @@index([tagId])
 }
 
 model WikiPageVersion {
@@ -2586,3 +2546,44 @@ model DocumentShare {
   @@index([expiresAt])
   @@index([createdById])
 }
+
+// =============================================================================
+// Wave D — Templates de documents avec variables dynamiques (item 25)
+// =============================================================================
+//
+// Permet de pré-formater des documents Markdown avec variables {{name}} qui
+// seront substituées au moment de l'instanciation. Évite la création manuelle
+// from-scratch et standardise les contenus (politiques, procédures, etc.).
+//
+// Le moteur de rendu est volontairement minimal : remplacement regex
+// `\{\{(\w+)\}\}` → `variables[name]`. Pas de Handlebars (overkill).
+//
+// La colonne `variables` (JSON) stocke un array de spec :
+//   [{ key, label, type: 'TEXT' | 'DATE' | 'NUMBER' | 'SELECT', required,
+//      defaultValue?, options?: string[] }]
+//
+// Lien Document.fromTemplateId → DocumentTemplate.id (onDelete SetNull pour
+// préserver l'historique côté documents même si le template est supprimé).
+model DocumentTemplate {
+  id             String           @id @default(uuid())
+  name           String
+  slug           String           @unique
+  description    String?
+  category       DocumentCategory
+  content        String           // Markdown avec variables {{var}}
+  variables      Json             // Array<{ key, label, type, required, defaultValue?, options? }>
+  classification String           @default("INTERNE") // PUBLIC | INTERNE | CONFIDENTIEL | SECRET
+  createdById    String
+  deletedAt      DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relations
+  createdBy User       @relation("DocTemplateCreator", fields: [createdById], references: [id])
+  documents Document[] // Documents instanciés depuis ce template
+
+  @@index([category, deletedAt])
+  @@index([slug])
+  @@index([createdById])
+}
+
