@@ -1575,6 +1575,26 @@ model WorkflowStep {
   escalateToUserId     String?
   // Autoriser le passage automatique si pas de réponse en SLA ?
   autoApproveOnTimeout Boolean          @default(false)
+  // === Visual graph editor (item #24, 2026-04-26) ===
+  // Type de noeud dans le graphe — APPROVAL est rétrocompatible (default).
+  // BRANCH choisit une transition selon `condition`. PARALLEL_ALL / PARALLEL_ANY
+  // peuvent aussi être encodés via `mode`, mais `type` permet à l'UI de
+  // distinguer un noeud d'embranchement (multi sortie) d'un noeud d'approbation.
+  type                 WorkflowStepType @default(APPROVAL)
+  // Position visuelle dans le canvas (pixels). Servent uniquement à l'éditeur
+  // — l'engine ignore ces champs.
+  positionX            Int?
+  positionY            Int?
+  // Expression de condition (JSON) — évaluée sur le contexte de l'instance
+  // pour les noeuds BRANCH ou les transitions conditionnelles.
+  condition            Json?
+  // Liste ordonnée d'IDs de prochains steps (texte simple : ids inclus dans
+  // le même workflow). Utilisé par l'engine pour la traversée DAG. Si null /
+  // vide → fallback sur `order + 1` (rétrocompat).
+  nextStepIds          String[]         @default([])
+  // Multi-niveaux (item #27) — seuil minimum d'approbations pour valider
+  // une étape de type GROUP/PARALLEL. Default 1 (legacy SINGLE).
+  minApprovers         Int              @default(1)
 
   workflow     ApprovalWorkflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   approverUser User?                  @relation("StepApprover", fields: [approverUserId], references: [id])
@@ -1584,12 +1604,30 @@ model WorkflowStep {
 
   @@unique([workflowId, order])
   @@index([workflowId])
+  @@index([type])
 }
 
 enum WorkflowStepMode {
   SINGLE // un seul approbateur
   PARALLEL_ALL // N approbateurs, tous doivent valider
   PARALLEL_ANY // N approbateurs, le premier qui valide fait passer
+}
+
+/// Type de noeud dans le graphe DAG d'un workflow visuel (item #24).
+/// - START / END : noeuds techniques (un seul START, ≥ 1 END par workflow).
+/// - APPROVAL    : étape d'approbation classique (équivaut à mode SINGLE).
+/// - BRANCH      : choisit une sortie selon `condition` évaluée sur le ctx.
+/// - PARALLEL_ALL/ANY : étape parallèle (équivalent à mode mais explicite).
+/// - DELEGATE    : étape qui force une délégation explicite (transmis à un
+///                 autre user). Réservé pour usage avancé.
+enum WorkflowStepType {
+  START
+  APPROVAL
+  BRANCH
+  PARALLEL_ALL
+  PARALLEL_ANY
+  DELEGATE
+  END
 }
 
 model ApprovalInstance {
