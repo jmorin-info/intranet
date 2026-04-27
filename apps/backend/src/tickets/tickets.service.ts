@@ -102,9 +102,7 @@ export class TicketsService {
     if (!this.calendar) return;
     void (async () => {
       try {
-        const fresh = await this.prisma.ticket.findUnique({
-          where: { id: ticketId },
-        });
+        const fresh = await this.repo.findByIdRaw(ticketId);
         if (!fresh) return;
         await this.calendar!.syncFromTicket(fresh, oldAssigneeId);
       } catch (err) {
@@ -978,11 +976,7 @@ export class TicketsService {
 
   async getStatusCounts(userId?: string): Promise<Record<string, number>> {
     const where = userId ? { assigneeId: userId } : {};
-    const groups = await this.prisma.ticket.groupBy({
-      by: ["status"],
-      where,
-      _count: { status: true },
-    });
+    const groups = await this.repo.groupByStatus(where);
     const counts: Record<string, number> = {};
     for (const g of groups) {
       counts[g.status] = g._count.status;
@@ -1606,19 +1600,7 @@ export class TicketsService {
    * Returns structured HTML content + suggested metadata for wiki creation.
    */
   async generateKbDraft(ticketId: string) {
-    const ticket = await this.prisma.ticket.findUnique({
-      where: { id: ticketId },
-      include: {
-        comments: {
-          where: { isInternal: false },
-          orderBy: { createdAt: "asc" },
-          include: { author: { select: { firstName: true, lastName: true } } },
-        },
-        creator: { select: { firstName: true, lastName: true } },
-        assignee: { select: { firstName: true, lastName: true, id: true } },
-        department: { select: { name: true, id: true } },
-      },
-    });
+    const ticket = await this.repo.findByIdForKb(ticketId);
 
     if (!ticket) throw new NotFoundException("Ticket introuvable");
     if (!["RESOLVED", "CLOSED"].includes(ticket.status)) {
