@@ -39,8 +39,15 @@ class MeiliClient {
       indexUid: string;
       q: string;
       limit?: number;
-      filter?: string;
+      offset?: number;
+      filter?: string | string[];
+      facets?: string[];
+      sort?: string[];
       attributesToHighlight?: string[];
+      highlightPreTag?: string;
+      highlightPostTag?: string;
+      attributesToCrop?: string[];
+      cropLength?: number;
     }>;
   }) {
     return (await this.http.post("/multi-search", body)).data;
@@ -103,16 +110,51 @@ export interface MeiliDocument {
 }
 
 export interface MeiliSearchFilters {
+  /** Index unique : ne cherche que dans un index. Sinon, federe sur tous. */
   type?: string;
+  /** Plusieurs modules : alternative a `type` pour multi-index restreint. */
+  modules?: string[];
   limit?: number;
   offset?: number;
-  filter?: string;
+  /** Filtre Meilisearch brut (e.g. "category = 'ISO'"). */
+  filter?: string | string[];
+  /** Categories (filtrable). */
+  categories?: string[];
+  /** Classifications a inclure (post-query RBAC est applique en + cote controller). */
+  classifications?: string[];
+  /** Statuts (DRAFT, APPROVED, OPEN, CLOSED...). */
+  statuses?: string[];
+  /** Tri : ["date:desc"], ["date:asc"], ou null pour pertinence par defaut. */
+  sort?: string[];
+  /** Faceting : champs sur lesquels recuperer les distributions. */
+  facets?: string[];
+  /** Active le surlignage HTML <mark> sur title + content. */
+  highlight?: boolean;
+  /** Active le crop snippet (extrait centre sur le match). */
+  crop?: boolean;
+}
+
+export interface MeiliFacetDistribution {
+  /** { categorie: count, ... } */
+  [field: string]: Record<string, number>;
 }
 
 export interface MeiliSearchResponse {
   hits: MeiliDocument[];
   total: number;
-  byIndex?: Record<string, { hits: MeiliDocument[]; total: number }>;
+  byIndex?: Record<
+    string,
+    {
+      hits: MeiliDocument[];
+      total: number;
+      facetDistribution?: MeiliFacetDistribution;
+      processingTimeMs?: number;
+    }
+  >;
+  /** Distribution agregee inter-index (pour facettes globales). */
+  facetDistribution?: MeiliFacetDistribution;
+  /** Latence cumulee Meilisearch (ms). */
+  processingTimeMs?: number;
 }
 
 const INDEX_WIKI = "wiki";
@@ -144,6 +186,8 @@ const FILTERABLE_ATTRIBUTES = [
   "classification",
   "authorId",
   "type",
+  "tags",
+  "priority",
 ];
 
 @Injectable()
@@ -311,6 +355,34 @@ export class MeilisearchService implements OnModuleInit {
   // Federated search (multi-index)
   // ==========================================================================
 
+  /**
+   * Construit un filtre Meilisearch a partir des champs structures.
+   * Combine via "AND" (les listes utilisent "IN").
+   */
+  private buildFilter(filters: MeiliSearchFilters): string[] | undefined {
+    const parts: string[] = [];
+    if (filters.categories?.length) {
+      const list = filters.categories.map((c) => `'${c.replace(/'/g, "\\'")}'`).join(", ");
+      parts.push(`category IN [${list}]`);
+    }
+    if (filters.classifications?.length) {
+      const list = filters.classifications
+        .map((c) => `'${c.replace(/'/g, "\\'")}'`)
+        .join(", ");
+      parts.push(`classification IN [${list}]`);
+    }
+    if (filters.statuses?.length) {
+      const list = filters.statuses.map((c) => `'${c.replace(/'/g, "\\'")}'`).join(", ");
+      parts.push(`status IN [${list}]`);
+    }
+    // Filtre libre additionnel (avance)
+    if (filters.filter) {
+      const extra = Array.isArray(filters.filter) ? filters.filter : [filters.filter];
+      parts.push(...extra.filter(Boolean));
+    }
+    return parts.length ? parts : undefined;
+  }
+
   async search(
     query: string,
     filters: MeiliSearchFilters = {},
@@ -320,37 +392,88 @@ export class MeilisearchService implements OnModuleInit {
     }
 
     const limit = Math.min(filters.limit ?? 20, 100);
-    const targetIndexes: readonly string[] = filters.type
-      ? [this.indexForType(filters.type as MeiliDocument["type"])]
-      : ALL_INDEXES;
+    const offset = Math.max(0, filters.offset ?? 0);
+
+    let targetIndexes: readonly string[];
+    if (filters.modules?.length) {
+      targetIndexes = filters.modules
+        .map((m) => this.indexForType(m as MeiliDocument["type"]))
+        .filter((v, i, a) => a.indexOf(v) === i); // dedupe
+    } else if (filters.type) {
+      targetIndexes = [this.indexForType(filters.type as MeiliDocument["type"])];
+    } else {
+      targetIndexes = ALL_INDEXES;
+    }
+
+    const builtFilter = this.buildFilter(filters);
+    const facets = filters.facets ?? ["category", "classification", "status", "type"];
+    const highlight = filters.highlight !== false; // default ON
+    const crop = filters.crop !== false; // default ON
 
     try {
       const queries = targetIndexes.map((indexUid) => ({
         indexUid,
         q: query,
         limit,
-        filter: filters.filter || undefined,
-        attributesToHighlight: ["title", "content"],
+        offset,
+        filter: builtFilter,
+        facets,
+        sort: filters.sort,
+        attributesToHighlight: highlight ? ["title", "content"] : undefined,
+        highlightPreTag: highlight ? "<mark>" : undefined,
+        highlightPostTag: highlight ? "</mark>" : undefined,
+        attributesToCrop: crop ? ["content"] : undefined,
+        cropLength: crop ? 50 : undefined,
       }));
 
       const data: any = await this.client.multiSearch({ queries });
 
-      const byIndex: Record<string, { hits: MeiliDocument[]; total: number }> =
-        {};
+      const byIndex: Record<
+        string,
+        {
+          hits: MeiliDocument[];
+          total: number;
+          facetDistribution?: MeiliFacetDistribution;
+          processingTimeMs?: number;
+        }
+      > = {};
+      const aggregateFacets: MeiliFacetDistribution = {};
       let allHits: MeiliDocument[] = [];
       let total = 0;
+      let processingTimeMs = 0;
 
       for (const r of data.results || []) {
         const hits = r.hits as MeiliDocument[];
         byIndex[r.indexUid] = {
           hits,
           total: r.estimatedTotalHits ?? 0,
+          facetDistribution: r.facetDistribution,
+          processingTimeMs: r.processingTimeMs,
         };
         allHits = allHits.concat(hits);
         total += r.estimatedTotalHits ?? 0;
+        processingTimeMs += r.processingTimeMs ?? 0;
+        // Agrege les distributions
+        if (r.facetDistribution) {
+          for (const [field, dist] of Object.entries(
+            r.facetDistribution as Record<string, Record<string, number>>,
+          )) {
+            const acc = aggregateFacets[field] ?? {};
+            for (const [k, v] of Object.entries(dist)) {
+              acc[k] = (acc[k] ?? 0) + (v as number);
+            }
+            aggregateFacets[field] = acc;
+          }
+        }
       }
 
-      return { hits: allHits, total, byIndex };
+      return {
+        hits: allHits,
+        total,
+        byIndex,
+        facetDistribution: aggregateFacets,
+        processingTimeMs,
+      };
     } catch (err) {
       this.logger.error(
         `search("${query}") a echoue : ${(err as Error).message}`,
