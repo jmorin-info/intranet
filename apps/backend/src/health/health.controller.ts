@@ -6,6 +6,7 @@ import {
   UseGuards,
   Optional,
 } from "@nestjs/common";
+import { spawn } from "child_process";
 import { MetricsService } from "./metrics.service";
 import { AppMetricsService } from "./app-metrics.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -16,6 +17,34 @@ import { Roles } from "../auth/decorators/roles.decorator";
 import { UserRole } from "../common/enums";
 import { OfficeService } from "../office/office.service";
 import { RedisThrottlerStorage } from "../common/throttler/redis-throttler.storage";
+import { CacheService } from "../common/cache/cache.service";
+
+/**
+ * Vérifie ClamAV en async (spawn) au lieu de execSync — sinon le thread
+ * Node bloque jusqu'à 5s sur un health check public pollé toutes les 30s,
+ * ce qui peut freeze l'event loop en multi-instance.
+ *
+ * Result caché en Redis 30s pour éviter de spawner un process par poll.
+ */
+async function probeClamavOnce(): Promise<"up" | "down"> {
+  return new Promise((resolve) => {
+    const proc = spawn("clamscan", ["--version"], {
+      stdio: ["ignore", "ignore", "ignore"],
+    });
+    const timer = setTimeout(() => {
+      proc.kill("SIGKILL");
+      resolve("down");
+    }, 5000);
+    proc.on("error", () => {
+      clearTimeout(timer);
+      resolve("down");
+    });
+    proc.on("exit", (code) => {
+      clearTimeout(timer);
+      resolve(code === 0 ? "up" : "down");
+    });
+  });
+}
 
 /**
  * Unified service health state contract.
@@ -56,7 +85,21 @@ export class HealthController {
     @Optional() private readonly officeService?: OfficeService,
     @Optional()
     private readonly throttlerStorage?: RedisThrottlerStorage,
+    @Optional() private readonly cache?: CacheService,
   ) {}
+
+  private async probeClamav(): Promise<"up" | "down"> {
+    if (this.cache) {
+      const cached = await this.cache.get<string>("health:clamav");
+      if (cached === "up" || cached === "down") return cached;
+    }
+    const status = await probeClamavOnce();
+    if (this.cache) {
+      // TTL 30s : aligné sur la cadence de poll frontend
+      await this.cache.set("health:clamav", status, 30);
+    }
+    return status;
+  }
 
   /**
    * Lightweight endpoint pollé par le frontend (toutes les 30s) pour afficher
@@ -179,13 +222,7 @@ export class HealthController {
       const storagePath = process.env.STORAGE_PATH || "./storage";
       result.storage = fs.existsSync(storagePath) ? "up" : "down";
 
-      try {
-        const { execSync } = await import("child_process");
-        execSync("clamscan --version", { timeout: 5000 });
-        result.clamav = "up";
-      } catch {
-        result.clamav = "down";
-      }
+      result.clamav = await this.probeClamav();
 
       // Meilisearch
       try {
@@ -369,13 +406,7 @@ export class HealthController {
     }
 
     if (check === "clamav") {
-      try {
-        const { execSync } = await import("child_process");
-        execSync("clamscan --version", { timeout: 5000 });
-        result.clamav = "up";
-      } catch {
-        result.clamav = "down";
-      }
+      result.clamav = await this.probeClamav();
     }
 
     return { status: result[check] || "unknown", service: check };

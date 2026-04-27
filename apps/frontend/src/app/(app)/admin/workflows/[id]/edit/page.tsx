@@ -283,13 +283,42 @@ export default function WorkflowGraphEditorPage() {
     return errors;
   }, []);
 
+  // Signature minimaliste de la structure (sans positions x/y) — la
+  // validation DAG/conditions n'a besoin de tourner QUE quand cette
+  // signature change. Le drag pur (déplacement de nœud) ne touche que
+  // x/y et ne doit donc pas re-trigger un parcours O(V+E) à chaque pixel.
+  const structureSignatureRef = useRef<string>('');
+  const lastValidationRef = useRef<string[]>([]);
+
+  const computeStructureSignature = (g: Graph): string => {
+    const nodesSig = g.nodes
+      .map(
+        (n) =>
+          `${n.id}|${n.type}|${n.label}|${JSON.stringify(n.data.condition ?? null)}|${n.data.minApprovers ?? ''}|${n.data.approverUserId ?? ''}|${n.data.approverRole ?? ''}|${n.data.approverDeptId ?? ''}`,
+      )
+      .sort()
+      .join(';');
+    const edgesSig = g.edges
+      .map((e) => `${e.source}->${e.target}|${e.label ?? ''}`)
+      .sort()
+      .join(';');
+    return `${nodesSig}#${edgesSig}`;
+  };
+
   const scheduleSave = useCallback(
     (g: Graph) => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
         void (async () => {
-          const errors = validateClient(g);
-          setValidationErrors(errors);
+          // Skip validation O(V+E) si seules les positions ont changé (drag pur).
+          const sig = computeStructureSignature(g);
+          let errors = lastValidationRef.current;
+          if (sig !== structureSignatureRef.current) {
+            errors = validateClient(g);
+            structureSignatureRef.current = sig;
+            lastValidationRef.current = errors;
+            setValidationErrors(errors);
+          }
           if (errors.length > 0) {
             // On sauvegarde quand même les positions/labels mais pas la structure
             // si elle est cassée — on affiche juste un warning.

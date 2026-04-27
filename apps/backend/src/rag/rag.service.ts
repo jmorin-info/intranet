@@ -1002,8 +1002,19 @@ export class RagService {
     if (accessibleIds.length === 0) {
       return `AND ("sourceType" != 'DOCUMENT')`;
     }
-    // Echapper chaque id (UUID = safe par construction, mais on cast en literal)
-    const idsList = accessibleIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(",");
+    // Defense-in-depth : whitelist UUID v4 strict avant l'injection SQL.
+    // Les ids viennent de Prisma (donc UUID-valides par construction), mais
+    // on valide explicitement pour bloquer toute corruption du flux amont
+    // (cache, mock test, futur refactor). N'importe quel id non-UUID est
+    // silencieusement filtré — l'effet est qu'il ne sera pas accessible,
+    // pas qu'on injecte du SQL.
+    const UUID_RE =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const safeIds = accessibleIds.filter((id) => UUID_RE.test(id));
+    if (safeIds.length === 0) {
+      return `AND ("sourceType" != 'DOCUMENT')`;
+    }
+    const idsList = safeIds.map((id) => `'${id}'`).join(",");
     return `AND ("sourceType" != 'DOCUMENT' OR "sourceId" IN (${idsList}))`;
   }
 

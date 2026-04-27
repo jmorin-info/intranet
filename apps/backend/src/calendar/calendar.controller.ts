@@ -28,17 +28,22 @@ import { CalendarService } from './calendar.service';
 import { CreateCalendarEventDto, UpdateCalendarEventDto } from './dto/create-event.dto';
 import { GoogleCalendarSyncService } from './google-calendar-sync.service';
 import { OutlookSyncService } from './outlook-sync.service';
+import { CacheService } from '../common/cache/cache.service';
 import { RequestUser } from '../common/interfaces';
 import { UserRole } from '../common/enums';
 
 const ICAL_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
-// Mémo des states OAuth en cours (en mémoire — single-instance MVP).
-// TTL court (10 min). Pour multi-instance, utiliser Redis avec la même clé.
-const oauthStateStore = new Map<
-  string,
-  { userId: string; provider: 'GOOGLE' | 'OUTLOOK'; expiresAt: number }
->();
-const OAUTH_STATE_TTL = 10 * 60 * 1000;
+
+// OAuth state stocké en Redis (CacheService) avec TTL 10 min.
+// Compatible multi-instance / cluster k3s : un user peut commencer un flow
+// OAuth sur l'instance A et finir le callback sur l'instance B.
+const OAUTH_STATE_TTL_SECONDS = 10 * 60;
+const OAUTH_STATE_KEY_PREFIX = 'oauth:state:calendar:';
+
+interface OAuthState {
+  userId: string;
+  provider: 'GOOGLE' | 'OUTLOOK';
+}
 
 @Controller('calendar')
 export class CalendarController {
@@ -46,7 +51,30 @@ export class CalendarController {
     private readonly calendarService: CalendarService,
     private readonly googleSync: GoogleCalendarSyncService,
     private readonly outlookSync: OutlookSyncService,
+    private readonly cache: CacheService,
   ) {}
+
+  private async storeOauthState(state: string, payload: OAuthState): Promise<void> {
+    await this.cache.set<OAuthState>(
+      OAUTH_STATE_KEY_PREFIX + state,
+      payload,
+      OAUTH_STATE_TTL_SECONDS,
+    );
+  }
+
+  private async consumeOauthState(
+    state: string,
+    expectedProvider: 'GOOGLE' | 'OUTLOOK',
+  ): Promise<OAuthState> {
+    const key = OAUTH_STATE_KEY_PREFIX + state;
+    const stored = await this.cache.get<OAuthState>(key);
+    if (!stored || stored.provider !== expectedProvider) {
+      throw new UnauthorizedException('Invalid or expired OAuth state');
+    }
+    // Single-use : on supprime tout de suite (anti-replay)
+    await this.cache.del(key);
+    return stored;
+  }
 
   @Get('events')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -310,12 +338,7 @@ export class CalendarController {
       throw new BadRequestException('Google OAuth non configuré côté serveur');
     }
     const state = randomBytes(24).toString('hex');
-    oauthStateStore.set(state, {
-      userId: user.id,
-      provider: 'GOOGLE',
-      expiresAt: Date.now() + OAUTH_STATE_TTL,
-    });
-    purgeOauthStates();
+    await this.storeOauthState(state, { userId: user.id, provider: 'GOOGLE' });
     const url = this.googleSync.buildAuthorizeUrl(state);
     res.redirect(302, url);
   }
@@ -332,11 +355,7 @@ export class CalendarController {
       res.status(400).send(`Google OAuth refusé : ${error}`);
       return;
     }
-    const stateRow = oauthStateStore.get(state);
-    if (!stateRow || stateRow.provider !== 'GOOGLE' || stateRow.expiresAt < Date.now()) {
-      throw new UnauthorizedException('Invalid or expired OAuth state');
-    }
-    oauthStateStore.delete(state);
+    const stateRow = await this.consumeOauthState(state, 'GOOGLE');
     await this.googleSync.handleCallback(stateRow.userId, code);
     // Redirige vers la page UI calendar (frontend) après succès
     const target = process.env.APP_URL
@@ -372,12 +391,7 @@ export class CalendarController {
       throw new BadRequestException('Microsoft OAuth non configuré côté serveur');
     }
     const state = randomBytes(24).toString('hex');
-    oauthStateStore.set(state, {
-      userId: user.id,
-      provider: 'OUTLOOK',
-      expiresAt: Date.now() + OAUTH_STATE_TTL,
-    });
-    purgeOauthStates();
+    await this.storeOauthState(state, { userId: user.id, provider: 'OUTLOOK' });
     const url = this.outlookSync.buildAuthorizeUrl(state);
     res.redirect(302, url);
   }
@@ -394,11 +408,7 @@ export class CalendarController {
       res.status(400).send(`Microsoft OAuth refusé : ${error}`);
       return;
     }
-    const stateRow = oauthStateStore.get(state);
-    if (!stateRow || stateRow.provider !== 'OUTLOOK' || stateRow.expiresAt < Date.now()) {
-      throw new UnauthorizedException('Invalid or expired OAuth state');
-    }
-    oauthStateStore.delete(state);
+    const stateRow = await this.consumeOauthState(state, 'OUTLOOK');
     await this.outlookSync.handleCallback(stateRow.userId, code);
     const target = process.env.APP_URL
       ? `${process.env.APP_URL.replace(/\/$/, '')}/calendar?integration=outlook&status=ok`
@@ -441,12 +451,5 @@ export class CalendarController {
           connections.find((c) => c.provider === 'OUTLOOK') ?? null,
       },
     };
-  }
-}
-
-function purgeOauthStates(): void {
-  const now = Date.now();
-  for (const [k, v] of oauthStateStore) {
-    if (v.expiresAt < now) oauthStateStore.delete(k);
   }
 }
