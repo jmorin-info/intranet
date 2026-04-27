@@ -1,0 +1,43 @@
+{
+  "name": "@omnitech/mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OMNITECH Intranet — Capacitor wrap iOS + Android de la PWA Next.js",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'no JS source — Capacitor config only' && exit 0",
+    "cap:sync": "cap sync",
+    "cap:sync:ios": "cap sync ios",
+    "cap:sync:android": "cap sync android",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android",
+    "cap:add:ios": "cap add ios",
+    "cap:add:android": "cap add android",
+    "cap:doctor": "cap doctor",
+    "icons:generate": "capacitor-assets generate --assetPath ../frontend/public --iconBackgroundColor '#004469' --splashBackgroundColor '#F5F5F5'",
+    "build:release:ios": "bash scripts/build-release.sh ios",
+    "build:release:android": "bash scripts/build-release.sh android",
+    "build:release:both": "bash scripts/build-release.sh both"
+  },
+  "dependencies": {
+    "@capacitor/android": "7.6.2",
+    "@capacitor/app": "7.1.2",
+    "@capacitor/core": "7.6.2",
+    "@capacitor/ios": "7.6.2",
+    "@capacitor/network": "7.0.4",
+    "@capacitor/preferences": "7.0.4",
+    "@capacitor/push-notifications": "7.0.6",
+    "@capacitor/splash-screen": "7.0.5",
+    "@capacitor/status-bar": "7.0.6"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "7.6.2",
+    "@types/node": "^20.19.10",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
