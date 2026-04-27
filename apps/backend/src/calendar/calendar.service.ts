@@ -12,6 +12,7 @@ import {
 } from "./dto/create-event.dto";
 import { UserRole, ROLE_HIERARCHY } from "../common/enums";
 import { buildICal, ICalEvent } from "./ical.util";
+import { parseICal, ParsedICalEvent } from "./ical-parser.util";
 
 /**
  * Mapping date metier ticket -> couleur + libelle (FR) pour les evenements
@@ -603,5 +604,172 @@ export class CalendarService {
 
     const filename = `omnitech-${scope === "all" || scope === "mine" ? userId : scope}.ics`;
     return { ics, filename };
+  }
+
+  /**
+   * Liste les connexions OAuth (Google / Outlook) du user courant pour
+   * affichage dans la page de paramètres "Intégrations".
+   */
+  async listIntegrationConnections(userId: string): Promise<
+    Array<{
+      provider: "GOOGLE" | "OUTLOOK";
+      syncEnabled: boolean;
+      lastSyncAt: Date | null;
+      syncErrorCount: number;
+      lastErrorMsg: string | null;
+    }>
+  > {
+    const rows = await (this.prisma as any).calendarConnection.findMany({
+      where: { userId },
+      select: {
+        provider: true,
+        syncEnabled: true,
+        lastSyncAt: true,
+        syncErrorCount: true,
+        lastErrorMsg: true,
+      },
+    });
+    return rows;
+  }
+
+  // ==========================================================================
+  // Import iCal (Wave B item 33) — POST /api/v1/calendar/import et /events
+  // ==========================================================================
+
+  /**
+   * Import un flux iCal (texte) et upsert les évènements via leur UID
+   * (champ unique `externalUid`). Idempotent : un appel multiple sur le
+   * même fichier ne duplique pas.
+   *
+   * Mapping :
+   *   - VEVENT.UID  → CalendarEvent.externalUid (unique)
+   *   - VEVENT.SUMMARY → title, DESCRIPTION → description, LOCATION → location
+   *   - VEVENT.DTSTART/DTEND → startDate/endDate (UTC)
+   *   - VEVENT.RRULE → recurrence (string brute)
+   *   - ORGANIZER mailto: → match au user par email pour fixer createdById
+   *
+   * Si l'organizer ne matche aucun user de l'intranet, l'event est attaché
+   * au `defaultUserId` fourni (ex: l'uploader). Visibility par défaut = PRIVATE.
+   */
+  async importIcs(
+    rawIcs: string,
+    options: { defaultUserId: string; visibility?: string } = {
+      defaultUserId: "",
+    },
+  ): Promise<{
+    imported: number;
+    updated: number;
+    skipped: number;
+    errors: number;
+  }> {
+    if (!rawIcs || typeof rawIcs !== "string") {
+      throw new NotFoundException("Empty iCal payload");
+    }
+    if (!options.defaultUserId) {
+      throw new ForbiddenException("defaultUserId is required");
+    }
+
+    const parsed = parseICal(rawIcs);
+    let imported = 0;
+    let updated = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    const visibility = options.visibility || "PRIVATE";
+
+    // Préchauffe une map email → userId pour matcher les ORGANIZER
+    const organizerEmails = Array.from(
+      new Set(
+        parsed.events
+          .map((e) => e.organizer)
+          .filter((e): e is string => typeof e === "string"),
+      ),
+    );
+    const users = organizerEmails.length
+      ? await this.prisma.user.findMany({
+          where: { email: { in: organizerEmails } },
+          select: { id: true, email: true },
+        })
+      : [];
+    const userByEmail = new Map(users.map((u) => [u.email.toLowerCase(), u.id]));
+
+    for (const ev of parsed.events) {
+      try {
+        const result = await this.upsertImportedEvent(
+          ev,
+          options.defaultUserId,
+          visibility,
+          userByEmail,
+        );
+        if (result === "created") imported += 1;
+        else if (result === "updated") updated += 1;
+        else skipped += 1;
+      } catch (err) {
+        errors += 1;
+        this.logger.warn(
+          `iCal import: skipped event uid=${ev.uid} — ${(err as Error)?.message}`,
+        );
+      }
+    }
+
+    return { imported, updated, skipped, errors };
+  }
+
+  private async upsertImportedEvent(
+    ev: ParsedICalEvent,
+    defaultUserId: string,
+    visibility: string,
+    userByEmail: Map<string, string>,
+  ): Promise<"created" | "updated" | "skipped"> {
+    const uid = ev.uid?.trim();
+    const ownerId = ev.organizer
+      ? userByEmail.get(ev.organizer.toLowerCase()) || defaultUserId
+      : defaultUserId;
+
+    const data = {
+      title: (ev.summary ?? "(Sans titre)").slice(0, 200),
+      description: ev.description?.slice(0, 2000) ?? null,
+      location: ev.location?.slice(0, 200) ?? null,
+      startDate: ev.startDate,
+      endDate: ev.endDate ?? null,
+      allDay: Boolean(ev.allDay),
+      category: "GENERAL",
+      visibility,
+      createdById: ownerId,
+      userId: ownerId,
+      externalUid: uid ?? null,
+      recurrence: ev.recurrence ?? null,
+      isRecurring: Boolean(ev.recurrence),
+    };
+
+    if (!uid) {
+      // Pas d'UID → création directe (un fichier sans UID est mal formé,
+      // mais on tolère). Pas d'idempotence dans ce cas.
+      await this.prisma.calendarEvent.create({ data });
+      return "created";
+    }
+
+    const existing = await this.prisma.calendarEvent.findUnique({
+      where: { externalUid: uid },
+    });
+    if (existing) {
+      await this.prisma.calendarEvent.update({
+        where: { id: existing.id },
+        data: {
+          title: data.title,
+          description: data.description,
+          location: data.location,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          allDay: data.allDay,
+          recurrence: data.recurrence,
+          isRecurring: data.isRecurring,
+          deletedAt: null,
+        },
+      });
+      return "updated";
+    }
+    await this.prisma.calendarEvent.create({ data });
+    return "created";
   }
 }
