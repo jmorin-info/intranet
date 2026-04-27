@@ -1,0 +1,97 @@
+# =============================================================================
+# Item 32 — CDN sync workflow (Bunny.net / Cloudflare)
+# =============================================================================
+# Build le frontend Next.js et synchronise les assets statiques
+# (`apps/frontend/.next/static/*` + `apps/frontend/public/*`) vers le CDN.
+# Conditionnel : ne fait rien tant que `NEXT_PUBLIC_CDN_URL` n'est pas défini
+# au niveau repo/org GitHub Variables — utile pour mettre en place le CDN
+# progressivement (preprod d'abord, puis prod).
+#
+# Secrets requis (à créer dans Settings → Secrets and variables → Actions) :
+#   - NEXT_PUBLIC_CDN_URL          (Variable, pas un secret)
+#   - CDN_PROVIDER                 (Variable: "bunny" ou "cloudflare")
+#   - BUNNY_STORAGE_ZONE           (Variable)
+#   - BUNNY_PULL_ZONE_ID           (Variable)
+#   - BUNNY_STORAGE_PASSWORD       (SECRET — write key Storage Zone)
+#   - CDN_PURGE_TOKEN              (SECRET — Account API Key Bunny)
+# =============================================================================
+name: CDN sync
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual CDN sync (e.g. 'rollback v1.2.3')"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cdn-sync
+  cancel-in-progress: false  # ne pas annuler un upload en cours
+
+jobs:
+  cdn-sync:
+    name: Build + sync to CDN
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Skip tant que le CDN n'est pas configuré au niveau repo (variable
+    # GitHub `NEXT_PUBLIC_CDN_URL`). Empêche les jobs ratés en preprod.
+    if: vars.NEXT_PUBLIC_CDN_URL != ''
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      HUSKY: "0"
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://intranet.omnitech-security.fr/api
+      NEXT_PUBLIC_CDN_URL: ${{ vars.NEXT_PUBLIC_CDN_URL }}
+      CDN_PROVIDER: ${{ vars.CDN_PROVIDER || 'bunny' }}
+      # Bunny
+      BUNNY_STORAGE_ZONE: ${{ vars.BUNNY_STORAGE_ZONE }}
+      BUNNY_STORAGE_ENDPOINT: ${{ vars.BUNNY_STORAGE_ENDPOINT || 'storage.bunnycdn.com' }}
+      BUNNY_PULL_ZONE_ID: ${{ vars.BUNNY_PULL_ZONE_ID }}
+      BUNNY_STORAGE_PASSWORD: ${{ secrets.BUNNY_STORAGE_PASSWORD }}
+      CDN_PURGE_TOKEN: ${{ secrets.CDN_PURGE_TOKEN }}
+      # Cloudflare (optionnel — si CDN_PROVIDER=cloudflare)
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
+      CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+      CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+      CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies (devDeps needed for build)
+        run: NODE_ENV=development pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm -C packages/database exec prisma generate
+
+      - name: Build frontend (Next.js)
+        run: pnpm -C apps/frontend run build
+
+      - name: Sync assets to CDN
+        run: ./scripts/deploy-cdn-assets.sh
+
+      - name: Smoke test — fetch witness from CDN
+        run: |
+          curl -fsS --max-time 10 \
+            "${NEXT_PUBLIC_CDN_URL%/}/_next/static/check.txt" \
+            || (echo "::warning::CDN witness file not reachable — verify Pull Zone propagation"; exit 0)
