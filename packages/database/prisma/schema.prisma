@@ -305,6 +305,10 @@ model User {
   documentPermissions        DocumentPermission[]        @relation("DocPermUser")
   documentPermissionsGranted DocumentPermission[]        @relation("DocPermGrantedBy")
   documentSharesCreated      DocumentShare[]             @relation("DocShareCreatedBy")
+  // === Délégations d'approbation === 2026-04-26 (ISO 27001 A.5.1)
+  delegationsGiven           ApprovalDelegation[]        @relation("DelegationFrom")
+  delegationsReceived        ApprovalDelegation[]        @relation("DelegationTo")
+  approvalAuditEntries       ApprovalAuditLog[]          @relation("ApprovalAuditActor")
 
   @@index([departmentId])
   @@index([role])
@@ -1758,6 +1762,75 @@ model WorkflowRuleAuditLog {
   createdAt DateTime @default(now())
 
   @@index([ruleId, createdAt])
+}
+
+// ============================================================
+// Délégation d'approbation (ISO 27001 A.5.1, item #27)
+// Ajouté le 2026-04-26
+// ------------------------------------------------------------
+// Un utilisateur peut déléguer ses approbations à un collègue
+// sur une période (vacances, congés, mission). Le scope peut
+// être :
+//   - GLOBAL  : toutes les approbations de `fromUserId`
+//   - SCOPED  : limité à un ou plusieurs document categories
+//
+// `auto` = true ⇒ délégation créée par le cron (item #27 :
+// auto-déléguation au manager après N heures sans réponse).
+// ============================================================
+
+model ApprovalDelegation {
+  id          String                  @id @default(uuid())
+  fromUserId  String
+  toUserId    String
+  startDate   DateTime
+  endDate     DateTime
+  reason      String?
+  scope       ApprovalDelegationScope @default(GLOBAL)
+  // categoriesScope est un tableau d'enum DocumentCategory (texte) — utilisé
+  // si scope=SCOPED. Vide ou null = pas de filtrage (équivalent GLOBAL).
+  categories  DocumentCategory[]      @default([])
+  auto        Boolean                 @default(false)
+  isActive    Boolean                 @default(true)
+  // Si la délégation est révoquée manuellement (DELETE) on conserve la ligne
+  // pour audit en mettant revokedAt.
+  revokedAt   DateTime?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  fromUser User @relation("DelegationFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("DelegationTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([fromUserId, isActive, startDate, endDate])
+  @@index([toUserId, isActive])
+  @@index([endDate])
+}
+
+enum ApprovalDelegationScope {
+  GLOBAL
+  SCOPED
+}
+
+/// Trace immuable de chaque action sur les approbations & délégations
+/// (création / révocation / auto-délégation / escalade). Permet de
+/// reconstituer la chaîne d'actions sur une approbation, en complément
+/// des audit logs métiers (AuditLog).
+model ApprovalAuditLog {
+  id              String   @id @default(uuid())
+  actorId         String?
+  action          String
+  // Identifiants de la ressource concernée — au moins UN doit être renseigné.
+  delegationId    String?
+  approvalInstanceId String?
+  stepInstanceId  String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  actor User? @relation("ApprovalAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([action, createdAt])
+  @@index([delegationId])
+  @@index([approvalInstanceId])
+  @@index([stepInstanceId])
 }
 
 // ============================================================
