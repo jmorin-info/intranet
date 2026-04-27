@@ -165,7 +165,8 @@ export function WikiTagInput({
                   void createTag();
                 }
               } else if (e.key === "Backspace" && !query && value.length > 0) {
-                removeTag(value[value.length - 1].id);
+                const last = value[value.length - 1];
+                if (last) removeTag(last.id);
               }
             }}
             className="flex-1 min-w-[120px] outline-none bg-transparent text-sm text-seal-navy dark:text-slate-100 placeholder:text-seal-gray-500 dark:placeholder:text-slate-500"
