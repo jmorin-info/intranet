@@ -201,8 +201,9 @@ interface ContentHit {
   id: string;
   title: string;
   url: string;
-  type: 'document' | 'ticket' | 'wiki' | 'news';
+  type: 'document' | 'ticket' | 'wiki' | 'news' | 'runbook';
   reference?: string | null;
+  slug?: string | null;
 }
 
 const CONTENT_ICONS: Record<ContentHit['type'], React.ElementType> = {
@@ -210,15 +211,23 @@ const CONTENT_ICONS: Record<ContentHit['type'], React.ElementType> = {
   ticket: Ticket,
   wiki: BookOpen,
   news: Newspaper,
+  runbook: BookOpen,
 };
+
+// Les ids Meili sont prefixes ("document-xxx") — on retire le prefixe pour les routes
+function stripMeiliPrefix(id: string): string {
+  return id.replace(/^(document|ticket|wiki|news|runbook)[-:]/, '');
+}
 
 function buildHitHref(hit: ContentHit): string {
   if (hit.url) return hit.url;
+  const id = stripMeiliPrefix(hit.id);
   switch (hit.type) {
-    case 'document': return `/documents/${hit.id}`;
-    case 'ticket': return `/tickets/${hit.id}`;
-    case 'wiki': return `/wiki/${hit.id}`;
-    case 'news': return `/news/${hit.id}`;
+    case 'document': return `/documents/${id}`;
+    case 'ticket': return `/tickets/${id}`;
+    case 'wiki': return `/wiki/${hit.slug ?? id}`;
+    case 'news': return `/news/${hit.slug ?? id}`;
+    case 'runbook': return `/runbooks/${hit.slug ?? id}`;
   }
 }
 
@@ -232,7 +241,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Debounced backend search (Meilisearch) when query is long enough
+  // Debounced backend search — utilise `/search/quick` (Meilisearch + RBAC)
+  // qui est optimise pour la palette (pas de facets/highlight, hits flat).
   useEffect(() => {
     if (!isOpen) return;
     const q = query.trim();
@@ -244,16 +254,13 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     const timer = setTimeout(async () => {
       try {
         const { data } = await api.get<{
-          results: { documents: ContentHit[]; tickets: ContentHit[]; wiki: ContentHit[]; news: ContentHit[] };
-        }>('/search/global', { params: { q, limit: 4 } });
+          query: string;
+          hits: ContentHit[];
+          total: number;
+          tookMs: number;
+        }>('/search/quick', { params: { q, limit: 12 } });
         if (cancelled) return;
-        const merged: ContentHit[] = [
-          ...(data.results.documents || []),
-          ...(data.results.wiki || []),
-          ...(data.results.tickets || []),
-          ...(data.results.news || []),
-        ].slice(0, 12);
-        setContentHits(merged);
+        setContentHits((data.hits || []).slice(0, 12));
       } catch {
         if (!cancelled) setContentHits([]);
       }
