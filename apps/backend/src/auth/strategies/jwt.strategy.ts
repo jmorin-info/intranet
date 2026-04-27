@@ -44,8 +44,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
   ) {
+    const isProd = process.env.NODE_ENV === 'production';
     const secret = process.env.JWT_ACCESS_SECRET || WEAK_JWT_DEFAULT;
-    if (!process.env.JWT_ACCESS_SECRET || secret === WEAK_JWT_DEFAULT) {
+    const isWeak = !process.env.JWT_ACCESS_SECRET || secret === WEAK_JWT_DEFAULT;
+
+    if (isWeak && isProd) {
+      throw new Error(
+        'JWT_ACCESS_SECRET is required in production (32+ bytes random). ' +
+        'Generate one with: openssl rand -hex 64',
+      );
+    }
+    if (isWeak) {
       jwtStrategyLogger.warn(
         'SECURITY WARNING: JWT_ACCESS_SECRET is not set or uses the insecure default. ' +
         'Set a strong random secret in your environment before deploying to production.',

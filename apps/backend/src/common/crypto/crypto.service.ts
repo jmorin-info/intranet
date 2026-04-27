@@ -21,14 +21,28 @@ export class CryptoService {
   private readonly key: Buffer;
 
   constructor() {
+    const isProd = process.env.NODE_ENV === "production";
+    const fromEnv = process.env.CRYPTO_SECRET;
+
+    // En prod, fail-hard si CRYPTO_SECRET absent : sinon une rotation de
+    // JWT_ACCESS_SECRET invaliderait silencieusement TOUS les tokens OAuth
+    // chiffrés au repos (Google Calendar, Outlook, etc.) — risque de
+    // revocation involontaire des connexions utilisateurs.
+    if (!fromEnv && isProd) {
+      throw new Error(
+        "CRYPTO_SECRET is required in production. " +
+          "Generate one with: openssl rand -hex 32",
+      );
+    }
+
     const raw =
-      process.env.CRYPTO_SECRET ||
+      fromEnv ||
       process.env.JWT_ACCESS_SECRET ||
       "fallback-development-only-do-not-use-in-prod";
 
-    if (!process.env.CRYPTO_SECRET) {
+    if (!fromEnv) {
       this.logger.warn(
-        "CRYPTO_SECRET not set — derived from JWT_ACCESS_SECRET as fallback. Set CRYPTO_SECRET in prod (32+ bytes).",
+        "CRYPTO_SECRET not set — derived from JWT_ACCESS_SECRET as fallback (DEV ONLY). Set CRYPTO_SECRET (32+ bytes) before prod.",
       );
     }
 

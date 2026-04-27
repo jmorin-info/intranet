@@ -73,6 +73,12 @@ async function bootstrap() {
     "JWT_ACCESS_SECRET",
     "JWT_REFRESH_SECRET",
   ];
+  // CRYPTO_SECRET only required in prod (dev fallback dérive de JWT_ACCESS_SECRET) :
+  // sinon une rotation des secrets JWT invaliderait silencieusement les tokens
+  // OAuth chiffrés au repos (Google Calendar, Outlook).
+  if (process.env.NODE_ENV === "production") {
+    requiredEnvVars.push("CRYPTO_SECRET");
+  }
   for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
       logger.error(`FATAL: Missing required environment variable: ${envVar}`);
@@ -86,6 +92,21 @@ async function bootstrap() {
   app.use(cookieParser());
 
   const isProduction = process.env.NODE_ENV === "production";
+
+  // Si un CDN externe est configuré (NEXT_PUBLIC_CDN_URL), on l'autorise
+  // dans la CSP scriptSrc/styleSrc/imgSrc/fontSrc/connectSrc — sinon les
+  // assets _next/static/* servis depuis le CDN seront bloqués par la CSP.
+  const cdnOrigin = (() => {
+    try {
+      const url = process.env.NEXT_PUBLIC_CDN_URL?.trim();
+      if (!url) return null;
+      return new URL(url).origin;
+    } catch {
+      return null;
+    }
+  })();
+  const cdnSources = cdnOrigin ? [cdnOrigin] : [];
+
   app.use(
     helmet({
       // Disable CSP in dev to avoid breaking Swagger UI (inline scripts).
@@ -94,12 +115,12 @@ async function bootstrap() {
             useDefaults: false,
             directives: {
               defaultSrc: ["'self'"],
-              scriptSrc: ["'self'"],
+              scriptSrc: ["'self'", ...cdnSources],
               // Tailwind / runtime styles need inline
-              styleSrc: ["'self'", "'unsafe-inline'"],
-              imgSrc: ["'self'", "data:", "https:"],
-              connectSrc: ["'self'", "wss:"],
-              fontSrc: ["'self'", "data:"],
+              styleSrc: ["'self'", "'unsafe-inline'", ...cdnSources],
+              imgSrc: ["'self'", "data:", "https:", ...cdnSources],
+              connectSrc: ["'self'", "wss:", ...cdnSources],
+              fontSrc: ["'self'", "data:", ...cdnSources],
               objectSrc: ["'none'"],
               baseUri: ["'self'"],
               formAction: ["'self'"],
