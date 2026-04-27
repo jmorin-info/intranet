@@ -1,0 +1,102 @@
+{{- if .Values.redis.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "intranet.fullname" . }}-redis
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  serviceName: {{ include "intranet.fullname" . }}-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "intranet.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: redis
+  template:
+    metadata:
+      labels:
+        {{- include "intranet.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: redis
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: redis
+          image: {{ include "intranet.image" (dict "repo" .Values.redis.image.repository "tag" .Values.redis.image.tag "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              redis-server \
+                --requirepass "$REDIS_PASSWORD" \
+                --appendonly yes \
+                --maxmemory 512mb \
+                --maxmemory-policy allkeys-lru \
+                --save 900 1 \
+                --save 300 10 \
+                --save 60 10000
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "intranet.secretName" . }}
+                  key: REDIS_PASSWORD
+          ports:
+            - name: redis
+              containerPort: {{ .Values.redis.service.port }}
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - 'redis-cli -a "$REDIS_PASSWORD" ping | grep -q PONG'
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - 'redis-cli -a "$REDIS_PASSWORD" ping | grep -q PONG'
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - {{ .Values.redis.persistence.accessMode }}
+        storageClassName: {{ .Values.global.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.redis.persistence.size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "intranet.fullname" . }}-redis
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.redis.service.port }}
+      targetPort: redis
+      protocol: TCP
+      name: redis
+  selector:
+    {{- include "intranet.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+{{- end }}

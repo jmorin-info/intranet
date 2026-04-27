@@ -1,0 +1,104 @@
+# ============================================================================
+# values.dev.yaml — overrides pour environnement de dev / preview
+#
+# Usage :
+#   helm upgrade --install intranet infra/k3s/charts/intranet \
+#     -f infra/k3s/charts/intranet/values.dev.yaml \
+#     --namespace intranet-dev --create-namespace
+# ============================================================================
+
+global:
+  domain: dev.intranet.omnitech-security.fr
+  size: small
+  storageClass: local-path
+
+backend:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 768Mi
+  env:
+    NODE_ENV: development
+    LOG_LEVEL: debug
+    HIBP_ENABLED: "false"
+    RAG_ENABLED: "false"
+    OLLAMA_ENABLED: "false"
+  hpa:
+    enabled: false
+
+frontend:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 384Mi
+
+postgres:
+  persistence:
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+redis:
+  persistence:
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+meilisearch:
+  persistence:
+    size: 2Gi
+  env:
+    MEILI_ENV: development
+    MEILI_NO_ANALYTICS: "true"
+
+# Désactivés en dev pour économiser des ressources
+ollama:
+  enabled: false
+onlyoffice:
+  enabled: false
+stirlingPdf:
+  enabled: false
+
+ingress:
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.tls: "false"
+  tls:
+    enabled: false
+
+# En dev, on accepte un Secret en clair sur disque (les valeurs sont des
+# placeholders à remplacer par des `--set secrets.plain.X=...` ou un override
+# local non commité).
+secrets:
+  useSealedSecrets: false
+  plain:
+    POSTGRES_PASSWORD: "dev-postgres-password-change-me"
+    REDIS_PASSWORD: "dev-redis-password-change-me"
+    JWT_ACCESS_SECRET: "dev-jwt-access-32chars-please-change-this-very-long-secret"
+    JWT_REFRESH_SECRET: "dev-jwt-refresh-32chars-please-change-this-very-long-secret"
+    MEILI_MASTER_KEY: "dev-meili-master-key-change-me"
+    ONLYOFFICE_JWT_SECRET: "dev-onlyoffice-jwt-secret"
+    SMTP_PASSWORD: "dev-smtp-noop"
+    DOCUSEAL_API_KEY: "dev-docuseal-key"
+    DOCUSEAL_WEBHOOK_SECRET: "dev-docuseal-webhook"
+
+networkPolicy:
+  enabled: false   # Permissif en dev pour debug

@@ -1,0 +1,103 @@
+{{- if .Values.networkPolicy.enabled }}
+# ----------------------------------------------------------------------------
+# Default deny : interdit tout ingress non explicitement autorisé.
+# ----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "intranet.fullname" . }}-default-deny
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: omnitech-intranet
+  policyTypes:
+    - Ingress
+  ingress: []
+---
+# ----------------------------------------------------------------------------
+# Backend : reçoit du frontend, du nginx Traefik et entre pods backend
+# ----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "intranet.fullname" . }}-backend
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: omnitech-intranet
+      app.kubernetes.io/component: backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: omnitech-intranet
+              app.kubernetes.io/component: frontend
+        {{- range .Values.networkPolicy.allowedNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.backend.service.port }}
+---
+# ----------------------------------------------------------------------------
+# Frontend : reçoit uniquement du Traefik / nginx ingress
+# ----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "intranet.fullname" . }}-frontend
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: omnitech-intranet
+      app.kubernetes.io/component: frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- range .Values.networkPolicy.allowedNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.frontend.service.port }}
+---
+# ----------------------------------------------------------------------------
+# Postgres / Redis / Meilisearch / Ollama : reçoivent UNIQUEMENT du backend
+# ----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "intranet.fullname" . }}-data-services
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/part-of
+        operator: In
+        values: [omnitech-intranet]
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [postgres, redis, meilisearch, ollama, onlyoffice, stirling-pdf]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: omnitech-intranet
+              app.kubernetes.io/component: backend
+{{- end }}

@@ -6,6 +6,7 @@ dist/
 .env
 .env.local
 .env.production
+.env.prod
 # VAPID keys (Web Push) — NEVER commit
 vapid-keys.txt
 vapid-keys.json
@@ -18,3 +19,10 @@ coverage/
 e2e/.auth/
 playwright-report/
 test-results/
+# Docker secrets (init-secrets.sh) — NEVER commit
+secrets/*.txt
+# Storybook build output
+storybook-static/
+# Chromatic
+chromatic-report.json
+build-storybook.log

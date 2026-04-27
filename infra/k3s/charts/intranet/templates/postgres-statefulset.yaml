@@ -1,0 +1,104 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "intranet.fullname" . }}-postgres
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  serviceName: {{ include "intranet.fullname" . }}-postgres
+  # Postgres : un seul replica obligatoire — pour HA réelle, utiliser un
+  # opérateur (CloudNativePG / Zalando-postgres-operator) ou un service externe.
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "intranet.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels:
+        {{- include "intranet.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: postgres
+    spec:
+      securityContext:
+        runAsUser: 999      # postgres uid dans l'image officielle
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: postgres
+          image: {{ include "intranet.image" (dict "repo" .Values.postgres.image.repository "tag" .Values.postgres.image.tag "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: {{ .Values.postgres.service.port }}
+          env:
+            {{- range $key, $value := .Values.postgres.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "intranet.secretName" . }}
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            {{- toYaml .Values.postgres.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ .Values.postgres.env.POSTGRES_USER }}
+                - -d
+                - {{ .Values.postgres.env.POSTGRES_DB }}
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ .Values.postgres.env.POSTGRES_USER }}
+                - -d
+                - {{ .Values.postgres.env.POSTGRES_DB }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - {{ .Values.postgres.persistence.accessMode }}
+        storageClassName: {{ .Values.global.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.postgres.persistence.size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "intranet.fullname" . }}-postgres
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.postgres.service.port }}
+      targetPort: postgres
+      protocol: TCP
+      name: postgres
+  selector:
+    {{- include "intranet.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+{{- end }}

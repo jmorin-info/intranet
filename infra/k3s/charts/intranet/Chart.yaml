@@ -1,0 +1,30 @@
+apiVersion: v2
+name: omnitech-intranet
+description: Helm chart pour le deploiement Kubernetes (k3s) de l'intranet OMNITECH Security.
+type: application
+
+# Version du chart (incrementer a chaque modification de templates)
+version: 0.1.0
+
+# Version de l'application packagee
+appVersion: "1.0.0"
+
+home: https://intranet.omnitech-security.fr
+sources:
+  - https://github.com/omnitech-security/intranet
+
+maintainers:
+  - name: OMNITECH RSSI
+    email: noc@omnitech-security.fr
+
+keywords:
+  - intranet
+  - omnitech
+  - iso27001
+  - nestjs
+  - nextjs
+
+# Aucune dependance externe : on package directement Postgres / Redis /
+# Meilisearch / Ollama dans nos templates StatefulSet pour controler les
+# tokens Pantone SEAL et la conformite (ISO 27001 A.8.24, A.8.13).
+dependencies: []

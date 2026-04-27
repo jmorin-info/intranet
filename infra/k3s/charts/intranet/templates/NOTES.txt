@@ -1,0 +1,40 @@
+============================================================================
+  OMNITECH Intranet — Helm chart deploye sur k3s
+============================================================================
+
+Release : {{ .Release.Name }}
+Domaine : https://{{ .Values.global.domain }}
+
+Verifier l'etat des pods :
+
+  kubectl get pods -l app.kubernetes.io/part-of=omnitech-intranet -n {{ .Release.Namespace }}
+
+Suivre le rollout backend :
+
+  kubectl rollout status deploy/{{ include "intranet.fullname" . }}-backend -n {{ .Release.Namespace }}
+
+Logs en direct :
+
+  kubectl logs -f deploy/{{ include "intranet.fullname" . }}-backend -n {{ .Release.Namespace }}
+
+{{- if .Values.secrets.useSealedSecrets }}
+
+[INFO] secrets.useSealedSecrets=true.
+       Le Secret '{{ include "intranet.secretName" . }}' doit etre fourni par
+       un SealedSecret deja applique sur le cluster avant le deploiement.
+       Voir docs/infrastructure/K3S_DEPLOYMENT.md, section "Secrets".
+{{- else }}
+
+[WARN] secrets.useSealedSecrets=false — un Secret en clair a ete cree.
+       Mode dev / preprod uniquement. NE PAS UTILISER EN PROD.
+{{- end }}
+
+{{- if .Values.backend.hpa.enabled }}
+
+HPA backend actif : min={{ .Values.backend.hpa.minReplicas }} / max={{ .Values.backend.hpa.maxReplicas }} / CPU target {{ .Values.backend.hpa.targetCPUUtilizationPercentage }}%.
+Suivre :
+
+  kubectl get hpa {{ include "intranet.fullname" . }}-backend -n {{ .Release.Namespace }} --watch
+{{- end }}
+
+============================================================================

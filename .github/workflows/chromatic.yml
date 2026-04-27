@@ -1,0 +1,114 @@
+name: Chromatic — Visual regression
+
+# ---------------------------------------------------------------------------
+# Chromatic publie le Storybook de @omnitech/ui et detecte les regressions
+# visuelles sur chaque PR qui touche les composants partages ou leurs tokens.
+#
+# Pre-requis (a faire UNE FOIS dans le repo) :
+#   1. Creer le projet sur https://www.chromatic.com (lier au repo GitHub)
+#   2. Recuperer le `CHROMATIC_PROJECT_TOKEN` dans Chromatic > Manage > Configure
+#   3. L'ajouter dans GitHub : Settings > Secrets and variables > Actions
+#      Nom : CHROMATIC_PROJECT_TOKEN
+#
+# Le workflow ne s'execute que si les fichiers du design system / charte
+# changent — pas la peine de payer du Chromatic pour un changement backend.
+# ---------------------------------------------------------------------------
+
+on:
+  push:
+    branches:
+      - main
+      - feat/p1-9-prelaunch
+    paths:
+      - "packages/ui/**"
+      - "apps/frontend/src/app/globals.css"
+      - "apps/frontend/tailwind.config.ts"
+      - ".github/workflows/chromatic.yml"
+  pull_request:
+    paths:
+      - "packages/ui/**"
+      - "apps/frontend/src/app/globals.css"
+      - "apps/frontend/tailwind.config.ts"
+      - ".github/workflows/chromatic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: chromatic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromatic:
+    name: Publish to Chromatic
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HUSKY: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Chromatic exploite l'historique git pour la baseline (TurboSnap)
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Cache Storybook build
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/ui/storybook-static
+            packages/ui/node_modules/.cache
+          key: storybook-${{ runner.os }}-${{ hashFiles('packages/ui/**/*.{ts,tsx,css}', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            storybook-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook
+        run: pnpm --filter @omnitech/ui run build-storybook
+
+      - name: Publish to Chromatic
+        uses: chromaui/action@v11
+        with:
+          # Token via secret du repo (NE PAS hardcoder)
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          workingDir: packages/ui
+          # Le storybook a deja ete build au step precedent (cache hit possible)
+          storybookBuildDir: storybook-static
+          # Auto-accept des changements quand on push sur main / branche de release
+          # Sur PR, on laisse le reviewer accepter ou rejeter
+          autoAcceptChanges: ${{ github.ref == 'refs/heads/main' }}
+          # TurboSnap : ne re-snapshote que les stories impactees par le diff
+          onlyChanged: true
+          # Echec sur regression visuelle non-acceptee (status check rouge)
+          exitOnceUploaded: false
+          exitZeroOnChanges: false
+
+      - name: Comment Storybook URL on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { CHROMATIC_STORYBOOK_URL } = process.env;
+            if (!CHROMATIC_STORYBOOK_URL) return;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Storybook deploye : ${CHROMATIC_STORYBOOK_URL}`,
+            });
