@@ -118,7 +118,7 @@ export default function ProceduresPage() {
 
   const getClassificationBadge = (classification?: string | null) => {
     if (!classification) return null;
-    const colors = CLASSIFICATION_COLORS[classification] ?? CLASSIFICATION_COLORS.INTERNE ?? { bg: 'bg-gray-100', text: 'text-gray-600' };
+    const colors = CLASSIFICATION_COLORS[classification] ?? CLASSIFICATION_COLORS.INTERNE ?? { bg: 'bg-gray-100 dark:bg-slate-800', text: 'text-gray-600 dark:text-slate-400' };
     return (
       <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider ${colors.bg} ${colors.text}`}>
         {classification}

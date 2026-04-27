@@ -785,7 +785,7 @@ export default function IncidentsPage() {
                     setForm({ ...form, gdprNotifiable: e.target.checked })
                   }
                   aria-label="Notification RGPD/CNIL requise"
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary"
                 />
                 Notification RGPD/CNIL requise
               </label>

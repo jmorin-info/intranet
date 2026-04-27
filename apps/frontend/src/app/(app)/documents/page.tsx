@@ -347,7 +347,7 @@ const STATUS_TAB_DEFS: Array<{
   {
     key: "archived",
     label: "Archives",
-    color: "border-gray-400 text-seal-gray-500",
+    color: "border-gray-400 text-seal-gray-500 dark:border-slate-600 dark:text-slate-400",
     statuses: [DocumentStatus.ARCHIVED],
   },
 ];

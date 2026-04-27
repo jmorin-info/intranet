@@ -1097,7 +1097,7 @@ export default function TicketDetailPage() {
                         checked={checked}
                         onChange={() => handleChecklistToggle(item.id, checked)}
                         disabled={!isAdmin}
-                        className="h-3.5 w-3.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                        className="h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-teal-600 focus:ring-teal-500"
                       />
                       <span className={`text-xs ${checked ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-seal-navy dark:text-white'}`}>{item.label}</span>
                     </label>

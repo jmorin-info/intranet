@@ -152,7 +152,7 @@ function SurveyPreview({ title, description, questions, anonymous }: {
               )}
               {q.type === 'choice' && q.options.filter(o => o.trim()).length > 0 && (
                 <div className="mt-1.5 space-y-1">{q.options.filter(o => o.trim()).map((o, j) => (
-                  <div key={j} className="flex items-center gap-2 text-[10px] text-seal-gray-500"><span className="h-2.5 w-2.5 rounded-full border border-gray-300" />{o}</div>
+                  <div key={j} className="flex items-center gap-2 text-[10px] text-seal-gray-500 dark:text-slate-400"><span className="h-2.5 w-2.5 rounded-full border border-gray-300 dark:border-slate-600" />{o}</div>
                 ))}</div>
               )}
               {q.type === 'scale' && (
@@ -162,8 +162,8 @@ function SurveyPreview({ title, description, questions, anonymous }: {
               )}
               {q.type === 'yesno' && (
                 <div className="flex gap-2 mt-1.5">
-                  <span className="text-[10px] px-2 py-0.5 rounded border border-gray-200 text-seal-gray-500">Oui</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded border border-gray-200 text-seal-gray-500">Non</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded border border-gray-200 dark:border-slate-700 text-seal-gray-500 dark:text-slate-400">Oui</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded border border-gray-200 dark:border-slate-700 text-seal-gray-500 dark:text-slate-400">Non</span>
                 </div>
               )}
             </li>
@@ -419,7 +419,7 @@ export default function SatisfactionPage() {
                 <label key={i} className="flex items-center gap-2.5 cursor-pointer p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                   <input type="radio" name={`q-${q.id}`} value={opt} checked={value === opt}
                     onChange={() => setValue(opt)}
-                    className="h-4 w-4 text-primary border-gray-300 focus:ring-primary" />
+                    className="h-4 w-4 text-primary border-gray-300 dark:border-slate-600 dark:bg-slate-900 focus:ring-primary" />
                   <span className="text-sm text-seal-navy dark:text-white">{opt}</span>
                 </label>
               ))}
@@ -917,7 +917,7 @@ export default function SatisfactionPage() {
             <div className="flex items-end">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={formAnonymous} onChange={e => setFormAnonymous(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                  className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary" />
                 <span className="text-sm text-seal-navy dark:text-white">Réponses anonymes</span>
               </label>
             </div>
@@ -955,7 +955,7 @@ export default function SatisfactionPage() {
                     <div className="ml-8 space-y-1">
                       {q.options.map((opt, oi) => (
                         <div key={oi} className="flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-full border border-gray-300" />
+                          <span className="h-3 w-3 rounded-full border border-gray-300 dark:border-slate-600" />
                           <input value={opt} onChange={e => {
                             const newOpts = [...q.options];
                             newOpts[oi] = e.target.value;
@@ -975,7 +975,7 @@ export default function SatisfactionPage() {
                   <div className="ml-8 flex items-center gap-3">
                     <label className="flex items-center gap-1.5 cursor-pointer">
                       <input type="checkbox" checked={q.isRequired} onChange={e => updateQuestion(idx, 'isRequired', e.target.checked)}
-                        className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary" />
+                        className="h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary" />
                       <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">Obligatoire</span>
                     </label>
                   </div>

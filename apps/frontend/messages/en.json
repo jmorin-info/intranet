@@ -202,5 +202,13 @@
       "serverNotReady": "The server does not seem to be configured for Safari notifications. Contact your administrator.",
       "dismiss": "Hide this banner"
     }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Page not found",
+      "description": "The address you entered does not match any page.",
+      "back": "Go back",
+      "home": "Dashboard"
+    }
   }
 }

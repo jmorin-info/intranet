@@ -202,5 +202,13 @@
       "serverNotReady": "Le serveur ne semble pas configuré pour les notifications Safari. Contactez votre administrateur.",
       "dismiss": "Masquer ce bandeau"
     }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Page introuvable",
+      "description": "L'adresse que vous avez saisie ne correspond à aucune page.",
+      "back": "Retour",
+      "home": "Tableau de bord"
+    }
   }
 }

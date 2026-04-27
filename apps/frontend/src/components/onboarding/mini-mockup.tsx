@@ -55,7 +55,7 @@ export function MiniMockup({ variant }: MiniMockupProps) {
         <div className={frameClass} style={{ aspectRatio: '16/9' }}>
           <div className="absolute inset-x-6 top-3 bottom-3 rounded-lg bg-white dark:bg-slate-800 shadow-lg border border-gray-200 dark:border-slate-700 p-2">
             <div className="flex items-center gap-1.5 p-1.5 border-b border-gray-100 dark:border-slate-700">
-              <Search className="h-3 w-3 text-gray-400" />
+              <Search className="h-3 w-3 text-gray-400 dark:text-slate-500" />
               <div className="h-1.5 w-20 rounded bg-gray-200 dark:bg-slate-600" />
               <kbd className="ml-auto text-[8px] px-1 py-0.5 rounded border border-gray-300 dark:border-slate-600 text-gray-500">⌘K</kbd>
             </div>
@@ -65,11 +65,11 @@ export function MiniMockup({ variant }: MiniMockupProps) {
                 <div className="h-1.5 flex-1 rounded bg-gray-300 dark:bg-slate-600" />
               </div>
               <div className="flex items-center gap-1.5 px-1.5 py-1">
-                <Inbox className="h-2.5 w-2.5 text-gray-400" />
+                <Inbox className="h-2.5 w-2.5 text-gray-400 dark:text-slate-500" />
                 <div className="h-1.5 w-3/4 rounded bg-gray-200 dark:bg-slate-700" />
               </div>
               <div className="flex items-center gap-1.5 px-1.5 py-1">
-                <Users className="h-2.5 w-2.5 text-gray-400" />
+                <Users className="h-2.5 w-2.5 text-gray-400 dark:text-slate-500" />
                 <div className="h-1.5 w-2/3 rounded bg-gray-200 dark:bg-slate-700" />
               </div>
             </div>
@@ -180,7 +180,7 @@ export function MiniMockup({ variant }: MiniMockupProps) {
                     >
                       {isDone && <CheckCircle2 className="h-3 w-3 text-white" />}
                     </div>
-                    <span className={`text-[9px] font-semibold ${isDone ? 'text-emerald-600' : isCurrent ? 'text-[#F9964A]' : 'text-gray-400'}`}>
+                    <span className={`text-[9px] font-semibold ${isDone ? 'text-emerald-600' : isCurrent ? 'text-[#F9964A]' : 'text-gray-400 dark:text-slate-500'}`}>
                       {label}
                     </span>
                   </div>
@@ -221,7 +221,7 @@ export function MiniMockup({ variant }: MiniMockupProps) {
         <div className={frameClass} style={{ aspectRatio: '16/9' }}>
           <div className="absolute inset-0 p-2 space-y-1.5">
             <div className="flex items-center gap-1">
-              <Settings className="h-2.5 w-2.5 text-gray-500" />
+              <Settings className="h-2.5 w-2.5 text-gray-500 dark:text-slate-400" />
               <span className="text-[9px] font-semibold text-gray-700 dark:text-white">Catégories génériques</span>
             </div>
             <div className="grid grid-cols-4 gap-1">
@@ -330,7 +330,7 @@ export function MiniMockup({ variant }: MiniMockupProps) {
             <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
               <div className="h-full bg-emerald-500 rounded-full" style={{ width: '78%' }} />
             </div>
-            <div className="text-[8px] text-gray-500">78% très satisfaits</div>
+            <div className="text-[8px] text-gray-500 dark:text-slate-400">78% très satisfaits</div>
           </div>
         </div>
       );
@@ -347,8 +347,8 @@ export function MiniMockup({ variant }: MiniMockupProps) {
               { color: 'bg-blue-500', label: 'TICKET_CLOSED' },
             ].map((log, i) => (
               <div key={i} className="flex items-center gap-1.5 text-[8px] font-mono">
-                <Clock className="h-2 w-2 text-gray-400" />
-                <span className="text-gray-500">10:3{i}</span>
+                <Clock className="h-2 w-2 text-gray-400 dark:text-slate-500" />
+                <span className="text-gray-500 dark:text-slate-400">10:3{i}</span>
                 <span className={`px-1 rounded ${log.color} text-white`}>{log.label}</span>
                 <div className="h-1 flex-1 rounded bg-gray-200 dark:bg-slate-700" />
               </div>
@@ -363,7 +363,7 @@ export function MiniMockup({ variant }: MiniMockupProps) {
           <div className="absolute inset-0 p-2 space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
-                <Users className="h-3 w-3 text-gray-500" />
+                <Users className="h-3 w-3 text-gray-500 dark:text-slate-400" />
                 <span className="text-[9px] font-semibold">124 accès à revoir</span>
               </div>
               <span className="text-[8px] px-1 py-0.5 rounded bg-[#F9964A] text-white">T2 2026</span>

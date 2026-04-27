@@ -262,11 +262,11 @@ export default function EditNewsPage() {
 
             <div className="flex gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" {...register('isPinned')} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                <input type="checkbox" {...register('isPinned')} className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary" />
                 <span className="text-sm text-seal-navy dark:text-white">Épingler en haut</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" {...register('isPublished')} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                <input type="checkbox" {...register('isPublished')} className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary" />
                 <span className="text-sm text-seal-navy dark:text-white">Publié</span>
               </label>
             </div>

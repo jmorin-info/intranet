@@ -52,7 +52,7 @@ export function RSSFeedWidget() {
       case 'CRITICAL': return <AlertOctagon className="h-3.5 w-3.5 text-red-500" />;
       case 'HIGH': return <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />;
       case 'MEDIUM': return <Info className="h-3.5 w-3.5 text-blue-500" />;
-      default: return <Shield className="h-3.5 w-3.5 text-gray-400" />;
+      default: return <Shield className="h-3.5 w-3.5 text-gray-400 dark:text-slate-500" />;
     }
   };
 

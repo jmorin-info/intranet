@@ -48,7 +48,7 @@ export function DocxViewer({ url, className }: DocxViewerProps) {
 
   return (
     <div
-      className={`prose prose-sm max-w-none rounded-lg border border-gray-200 bg-white p-6 max-h-[600px] overflow-y-auto ${className || ''}`}
+      className={`prose prose-sm dark:prose-invert max-w-none rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 max-h-[600px] overflow-y-auto ${className || ''}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

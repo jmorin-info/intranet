@@ -204,7 +204,7 @@ function MyRecentTickets() {
                     {t.reference}
                   </span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_COLORS[t.status] || "bg-gray-100 text-gray-600"}`}
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_COLORS[t.status] || "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-400"}`}
                   >
                     {STATUS_LABELS[t.status] || t.status}
                   </span>

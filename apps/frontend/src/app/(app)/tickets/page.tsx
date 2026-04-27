@@ -1801,7 +1801,7 @@ export default function TicketsPage() {
                       type="checkbox"
                       checked={!!checklistState[item.id]}
                       onChange={(e) => setChecklistState(prev => ({ ...prev, [item.id]: e.target.checked }))}
-                      className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary"
+                      className="h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary"
                     />
                     <span className="text-xs text-seal-navy dark:text-white group-hover:text-primary transition">{item.label}</span>
                   </label>

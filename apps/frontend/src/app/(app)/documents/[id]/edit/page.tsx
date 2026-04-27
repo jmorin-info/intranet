@@ -336,7 +336,7 @@ export default function EditDocumentPage() {
               <input
                 type="checkbox"
                 {...register('isPublic')}
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary"
               />
               <span className="text-sm text-seal-navy dark:text-white">Document public</span>
             </label>
