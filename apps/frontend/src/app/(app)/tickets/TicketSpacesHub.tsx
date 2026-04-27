@@ -15,6 +15,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import {
   Inbox, Monitor, Briefcase, Shield, Plus, Users, Settings, ChevronRight,
 } from 'lucide-react';
@@ -40,6 +41,7 @@ interface SpaceWithStats {
 }
 
 export function TicketSpacesHub() {
+  const t = useTranslations('tickets.spaces');
   const user = useAuthStore((s) => s.user);
   const [spaces, setSpaces] = useState<SpaceWithStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,12 +64,10 @@ export function TicketSpacesHub() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-seal-navy dark:text-white">
-            Espaces de ticketing
+            {t('title')}
           </h1>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
-            Choisissez un espace pour afficher ses tickets. Vous ne voyez que les
-            espaces auxquels vous êtes membre (via votre rôle, département ou
-            affectation directe).
+            {t('subtitle')}
           </p>
         </div>
         {isAdmin && (
@@ -76,7 +76,7 @@ export function TicketSpacesHub() {
             className="flex-shrink-0 inline-flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800 text-seal-navy dark:text-white"
           >
             <Settings className="h-4 w-4" />
-            Gérer les espaces
+            {t('manage')}
           </Link>
         )}
       </div>
@@ -89,17 +89,13 @@ export function TicketSpacesHub() {
         </div>
       ) : spaces.length === 0 ? (
         <EmptyState
-          title="Aucun espace accessible"
-          description={
-            isAdmin
-              ? "Aucun espace de ticketing n'est configuré. Créez-en un pour commencer."
-              : "Vous n'êtes membre d'aucun espace de ticketing. Contactez votre administrateur pour obtenir l'accès."
-          }
+          title={t('emptyTitle')}
+          description={isAdmin ? t('emptyAdmin') : t('emptyMember')}
           action={
             isAdmin ? (
               <Link href="/admin/ticket-spaces">
                 <Button>
-                  <Plus className="h-4 w-4" /> Créer un espace
+                  <Plus className="h-4 w-4" /> {t('createSpace')}
                 </Button>
               </Link>
             ) : undefined
@@ -131,7 +127,7 @@ export function TicketSpacesHub() {
                       <div className="flex items-center gap-1.5">
                         {space.isDefault && (
                           <Badge variant="seal-blue" className="text-[10px]">
-                            défaut
+                            {t('defaultBadge')}
                           </Badge>
                         )}
                         <ChevronRight className="h-4 w-4 text-seal-gray-400 group-hover:text-seal-orange transition-colors" />
@@ -153,7 +149,7 @@ export function TicketSpacesHub() {
                         <strong className="text-seal-navy dark:text-white">
                           {space._count?.tickets ?? 0}
                         </strong>
-                        &nbsp;ticket{(space._count?.tickets ?? 0) !== 1 ? 's' : ''}
+                        &nbsp;{t('ticketLabel', { count: space._count?.tickets ?? 0 })}
                       </span>
                     </div>
                   </CardContent>

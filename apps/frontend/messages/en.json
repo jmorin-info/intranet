@@ -211,7 +211,162 @@
       "home": "Dashboard"
     }
   },
+"documents": {
+    "title": "Documents",
+    "new": "New document",
+    "search": "Search by title, reference...",
+    "empty": "No documents found",
+    "category": {
+      "all": "All categories"
+    },
+    "classification": {
+      "public": "Public",
+      "internal": "Internal",
+      "confidential": "Confidential",
+      "secret": "Secret"
+    },
+    "detail": {
+      "back": "Back to documents"
+    },
+    "editor": {
+      "back": "Back to document"
+    },
+    "inline": {
+      "back": "Back"
+    }
+  },
   "admin": {
+    "title": "Administration",
+    "subtitle": "Users, compliance, content and infrastructure.",
+    "footer": {
+      "title": "OMNITECH Intranet — Administration hub",
+      "viewChangelog": "View changelog"
+    },
+    "stats": {
+      "users": "Users",
+      "documents": "Documents",
+      "tickets": "Tickets",
+      "systemHealth": "System health",
+      "healthOk": "OK",
+      "healthDegraded": "Degraded",
+      "healthLoading": "..."
+    },
+    "sections": {
+      "users": {
+        "title": "Users & Access",
+        "subtitle": "Identities, roles, access reviews."
+      },
+      "compliance": {
+        "title": "Compliance & Audit",
+        "subtitle": "Traceability, ISO controls, CISO."
+      },
+      "content": {
+        "title": "Content & Data",
+        "subtitle": "Policies, content and exports."
+      },
+      "infra": {
+        "title": "Infrastructure & Ops",
+        "subtitle": "Platform and system."
+      }
+    },
+    "items": {
+      "users": {
+        "title": "Users",
+        "description": "Accounts, roles, CSV import."
+      },
+      "departments": {
+        "title": "Departments",
+        "description": "Organisational structure."
+      },
+      "ldapPending": {
+        "title": "LDAP validation",
+        "description": "AD accounts pending approval."
+      },
+      "accessReviews": {
+        "title": "Access reviews",
+        "description": "ISO 27001 A.5.18 campaigns."
+      },
+      "externalAccess": {
+        "title": "External access",
+        "description": "Contractors and temporary accounts."
+      },
+      "onboarding": {
+        "title": "Onboarding",
+        "description": "Integration journey."
+      },
+      "audit": {
+        "title": "Audit",
+        "description": "Log + timeline (ISO 27001 A.5.36)."
+      },
+      "compliance": {
+        "title": "ISO compliance",
+        "description": "Frameworks, controls, planning."
+      },
+      "adAudit": {
+        "title": "AD audit",
+        "description": "Active Directory analysis."
+      },
+      "rssiDashboard": {
+        "title": "CISO dashboard",
+        "description": "Aggregated view of risks and audits."
+      },
+      "chartes": {
+        "title": "Policies",
+        "description": "Versioning + signature campaigns."
+      },
+      "signatures": {
+        "title": "Signatures",
+        "description": "DocuSeal signatures dashboard."
+      },
+      "workflows": {
+        "title": "Approval workflows",
+        "description": "Documents under review."
+      },
+      "feedback": {
+        "title": "Reviews & satisfaction surveys",
+        "description": "Employee testimonial moderation + satisfaction survey results + new survey creation."
+      },
+      "media": {
+        "title": "Media library",
+        "description": "Photo & video albums, visibility management, download analytics."
+      },
+      "reports": {
+        "title": "Reports",
+        "description": "Analytical exports."
+      },
+      "itExports": {
+        "title": "IT exports",
+        "description": "Veeam and other infra sources."
+      },
+      "backups": {
+        "title": "Backups",
+        "description": "Scheduled backup jobs."
+      },
+      "config": {
+        "title": "Configuration",
+        "description": "SMTP, access matrix, global settings."
+      },
+      "systemHealth": {
+        "title": "System health",
+        "description": "Status checks, live diagnostics."
+      },
+      "systemMonitoring": {
+        "title": "System monitoring",
+        "description": "CPU, RAM, disk + intranet usage + storage per user."
+      },
+      "spaces": {
+        "title": "Spaces & modules",
+        "description": "Module activation per space."
+      },
+      "ticketSpaces": {
+        "title": "Ticketing spaces",
+        "description": "Ticketing workspaces + members (user/role/dept) management."
+      },
+      "certificates": {
+        "title": "Certificates",
+        "description": "Training / authorisation certificates."
+      }
+    },
     "audit": {
       "retention": {
         "title": "Audit log retention & anonymization",
@@ -254,6 +409,176 @@
           "fullGteAnon": "Full retention must be strictly less than anonymized retention."
         }
       }
+    }
+  },
+  "tickets": {
+    "title": "Ticket Space",
+    "subtitle": "Manage IT requests, incidents and queries within your scope.",
+    "new": "New ticket",
+    "empty": "No tickets",
+    "searchPlaceholder": "Search for a ticket...",
+    "spaces": {
+      "title": "Ticketing spaces",
+      "subtitle": "Pick a space to view its tickets. You only see spaces you are a member of (via your role, department or direct assignment).",
+      "manage": "Manage spaces",
+      "emptyTitle": "No space accessible",
+      "emptyAdmin": "No ticketing space is configured. Create one to get started.",
+      "emptyMember": "You are not a member of any ticketing space. Contact your administrator to get access.",
+      "createSpace": "Create a space",
+      "defaultBadge": "default",
+      "ticketCount": "{count, plural, one {# ticket} other {# tickets}}",
+      "ticketLabel": "{count, plural, one {ticket} other {tickets}}"
+    },
+    "priority": {
+      "all": "All priorities",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "toutes": "All"
+    },
+    "status": {
+      "open": "Open",
+      "inProgress": "In progress",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "waiting": "Waiting",
+      "all": "All statuses"
+    },
+    "sla": {
+      "exceeded": "SLA exceeded",
+      "warning": "SLA warning",
+      "resolution4h": "SLA: resolution within 4h",
+      "resolution8h": "SLA: resolution within 8h"
+    },
+    "category": {
+      "incident": "Incident",
+      "request": "Request",
+      "access": "Access",
+      "hardware": "Hardware",
+      "software": "Software",
+      "network": "Network",
+      "security": "Security",
+      "other": "Other"
+    },
+    "column": {
+      "ref": "Ref",
+      "title": "Title",
+      "category": "Cat.",
+      "priority": "Priority",
+      "status": "Status",
+      "creator": "Creator",
+      "assignee": "Assignee",
+      "date": "Date"
+    },
+    "create": {
+      "title": "New ticket",
+      "description": "Describe your issue or request",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. VPN connection issue",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Detail your issue: when it started, context, steps tried…",
+      "categoryLabel": "Category",
+      "priorityLabel": "Priority",
+      "submit": "Create ticket",
+      "required": "Title and description required",
+      "success": "Ticket created",
+      "error": "Error creating ticket"
+    },
+    "detail": {
+      "description": "Description",
+      "comments": "Comments",
+      "noComments": "No comments",
+      "internal": "Internal",
+      "addComment": "Add a comment...",
+      "send": "Send",
+      "info": "Information",
+      "creator": "Creator",
+      "assignee": "Assignee",
+      "unassigned": "Unassigned",
+      "createdAt": "Created on",
+      "resolvedAt": "Resolved on",
+      "actions": "Actions",
+      "statusLabel": "Status",
+      "update": "Update",
+      "createdBy": "Created by",
+      "notFound": "Ticket not found",
+      "commentSuccess": "Comment added",
+      "commentError": "Error adding comment",
+      "statusSuccess": "Status updated",
+      "statusError": "Error updating status"
+    }
+  },
+  "news": {
+    "title": "News",
+    "subtitle": "Internal information and communications",
+    "new": "New article",
+    "searchPlaceholder": "Search for an article...",
+    "empty": "No news",
+    "emptyDescription": "No news published yet.",
+    "emptyDescriptionLong": "This space publishes OMNITECH SECURITY official communications: CISO announcements, training, critical alerts and internal events. Come back soon to discover the latest news.",
+    "emptyTitle": "No news published",
+    "pinned": "Pinned",
+    "pinnedTag": "Pinned",
+    "recent": "Recent",
+    "readTime": "min read",
+    "publishArticle": "Publish news",
+    "popularBadge": "Popular article",
+    "popularSidebar": "Popular articles",
+    "viewsLabel": "views",
+    "loadMore": "Load more",
+    "remaining": "{count, plural, one {# remaining} other {# remaining}}",
+    "articlesSummary": "{count, plural, one {# article} other {# articles}} — latest: {date}",
+    "categoryAll": "All",
+    "pinAction": "Pin",
+    "unpinAction": "Unpin",
+    "pinAriaLabel": "Pin this article",
+    "unpinAriaLabel": "Unpin this article",
+    "pinned_short": "Pinned",
+    "pinSuccess": "Article pinned",
+    "unpinSuccess": "Article unpinned",
+    "actionFailed": "Operation failed",
+    "backToList": "Back to news",
+    "audienceError": "Unable to load audience",
+    "departmentCol": "Department",
+    "deleted": "Article deleted",
+    "deleteError": "Error deleting article",
+    "imageUploaded": "Image uploaded",
+    "imageUploadError": "Image upload error"
+  },
+  "helpdesk": {
+    "title": "Support center",
+    "subtitle": "Ask AI, browse FAQs or follow your tickets — all in one place.",
+    "tabsAriaLabel": "Support center sections",
+    "tabs": {
+      "hub": "Support hub (AI)",
+      "selfservice": "Self-service",
+      "mytickets": "My tickets"
+    },
+    "status": {
+      "open": "Open",
+      "inProgress": "In progress",
+      "waiting": "Waiting",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "myRecentTickets": "My recent tickets",
+    "viewAll": "View all",
+    "loadError": "Loading error",
+    "noTicketsHint": "No tickets right now — you're all caught up.",
+    "createFirstTicket": "Create my first ticket",
+    "frequentRequests": "Frequent requests",
+    "suggestions": {
+      "resetPassword": "Reset my password",
+      "hardwareIssue": "Hardware issue / monitor / printer",
+      "requestAccess": "Request access to a folder / application",
+      "reportIncident": "Report a security incident"
+    },
+    "chatPlaceholder": "Describe your issue, I might be able to answer directly.",
+    "noAnswerCta": {
+      "title": "Assistant can't find it? Create a ticket",
+      "description": "A support agent will pick up your request. Category and priority will be pre-suggested by AI.",
+      "action": "Create a ticket"
     }
   }
 }
