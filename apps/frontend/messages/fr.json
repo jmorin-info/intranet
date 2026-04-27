@@ -211,6 +211,30 @@
       "home": "Tableau de bord"
     }
   },
+  "documents": {
+    "title": "Documents",
+    "new": "Nouveau document",
+    "search": "Rechercher par titre, référence...",
+    "empty": "Aucun document trouvé",
+    "category": {
+      "all": "Toutes catégories"
+    },
+    "classification": {
+      "public": "Public",
+      "internal": "Interne",
+      "confidential": "Confidentiel",
+      "secret": "Secret"
+    },
+    "detail": {
+      "back": "Retour aux documents"
+    },
+    "editor": {
+      "back": "Retour au document"
+    },
+    "inline": {
+      "back": "Retour"
+    }
+  },
   "admin": {
     "title": "Administration",
     "subtitle": "Utilisateurs, conformité, contenu et infrastructure.",

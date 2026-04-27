@@ -36,13 +36,25 @@ L'intranet a deux systèmes i18n en parallèle pendant la phase de migration :
 | 1 | Login / Auth | Migré | `app/(auth)/login/page.tsx` | commit `360cefd` |
 | 2 | Dashboard | Migré | `app/(app)/dashboard/page.tsx` | commit `360cefd` |
 | 3 | Profile | Migré | `app/(app)/profile/page.tsx` | commit `360cefd` |
-| 4 | Errors (404) | Partiel | `not-found.tsx` ← *cette session* | namespace `errors.*` créé |
-| 5 | Helpdesk / Tickets | Non migré | — | ~3 pages, ~600 strings |
-| 6 | Documents / Procedures | Non migré | — | ~10 pages, ~1200 strings |
-| 7 | News / Calendar | Non migré | — | ~6 pages, ~400 strings |
-| 8 | Admin (panel complet) | Non migré | — | ~30 pages, plus gros bloc |
+| 4 | Errors (404) | Migré | `not-found.tsx` | namespace `errors.*` créé |
+| 5 | Helpdesk | Migré | `helpdesk/page.tsx` | 17 strings — **session 2026-04-26** |
+| 5b | Tickets (partiel) | Partiel | `tickets/TicketSpacesHub.tsx` | 9 strings ; namespace `tickets.*` complet (70 clés) — pages `tickets/page.tsx` (2351 l) + `[id]/page.tsx` (1233 l) restent legacy |
+| 6 | Documents / Procedures | Stub | — | namespace `documents.*` créé (clés base) — pages restent legacy (heavy : `[id]/page.tsx` = 1888 l reportée v1.2) |
+| 7 | News (page principale) | Migré | `news/page.tsx` | 30 strings ; pages `news/[slug]`, `news/compose`, `[slug]/edit` restent legacy |
+| 8 | Admin (landing) | Migré | `admin/page.tsx` | 60 strings ; namespace `admin.*` couvrant 4 sections + 24 items + stats + footer ; ~17 sous-pages restent legacy |
 
-**Couverture next-intl** : 4/8 zones = **50%** (mais zones 5-8 = 80% du contenu).
+**Couverture next-intl (cette session 2026-04-26)** :
+- 7/8 zones avec au moins une page migrée
+- 116 nouvelles strings hardcoded → next-intl
+- 7 fichiers migrés (helpdesk, news, admin landing, TicketSpacesHub, +
+  les 4 antérieurs)
+
+**Strings restantes par zone (legacy `useTranslation` non migré)** :
+- helpdesk : `SelfServicePortal.tsx` (478 l), `HelpdeskChat.tsx` (984 l)
+- tickets : `tickets/page.tsx` (2351 l, ~150 strings), `[id]/page.tsx` (1233 l, ~80 strings)
+- documents : ~10 pages, dont `[id]/page.tsx` (1888 l) — REPORTÉ v1.2
+- news : `[slug]/page.tsx` (734 l), `compose/page.tsx` (542 l), `[slug]/edit/page.tsx` (299 l)
+- admin : ~17 sous-pages (audit, compliance, config, users, etc.)
 
 ## État des chaînes traduites
 
@@ -60,8 +72,13 @@ L'intranet a deux systèmes i18n en parallèle pendant la phase de migration :
 | `header` | 14 | Complet |
 | `sidebar` | 11 | Complet |
 | `emptyState` | 9 | Complet |
-| `errors.notFound` | 4 | *Cette session* |
-| **Total** | **163** | — |
+| `errors.notFound` | 4 | Complet |
+| `helpdesk` | 17 | **Cette session** — couvre `helpdesk/page.tsx` |
+| `news` | 30 | **Cette session** — couvre `news/page.tsx` (page principale) |
+| `tickets` | 70 | **Cette session** — namespace complet, couvre `TicketSpacesHub.tsx` |
+| `admin` | 60 | **Cette session** — couvre `admin/page.tsx` (landing) |
+| `documents` | 14 | **Cette session** — stub minimal, pages restent legacy |
+| **Total** | **354** | +191 vs précédente session |
 
 ### Fichier legacy `lib/i18n.ts`
 
@@ -170,7 +187,7 @@ app/(app)/admin/compliance/ComplianceFrameworks.tsx
 app/(app)/admin/compliance/CompliancePlanning.tsx
 app/(app)/documents/[id]/_components/PermissionsPanel.tsx
 app/(app)/documents/[id]/_components/SharesPanel.tsx
-app/(app)/helpdesk/page.tsx
+app/(app)/helpdesk/page.tsx ← migré 2026-04-26
 app/(app)/layout.tsx
 app/(app)/media/page.tsx
 app/(app)/media/albums/page.tsx
@@ -178,15 +195,25 @@ app/(app)/media/albums/[slug]/page.tsx
 app/(app)/notifications/preferences/page.tsx
 app/(app)/runbooks/[slug]/page.tsx
 app/(app)/testimonials/page.tsx
-app/(app)/tickets/TicketSpacesHub.tsx
+app/(app)/tickets/TicketSpacesHub.tsx ← migré 2026-04-26
 app/(app)/tips/page.tsx
-app/(app)/not-found.tsx ← migré cette session
+app/(app)/not-found.tsx ← migré
 ```
 
 ## Conclusion
 
-- Cette session : **+1 zone (errors)** migrée vers next-intl, **+4 clés** ajoutées.
-- Couverture next-intl : 50% (4/8 zones), mais ces 4 zones représentent ~20% du contenu.
+- Session 2026-04-26 (Item 14 suite) : **+5 zones partiellement migrées** vers next-intl :
+  - helpdesk : page principale (17 strings)
+  - news : page principale (30 strings)
+  - tickets : `TicketSpacesHub.tsx` + namespace complet (9 strings + 70 clés namespace)
+  - admin : landing page (60 strings)
+  - documents : namespace stub seulement (14 clés base)
+- **Total : 116 strings hardcoded migrées + 191 nouvelles clés i18n**
+- Couverture next-intl : 7/8 zones avec au moins une page migrée
 - Console FR hardcoded : **zéro** (cible atteinte).
-- Migration complète des 5 zones restantes : ~7-9 jours estimés, hors périmètre
-  d'une session quota-limited.
+- Pages lourdes restantes (legacy `useTranslation`) :
+  - `tickets/page.tsx` (2351 l), `tickets/[id]/page.tsx` (1233 l)
+  - `documents/[id]/page.tsx` (1888 l) — REPORTÉ v1.2
+  - news : `[slug]`, `compose`, `[slug]/edit`
+  - admin : ~17 sous-pages
+- Effort restant estimé : ~5-7 jours (les pages restent fonctionnelles via legacy)

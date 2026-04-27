@@ -211,6 +211,30 @@
       "home": "Dashboard"
     }
   },
+  "documents": {
+    "title": "Documents",
+    "new": "New document",
+    "search": "Search by title, reference...",
+    "empty": "No documents found",
+    "category": {
+      "all": "All categories"
+    },
+    "classification": {
+      "public": "Public",
+      "internal": "Internal",
+      "confidential": "Confidential",
+      "secret": "Secret"
+    },
+    "detail": {
+      "back": "Back to documents"
+    },
+    "editor": {
+      "back": "Back to document"
+    },
+    "inline": {
+      "back": "Back"
+    }
+  },
   "admin": {
     "title": "Administration",
     "subtitle": "Users, compliance, content and infrastructure.",
