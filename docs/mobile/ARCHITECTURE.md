@@ -122,12 +122,14 @@ Si ce mode devient necessaire (ex : mode strictement offline-first), une migrati
 
 ## 5. Choix `webDir`
 
-Capacitor exige un `webDir` meme en live-URL mode. Il sert :
+Capacitor exige un `webDir` avec un `index.html` meme en live-URL mode. Il sert :
 
-1. De fallback offline initial (avant que le SW ne prenne le relais)
+1. De fallback offline initial (page de chargement avec auto-retry)
 2. A la commande `cap sync` qui copie ce contenu dans le bundle natif
 
-On pointe vers `apps/frontend/public/` : il contient le `manifest.json` PWA, les icones (`icon-*.png`), `offline.html`, `sw.js`. Tout ce qu'il faut pour que la coquille soit "valide" meme avant le premier reseau.
+On pointe vers `apps/mobile/web-fallback/` (et non `apps/frontend/public/` qui n'a pas d'`index.html` — Next.js sert via SSR). Le contenu : un `index.html` minimal avec un spinner SEAL, un message "Chargement de l'application...", et un script qui re-tente la navigation vers `https://intranet.omnitech-security.fr/` apres 3 secondes ou au tap utilisateur.
+
+L'utilisateur final ne devrait JAMAIS voir cette page en conditions normales — la WebView est immediatement redirigee vers `server.url`. Elle existe pour les cas degraades : offline au cold start, server.url miss-configure, etc.
 
 ## 6. Flux d'authentification
 

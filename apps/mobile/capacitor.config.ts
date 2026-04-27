@@ -18,10 +18,11 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * frontend dev`) est ciblé directement sur le réseau local — utile pour
  * tester un build natif sur device physique sans déployer.
  *
- * webDir : Capacitor exige un dossier "web build" même si on n'utilise pas
- * le mode static. On pointe vers `apps/frontend/public` qui contient au
- * minimum manifest.json + icons + offline.html — assez pour `cap sync` et
- * fallback hors ligne. Cf. docs/mobile/ARCHITECTURE.md §5 pour le détail.
+ * webDir : Capacitor exige un dossier "web build" avec un index.html, même
+ * en live-URL mode (sert de fallback offline si server.url unreachable).
+ * On utilise `web-fallback/` (page de chargement minimale + auto-redirect
+ * vers prod) plutôt que `apps/frontend/public/` qui n'a pas d'index.html
+ * (servi par Next.js SSR). Cf. docs/mobile/ARCHITECTURE.md §5.
  */
 
 // `CAPACITOR_SERVER_URL` permet d'overrider l'URL chargée par la WebView
@@ -34,7 +35,7 @@ const liveServerUrl =
 const config: CapacitorConfig = {
   appId: "fr.omnitechsecurity.intranet",
   appName: "OMNITECH Intranet",
-  webDir: "../frontend/public",
+  webDir: "web-fallback",
   // Allow Capacitor to navigate to the live server. `androidScheme: 'https'`
   // forces the WebView to consider its origin HTTPS (required for cookies +
   // service-worker registration even when the underlying transport for
