@@ -112,7 +112,12 @@ export class WebhookController {
       `DocuSeal webhook received: ${payload?.event_type || payload?.type}`,
     );
 
-    await this.signaturesService.handleWebhook(payload);
+    // IP/UA captures here are forwarded to EvidenceService.captureEvidence
+    // (via SignaturesService.handleWebhook) for eIDAS-AES proof.
+    await this.signaturesService.handleWebhook(payload, {
+      ipAddress,
+      userAgent,
+    });
 
     return { received: true };
   }

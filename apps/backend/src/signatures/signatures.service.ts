@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { EvidenceService } from './evidence.service';
 
 @Injectable()
 export class SignaturesService {
@@ -20,6 +21,7 @@ export class SignaturesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly evidenceService: EvidenceService,
   ) {
     this.docusealApiUrl =
       process.env.DOCUSEAL_API_URL || 'http://localhost:7000/api';
@@ -366,7 +368,10 @@ export class SignaturesService {
     });
   }
 
-  async handleWebhook(payload: any) {
+  async handleWebhook(
+    payload: any,
+    extra?: { ipAddress?: string; userAgent?: string },
+  ) {
     const eventType = payload.event_type || payload.type;
     const submissionId = payload.data?.submission_id?.toString() || payload.data?.id?.toString();
 
@@ -410,6 +415,20 @@ export class SignaturesService {
           submissionId,
         },
       });
+
+      // Wave D item 26 — capture eIDAS-AES evidence (best-effort).
+      // Une erreur de capture ne doit pas faire échouer le webhook : la
+      // signature elle-même est valide, l'evidence peut être recapturée
+      // ultérieurement via un job de réconciliation.
+      try {
+        await this.evidenceService.captureEvidence(signatureRequest.id, extra);
+      } catch (err: unknown) {
+        const e = err instanceof Error ? err : new Error(String(err));
+        this.logger.error(
+          `evidence capture failed for ${signatureRequest.id} (non-blocking): ${e.message}`,
+          e.stack,
+        );
+      }
 
       this.logger.log(`Signature completed for request ${signatureRequest.id}`);
     } else if (eventType === 'form.declined' || eventType === 'submission.declined') {
