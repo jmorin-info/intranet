@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/stores/auth-store';
 import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -63,7 +63,7 @@ function getCategoryColor(category: string): string {
 }
 
 export default function NewsPage() {
-  const { t } = useTranslation();
+  const t = useTranslations('news');
   const router = useRouter();
   const user = useAuthStore(s => s.user);
   const [news, setNews] = useState<NewsPost[]>([]);
@@ -91,9 +91,9 @@ export default function NewsPage() {
   const handlePin = async (newsId: string, pinned: boolean) => {
     try {
       await api.patch(`/news/${newsId}`, { isPinned: pinned });
-      toast.success(pinned ? 'Article épinglé' : 'Article désépinglé');
+      toast.success(pinned ? t('pinSuccess') : t('unpinSuccess'));
       fetchNews();
-    } catch (err) { toast.error((err as ApiError)?.response?.data?.message || (err as ApiError)?.message || 'Opération échouée'); }
+    } catch (err) { toast.error((err as ApiError)?.response?.data?.message || (err as ApiError)?.message || t('actionFailed')); }
   };
 
   const fetchNews = useCallback(async () => {
@@ -129,18 +129,18 @@ export default function NewsPage() {
   return (
     <div className="space-y-6 animate-fade-in-up">
       <PageHeader
-        title={t('news.title')}
+        title={t('title')}
         subtitle={
           latestDate
-            ? `${t('news.subtitle')} — ${news.length} article${news.length > 1 ? 's' : ''} — dernier : ${latestDate}`
-            : t('news.subtitle')
+            ? `${t('subtitle')} — ${t('articlesSummary', { count: news.length, date: latestDate })}`
+            : t('subtitle')
         }
         icon={Newspaper}
         hub="work"
         actions={canCompose ? (
           <Button onClick={() => router.push('/news/compose')}>
             <Plus className="h-4 w-4" />
-            {t('news.new')}
+            {t('new')}
           </Button>
         ) : undefined}
       />
@@ -148,13 +148,13 @@ export default function NewsPage() {
       <SearchInput
         value={search}
         onChange={setSearch}
-        placeholder={t('news.searchPlaceholder')}
+        placeholder={t('searchPlaceholder')}
       />
 
       <div className="flex gap-1.5 flex-wrap">
         <button onClick={() => { setCategoryFilter(''); setVisibleCount(10); }}
           className={`rounded-full px-3 py-1 text-xs font-semibold transition ${!categoryFilter ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-700 text-seal-gray-500'}`}>
-          Toutes
+          {t('categoryAll')}
         </button>
         {(categories.length > 0 ? categories : FALLBACK_CATEGORIES).map(cat => (
           <button key={cat} onClick={() => { setCategoryFilter(categoryFilter === cat ? '' : cat); setVisibleCount(10); }}
@@ -171,7 +171,7 @@ export default function NewsPage() {
           <div className="relative rounded-xl border-2 border-amber-300 dark:border-amber-600 bg-gradient-to-r from-amber-50 via-white to-amber-50 dark:from-amber-900/20 dark:via-slate-900 dark:to-amber-900/20 p-5 overflow-hidden">
             <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-amber-400 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
               <Star className="h-3.5 w-3.5 fill-white" />
-              Article populaire
+              {t('popularBadge')}
             </div>
             <Link href={`/news/${topArticle.slug}`} className="block group">
               <div className="flex items-start gap-4">
@@ -192,7 +192,7 @@ export default function NewsPage() {
                     </span>
                     <span className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
                       <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                      {topArticle._count?.views || 0} vues
+                      {topArticle._count?.views || 0} {t('viewsLabel')}
                     </span>
                   </div>
                 </div>
@@ -230,10 +230,10 @@ export default function NewsPage() {
           ) : news.length === 0 ? (
             <EmptyState
               type="news"
-              title={noa("Aucune actualité publiée", 'loading')}
-              description="Cet espace diffuse les communications officielles OMNITECH SECURITY : annonces RSSI, formations, alertes critiques et événements internes. Revenez prochainement pour découvrir les dernières nouvelles."
+              title={noa(t('emptyTitle'), 'loading')}
+              description={t('emptyDescriptionLong')}
               action={isRoleAtLeast(user?.role ?? UserRole.COLLABORATEUR, UserRole.ADMIN) ? (
-                <Link href="/news/compose"><Button size="sm"><Plus className="h-4 w-4" /> Publier une actualité</Button></Link>
+                <Link href="/news/compose"><Button size="sm"><Plus className="h-4 w-4" /> {t('publishArticle')}</Button></Link>
               ) : undefined}
             />
           ) : (
@@ -262,7 +262,7 @@ export default function NewsPage() {
                         <div className="flex items-center gap-2 mb-2">
                           {featuredPost.isPinned && (
                             <span className="inline-flex items-center gap-1 bg-primary/90 text-white text-[11px] font-medium px-2 py-0.5 rounded-full">
-                              <Pin className="h-3 w-3" /> {t('news.pinnedTag')}
+                              <Pin className="h-3 w-3" /> {t('pinnedTag')}
                             </span>
                           )}
                           {featuredPost.category && (
@@ -291,7 +291,7 @@ export default function NewsPage() {
                           {(featuredPost.viewCount ?? featuredPost._count?.views) !== undefined && (
                             <span className="flex items-center gap-1">
                               <Eye className="h-3 w-3" />
-                              {featuredPost.viewCount ?? featuredPost._count?.views} vues
+                              {featuredPost.viewCount ?? featuredPost._count?.views} {t('viewsLabel')}
                             </span>
                           )}
                         </div>
@@ -300,8 +300,8 @@ export default function NewsPage() {
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePin(featuredPost.id, !featuredPost.isPinned); }}
                           className="absolute top-3 right-3 p-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/40 transition duration-200"
-                          title={featuredPost.isPinned ? 'Désépingler' : 'Épingler'}
-                          aria-label={featuredPost.isPinned ? 'Désépingler cet article' : 'Épingler cet article'}
+                          title={featuredPost.isPinned ? t('unpinAction') : t('pinAction')}
+                          aria-label={featuredPost.isPinned ? t('unpinAriaLabel') : t('pinAriaLabel')}
                         >
                           <Pin className="h-4 w-4" />
                         </button>
@@ -316,12 +316,12 @@ export default function NewsPage() {
                 <div className="space-y-3">
                   <h2 className="text-sm font-medium text-seal-navy dark:text-white flex items-center gap-1.5">
                     <Pin className="h-4 w-4 text-primary" />
-                    {t('news.pinned')}
+                    {t('pinned')}
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {pinned.slice(1).map((post) => (
                       <div key={post.id} className="stagger-item">
-                        <NewsCard post={post} t={t} onPin={canCompose ? handlePin : undefined} />
+                        <NewsCard post={post} onPin={canCompose ? handlePin : undefined} />
                       </div>
                     ))}
                   </div>
@@ -332,19 +332,19 @@ export default function NewsPage() {
               {regular.length > 0 && (
                 <div className="space-y-3">
                   {(pinned.length > 0) && (
-                    <h2 className="text-sm font-medium text-seal-navy dark:text-white">{t('news.recent')}</h2>
+                    <h2 className="text-sm font-medium text-seal-navy dark:text-white">{t('recent')}</h2>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {regular.map((post) => (
                       <div key={post.id} className="stagger-item">
-                        <NewsCard post={post} t={t} onPin={canCompose ? handlePin : undefined} />
+                        <NewsCard post={post} onPin={canCompose ? handlePin : undefined} />
                       </div>
                     ))}
                   </div>
                   {hasMore && (
                     <div className="flex justify-center pt-2">
                       <Button variant="outline" onClick={() => setVisibleCount((prev) => prev + 10)}>
-                        Charger plus ({allRegular.length - visibleCount} restant{allRegular.length - visibleCount > 1 ? 's' : ''})
+                        {t('loadMore')} ({t('remaining', { count: allRegular.length - visibleCount })})
                       </Button>
                     </div>
                   )}
@@ -358,12 +358,12 @@ export default function NewsPage() {
         <div className="lg:col-span-1 space-y-6">
           {popular.length > 0 && (
             <Card>
-              <CardHeader><h3 className="text-sm font-semibold text-seal-navy dark:text-white">Articles populaires</h3></CardHeader>
+              <CardHeader><h3 className="text-sm font-semibold text-seal-navy dark:text-white">{t('popularSidebar')}</h3></CardHeader>
               <CardContent className="space-y-2">
                 {popular.map((article) => (
                   <Link key={article.id} href={`/news/${article.slug}`} className="block text-xs text-seal-navy dark:text-white hover:text-primary transition line-clamp-2 font-medium">
                     {article.title}
-                    <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 block mt-0.5">{article._count?.views || 0} vues</span>
+                    <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 block mt-0.5">{article._count?.views || 0} {t('viewsLabel')}</span>
                   </Link>
                 ))}
               </CardContent>
@@ -380,7 +380,8 @@ function estimateReadingTime(content: string): number {
   return Math.max(1, Math.round(wordCount / 200));
 }
 
-function NewsCard({ post, t, onPin }: { post: NewsPost; t: (key: string) => string; featured?: boolean; onPin?: (id: string, pinned: boolean) => void }) {
+function NewsCard({ post, onPin }: { post: NewsPost; featured?: boolean; onPin?: (id: string, pinned: boolean) => void }) {
+  const t = useTranslations('news');
   const initials = `${post.author.firstName[0] || ''}${post.author.lastName[0] || ''}`.toUpperCase();
   const readingTime = estimateReadingTime(post.content || '');
 
@@ -404,7 +405,7 @@ function NewsCard({ post, t, onPin }: { post: NewsPost; t: (key: string) => stri
             {post.isPinned && (
               <span className="flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
                 <Pin className="h-2.5 w-2.5 flex-shrink-0" />
-                Epingle
+                {t('pinned_short')}
               </span>
             )}
             {post.category && (
@@ -425,8 +426,8 @@ function NewsCard({ post, t, onPin }: { post: NewsPost; t: (key: string) => stri
             {onPin && (
               <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPin(post.id, !post.isPinned); }}
                 className={`ml-auto p-0.5 rounded transition duration-200 ${post.isPinned ? 'text-primary hover:text-primary/70' : 'text-seal-gray-500/30 hover:text-primary'}`}
-                title={post.isPinned ? 'Désépingler' : 'Épingler'}
-                aria-label={post.isPinned ? `Désépingler "${post.title}"` : `Épingler "${post.title}"`}
+                title={post.isPinned ? t('unpinAction') : t('pinAction')}
+                aria-label={post.isPinned ? `${t('unpinAction')} "${post.title}"` : `${t('pinAction')} "${post.title}"`}
                 aria-pressed={!!post.isPinned}>
                 <Pin className="h-3 w-3" />
               </button>
