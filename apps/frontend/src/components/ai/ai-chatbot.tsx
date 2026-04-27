@@ -337,11 +337,8 @@ async function generateResponse(
   if (q.includes("cherch") || q.includes("trouver") || q.includes("recherch")) {
     return {
       content:
-        "Utilisez la **recherche globale** (⌘K) pour trouver documents, tickets, wiki et actualités en un seul endroit. La recherche v2 (Meilisearch) offre des résultats groupés par type avec filtrage intelligent.",
-      actions: [
-        { label: "Recherche", href: "/search" },
-        { label: "Recherche avancée", href: "/search/v2" },
-      ],
+        "Utilisez la **recherche globale** (⌘K) pour trouver documents, tickets, wiki et actualités en un seul endroit. Propulsée par Meilisearch avec facettes dynamiques, typo-tolerance et latence < 50 ms.",
+      actions: [{ label: "Recherche", href: "/search" }],
     };
   }
 
