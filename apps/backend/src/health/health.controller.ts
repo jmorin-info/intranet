@@ -15,6 +15,7 @@ import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { UserRole } from "../common/enums";
 import { OfficeService } from "../office/office.service";
+import { RedisThrottlerStorage } from "../common/throttler/redis-throttler.storage";
 
 /**
  * Unified service health state contract.
@@ -53,6 +54,8 @@ export class HealthController {
     private readonly appMetrics: AppMetricsService,
     private readonly prisma: PrismaService,
     @Optional() private readonly officeService?: OfficeService,
+    @Optional()
+    private readonly throttlerStorage?: RedisThrottlerStorage,
   ) {}
 
   /**
@@ -118,6 +121,31 @@ export class HealthController {
 
       // Redis health via Bull queue connection
       result.redis = "up"; // BullMQ handles reconnection internally
+
+      // Throttler Redis storage (item 15) : ping dédié pour distinguer
+      // l'état du throttler (qui peut être en fallback in-memory) de Redis
+      // général. Utile en runbook : un opérateur veut savoir si le rate
+      // limiting reste cohérent entre les instances.
+      if (this.throttlerStorage) {
+        try {
+          const ping = await this.throttlerStorage.ping();
+          if (!ping.ok) {
+            result.throttlerRedis = "down";
+          } else if (ping.mode === "redis") {
+            result.throttlerRedis = "up";
+          } else if (ping.mode === "in-memory") {
+            // Redis indisponible mais fail-open : compteurs locaux,
+            // multi-instance INCOHÉRENT — dégradé au niveau cluster.
+            result.throttlerRedis = "degraded";
+          } else {
+            result.throttlerRedis = "down";
+          }
+        } catch {
+          result.throttlerRedis = "down";
+        }
+      } else {
+        result.throttlerRedis = "not_configured";
+      }
 
       // Check LDAP from AppConfig (not env)
       try {
@@ -265,6 +293,23 @@ export class HealthController {
 
     if (check === "redis") {
       result.redis = "up";
+    }
+
+    if (check === "throttler-redis") {
+      if (!this.throttlerStorage) {
+        result["throttler-redis"] = "not_configured";
+      } else {
+        try {
+          const ping = await this.throttlerStorage.ping();
+          result["throttler-redis"] = ping.ok
+            ? ping.mode === "redis"
+              ? "up"
+              : "degraded"
+            : "down";
+        } catch {
+          result["throttler-redis"] = "down";
+        }
+      }
     }
 
     if (check === "ldap") {
