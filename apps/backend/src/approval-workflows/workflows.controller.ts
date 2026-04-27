@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from "@nestjs/common";
 import type { DocumentCategory } from "@prisma/client";
@@ -17,6 +18,10 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { RequestUser } from "../common/interfaces";
 import { UserRole } from "../common/enums";
 import { WorkflowsService } from "./workflows.service";
+import {
+  WorkflowEngineService,
+  type WorkflowGraphInput,
+} from "./workflow-engine.service";
 import { AddStepDto } from "./dto/add-step.dto";
 import { DecideStepDto } from "./dto/decide-step.dto";
 
@@ -27,7 +32,40 @@ import { DecideStepDto } from "./dto/decide-step.dto";
 @Controller("approval-workflows")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class WorkflowsController {
-  constructor(private readonly service: WorkflowsService) {}
+  constructor(
+    private readonly service: WorkflowsService,
+    private readonly engine: WorkflowEngineService,
+  ) {}
+
+  // ---------------------------------------------------------------------------
+  // Visual graph editor (item #24)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Retourne le graphe complet (nodes + edges) d'un workflow, prêt à être
+   * consommé par l'éditeur visuel. Lecture autorisée à tout REVIEWER+.
+   */
+  @Get(":id/graph")
+  @Roles(UserRole.REVIEWER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  getGraph(@Param("id", ParseUUIDPipe) id: string) {
+    return this.engine.getGraph(id);
+  }
+
+  /**
+   * Sauvegarde le graphe complet d'un workflow. Valide la structure DAG
+   * (1 START, ≥ 1 END, pas de cycle, pas d'orphelin) avant écriture.
+   *
+   * Le body suit la forme `{ nodes: [...], edges: [...] }` (cf. type
+   * WorkflowGraphInput exporté par le service).
+   */
+  @Put(":id/graph")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  saveGraph(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() graph: WorkflowGraphInput,
+  ) {
+    return this.engine.saveGraph(id, graph);
+  }
 
   // ---------------------------------------------------------------------------
   // Templates

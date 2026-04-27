@@ -1,19 +1,34 @@
-import { Module } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
-import { WorkflowsController } from './workflows.controller';
-import { WorkflowsService } from './workflows.service';
+import { Module } from "@nestjs/common";
+import { PrismaModule } from "../prisma/prisma.module";
+import { WorkflowsController } from "./workflows.controller";
+import { WorkflowsService } from "./workflows.service";
+import { WorkflowEngineService } from "./workflow-engine.service";
+import { DelegationService } from "./delegation.service";
+import { DelegationCronService } from "./delegation-cron.service";
+import { DelegationsController } from "./delegations.controller";
 
 /**
- * ApprovalWorkflowsModule — Module scaffold pour les workflows d'approbation
- * configurables (ISO 27001 A.5.1).
+ * ApprovalWorkflowsModule — Workflows d'approbation configurables (ISO 27001
+ * A.5.1) + délégation manuelle/automatique (item #27) + éditeur visuel DAG
+ * (item #24).
  *
- * Non enregistré dans app.module.ts pour l'instant : à brancher manuellement
- * après la migration Prisma.
+ * Composants :
+ *  - WorkflowsService : CRUD templates + démarrage / décision d'instances.
+ *  - WorkflowEngineService : sérialisation / validation DAG + évaluation
+ *    runtime des transitions BRANCH (conditions JSON).
+ *  - DelegationService : création manuelle, résolution runtime, auto-délégation
+ *    + audit log.
+ *  - DelegationCronService : cron quotidien d'auto-délégation et expiration.
  */
 @Module({
   imports: [PrismaModule],
-  controllers: [WorkflowsController],
-  providers: [WorkflowsService],
-  exports: [WorkflowsService],
+  controllers: [WorkflowsController, DelegationsController],
+  providers: [
+    WorkflowsService,
+    WorkflowEngineService,
+    DelegationService,
+    DelegationCronService,
+  ],
+  exports: [WorkflowsService, WorkflowEngineService, DelegationService],
 })
 export class ApprovalWorkflowsModule {}
