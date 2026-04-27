@@ -15,6 +15,7 @@ import { Request, Response } from "express";
 import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { MfaService } from "../mfa/mfa.service";
+import { WebAuthnService } from "../mfa/webauthn.service";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { UserThrottlerGuard } from "./guards/user-throttler.guard";
 import { UserThrottle } from "./decorators/user-throttle.decorator";
@@ -47,6 +48,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
     private readonly mfaService: MfaService,
+    private readonly webauthnService: WebAuthnService,
   ) {}
 
   @Public()
@@ -73,11 +75,34 @@ export class AuthController {
     const ip = req.ip || req.socket.remoteAddress || "unknown";
     const userAgent = req.headers["user-agent"] || "unknown";
 
-    // Check if MFA is enabled for this user
-    if (user.mfaEnabled && user.mfaSecret) {
-      // If mfaCode is provided in the login request, verify it immediately
+    // Check if MFA (TOTP) ou WebAuthn est actif pour ce compte
+    const hasWebauthn = await this.webauthnService.hasCredentials(user.id);
+    const totpEnabled = user.mfaEnabled && user.mfaSecret;
+    if (totpEnabled || hasWebauthn) {
       const mfaCode = loginDto.mfaCode;
-      if (mfaCode) {
+      const webauthnResponse = loginDto.webauthnResponse;
+
+      // Branche WebAuthn — l'utilisateur a signé avec sa clé.
+      if (webauthnResponse && hasWebauthn) {
+        try {
+          await this.webauthnService.verifyAuthentication(
+            user.id,
+            webauthnResponse as any,
+            { ip, userAgent },
+          );
+        } catch (err) {
+          throw new UnauthorizedException(
+            err instanceof Error ? err.message : "WebAuthn invalide",
+          );
+        }
+        const result = await this.authService.login(user, ip, userAgent, true);
+        setRefreshTokenCookie(res, result.refreshToken);
+        setAccessTokenCookie(res, result.accessToken);
+        return result;
+      }
+
+      // Branche TOTP / backup code.
+      if (mfaCode && totpEnabled) {
         const valid = await this.mfaService.verifyMfa(user.id, mfaCode);
         if (!valid) {
           // Try backup code as fallback
@@ -103,12 +128,15 @@ export class AuthController {
         return result;
       }
 
-      // No mfaCode provided — return mfaRequired flag
-      // Do NOT issue a JWT yet
+      // Aucune réponse MFA fournie — signale au frontend les méthodes possibles.
       return {
         mfaRequired: true,
         email: user.email,
-        message: "Code MFA requis",
+        methods: {
+          totp: !!totpEnabled,
+          webauthn: hasWebauthn,
+        },
+        message: "Authentification multifacteur requise",
       };
     }
 
@@ -219,5 +247,37 @@ export class AuthController {
   @Get("me")
   async me(@CurrentUser() user: RequestUser) {
     return this.usersService.findById(user.id);
+  }
+
+  /**
+   * Wave D item 18 — récupère un challenge WebAuthn pour un utilisateur connu
+   * par email, AVANT le login. Permet le bouton "Utiliser ma clé de sécurité"
+   * dans la modale MFA. Anti-énumération : on retourne {webauthn:false} si le
+   * compte n'existe pas ou n'a pas de clé, sans révéler la cause.
+   */
+  @Public()
+  @AllowCrossSite()
+  @Post("login/webauthn-options")
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async webauthnLoginOptions(@Body() body: { email: string }) {
+    if (!body?.email) {
+      return { webauthn: false };
+    }
+    const user = await this.usersService.findByEmail(body.email).catch(() => null);
+    if (!user) return { webauthn: false };
+    const hasKeys = await this.webauthnService.hasCredentials(user.id);
+    if (!hasKeys) return { webauthn: false };
+    try {
+      const options = await this.webauthnService.generateAuthenticationOptions(
+        user.id,
+      );
+      return { webauthn: true, options };
+    } catch (err) {
+      this.logger.warn(
+        `webauthn options gen failed for ${body.email}: ${err instanceof Error ? err.message : err}`,
+      );
+      return { webauthn: false };
+    }
   }
 }
