@@ -11,20 +11,42 @@ import {
   ParseUUIDPipe,
   Res,
   BadRequestException,
+  UseInterceptors,
+  UploadedFile,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { Response } from 'express';
+import { randomBytes } from 'crypto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { CalendarService } from './calendar.service';
 import { CreateCalendarEventDto, UpdateCalendarEventDto } from './dto/create-event.dto';
+import { GoogleCalendarSyncService } from './google-calendar-sync.service';
+import { OutlookSyncService } from './outlook-sync.service';
 import { RequestUser } from '../common/interfaces';
 import { UserRole } from '../common/enums';
 
+const ICAL_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+// Mémo des states OAuth en cours (en mémoire — single-instance MVP).
+// TTL court (10 min). Pour multi-instance, utiliser Redis avec la même clé.
+const oauthStateStore = new Map<
+  string,
+  { userId: string; provider: 'GOOGLE' | 'OUTLOOK'; expiresAt: number }
+>();
+const OAUTH_STATE_TTL = 10 * 60 * 1000;
+
 @Controller('calendar')
 export class CalendarController {
-  constructor(private readonly calendarService: CalendarService) {}
+  constructor(
+    private readonly calendarService: CalendarService,
+    private readonly googleSync: GoogleCalendarSyncService,
+    private readonly outlookSync: OutlookSyncService,
+  ) {}
 
   @Get('events')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -207,5 +229,224 @@ export class CalendarController {
       'Cache-Control': 'private, max-age=300, no-store',
     });
     res.send(ics);
+  }
+
+  // ==========================================================================
+  // iCal import — Wave B item 33
+  // ==========================================================================
+
+  /**
+   * Upload un fichier .ics multipart pour import idempotent. Le `defaultUserId`
+   * est l'utilisateur authentifié (les events sans ORGANIZER sont attachés à
+   * lui). Les events avec ORGANIZER mailto: sont matchés à un user existant
+   * de l'intranet quand possible. Idempotent via VEVENT.UID → externalUid.
+   */
+  @Post('import')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: ICAL_MAX_SIZE },
+      fileFilter: (_req, file, cb) => {
+        const ok =
+          file.mimetype === 'text/calendar' ||
+          file.mimetype === 'application/octet-stream' ||
+          /\.ics$/i.test(file.originalname);
+        if (!ok) {
+          return cb(
+            new BadRequestException('Type de fichier non supporté (.ics requis)'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async importIcsFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('visibility') visibility: string | undefined,
+    @CurrentUser() user: RequestUser,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Aucun fichier .ics fourni');
+    }
+    const text = file.buffer.toString('utf8');
+    return this.calendarService.importIcs(text, {
+      defaultUserId: user.id,
+      visibility,
+    });
+  }
+
+  /**
+   * Import direct d'un body iCal text/calendar (pas multipart). Utile pour
+   * les intégrations qui produisent du iCal côté serveur (SaaS externes).
+   */
+  @Post('events/import-ical')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async importIcsBody(
+    @Body() body: { ics: string; visibility?: string },
+    @CurrentUser() user: RequestUser,
+  ) {
+    if (!body?.ics || typeof body.ics !== 'string') {
+      throw new BadRequestException('Champ "ics" requis (text/calendar)');
+    }
+    return this.calendarService.importIcs(body.ics, {
+      defaultUserId: user.id,
+      visibility: body.visibility,
+    });
+  }
+
+  // ==========================================================================
+  // Google Calendar sync (OAuth2) — Wave B item 33
+  // ==========================================================================
+
+  @Get('connect/google')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async connectGoogle(
+    @CurrentUser() user: RequestUser,
+    @Res() res: Response,
+  ) {
+    if (!this.googleSync.isConfigured()) {
+      throw new BadRequestException('Google OAuth non configuré côté serveur');
+    }
+    const state = randomBytes(24).toString('hex');
+    oauthStateStore.set(state, {
+      userId: user.id,
+      provider: 'GOOGLE',
+      expiresAt: Date.now() + OAUTH_STATE_TTL,
+    });
+    purgeOauthStates();
+    const url = this.googleSync.buildAuthorizeUrl(state);
+    res.redirect(302, url);
+  }
+
+  @Get('callback/google')
+  @Public()
+  async callbackGoogle(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Query('error') error: string,
+    @Res() res: Response,
+  ) {
+    if (error) {
+      res.status(400).send(`Google OAuth refusé : ${error}`);
+      return;
+    }
+    const stateRow = oauthStateStore.get(state);
+    if (!stateRow || stateRow.provider !== 'GOOGLE' || stateRow.expiresAt < Date.now()) {
+      throw new UnauthorizedException('Invalid or expired OAuth state');
+    }
+    oauthStateStore.delete(state);
+    await this.googleSync.handleCallback(stateRow.userId, code);
+    // Redirige vers la page UI calendar (frontend) après succès
+    const target = process.env.APP_URL
+      ? `${process.env.APP_URL.replace(/\/$/, '')}/calendar?integration=google&status=ok`
+      : '/calendar?integration=google&status=ok';
+    res.redirect(302, target);
+  }
+
+  @Delete('connect/google')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async disconnectGoogle(@CurrentUser() user: RequestUser) {
+    await this.googleSync.disconnect(user.id);
+    return { success: true };
+  }
+
+  @Post('sync/google')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async manualSyncGoogle(@CurrentUser() user: RequestUser) {
+    return this.googleSync.pullChanges(user.id);
+  }
+
+  // ==========================================================================
+  // Outlook (M365 Graph) sync — Wave B item 33
+  // ==========================================================================
+
+  @Get('connect/outlook')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async connectOutlook(
+    @CurrentUser() user: RequestUser,
+    @Res() res: Response,
+  ) {
+    if (!this.outlookSync.isConfigured()) {
+      throw new BadRequestException('Microsoft OAuth non configuré côté serveur');
+    }
+    const state = randomBytes(24).toString('hex');
+    oauthStateStore.set(state, {
+      userId: user.id,
+      provider: 'OUTLOOK',
+      expiresAt: Date.now() + OAUTH_STATE_TTL,
+    });
+    purgeOauthStates();
+    const url = this.outlookSync.buildAuthorizeUrl(state);
+    res.redirect(302, url);
+  }
+
+  @Get('callback/outlook')
+  @Public()
+  async callbackOutlook(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Query('error') error: string,
+    @Res() res: Response,
+  ) {
+    if (error) {
+      res.status(400).send(`Microsoft OAuth refusé : ${error}`);
+      return;
+    }
+    const stateRow = oauthStateStore.get(state);
+    if (!stateRow || stateRow.provider !== 'OUTLOOK' || stateRow.expiresAt < Date.now()) {
+      throw new UnauthorizedException('Invalid or expired OAuth state');
+    }
+    oauthStateStore.delete(state);
+    await this.outlookSync.handleCallback(stateRow.userId, code);
+    const target = process.env.APP_URL
+      ? `${process.env.APP_URL.replace(/\/$/, '')}/calendar?integration=outlook&status=ok`
+      : '/calendar?integration=outlook&status=ok';
+    res.redirect(302, target);
+  }
+
+  @Delete('connect/outlook')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async disconnectOutlook(@CurrentUser() user: RequestUser) {
+    await this.outlookSync.disconnect(user.id);
+    return { success: true };
+  }
+
+  @Post('sync/outlook')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async manualSyncOutlook(@CurrentUser() user: RequestUser) {
+    return this.outlookSync.pullChanges(user.id);
+  }
+
+  // ==========================================================================
+  // Status — quels providers sont connectés pour le user courant ?
+  // ==========================================================================
+
+  @Get('integrations/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async integrationsStatus(@CurrentUser() user: RequestUser) {
+    const connections = await this.calendarService.listIntegrationConnections(
+      user.id,
+    );
+    return {
+      google: {
+        configured: this.googleSync.isConfigured(),
+        connection:
+          connections.find((c) => c.provider === 'GOOGLE') ?? null,
+      },
+      outlook: {
+        configured: this.outlookSync.isConfigured(),
+        connection:
+          connections.find((c) => c.provider === 'OUTLOOK') ?? null,
+      },
+    };
+  }
+}
+
+function purgeOauthStates(): void {
+  const now = Date.now();
+  for (const [k, v] of oauthStateStore) {
+    if (v.expiresAt < now) oauthStateStore.delete(k);
   }
 }
