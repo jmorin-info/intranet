@@ -27,6 +27,7 @@ import { RequestUser } from "../common/interfaces";
 import { RagService, RagSearchContext } from "./rag.service";
 import { InputGuardService } from "./guardrails/input-guard.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { RagEvalService } from "./eval/rag-eval.service";
 
 /**
  * Contrôleur RAG / AI Search.
@@ -39,6 +40,7 @@ export class RagController {
     private readonly ragService: RagService,
     private readonly inputGuard: InputGuardService,
     private readonly prisma: PrismaService,
+    private readonly ragEvalService: RagEvalService,
   ) {}
 
   /** Pose une question au moteur RAG (avec filtrage RBAC ISO 27001 A.5.15 + guardrails P0.2). */
@@ -243,6 +245,65 @@ export class RagController {
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async reindex() {
     return this.ragService.reindexAll();
+  }
+
+  /**
+   * Item 30 — Run un benchmark RAG sur le golden dataset (admin uniquement).
+   *
+   * Le run est stocke dans `RagBenchmarkRun` (Prisma) pour suivi historique
+   * de l'evolution des metriques (recall@5, MRR, faithfulness, latence) au
+   * fil des changements de configuration.
+   *
+   * Body :
+   *  - `mode` (optional)  : label libre (defaut : derive des flags actifs)
+   *  - `evalFaithfulness` (optional, default false) : LLM-judge (couteux)
+   *  - `notes` (optional) : memo humain (changement teste, hypothese)
+   *  - `persist` (optional, default true)
+   *
+   * Throttle : 1/min/admin pour eviter de surcharger le LLM (chaque run =
+   * N appels retrieval + (optional) N appels LLM judge).
+   */
+  @Post("eval")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Throttle({ default: { limit: 1, ttl: 60_000 } })
+  async eval(
+    @Body()
+    body: {
+      mode?: string;
+      evalFaithfulness?: boolean;
+      notes?: string;
+      persist?: boolean;
+    } = {},
+    @CurrentUser() user: RequestUser,
+  ) {
+    const adminCtx: RagSearchContext = {
+      userId: user.id,
+      role: user.role,
+      departmentId: user.departmentId,
+    };
+    return this.ragEvalService.runEval({
+      mode: body.mode,
+      evalFaithfulness: body.evalFaithfulness ?? false,
+      notes: body.notes,
+      persist: body.persist ?? true,
+      adminCtx,
+    });
+  }
+
+  /**
+   * Item 30 — Liste les derniers runs de benchmark (admin uniquement).
+   * Permet de comparer les metriques au fil du temps via une UI simple.
+   */
+  @Get("eval/history")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async evalHistory() {
+    const runs = await this.prisma.ragBenchmarkRun
+      .findMany({
+        orderBy: { runAt: "desc" },
+        take: 50,
+      })
+      .catch(() => []);
+    return { runs };
   }
 
   /** Statistiques (chunks par type, dernières requêtes). */
