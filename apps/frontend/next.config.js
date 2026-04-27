@@ -117,6 +117,13 @@ const nextConfig = {
         destination: "/admin/access?tab=users",
         permanent: false,
       },
+      // Fusion search v1 (Postgres) + search/v2 (Meili) → /search unifie
+      // cf. docs/search/UNIFIED_SEARCH.md (vague A post-launch v1.1)
+      {
+        source: "/search/v2",
+        destination: "/search",
+        permanent: true,
+      },
     ];
   },
 };
