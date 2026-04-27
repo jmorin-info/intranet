@@ -57,11 +57,21 @@ export class MfaRequiredGuard implements CanActivate {
     // doit prendre effet au prochain appel sans attendre l'expiration du JWT.
     const dbUser = await this.prisma.user.findUnique({
       where: { id: user.id },
-      select: { mfaRequired: true, mfaEnabled: true },
+      select: {
+        mfaRequired: true,
+        mfaEnabled: true,
+        // Wave D item 18 — WebAuthn enrollment compte aussi comme MFA actif
+        // (compat OR avec TOTP). Si l'utilisateur a au moins 1 credential, la
+        // politique mfaRequired est considérée satisfaite.
+        _count: { select: { webauthnCredentials: true } },
+      },
     });
     if (!dbUser) return true;
 
-    if (dbUser.mfaRequired === true && dbUser.mfaEnabled !== true) {
+    const hasWebauthn = (dbUser._count?.webauthnCredentials ?? 0) > 0;
+    const isEnrolled = dbUser.mfaEnabled === true || hasWebauthn;
+
+    if (dbUser.mfaRequired === true && !isEnrolled) {
       this.logger.warn(
         `Blocked request from user ${user.id} — MFA policy enforced but not enrolled (path: ${req.method} ${req.url})`,
       );

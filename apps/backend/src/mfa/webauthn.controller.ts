@@ -6,11 +6,12 @@ import {
   Body,
   Param,
   Req,
+  Res,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from "@nestjs/common";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 import { Throttle } from "@nestjs/throttler";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { UserThrottlerGuard } from "../auth/guards/user-throttler.guard";
@@ -19,6 +20,10 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { RequestUser } from "../common/interfaces";
 import { SkipMfaCheck } from "./decorators/skip-mfa-check.decorator";
 import { WebAuthnService } from "./webauthn.service";
+import { AuthService } from "../auth/auth.service";
+import { PrismaService } from "../prisma/prisma.service";
+import { UserRole } from "../common/enums";
+import { setAccessTokenCookie } from "../common/cookies.util";
 import {
   VerifyWebAuthnRegistrationDto,
   VerifyWebAuthnAuthenticationDto,
@@ -42,7 +47,11 @@ import type {
 @UseGuards(JwtAuthGuard)
 @SkipMfaCheck()
 export class WebAuthnController {
-  constructor(private readonly webauthnService: WebAuthnService) {}
+  constructor(
+    private readonly webauthnService: WebAuthnService,
+    private readonly authService: AuthService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Post("register/options")
   @HttpCode(HttpStatus.OK)
@@ -83,16 +92,52 @@ export class WebAuthnController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(UserThrottlerGuard)
   @UserThrottle({ limit: 10, ttl: 60_000 })
-  authenticateVerify(
+  async authenticateVerify(
     @CurrentUser() user: RequestUser,
     @Body() body: VerifyWebAuthnAuthenticationDto,
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.webauthnService.verifyAuthentication(
+    const result = await this.webauthnService.verifyAuthentication(
       user.id,
       body.response as unknown as AuthenticationResponseJSON,
       this.getCtx(req),
     );
+
+    // Mêmes effets de bord que `/mfa/revalidate` : sur succès, on signe un
+    // nouveau JWT avec `mfaValidatedAt = now` (FreshMfaGuard 12 h) et on met
+    // à jour les refresh tokens actifs pour propager l'état entre devices.
+    const now = Date.now();
+    await this.prisma.refreshToken.updateMany({
+      where: {
+        userId: user.id,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: { mfaValidatedAt: new Date(now) },
+    });
+
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, role: true, departmentId: true },
+    });
+    if (dbUser) {
+      const accessToken = this.authService.generateAccessToken({
+        sub: dbUser.id,
+        email: dbUser.email,
+        role: dbUser.role as UserRole,
+        departmentId: dbUser.departmentId ?? undefined,
+        mfaValidatedAt: now,
+      });
+      setAccessTokenCookie(res, accessToken);
+      return {
+        ...result,
+        accessToken,
+        mfaValidatedAt: now,
+      };
+    }
+
+    return { ...result, mfaValidatedAt: now };
   }
 
   @Get("credentials")

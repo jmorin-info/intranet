@@ -196,7 +196,7 @@ export class MfaController {
 
   @Get("status")
   async status(@CurrentUser() user: RequestUser) {
-    const [mfaEnabled, fullUser] = await Promise.all([
+    const [mfaEnabled, fullUser, webauthnCount] = await Promise.all([
       this.mfaService.isMfaRequired(user.id),
       this.prisma.user.findUnique({
         where: { id: user.id },
@@ -206,11 +206,15 @@ export class MfaController {
           chartesAcceptedAt: true,
         },
       }),
+      this.prisma.webAuthnCredential.count({ where: { userId: user.id } }),
     ]);
     return {
       mfaEnabled,
       lastLoginAt: fullUser?.lastLoginAt,
       chartesAcceptedAt: fullUser?.chartesAcceptedAt,
+      // Wave D item 18 — état WebAuthn (compat OR avec TOTP)
+      webauthnEnabled: webauthnCount > 0,
+      webauthnCount,
     };
   }
 
