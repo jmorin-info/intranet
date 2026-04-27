@@ -1,0 +1,77 @@
+# =============================================================================
+# etcd v3 — DCS pour Patroni (OMNITECH Intranet HA)
+# =============================================================================
+# Cluster 3 nœuds (quorum = 2). Le DCS doit être totalement séparé du Postgres
+# applicatif : les 3 nœuds etcd peuvent être co-hébergés avec Patroni mais en
+# pratique on conseille machines séparées (ou au moins disques séparés) pour
+# éviter qu'un I/O storm Postgres bloque le consensus etcd.
+#
+# Variables à substituer (envsubst) sur chaque nœud :
+#   {{NODE_NAME}}    ex: etcd-node-1
+#   {{NODE_IP}}      ex: 10.33.120.51
+#   {{INITIAL_CLUSTER}} ex: etcd-node-1=https://10.33.120.51:2380,...
+# =============================================================================
+
+# Identifiant unique du nœud
+name: '{{NODE_NAME}}'
+data-dir: /var/lib/etcd
+wal-dir: /var/lib/etcd/wal
+
+# === Listening (clients & peers) ===
+# Client API : 2379 — utilisé par Patroni et patronictl
+# Peer API   : 2380 — communication interne du cluster (Raft consensus)
+listen-client-urls: https://0.0.0.0:2379
+advertise-client-urls: https://{{NODE_IP}}:2379
+
+listen-peer-urls: https://0.0.0.0:2380
+initial-advertise-peer-urls: https://{{NODE_IP}}:2380
+
+# === Cluster bootstrap ===
+# IMPORTANT : `initial-cluster-state: new` UNIQUEMENT au tout premier démarrage
+# Une fois le cluster formé, basculer à `existing` (idempotent).
+initial-cluster: '{{INITIAL_CLUSTER}}'
+initial-cluster-token: omnitech-etcd-cluster
+initial-cluster-state: new
+
+# === TLS — mTLS recommandé en prod ===
+client-transport-security:
+  cert-file: /etc/etcd/certs/server.crt
+  key-file: /etc/etcd/certs/server.key
+  client-cert-auth: true
+  trusted-ca-file: /etc/etcd/certs/ca.crt
+  auto-tls: false
+
+peer-transport-security:
+  cert-file: /etc/etcd/certs/peer.crt
+  key-file: /etc/etcd/certs/peer.key
+  peer-client-cert-auth: true
+  trusted-ca-file: /etc/etcd/certs/ca.crt
+  auto-tls: false
+
+# === Performance / quotas ===
+# Quota backend max (8GB par défaut suffisant pour DCS Patroni)
+quota-backend-bytes: 8589934592
+auto-compaction-mode: periodic
+auto-compaction-retention: '24h'
+max-request-bytes: 1572864
+
+# === Snapshots ===
+snapshot-count: 100000
+
+# === Logs ===
+logger: zap
+log-outputs: ['/var/log/etcd/etcd.log']
+log-level: info
+
+# === Heartbeat / élection ===
+# heartbeat-interval (ms) — fréquence des heartbeats du leader vers followers
+# election-timeout (ms)   — délai avant qu'un follower ne déclenche élection
+# Ratio recommandé : election-timeout >= 5x heartbeat-interval
+heartbeat-interval: 100
+election-timeout: 1000
+
+# === Pré-vote (réduit risque split-brain) ===
+pre-vote: true
+
+# === Strict reconfig check ===
+strict-reconfig-check: true

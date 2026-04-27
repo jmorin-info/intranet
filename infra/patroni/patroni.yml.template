@@ -1,0 +1,150 @@
+# =============================================================================
+# Patroni — OMNITECH Intranet HA Postgres (item 19 Wave D)
+# =============================================================================
+# Template à instancier sur chaque nœud (patroni-node1.yml, etc.)
+# Variables à substituer (sed/envsubst) :
+#   {{NODE_NAME}}      ex: pg-node-1
+#   {{NODE_IP}}        ex: 10.33.120.51
+#   {{ETCD_HOSTS}}     ex: 10.33.120.51:2379,10.33.120.52:2379,10.33.120.53:2379
+#   {{REPL_PASSWORD}}  généré : openssl rand -base64 32
+#   {{ADMIN_PASSWORD}} généré : openssl rand -base64 32
+#   {{POSTGRES_PASSWORD}} (compte applicatif intranet)
+# =============================================================================
+
+scope: omnitech-intranet
+namespace: /service/
+name: {{NODE_NAME}}
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: {{NODE_IP}}:8008
+  # Auth pour les commandes destructives via patronictl (failover, reinit, restart)
+  authentication:
+    username: patroni
+    password: '{{ADMIN_PASSWORD}}'
+
+# === DCS (Distributed Configuration Store) ===
+# etcd cluster v3 — 3 nœuds minimum pour quorum
+etcd3:
+  hosts: {{ETCD_HOSTS}}
+  protocol: https
+  cacert: /etc/patroni/certs/etcd-ca.crt
+  cert: /etc/patroni/certs/patroni-client.crt
+  key: /etc/patroni/certs/patroni-client.key
+
+# === Bootstrap ===
+# Configuration appliquée UNE SEULE FOIS lors du premier démarrage cluster
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576  # 1MB max lag pour devenir leader
+    master_start_timeout: 300
+    synchronous_mode: false  # async par défaut ; activer pour zero-data-loss
+    synchronous_mode_strict: false
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        # === Tuning Postgres production (intranet ~100 users) ===
+        max_connections: 200
+        shared_buffers: 2GB
+        effective_cache_size: 6GB
+        work_mem: 16MB
+        maintenance_work_mem: 512MB
+        wal_buffers: 16MB
+        wal_level: replica
+        hot_standby: 'on'
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_keep_size: 1GB
+        archive_mode: 'on'
+        archive_command: 'test ! -f /var/lib/postgresql/wal-archive/%f && cp %p /var/lib/postgresql/wal-archive/%f'
+        # Performance / observability
+        random_page_cost: 1.1  # SSD
+        effective_io_concurrency: 200  # SSD
+        log_min_duration_statement: 500
+        log_checkpoints: 'on'
+        log_connections: 'on'
+        log_disconnections: 'on'
+        log_lock_waits: 'on'
+        log_temp_files: 0
+        log_autovacuum_min_duration: 0
+        # Réplication / failover
+        hot_standby_feedback: 'on'
+        synchronous_commit: 'on'
+        # Crypto / sécurité
+        ssl: 'on'
+        ssl_cert_file: /etc/postgresql/certs/server.crt
+        ssl_key_file: /etc/postgresql/certs/server.key
+        ssl_ca_file: /etc/postgresql/certs/ca.crt
+        password_encryption: scram-sha-256
+
+  # Création du superuser et du compte de réplication au premier bootstrap
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+    - locale: fr_FR.UTF-8
+
+  pg_hba:
+    # Replication interne (chiffrée TLS, scram-sha-256)
+    - hostssl replication replicator 10.33.120.0/24 scram-sha-256
+    - hostssl replication replicator 127.0.0.1/32 scram-sha-256
+    # App backend (passe par la VIP keepalived 10.33.120.50)
+    - hostssl all omnitech 10.33.120.0/24 scram-sha-256
+    - hostssl all all 127.0.0.1/32 scram-sha-256
+    # Patroni superuser (admin)
+    - host all postgres 10.33.120.0/24 scram-sha-256
+
+  users:
+    admin:
+      password: '{{ADMIN_PASSWORD}}'
+      options:
+        - createrole
+        - createdb
+    omnitech:
+      password: '{{POSTGRES_PASSWORD}}'
+      options:
+        - createdb
+
+# === Postgres local ===
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: {{NODE_IP}}:5432
+  data_dir: /var/lib/postgresql/16/main
+  bin_dir: /usr/lib/postgresql/16/bin
+  config_dir: /etc/postgresql/16/main
+  pgpass: /tmp/pgpass0
+  authentication:
+    replication:
+      username: replicator
+      password: '{{REPL_PASSWORD}}'
+    superuser:
+      username: postgres
+      password: '{{ADMIN_PASSWORD}}'
+    rewind:
+      username: rewind_user
+      password: '{{ADMIN_PASSWORD}}'
+  parameters:
+    unix_socket_directories: '/var/run/postgresql'
+
+# Tags spécifiques par nœud (à surcharger dans patroni-nodeN.yml)
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false
+
+# === Watchdog (recommandé en prod — kill node si Patroni hang) ===
+watchdog:
+  mode: required
+  device: /dev/watchdog
+  safety_margin: 5
+
+# === Log ===
+log:
+  level: INFO
+  dir: /var/log/patroni
+  file_num: 14
+  file_size: 25000000  # 25MB rotation
