@@ -376,7 +376,7 @@ function AddPermissionDialog({
                 className={`px-3 py-2 rounded-btn text-sm border transition-colors ${
                   targetType === t
                     ? "bg-seal-navy text-white border-seal-navy"
-                    : "bg-white border-gray-200 text-seal-gray-700 hover:bg-gray-50"
+                    : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-seal-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
                 }`}
               >
                 {t === "user"

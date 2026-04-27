@@ -735,7 +735,7 @@ export default function NewDocumentPage() {
                           setIsPermanent(e.target.checked);
                           if (e.target.checked) setValue('nextReviewDate', '');
                         }}
-                        className="h-3.5 w-3.5 rounded border-gray-300"
+                        className="h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900"
                       />
                       Document permanent (pas de date de revue)
                     </label>
@@ -745,7 +745,7 @@ export default function NewDocumentPage() {
                       <input
                         type="checkbox"
                         {...register('isPublic')}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary"
                       />
                       <span className="text-sm text-seal-navy dark:text-white">{t('documents.new.isPublic')}</span>
                     </label>
@@ -869,7 +869,7 @@ export default function NewDocumentPage() {
                       type="checkbox"
                       checked={directPublish}
                       onChange={(e) => setDirectPublish(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900"
                     />
                     <div className="flex-1">
                       <p className="text-[13px] font-semibold text-amber-800 dark:text-amber-200">

@@ -93,7 +93,7 @@ export function DocumentRejectionDialog({
                               else next.add(item.key);
                               onSuggestionsChange(next);
                             }}
-                            className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary"
+                            className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary"
                           />
                           <span
                             className={`text-xs leading-snug ${checked ? "text-seal-navy dark:text-white font-medium" : "text-seal-gray-500 dark:text-slate-400"}`}

@@ -197,13 +197,13 @@ function ShareRow({
         ? "Quota atteint"
         : "Actif";
   const statusColor = share.revokedAt
-    ? "bg-rose-100 text-rose-800"
+    ? "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300"
     : expired || exhausted
-      ? "bg-gray-200 text-gray-700"
-      : "bg-emerald-100 text-emerald-800";
+      ? "bg-gray-200 text-gray-700 dark:bg-slate-700 dark:text-slate-300"
+      : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
 
   return (
-    <li className="rounded-card border border-gray-100 bg-white dark:bg-slate-900 dark:border-slate-700 p-3">
+    <li className="rounded-card border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <Badge className={statusColor}>{status}</Badge>

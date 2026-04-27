@@ -392,7 +392,7 @@ export default function ComposeNewsPage() {
                           setSelectedRoles((prev) => prev.filter((r) => r !== role));
                         }
                       }}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary"
                     />
                     <span className="text-sm text-seal-navy dark:text-white">{role}</span>
                   </label>
@@ -405,7 +405,7 @@ export default function ComposeNewsPage() {
                 <input
                   type="checkbox"
                   {...register('isPinned')}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary"
                 />
                 <span className="text-sm text-seal-navy dark:text-white">{t('newsCompose.pinTop')}</span>
               </label>
@@ -413,7 +413,7 @@ export default function ComposeNewsPage() {
                 <input
                   type="checkbox"
                   {...register('isPublished')}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary"
                 />
                 <span className="text-sm text-seal-navy dark:text-white">{t('newsCompose.publishNow')}</span>
               </label>
@@ -422,7 +422,7 @@ export default function ComposeNewsPage() {
                   type="checkbox"
                   checked={notifyOnPublish}
                   onChange={(e) => setNotifyOnPublish(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500"
+                  className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-amber-500 focus:ring-amber-500"
                 />
                 <span className="text-sm text-seal-navy dark:text-white">Publier et notifier</span>
                 <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">(envoie une notification a tous les utilisateurs)</span>

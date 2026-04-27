@@ -184,7 +184,7 @@ export default function ExternalContactsPage() {
               <Input label="Email" value={newContact.email} onChange={e => setNewContact(c => ({ ...c, email: e.target.value }))} placeholder="contact@example.com" />
               <Input label="Téléphone" value={newContact.phone} onChange={e => setNewContact(c => ({ ...c, phone: e.target.value }))} placeholder="+33 1 23 45 67 89" />
               <div className="flex items-center gap-2 self-end pb-1">
-                <input type="checkbox" id="onCall" checked={newContact.onCall} onChange={e => setNewContact(c => ({ ...c, onCall: e.target.checked }))} className="rounded border-gray-300" />
+                <input type="checkbox" id="onCall" checked={newContact.onCall} onChange={e => setNewContact(c => ({ ...c, onCall: e.target.checked }))} className="rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900" />
                 <label htmlFor="onCall" className="text-xs font-semibold text-seal-navy dark:text-white">Astreinte</label>
               </div>
             </div>

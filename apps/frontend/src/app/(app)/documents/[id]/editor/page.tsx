@@ -89,7 +89,7 @@ function getFormatInfo(ext: string): { label: string; color: string } {
   if (/^docx?$/.test(e) || e === 'odt' || e === 'rtf') return { label: 'Word', color: 'text-blue-600' };
   if (/^xlsx?$/.test(e) || e === 'ods' || e === 'csv') return { label: 'Excel', color: 'text-emerald-600' };
   if (/^pptx?$/.test(e) || e === 'odp') return { label: 'PowerPoint', color: 'text-orange-600' };
-  if (e === 'txt') return { label: 'Texte', color: 'text-gray-600' };
+  if (e === 'txt') return { label: 'Texte', color: 'text-gray-600 dark:text-slate-400' };
   return { label: ext.toUpperCase(), color: 'text-primary' };
 }
 
