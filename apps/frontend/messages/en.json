@@ -211,6 +211,67 @@
       "home": "Dashboard"
     }
   },
+  "admin": {
+    "title": "Administration",
+    "subtitle": "Users, compliance, content and infrastructure.",
+    "footer": {
+      "title": "OMNITECH Intranet — Administration hub",
+      "viewChangelog": "View changelog"
+    },
+    "stats": {
+      "users": "Users",
+      "documents": "Documents",
+      "tickets": "Tickets",
+      "systemHealth": "System health",
+      "healthOk": "OK",
+      "healthDegraded": "Degraded",
+      "healthLoading": "..."
+    },
+    "sections": {
+      "users": {
+        "title": "Users & Access",
+        "subtitle": "Identities, roles, access reviews."
+      },
+      "compliance": {
+        "title": "Compliance & Audit",
+        "subtitle": "Traceability, ISO controls, CISO."
+      },
+      "content": {
+        "title": "Content & Data",
+        "subtitle": "Policies, content and exports."
+      },
+      "infra": {
+        "title": "Infrastructure & Ops",
+        "subtitle": "Platform and system."
+      }
+    },
+    "items": {
+      "users": { "title": "Users", "description": "Accounts, roles, CSV import." },
+      "departments": { "title": "Departments", "description": "Organisational structure." },
+      "ldapPending": { "title": "LDAP validation", "description": "AD accounts pending approval." },
+      "accessReviews": { "title": "Access reviews", "description": "ISO 27001 A.5.18 campaigns." },
+      "externalAccess": { "title": "External access", "description": "Contractors and temporary accounts." },
+      "onboarding": { "title": "Onboarding", "description": "Integration journey." },
+      "audit": { "title": "Audit", "description": "Log + timeline (ISO 27001 A.5.36)." },
+      "compliance": { "title": "ISO compliance", "description": "Frameworks, controls, planning." },
+      "adAudit": { "title": "AD audit", "description": "Active Directory analysis." },
+      "rssiDashboard": { "title": "CISO dashboard", "description": "Aggregated view of risks and audits." },
+      "chartes": { "title": "Policies", "description": "Versioning + signature campaigns." },
+      "signatures": { "title": "Signatures", "description": "DocuSeal signatures dashboard." },
+      "workflows": { "title": "Approval workflows", "description": "Documents under review." },
+      "feedback": { "title": "Reviews & satisfaction surveys", "description": "Employee testimonial moderation + satisfaction survey results + new survey creation." },
+      "media": { "title": "Media library", "description": "Photo & video albums, visibility management, download analytics." },
+      "reports": { "title": "Reports", "description": "Analytical exports." },
+      "itExports": { "title": "IT exports", "description": "Veeam and other infra sources." },
+      "backups": { "title": "Backups", "description": "Scheduled backup jobs." },
+      "config": { "title": "Configuration", "description": "SMTP, access matrix, global settings." },
+      "systemHealth": { "title": "System health", "description": "Status checks, live diagnostics." },
+      "systemMonitoring": { "title": "System monitoring", "description": "CPU, RAM, disk + intranet usage + storage per user." },
+      "spaces": { "title": "Spaces & modules", "description": "Module activation per space." },
+      "ticketSpaces": { "title": "Ticketing spaces", "description": "Ticketing workspaces + members (user/role/dept) management." },
+      "certificates": { "title": "Certificates", "description": "Training / authorisation certificates." }
+    }
+  },
   "tickets": {
     "title": "Ticket Space",
     "subtitle": "Manage IT requests, incidents and queries within your scope.",

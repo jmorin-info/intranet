@@ -17,6 +17,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { LucideIcon } from 'lucide-react';
 import {
   Cog,
@@ -48,7 +49,6 @@ import { isRoleAtLeast, UserRole } from '@omnitech/shared';
 import { useAuthStore } from '@/stores/auth-store';
 import { features } from '@/lib/features';
 import { api } from '@/lib/api';
-import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 // -----------------------------------------------------------------------------
@@ -56,8 +56,8 @@ import { cn } from '@/lib/utils';
 // -----------------------------------------------------------------------------
 
 interface AdminItem {
-  title: string;
-  description: string;
+  /** Clé i18n sous admin.items (ex: 'users' → admin.items.users.title). */
+  key: string;
   href: string;
   icon: LucideIcon;
   minRole: UserRole;
@@ -67,8 +67,6 @@ interface AdminItem {
 
 interface AdminSection {
   id: 'users' | 'compliance' | 'content' | 'infra';
-  title: string;
-  subtitle: string;
   /** Couleur accent hex (charte SEAL). */
   accent: string;
   icon: LucideIcon;
@@ -90,62 +88,54 @@ function buildSections(): AdminSection[] {
   return [
     {
       id: 'users',
-      title: 'Users & Access',
-      subtitle: 'Identités, rôles, revues d\'accès.',
       accent: '#296DC1', // SEAL blue
       icon: UserCog,
       items: [
-        { title: 'Utilisateurs', description: 'Comptes, rôles, import CSV.', href: '/admin/users', icon: Users, minRole: UserRole.ADMIN },
-        { title: 'Départements', description: 'Structure organisationnelle.', href: '/admin/departments', icon: Building2, minRole: UserRole.ADMIN },
-        { title: 'Validation LDAP', description: 'Comptes AD en attente d\'approbation.', href: '/admin/ldap-pending', icon: UserCheck2, minRole: UserRole.ADMIN },
-        { title: 'Revue d\'accès', description: 'Campagnes ISO 27001 A.5.18.', href: '/admin/access-reviews', icon: ShieldCheck, minRole: UserRole.SUPER_ADMIN },
-        { title: 'Accès externes', description: 'Prestataires et comptes temporaires.', href: '/admin/external-access', icon: Globe2, minRole: UserRole.ADMIN },
-        { title: 'Onboarding', description: 'Parcours d\'intégration.', href: '/admin/onboarding', icon: Users, minRole: UserRole.ADMIN, flag: features.onboardingAdmin },
+        { key: 'users', href: '/admin/users', icon: Users, minRole: UserRole.ADMIN },
+        { key: 'departments', href: '/admin/departments', icon: Building2, minRole: UserRole.ADMIN },
+        { key: 'ldapPending', href: '/admin/ldap-pending', icon: UserCheck2, minRole: UserRole.ADMIN },
+        { key: 'accessReviews', href: '/admin/access-reviews', icon: ShieldCheck, minRole: UserRole.SUPER_ADMIN },
+        { key: 'externalAccess', href: '/admin/external-access', icon: Globe2, minRole: UserRole.ADMIN },
+        { key: 'onboarding', href: '/admin/onboarding', icon: Users, minRole: UserRole.ADMIN, flag: features.onboardingAdmin },
       ],
     },
     {
       id: 'compliance',
-      title: 'Compliance & Audit',
-      subtitle: 'Traçabilité, contrôles ISO, RSSI.',
       accent: '#892034', // SEAL bordeaux
       icon: ShieldCheck,
       items: [
-        { title: 'Audit', description: 'Journal + chronologie (ISO 27001 A.5.36).', href: '/admin/audit', icon: ClipboardList, minRole: UserRole.ADMIN },
-        { title: 'Conformité ISO', description: 'Référentiels, contrôles, planning.', href: '/admin/compliance', icon: ShieldCheck, minRole: UserRole.REVIEWER },
-        { title: 'Audit AD', description: 'Analyse Active Directory.', href: '/admin/ad-audit', icon: ShieldAlert, minRole: UserRole.ADMIN },
-        { title: 'Dashboard RSSI', description: 'Vue agrégée risques + audits.', href: '/admin/rssi-dashboard', icon: BarChart3, minRole: UserRole.SUPER_ADMIN },
+        { key: 'audit', href: '/admin/audit', icon: ClipboardList, minRole: UserRole.ADMIN },
+        { key: 'compliance', href: '/admin/compliance', icon: ShieldCheck, minRole: UserRole.REVIEWER },
+        { key: 'adAudit', href: '/admin/ad-audit', icon: ShieldAlert, minRole: UserRole.ADMIN },
+        { key: 'rssiDashboard', href: '/admin/rssi-dashboard', icon: BarChart3, minRole: UserRole.SUPER_ADMIN },
       ],
     },
     {
       id: 'content',
-      title: 'Content & Data',
-      subtitle: 'Politiques, contenus et exports.',
       accent: '#F9964A', // SEAL orange
       icon: FileText,
       items: [
-        { title: 'Chartes', description: 'Versionning + campagnes de signature.', href: '/admin/chartes', icon: Shield, minRole: UserRole.ADMIN },
-        { title: 'Signatures', description: 'Dashboard signatures DocuSeal.', href: '/admin/signatures', icon: PenLine, minRole: UserRole.ADMIN },
-        { title: 'Workflows d\'approbation', description: 'Documents en revue.', href: '/admin/workflows', icon: Layers, minRole: UserRole.REVIEWER },
-        { title: 'Avis & enquêtes satisfaction', description: 'Modération des témoignages collaborateurs + résultats des enquêtes de satisfaction + création de nouvelles enquêtes.', href: '/admin/feedback', icon: MessageCircle, minRole: UserRole.ADMIN },
-        { title: 'Médiathèque', description: 'Albums photos & vidéos, gestion visibilité, analytics téléchargements.', href: '/admin/media', icon: Camera, minRole: UserRole.ADMIN },
-        { title: 'Rapports', description: 'Exports analytiques.', href: '/admin/reports', icon: BarChart3, minRole: UserRole.ADMIN },
-        { title: 'Exports IT', description: 'Veeam et autres sources infra.', href: '/admin/it-exports', icon: ClipboardCheck, minRole: UserRole.ADMIN },
-        { title: 'Sauvegardes', description: 'Jobs de backup planifiés.', href: '/admin/backups', icon: HardDrive, minRole: UserRole.SUPER_ADMIN },
+        { key: 'chartes', href: '/admin/chartes', icon: Shield, minRole: UserRole.ADMIN },
+        { key: 'signatures', href: '/admin/signatures', icon: PenLine, minRole: UserRole.ADMIN },
+        { key: 'workflows', href: '/admin/workflows', icon: Layers, minRole: UserRole.REVIEWER },
+        { key: 'feedback', href: '/admin/feedback', icon: MessageCircle, minRole: UserRole.ADMIN },
+        { key: 'media', href: '/admin/media', icon: Camera, minRole: UserRole.ADMIN },
+        { key: 'reports', href: '/admin/reports', icon: BarChart3, minRole: UserRole.ADMIN },
+        { key: 'itExports', href: '/admin/it-exports', icon: ClipboardCheck, minRole: UserRole.ADMIN },
+        { key: 'backups', href: '/admin/backups', icon: HardDrive, minRole: UserRole.SUPER_ADMIN },
       ],
     },
     {
       id: 'infra',
-      title: 'Infrastructure & Ops',
-      subtitle: 'Plateforme et système.',
       accent: '#006233', // SEAL green
       icon: Cog,
       items: [
-        { title: 'Configuration', description: 'SMTP, matrice d\'accès, paramètres globaux.', href: '/admin/config', icon: Settings, minRole: UserRole.SUPER_ADMIN },
-        { title: 'Santé système', description: 'Status checks, diagnostics live.', href: '/admin/system-health', icon: HeartPulse, minRole: UserRole.ADMIN },
-        { title: 'Monitoring système', description: 'CPU, RAM, disque + utilisation intranet + stockage par utilisateur.', href: '/admin/system-monitoring', icon: Activity, minRole: UserRole.ADMIN },
-        { title: 'Spaces & modules', description: 'Activation des modules par espace.', href: '/admin/spaces', icon: Layers, minRole: UserRole.SUPER_ADMIN },
-        { title: 'Espaces de ticketing', description: 'Workspaces ticketing + gestion des membres (user/rôle/dept).', href: '/admin/ticket-spaces', icon: Ticket, minRole: UserRole.ADMIN },
-        { title: 'Certificats', description: 'Attestations formation / habilitation.', href: '/admin/certificates', icon: Award, minRole: UserRole.ADMIN },
+        { key: 'config', href: '/admin/config', icon: Settings, minRole: UserRole.SUPER_ADMIN },
+        { key: 'systemHealth', href: '/admin/system-health', icon: HeartPulse, minRole: UserRole.ADMIN },
+        { key: 'systemMonitoring', href: '/admin/system-monitoring', icon: Activity, minRole: UserRole.ADMIN },
+        { key: 'spaces', href: '/admin/spaces', icon: Layers, minRole: UserRole.SUPER_ADMIN },
+        { key: 'ticketSpaces', href: '/admin/ticket-spaces', icon: Ticket, minRole: UserRole.ADMIN },
+        { key: 'certificates', href: '/admin/certificates', icon: Award, minRole: UserRole.ADMIN },
       ],
     },
   ];
@@ -157,13 +147,14 @@ function buildSections(): AdminSection[] {
 
 const STAT_ITEMS: Array<{
   key: keyof Omit<QuickStats, 'systemHealth'>;
-  label: string;
+  /** Clé i18n sous admin.stats. */
+  labelKey: 'users' | 'documents' | 'tickets';
   icon: LucideIcon;
   bg: string;
 }> = [
-  { key: 'totalUsers',     label: 'Utilisateurs', icon: Users,    bg: 'bg-seal-blue/10 text-seal-blue' },
-  { key: 'totalDocuments', label: 'Documents',    icon: FileText, bg: 'bg-seal-green/10 text-seal-green' },
-  { key: 'totalTickets',   label: 'Tickets',      icon: Ticket,   bg: 'bg-seal-orange/10 text-seal-orange' },
+  { key: 'totalUsers',     labelKey: 'users',     icon: Users,    bg: 'bg-seal-blue/10 text-seal-blue' },
+  { key: 'totalDocuments', labelKey: 'documents', icon: FileText, bg: 'bg-seal-green/10 text-seal-green' },
+  { key: 'totalTickets',   labelKey: 'tickets',   icon: Ticket,   bg: 'bg-seal-orange/10 text-seal-orange' },
 ];
 
 // -----------------------------------------------------------------------------
@@ -171,7 +162,7 @@ const STAT_ITEMS: Array<{
 // -----------------------------------------------------------------------------
 
 export default function AdminLandingPage() {
-  const { t: _t } = useTranslation();
+  const t = useTranslations('admin');
   const user = useAuthStore((s) => s.user);
   const sections = useMemo(() => buildSections(), []);
   const [stats, setStats] = useState<QuickStats>({
@@ -214,9 +205,9 @@ export default function AdminLandingPage() {
       : stats.systemHealth === 'degraded' ? 'bg-seal-orange/10'
         : 'bg-seal-gray-100';
   const healthLabel =
-    stats.systemHealth === 'ok' ? 'OK'
-      : stats.systemHealth === 'degraded' ? 'Dégradé'
-        : '...';
+    stats.systemHealth === 'ok' ? t('stats.healthOk')
+      : stats.systemHealth === 'degraded' ? t('stats.healthDegraded')
+        : t('stats.healthLoading');
 
   // Filtrage RBAC + feature flag
   const visibleSections = useMemo(() => {
@@ -241,17 +232,17 @@ export default function AdminLandingPage() {
         </span>
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-seal-gray-600 dark:text-white">
-            Administration
+            {t('title')}
           </h1>
           <p className="text-sm text-seal-gray-400 dark:text-slate-400 mt-1">
-            Utilisateurs, conformité, contenu et infrastructure.
+            {t('subtitle')}
           </p>
         </div>
       </header>
 
       {/* Stats compactes */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        {STAT_ITEMS.map(({ key, label, icon: Icon, bg }) => (
+        {STAT_ITEMS.map(({ key, labelKey, icon: Icon, bg }) => (
           <div
             key={key}
             className="stagger-item flex items-center gap-3 p-4 rounded-xl border border-seal-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900"
@@ -263,7 +254,7 @@ export default function AdminLandingPage() {
               <p className="text-xl font-semibold text-seal-gray-600 dark:text-white">
                 {stats[key] !== null ? stats[key] : <span className="inline-block w-8 h-5 rounded shimmer" />}
               </p>
-              <p className="text-[11px] text-seal-gray-400 dark:text-slate-400">{label}</p>
+              <p className="text-[11px] text-seal-gray-400 dark:text-slate-400">{t(`stats.${labelKey}`)}</p>
             </div>
           </div>
         ))}
@@ -273,7 +264,7 @@ export default function AdminLandingPage() {
           </div>
           <div>
             <p className={cn('text-xl font-semibold', healthColor)}>{healthLabel}</p>
-            <p className="text-[11px] text-seal-gray-400 dark:text-slate-400">Santé système</p>
+            <p className="text-[11px] text-seal-gray-400 dark:text-slate-400">{t('stats.systemHealth')}</p>
           </div>
         </div>
       </div>
@@ -300,10 +291,10 @@ export default function AdminLandingPage() {
                     id={`section-${section.id}-title`}
                     className="text-base font-semibold text-seal-gray-600 dark:text-white"
                   >
-                    {section.title}
+                    {t(`sections.${section.id}.title`)}
                   </h2>
                   <p className="text-xs text-seal-gray-400 dark:text-slate-400">
-                    {section.subtitle}
+                    {t(`sections.${section.id}.subtitle`)}
                   </p>
                 </div>
               </header>
@@ -324,10 +315,10 @@ export default function AdminLandingPage() {
                               </span>
                               <div className="flex-1 min-w-0">
                                 <h3 className="text-sm font-semibold text-seal-gray-600 dark:text-white truncate">
-                                  {item.title}
+                                  {t(`items.${item.key}.title`)}
                                 </h3>
                                 <p className="text-xs text-seal-gray-400 dark:text-slate-400 line-clamp-1">
-                                  {item.description}
+                                  {t(`items.${item.key}.description`)}
                                 </p>
                               </div>
                             </div>
@@ -350,14 +341,15 @@ export default function AdminLandingPage() {
 }
 
 function AdminBuildFooter() {
+  const t = useTranslations('admin.footer');
   const version = process.env.NEXT_PUBLIC_BUILD_VERSION || 'dev';
   return (
     <div className="mt-12 pt-4 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between text-[11px] text-seal-gray-400 dark:text-slate-500">
-      <span>OMNITECH Intranet — Hub d&apos;administration</span>
+      <span>{t('title')}</span>
       <Link
         href="/changelog"
         className="inline-flex items-center gap-1.5 hover:text-seal-navy dark:hover:text-white transition font-mono"
-        title="Voir le changelog"
+        title={t('viewChangelog')}
       >
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
         build {version}
