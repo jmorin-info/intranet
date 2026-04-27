@@ -376,7 +376,7 @@ export class IsoAnalyzerService {
   private suggestDocumentForControl(
     controlCode: string,
     controlTitle: string,
-    domain: string,
+    _domain: string,
   ): { recommendedTitle: string; documentType: string; priority: string } {
     // Map control domain prefixes to document types and suggested titles
     const domainSuggestions: Record<string, { type: string; prefix: string }> = {

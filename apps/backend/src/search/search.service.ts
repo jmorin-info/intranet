@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequestUser } from '../common/interfaces';
-import { UserRole, ROLE_HIERARCHY } from '../common/enums';
+import { UserRole } from '../common/enums';
 
 export type SearchType = 'documents' | 'news' | 'wiki' | 'tickets' | 'runbooks' | 'all';
 

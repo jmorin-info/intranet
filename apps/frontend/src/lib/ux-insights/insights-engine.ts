@@ -78,8 +78,8 @@ export function generateInsights(): UXInsight[] {
   const modules: TelemetryModule[] = ['TICKETS', 'DOCUMENTS', 'INCIDENTS', 'DASHBOARD'];
   const allInsights: UXInsight[] = [];
 
-  for (const module of modules) {
-    const metrics = metricsStore.getModuleMetrics(module);
+  for (const moduleName of modules) {
+    const metrics = metricsStore.getModuleMetrics(moduleName);
     if (metrics.totalActions === 0) continue;
 
     const frictions = detectFrictions(metrics);

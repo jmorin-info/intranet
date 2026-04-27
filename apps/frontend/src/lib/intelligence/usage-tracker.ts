@@ -55,8 +55,8 @@ export function trackEvent(event: Omit<UsageEvent, 'timestamp'>) {
 }
 
 export function trackPageView(path: string) {
-  const module = detectModule(path);
-  trackEvent({ type: 'page_view', path, module });
+  const moduleName = detectModule(path);
+  trackEvent({ type: 'page_view', path, module: moduleName });
 }
 
 export function trackFeatureUse(path: string, feature: string) {

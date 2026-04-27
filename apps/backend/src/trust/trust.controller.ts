@@ -41,7 +41,7 @@ export class TrustController {
   @Public()
   async getPublicScore() {
     try {
-      const [activeUsers, mfaEnabledUsers, chartesActive, auditHas24h] =
+      const [activeUsers, mfaEnabledUsers, _chartesActive, auditHas24h] =
         await Promise.all([
           this.prisma.user
             .count({ where: { isActive: true, deletedAt: null } })

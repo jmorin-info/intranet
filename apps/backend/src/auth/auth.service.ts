@@ -182,7 +182,7 @@ export class AuthService {
     });
 
     const fullUser = await this.usersService.findById(user.id);
-    const { passwordHash, mfaSecret, ...safeUser } = fullUser;
+    const { passwordHash: _passwordHash, mfaSecret: _mfaSecret, ...safeUser } = fullUser;
 
     this.logger.log(`User ${user.email} logged in from ${ip}`);
 
@@ -266,7 +266,7 @@ export class AuthService {
       },
     });
 
-    const { passwordHash, mfaSecret, ...safeUser } = storedToken.user;
+    const { passwordHash: _passwordHash, mfaSecret: _mfaSecret, ...safeUser } = storedToken.user;
 
     return {
       accessToken: newAccessToken,
@@ -364,7 +364,7 @@ export class AuthService {
     if (!/[A-Z]/.test(newPassword)) policyErrors.push('Au moins une majuscule');
     if (!/[a-z]/.test(newPassword)) policyErrors.push('Au moins une minuscule');
     if (!/[0-9]/.test(newPassword)) policyErrors.push('Au moins un chiffre');
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) policyErrors.push('Au moins un caractère spécial');
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPassword)) policyErrors.push('Au moins un caractère spécial');
     if (policyErrors.length > 0) {
       throw new BadRequestException(`Mot de passe non conforme : ${policyErrors.join(', ')}`);
     }

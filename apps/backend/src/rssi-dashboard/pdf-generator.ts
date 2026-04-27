@@ -234,7 +234,7 @@ export class RssiSmsiPdfGenerator {
     this.h2(ctx, "5.1 Leadership et engagement");
     this.paragraph(
       ctx,
-      `La direction d\'OMNITECH SECURITY s\'engage formellement dans la mise en œuvre, le maintien et l\'amélioration continue du SMSI. ${smsiState?.lastReview ? `Dernière revue de direction réalisée le ${this.formatDate(smsiState.lastReview.date)} (« ${smsiState.lastReview.title} »).` : "Dernière revue de direction : Non renseigné — voir page Conformité."}`,
+      `La direction d'OMNITECH SECURITY s'engage formellement dans la mise en œuvre, le maintien et l'amélioration continue du SMSI. ${smsiState?.lastReview ? `Dernière revue de direction réalisée le ${this.formatDate(smsiState.lastReview.date)} (« ${smsiState.lastReview.title} »).` : "Dernière revue de direction : Non renseigné — voir page Conformité."}`,
     );
     this.paragraph(
       ctx,
@@ -243,7 +243,7 @@ export class RssiSmsiPdfGenerator {
     this.h2(ctx, "5.2 Politique");
     this.paragraph(
       ctx,
-      `Le SMSI repose sur ${smsiState?.activePolicies ?? "Non renseigné — voir page Documents"} politiques et procédures approuvées et publiées. Elles couvrent le contrôle d\'accès, la classification des informations, la gestion des incidents et la continuité.`,
+      `Le SMSI repose sur ${smsiState?.activePolicies ?? "Non renseigné — voir page Documents"} politiques et procédures approuvées et publiées. Elles couvrent le contrôle d'accès, la classification des informations, la gestion des incidents et la continuité.`,
     );
 
     // ─── CHAPITRE 6 — Planification ──────────────────────────────────────
@@ -334,7 +334,7 @@ export class RssiSmsiPdfGenerator {
     this.h2(ctx, "9.2 Audit interne");
     this.paragraph(
       ctx,
-      `Sur la période, ${snapshot?.audit?.eventsLast24h ?? "Non renseigné"} événements d\'audit ont été enregistrés (24h glissantes). Connexions échouées : ${snapshot?.audit?.failedLoginsLast24h ?? "—"}.`,
+      `Sur la période, ${snapshot?.audit?.eventsLast24h ?? "Non renseigné"} événements d'audit ont été enregistrés (24h glissantes). Connexions échouées : ${snapshot?.audit?.failedLoginsLast24h ?? "—"}.`,
     );
     this.h2(ctx, "9.3 Revue de direction");
     this.paragraph(

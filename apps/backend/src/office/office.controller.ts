@@ -174,7 +174,7 @@ export class OfficeController {
   async handleCallback(
     @Query('token') token: string,
     @Body() body: any,
-    @Req() req: Request,
+    @Req() _req: Request,
   ) {
     // OnlyOffice s'attend à recevoir `{ error: 0 }` en cas de succès
     if (!token) {

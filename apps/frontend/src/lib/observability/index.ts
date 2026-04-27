@@ -49,7 +49,8 @@ export function captureError(
   // observability code actually fires.
   if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_SENTRY_DSN) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // require synchrone necessaire pour eviter de pulluer le bundle
+      // initial — Sentry n'est charge qu'a la premiere erreur.
       const SentryMod = require('@sentry/nextjs');
       const err = typeof error === 'string' ? new Error(error) : error;
       SentryMod.withScope((scope: { setTag: (k: string, v: string) => void; setContext: (k: string, v: unknown) => void; setLevel: (l: string) => void }) => {

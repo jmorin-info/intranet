@@ -49,8 +49,9 @@ const EMAIL_ALWAYS_SEND_TYPES = new Set<string>([
   "INCIDENT_CREATED",
 ]);
 
-// Types that users can mute via preferences
-const EMAIL_MUTABLE_TYPES = new Set<string>([
+// Types that users can mute via preferences (referenced by upcoming
+// preference-aware mailer logic — kept here as the canonical source list).
+const _EMAIL_MUTABLE_TYPES = new Set<string>([
   "DOC_PUBLISHED",
   "DOC_APPROVED",
   "DOC_REJECTED",

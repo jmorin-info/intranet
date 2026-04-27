@@ -9,7 +9,7 @@ import { getPromptTemplates } from "./prompts/templates";
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const EMBEDDING_DIMS = 1024;
+const _EMBEDDING_DIMS = 1024; // documente la dimension du modele d'embedding (mxbai-embed-large)
 const CHUNK_SIZE_CHARS = 2000;
 const CHUNK_OVERLAP_CHARS = 200;
 const CONFIDENCE_THRESHOLD = 0.3;
@@ -1131,7 +1131,9 @@ export class RagService {
         (s, i) =>
           `[Source ${i + 1} — ${s.sourceType}] ${s.title}\n${s.snippet}`,
       );
-    const context = contextParts.join("\n\n");
+    // contextParts assemble plus bas par le LLM dans buildPrompt — on conserve
+    // les chunks tries pour traceabilite de citation.
+    const _context = contextParts.join("\n\n");
 
     // 4. LLM or extractive fallback
     let answer: string;

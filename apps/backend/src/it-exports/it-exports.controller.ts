@@ -94,7 +94,7 @@ export class ItExportsController {
       throw new NotFoundException('Physical file missing on storage');
     }
 
-    const safeName = record.originalName.replace(/[^\w.\-]+/g, '_');
+    const safeName = record.originalName.replace(/[^\w.-]+/g, '_');
     res.set({
       'Content-Type': record.mimeType || 'application/octet-stream',
       'Content-Disposition': `attachment; filename="${safeName}"`,

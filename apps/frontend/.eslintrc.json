@@ -1,7 +1,37 @@
 {
   "extends": "next/core-web-vitals",
   "rules": {
+    // reason: certaines pages app-router utilisent encore <a> au lieu de
+    // <Link> pour les liens externes / cible blank — Next 14 ne se plaint
+    // plus dans ce cas. Off pour eviter les faux positifs.
     "@next/next/no-html-link-for-pages": "off",
+
+    // ── Strict mode : warn (pas error) ──
+    // reason: les apostrophes typographiques (l'application) sont legitimes
+    // en francais — l'echappement `&apos;` alourdit le rendu sans gain.
+    // Warn pour rester signale sans bloquer le build.
+    "react/no-unescaped-entities": "warn",
+
+    // ── Low-hanging fruit reactives en error ──
+    // reason: detecte les imports/variables non utilises. Pattern `_` ignore.
+    // Note : la regle `@typescript-eslint/no-unused-vars` n'est pas disponible
+    // dans le preset `next/core-web-vitals` — on utilise `no-unused-vars` core.
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+    // reason: `prefer-const` — coding style coherent avec backend.
+    "prefer-const": "warn",
+    // reason: bannir `var` au profit de `let`/`const`.
+    "no-var": "error",
+
+    // reason: le projet utilise des nommages legacy SEAL — empeche de
+    // re-introduire des classes Tailwind hardcodees `text-navy` / `bg-taupe`
+    // sans passer par le design system.
     "no-restricted-syntax": [
       "warn",
       {

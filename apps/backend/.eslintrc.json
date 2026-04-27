@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json.schemastore.org/eslintrc.json",
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "plugins": ["@typescript-eslint"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "ignorePatterns": ["dist/", "node_modules/", "**/*.spec.ts", "**/*.e2e-spec.ts"],
+  "rules": {
+    // ── Low-hanging fruit reactives en error (zero violation tolerable) ──
+    // reason: prefere `const` partout sauf reassignation explicite — coding style.
+    "prefer-const": "error",
+    // reason: bannit `var` au profit de `let`/`const` — bug source classique.
+    "no-var": "error",
+    // reason: detecte les imports/variables non utilises. Pattern `_` ignore.
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+    // reason: empeche les imports en virgule ou semi-colon manquants.
+    "@typescript-eslint/no-non-null-asserted-optional-chain": "error",
+    // reason: detecte les fonctions vides non documentees (a justifier).
+    "@typescript-eslint/no-empty-function": [
+      "error",
+      { "allow": ["constructors", "arrowFunctions"] }
+    ],
+    // reason: `require` dans le code TS (sauf import dynamique) est une regression
+    // depuis le passage en ESM-style. Quelques fichiers legacy sont tolerables.
+    "@typescript-eslint/no-require-imports": "warn",
+    // reason: `while(true)` est un pattern legitime pour les boucles d'ingestion
+    // RAG, polling et streams SSE — autorise dans les loops, error sinon.
+    "no-constant-condition": ["error", { "checkLoops": false }],
+    // reason: les regex de sanitization peuvent legitimement matcher des
+    // caracteres de controle (\x00-\x1f) — typiquement export PDF/CSV pour
+    // eviter l'injection. Warn pour signaler les usages non documentes.
+    "no-control-regex": "warn",
+    // reason: detecte les blocs vides — generalement des try/catch silencieux
+    // qui masquent des erreurs. Tolere les commentaires explicites.
+    "no-empty": ["error", { "allowEmptyCatch": true }],
+
+    // ── Strict mode : warn (pas error) pour ne pas bloquer le pipeline ──
+    // reason: on tolere `any` la ou Prisma genere des types complexes (cf.
+    // les 2 `as any` documentes dans le projet — escape hatches valides).
+    "@typescript-eslint/no-explicit-any": "warn",
+    // reason: une promise non-await dans un service async peut masquer une erreur
+    // critique (notification, audit, indexation Meilisearch). Activer
+    // progressivement en error apres v1.2.
+    "@typescript-eslint/no-floating-promises": "off",
+    // reason: ces 4 regles `no-unsafe-*` requierent type-aware linting (parserOptions.project)
+    // qui ralentit le lint d'un facteur 5-10. A activer en CI uniquement v1.3+.
+    "@typescript-eslint/no-unsafe-argument": "off",
+    "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-call": "off",
+    "@typescript-eslint/no-unsafe-member-access": "off",
+    "@typescript-eslint/no-unsafe-return": "off",
+
+    // ── Securite / bonnes pratiques NestJS ──
+    // reason: `console.log` ne doit pas atterrir en prod — utiliser pino
+    // (Logger NestJS). Warn pour permettre les print de debug a courte duree.
+    "no-console": "warn",
+    // reason: detecte les TODO/FIXME oublies.
+    "no-warning-comments": [
+      "warn",
+      { "terms": ["todo", "fixme", "xxx", "hack"], "location": "anywhere" }
+    ],
+
+    // ── Decorateurs NestJS / class-based ──
+    // reason: NestJS utilise massivement les decorateurs sur des classes —
+    // les arguments de constructeur peuvent etre injectes meme s'ils ne
+    // sont pas explicitement utilises dans le corps de la classe.
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "args": "after-used"
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["*.dto.ts", "*.entity.ts"],
+      "rules": {
+        // reason: les DTOs/entities sont decores par class-validator,
+        // les proprietes peuvent etre "definitively assigned" via @IsString etc.
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["common/types/**/*.ts"],
+      "rules": {
+        // reason: les fichiers de types globaux peuvent legitimement utiliser any
+        // pour declarer des extensions Express.Request etc.
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    }
+  ]
+}

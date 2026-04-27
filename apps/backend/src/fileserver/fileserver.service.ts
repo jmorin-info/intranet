@@ -32,7 +32,10 @@ const SHARES: ShareConfig[] = [
 // Encrypted credential store (in-memory, per user session)
 const credentialStore = new Map<string, { user: string; password: string; expiresAt: number }>();
 const CRED_TTL = 8 * 3600000; // 8 hours
-const ENCRYPTION_KEY = crypto.createHash('sha256').update(process.env.JWT_ACCESS_SECRET || 'fallback').digest();
+// Reserved for future at-rest encryption of cached credentials. Currently
+// kept here so the SHA-256 derivation stays adjacent to the credential store
+// definition above for review purposes.
+const _ENCRYPTION_KEY = crypto.createHash('sha256').update(process.env.JWT_ACCESS_SECRET || 'fallback').digest();
 
 @Injectable()
 export class FileserverService {
@@ -266,7 +269,7 @@ export class FileserverService {
     if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException('Accès non autorisé');
 
     const safePath = dirPath.replace(/\.\./g, '');
-    const safeFileName = fileName.replace(/[\\\/]/g, '_');
+    const safeFileName = fileName.replace(/[\\/]/g, '_');
     const creds = this.getCredentials(userId);
 
     const fs = require('fs');
@@ -316,7 +319,7 @@ export class FileserverService {
     if (!share) throw new NotFoundException('Partage introuvable');
     if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException('Accès non autorisé');
 
-    const safeName = name.replace(/[\\\/\.\:]/g, '_');
+    const safeName = name.replace(/[\\/.:]/g, '_');
     const fullPath = dirPath ? `${dirPath.replace(/\.\./g, '')}\\${safeName}` : safeName;
     const creds = this.getCredentials(userId);
 

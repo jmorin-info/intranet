@@ -596,7 +596,6 @@ export class OfficeService {
 
     // Si le backend a un secret, on envoie le body SIGNÉ (format JWT_IN_BODY).
     // Docs Server l'accepte aussi en header Authorization: Bearer.
-    let bodyToSend: string;
     if (this.jwtSecret) {
       try {
         const signed = this.jwtService.sign(payload, {
@@ -612,7 +611,7 @@ export class OfficeService {
         };
       }
     }
-    bodyToSend = JSON.stringify(payload);
+    const bodyToSend = JSON.stringify(payload);
 
     try {
       const response = await fetch(url, {

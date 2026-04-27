@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ChatMessage, ChatSession } from '@prisma/client';
+import { ChatSession } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RagService, RagSearchContext } from '../rag/rag.service';
 import { RequestUser } from '../common/interfaces';
