@@ -49,6 +49,11 @@ export interface AuthUser {
    * Sans effet si le feature flag global `feature.humor.noa` est OFF.
    */
   noaEnabled?: boolean;
+  /**
+   * Mémoire conversationnelle persistante Noa (Item 31). Default true (opt-out).
+   * Toggle exposé sur /profile/noa-memory.
+   */
+  noaMemoryEnabled?: boolean;
 }
 
 /**
@@ -120,6 +125,10 @@ function mapUser(raw: Record<string, unknown>): AuthUser {
     welcomeChecklistDismissedAt:
       (raw.welcomeChecklistDismissedAt as string | null | undefined) ?? null,
     noaEnabled: Boolean(raw.noaEnabled),
+    // noaMemoryEnabled : default true côté backend, on conserve la valeur
+    // exacte (Boolean() coerce undefined→false ce qui mentirait à l'utilisateur).
+    noaMemoryEnabled:
+      raw.noaMemoryEnabled === undefined ? true : Boolean(raw.noaMemoryEnabled),
   };
 }
 

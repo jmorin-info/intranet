@@ -621,6 +621,7 @@ export class UsersService {
       languages?: string;
       teamsLink?: string;
       noaEnabled?: boolean;
+      noaMemoryEnabled?: boolean;
     },
   ) {
     await this.findById(userId);
@@ -634,6 +635,9 @@ export class UsersService {
         ...(dto.languages !== undefined && { languages: dto.languages }),
         ...(dto.teamsLink !== undefined && { teamsLink: dto.teamsLink }),
         ...(dto.noaEnabled !== undefined && { noaEnabled: dto.noaEnabled }),
+        ...(dto.noaMemoryEnabled !== undefined && {
+          noaMemoryEnabled: dto.noaMemoryEnabled,
+        }),
       },
       include: {
         department: true,

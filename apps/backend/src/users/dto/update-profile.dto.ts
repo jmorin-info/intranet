@@ -25,4 +25,9 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsBoolean()
   noaEnabled?: boolean;
+
+  // Opt-out mémoire conversationnelle persistante (Item 31).
+  @IsOptional()
+  @IsBoolean()
+  noaMemoryEnabled?: boolean;
 }
