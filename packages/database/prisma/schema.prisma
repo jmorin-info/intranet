@@ -1699,9 +1699,30 @@ model SavedFilter {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // === Partage de filtres (F3 — 2026-04-28) ===
+  // visibility = PRIVATE  : visible uniquement par `userId` (auteur)
+  //              DEPARTMENT : visible par tous les users du département `sharedWithDepartmentId`
+  //              ROLE       : visible par tous les users avec le rôle `sharedWithRole`
+  //              PUBLIC     : visible par tous les users authentifiés
+  // sharedById   : auteur du partage (en général == userId à la création, peut différer si transfert futur).
+  visibility               SavedFilterVisibility @default(PRIVATE)
+  sharedWithDepartmentId   String?
+  sharedWithRole           UserRole?
+  sharedById               String?
+
   user User @relation("UserSavedFilters", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, module])
+  @@index([visibility, module])
+  @@index([sharedWithDepartmentId, module])
+  @@index([sharedWithRole, module])
+}
+
+enum SavedFilterVisibility {
+  PRIVATE
+  DEPARTMENT
+  ROLE
+  PUBLIC
 }
 
 // === NEW MODELS 2026-04-13 ===
