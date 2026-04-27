@@ -814,7 +814,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
       loading,
       streaming,
       pathname,
-      module,
+      currentModule,
       user?.role,
       addMessage,
       updateMessage,
@@ -918,7 +918,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
   }
   void highlightTerm;
 
-  const suggestions = getQuickSuggestions(module);
+  const suggestions = getQuickSuggestions(currentModule);
 
   // ── Embedded mode ─────────────────────────────────────────────
   // Renders the same conversation inline, sharing the same zustand store
@@ -949,7 +949,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
             <ConversationMenu
               messages={messages}
               user={user || undefined}
-              module={moduleLabel(module)}
+              module={moduleLabel(currentModule)}
             />
             {messages.length > 0 && (
               <button
@@ -1180,7 +1180,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
                 Assistant OMNITECH
               </h3>
               <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">
-                {moduleLabel(module)}
+                {moduleLabel(currentModule)}
               </p>
             </div>
           </div>
@@ -1201,7 +1201,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
             <ConversationMenu
               messages={messages}
               user={user || undefined}
-              module={moduleLabel(module)}
+              module={moduleLabel(currentModule)}
             />
             <button
               onClick={() => {

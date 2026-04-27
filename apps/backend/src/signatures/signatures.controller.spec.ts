@@ -109,7 +109,7 @@ describe('SignaturesController', () => {
         {
           documentVersionId: 'doc-v-1',
           signerId: 'signer-1',
-          templateId: 'tpl-1',
+          templateId: 42,
         },
         adminUser as any,
       );
@@ -117,7 +117,7 @@ describe('SignaturesController', () => {
         'doc-v-1',
         'signer-1',
         'admin-1',
-        'tpl-1',
+        42,
       );
     });
   });
