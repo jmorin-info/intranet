@@ -14,12 +14,12 @@
  * la synchro suivante (pour permettre un re-arbitrage).
  */
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
 import { PageHeader } from "@/components/layout/page-header";
-import { useTranslation } from "@/lib/i18n";
 import { EmptyState, Skeleton } from "@omnitech/ui";
 import {
   UserPlus,
@@ -54,14 +54,6 @@ interface Department {
   code?: string;
 }
 
-const ROLES = [
-  { value: "COLLABORATEUR", label: "Collaborateur" },
-  { value: "REVIEWER", label: "Réviseur" },
-  { value: "ADMIN", label: "Admin" },
-  { value: "SUPER_ADMIN", label: "Super Admin" },
-  { value: "PRESTATAIRE", label: "Prestataire externe" },
-];
-
 function formatDateFr(iso: string): string {
   try {
     return new Date(iso).toLocaleString("fr-FR", {
@@ -77,7 +69,14 @@ function formatDateFr(iso: string): string {
 }
 
 export default function LdapPendingPage() {
-  const { t } = useTranslation();
+  const t = useTranslations("admin.ldapPendingPage");
+  const ROLES = [
+    { value: "COLLABORATEUR", label: t("roleCollab") },
+    { value: "REVIEWER", label: t("roleReviewer") },
+    { value: "ADMIN", label: t("roleAdmin") },
+    { value: "SUPER_ADMIN", label: t("roleSuperAdmin") },
+    { value: "PRESTATAIRE", label: t("rolePrestataire") },
+  ];
   const [items, setItems] = useState<PendingUser[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,8 +129,7 @@ export default function LdapPendingPage() {
       setChoices(next);
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message ||
-          "Échec chargement des utilisateurs en attente",
+        err?.response?.data?.message || t("loadError"),
       );
     } finally {
       setLoading(false);
@@ -145,21 +143,19 @@ export default function LdapPendingPage() {
 
   const triggerSync = async () => {
     try {
-      toast.info("Synchronisation LDAP en cours…");
+      toast.info(t("syncing"));
       await api.post("/ldap/sync-all", { deactivateMissing: false });
-      toast.success("Synchronisation terminée, rechargement de la liste");
+      toast.success(t("syncSuccess"));
       await load();
     } catch (err: any) {
-      toast.error(
-        err?.response?.data?.message || "Échec de la synchronisation",
-      );
+      toast.error(err?.response?.data?.message || t("syncError"));
     }
   };
 
   const approve = async (item: PendingUser) => {
     const choice = choices[item.id];
     if (!choice || !choice.role) {
-      toast.error("Sélectionnez un rôle");
+      toast.error(t("selectRole"));
       return;
     }
     try {
@@ -169,20 +165,24 @@ export default function LdapPendingPage() {
         role: choice.role,
       });
       if (res.data?.success) {
-        toast.success(`${item.firstName} ${item.lastName} approuvé et créé`);
+        toast.success(
+          t("approveSuccess", {
+            name: `${item.firstName} ${item.lastName}`,
+          }),
+        );
         await load();
       } else {
-        toast.error(res.data?.message || "Échec approbation");
+        toast.error(res.data?.message || t("approveError"));
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Échec approbation");
+      toast.error(err?.response?.data?.message || t("approveError"));
     }
   };
 
   const reject = async () => {
     if (!rejectingId) return;
     if (!rejectReason.trim()) {
-      toast.error("Précisez la raison du refus (audit)");
+      toast.error(t("rejectReasonRequired"));
       return;
     }
     try {
@@ -191,15 +191,15 @@ export default function LdapPendingPage() {
         reason: rejectReason,
       });
       if (res.data?.success) {
-        toast.success("Demande rejetée");
+        toast.success(t("rejectSuccess"));
         setRejectingId(null);
         setRejectReason("");
         await load();
       } else {
-        toast.error(res.data?.message || "Échec rejet");
+        toast.error(res.data?.message || t("rejectError"));
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Échec rejet");
+      toast.error(err?.response?.data?.message || t("rejectError"));
     }
   };
 
@@ -210,15 +210,15 @@ export default function LdapPendingPage() {
       <AdminGroupTabs group="identity" />
 
       <PageHeader
-        title="Validation LDAP"
-        subtitle="Arbitrage des comptes AD avant création (ISO 27001 A.5.15)"
+        title={t("title")}
+        subtitle={t("subtitle")}
         icon={UserPlus}
         hub="admin"
         actions={
           <>
             {pendingCount > 0 && (
               <span className="inline-flex items-center justify-center h-6 min-w-[24px] px-2 rounded-full bg-amber-500 text-white text-xs font-bold">
-                {pendingCount} en attente
+                {t("pendingBadge", { count: pendingCount })}
               </span>
             )}
             <button
@@ -226,7 +226,7 @@ export default function LdapPendingPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90"
             >
               <RefreshCw className="h-4 w-4" />
-              Synchroniser
+              {t("sync")}
             </button>
           </>
         }
@@ -246,17 +246,17 @@ export default function LdapPendingPage() {
               }`}
             >
               {s === "PENDING"
-                ? "En attente"
+                ? t("filterPending")
                 : s === "APPROVED"
-                  ? "Approuvés"
+                  ? t("filterApproved")
                   : s === "REJECTED"
-                    ? "Rejetés"
-                    : "Tous"}
+                    ? t("filterRejected")
+                    : t("filterAll")}
             </button>
           ))}
         </div>
         <span className="text-xs text-seal-gray-500 dark:text-slate-400 px-2">
-          {items.length} résultat{items.length > 1 ? "s" : ""}
+          {t("resultsCount", { count: items.length })}
         </span>
       </div>
 
@@ -272,13 +272,13 @@ export default function LdapPendingPage() {
           type="success"
           title={
             statusFilter === "PENDING"
-              ? "Aucun compte en attente"
-              : "Aucun utilisateur"
+              ? t("emptyPendingTitle")
+              : t("emptyTitle")
           }
           description={
             statusFilter === "PENDING"
-              ? "Tous les comptes AD détectés ont été traités."
-              : "Aucun utilisateur dans ce filtre."
+              ? t("emptyPendingDesc")
+              : t("emptyDesc")
           }
         />
       ) : (
@@ -334,18 +334,18 @@ export default function LdapPendingPage() {
                       {item.adDepartment && (
                         <span className="flex items-center gap-1">
                           <Building2 className="h-3 w-3" />
-                          AD: {item.adDepartment}
+                          {t("adPrefix")} {item.adDepartment}
                         </span>
                       )}
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        Détecté {formatDateFr(item.detectedAt)}
+                        {t("detected")} {formatDateFr(item.detectedAt)}
                       </span>
                     </div>
                     {item.rejectReason && (
                       <div className="mt-2 flex items-start gap-1 text-xs text-red-600 dark:text-red-400">
                         <AlertCircle className="h-3 w-3 mt-0.5" />
-                        Raison du rejet : {item.rejectReason}
+                        {t("rejectReasonLabel")} {item.rejectReason}
                       </div>
                     )}
                   </div>
@@ -355,7 +355,7 @@ export default function LdapPendingPage() {
                   <div className="mt-4 flex items-end gap-3 flex-wrap pt-3 border-t border-amber-200 dark:border-amber-900/40">
                     <div className="flex-1 min-w-[180px]">
                       <label className="block text-[10px] uppercase font-semibold text-seal-gray-500 dark:text-slate-500 mb-1">
-                        Département
+                        {t("department")}
                       </label>
                       <select
                         value={choice.departmentId || ""}
@@ -370,7 +370,7 @@ export default function LdapPendingPage() {
                         }
                         className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-seal-navy dark:text-white"
                       >
-                        <option value="">— Aucun —</option>
+                        <option value="">{t("noneOption")}</option>
                         {departments.map((d) => (
                           <option key={d.id} value={d.id}>
                             {d.name}
@@ -381,7 +381,7 @@ export default function LdapPendingPage() {
                     </div>
                     <div className="flex-1 min-w-[180px]">
                       <label className="block text-[10px] uppercase font-semibold text-seal-gray-500 dark:text-slate-500 mb-1">
-                        Rôle
+                        {t("role")}
                       </label>
                       <select
                         value={choice.role}
@@ -406,7 +406,7 @@ export default function LdapPendingPage() {
                         className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600"
                       >
                         <Check className="h-4 w-4" />
-                        Approuver
+                        {t("approve")}
                       </button>
                       <button
                         onClick={() => {
@@ -416,7 +416,7 @@ export default function LdapPendingPage() {
                         className="inline-flex items-center gap-1 px-4 py-2 rounded-lg border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
                         <X className="h-4 w-4" />
-                        Rejeter
+                        {t("reject")}
                       </button>
                     </div>
                   </div>
@@ -438,31 +438,30 @@ export default function LdapPendingPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-semibold text-seal-navy dark:text-white mb-2">
-              Motif du rejet
+              {t("rejectDialogTitle")}
             </h3>
             <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">
-              Précisez pourquoi cet utilisateur ne doit pas être créé. Cette
-              raison est enregistrée dans le journal d'audit.
+              {t("rejectDialogDesc")}
             </p>
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               rows={3}
               className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Ex : hors périmètre organisation, compte obsolète à supprimer côté AD…"
+              placeholder={t("rejectPlaceholder")}
             />
             <div className="flex justify-end gap-2 mt-4">
               <button
                 onClick={() => setRejectingId(null)}
                 className="px-4 py-2 rounded-lg text-sm text-seal-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
               >
-                Annuler
+                {t("cancel")}
               </button>
               <button
                 onClick={reject}
                 className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600"
               >
-                Confirmer le rejet
+                {t("confirmReject")}
               </button>
             </div>
           </div>
