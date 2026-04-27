@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RagModule } from '../rag/rag.module';
+import { NoaMemoryModule } from '../noa-memory/noa-memory.module';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { SessionService } from './session.service';
@@ -16,7 +17,7 @@ import { ChatStreamService } from './chat-stream.service';
  * Coexists with the existing /rag/* endpoints — no changes there.
  */
 @Module({
-  imports: [PrismaModule, RagModule],
+  imports: [PrismaModule, RagModule, NoaMemoryModule],
   controllers: [ChatController],
   providers: [ChatService, SessionService, FeedbackService, ChatStreamService],
   exports: [ChatService, SessionService],
