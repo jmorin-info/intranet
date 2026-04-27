@@ -17,6 +17,7 @@
 
 import React, { useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ClipboardList, Activity } from "lucide-react";
 import { Tabs } from "@omnitech/ui";
 import { UserRole } from "@omnitech/shared";
@@ -33,6 +34,7 @@ function isAuditTab(value: string | null): value is AuditTab {
 }
 
 export default function AdminAuditPage() {
+  const t = useTranslations("admin.audit.page");
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -56,16 +58,16 @@ export default function AdminAuditPage() {
     () => [
       {
         id: "log",
-        label: "Journal d'audit",
+        label: t("tabLog"),
         icon: <ClipboardList className="h-4 w-4" />,
       },
       {
         id: "timeline",
-        label: "Chronologie",
+        label: t("tabTimeline"),
         icon: <Activity className="h-4 w-4" />,
       },
     ],
-    [],
+    [t],
   );
 
   return (
@@ -74,8 +76,8 @@ export default function AdminAuditPage() {
         <AdminGroupTabs group="audit" />
 
         <PageHeader
-          title="Audit"
-          subtitle="ISO 27001 A.5.36 — Journal d'audit sécurité (table + frise)"
+          title={t("title")}
+          subtitle={t("subtitle")}
           icon={ClipboardList}
           hub="admin"
           meta={

@@ -2,12 +2,12 @@
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { Card, CardContent, Button, Badge, Skeleton } from '@omnitech/ui';
 import { Layers, Save, RefreshCw, Lock, Check, X, Info, Settings, KeyRound } from 'lucide-react';
 import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
-import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/layout/page-header';
 import { logger } from '@/lib/logger';
 
@@ -17,14 +17,6 @@ interface ModuleDef {
   alwaysOn?: boolean;
   section?: string;
 }
-
-const SECTION_LABELS: Record<string, string> = {
-  monEspace: 'Mon espace',
-  work: 'Travail & connaissance',
-  security: 'Sécurité & conformité',
-  admin: 'Administration',
-  transverse: 'Transversal',
-};
 
 const SECTION_ORDER = ['monEspace', 'work', 'security', 'admin', 'transverse'];
 
@@ -69,7 +61,14 @@ function keyOf(module: string, scopeKey: ScopeKey): string {
 }
 
 export default function SpacesAdminPage() {
-  const { t } = useTranslation();
+  const t = useTranslations('admin.spacesPage');
+  const SECTION_LABELS: Record<string, string> = {
+    monEspace: t('sectionMonEspace'),
+    work: t('sectionWork'),
+    security: t('sectionSecurity'),
+    admin: t('sectionAdmin'),
+    transverse: t('sectionTransverse'),
+  };
   const [modules, setModules] = useState<ModuleDef[]>([]);
   const [configs, setConfigs] = useState<SpaceConfig[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -98,11 +97,11 @@ export default function SpacesAdminPage() {
       setPending({});
     } catch (err: any) {
       logger.error(err, { page: 'admin/spaces', context: 'load all' });
-      toast.error(err?.response?.data?.message || err?.message || 'Impossible de charger la configuration des espaces');
+      toast.error(err?.response?.data?.message || err?.message || t('loadError'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadAll();
@@ -186,11 +185,11 @@ export default function SpacesAdminPage() {
           enabled,
         });
       }
-      toast.success(`${entries.length} règle(s) sauvegardée(s)`);
+      toast.success(t('saveSuccess', { count: entries.length }));
       await loadAll();
     } catch (err: any) {
       logger.error(err, { page: 'admin/spaces', context: 'save changes' });
-      toast.error(err?.response?.data?.message || err?.message || 'Erreur lors de la sauvegarde');
+      toast.error(err?.response?.data?.message || err?.message || t('saveError'));
     } finally {
       setSaving(false);
     }
@@ -222,22 +221,22 @@ export default function SpacesAdminPage() {
     <div className="space-y-6">
       <AdminGroupTabs group="config" />
       <PageHeader
-        title="Espaces & modules"
-        subtitle="Activez ou désactivez chaque module pour l'ensemble de l'organisation, pour un rôle spécifique ou pour un département."
+        title={t('title')}
+        subtitle={t('subtitle')}
         icon={Layers}
         hub="admin"
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={loadAll} disabled={loading || saving}>
-              <RefreshCw className="h-4 w-4" /> Actualiser
+              <RefreshCw className="h-4 w-4" /> {t('refresh')}
             </Button>
             {hasChanges && (
               <Button variant="outline" onClick={resetChanges} disabled={saving}>
-                Annuler
+                {t('cancel')}
               </Button>
             )}
             <Button onClick={saveChanges} loading={saving} disabled={!hasChanges}>
-              <Save className="h-4 w-4" /> Sauvegarder
+              <Save className="h-4 w-4" /> {t('save')}
               {hasChanges && (
                 <Badge variant="primary" className="ml-1">
                   {Object.keys(pending).length}
@@ -253,22 +252,22 @@ export default function SpacesAdminPage() {
         <Info className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
         <div className="space-y-1">
           <p className="text-seal-navy dark:text-white font-semibold">
-            {t('admin.spaces.bannerTitle') as string}
+            {t('bannerTitle')}
           </p>
           <p className="text-seal-gray-500 dark:text-slate-400 text-xs">
-            {t('admin.spaces.bannerDesc') as string}{' '}
+            {t('bannerDesc')}{' '}
             <Link
               href="/admin/config"
               className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
             >
-              <Settings className="h-3.5 w-3.5" /> Configuration globale
+              <Settings className="h-3.5 w-3.5" /> {t('globalConfig')}
             </Link>{' '}
             ·{' '}
             <Link
               href="/admin/access-overview"
               className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
             >
-              <KeyRound className="h-3.5 w-3.5" /> Vue 360° des accès
+              <KeyRound className="h-3.5 w-3.5" /> {t('accessOverview')}
             </Link>
           </p>
         </div>
@@ -288,8 +287,8 @@ export default function SpacesAdminPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-slate-700">
-                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Module</th>
-                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-center px-3 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Global</th>
+                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">{t('module')}</th>
+                    <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-center px-3 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">{t('global')}</th>
                     {roleColumns.map((r) => (
                       <th key={r} className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-center px-2 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500 whitespace-nowrap">
                         {r.replace('_', ' ')}
@@ -324,7 +323,7 @@ export default function SpacesAdminPage() {
                               {mod.alwaysOn && (
                                 <Badge variant="navy" className="gap-1">
                                   <Lock className="h-3 w-3" />
-                                  Obligatoire
+                                  {t('mandatory')}
                                 </Badge>
                               )}
                             </div>
@@ -363,16 +362,16 @@ export default function SpacesAdminPage() {
               <CardContent className="p-0 overflow-x-auto">
                 <div className="px-4 py-3 border-b border-gray-200 dark:border-slate-700">
                   <h2 className="text-sm font-semibold text-seal-navy dark:text-white">
-                    Accès par département
+                    {t('deptScopeTitle')}
                   </h2>
                   <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5">
-                    Une règle départementale surpasse la règle globale. Un rôle reste prioritaire.
+                    {t('deptScopeDesc')}
                   </p>
                 </div>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-slate-700">
-                      <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Module</th>
+                      <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">{t('module')}</th>
                       {departments.map((d) => (
                         <th
                           key={d.id}
@@ -425,8 +424,7 @@ export default function SpacesAdminPage() {
           )}
 
           <p className="text-xs text-seal-gray-500 dark:text-slate-400 italic">
-            Priorité des règles : Rôle &gt; Département &gt; Global. Un module sans
-            règle explicite est actif par défaut.
+            {t('priorityHint')}
           </p>
         </>
       )}
