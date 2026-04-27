@@ -11,6 +11,24 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 // par requête + 'strict-dynamic'. On garde ici uniquement les autres entêtes
 // de sécurité (statiques) — sinon ils écraseraient le CSP nonce-based.
 
+// Item 32 — CDN pour assets statiques (Bunny.net recommandé / Cloudflare alt.).
+// Si NEXT_PUBLIC_CDN_URL est défini, Next.js préfixera tous les assets
+// statiques (`_next/static/*`) avec cette URL. Vide en dev → assets servis
+// par le frontend Next.js comme avant (rétrocompatible).
+// cf. docs/infrastructure/CDN_SETUP.md
+const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL || "";
+// Hostname extrait pour `images.remotePatterns` (sans schéma ni path).
+let cdnHostname = "";
+if (cdnUrl) {
+  try {
+    cdnHostname = new URL(cdnUrl).hostname;
+  } catch {
+    // URL malformée — on ignore silencieusement, l'asset prefix tombera en
+    // chaîne vide et le build ne plantera pas.
+    cdnHostname = "";
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@omnitech/shared", "@omnitech/ui"],
@@ -20,6 +38,11 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  // Item 32 — Préfixe CDN pour `_next/static/*`, `/static/*`, fonts, JS chunks.
+  // Cf. https://nextjs.org/docs/app/api-reference/next-config-js/assetPrefix
+  // Le cache busting reste géré par Next.js (hash dans le filename), donc
+  // on peut servir avec Cache-Control immutable côté CDN sans risque de stale.
+  ...(cdnUrl ? { assetPrefix: cdnUrl } : {}),
   images: {
     // Restreint à l'origine prod + dev local (sécurité + perf : '**' était
     // trop permissif — exposait le loader d'images Next à n'importe quel
@@ -33,7 +56,23 @@ const nextConfig = {
       { protocol: "https", hostname: "vaultwarden.omnitech-security.fr" },
       { protocol: "http", hostname: "localhost" },
       { protocol: "http", hostname: "127.0.0.1" },
+      // CDN host (Bunny / Cloudflare) — ajouté dynamiquement pour autoriser
+      // <Image src="https://cdn.intranet…/foo.jpg" /> via le loader Next.
+      ...(cdnHostname
+        ? [{ protocol: "https", hostname: cdnHostname }]
+        : []),
     ],
+    // Item 32 — Loader d'image custom qui exploite la "Bunny Image
+    // Optimization" (query params `?width=&format=webp&quality=`) pour
+    // éviter de payer le serveur Next pour la transformation, OU se rabat
+    // sur le loader Next par défaut quand le CDN n'est pas configuré.
+    // Cf. https://docs.bunny.net/docs/stream-image-optimizer
+    ...(cdnUrl
+      ? {
+          loader: "custom",
+          loaderFile: "./src/lib/cdn-image-loader.ts",
+        }
+      : {}),
   },
   webpack: (config) => {
     config.resolve.alias.canvas = false;
