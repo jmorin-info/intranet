@@ -421,7 +421,7 @@ export default function ProcedureViewerPage() {
             </div>
           </div>
           {doc.isoControls.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-gray-100">
+            <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-gray-100 dark:border-slate-800">
               {doc.isoControls.map(({ isoControl }) => (
                 <IsoControlBadge
                   key={isoControl.code}
@@ -432,8 +432,8 @@ export default function ProcedureViewerPage() {
             </div>
           )}
           {currentVersion && (
-            <div className="mt-3 pt-3 border-t border-gray-100">
-              <p className="font-mono text-[10px] text-seal-gray-500">
+            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-800">
+              <p className="font-mono text-[10px] text-seal-gray-500 dark:text-slate-400">
                 <Hash className="inline h-3 w-3 mr-0.5" />
                 SHA-256 : {currentVersion.checksum}
               </p>

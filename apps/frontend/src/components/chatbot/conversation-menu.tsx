@@ -143,7 +143,7 @@ export function ConversationMenu({ messages, user, module }: ConversationMenuPro
           >
             <Download className="h-4 w-4 text-[#004469] dark:text-blue-400" />
             <span className="flex-1 text-left">Exporter en Markdown</span>
-            {busy === 'md' && <span className="text-[10px] text-gray-400">…</span>}
+            {busy === 'md' && <span className="text-[10px] text-gray-400 dark:text-slate-500">…</span>}
           </button>
           <button
             type="button"
@@ -154,7 +154,7 @@ export function ConversationMenu({ messages, user, module }: ConversationMenuPro
           >
             <FileText className="h-4 w-4 text-[#F68D2E]" />
             <span className="flex-1 text-left">Exporter en PDF</span>
-            {busy === 'pdf' && <span className="text-[10px] text-gray-400">…</span>}
+            {busy === 'pdf' && <span className="text-[10px] text-gray-400 dark:text-slate-500">…</span>}
           </button>
           <div className="my-1 border-t border-gray-100 dark:border-slate-800" />
           <button
@@ -166,7 +166,7 @@ export function ConversationMenu({ messages, user, module }: ConversationMenuPro
           >
             <Link2 className="h-4 w-4 text-emerald-600" />
             <span className="flex-1 text-left">Partager (lien 7 jours)</span>
-            {busy === 'share' && <span className="text-[10px] text-gray-400">…</span>}
+            {busy === 'share' && <span className="text-[10px] text-gray-400 dark:text-slate-500">…</span>}
           </button>
         </div>
       )}

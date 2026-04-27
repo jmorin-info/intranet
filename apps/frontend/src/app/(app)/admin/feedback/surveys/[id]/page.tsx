@@ -95,7 +95,7 @@ function Stars({ value, size = 4 }: { value: number; size?: number }) {
       {[1, 2, 3, 4, 5].map((n) => (
         <Star
           key={n}
-          className={`h-${size} w-${size} ${n <= Math.round(value) ? "fill-amber-400 text-amber-400" : "text-gray-300"}`}
+          className={`h-${size} w-${size} ${n <= Math.round(value) ? "fill-amber-400 text-amber-400" : "text-gray-300 dark:text-slate-600"}`}
         />
       ))}
     </div>

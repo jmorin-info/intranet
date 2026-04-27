@@ -692,7 +692,7 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
                       className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-seal-navy dark:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800/60 transition-colors"
                       aria-label={`Rejouer la question : ${h}`}
                     >
-                      <Search className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" aria-hidden="true" />
+                      <Search className="h-3.5 w-3.5 text-gray-400 dark:text-slate-500 flex-shrink-0" aria-hidden="true" />
                       <span className="truncate">{h}</span>
                     </button>
                   </li>
