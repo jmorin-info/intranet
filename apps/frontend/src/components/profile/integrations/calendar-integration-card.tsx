@@ -69,6 +69,13 @@ export function CalendarIntegrationCard({
   const providerKey = provider; // 'google' | 'outlook'
   const providerLabel = provider === "google" ? t("google") : t("outlook");
   const Icon = Calendar;
+  // Couleur d'accent par provider (Google = bleu Google #4285F4 ; Outlook =
+  // bleu M365 #0078D4). On reste dans la palette charte SEAL en utilisant
+  // `seal-blue` (PANTONE #296DC1) pour Outlook et primary pour Google.
+  const accentClass =
+    provider === "outlook"
+      ? "text-[#0078D4]"
+      : "text-primary";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -140,7 +147,7 @@ export function CalendarIntegrationCard({
       <Card data-testid={`calendar-card-${providerKey}`}>
         <CardHeader>
           <h3 className="text-base font-semibold text-seal-navy dark:text-white flex items-center gap-2">
-            <Icon className="h-5 w-5 text-primary" />
+            <Icon className={`h-5 w-5 ${accentClass}`} />
             {providerLabel}
           </h3>
         </CardHeader>
@@ -160,7 +167,7 @@ export function CalendarIntegrationCard({
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-base font-semibold text-seal-navy dark:text-white flex items-center gap-2">
-            <Icon className="h-5 w-5 text-primary" />
+            <Icon className={`h-5 w-5 ${accentClass}`} />
             {providerLabel}
           </h3>
           {!configured ? (
