@@ -555,13 +555,25 @@ body.focus-mode-active > div > div:nth-child(2) {
 body.focus-mode-active main {
   position: relative;
   z-index: 9999;
-  max-width: 1100px;
+  /* Focus pleine largeur — max-width adaptatif :
+     - mobile/tablet : 100% (responsive)
+     - desktop : 92vw avec un cap raisonnable pour éviter ligne trop longue
+     - très grand écran 4K : cap 1800px */
+  max-width: min(92vw, 1800px);
   margin: 0 auto;
   padding: 2rem 2.5rem;
   background: var(--color-surface, white);
   border-radius: 1rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  min-height: 60vh;
+  min-height: 80vh;
+}
+
+@media (max-width: 768px) {
+  body.focus-mode-active main {
+    max-width: 100%;
+    padding: 1rem 1.25rem;
+    border-radius: 0.5rem;
+  }
 }
 
 @media (prefers-color-scheme: dark) {

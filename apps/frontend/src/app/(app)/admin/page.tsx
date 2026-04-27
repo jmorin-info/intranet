@@ -136,6 +136,7 @@ function buildSections(): AdminSection[] {
         { key: 'spaces', href: '/admin/spaces', icon: Layers, minRole: UserRole.SUPER_ADMIN },
         { key: 'ticketSpaces', href: '/admin/ticket-spaces', icon: Ticket, minRole: UserRole.ADMIN },
         { key: 'certificates', href: '/admin/certificates', icon: Award, minRole: UserRole.ADMIN },
+        { key: 'webdav', href: '/admin/webdav', icon: HardDrive, minRole: UserRole.ADMIN },
       ],
     },
   ];

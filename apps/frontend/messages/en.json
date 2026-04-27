@@ -365,6 +365,10 @@
       "certificates": {
         "title": "Certificates",
         "description": "Training / authorisation certificates."
+      },
+      "webdav": {
+        "title": "WebDAV / Obsidian",
+        "description": "Global toggle + per-user permissions for the Obsidian WebDAV sync."
       }
     },
     "audit": {

@@ -365,6 +365,10 @@
       "certificates": {
         "title": "Certificats",
         "description": "Attestations formation / habilitation."
+      },
+      "webdav": {
+        "title": "WebDAV / Obsidian",
+        "description": "Activation globale + permissions par utilisateur pour la sync Obsidian via WebDAV."
       }
     },
     "audit": {

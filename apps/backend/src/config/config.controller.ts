@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { AppConfigService } from './config.service';
 import { UserRole } from '../common/enums';
 import { RequestUser } from '../common/interfaces';
@@ -34,12 +35,15 @@ export class AppConfigController {
   constructor(private readonly configService: AppConfigService) {}
 
   /**
-   * Endpoint public (utilisateurs authentifiés tous rôles) qui expose un
-   * sous-ensemble safe de la config : uniquement les feature flags (clés
-   * `feature.*`). Pas de secrets, pas de credentials. Utilisé par le runtime
-   * Noa pour décider si la persona humoristique est globalement active.
+   * Endpoint TRULY public (pas d'auth requise) qui expose un sous-ensemble
+   * safe de la config : uniquement les feature flags (clés `feature.*`).
+   * Pas de secrets, pas de credentials. Utilisé par le runtime Noa pour
+   * décider si la persona humoristique est globalement active, et par
+   * d'autres composants client qui ont besoin de connaître l'état des
+   * feature flags avant l'auth (bouton SSO sur /login, etc.).
    */
   @Get('public/feature-flags')
+  @Public()
   async getPublicFeatureFlags() {
     const all = await this.configService.findAll();
     const data: Record<string, string> = {};
