@@ -4,7 +4,9 @@ import {
   Logger,
   Optional,
 } from "@nestjs/common";
-import { Cron } from "@nestjs/schedule";
+// @nestjs/schedule import retiré : le cron historique a été déplacé dans
+// DigestService (digest.service.ts) — voir commentaire ci-dessous sur
+// handleDailyDigestCron.
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationType } from "@prisma/client";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
@@ -1037,12 +1039,28 @@ export class NotificationsService {
   }
 
   // ──────────────────────────────────────────────────────────────
-  //  Daily Digest
+  //  Daily Digest (DEPRECATED — superseded by DigestService v1.1)
   // ──────────────────────────────────────────────────────────────
+  //
+  // Vague A v1.1 (item 13) : la logique digest a été extraite dans
+  // `DigestService` (digest.service.ts) avec :
+  //   - cron `0 8 * * *` (week-end inclus, vs 1-5 avant)
+  //   - source de vérité typée `User.digestFrequency` (enum) vs JSON
+  //   - groupement par module SEAL (couleurs PANTONE)
+  //   - logs structurés JSON pour audit ISO 27001 A.5.36
+  //
+  // Pour éviter un double envoi (deux crons à 8h le même jour), le cron
+  // historique ci-dessous est neutralisé. La méthode `sendDailyDigest`
+  // reste publique pour rétrocompat des éventuels appels admin (trigger
+  // manuel) — mais le cron `@Cron` est retiré : le scheduler ne le
+  // déclenchera plus, seul `DigestService.handleDigestCron` tourne.
+  //
+  // À supprimer définitivement après une vague de stabilisation.
 
-  @Cron("0 8 * * 1-5")
   async handleDailyDigestCron() {
-    this.logger.log("Running daily email digest cron...");
+    this.logger.warn(
+      "handleDailyDigestCron called directly — this method is deprecated. Use DigestService.handleDigestCron instead.",
+    );
     try {
       const today = new Date();
       const isMonday = today.getDay() === 1;
