@@ -83,6 +83,15 @@ const BulkActionsBar = dynamic(
     })),
   { ssr: false, loading: () => <div className="shimmer h-20 rounded-xl" /> },
 );
+// Wave D — modale "Créer depuis template", chargée à la demande pour ne
+// pas alourdir le bundle initial de /documents.
+const CreateFromTemplateDialog = dynamic(
+  () =>
+    import("@/components/documents/create-from-template-dialog").then((m) => ({
+      default: m.CreateFromTemplateDialog,
+    })),
+  { ssr: false },
+);
 
 interface Document {
   id: string;
@@ -478,6 +487,8 @@ function DocumentsContent() {
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  // Wave D — Create-from-template modal trigger (REVIEWER+ requis côté backend).
+  const [showFromTemplate, setShowFromTemplate] = useState(false);
 
   // Clear selection when data changes
   useEffect(() => {
@@ -1067,10 +1078,20 @@ function DocumentsContent() {
                 ]}
               />
               {canCreate && (
-                <Button onClick={() => router.push("/documents/new")}>
-                  <Plus className="h-4 w-4" />
-                  {t("documents.new")}
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFromTemplate(true)}
+                    title="Créer un document à partir d'un template"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Depuis template
+                  </Button>
+                  <Button onClick={() => router.push("/documents/new")}>
+                    <Plus className="h-4 w-4" />
+                    {t("documents.new")}
+                  </Button>
+                </>
               )}
             </>
           }
@@ -2110,6 +2131,16 @@ function DocumentsContent() {
           confirmLabel={`Supprimer ${selectedIds.size} document${selectedIds.size > 1 ? "s" : ""}`}
           variant="danger"
           loading={bulkDeleting}
+        />
+
+        {/* Wave D — Création depuis template */}
+        <CreateFromTemplateDialog
+          open={showFromTemplate}
+          onOpenChange={setShowFromTemplate}
+          onCreated={() => {
+            // Refresh documents list when a new doc has been created.
+            fetchDocuments();
+          }}
         />
       </div>
     </AIOrchestratedLayout>
