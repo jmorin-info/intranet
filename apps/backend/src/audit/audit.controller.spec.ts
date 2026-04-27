@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditController } from './audit.controller';
 import { AuditService } from './audit.service';
+import { AuditAnonymizationService } from './audit-anonymization.service';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '../common/enums';
 import type { Response } from 'express';
@@ -15,6 +16,7 @@ import type { Response } from 'express';
 describe('AuditController', () => {
   let controller: AuditController;
   let auditService: any;
+  let anonymization: any;
 
   const mockUser = {
     id: 'user-1',
@@ -32,6 +34,7 @@ describe('AuditController', () => {
 
   beforeEach(async () => {
     auditService = {
+      log: jest.fn().mockResolvedValue(undefined),
       findAll: jest.fn().mockResolvedValue({
         data: [
           {
@@ -56,10 +59,32 @@ describe('AuditController', () => {
       }),
     };
 
+    anonymization = {
+      getStats: jest.fn().mockResolvedValue({
+        policy: { fullDays: 90, anonymizedDays: 730, lastRunAt: null },
+        auditLogsToAnonymize: 0,
+        auditLogsToDelete: 0,
+        cutoffs: { fullDays: null, anonymizedDays: null },
+      }),
+      getPolicy: jest
+        .fn()
+        .mockResolvedValue({ fullDays: 90, anonymizedDays: 730, lastRunAt: null }),
+      updatePolicy: jest
+        .fn()
+        .mockResolvedValue({ fullDays: 60, anonymizedDays: 730, lastRunAt: null }),
+      runFullCycle: jest.fn().mockResolvedValue({
+        anonymizedCount: 0,
+        deletedCount: 0,
+        durationMs: 1,
+        errors: [],
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuditController],
       providers: [
         { provide: AuditService, useValue: auditService },
+        { provide: AuditAnonymizationService, useValue: anonymization },
         Reflector,
       ],
     }).compile();
@@ -182,6 +207,93 @@ describe('AuditController', () => {
       const [from, to] = auditService.getStats.mock.calls[0];
       expect(from.toISOString().startsWith('2026-01-01')).toBe(true);
       expect(to.toISOString().startsWith('2026-01-31')).toBe(true);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // RGPD anonymization endpoints — Item 29
+  // ---------------------------------------------------------------------------
+
+  describe('GET /audit/retention', () => {
+    it('returns the anonymization stats', async () => {
+      const out = await controller.getRetentionStats();
+      expect(out.policy.fullDays).toBe(90);
+      expect(anonymization.getStats).toHaveBeenCalled();
+    });
+  });
+
+  describe('PATCH /audit/retention', () => {
+    it('rejects empty body', async () => {
+      await expect(
+        controller.updateRetention({} as any, mockUser as any),
+      ).rejects.toThrow();
+    });
+
+    it('rejects negative values', async () => {
+      await expect(
+        controller.updateRetention(
+          { fullDays: -5 } as any,
+          mockUser as any,
+        ),
+      ).rejects.toThrow(/positive integer/i);
+    });
+
+    it('rejects fullDays >= anonymizedDays (illogical pipeline)', async () => {
+      anonymization.getPolicy.mockResolvedValue({
+        fullDays: 90,
+        anonymizedDays: 730,
+        lastRunAt: null,
+      });
+      await expect(
+        controller.updateRetention(
+          { fullDays: 800 } as any,
+          mockUser as any,
+        ),
+      ).rejects.toThrow(/strictly less/i);
+    });
+
+    it('accepts NEVER as legal-hold sentinel', async () => {
+      await controller.updateRetention(
+        { fullDays: 'NEVER', anonymizedDays: 'NEVER' } as any,
+        mockUser as any,
+      );
+      expect(anonymization.updatePolicy).toHaveBeenCalledWith(
+        { fullDays: null, anonymizedDays: null },
+        mockUser.id,
+      );
+    });
+
+    it('parses string-encoded numbers (form clients)', async () => {
+      await controller.updateRetention(
+        { fullDays: '120' } as any,
+        mockUser as any,
+      );
+      expect(anonymization.updatePolicy).toHaveBeenCalledWith(
+        { fullDays: 120, anonymizedDays: undefined },
+        mockUser.id,
+      );
+    });
+  });
+
+  describe('POST /audit/anonymize-now', () => {
+    it('triggers a full cycle and audits the manual run', async () => {
+      anonymization.runFullCycle.mockResolvedValue({
+        anonymizedCount: 3,
+        deletedCount: 1,
+        durationMs: 12,
+        errors: [],
+      });
+      const out = await controller.anonymizeNow(mockUser as any);
+      expect(out.anonymizedCount).toBe(3);
+      expect(out.deletedCount).toBe(1);
+      // The manual trigger is itself logged in audit (chain of trust)
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'AUDIT_LOG_ANONYMIZATION_MANUAL',
+          userId: mockUser.id,
+          severity: 'WARN',
+        }),
+      );
     });
   });
 });

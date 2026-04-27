@@ -66,6 +66,7 @@ const GROUPS: Record<string, { label: string; tabs: Tab[] }> = {
     label: 'Audit & monitoring',
     tabs: [
       { label: 'Audit (log + frise)', href: '/admin/audit', icon: ClipboardList, minRole: UserRole.ADMIN },
+      { label: 'Rétention RGPD', href: '/admin/audit/retention', icon: Shield, minRole: UserRole.SUPER_ADMIN },
       { label: 'Santé système', href: '/admin/system-health', icon: Monitor, minRole: UserRole.ADMIN },
       { label: 'Dashboard RSSI', href: '/admin/rssi-dashboard', icon: BarChart3, minRole: UserRole.SUPER_ADMIN },
       { label: 'Score cyber', href: '/admin/cyber-score', icon: ShieldCheck, minRole: UserRole.SUPER_ADMIN },
@@ -109,6 +110,17 @@ export function AdminGroupTabs({ group }: Props) {
   );
   if (visibleTabs.length < 2) return null; // un seul onglet visible → inutile
 
+  // Prefer the longest prefix-match so that nested routes (e.g.
+  // /admin/audit/retention) don't trigger the parent tab (/admin/audit) too.
+  // Without this, both tabs would render as "active".
+  const bestMatch = visibleTabs.reduce<Tab | null>((best, tab) => {
+    const matches =
+      pathname === tab.href || pathname.startsWith(tab.href + '/');
+    if (!matches) return best;
+    if (!best) return tab;
+    return tab.href.length > best.href.length ? tab : best;
+  }, null);
+
   return (
     <div className="mb-4">
       <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 mb-2">
@@ -120,7 +132,7 @@ export function AdminGroupTabs({ group }: Props) {
       >
         {visibleTabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
+          const isActive = bestMatch?.href === tab.href;
           return (
             <Link
               key={tab.href}

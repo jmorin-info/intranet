@@ -210,5 +210,50 @@
       "back": "Go back",
       "home": "Dashboard"
     }
+  },
+  "admin": {
+    "audit": {
+      "retention": {
+        "title": "Audit log retention & anonymization",
+        "subtitle": "GDPR article 5 (minimization) and article 17 (right to erasure)",
+        "rgpdTitle": "Why this policy?",
+        "rgpdDesc": "Audit logs preserve the history of actions (ISO 27001 A.5.36 evidence). Past the «full retention» threshold, personal data (user, IP, user-agent, payload) is replaced with anonymized values. Past the «anonymized retention» threshold, the row is permanently deleted. Anonymization is irreversible.",
+        "statsTitle": "Current state",
+        "policyTitle": "Retention policy",
+        "policyHint": "Enter a number of days, or «NEVER» to suspend the stage (legal hold mode).",
+        "fullDays": "Full retention (days)",
+        "fullDaysLabel": "Full retention — fullDays",
+        "fullDaysHelp": "After this many days, PII fields (userId, IP, user-agent, payload) are anonymized. Default: 90.",
+        "anonymizedDays": "Anonymized retention (days)",
+        "anonymizedDaysLabel": "Anonymized retention — anonymizedDays",
+        "anonymizedDaysHelp": "After this many days from creation, the row is permanently deleted. Default: 730 (2 years).",
+        "toAnonymize": "To anonymize",
+        "toDelete": "To purge",
+        "lastRun": "Last run:",
+        "save": "Save policy",
+        "saveSuccess": "Retention policy updated",
+        "runNowTitle": "Run now",
+        "runNowHint": "Triggers the anonymization & purge cycle immediately, without waiting for the daily cron (04:00 UTC).",
+        "runNowExplain": "Manual action restricted to super-admins. The operation is itself audited.",
+        "runNow": "Run now",
+        "running": "Running…",
+        "runConfirm": "Run audit log anonymization and purge now? Anonymization is irreversible.",
+        "runSuccess": "Cycle complete: {anonymized} row(s) anonymized",
+        "runResult": {
+          "anonymized": "Rows anonymized",
+          "deleted": "Rows deleted",
+          "duration": "Duration",
+          "errors": "Errors"
+        },
+        "errors": {
+          "load": "Could not load retention stats.",
+          "save": "Could not save the policy.",
+          "run": "Could not run the anonymization cycle.",
+          "invalidFull": "Invalid full retention (positive integer or NEVER).",
+          "invalidAnon": "Invalid anonymized retention (positive integer or NEVER).",
+          "fullGteAnon": "Full retention must be strictly less than anonymized retention."
+        }
+      }
+    }
   }
 }

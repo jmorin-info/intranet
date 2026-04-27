@@ -210,5 +210,50 @@
       "back": "Retour",
       "home": "Tableau de bord"
     }
+  },
+  "admin": {
+    "audit": {
+      "retention": {
+        "title": "Rétention & anonymisation des journaux d'audit",
+        "subtitle": "RGPD article 5 (minimisation) et article 17 (droit à l'effacement)",
+        "rgpdTitle": "Pourquoi cette politique ?",
+        "rgpdDesc": "Les journaux d'audit conservent l'historique des actions (preuve ISO 27001 A.5.36). Au-delà du seuil « rétention complète », les données personnelles (utilisateur, IP, user-agent, payload) sont remplacées par des valeurs anonymisées. Au-delà du seuil « rétention anonymisée », la ligne est définitivement supprimée. L'anonymisation est irréversible.",
+        "statsTitle": "État actuel",
+        "policyTitle": "Politique de rétention",
+        "policyHint": "Saisir le nombre de jours, ou « NEVER » pour suspendre l'étape (mode legal hold).",
+        "fullDays": "Rétention complète (j)",
+        "fullDaysLabel": "Rétention complète — fullDays",
+        "fullDaysHelp": "Au-delà de ce nombre de jours après la création, les champs PII (userId, IP, user-agent, payload) sont anonymisés. Défaut : 90.",
+        "anonymizedDays": "Rétention anonymisée (j)",
+        "anonymizedDaysLabel": "Rétention anonymisée — anonymizedDays",
+        "anonymizedDaysHelp": "Au-delà de ce nombre de jours après la création, la ligne est supprimée définitivement. Défaut : 730 (2 ans).",
+        "toAnonymize": "À anonymiser",
+        "toDelete": "À purger",
+        "lastRun": "Dernière exécution :",
+        "save": "Enregistrer la politique",
+        "saveSuccess": "Politique de rétention mise à jour",
+        "runNowTitle": "Lancer maintenant",
+        "runNowHint": "Déclenche immédiatement le cycle d'anonymisation et de purge, sans attendre le cron quotidien (4h00 UTC).",
+        "runNowExplain": "Action manuelle réservée aux super-administrateurs. L'opération est journalisée.",
+        "runNow": "Lancer maintenant",
+        "running": "En cours…",
+        "runConfirm": "Lancer immédiatement l'anonymisation et la purge des audit logs ? Cette action est irréversible pour les lignes traitées.",
+        "runSuccess": "Cycle terminé : {anonymized} ligne(s) anonymisée(s)",
+        "runResult": {
+          "anonymized": "Lignes anonymisées",
+          "deleted": "Lignes supprimées",
+          "duration": "Durée",
+          "errors": "Erreurs"
+        },
+        "errors": {
+          "load": "Impossible de charger les statistiques de rétention.",
+          "save": "Impossible d'enregistrer la politique.",
+          "run": "Impossible de lancer l'anonymisation.",
+          "invalidFull": "Rétention complète invalide (entier positif ou NEVER).",
+          "invalidAnon": "Rétention anonymisée invalide (entier positif ou NEVER).",
+          "fullGteAnon": "La rétention complète doit être strictement inférieure à la rétention anonymisée."
+        }
+      }
+    }
   }
 }
