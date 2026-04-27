@@ -1,0 +1,43 @@
+[Unit]
+Description=OMNITECH — Alerter générique (instance: %i)
+Documentation=file:///opt/omnitech/intranet/docs/infrastructure/BACKUP_RESTIC_OFFSITE.md
+# Service d'alerte appelé via OnFailure=alerter@<unit>.service
+# %i = nom de l'unité qui a échoué (ex: omnitech-backup, patroni, etcd)
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+EnvironmentFile=-/opt/omnitech/intranet/.env
+
+# Best-effort : log + email + (optionnel) webhook Mattermost/Slack/Rocket.Chat
+# IMPORTANT : ne jamais faire échouer cette unité (sinon spam OnFailure
+# qui rappelle alerter qui rappelle... boucle). On utilise toujours `|| true`.
+ExecStart=/bin/bash -c '\
+  TS=$(date -Iseconds); \
+  HOST=$(hostname -s); \
+  MSG="[OMNITECH ALERT] $TS host=$HOST unit=%i en échec"; \
+  echo "$MSG" | tee -a /var/log/omnitech/alerts.log; \
+  if [ -n "${ALERT_EMAIL:-}" ] && command -v mail >/dev/null 2>&1; then \
+    journalctl -u "%i.service" -n 50 --no-pager 2>/dev/null \
+      | mail -s "$MSG" "$ALERT_EMAIL" || true; \
+  fi; \
+  if [ -n "${ALERT_WEBHOOK:-}" ] && command -v curl >/dev/null 2>&1; then \
+    curl -fsS -X POST -H "Content-Type: application/json" \
+      -d "{\"text\":\"$MSG\"}" "$ALERT_WEBHOOK" >/dev/null 2>&1 || true; \
+  fi; \
+  exit 0'
+
+# Pas de Restart= : oneshot best-effort
+TimeoutStartSec=60
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=true
+ReadWritePaths=/var/log/omnitech
+
+StandardOutput=append:/var/log/omnitech/alerts.log
+StandardError=append:/var/log/omnitech/alerts.log
+SyslogIdentifier=alerter

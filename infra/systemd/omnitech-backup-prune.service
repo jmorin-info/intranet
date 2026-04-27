@@ -1,0 +1,38 @@
+[Unit]
+Description=OMNITECH — Prune Restic (rotation GFS)
+Documentation=file:///opt/omnitech/intranet/docs/infrastructure/BACKUP_RESTIC_OFFSITE.md
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/omnitech/intranet/.env
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/omnitech/intranet
+EnvironmentFile=/opt/omnitech/intranet/.env
+
+ExecStart=/opt/omnitech/intranet/scripts/backup/backup-prune.sh
+
+TimeoutStartSec=4h
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/log/omnitech /tmp /root/.cache/restic
+
+StandardOutput=append:/var/log/omnitech/backup-prune.log
+StandardError=append:/var/log/omnitech/backup-prune.log
+SyslogIdentifier=omnitech-backup-prune
+
+OnFailure=alerter@omnitech-backup-prune.service
+
+[Install]
+WantedBy=multi-user.target

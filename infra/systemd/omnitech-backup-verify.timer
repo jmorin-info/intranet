@@ -1,0 +1,13 @@
+[Unit]
+Description=OMNITECH — Timer verify Restic mensuel (1er du mois 04h)
+Documentation=file:///opt/omnitech/intranet/docs/infrastructure/BACKUP_RESTIC_OFFSITE.md
+
+[Timer]
+# Mensuel : 1er du mois à 04h00
+OnCalendar=*-*-01 04:00:00
+Persistent=true
+RandomizedDelaySec=1800
+Unit=omnitech-backup-verify.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=OMNITECH — Timer backup quotidien (02h)
+Documentation=file:///opt/omnitech/intranet/docs/infrastructure/BACKUP_RESTIC_OFFSITE.md
+
+[Timer]
+# Quotidien à 02h00 (heure locale du serveur)
+OnCalendar=*-*-* 02:00:00
+# Si le serveur était down à 02h, lance dès le boot
+Persistent=true
+# Petit jitter pour éviter que tous les serveurs partent à la même seconde
+RandomizedDelaySec=600
+Unit=omnitech-backup.service
+
+[Install]
+WantedBy=timers.target

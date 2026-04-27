@@ -1,0 +1,46 @@
+[Unit]
+Description=OMNITECH — Backup quotidien (Postgres + storage) vers Restic offsite
+Documentation=file:///opt/omnitech/intranet/docs/infrastructure/BACKUP_RESTIC_OFFSITE.md
+After=network-online.target postgresql.service
+Wants=network-online.target
+ConditionPathExists=/opt/omnitech/intranet/.env
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/omnitech/intranet
+EnvironmentFile=/opt/omnitech/intranet/.env
+
+# Le script charge déjà l'env, mais on duplique pour être explicite
+ExecStartPre=/usr/bin/test -x /opt/omnitech/intranet/scripts/backup/backup-database.sh
+ExecStart=/opt/omnitech/intranet/scripts/backup/backup-database.sh
+ExecStart=/opt/omnitech/intranet/scripts/backup/backup-storage.sh
+
+# Resilience
+TimeoutStartSec=2h
+# Pas de Restart= pour Type=oneshot (le timer relancera demain)
+# Mais si crash : retry une fois après 5min (cas réseau flap)
+
+# Hardening (ISO 27001 A.8.31)
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/log/omnitech /tmp /var/omnitech /root/.cache/restic
+
+# Logs
+StandardOutput=append:/var/log/omnitech/backup.log
+StandardError=append:/var/log/omnitech/backup.log
+SyslogIdentifier=omnitech-backup
+
+# Alerte si échec (item 19/20 — alerter.service à provisionner)
+OnFailure=alerter@omnitech-backup.service
+
+[Install]
+WantedBy=multi-user.target
