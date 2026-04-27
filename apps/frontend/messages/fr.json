@@ -176,5 +176,13 @@
     "tryDifferent": "Essayez de modifier vos critères de recherche.",
     "createFirst": "Créez votre premier élément pour commencer.",
     "comeBackLater": "Revenez plus tard pour voir les nouveautés."
+  },
+  "errors": {
+    "notFound": {
+      "title": "Page introuvable",
+      "description": "L'adresse que vous avez saisie ne correspond à aucune page.",
+      "back": "Retour",
+      "home": "Tableau de bord"
+    }
   }
 }

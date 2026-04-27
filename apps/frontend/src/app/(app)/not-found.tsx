@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ArrowLeft, FileQuestion } from 'lucide-react';
 
 export default function AppNotFound() {
   const router = useRouter();
+  const t = useTranslations('errors.notFound');
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
@@ -18,11 +20,11 @@ export default function AppNotFound() {
           404
         </h1>
         <h2 className="text-2xl font-semibold text-seal-navy dark:text-white -mt-2">
-          Page introuvable
+          {t('title')}
         </h2>
 
         <p className="mt-3 text-sm text-seal-gray-500 dark:text-slate-400 leading-relaxed">
-          L&apos;adresse que vous avez saisie ne correspond &agrave; aucune page.
+          {t('description')}
         </p>
 
         <div className="flex items-center justify-center gap-3 mt-8">
@@ -31,13 +33,13 @@ export default function AppNotFound() {
             className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-sm font-semibold text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
           >
             <ArrowLeft className="h-4 w-4" />
-            Retour
+            {t('back')}
           </button>
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-2 rounded-xl bg-seal-navy px-6 py-3 text-sm font-semibold text-white hover:bg-seal-navy/90 transition-all hover:shadow-lg hover:-translate-y-0.5"
           >
-            Tableau de bord
+            {t('home')}
           </Link>
         </div>
       </div>

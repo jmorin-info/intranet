@@ -176,5 +176,13 @@
     "tryDifferent": "Try adjusting your search criteria.",
     "createFirst": "Create your first item to get started.",
     "comeBackLater": "Come back later for updates."
+  },
+  "errors": {
+    "notFound": {
+      "title": "Page not found",
+      "description": "The address you entered does not match any page.",
+      "back": "Go back",
+      "home": "Dashboard"
+    }
   }
 }
