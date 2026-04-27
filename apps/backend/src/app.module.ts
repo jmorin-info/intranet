@@ -83,6 +83,8 @@ import { TrustModule } from "./trust/trust.module";
 import { CyberScoreModule } from "./cyber-score/cyber-score.module";
 import { PcaModule } from "./pca/pca.module";
 import { DataExportModule } from "./data-export/data-export.module";
+import { CryptoModule } from "./common/crypto/crypto.module";
+import { WebDAVModule } from "./webdav/webdav.module";
 
 @Module({
   imports: [
@@ -183,6 +185,8 @@ import { DataExportModule } from "./data-export/data-export.module";
     CyberScoreModule,
     PcaModule,
     DataExportModule,
+    CryptoModule,
+    WebDAVModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

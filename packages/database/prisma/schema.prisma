@@ -281,6 +281,10 @@ model User {
   calendarUserEvents         CalendarEvent[]             @relation("CalendarEventUser")
   // P1.10 — tokens d'abonnement iCal (révocables)
   calendarSubscriptionTokens CalendarSubscriptionToken[] @relation("CalendarSubscriptionUser")
+  // Wave B — sync bidir Google / Outlook (item 33)
+  calendarConnections        CalendarConnection[]        @relation("CalendarConnectionUser")
+  // Wave B — tokens WebDAV pour sync Obsidian (item 16)
+  webdavTokens               WebDAVToken[]               @relation("WebDAVTokenUser")
   // Manager relation
   manager                    User?                       @relation("UserManager", fields: [managerId], references: [id])
   subordinates               User[]                      @relation("UserManager")
@@ -1553,6 +1557,69 @@ model CalendarSubscriptionToken {
   createdAt  DateTime  @default(now())
 
   user User @relation("CalendarSubscriptionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// =============================================================================
+// Calendar Connection — sync bidirectionnel Google / Outlook (Wave B item 33)
+// =============================================================================
+// Tokens OAuth chiffrés au repos (AES-256-GCM, voir CryptoService).
+// Un user peut avoir au plus une connexion par provider.
+enum CalendarProvider {
+  GOOGLE
+  OUTLOOK
+}
+
+model CalendarConnection {
+  id              String           @id @default(uuid())
+  userId          String
+  provider        CalendarProvider
+  // Token d'accès chiffré (préfixe "v1:" + IV + tag + ciphertext, base64)
+  accessTokenEnc  String
+  refreshTokenEnc String?
+  expiresAt       DateTime?
+  // Identifiant du calendrier distant suivi (Google: calendarId, Outlook:
+  // mailFolders/calendar id). NULL = calendrier "primary" / par défaut.
+  calendarId      String?
+  // Sync token Google (delta sync). Persisté pour accélérer les pulls
+  // incrémentaux : on n'envoie que les events modifiés depuis le dernier sync.
+  syncToken       String?
+  // Outlook : delta link complet (https://...) pour Microsoft Graph delta query.
+  deltaLink       String?
+  syncEnabled     Boolean          @default(true)
+  lastSyncAt      DateTime?
+  // Compteur d'erreurs consécutives — au-delà de 5, on désactive auto la sync.
+  syncErrorCount  Int              @default(0)
+  lastErrorMsg    String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user User @relation("CalendarConnectionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([provider, syncEnabled])
+}
+
+// =============================================================================
+// WebDAV Token — sync bidirectionnel Obsidian via WebDAV (Wave B item 16)
+// =============================================================================
+// Token long-lived utilisé comme password Basic Auth par Obsidian Remotely Save.
+// L'username Basic est l'email du user. Le token clair n'est JAMAIS persisté :
+// seul `tokenHash` (sha256 hex) est stocké pour vérifier la valeur fournie.
+model WebDAVToken {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @unique
+  // Étiquette libre pour identifier le client (ex: "Obsidian iPhone")
+  label      String?
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation("WebDAVTokenUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
