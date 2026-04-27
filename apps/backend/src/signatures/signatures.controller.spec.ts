@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import { SignaturesController } from './signatures.controller';
 import { SignaturesService } from './signatures.service';
+import { EvidenceService } from './evidence.service';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '../common/enums';
 import type { Response } from 'express';
@@ -61,10 +62,17 @@ describe('SignaturesController', () => {
       getByDocument: jest.fn().mockResolvedValue([]),
     };
 
+    const evidenceMock = {
+      getEvidenceForUser: jest.fn(),
+      exportPdfReport: jest.fn(),
+      captureEvidence: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SignaturesController],
       providers: [
         { provide: SignaturesService, useValue: service },
+        { provide: EvidenceService, useValue: evidenceMock },
         Reflector,
       ],
     }).compile();
