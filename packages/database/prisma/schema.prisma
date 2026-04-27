@@ -335,6 +335,10 @@ model User {
   delegationsGiven           ApprovalDelegation[]        @relation("DelegationFrom")
   delegationsReceived        ApprovalDelegation[]        @relation("DelegationTo")
   approvalAuditEntries       ApprovalAuditLog[]          @relation("ApprovalAuditActor")
+  // === Wave D item 18 — WebAuthn FIDO2 === 2026-04-27 (ISO 27001 A.8.5)
+  webauthnCredentials        WebAuthnCredential[]
+  // === Wave D item 17 — SSO OIDC/SAML === 2026-04-27 (ISO 27001 A.5.16)
+  ssoIdentities              SsoIdentity[]
 
   @@index([departmentId])
   @@index([role])
@@ -2585,4 +2589,71 @@ model DocumentShare {
   @@index([token])
   @@index([expiresAt])
   @@index([createdById])
+}
+
+// =====================================================================
+// Wave D item 18 — WebAuthn FIDO2 (clés de sécurité matérielles + passkeys)
+// =====================================================================
+// Une clé enregistrée par utilisateur (YubiKey, Windows Hello, Touch ID,
+// passkey synchronisée). Plusieurs clés par compte (recommandé).
+// Compat TOTP : OR — un compte peut avoir TOTP ET WebAuthn, l'un ou l'autre
+// valide la session (jamais AND, sauf politique admin explicite).
+//
+// ISO 27001 A.8.5 — Authentification forte / phishing-resistant.
+// `publicKey` = COSE key encodée Bytes (ne JAMAIS exposer via API).
+// `counter` = signature counter, incrémenté à chaque auth, anti-clonage.
+model WebAuthnCredential {
+  id            String    @id @default(cuid())
+  userId        String
+  // ID public du credential côté client (base64url). Unique global pour
+  // permettre le lookup direct depuis l'allowCredentials de l'auth.
+  credentialId  String    @unique
+  // Clé publique COSE (binaire). Source de vérité cryptographique.
+  publicKey     Bytes
+  // Signature counter (anti-clonage). Reject si new <= old (sauf 0/0).
+  counter       Int       @default(0)
+  // Transports supportés par l'authenticateur (usb, nfc, ble, internal,
+  // hybrid). Permet au browser de choisir l'UI optimale.
+  transports    String[]
+  // 'singleDevice' (clé physique) | 'multiDevice' (passkey iCloud/Google).
+  deviceType    String?
+  // True si la clé est synchronisée (passkey cloud). Surface en UI pour
+  // que l'utilisateur sache qu'elle survit à la perte du device.
+  backedUp      Boolean   @default(false)
+  // Label libre choisi par l'utilisateur ("YubiKey bureau", "iPhone",…).
+  label         String?
+  lastUsedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// =====================================================================
+// Wave D item 17 — SSO (OIDC + SAML)
+// =====================================================================
+// Liaison user local ↔ identité externe (Azure AD, Okta, Google Workspace).
+// `externalId` = sub OIDC ou NameID SAML, stable côté IdP.
+// `email` figé à la liaison pour audit (l'IdP peut changer l'email).
+//
+// ISO 27001 A.5.16 — Identity management. Provisioning JIT possible si
+// SSO_AUTO_PROVISION=true (sinon liaison manuelle uniquement).
+enum SsoProvider {
+  OIDC
+  SAML
+}
+
+model SsoIdentity {
+  id         String      @id @default(cuid())
+  userId     String
+  provider   SsoProvider
+  externalId String
+  email      String
+  createdAt  DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalId])
+  @@index([userId])
 }
