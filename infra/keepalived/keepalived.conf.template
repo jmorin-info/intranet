@@ -1,0 +1,80 @@
+# =============================================================================
+# keepalived — VIP Postgres pour cluster Patroni (OMNITECH Intranet)
+# =============================================================================
+# Architecture : la VIP 10.33.120.50 est portée par le nœud où Patroni est
+# leader courant. Le script `check-patroni-leader.sh` interroge l'API REST
+# Patroni (port 8008) et retourne 0 si ce nœud est leader, 1 sinon.
+#
+# Variables à substituer (envsubst) :
+#   {{NODE_PRIORITY}}  ex: 200 (node1), 150 (node2), 100 (node3)
+#   {{INTERFACE}}      ex: eth0
+#   {{VRRP_PASSWORD}}  généré : openssl rand -hex 8 (8 octets max)
+# =============================================================================
+
+global_defs {
+    # Identifiant unique pour le routeur VRRP (doit être unique sur le réseau L2)
+    router_id OMNITECH_PG_HA
+    # Strict adherence to RFC3768 (évite les warnings Linux 5.x)
+    vrrp_strict
+    vrrp_garp_interval 0
+    vrrp_gna_interval 0
+    # Notification email en cas de basculement
+    notification_email {
+        ops@omnitech-security.fr
+    }
+    notification_email_from keepalived@intranet.omnitech-security.fr
+    smtp_server smtp.omnitech-security.fr
+    smtp_connect_timeout 30
+}
+
+# === Script de check : on vérifie que Patroni indique LEADER ===
+# Exit 0 = ce nœud est leader → keepalived prend la VIP
+# Exit non-0 = ce nœud n'est PAS leader → keepalived libère la VIP
+vrrp_script chk_patroni_leader {
+    script "/usr/local/bin/check-patroni-leader.sh"
+    interval 3      # Check toutes les 3 secondes
+    timeout 5       # Tuer le script s'il dépasse 5s
+    rise 2          # 2 checks consécutifs OK pour passer MASTER
+    fall 2          # 2 checks consécutifs KO pour passer BACKUP
+    weight 0        # Pas d'ajustement de priorité — on bascule MASTER/FAULT directement
+}
+
+# === Instance VRRP principale ===
+vrrp_instance VI_OMNITECH_PG {
+    # Sur chaque nœud, état initial selon priorité
+    # Le nœud avec la plus haute priorité ET un check OK devient MASTER
+    state BACKUP
+    interface {{INTERFACE}}
+    virtual_router_id 51
+
+    # Priorité : node1=200, node2=150, node3=100
+    # Plus c'est haut, plus c'est candidat MASTER. Mais le check_patroni_leader
+    # est l'autorité finale : sans lui, on bascule en FAULT et la VIP ne peut
+    # pas être prise (évite split-brain où 2 nœuds se croient MASTER Postgres).
+    priority {{NODE_PRIORITY}}
+
+    advert_int 1                # Advertisement VRRP toutes les 1s
+    nopreempt                   # Ne pas reprendre la VIP si on revient online
+                                # (évite le ping-pong en cas de réseau instable ;
+                                #  failover manuel via patronictl pour rebalance)
+
+    authentication {
+        auth_type PASS
+        auth_pass {{VRRP_PASSWORD}}
+    }
+
+    # === VIP applicative ===
+    # Le backend NestJS pointe sur cette IP via DATABASE_URL
+    virtual_ipaddress {
+        10.33.120.50/24 dev {{INTERFACE}} label {{INTERFACE}}:0
+    }
+
+    track_script {
+        chk_patroni_leader
+    }
+
+    # Hooks notify (optionnels — utiles pour logs / alerter)
+    notify_master "/usr/local/bin/keepalived-notify.sh MASTER"
+    notify_backup "/usr/local/bin/keepalived-notify.sh BACKUP"
+    notify_fault  "/usr/local/bin/keepalived-notify.sh FAULT"
+}
