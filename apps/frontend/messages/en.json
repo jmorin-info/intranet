@@ -211,6 +211,104 @@
       "home": "Dashboard"
     }
   },
+  "tickets": {
+    "title": "Ticket Space",
+    "subtitle": "Manage IT requests, incidents and queries within your scope.",
+    "new": "New ticket",
+    "empty": "No tickets",
+    "searchPlaceholder": "Search for a ticket...",
+    "spaces": {
+      "title": "Ticketing spaces",
+      "subtitle": "Pick a space to view its tickets. You only see spaces you are a member of (via your role, department or direct assignment).",
+      "manage": "Manage spaces",
+      "emptyTitle": "No space accessible",
+      "emptyAdmin": "No ticketing space is configured. Create one to get started.",
+      "emptyMember": "You are not a member of any ticketing space. Contact your administrator to get access.",
+      "createSpace": "Create a space",
+      "defaultBadge": "default",
+      "ticketCount": "{count, plural, one {# ticket} other {# tickets}}",
+      "ticketLabel": "{count, plural, one {ticket} other {tickets}}"
+    },
+    "priority": {
+      "all": "All priorities",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "toutes": "All"
+    },
+    "status": {
+      "open": "Open",
+      "inProgress": "In progress",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "waiting": "Waiting",
+      "all": "All statuses"
+    },
+    "sla": {
+      "exceeded": "SLA exceeded",
+      "warning": "SLA warning",
+      "resolution4h": "SLA: resolution within 4h",
+      "resolution8h": "SLA: resolution within 8h"
+    },
+    "category": {
+      "incident": "Incident",
+      "request": "Request",
+      "access": "Access",
+      "hardware": "Hardware",
+      "software": "Software",
+      "network": "Network",
+      "security": "Security",
+      "other": "Other"
+    },
+    "column": {
+      "ref": "Ref",
+      "title": "Title",
+      "category": "Cat.",
+      "priority": "Priority",
+      "status": "Status",
+      "creator": "Creator",
+      "assignee": "Assignee",
+      "date": "Date"
+    },
+    "create": {
+      "title": "New ticket",
+      "description": "Describe your issue or request",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. VPN connection issue",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Detail your issue: when it started, context, steps tried…",
+      "categoryLabel": "Category",
+      "priorityLabel": "Priority",
+      "submit": "Create ticket",
+      "required": "Title and description required",
+      "success": "Ticket created",
+      "error": "Error creating ticket"
+    },
+    "detail": {
+      "description": "Description",
+      "comments": "Comments",
+      "noComments": "No comments",
+      "internal": "Internal",
+      "addComment": "Add a comment...",
+      "send": "Send",
+      "info": "Information",
+      "creator": "Creator",
+      "assignee": "Assignee",
+      "unassigned": "Unassigned",
+      "createdAt": "Created on",
+      "resolvedAt": "Resolved on",
+      "actions": "Actions",
+      "statusLabel": "Status",
+      "update": "Update",
+      "createdBy": "Created by",
+      "notFound": "Ticket not found",
+      "commentSuccess": "Comment added",
+      "commentError": "Error adding comment",
+      "statusSuccess": "Status updated",
+      "statusError": "Error updating status"
+    }
+  },
   "news": {
     "title": "News",
     "subtitle": "Internal information and communications",

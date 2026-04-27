@@ -211,6 +211,104 @@
       "home": "Tableau de bord"
     }
   },
+  "tickets": {
+    "title": "Espace tickets",
+    "subtitle": "Gérez les demandes IT, incidents et requêtes de votre périmètre.",
+    "new": "Nouveau ticket",
+    "empty": "Aucun ticket",
+    "searchPlaceholder": "Rechercher un ticket...",
+    "spaces": {
+      "title": "Espaces de ticketing",
+      "subtitle": "Choisissez un espace pour afficher ses tickets. Vous ne voyez que les espaces auxquels vous êtes membre (via votre rôle, département ou affectation directe).",
+      "manage": "Gérer les espaces",
+      "emptyTitle": "Aucun espace accessible",
+      "emptyAdmin": "Aucun espace de ticketing n'est configuré. Créez-en un pour commencer.",
+      "emptyMember": "Vous n'êtes membre d'aucun espace de ticketing. Contactez votre administrateur pour obtenir l'accès.",
+      "createSpace": "Créer un espace",
+      "defaultBadge": "défaut",
+      "ticketCount": "{count, plural, one {# ticket} other {# tickets}}",
+      "ticketLabel": "{count, plural, one {ticket} other {tickets}}"
+    },
+    "priority": {
+      "all": "Toutes priorités",
+      "critical": "Critique",
+      "high": "Haute",
+      "medium": "Moyenne",
+      "low": "Basse",
+      "toutes": "Toutes"
+    },
+    "status": {
+      "open": "Ouvert",
+      "inProgress": "En cours",
+      "resolved": "Résolu",
+      "closed": "Fermé",
+      "waiting": "En attente",
+      "all": "Tous les statuts"
+    },
+    "sla": {
+      "exceeded": "SLA dépassé",
+      "warning": "SLA proche",
+      "resolution4h": "SLA: résolution sous 4h",
+      "resolution8h": "SLA: résolution sous 8h"
+    },
+    "category": {
+      "incident": "Incident",
+      "request": "Demande",
+      "access": "Accès",
+      "hardware": "Matériel",
+      "software": "Logiciel",
+      "network": "Réseau",
+      "security": "Sécurité",
+      "other": "Autre"
+    },
+    "column": {
+      "ref": "Réf",
+      "title": "Titre",
+      "category": "Cat.",
+      "priority": "Priorité",
+      "status": "Statut",
+      "creator": "Créateur",
+      "assignee": "Assigné à",
+      "date": "Date"
+    },
+    "create": {
+      "title": "Nouveau ticket",
+      "description": "Décrivez votre problème ou votre demande",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "Ex: Problème de connexion VPN",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Détaillez votre problème : depuis quand, contexte, étapes réalisées…",
+      "categoryLabel": "Catégorie",
+      "priorityLabel": "Priorité",
+      "submit": "Créer le ticket",
+      "required": "Titre et description requis",
+      "success": "Ticket créé",
+      "error": "Erreur lors de la création du ticket"
+    },
+    "detail": {
+      "description": "Description",
+      "comments": "Commentaires",
+      "noComments": "Aucun commentaire",
+      "internal": "Interne",
+      "addComment": "Ajouter un commentaire...",
+      "send": "Envoyer",
+      "info": "Informations",
+      "creator": "Créateur",
+      "assignee": "Assigné à",
+      "unassigned": "Non assigné",
+      "createdAt": "Créé le",
+      "resolvedAt": "Résolu le",
+      "actions": "Actions",
+      "statusLabel": "Statut",
+      "update": "Mettre à jour",
+      "createdBy": "Créé par",
+      "notFound": "Ticket introuvable",
+      "commentSuccess": "Commentaire ajouté",
+      "commentError": "Erreur lors de l'ajout du commentaire",
+      "statusSuccess": "Statut mis à jour",
+      "statusError": "Erreur lors de la mise à jour du statut"
+    }
+  },
   "news": {
     "title": "Actualités",
     "subtitle": "Informations et communications internes",
