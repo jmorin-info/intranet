@@ -1,0 +1,147 @@
+{
+  "version": "v1.0.0",
+  "createdAt": "2026-04-26",
+  "description": "Golden dataset Item 30 — questions Q/R typiques OMNITECH avec chunks attendus pour evaluer recall@5, MRR, faithfulness. Chunks attendus identifies par (sourceType, sourceIdHint) ou par mots-cles distinctifs (termCoverage).",
+  "examples": [
+    {
+      "id": "Q001",
+      "question": "Quelle est la procedure en cas d'incident de securite ?",
+      "expectedKeywords": ["incident", "securite", "rssi", "csirt", "declaration"],
+      "expectedSourceTypes": ["RUNBOOK", "WIKI", "PROCEDURE"],
+      "groundTruthAnswer": "En cas d'incident, declarer immediatement au RSSI / CSIRT, isoler le systeme affecte, preserver les preuves et suivre la procedure d'escalade ISO 27001."
+    },
+    {
+      "id": "Q002",
+      "question": "Comment est gere le depart d'un collaborateur ?",
+      "expectedKeywords": ["depart", "collaborateur", "offboarding", "acces", "restitution"],
+      "expectedSourceTypes": ["WIKI", "PROCEDURE", "DOCUMENT"],
+      "groundTruthAnswer": "Le depart suit la procedure d'offboarding : revocation des acces, restitution du materiel, archivage des fichiers, entretien de sortie."
+    },
+    {
+      "id": "Q003",
+      "question": "Quelle est la classification des donnees selon la PSSI ?",
+      "expectedKeywords": ["classification", "public", "interne", "confidentiel", "secret"],
+      "expectedSourceTypes": ["DOCUMENT", "WIKI"],
+      "groundTruthAnswer": "Quatre niveaux : PUBLIC, INTERNE, CONFIDENTIEL, SECRET. Chaque niveau impose des regles de manipulation et de conservation specifiques."
+    },
+    {
+      "id": "Q004",
+      "question": "Comment activer le double facteur d'authentification (2FA) ?",
+      "expectedKeywords": ["2fa", "mfa", "totp", "authentification", "double facteur"],
+      "expectedSourceTypes": ["WIKI", "RUNBOOK", "PROCEDURE"],
+      "groundTruthAnswer": "Aller dans Profil > Securite > Activer MFA, scanner le QR code avec une app TOTP (Authenticator), saisir le code de verification."
+    },
+    {
+      "id": "Q005",
+      "question": "Que faire en cas de phishing recu ?",
+      "expectedKeywords": ["phishing", "email", "signaler", "rssi", "supprimer"],
+      "expectedSourceTypes": ["RUNBOOK", "WIKI"],
+      "groundTruthAnswer": "Ne pas cliquer, signaler via le bouton 'Signaler phishing' Outlook ou en transferant a phishing@omnitech-security.fr, puis supprimer le mail."
+    },
+    {
+      "id": "Q006",
+      "question": "Combien de temps sont conserves les logs d'audit ?",
+      "expectedKeywords": ["log", "audit", "retention", "conservation", "duree"],
+      "expectedSourceTypes": ["DOCUMENT", "WIKI"],
+      "groundTruthAnswer": "Les logs d'audit sont conserves 1 an minimum (legal) et jusqu'a 3 ans pour les logs ISO 27001."
+    },
+    {
+      "id": "Q007",
+      "question": "Comment demander un acces a un document confidentiel ?",
+      "expectedKeywords": ["acces", "confidentiel", "document", "demande", "approbation"],
+      "expectedSourceTypes": ["WIKI", "PROCEDURE"],
+      "groundTruthAnswer": "Soumettre une demande via le portail GED en justifiant le besoin, validation par l'owner du document puis le RSSI selon classification."
+    },
+    {
+      "id": "Q008",
+      "question": "Quelle est la politique de mot de passe ?",
+      "expectedKeywords": ["mot de passe", "password", "longueur", "complexite", "rotation"],
+      "expectedSourceTypes": ["DOCUMENT", "WIKI"],
+      "groundTruthAnswer": "Minimum 12 caracteres avec majuscules, minuscules, chiffres et caracteres speciaux. Rotation tous les 90 jours pour les comptes a privileges."
+    },
+    {
+      "id": "Q009",
+      "question": "Comment lancer un audit de securite interne ?",
+      "expectedKeywords": ["audit", "interne", "iso", "27001", "auditeur"],
+      "expectedSourceTypes": ["DOCUMENT", "RUNBOOK", "WIKI"],
+      "groundTruthAnswer": "L'audit interne est planifie annuellement par le RSSI avec le programme d'audit ISO 27001 valide en revue de direction."
+    },
+    {
+      "id": "Q010",
+      "question": "Quelle est la procedure de sauvegarde des donnees ?",
+      "expectedKeywords": ["sauvegarde", "backup", "restauration", "rto", "rpo"],
+      "expectedSourceTypes": ["RUNBOOK", "DOCUMENT"],
+      "groundTruthAnswer": "Sauvegarde quotidienne incrementale + hebdomadaire complete, stockee chiffree off-site, RPO 24h / RTO 4h pour les donnees critiques."
+    },
+    {
+      "id": "Q011",
+      "question": "Comment signaler un bug technique sur l'intranet ?",
+      "expectedKeywords": ["bug", "ticket", "support", "intranet", "incident"],
+      "expectedSourceTypes": ["WIKI", "RUNBOOK"],
+      "groundTruthAnswer": "Ouvrir un ticket via le module Support de l'intranet, categorie 'Incident technique', avec captures d'ecran et description detaillee."
+    },
+    {
+      "id": "Q012",
+      "question": "Qu'est-ce qu'un RUNBOOK et comment l'utiliser ?",
+      "expectedKeywords": ["runbook", "procedure", "operationnelle", "exploitation"],
+      "expectedSourceTypes": ["WIKI"],
+      "groundTruthAnswer": "Un runbook est une procedure operationnelle reproductible decrivant pas a pas une operation d'exploitation (deploiement, restauration, incident)."
+    },
+    {
+      "id": "Q013",
+      "question": "Comment est gere le chiffrement au repos des donnees ?",
+      "expectedKeywords": ["chiffrement", "repos", "encryption", "aes", "tls"],
+      "expectedSourceTypes": ["DOCUMENT", "WIKI"],
+      "groundTruthAnswer": "Chiffrement AES-256 pour le stockage (disques, sauvegardes) et TLS 1.3 minimum pour le transport."
+    },
+    {
+      "id": "Q014",
+      "question": "Quels sont les criteres d'acceptation d'un fournisseur ?",
+      "expectedKeywords": ["fournisseur", "tier", "evaluation", "iso", "audit"],
+      "expectedSourceTypes": ["DOCUMENT", "WIKI"],
+      "groundTruthAnswer": "Evaluation tier (1/2/3) selon impact, certifications requises (ISO 27001, SOC2), audit annuel et clauses contractuelles securite."
+    },
+    {
+      "id": "Q015",
+      "question": "Comment se deroule un test d'intrusion (pentest) ?",
+      "expectedKeywords": ["pentest", "intrusion", "test", "vulnerabilite", "rapport"],
+      "expectedSourceTypes": ["RUNBOOK", "DOCUMENT"],
+      "groundTruthAnswer": "Pentest annuel par un prestataire certifie : scope defini avec RSSI, periode d'execution, rapport de vulnerabilites, plan de remediation."
+    },
+    {
+      "id": "Q016",
+      "question": "Quelle est la procedure de continuite d'activite (PCA) ?",
+      "expectedKeywords": ["pca", "continuite", "activite", "drp", "crise"],
+      "expectedSourceTypes": ["DOCUMENT"],
+      "groundTruthAnswer": "Le PCA documente les processus critiques, leurs RTO/RPO, les sites de repli et les procedures d'activation en cas de sinistre."
+    },
+    {
+      "id": "Q017",
+      "question": "Comment sont organisees les revues de direction ISO 27001 ?",
+      "expectedKeywords": ["revue", "direction", "iso", "27001", "annuelle"],
+      "expectedSourceTypes": ["DOCUMENT", "WIKI"],
+      "groundTruthAnswer": "Revue annuelle avec ordre du jour standard ISO 27001 §9.3 : indicateurs SMSI, audits, incidents, plan d'action et decisions."
+    },
+    {
+      "id": "Q018",
+      "question": "Comment proteger ses donnees en deplacement ?",
+      "expectedKeywords": ["mobile", "deplacement", "vpn", "wifi", "chiffrement"],
+      "expectedSourceTypes": ["WIKI", "DOCUMENT"],
+      "groundTruthAnswer": "VPN obligatoire sur reseaux non-trustes, chiffrement complet du disque, ecran de confidentialite, jamais de WiFi public sans VPN."
+    },
+    {
+      "id": "Q019",
+      "question": "Que contient un Plan d'Assurance Securite (PAS) ?",
+      "expectedKeywords": ["pas", "plan", "assurance", "securite", "fournisseur"],
+      "expectedSourceTypes": ["DOCUMENT"],
+      "groundTruthAnswer": "Engagements securite du fournisseur : controles ISO/SOC2, gestion des incidents, droit d'audit, reversibilite, RGPD."
+    },
+    {
+      "id": "Q020",
+      "question": "Comment est gere le consentement RGPD ?",
+      "expectedKeywords": ["rgpd", "consentement", "donnees", "personnelles", "gdpr"],
+      "expectedSourceTypes": ["DOCUMENT", "WIKI"],
+      "groundTruthAnswer": "Consentement explicite trace, finalite documentee, retention limitee, droit d'acces/rectification/suppression via privacy@omnitech-security.fr."
+    }
+  ]
+}
