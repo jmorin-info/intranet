@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Template exportOptions.plist pour `xcodebuild -exportArchive`.
+
+  Copier ce fichier en `exportOptions.plist` (gitignored) et adapter :
+  - method : app-store | ad-hoc | enterprise | development
+  - teamID : ton Apple Developer Team ID (10 chars)
+  - provisioningProfiles : map BundleID -> nom du profile dans Apple Developer
+
+  Documentation Apple :
+  https://help.apple.com/xcode/mac/current/#/dev7ccaf4d3c
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Methode de distribution :
+         - app-store    => upload TestFlight / App Store
+         - ad-hoc       => distribution sur devices listes manuellement (max 100)
+         - enterprise   => distribution interne via lien direct (Apple Developer Enterprise)
+         - development  => signe juste pour tester sur device dev
+    -->
+    <key>method</key>
+    <string>app-store</string>
+
+    <!-- Apple Developer Team ID (10 caracteres alphanumeriques)
+         Trouvable sur https://developer.apple.com/account/ -> Membership
+    -->
+    <key>teamID</key>
+    <string>REPLACE_ME_TEAM_ID</string>
+
+    <!-- Profile provisionning par bundle ID.
+         Le nom doit matcher EXACTEMENT le nom du profile dans
+         Apple Developer Portal -> Profiles.
+    -->
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>fr.omnitechsecurity.intranet</key>
+        <string>OMNITECH Intranet App Store Profile</string>
+    </dict>
+
+    <!-- Style de signing :
+         - automatic : Xcode telecharge auto les profils (necessite Apple ID Xcode logge)
+         - manual    : on fournit explicitement les profils ci-dessus
+    -->
+    <key>signingStyle</key>
+    <string>manual</string>
+
+    <!-- Inclure les bitcode (deprecie depuis Xcode 14, laisser false) -->
+    <key>uploadBitcode</key>
+    <false/>
+
+    <!-- Symboles dSYM uploades a App Store Connect (utile pour crash reporting) -->
+    <key>uploadSymbols</key>
+    <true/>
+
+    <!-- Compile pour App Store strip ou release pour distribution -->
+    <key>compileBitcode</key>
+    <false/>
+
+    <!-- Strip Swift symbols (reduit taille .ipa, ~30%) -->
+    <key>stripSwiftSymbols</key>
+    <true/>
+</dict>
+</plist>

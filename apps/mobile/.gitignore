@@ -30,6 +30,11 @@ capacitor-cache/
 *.p8
 *.p12
 ios/App/App/GoogleService-Info.plist
+# exportOptions.plist contient le teamID + provisioning profile name —
+# rien de sensible en soi (pas de credentials), mais ces valeurs sont
+# specifiques a chaque setup dev / org. Le template public est conserve
+# en exportOptions.example.plist.
+scripts/exportOptions.plist
 # Android
 android/app/google-services.json
 android/app/*.keystore

@@ -14,7 +14,10 @@
     "cap:add:ios": "cap add ios",
     "cap:add:android": "cap add android",
     "cap:doctor": "cap doctor",
-    "icons:generate": "capacitor-assets generate --assetPath ../frontend/public --iconBackgroundColor '#004469' --splashBackgroundColor '#F5F5F5'"
+    "icons:generate": "capacitor-assets generate --assetPath ../frontend/public --iconBackgroundColor '#004469' --splashBackgroundColor '#F5F5F5'",
+    "build:release:ios": "bash scripts/build-release.sh ios",
+    "build:release:android": "bash scripts/build-release.sh android",
+    "build:release:both": "bash scripts/build-release.sh both"
   },
   "dependencies": {
     "@capacitor/android": "7.6.2",
