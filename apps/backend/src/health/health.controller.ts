@@ -224,6 +224,28 @@ export class HealthController {
         result.ollama = "down";
       }
 
+      // CDN (Item 32) — Bunny / Cloudflare
+      // Polling lightweight : juste un HEAD sur le fichier témoin (~50ms).
+      // Le détail latency est exposé sur /health/cdn (endpoint dédié).
+      const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL;
+      if (cdnUrl) {
+        try {
+          const witnessUrl = `${cdnUrl.replace(/\/$/, "")}/_next/static/check.txt`;
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 3000);
+          const cdnResponse = await fetch(witnessUrl, {
+            method: "HEAD",
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+          result.cdn = cdnResponse.ok ? "up" : "down";
+        } catch {
+          result.cdn = "down";
+        }
+      } else {
+        result.cdn = "not_configured";
+      }
+
       // OnlyOffice Docs Server
       if (this.officeService) {
         try {
@@ -357,6 +379,89 @@ export class HealthController {
     }
 
     return { status: result[check] || "unknown", service: check };
+  }
+
+  /**
+   * Item 32 — CDN health check (Bunny.net / Cloudflare).
+   *
+   * Vérifie que le CDN configuré (`NEXT_PUBLIC_CDN_URL`) sert correctement
+   * le fichier témoin `_next/static/check.txt` uploadé par le script de
+   * déploiement. Utile pour :
+   *   - les dashboards SRE (cf. /admin/system-health)
+   *   - les alertes Prometheus (`omnitech_cdn_status`)
+   *   - le runbook : si "down" → BunkerWeb peut router vers l'origine
+   *     (location `/cdn-fallback/*` qui proxy_pass http://frontend).
+   *
+   * Public (pas de JWT) car appelé en polling toutes les 30s par le
+   * frontend (cf. `useHealthStore`). Les valeurs renvoyées ne fuitent
+   * que `cdn_url` (déjà publique côté browser via `NEXT_PUBLIC_*`) et
+   * un état boolean — aucune donnée sensible.
+   */
+  @Public()
+  @Get("cdn")
+  async cdnHealth(): Promise<{
+    status: ServiceHealthState;
+    cdnUrl: string | null;
+    provider: string | null;
+    latencyMs: number | null;
+    checkedAt: string;
+  }> {
+    const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL || "";
+    const provider = process.env.CDN_PROVIDER || "bunny";
+    const checkedAt = new Date().toISOString();
+
+    if (!cdnUrl) {
+      return {
+        status: "not_configured",
+        cdnUrl: null,
+        provider: null,
+        latencyMs: null,
+        checkedAt,
+      };
+    }
+
+    const witnessUrl = `${cdnUrl.replace(/\/$/, "")}/_next/static/check.txt`;
+    const start = Date.now();
+    try {
+      // Node 18+ : `fetch` natif — pas de dépendance NPM ajoutée.
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(witnessUrl, {
+        signal: controller.signal,
+        headers: { "User-Agent": "OmnitechIntranet-HealthCheck/1.0" },
+      });
+      clearTimeout(timeout);
+      const latencyMs = Date.now() - start;
+
+      if (!response.ok) {
+        return {
+          status: "down",
+          cdnUrl,
+          provider,
+          latencyMs,
+          checkedAt,
+        };
+      }
+
+      // Témoin présent → on regarde si le contenu est cohérent (commit=…).
+      const body = (await response.text()).trim();
+      const looksValid = /commit=\S+/.test(body);
+      return {
+        status: looksValid ? "up" : "degraded",
+        cdnUrl,
+        provider,
+        latencyMs,
+        checkedAt,
+      };
+    } catch {
+      return {
+        status: "down",
+        cdnUrl,
+        provider,
+        latencyMs: null,
+        checkedAt,
+      };
+    }
   }
 
   /**
