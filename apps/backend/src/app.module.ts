@@ -12,6 +12,7 @@ import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
 import { DepartmentsModule } from "./departments/departments.module";
 import { DocumentsModule } from "./documents/documents.module";
+import { DocumentTemplatesModule } from "./document-templates/document-templates.module";
 import { SignaturesModule } from "./signatures/signatures.module";
 import { IsoControlsModule } from "./iso-controls/iso-controls.module";
 import { NewsModule } from "./news/news.module";
@@ -118,6 +119,7 @@ import { WebDAVModule } from "./webdav/webdav.module";
     UsersModule,
     DepartmentsModule,
     DocumentsModule,
+    DocumentTemplatesModule,
     SignaturesModule,
     IsoControlsModule,
     NewsModule,

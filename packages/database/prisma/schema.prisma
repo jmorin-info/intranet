@@ -616,13 +616,45 @@ model SignatureRequest {
   updatedAt            DateTime        @updatedAt
 
   // Relations
-  documentVersion DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
-  requestedBy     User            @relation("SignatureRequester", fields: [requestedById], references: [id])
-  signer          User            @relation("SignatureSigner", fields: [signerId], references: [id])
+  documentVersion DocumentVersion    @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  requestedBy     User               @relation("SignatureRequester", fields: [requestedById], references: [id])
+  signer          User               @relation("SignatureSigner", fields: [signerId], references: [id])
+  evidence        SignatureEvidence?
 
   @@index([documentVersionId])
   @@index([signerId])
   @@index([status])
+}
+
+// Wave D item 26 — SignatureEvidence eIDAS-AES.
+//
+// Enregistre les preuves nécessaires à la conformité eIDAS niveau AES :
+//   - Identité signataire (email, IP, UA)
+//   - Lien temporel (signedAt UTC + TSA RFC 3161 optionnel)
+//   - Intégrité (hash SHA-256 du PDF signé)
+//   - Chaîne de certificats (uniquement QES via PSC qualifié)
+//
+// `evidence` JSON conserve le payload DocuSeal complet pour traçabilité
+// audit (signed_audit_logs, signature_id, IP réelle du signataire, etc.).
+//
+// Mapping ETSI EN 319 122 documenté dans
+// docs/compliance/EIDAS_AES_CONFORMITY.md.
+model SignatureEvidence {
+  id                 String   @id @default(uuid())
+  signatureRequestId String   @unique
+  signedAt           DateTime
+  signerEmail        String
+  signerIpAddress    String?
+  signerUserAgent    String?
+  documentHashSha256 String
+  certificateChain   String?  // PEM-encoded chain (X.509) — null si AES non-QES
+  tsa                String?  // RFC 3161 TimeStampToken (base64) — null si non requis
+  evidence           Json     // Payload DocuSeal brut + métadonnées capture
+  createdAt          DateTime @default(now())
+
+  signatureRequest SignatureRequest @relation(fields: [signatureRequestId], references: [id], onDelete: Cascade)
+
+  @@index([signedAt])
 }
 
 model DocumentAcknowledgment {
