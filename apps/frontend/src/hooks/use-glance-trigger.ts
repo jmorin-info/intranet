@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { toast } from "sonner";
 import { useGlanceStore } from "@/stores/glance-store";
 import { useUIStore } from "@/stores/ui-store";
 
@@ -64,7 +65,52 @@ export function useGlanceTrigger(): void {
   const pathname = usePathname();
   const enabled = useGlanceStore((s) => s.enabled);
   const open = useGlanceStore((s) => s.open);
+  const setEnabled = useGlanceStore((s) => s.setEnabled);
   const sidebarPinned = useUIStore((s) => s.sidebarPinned);
+
+  // Si Glance est désactivé via le toggle profile, on enregistre quand même
+  // un listener Alt+Clic sur les liens internes pour prévenir l'utilisateur :
+  // sinon il presse Alt+Clic et rien ne se passe (pas même le mode focus,
+  // qui skip les liens), il croit que la feature est buggée.
+  useEffect(() => {
+    if (enabled) return;
+    let lastToastAt = 0;
+
+    const onAltClickWhileDisabled = (e: MouseEvent) => {
+      if (!e.altKey) return;
+      if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (e.button !== 0) return;
+      const target = (e.target as HTMLElement | null)?.closest?.(
+        "a",
+      ) as HTMLAnchorElement | null;
+      if (!target) return;
+      const href = resolveInternalHref(target);
+      if (!href) return;
+
+      // Throttle : un toast max toutes les 5s
+      const now = Date.now();
+      if (now - lastToastAt < 5000) return;
+      lastToastAt = now;
+
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      toast("Glance désactivé", {
+        description:
+          "Active la prévisualisation rapide depuis Profil → Préférences.",
+        action: {
+          label: "Activer",
+          onClick: () => setEnabled(true),
+        },
+        duration: 5000,
+      });
+    };
+
+    window.addEventListener("click", onAltClickWhileDisabled, { capture: true });
+    return () =>
+      window.removeEventListener("click", onAltClickWhileDisabled, {
+        capture: true,
+      } as EventListenerOptions);
+  }, [enabled, setEnabled]);
 
   useEffect(() => {
     if (!enabled) return;
