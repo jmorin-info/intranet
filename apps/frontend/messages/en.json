@@ -211,7 +211,7 @@
       "home": "Dashboard"
     }
   },
-"documents": {
+  "documents": {
     "title": "Documents",
     "new": "New document",
     "search": "Search by title, reference...",
@@ -579,6 +579,93 @@
       "title": "Assistant can't find it? Create a ticket",
       "description": "A support agent will pick up your request. Category and priority will be pre-suggested by AI.",
       "action": "Create a ticket"
+    }
+  },
+  "wiki": {
+    "tags": {
+      "label": "Tags",
+      "addPlaceholder": "Add a tag…",
+      "createCta": "Create tag \"{name}\"",
+      "createForbidden": "Tag creation is restricted to administrators",
+      "filterByTag": "Filter by tag",
+      "remove": "Remove this tag",
+      "searchHint": "Type to search a tag.",
+      "duplicate": "A tag with this name already exists.",
+      "createSuccess": "Tag \"{name}\" created",
+      "createError": "Could not create tag."
+    },
+    "backlinks": {
+      "title": "Pages that mention this one",
+      "single": "Cited in 1 article",
+      "plural": "Cited in {count} articles"
+    },
+    "toc": {
+      "title": "On this page",
+      "openDrawer": "Open table of contents",
+      "closeDrawer": "Close table of contents"
+    }
+  },
+  "editor": {
+    "preview": {
+      "edit": "Edit",
+      "splitH": "Split H",
+      "splitV": "Split V",
+      "previewOnly": "Preview",
+      "empty": "Preview will appear here as soon as you start typing."
+    },
+    "autosave": {
+      "savedAt": "Draft saved {seconds}s ago",
+      "draftFound": "Local draft found. Restore?",
+      "restore": "Restore",
+      "discard": "Discard"
+    },
+    "shortcuts": {
+      "save": "Cmd/Ctrl+S — save",
+      "bold": "Cmd/Ctrl+B — bold",
+      "italic": "Cmd/Ctrl+I — italic",
+      "link": "Cmd/Ctrl+K — insert link",
+      "wikiLink": "Cmd/Ctrl+Shift+K — insert wiki link [[",
+      "publish": "Cmd/Ctrl+Enter — publish"
+    }
+  },
+  "ticketsView": {
+    "viewMode": {
+      "table": "List",
+      "kanban": "Kanban"
+    },
+    "kanban": {
+      "ariaLabel": "Tickets Kanban view",
+      "noTickets": "No tickets",
+      "loading": "Loading…"
+    },
+    "chips": {
+      "mine": "My tickets",
+      "mentions": "My mentions",
+      "slaExceeded": "SLA exceeded",
+      "today": "Today",
+      "week": "This week",
+      "reset": "Reset all"
+    },
+    "quickActions": {
+      "menuLabel": "Quick actions",
+      "assignToMe": "Assign to me",
+      "markResolved": "Mark as resolved",
+      "archive": "Archive (close)",
+      "copyLink": "Copy link",
+      "linkCopied": "Link to ticket {ref} copied",
+      "copyError": "Copy failed",
+      "actionError": "Action failed"
+    },
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "create": "Create a new ticket",
+      "next": "Select next ticket",
+      "prev": "Select previous ticket",
+      "open": "Open selected ticket",
+      "assign": "Assign selected ticket to me",
+      "resolve": "Mark selected ticket as resolved",
+      "help": "Show this help",
+      "footer": "Shortcuts are disabled in input fields."
     }
   }
 }

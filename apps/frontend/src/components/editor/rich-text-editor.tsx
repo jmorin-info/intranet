@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useCallback, useEffect, useRef } from 'react';
-import { Image as ImageIcon } from 'lucide-react';
+import React, { useCallback, useEffect, useRef } from "react";
+import { Image as ImageIcon } from "lucide-react";
 
 export interface RichTextEditorProps {
   /** HTML courant (contrôle externe). Le composant ne re-sync l'innerHTML que
@@ -20,6 +20,20 @@ export interface RichTextEditorProps {
   /** Label accessible (sr-only) de l'éditeur. */
   ariaLabel?: string;
   disabled?: boolean;
+  /**
+   * Optional callback for Cmd/Ctrl+S (save). If provided, intercepts the
+   * default browser "save page" behaviour and forwards a save event.
+   */
+  onSave?: () => void;
+  /**
+   * Optional callback for Cmd/Ctrl+K (insert link). Receives the currently
+   * selected text. Parent should prompt for a URL and call insertLink.
+   */
+  onInsertLink?: (selectedText: string) => void;
+  /**
+   * Optional callback for Cmd/Ctrl+Shift+K (insert wiki link `[[`).
+   */
+  onInsertWikiLink?: () => void;
 }
 
 interface ToolbarItem {
@@ -31,24 +45,76 @@ interface ToolbarItem {
 }
 
 function buildToolbar(onImage?: () => void): ToolbarItem[] {
-  const execInline = (cmd: string, arg = '') => (el: HTMLDivElement) => {
-    document.execCommand(cmd, false, arg);
-    el.focus();
-  };
+  const execInline =
+    (cmd: string, arg = "") =>
+    (el: HTMLDivElement) => {
+      document.execCommand(cmd, false, arg);
+      el.focus();
+    };
   const insertBlock = (html: string) => (el: HTMLDivElement) => {
-    document.execCommand('insertHTML', false, html);
+    document.execCommand("insertHTML", false, html);
     el.focus();
   };
 
   const items: ToolbarItem[] = [
-    { id: 'bold', label: 'B', title: 'Gras (Ctrl+B)', style: 'font-semibold', action: execInline('bold') },
-    { id: 'italic', label: 'I', title: 'Italique (Ctrl+I)', style: 'italic', action: execInline('italic') },
-    { id: 'h2', label: 'H2', title: 'Titre', style: 'font-semibold', action: execInline('formatBlock', 'H2') },
-    { id: 'h3', label: 'H3', title: 'Sous-titre', style: 'font-semibold', action: execInline('formatBlock', 'H3') },
-    { id: 'ul', label: '•', title: 'Liste à puces', style: 'font-semibold', action: execInline('insertUnorderedList') },
-    { id: 'ol', label: '1.', title: 'Liste numérotée', style: 'font-semibold text-[11px]', action: execInline('insertOrderedList') },
-    { id: 'quote', label: '“', title: 'Citation', style: 'font-semibold', action: insertBlock('<blockquote><p>Citation</p></blockquote><p><br></p>') },
-    { id: 'code', label: '</>', title: 'Bloc de code', style: 'font-mono text-[10px]', action: insertBlock('<pre><code>// code</code></pre><p><br></p>') },
+    {
+      id: "bold",
+      label: "B",
+      title: "Gras (Ctrl+B)",
+      style: "font-semibold",
+      action: execInline("bold"),
+    },
+    {
+      id: "italic",
+      label: "I",
+      title: "Italique (Ctrl+I)",
+      style: "italic",
+      action: execInline("italic"),
+    },
+    {
+      id: "h2",
+      label: "H2",
+      title: "Titre",
+      style: "font-semibold",
+      action: execInline("formatBlock", "H2"),
+    },
+    {
+      id: "h3",
+      label: "H3",
+      title: "Sous-titre",
+      style: "font-semibold",
+      action: execInline("formatBlock", "H3"),
+    },
+    {
+      id: "ul",
+      label: "•",
+      title: "Liste à puces",
+      style: "font-semibold",
+      action: execInline("insertUnorderedList"),
+    },
+    {
+      id: "ol",
+      label: "1.",
+      title: "Liste numérotée",
+      style: "font-semibold text-[11px]",
+      action: execInline("insertOrderedList"),
+    },
+    {
+      id: "quote",
+      label: "“",
+      title: "Citation",
+      style: "font-semibold",
+      action: insertBlock(
+        "<blockquote><p>Citation</p></blockquote><p><br></p>",
+      ),
+    },
+    {
+      id: "code",
+      label: "</>",
+      title: "Bloc de code",
+      style: "font-mono text-[10px]",
+      action: insertBlock("<pre><code>// code</code></pre><p><br></p>"),
+    },
   ];
 
   return items;
@@ -72,9 +138,12 @@ export function RichTextEditor({
   onImageButton,
   minHeight = 200,
   placeholder,
-  className = '',
+  className = "",
   ariaLabel,
   disabled,
+  onSave,
+  onInsertLink,
+  onInsertWikiLink,
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const isFocusedRef = useRef(false);
@@ -87,6 +156,55 @@ export function RichTextEditor({
     [onChange],
   );
 
+  /**
+   * Keyboard shortcuts inside the editor:
+   *   - Cmd/Ctrl+S          → onSave (defaults: noop)
+   *   - Cmd/Ctrl+B          → bold (browser handles natively)
+   *   - Cmd/Ctrl+I          → italic (browser handles natively)
+   *   - Cmd/Ctrl+K          → onInsertLink with current selection
+   *   - Cmd/Ctrl+Shift+K    → onInsertWikiLink (or insert `[[` placeholder)
+   *
+   * Bold/Italic are NOT intercepted: the browser's default behaviour on
+   * contentEditable already covers them. We only intercept the ones that
+   * collide with browser shortcuts (Save) or that need parent input.
+   */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const isMod = e.ctrlKey || e.metaKey;
+      if (!isMod) return;
+
+      // Cmd/Ctrl+S → save
+      if (e.key.toLowerCase() === "s" && !e.shiftKey && !e.altKey) {
+        if (onSave) {
+          e.preventDefault();
+          onSave();
+        }
+        return;
+      }
+
+      // Cmd/Ctrl+Shift+K → wiki link
+      if (e.key.toLowerCase() === "k" && e.shiftKey) {
+        if (onInsertWikiLink) {
+          e.preventDefault();
+          onInsertWikiLink();
+        }
+        return;
+      }
+
+      // Cmd/Ctrl+K → insert link with current selection
+      if (e.key.toLowerCase() === "k" && !e.shiftKey && !e.altKey) {
+        if (onInsertLink) {
+          e.preventDefault();
+          const sel = window.getSelection();
+          const text = sel?.toString() ?? "";
+          onInsertLink(text);
+        }
+        return;
+      }
+    },
+    [onSave, onInsertLink, onInsertWikiLink],
+  );
+
   // Sync externe (ex: reset du form, sélection de template). On ne re-écrit
   // l'innerHTML que si l'éditeur n'est PAS focus — sinon on détruit le caret
   // à chaque frappe.
@@ -95,11 +213,15 @@ export function RichTextEditor({
     if (!el) return;
     if (isFocusedRef.current) return;
     if (el.innerHTML !== value) {
-      el.innerHTML = value || '';
+      el.innerHTML = value || "";
     }
   }, [value]);
 
-  const isEmpty = !value || value === '<br>' || value === '<p></p>' || value === '<p><br></p>';
+  const isEmpty =
+    !value ||
+    value === "<br>" ||
+    value === "<p></p>" ||
+    value === "<p><br></p>";
 
   return (
     <div className={className}>
@@ -118,7 +240,7 @@ export function RichTextEditor({
               item.action(el);
               onChange(el.innerHTML);
             }}
-            className={`px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white disabled:opacity-40 disabled:cursor-not-allowed ${item.style ?? 'font-semibold'}`}
+            className={`px-2 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white disabled:opacity-40 disabled:cursor-not-allowed ${item.style ?? "font-semibold"}`}
           >
             {item.label}
           </button>
@@ -143,13 +265,18 @@ export function RichTextEditor({
           ref={editorRef}
           contentEditable={!disabled}
           role="textbox"
-          aria-label={ariaLabel ?? 'Éditeur de contenu'}
+          aria-label={ariaLabel ?? "Éditeur de contenu"}
           aria-multiline="true"
           style={{ minHeight: `${minHeight}px` }}
-          className={`wiki-content w-full rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 max-w-none overflow-y-auto ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+          className={`wiki-content w-full rounded-b-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 max-w-none overflow-y-auto ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
           onInput={handleInput}
-          onFocus={() => { isFocusedRef.current = true; }}
-          onBlur={() => { isFocusedRef.current = false; }}
+          onFocus={() => {
+            isFocusedRef.current = true;
+          }}
+          onBlur={() => {
+            isFocusedRef.current = false;
+          }}
+          onKeyDown={handleKeyDown}
           suppressContentEditableWarning
         />
         {isEmpty && placeholder && (

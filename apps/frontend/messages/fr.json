@@ -211,7 +211,7 @@
       "home": "Tableau de bord"
     }
   },
-"documents": {
+  "documents": {
     "title": "Documents",
     "new": "Nouveau document",
     "search": "Rechercher par titre, référence...",
@@ -579,6 +579,93 @@
       "title": "L'assistant ne trouve pas ? Créez un ticket",
       "description": "Un agent du support prendra en charge votre demande. Catégorie et priorité seront pré-suggérées par l'IA.",
       "action": "Créer un ticket"
+    }
+  },
+  "wiki": {
+    "tags": {
+      "label": "Tags",
+      "addPlaceholder": "Ajouter un tag…",
+      "createCta": "Créer le tag « {name} »",
+      "createForbidden": "Création réservée aux administrateurs",
+      "filterByTag": "Filtrer par tag",
+      "remove": "Retirer ce tag",
+      "searchHint": "Tapez pour rechercher un tag.",
+      "duplicate": "Un tag avec ce nom existe déjà.",
+      "createSuccess": "Tag « {name} » créé",
+      "createError": "Création du tag impossible."
+    },
+    "backlinks": {
+      "title": "Pages qui mentionnent celle-ci",
+      "single": "Cité dans 1 article",
+      "plural": "Cité dans {count} articles"
+    },
+    "toc": {
+      "title": "Sur cette page",
+      "openDrawer": "Ouvrir le sommaire",
+      "closeDrawer": "Fermer le sommaire"
+    }
+  },
+  "editor": {
+    "preview": {
+      "edit": "Éditer",
+      "splitH": "Vue partagée H",
+      "splitV": "Vue partagée V",
+      "previewOnly": "Aperçu",
+      "empty": "L'aperçu apparaîtra ici dès que vous taperez du contenu."
+    },
+    "autosave": {
+      "savedAt": "Brouillon enregistré il y a {seconds}s",
+      "draftFound": "Brouillon local trouvé. Restaurer ?",
+      "restore": "Restaurer",
+      "discard": "Ignorer"
+    },
+    "shortcuts": {
+      "save": "Cmd/Ctrl+S — sauvegarder",
+      "bold": "Cmd/Ctrl+B — gras",
+      "italic": "Cmd/Ctrl+I — italique",
+      "link": "Cmd/Ctrl+K — insérer un lien",
+      "wikiLink": "Cmd/Ctrl+Shift+K — insérer un lien wiki [[",
+      "publish": "Cmd/Ctrl+Enter — publier"
+    }
+  },
+  "ticketsView": {
+    "viewMode": {
+      "table": "Liste",
+      "kanban": "Kanban"
+    },
+    "kanban": {
+      "ariaLabel": "Vue Kanban des tickets",
+      "noTickets": "Aucun ticket",
+      "loading": "Chargement…"
+    },
+    "chips": {
+      "mine": "Mes tickets",
+      "mentions": "Mes mentions",
+      "slaExceeded": "SLA dépassé",
+      "today": "Aujourd'hui",
+      "week": "Cette semaine",
+      "reset": "Tout réinitialiser"
+    },
+    "quickActions": {
+      "menuLabel": "Actions rapides",
+      "assignToMe": "M'assigner ce ticket",
+      "markResolved": "Marquer comme résolu",
+      "archive": "Archiver (fermer)",
+      "copyLink": "Copier le lien",
+      "linkCopied": "Lien du ticket {ref} copié",
+      "copyError": "Copie impossible",
+      "actionError": "Action impossible"
+    },
+    "shortcuts": {
+      "title": "Raccourcis clavier",
+      "create": "Créer un nouveau ticket",
+      "next": "Sélectionner le ticket suivant",
+      "prev": "Sélectionner le ticket précédent",
+      "open": "Ouvrir le ticket sélectionné",
+      "assign": "M'assigner le ticket sélectionné",
+      "resolve": "Marquer le ticket comme résolu",
+      "help": "Afficher cette aide",
+      "footer": "Les raccourcis sont désactivés dans les champs de saisie."
     }
   }
 }
