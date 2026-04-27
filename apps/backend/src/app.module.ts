@@ -73,6 +73,7 @@ import { CertificatesModule } from "./certificates/certificates.module";
 import { ExternalPersonsModule } from "./external-persons/external-persons.module";
 import { KnowBe4Module } from "./knowbe4/knowbe4.module";
 import { BackupModule } from "./backup/backup.module";
+import { AdminModule } from "./admin/admin.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { ChatModule } from "./chat/chat.module";
 import { TicketSpacesModule } from "./ticket-spaces/ticket-spaces.module";
@@ -175,6 +176,7 @@ import { WebDAVModule } from "./webdav/webdav.module";
     ExternalPersonsModule,
     KnowBe4Module,
     BackupModule,
+    AdminModule,
     DashboardModule,
     ChatModule,
     TicketSpacesModule,
