@@ -45,16 +45,75 @@ export class WebDAVService {
     private readonly audit: AuditService,
   ) {}
 
+  /**
+   * Vérifie que la fonctionnalité WebDAV est globalement activée pour
+   * l'instance via AppConfig (clé `webdav.enabled`). Default false :
+   * l'admin doit activer explicitement la feature pour TOUTE l'instance.
+   *
+   * Doublé par `User.webdavEnabled` per-user (cf. ensureUserAllowed).
+   */
+  private async isFeatureEnabled(): Promise<boolean> {
+    const cfg = await this.prisma.appConfig.findUnique({
+      where: { key: "webdav.enabled" },
+    });
+    if (!cfg) return false;
+    // AppConfig.value est text mais contient du JSON. Plusieurs formats
+    // historiques tolérés : "true", "false", "{\"enabled\":true}", "1", "0".
+    const raw = (cfg.value || "").trim();
+    if (!raw) return false;
+    if (raw === "true" || raw === "1") return true;
+    if (raw === "false" || raw === "0") return false;
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (typeof parsed === "boolean") return parsed;
+      if (parsed && typeof parsed === "object" && "enabled" in parsed) {
+        return Boolean((parsed as { enabled?: unknown }).enabled);
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  }
+
+  /**
+   * Vérifie que (a) la feature globale est activée et (b) le user
+   * a la permission `webdavEnabled = true`. Lève ForbiddenException sinon.
+   */
+  private async ensureUserAllowed(userId: string): Promise<void> {
+    const featureOn = await this.isFeatureEnabled();
+    if (!featureOn) {
+      throw new ForbiddenException(
+        "WebDAV est désactivé sur cette instance (admin > AppConfig > webdav.enabled).",
+      );
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { webdavEnabled: true, deletedAt: true, isActive: true },
+    });
+    if (!user || user.deletedAt || !user.isActive) {
+      throw new ForbiddenException("Utilisateur introuvable ou désactivé.");
+    }
+    if (!user.webdavEnabled) {
+      throw new ForbiddenException(
+        "L'accès WebDAV n'est pas activé pour ton compte. Demande à un administrateur.",
+      );
+    }
+  }
+
   // -- Token management ------------------------------------------------------
 
   /**
    * Mint un nouveau token WebDAV. Le token clair n'est retourné qu'une fois.
    * Révocable via {@link revokeAllTokens} ou {@link revokeToken}.
+   *
+   * Refuse si la feature globale est OFF ou si le user n'a pas
+   * `User.webdavEnabled = true`.
    */
   async createToken(
     userId: string,
     label?: string,
   ): Promise<{ token: string; expiresAt: Date; id: string }> {
+    await this.ensureUserAllowed(userId);
     const tokenClear = this.crypto.generateRandomToken(WEBDAV_TOKEN_BYTES);
     const tokenHash = this.crypto.hashToken(tokenClear);
     const expiresAt = new Date(
@@ -147,6 +206,10 @@ export class WebDAVService {
   } | null> {
     if (!email || !tokenClear) return null;
 
+    // Refus systématique si la feature globale est OFF (cluster-wide kill switch).
+    const featureOn = await this.isFeatureEnabled();
+    if (!featureOn) return null;
+
     const user = await this.prisma.user.findUnique({
       where: { email: email.toLowerCase() },
       select: {
@@ -158,9 +221,13 @@ export class WebDAVService {
         lastName: true,
         deletedAt: true,
         isActive: true,
+        webdavEnabled: true,
       },
     });
     if (!user || user.deletedAt || !user.isActive) return null;
+    // Refus per-user : même si le user a un token valide, l'admin peut
+    // désactiver son accès WebDAV (offboarding, audit, etc.).
+    if (!user.webdavEnabled) return null;
 
     const tokenHash = this.crypto.hashToken(tokenClear);
     const tokenRow = await (this.prisma as any).webDAVToken.findUnique({

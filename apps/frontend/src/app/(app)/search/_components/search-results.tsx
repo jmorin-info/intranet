@@ -91,7 +91,7 @@ interface SearchResultsProps {
   loading: boolean;
 }
 
-export function SearchResults({
+function SearchResultsImpl({
   query,
   data,
   loading,
@@ -169,6 +169,19 @@ export function SearchResults({
     </div>
   );
 }
+
+// React.memo : SearchResults reçoit des props stables (data, query, loading).
+// Le parent SearchPage re-render à chaque keystroke (debounced à 300ms côté
+// fetch, mais l'état local query change instantanément). Sans memo, toute
+// la liste de cartes (parfois 50+ hits) se re-render à chaque caractère
+// même si data n'a pas bougé.
+export const SearchResults = React.memo(
+  SearchResultsImpl,
+  (prev, next) =>
+    prev.query === next.query &&
+    prev.data === next.data &&
+    prev.loading === next.loading,
+);
 
 interface ResultCardProps {
   hit: UnifiedHit;

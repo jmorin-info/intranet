@@ -273,6 +273,9 @@ export class UsersService {
         }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.noaEnabled !== undefined && { noaEnabled: dto.noaEnabled }),
+        ...(dto.webdavEnabled !== undefined && {
+          webdavEnabled: dto.webdavEnabled,
+        }),
       },
       select: {
         id: true,
@@ -284,6 +287,7 @@ export class UsersService {
         department: true,
         isActive: true,
         noaEnabled: true,
+        webdavEnabled: true,
         createdAt: true,
         updatedAt: true,
       },

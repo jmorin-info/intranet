@@ -219,6 +219,11 @@ model User {
   // explicitement coché cette case (admin OU profile). Exclusions dures
   // côté frontend : routes /auth/*, /mfa/*, security, audit-logs, etc.
   noaEnabled                  Boolean   @default(false)
+  // Permission per-user pour la sync WebDAV Obsidian (item 16).
+  // Default false : l'admin opt-in explicitement pour chaque user qui doit
+  // pouvoir générer un token WebDAV et utiliser l'endpoint /api/v1/webdav/*.
+  // Doublé d'un feature flag global AppConfig "webdav.enabled".
+  webdavEnabled               Boolean   @default(false)
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
 

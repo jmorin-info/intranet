@@ -38,4 +38,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   noaEnabled?: boolean;
+
+  // Permission WebDAV — admin opt-in per-user pour la sync Obsidian.
+  // Doublé d'un feature flag global AppConfig "webdav.enabled".
+  @IsOptional()
+  @IsBoolean()
+  webdavEnabled?: boolean;
 }

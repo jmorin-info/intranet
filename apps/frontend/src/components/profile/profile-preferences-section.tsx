@@ -13,6 +13,7 @@ import { useNoaStore } from "@/lib/noa/runtime";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { replayWelcomeTour } from "@/components/onboarding/welcome-tour";
 import { PushNotificationsPrompt } from "@/components/notifications/push-notifications-prompt";
+import { detectPlatform } from "@/lib/platform-detection";
 import type { ApiError, NotifPrefs } from "./types";
 
 export function ProfilePreferencesSection() {
@@ -23,6 +24,15 @@ export function ProfilePreferencesSection() {
   const setUser = useAuthStore((s) => s.setUser);
   const { t } = useTranslation();
   const [resettingTour, setResettingTour] = useState(false);
+
+  // Sur iOS Safari, c'est <PushNotificationsPrompt /> qui pilote le push
+  // (pédagogie install + toggle). On masque alors le toggle "Push navigateur"
+  // dans la liste des préférences pour éviter le doublon visuel + race
+  // condition (les deux UI modifient le même state serveur).
+  const [hideBrowserPushToggle, setHideBrowserPushToggle] = useState(false);
+  useEffect(() => {
+    setHideBrowserPushToggle(detectPlatform() === "ios");
+  }, []);
 
   // Mode humour Noa — opt-in. Le toggle reste affiché même si le feature
   // flag global est OFF (information utilisateur), on indique juste que la
@@ -186,19 +196,23 @@ export function ProfilePreferencesSection() {
       desc: "Recevoir un email résumé chaque matin",
       forced: false,
     },
-    {
-      key: "pushBrowser" as const,
-      label: "Push navigateur",
-      desc:
-        push.permission === "unsupported"
-          ? "Non supporté par ce navigateur (iOS Safari < 16 ?)"
-          : push.permission === "denied"
-            ? "Bloqué — réactivez les notifications dans les paramètres du navigateur"
-            : push.permission === "granted"
-              ? `Notifications push dans le navigateur${push.isSubscribed ? " (actives)" : ""}`
-              : "Notifications push dans le navigateur (autorisation requise)",
-      forced: push.permission === "unsupported" || push.permission === "denied",
-    },
+    ...(hideBrowserPushToggle
+      ? []
+      : [
+          {
+            key: "pushBrowser" as const,
+            label: "Push navigateur",
+            desc:
+              push.permission === "unsupported"
+                ? "Non supporté par ce navigateur"
+                : push.permission === "denied"
+                  ? "Bloqué — réactivez les notifications dans les paramètres du navigateur"
+                  : push.permission === "granted"
+                    ? `Notifications push dans le navigateur${push.isSubscribed ? " (actives)" : ""}`
+                    : "Notifications push dans le navigateur (autorisation requise)",
+            forced: push.permission === "unsupported" || push.permission === "denied",
+          },
+        ]),
   ];
 
   return (
