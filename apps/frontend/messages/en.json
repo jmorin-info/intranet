@@ -210,5 +210,40 @@
       "back": "Go back",
       "home": "Dashboard"
     }
+  },
+  "helpdesk": {
+    "title": "Support center",
+    "subtitle": "Ask AI, browse FAQs or follow your tickets — all in one place.",
+    "tabsAriaLabel": "Support center sections",
+    "tabs": {
+      "hub": "Support hub (AI)",
+      "selfservice": "Self-service",
+      "mytickets": "My tickets"
+    },
+    "status": {
+      "open": "Open",
+      "inProgress": "In progress",
+      "waiting": "Waiting",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "myRecentTickets": "My recent tickets",
+    "viewAll": "View all",
+    "loadError": "Loading error",
+    "noTicketsHint": "No tickets right now — you're all caught up.",
+    "createFirstTicket": "Create my first ticket",
+    "frequentRequests": "Frequent requests",
+    "suggestions": {
+      "resetPassword": "Reset my password",
+      "hardwareIssue": "Hardware issue / monitor / printer",
+      "requestAccess": "Request access to a folder / application",
+      "reportIncident": "Report a security incident"
+    },
+    "chatPlaceholder": "Describe your issue, I might be able to answer directly.",
+    "noAnswerCta": {
+      "title": "Assistant can't find it? Create a ticket",
+      "description": "A support agent will pick up your request. Category and priority will be pre-suggested by AI.",
+      "action": "Create a ticket"
+    }
   }
 }

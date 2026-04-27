@@ -210,5 +210,40 @@
       "back": "Retour",
       "home": "Tableau de bord"
     }
+  },
+  "helpdesk": {
+    "title": "Centre d'assistance",
+    "subtitle": "Posez votre question à l'IA, consultez les FAQ ou suivez vos tickets — le tout au même endroit.",
+    "tabsAriaLabel": "Sections du centre d'assistance",
+    "tabs": {
+      "hub": "Hub support (IA)",
+      "selfservice": "Self-service",
+      "mytickets": "Mes tickets"
+    },
+    "status": {
+      "open": "Ouvert",
+      "inProgress": "En cours",
+      "waiting": "En attente",
+      "resolved": "Résolu",
+      "closed": "Fermé"
+    },
+    "myRecentTickets": "Mes tickets récents",
+    "viewAll": "Voir tout",
+    "loadError": "Erreur de chargement",
+    "noTicketsHint": "Aucun ticket pour le moment — vous êtes à jour.",
+    "createFirstTicket": "Créer mon premier ticket",
+    "frequentRequests": "Demandes fréquentes",
+    "suggestions": {
+      "resetPassword": "Réinitialiser mon mot de passe",
+      "hardwareIssue": "Problème matériel / écran / imprimante",
+      "requestAccess": "Demander un accès dossier / application",
+      "reportIncident": "Signaler un incident de sécurité"
+    },
+    "chatPlaceholder": "Décrivez votre problème, je peux peut-être répondre directement.",
+    "noAnswerCta": {
+      "title": "L'assistant ne trouve pas ? Créez un ticket",
+      "description": "Un agent du support prendra en charge votre demande. Catégorie et priorité seront pré-suggérées par l'IA.",
+      "action": "Créer un ticket"
+    }
   }
 }
