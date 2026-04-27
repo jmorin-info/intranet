@@ -21,6 +21,7 @@ import {
   MeiliDocument,
 } from "../search/meilisearch.service";
 import { CacheService } from "../common/cache/cache.service";
+import { BacklinkService } from "./backlink.service";
 import {
   CreateWikiPageDto,
   UpdateWikiPageDto,
@@ -43,7 +44,22 @@ export class WikiService {
     @Optional() private readonly rag?: RagService,
     @Optional() private readonly meili?: MeilisearchService,
     @Optional() private readonly cache?: CacheService,
+    @Optional() private readonly backlinks?: BacklinkService,
   ) {}
+
+  /**
+   * Recompute the persistent backlink index for a page (best-effort).
+   * Called from create() / update() — failures are logged but never block
+   * the user-facing operation.
+   */
+  private rebuildBacklinks(pageId: string): void {
+    if (!this.backlinks) return;
+    void this.backlinks.rebuildBacklinks(pageId).catch((err) => {
+      this.logger.warn(
+        `Backlink rebuild failed for ${pageId}: ${err?.message || err}`,
+      );
+    });
+  }
 
   /** Génère un slug unique depuis un titre (fallback si non fourni par user). */
   private autoSlug(title: string): Promise<string> {
@@ -197,7 +213,12 @@ export class WikiService {
 
   async findAll(
     user: RequestUser,
-    filters?: { category?: string; search?: string; mine?: boolean },
+    filters?: {
+      category?: string;
+      search?: string;
+      mine?: boolean;
+      tag?: string;
+    },
   ) {
     const where: Prisma.WikiPageWhereInput = {
       ...this.buildVisibilityFilter(user),
@@ -210,6 +231,14 @@ export class WikiService {
 
     if (filters?.mine) {
       where.authorId = user.id;
+    }
+
+    // Tag filter — restrict to pages tagged with the given slug.
+    if (filters?.tag) {
+      const tagSlug = filters.tag.trim().toLowerCase();
+      if (tagSlug) {
+        where.tags = { some: { tag: { slug: tagSlug } } };
+      }
     }
 
     if (filters?.search) {
@@ -452,8 +481,10 @@ export class WikiService {
     // Index the new page for Meilisearch (non-blocking).
     this.indexForMeili(page);
 
-    // New content may introduce new backlinks — invalidate cache.
+    // New content may introduce new backlinks — invalidate cache and rebuild
+    // the persistent backlink index for this page.
     this.invalidateBacklinkCache();
+    this.rebuildBacklinks(page.id);
 
     return page;
   }
@@ -569,6 +600,7 @@ export class WikiService {
     // Backlink graph may have changed if content or slug was edited.
     if (data.content !== undefined || data.slug !== undefined) {
       this.invalidateBacklinkCache();
+      this.rebuildBacklinks(updated.id);
     }
 
     return updated;
@@ -772,12 +804,45 @@ export class WikiService {
   }
 
   /**
+   * Find articles that link to a given page by slug (used by the
+   * GET /wiki/pages/:slug/backlinks endpoint).
+   *
+   * Préfère l'index persistant (`WikiPageBacklink`) quand le service
+   * BacklinkService est injecté ; retombe sur le scan plein-texte legacy
+   * si nécessaire (backwards-compat avec les déploiements pré-migration).
+   */
+  async findBacklinksBySlug(slug: string, user: RequestUser) {
+    const target = await this.prisma.wikiPage.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        slug: true,
+        authorId: true,
+        visibility: true,
+        ownerDepartmentId: true,
+        allowedRoles: true,
+        collaborators: true,
+      },
+    });
+    if (!target) throw new NotFoundException("Wiki page not found");
+    if (!this.canView(target, user)) {
+      throw new ForbiddenException("You cannot access this wiki page");
+    }
+    return this.findBacklinks(target.id, user);
+  }
+
+  /**
    * Find articles that link to the given wiki page (i.e. "cited in").
    *
    * Matches three link shapes inside the content:
    *   - Wiki-style double-bracket links:   `[[slug]]` or `[[Titre|slug]]`
    *   - Direct path links:                  `/wiki/slug` (any attribute)
    *   - Markdown links:                     `[text](/wiki/slug)`
+   *
+   * Si l'index persistant `WikiPageBacklink` est disponible, on l'utilise
+   * en priorité. Sinon (et pour préserver la compatibilité avec les liens
+   * `/wiki/slug` non capturés par la regex `[[...]]`), on retombe sur le
+   * scan plein-texte caché.
    *
    * Results are filtered by the caller's visibility. Scans are cached in
    * Redis for 5 minutes to keep the endpoint responsive.
@@ -809,11 +874,32 @@ export class WikiService {
       excerpt: string;
     };
 
-    const candidates = this.cache
-      ? await this.cache.wrap<CandidateRow[]>(cacheKey, 300, () =>
-          this.scanBacklinkCandidates(id, slug),
-        )
-      : await this.scanBacklinkCandidates(id, slug);
+    // Persistent backlink index (preferred path). Falls back to in-content
+    // scan when the BacklinkService is unavailable (pre-migration deploys
+    // or unit tests not wiring it).
+    let candidates: CandidateRow[];
+    if (this.backlinks) {
+      const indexed = await this.backlinks.findBacklinksForSlug(slug);
+      candidates = indexed.map((b) => ({
+        id: b.id,
+        title: b.title,
+        slug: b.slug,
+        category: b.category,
+        updatedAt: b.updatedAt.toISOString(),
+        authorId: b.authorId,
+        visibility: b.visibility,
+        ownerDepartmentId: b.ownerDepartmentId,
+        allowedRoles: b.allowedRoles,
+        collaborators: b.collaborators,
+        excerpt: `${b.occurrenceCount} mention${b.occurrenceCount > 1 ? "s" : ""}`,
+      }));
+    } else {
+      candidates = this.cache
+        ? await this.cache.wrap<CandidateRow[]>(cacheKey, 300, () =>
+            this.scanBacklinkCandidates(id, slug),
+          )
+        : await this.scanBacklinkCandidates(id, slug);
+    }
 
     // Visibility filter — run each candidate through canView.
     const visible = candidates.filter((c) => this.canView(c, user));
