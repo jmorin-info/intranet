@@ -835,26 +835,46 @@ export class WorkflowsService {
 
     let stepValidated = false;
     const mode = currentStep.mode as WorkflowStepMode;
+    // minApprovers : seuil multi-niveaux (item #27). Default 1 = legacy.
+    const minApprovers = Math.max(1, (currentStep as { minApprovers?: number }).minApprovers ?? 1);
+    const approvedCount = currentResults.filter(
+      (r) => r.decision === "APPROVED",
+    ).length;
 
     if (mode === "PARALLEL_ALL") {
-      // TOUTES les lignes doivent être APPROVED (pas de PENDING restante)
-      stepValidated =
-        currentResults.length > 0 &&
-        currentResults.every((r) => r.decision === "APPROVED");
+      // Mode strict UNANIMITÉ : toutes les lignes doivent être APPROVED.
+      // Si minApprovers est défini ET inférieur au nombre total de lignes, on
+      // bascule en logique seuil ("au moins N approbations"). Ça permet de
+      // configurer "3 sur 5 approbateurs nécessaires" sans changer de mode.
+      if (minApprovers > 1 && minApprovers < currentResults.length) {
+        stepValidated = approvedCount >= minApprovers;
+      } else {
+        stepValidated =
+          currentResults.length > 0 &&
+          currentResults.every((r) => r.decision === "APPROVED");
+      }
+    } else if (mode === "PARALLEL_ANY") {
+      // PARALLEL_ANY : par défaut 1 approbation suffit. Si minApprovers > 1
+      // on attend N approbations distinctes.
+      stepValidated = approvedCount >= minApprovers;
     } else {
-      // SINGLE ou PARALLEL_ANY : 1 APPROVED suffit
-      stepValidated = currentResults.some((r) => r.decision === "APPROVED");
+      // SINGLE : 1 approbation suffit (minApprovers ignoré).
+      stepValidated = approvedCount >= 1;
     }
 
     if (!stepValidated) return instance; // toujours en attente
 
-    // Étape validée — pour PARALLEL_ANY, skip les lignes pending restantes
-    // pour nettoyer la file d'attente et éviter des décisions caduques.
-    if (mode === "PARALLEL_ANY") {
+    // Étape validée — pour PARALLEL_ANY (sans seuil multi) ou PARALLEL_ALL
+    // bascule seuil, on skip les pending restantes pour clore l'étape proprement.
+    if (mode === "PARALLEL_ANY" || (mode === "PARALLEL_ALL" && minApprovers > 1 && minApprovers < currentResults.length)) {
       const pendingSiblings = currentResults.filter(
         (r) => r.decision === "PENDING",
       );
       if (pendingSiblings.length > 0) {
+        const reason =
+          mode === "PARALLEL_ANY"
+            ? "Caduc (PARALLEL_ANY résolu par une autre approbation)"
+            : `Caduc (seuil ${minApprovers} approbations atteint)`;
         await this.prisma.approvalStepInstance.updateMany({
           where: {
             id: { in: pendingSiblings.map((r) => r.id) },
@@ -862,11 +882,11 @@ export class WorkflowsService {
           data: {
             decision: "SKIPPED",
             decidedAt: new Date(),
-            comment: "Caduc (PARALLEL_ANY résolu par une autre approbation)",
+            comment: reason,
           },
         });
         this.logger.log(
-          `${pendingSiblings.length} step-instances SKIPPED (PARALLEL_ANY, instance=${instanceId})`,
+          `${pendingSiblings.length} step-instances SKIPPED (mode=${mode}, seuil=${minApprovers}, instance=${instanceId})`,
         );
       }
     }
