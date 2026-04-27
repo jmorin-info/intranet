@@ -1,0 +1,108 @@
+name: Mobile (Capacitor)
+
+# Job dedie a la sante de la config Capacitor (apps/mobile/).
+# On NE FAIT PAS de build natif (.ipa / .aab) ici :
+#   - iOS necessite un runner macOS (cher : 10x le tarif Linux)
+#   - Android natif fonctionne mais le bundle release demande un keystore
+#     prod, qu'on ne pousse pas en CI
+# A la place, on valide :
+#   1. Le typecheck du capacitor.config.ts
+#   2. `cap sync` (iOS + Android) — execute la copie web + plugin update
+#      sans build natif. Detecte les configs invalides, plugins manquants,
+#      etc.
+# C'est un signal precoce + bon marche. Les builds natifs reels sont
+# delegues a Xcode / Gradle locaux ou a un runner macOS dedie en cas de
+# release.
+
+on:
+  push:
+    branches:
+      - main
+      - feat/p1-9-prelaunch
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/mobile.yml"
+      - "pnpm-lock.yaml"
+      - "package.json"
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/mobile.yml"
+      - "pnpm-lock.yaml"
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HUSKY: "0"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Mobile build check (typecheck + cap sync iOS + Android)
+  # ---------------------------------------------------------------------------
+  mobile-build-check:
+    name: Mobile build check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck capacitor.config.ts
+        run: pnpm --filter @omnitech/mobile typecheck
+
+      - name: Verify Capacitor config (cap config)
+        # `cap config` charge et valide capacitor.config.ts — failOnError sur
+        # config invalide (ex: appId mal forme, plugin avec option inconnue).
+        run: pnpm --filter @omnitech/mobile exec cap config --help > /dev/null && pnpm --filter @omnitech/mobile exec cap config
+
+      - name: Cap sync iOS (config + web assets — pas de build natif)
+        # `cap sync ios` :
+        # - copie webDir dans ios/App/App/public
+        # - met a jour ios/App/App/capacitor.config.json
+        # - skip pod install (pas de cocoapods sur runner Linux — c'est OK,
+        #   on verifie juste que la config TS se serialise sans erreur)
+        run: pnpm --filter @omnitech/mobile exec cap sync ios
+
+      - name: Cap sync Android (config + web assets + Gradle deps update)
+        # `cap sync android` :
+        # - copie webDir dans android/app/src/main/assets/public
+        # - met a jour android/app/src/main/assets/capacitor.config.json
+        # - regenere capacitor.plugins.json
+        # - tente un Gradle sync (peut warn si Android SDK absent — non bloquant)
+        run: pnpm --filter @omnitech/mobile exec cap sync android
+
+      - name: Verify no uncommitted changes after sync
+        # Si un fichier genere par `cap sync` differe de la version commit,
+        # ca signifie qu'un dev a oublie de re-sync apres un changement
+        # config / plugins. On force la mise a jour avant le merge.
+        # Allow capacitor.config.json (regenerated) — only fail if there are
+        # OTHER drift.
+        run: |
+          if ! git diff --quiet -- ':!apps/mobile/ios/App/App/capacitor.config.json' ':!apps/mobile/android/app/src/main/assets/capacitor.config.json' ':!apps/mobile/android/app/src/main/assets/capacitor.plugins.json' ':!apps/mobile/ios/App/App/public/' ':!apps/mobile/android/app/src/main/assets/public/'; then
+            echo "::error::cap sync produced drift in committed files. Run 'pnpm --filter @omnitech/mobile cap:sync' locally and commit the result." >&2
+            git --no-pager diff -- ':!apps/mobile/ios/App/App/capacitor.config.json' ':!apps/mobile/android/app/src/main/assets/capacitor.config.json' ':!apps/mobile/android/app/src/main/assets/capacitor.plugins.json' ':!apps/mobile/ios/App/App/public/' ':!apps/mobile/android/app/src/main/assets/public/'
+            exit 1
+          fi
