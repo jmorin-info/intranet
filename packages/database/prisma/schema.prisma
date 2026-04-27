@@ -696,6 +696,10 @@ model AuditLog {
   metadata     Json?
   severity     AuditSeverity @default(INFO)
   createdAt    DateTime      @default(now())
+  /// RGPD : timestamp d'anonymisation des champs PII (userId, ipAddress, userAgent, metadata).
+  /// NULL = ligne brute encore consultable. Non-NULL = ligne anonymisée par
+  /// AuditAnonymizationService (cron quotidien 4h). Voir docs/compliance/AUDIT_LOG_RETENTION.md.
+  anonymizedAt DateTime?
 
   // Relations
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -709,6 +713,10 @@ model AuditLog {
   @@index([severity, createdAt])
   /// idx pour journal d'audit per-user filtré par action (audit.service.ts findMany combinant userId + action LIKE + orderBy createdAt)
   @@index([userId, action, createdAt])
+  /// idx pour AuditAnonymizationService cron : sélectionne lignes
+  /// `createdAt < cutoffFull AND anonymizedAt IS NULL`. Crée aussi le scan
+  /// `anonymizedAt < cutoffPurge` pour la phase deleteMany.
+  @@index([anonymizedAt, createdAt])
 }
 
 enum DataExportStatus {
