@@ -194,3 +194,47 @@ pnpm --filter backend test                 # full suite
 pnpm --filter backend test -- foo.spec.ts  # ciblé
 pnpm --filter backend typecheck            # bloque le commit si types KO
 ```
+
+## Suivi par commit (mise à jour incrémentale)
+
+Le tableau ci-dessous trace les commits qui font progresser la couverture
+tests / dette technique sur la branche `worktree-agent-a27284cdc5dd23235`
+(rebasera ensuite sur `feat/p1-9-prelaunch`).
+
+| Commit  | Type      | Apport                                               |
+|---------|-----------|------------------------------------------------------|
+| f3768d1 | test      | 13 controller specs (≈2677 lignes) + ce plan v1     |
+| 85d7d57 | feat      | Queue BullMQ data-export — ajoute `data-export.processor.spec.ts` au backlog v1.2 |
+| b572290 | refactor  | Repository pattern documents — facilite mocking dans `documents.service.spec.ts` |
+| a40477b | refactor  | Repository pattern tickets (lecture KB + group-by) — `tickets.service.spec.ts` etendu (provider TicketsRepository reel + CacheService mock) |
+| f80d84b | chore     | Reactivation ESLint strict (item 4 dette) — backend + frontend, prepare la voie aux tests no-floating-promises v1.2 |
+
+### Impact sur la roadmap tests
+
+Trois prerequis pour atteindre les 80 % de couverture sont desormais pres :
+
+1. **Repository pattern** (a40477b + b572290) : le mock `prisma.*` migre
+   vers le mock `repo.*` dans les services qui l'utilisent. Reduction
+   d'environ 40 % du boilerplate par spec service.
+2. **ESLint strict en warn** (f80d84b) : detection precoce des
+   `unused-vars` qui sont souvent le symptome de tests partiellement
+   commences (mocks non consommes). Aide la revue.
+3. **Queue BullMQ data-export** (85d7d57) : ajoute un nouveau processor a
+   couvrir → `data-export.processor.spec.ts` integre au backlog P1
+   (prioritaire car impact RGPD direct).
+
+### Nouvelles entrees backlog v1.2
+
+| Spec à ajouter                              | Prio | Effort | Reference |
+|---------------------------------------------|------|--------|-----------|
+| `data-export.processor.spec.ts`             | P1   | 0.5 j  | 85d7d57   |
+| `documents.repository.spec.ts`              | P3   | 0.3 j  | b572290   |
+| `tickets.repository.spec.ts` (extension)    | P3   | 0.3 j  | a40477b   |
+
+### Status agregé v1.1 (post-commits a40477b/f80d84b)
+
+- Specs services : 16 + 1 etendu (tickets) = **17 specs services**
+- Specs controllers : **13 specs controllers** (inchange)
+- Endpoints couverts : **≈116 / 234 = 50 %**
+- Lignes de tests cumulees : **≈2900** (specs + setup mocks)
+- Dette eslint : **0 violation `error`** (apres commit f80d84b)
