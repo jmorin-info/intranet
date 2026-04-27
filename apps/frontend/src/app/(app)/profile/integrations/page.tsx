@@ -26,12 +26,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { CalendarIntegrationCard } from "@/components/profile/integrations/calendar-integration-card";
 import { WebdavIntegrationCard } from "@/components/profile/integrations/webdav-integration-card";
 
-// PushNotificationsPrompt monte usePushNotifications (window/Notification) → SSR off
-const PushNotificationsPrompt = dynamic(
+// PushIntegrationSection wrappe <PushNotificationsPrompt /> et gère le fallback
+// "navigateur incompatible". window/Notification → SSR off obligatoire.
+const PushIntegrationSection = dynamic(
   () =>
-    import("@/components/notifications/push-notifications-prompt").then((m) => ({
-      default: m.PushNotificationsPrompt,
-    })),
+    import("@/components/profile/integrations/push-integration-section").then(
+      (m) => ({ default: m.PushIntegrationSection }),
+    ),
   { ssr: false, loading: () => <div className="shimmer h-32 rounded-xl" /> },
 );
 
@@ -109,7 +110,7 @@ export default function ProfileIntegrationsPage() {
           <p className="text-sm text-seal-gray-500 dark:text-slate-400">
             {t("push.sectionDescription")}
           </p>
-          <PushNotificationsPrompt />
+          <PushIntegrationSection />
         </section>
       </div>
     </div>
