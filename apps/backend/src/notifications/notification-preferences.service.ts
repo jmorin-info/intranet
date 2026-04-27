@@ -1,5 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import {
+  Prisma,
+  DigestFrequency as PrismaDigestFrequency,
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 export type NotificationChannel = "email" | "inApp" | "push";
@@ -9,7 +12,40 @@ export type NotificationCategory =
   | "incidents"
   | "mentions";
 
+/**
+ * Représentation legacy (JSON) de la fréquence de digest.
+ * Conservée pour rétrocompat de l'API PUT /notifications/preferences.
+ *
+ * La source de vérité typée est `User.digestFrequency` (enum Postgres) :
+ *   NONE   ↔ 'off'
+ *   DAILY  ↔ 'daily'
+ *   WEEKLY ↔ 'weekly'
+ *
+ * Les helpers `toPrismaFrequency` / `fromPrismaFrequency` font la conversion.
+ */
 export type DigestFrequency = "off" | "daily" | "weekly";
+
+/** Conversion JSON-legacy → enum Prisma typé. */
+export function toPrismaFrequency(
+  value: string | undefined | null,
+): PrismaDigestFrequency {
+  if (!value) return PrismaDigestFrequency.DAILY;
+  const v = String(value).toLowerCase();
+  if (v === "off" || v === "none") return PrismaDigestFrequency.NONE;
+  if (v === "weekly") return PrismaDigestFrequency.WEEKLY;
+  return PrismaDigestFrequency.DAILY;
+}
+
+/** Conversion enum Prisma typé → JSON-legacy. */
+export function fromPrismaFrequency(
+  value: PrismaDigestFrequency | string | undefined | null,
+): DigestFrequency {
+  if (!value) return "daily";
+  const v = String(value).toUpperCase();
+  if (v === "NONE") return "off";
+  if (v === "WEEKLY") return "weekly";
+  return "daily";
+}
 
 export interface EmailChannelPrefs {
   tickets: boolean;
@@ -116,10 +152,20 @@ export class NotificationPreferencesService {
   /**
    * Update preferences with a partial patch, merged with the current state.
    * Always persists a fully-normalised object.
+   *
+   * Accepte aussi un champ `digestFrequency` (top-level) en complément du
+   * champ legacy `email.digest` — plus pratique côté frontend (un select
+   * unique). Si les deux sont fournis, `digestFrequency` (top-level) prend
+   * la priorité car il représente la valeur typée canonique.
+   *
+   * Side-effect : la colonne typée `User.digestFrequency` est synchronisée
+   * en même temps que le JSON, en une seule transaction Prisma.
    */
   async update(
     userId: string,
-    patch: Partial<NotificationPreferences>,
+    patch: Partial<NotificationPreferences> & {
+      digestFrequency?: PrismaDigestFrequency | DigestFrequency | string;
+    },
   ): Promise<NotificationPreferences> {
     const current = await this.get(userId);
     const next: NotificationPreferences = {
@@ -128,7 +174,12 @@ export class NotificationPreferencesService {
       push: { ...current.push, ...(patch.push || {}) },
     };
 
-    // Normalise digest value
+    // Top-level digestFrequency wins over legacy email.digest if present.
+    if (patch.digestFrequency !== undefined) {
+      next.email.digest = fromPrismaFrequency(patch.digestFrequency);
+    }
+
+    // Normalise digest value (defensive)
     if (
       next.email.digest !== "off" &&
       next.email.digest !== "daily" &&
@@ -137,11 +188,15 @@ export class NotificationPreferencesService {
       next.email.digest = "daily";
     }
 
+    const typedFreq = toPrismaFrequency(next.email.digest);
+
     await this.prisma.user.update({
       where: { id: userId },
-      // Prisma.InputJsonValue : sérialisation directe des préférences typées.
       data: {
+        // Prisma.InputJsonValue : sérialisation directe des préférences typées.
         notificationPreferences: next as unknown as Prisma.InputJsonValue,
+        // Source de vérité typée — synchronisée pour le cron digest.
+        digestFrequency: typedFreq,
       },
     });
 
@@ -191,10 +246,33 @@ export class NotificationPreferencesService {
 
   /**
    * Digest frequency for a user (for the daily cron).
+   * Lit en priorité la colonne typée `User.digestFrequency` (rapide, indexée),
+   * et retombe sur le JSON `notificationPreferences.email.digest` si la colonne
+   * est absente (ex: en environnement de test sans la migration appliquée).
    */
   async getDigestFrequency(userId: string): Promise<DigestFrequency> {
-    const prefs = await this.get(userId);
-    return prefs.email.digest;
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { digestFrequency: true, notificationPreferences: true },
+      });
+      if (user?.digestFrequency) {
+        return fromPrismaFrequency(user.digestFrequency);
+      }
+      return this.mergeWithDefaults(user?.notificationPreferences).email.digest;
+    } catch {
+      const prefs = await this.get(userId);
+      return prefs.email.digest;
+    }
+  }
+
+  /**
+   * Variante typée Prisma — utilisée par DigestService.
+   */
+  async getDigestFrequencyTyped(
+    userId: string,
+  ): Promise<PrismaDigestFrequency> {
+    return toPrismaFrequency(await this.getDigestFrequency(userId));
   }
 
   private mergeWithDefaults(raw: unknown): NotificationPreferences {

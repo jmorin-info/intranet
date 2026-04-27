@@ -4,6 +4,7 @@ import { LoggerModule } from "nestjs-pino";
 import { RequestIdMiddleware } from "./common/request-id.middleware";
 import { buildPinoConfig } from "./common/logging/pino.config";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
+import { getSharedThrottlerStorage } from "./health/health.module";
 import { ScheduleModule } from "@nestjs/schedule";
 import { BullModule } from "@nestjs/bullmq";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -87,12 +88,18 @@ import { PcaModule } from "./pca/pca.module";
     // Structured JSON logging (dev: pretty, prod: ndjson) with X-Request-ID
     // correlation. Level configurable via LOG_LEVEL.
     LoggerModule.forRoot(buildPinoConfig()),
-    ThrottlerModule.forRoot([
-      {
-        ttl: parseInt(process.env.THROTTLE_TTL || "60000", 10),
-        limit: parseInt(process.env.THROTTLE_LIMIT || "300", 10),
-      },
-    ]),
+    // Throttler storage : Redis (multi-instance cohérent) avec fallback
+    // in-memory transparent si Redis est down. Voir
+    // docs/architecture/THROTTLER_REDIS.md pour le runbook.
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: parseInt(process.env.THROTTLE_TTL || "60000", 10),
+          limit: parseInt(process.env.THROTTLE_LIMIT || "300", 10),
+        },
+      ],
+      storage: getSharedThrottlerStorage(),
+    }),
     ScheduleModule.forRoot(),
     BullModule.forRoot({
       connection: {

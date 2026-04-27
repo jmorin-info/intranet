@@ -69,6 +69,19 @@ enum NotificationType {
   SIGNATURE_REMINDER
 }
 
+// Fréquence du digest email de notifications non-lues (Vague A v1.1).
+//   - NONE   : l'utilisateur a explicitement opt-out du digest
+//   - DAILY  : récap quotidien à 8h locale (jours ouvrés et week-end)
+//   - WEEKLY : récap hebdomadaire le lundi à 8h
+// La colonne `User.digestFrequency` (typée) est la source canonique. La
+// valeur reste reflétée dans `notificationPreferences.email.digest` pour
+// rétrocompat de l'API JSON existante (controller Put preferences).
+enum DigestFrequency {
+  NONE
+  DAILY
+  WEEKLY
+}
+
 enum AuditSeverity {
   INFO
   WARN
@@ -182,6 +195,10 @@ model User {
   // Notification preferences (per-channel × per-category) — nullable = defaults (all in-app/email ON, push only mentions+incidents)
   // Shape: { email: { tickets, documents, incidents, mentions: bool, digest: 'off'|'daily'|'weekly' }, inApp: {...}, push: {...} }
   notificationPreferences     Json?
+  // Vague A v1.1 — fréquence canonique du digest email (NONE/DAILY/WEEKLY).
+  // Source de vérité typée. `notificationPreferences.email.digest` est conservé
+  // pour rétrocompat applicative et synchronisé par DigestService.
+  digestFrequency             DigestFrequency @default(DAILY)
   // UI language preference (persisted so it follows the user across devices). Fallback: 'fr'.
   locale                      String?   @default("fr")
   // Tracks the most recent password change (admin reset, self-change, token reset).
@@ -310,6 +327,7 @@ model User {
   @@index([role])
   @@index([email, deletedAt])
   @@index([managerId])
+  @@index([digestFrequency])
 }
 
 model PushSubscription {
