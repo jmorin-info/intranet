@@ -1855,6 +1855,43 @@ model RagQueryLog {
 }
 
 // ============================================================
+// RAG benchmark runs (Item 30 — fine-tuning corpus maison)
+// Permet de tracker l'evolution des metriques du pipeline RAG
+// au cours du temps : recall@5, MRR, faithfulness (LLM-judge),
+// pour comparer reranker on/off, hybrid on/off, etc.
+// ============================================================
+model RagBenchmarkRun {
+  id             String   @id @default(uuid())
+  runAt          DateTime @default(now())
+  // Version du dataset golden utilise (ex: "v1.0.0", "v1.1.0").
+  datasetVersion String
+  // Mode de retrieval evalue : "lexical" | "vector" | "hybrid" | "hybrid_alpha" | "rrf"
+  mode           String
+  // Recall@5 sur le golden set (0.0 - 1.0).
+  recall5        Float
+  // Mean Reciprocal Rank (0.0 - 1.0).
+  mrr            Float
+  // Faithfulness moyenne (LLM-judge, 0.0 - 1.0). Optional si pas evalue.
+  faithfulness   Float?
+  // Term coverage moyenne (0.0 - 1.0).
+  termCoverage   Float?
+  // Latence p50 / p95 (ms).
+  latencyP50Ms   Int?
+  latencyP95Ms   Int?
+  // Nombre de questions executees.
+  numQueries     Int
+  // Nombre de chunks indexes au moment du run.
+  numChunks      Int?
+  // Configuration sterilisee (rerankerEnabled, queryExpansionN, hybridAlpha, etc.)
+  config         Json?
+  // Notes humaines optionnelles (changement teste, hypothese).
+  notes          String?
+
+  @@index([runAt])
+  @@index([datasetVersion, mode])
+}
+
+// ============================================================
 // Chat Unified Architecture (Mission 3 Phase 1) — 2026-04-20
 // Gated by feature flag CHATBOT_UNIFIED_ENABLED (default false).
 // Coexists with RagQueryLog until Phase 3 migration.

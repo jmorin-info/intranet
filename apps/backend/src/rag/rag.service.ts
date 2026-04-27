@@ -3,6 +3,10 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { TextExtractorService } from "./text-extractor.service";
 import { EmbeddingService } from "./embedding/embedding.service";
+import { HybridSearchService, HybridChunk } from "./embedding/hybrid-search.service";
+import { RerankerService } from "./embedding/reranker.service";
+import { QueryExpansionService } from "./embedding/query-expansion.service";
+import { SemanticChunkerService } from "./ingestion/semantic-chunker.service";
 import { LlmService } from "./llm/llm.service";
 import { getPromptTemplates } from "./prompts/templates";
 
@@ -166,6 +170,11 @@ export class RagService {
     private readonly textExtractor: TextExtractorService,
     private readonly embeddingService: EmbeddingService,
     private readonly llmService: LlmService,
+    // Item 30 — services optionnels actives par feature flag
+    private readonly hybridSearch: HybridSearchService,
+    private readonly reranker: RerankerService,
+    private readonly queryExpansion: QueryExpansionService,
+    private readonly semanticChunker: SemanticChunkerService,
   ) {}
 
   // =========================================================================
@@ -203,18 +212,31 @@ export class RagService {
   // Chunking
   // =========================================================================
 
-  /** Split content into ~2000-char chunks with 200-char overlap. */
+  /**
+   * Split content into chunks.
+   *
+   * Item 30 : si `RAG_SEMANTIC_CHUNKING_ENABLED=true`, utilise la strategie
+   * structure-aware (`SemanticChunkerService` — split sur titres, paragraphes,
+   * preserve les listes / tableaux). Sinon, fallback sur la strategie historique
+   * fixed-size 2000 chars / overlap 200 chars.
+   *
+   * Le service semantique gere son propre fallback : `chunk(...)` retombe sur
+   * fixed-size si le flag est off, donc le code ci-dessous est defensif mais
+   * stable cote re-index.
+   */
   chunkContent(content: string): string[] {
-    const chunks: string[] = [];
-    if (!content || content.length === 0) return chunks;
-    let start = 0;
-    while (start < content.length) {
-      const end = Math.min(start + CHUNK_SIZE_CHARS, content.length);
-      chunks.push(content.slice(start, end));
-      if (end >= content.length) break;
-      start = end - CHUNK_OVERLAP_CHARS;
+    if (!content || content.length === 0) return [];
+    if (this.semanticChunker.isEnabled()) {
+      return this.semanticChunker.chunk(content, {
+        maxChars: CHUNK_SIZE_CHARS,
+        overlapChars: CHUNK_OVERLAP_CHARS,
+      });
     }
-    return chunks;
+    return this.semanticChunker.fixedSizeChunks(
+      content,
+      CHUNK_SIZE_CHARS,
+      CHUNK_OVERLAP_CHARS,
+    );
   }
 
   // =========================================================================
@@ -813,30 +835,198 @@ export class RagService {
   /**
    * Point d'entrée unifié de recherche selon le mode configuré.
    * Remplace les appels directs à searchSimilar dans le pipeline RAG.
+   *
+   * Item 30 — pipeline upgrade :
+   *  1. Query expansion (`RAG_QUERY_EXPANSION_ENABLED`) : LLM genere N
+   *     reformulations -> chaque variant fait un retrieval -> fusion RRF.
+   *  2. Hybrid BM25-vector (`RAG_BM25_ENABLED`) : retrieval combine BM25 sur
+   *     RagChunk + vector via `HybridSearchService`. Fallback sur l'ancien
+   *     pipeline si flag off.
+   *  3. Reranker (`RAG_RERANKER_ENABLED`) : cross-encoder reordonne le top-K
+   *     en top-N pour ameliorer le MRR.
+   *
+   * Tous les flags sont independants. Quand tous off, comportement = legacy.
    */
   async search(
     query: string,
     limit = 10,
     ctx?: RagSearchContext,
   ): Promise<RagSource[]> {
+    if (!query || !query.trim()) return [];
+
+    // Etape 1 : query expansion (no-op si flag off — retourne [query]).
+    const queries = await this.queryExpansion.expand(query).catch((err) => {
+      this.logger.warn({
+        msg: "rag.search.query_expansion_failed",
+        error: (err as Error).message,
+      });
+      return [query];
+    });
+
+    // Etape 2 : retrieval pour chaque variant + fusion si > 1
+    const perQueryLimit = Math.max(limit, 10);
+    const retrievalResults: RagSource[][] = [];
+    for (const q of queries) {
+      const r = await this.retrieveOnce(q, perQueryLimit, ctx);
+      if (r.length > 0) retrievalResults.push(r);
+    }
+
+    if (retrievalResults.length === 0) return [];
+
+    let merged: RagSource[];
+    if (retrievalResults.length === 1) {
+      merged = retrievalResults[0];
+    } else {
+      // RRF entre toutes les listes pour fusionner les variants
+      merged = this.reciprocalRankFusionMulti(retrievalResults);
+    }
+
+    // Etape 3 : reranker (no-op si flag off — retourne le top-N initial)
+    if (this.reranker.isEnabled() && merged.length > 0) {
+      try {
+        const candidates = merged.slice(0, this.reranker.getTopK()).map((s) => ({
+          id: `${s.sourceType}:${s.sourceId}`,
+          content: s.snippet,
+          source: s,
+          initialScore: s.score,
+        }));
+        const reranked = await this.reranker.rerank(query, candidates, limit);
+        if (reranked.length > 0) {
+          return reranked.map((r) => ({
+            ...r.candidate.source,
+            score: r.rerankScore,
+          }));
+        }
+      } catch (err) {
+        // Reranker non bloquant : log + on retourne le retrieval initial
+        this.logger.warn({
+          msg: "rag.search.rerank_failed",
+          error: (err as Error).message,
+        });
+      }
+    }
+
+    return merged.slice(0, limit);
+  }
+
+  /**
+   * Une passe de retrieval (sans expansion ni rerank).
+   *
+   * Honore `RAG_HYBRID_MODE` (`lexical|vector|hybrid`) et `RAG_BM25_ENABLED`.
+   * Quand BM25 est on et qu'on est en mode hybrid, on utilise
+   * `HybridSearchService` (BM25 SQL + vector pgvector + alpha/RRF).
+   */
+  private async retrieveOnce(
+    query: string,
+    limit: number,
+    ctx?: RagSearchContext,
+  ): Promise<RagSource[]> {
     const mode = this.getSearchMode();
 
+    // Cas 1 : hybrid + BM25 enabled -> nouveau service hybride
+    if (mode === "hybrid" && this.hybridSearch.isBM25Enabled()) {
+      const filter = await this.buildAccessFilter(ctx);
+      const hybrid = await this.hybridSearch.search(query, limit, filter);
+      // Le filtrage RBAC est deja applique cote SQL via `filter`. On ne re-filtre
+      // que si l'appelant a fourni un ctx (defense en profondeur post-SQL).
+      const filtered = ctx ? await this.applyRbacFilter(hybrid, ctx) : hybrid;
+      return this.toRagSources(filtered, query);
+    }
+
+    // Cas 2 : lexical pur (ou semantic disabled) -> ancien searchSimilar
     if (mode === "lexical" || !this.isSemanticEnabled()) {
       return this.searchSimilar(query, limit, ctx);
     }
 
+    // Cas 3 : vector pur
     if (mode === "vector") {
       return this.vectorSearch(query, limit, ctx);
     }
 
-    // hybrid mode: run both in parallel, fuse with RRF
+    // Cas 4 : hybrid sans BM25 (legacy) -> RRF lexical + vector
     const [lexical, vector] = await Promise.all([
       this.searchSimilar(query, limit, ctx),
       this.vectorSearch(query, limit, ctx),
     ]);
-
     const fused = this.reciprocalRankFusion(lexical, vector);
     return fused.slice(0, limit);
+  }
+
+  /**
+   * Reciprocal Rank Fusion sur N listes (utilise pour fusionner les retrieval
+   * apres query expansion). Cle = sourceType:sourceId pour deduper les chunks
+   * issus de variants differents.
+   */
+  private reciprocalRankFusionMulti(
+    lists: RagSource[][],
+    k = 60,
+  ): RagSource[] {
+    const scores = new Map<string, { score: number; source: RagSource }>();
+    const makeKey = (s: RagSource) => `${s.sourceType}:${s.sourceId}`;
+
+    for (const list of lists) {
+      list.forEach((r, idx) => {
+        const key = makeKey(r);
+        const inc = 1 / (k + idx + 1);
+        const existing = scores.get(key);
+        if (existing) {
+          existing.score += inc;
+        } else {
+          scores.set(key, { score: inc, source: r });
+        }
+      });
+    }
+
+    return Array.from(scores.values())
+      .sort((a, b) => b.score - a.score)
+      .map(({ source, score }) => ({ ...source, score }));
+  }
+
+  /**
+   * Construit le clause SQL de filtrage RBAC pour `HybridSearchService`.
+   * Retourne `undefined` si pas de contexte (filtrage applique post-retrieval),
+   * ou si user privileged (acces total).
+   */
+  private async buildAccessFilter(
+    ctx?: RagSearchContext,
+  ): Promise<string | undefined> {
+    if (!ctx || process.env.RBAC_RAG_ENABLED === "false") return undefined;
+
+    const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(
+      ctx.role,
+    );
+    if (isPrivileged) return undefined;
+
+    const accessibleIds = await this.getAccessibleDocumentIds(ctx);
+    if (accessibleIds === "ALL") return undefined;
+    if (accessibleIds.length === 0) {
+      return `AND ("sourceType" != 'DOCUMENT')`;
+    }
+    // Echapper chaque id (UUID = safe par construction, mais on cast en literal)
+    const idsList = accessibleIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(",");
+    return `AND ("sourceType" != 'DOCUMENT' OR "sourceId" IN (${idsList}))`;
+  }
+
+  /**
+   * Convertit `HybridChunk[]` (sortie du hybrid search) en `RagSource[]`
+   * (forme attendue par le reste du pipeline).
+   */
+  private toRagSources(chunks: HybridChunk[], query: string): RagSource[] {
+    const terms = this.tokenizeQuery(query);
+    return chunks.map((c) => {
+      const meta =
+        c.metadata && typeof c.metadata === "object" && !Array.isArray(c.metadata)
+          ? (c.metadata as Record<string, unknown>)
+          : {};
+      return {
+        sourceType: c.sourceType as SourceType,
+        sourceId: c.sourceId,
+        title: (meta.title as string | undefined) ?? c.sourceId,
+        snippet: this.buildSnippet(c.content, terms),
+        score: c.score,
+        classification: meta.classification as string | undefined,
+      };
+    });
   }
 
   // =========================================================================
