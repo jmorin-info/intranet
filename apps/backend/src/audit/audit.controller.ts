@@ -1,7 +1,11 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
+  Patch,
+  Post,
   Query,
   Res,
   UseGuards,
@@ -9,6 +13,7 @@ import {
 } from "@nestjs/common";
 import { Response } from "express";
 import { AuditService } from "./audit.service";
+import { AuditAnonymizationService } from "./audit-anonymization.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
@@ -17,10 +22,44 @@ import { RequestUser } from "../common/interfaces";
 import { UserRole } from "../common/enums";
 import { rowsToCsv, csvFilename, CsvColumn } from "../common/utils/csv-export";
 
+interface RetentionPatchBody {
+  // Accepts a positive integer, the literal `null`, or the string "NEVER".
+  // String numerics are tolerated because some HTTP clients serialize all
+  // form values as strings.
+  fullDays?: number | string | null;
+  anonymizedDays?: number | string | null;
+}
+
+function normalizeRetentionInput(
+  input: number | string | null | undefined,
+): number | null | undefined {
+  if (input === undefined) return undefined;
+  if (input === null) return null;
+  if (typeof input === "string") {
+    if (input === "NEVER") return null;
+    const parsed = parseInt(input, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      throw new BadRequestException(
+        "Retention days must be a positive integer or NEVER",
+      );
+    }
+    return parsed;
+  }
+  if (typeof input !== "number" || !Number.isFinite(input) || input <= 0) {
+    throw new BadRequestException(
+      "Retention days must be a positive integer or NEVER",
+    );
+  }
+  return Math.floor(input);
+}
+
 @Controller("audit")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AuditController {
-  constructor(private readonly auditService: AuditService) {}
+  constructor(
+    private readonly auditService: AuditService,
+    private readonly anonymization: AuditAnonymizationService,
+  ) {}
 
   /** Own activity — accessible to all authenticated users. Limit capped pour éviter data exfiltration. */
   @Get("my-activity")
@@ -157,5 +196,79 @@ export class AuditController {
     @Param("id", ParseUUIDPipe) id: string,
   ) {
     return this.auditService.findByResource(type, id);
+  }
+
+  // ---------------------------------------------------------------------------
+  // RGPD anonymization — Item 29 — wave B post-launch
+  // ---------------------------------------------------------------------------
+  // GET    /audit/retention            → policy snapshot + counts
+  // PATCH  /audit/retention            → update fullDays / anonymizedDays
+  // POST   /audit/anonymize-now        → trigger one full cycle now
+  //
+  // SUPER_ADMIN-only because changes here affect data deletion windows and
+  // therefore both legal hold posture and storage cost. ADMINs can read the
+  // stats via /admin/audit/retention (see ADMIN role on the GET below).
+
+  @Get("retention")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async getRetentionStats() {
+    return this.anonymization.getStats();
+  }
+
+  @Patch("retention")
+  @Roles(UserRole.SUPER_ADMIN)
+  async updateRetention(
+    @Body() body: RetentionPatchBody,
+    @CurrentUser() user: RequestUser,
+  ) {
+    const fullDays = normalizeRetentionInput(body.fullDays);
+    const anonymizedDays = normalizeRetentionInput(body.anonymizedDays);
+    if (fullDays === undefined && anonymizedDays === undefined) {
+      throw new BadRequestException(
+        "Provide at least one of fullDays / anonymizedDays",
+      );
+    }
+    // Sanity: fullDays must be < anonymizedDays so the pipeline makes sense.
+    const merged = await this.anonymization.getPolicy();
+    const next = {
+      fullDays: fullDays === undefined ? merged.fullDays : fullDays,
+      anonymizedDays:
+        anonymizedDays === undefined ? merged.anonymizedDays : anonymizedDays,
+    };
+    if (
+      next.fullDays !== null &&
+      next.anonymizedDays !== null &&
+      next.fullDays >= next.anonymizedDays
+    ) {
+      throw new BadRequestException(
+        "fullDays must be strictly less than anonymizedDays",
+      );
+    }
+    return this.anonymization.updatePolicy(
+      { fullDays, anonymizedDays },
+      user.id,
+    );
+  }
+
+  @Post("anonymize-now")
+  @Roles(UserRole.SUPER_ADMIN)
+  async anonymizeNow(@CurrentUser() user: RequestUser) {
+    const result = await this.anonymization.runFullCycle();
+    // Trace the manual trigger separately from the cron: helps RSSI auditing
+    // ("a humain a forcé une purge ce jour-là").
+    await this.auditService.log({
+      userId: user.id,
+      action: "AUDIT_LOG_ANONYMIZATION_MANUAL",
+      resourceType: "AuditLog",
+      metadata: {
+        anonymizedCount: result.anonymizedCount,
+        deletedCount: result.deletedCount,
+        durationMs: result.durationMs,
+        errorCount: result.errors.length,
+        policy: "RGPD_ART_5_17",
+      },
+      severity: "WARN",
+    });
+    return result;
   }
 }
