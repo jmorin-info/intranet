@@ -6,6 +6,8 @@ import { MfaService } from "./mfa.service";
 import { MfaRequiredGuard } from "./mfa-required.guard";
 import { FreshMfaGuard } from "./fresh-mfa.guard";
 import { AuthModule } from "../auth/auth.module";
+import { WebAuthnService } from "./webauthn.service";
+import { WebAuthnController } from "./webauthn.controller";
 
 @Module({
   imports: [
@@ -16,10 +18,11 @@ import { AuthModule } from "../auth/auth.module";
     // besoin d'AuthService pour signer un nouveau JWT après /mfa/revalidate.
     forwardRef(() => AuthModule),
   ],
-  controllers: [MfaController],
+  controllers: [MfaController, WebAuthnController],
   // MfaRequiredGuard et FreshMfaGuard sont enregistrés en APP_GUARD côté
   // app.module.ts mais doivent être déclarés ici pour être instanciables.
-  providers: [MfaService, MfaRequiredGuard, FreshMfaGuard],
-  exports: [MfaService, MfaRequiredGuard, FreshMfaGuard],
+  // WebAuthnService — item 18 Wave D (FIDO2 / passkeys).
+  providers: [MfaService, MfaRequiredGuard, FreshMfaGuard, WebAuthnService],
+  exports: [MfaService, MfaRequiredGuard, FreshMfaGuard, WebAuthnService],
 })
 export class MfaModule {}
