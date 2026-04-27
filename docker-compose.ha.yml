@@ -1,0 +1,169 @@
+# =============================================================================
+# docker-compose.ha.yml — Stack HA Patroni + etcd pour DEV LOCAL UNIQUEMENT
+# =============================================================================
+# Reproduit en local le cluster prod 3 nœuds Patroni + 3 nœuds etcd, pour
+# tester les scénarios de failover sans déployer 3 VMs.
+#
+# Usage :
+#   docker compose -f docker-compose.ha.yml up -d
+#   docker compose -f docker-compose.ha.yml exec patroni-1 patronictl list
+#   docker compose -f docker-compose.ha.yml exec patroni-1 patronictl failover
+#
+# ⚠️ NE PAS utiliser en prod : les 3 nœuds sont sur le même hôte = pas de
+#    HA réelle. Pour la prod, voir docs/infrastructure/HA_POSTGRES_PATRONI.md.
+# =============================================================================
+
+services:
+  # === etcd cluster (3 nodes) ===
+  etcd1:
+    image: bitnami/etcd:3.5.13
+    container_name: omnitech-etcd-1
+    environment:
+      ETCD_NAME: etcd1
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd1:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd1:2379
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: omnitech-dev-cluster
+      ETCD_INITIAL_CLUSTER: etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380
+      ALLOW_NONE_AUTHENTICATION: "yes"
+    networks:
+      - omnitech-ha
+
+  etcd2:
+    image: bitnami/etcd:3.5.13
+    container_name: omnitech-etcd-2
+    environment:
+      ETCD_NAME: etcd2
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd2:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd2:2379
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: omnitech-dev-cluster
+      ETCD_INITIAL_CLUSTER: etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380
+      ALLOW_NONE_AUTHENTICATION: "yes"
+    networks:
+      - omnitech-ha
+
+  etcd3:
+    image: bitnami/etcd:3.5.13
+    container_name: omnitech-etcd-3
+    environment:
+      ETCD_NAME: etcd3
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd3:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd3:2379
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: omnitech-dev-cluster
+      ETCD_INITIAL_CLUSTER: etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380
+      ALLOW_NONE_AUTHENTICATION: "yes"
+    networks:
+      - omnitech-ha
+
+  # === Patroni cluster (3 nodes) ===
+  patroni-1:
+    image: zalando/patroni:3.3.1
+    container_name: omnitech-patroni-1
+    hostname: patroni-1
+    depends_on: [etcd1, etcd2, etcd3]
+    environment:
+      PATRONI_NAME: patroni-1
+      PATRONI_SCOPE: omnitech-dev
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-1:8008
+      PATRONI_ETCD3_HOSTS: etcd1:2379,etcd2:2379,etcd3:2379
+      PATRONI_POSTGRESQL_LISTEN: 0.0.0.0:5432
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-1:5432
+      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: dev_replicator_password
+      PATRONI_SUPERUSER_USERNAME: postgres
+      PATRONI_SUPERUSER_PASSWORD: dev_postgres_password
+      PATRONI_admin_PASSWORD: dev_admin_password
+      PATRONI_admin_OPTIONS: createrole,createdb
+    ports:
+      - "5433:5432"
+      - "8008:8008"
+    volumes:
+      - patroni-1-data:/var/lib/postgresql/data
+    networks:
+      - omnitech-ha
+
+  patroni-2:
+    image: zalando/patroni:3.3.1
+    container_name: omnitech-patroni-2
+    hostname: patroni-2
+    depends_on: [etcd1, etcd2, etcd3]
+    environment:
+      PATRONI_NAME: patroni-2
+      PATRONI_SCOPE: omnitech-dev
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-2:8008
+      PATRONI_ETCD3_HOSTS: etcd1:2379,etcd2:2379,etcd3:2379
+      PATRONI_POSTGRESQL_LISTEN: 0.0.0.0:5432
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-2:5432
+      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: dev_replicator_password
+      PATRONI_SUPERUSER_USERNAME: postgres
+      PATRONI_SUPERUSER_PASSWORD: dev_postgres_password
+    ports:
+      - "5434:5432"
+      - "8009:8008"
+    volumes:
+      - patroni-2-data:/var/lib/postgresql/data
+    networks:
+      - omnitech-ha
+
+  patroni-3:
+    image: zalando/patroni:3.3.1
+    container_name: omnitech-patroni-3
+    hostname: patroni-3
+    depends_on: [etcd1, etcd2, etcd3]
+    environment:
+      PATRONI_NAME: patroni-3
+      PATRONI_SCOPE: omnitech-dev
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-3:8008
+      PATRONI_ETCD3_HOSTS: etcd1:2379,etcd2:2379,etcd3:2379
+      PATRONI_POSTGRESQL_LISTEN: 0.0.0.0:5432
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-3:5432
+      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: dev_replicator_password
+      PATRONI_SUPERUSER_USERNAME: postgres
+      PATRONI_SUPERUSER_PASSWORD: dev_postgres_password
+    ports:
+      - "5435:5432"
+      - "8010:8008"
+    volumes:
+      - patroni-3-data:/var/lib/postgresql/data
+    networks:
+      - omnitech-ha
+
+  # === HAProxy en frontal (simule la VIP keepalived côté dev) ===
+  # En prod : keepalived + VIP. En dev : HAProxy avec health-check Patroni.
+  haproxy:
+    image: haproxy:2.9-alpine
+    container_name: omnitech-haproxy
+    depends_on: [patroni-1, patroni-2, patroni-3]
+    ports:
+      - "5432:5432" # leader (rw)
+      - "5433:5433" # replicas (ro, optionnel)
+      - "7000:7000" # stats UI
+    volumes:
+      - ./infra/keepalived/haproxy-dev.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      - omnitech-ha
+
+volumes:
+  patroni-1-data:
+  patroni-2-data:
+  patroni-3-data:
+
+networks:
+  omnitech-ha:
+    driver: bridge

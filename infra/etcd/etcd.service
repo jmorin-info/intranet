@@ -1,0 +1,43 @@
+[Unit]
+Description=etcd v3 — DCS for Patroni (OMNITECH Intranet)
+Documentation=https://etcd.io/docs/
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/etcd/etcd.conf
+
+[Service]
+Type=notify
+User=etcd
+Group=etcd
+
+ExecStart=/usr/bin/etcd --config-file /etc/etcd/etcd.conf
+ExecReload=/bin/kill -s HUP $MAINPID
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+TimeoutStopSec=60
+LimitNOFILE=65536
+
+# Hardening (ISO 27001 A.8.31)
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/etcd /var/log/etcd
+
+# Logs
+StandardOutput=append:/var/log/etcd/etcd.log
+StandardError=append:/var/log/etcd/etcd.log
+SyslogIdentifier=etcd
+
+# Alerter sur failure (DCS down = downtime imminent du cluster Patroni !)
+OnFailure=alerter@%i.service
+
+[Install]
+WantedBy=multi-user.target

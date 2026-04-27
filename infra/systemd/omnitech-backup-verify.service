@@ -1,0 +1,40 @@
+[Unit]
+Description=OMNITECH — Verify Restic (intégrité repo offsite)
+Documentation=file:///opt/omnitech/intranet/docs/infrastructure/BACKUP_RESTIC_OFFSITE.md
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/omnitech/intranet/.env
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/omnitech/intranet
+EnvironmentFile=/opt/omnitech/intranet/.env
+
+ExecStart=/opt/omnitech/intranet/scripts/backup/verify-backup.sh
+
+# Verify peut être long (lecture déchiffrement de subset). 6h max.
+TimeoutStartSec=6h
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/log/omnitech /tmp /root/.cache/restic
+
+StandardOutput=append:/var/log/omnitech/backup-verify.log
+StandardError=append:/var/log/omnitech/backup-verify.log
+SyslogIdentifier=omnitech-backup-verify
+
+# Échec verify = corruption potentielle = critique
+OnFailure=alerter@omnitech-backup-verify.service
+
+[Install]
+WantedBy=multi-user.target

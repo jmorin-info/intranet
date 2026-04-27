@@ -1,0 +1,13 @@
+[Unit]
+Description=OMNITECH — Timer prune Restic hebdomadaire (dimanche 03h)
+Documentation=file:///opt/omnitech/intranet/docs/infrastructure/BACKUP_RESTIC_OFFSITE.md
+
+[Timer]
+# Hebdomadaire dimanche 03h00
+OnCalendar=Sun *-*-* 03:00:00
+Persistent=true
+RandomizedDelaySec=600
+Unit=omnitech-backup-prune.service
+
+[Install]
+WantedBy=timers.target

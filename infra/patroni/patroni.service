@@ -1,0 +1,53 @@
+[Unit]
+Description=Patroni — HA orchestration for PostgreSQL (OMNITECH Intranet)
+Documentation=https://patroni.readthedocs.io/
+After=network-online.target etcd.service
+Wants=network-online.target etcd.service
+# Ne PAS démarrer en parallèle de postgres (Patroni gère lui-même Postgres)
+ConditionPathExists=/etc/patroni/patroni.yml
+
+[Service]
+Type=simple
+User=postgres
+Group=postgres
+
+# Le fichier de config doit avoir été substitué (envsubst < .yml.template)
+# avec les passwords venant de /etc/patroni/secrets.env (chmod 600 root:postgres)
+EnvironmentFile=-/etc/patroni/secrets.env
+
+ExecStart=/usr/bin/patroni /etc/patroni/patroni.yml
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# Resilience
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+TimeoutStopSec=60
+KillMode=process
+
+# Hardening (ISO 27001 A.8.31)
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+# Patroni a besoin d'écrire dans /var/lib/postgresql et /var/log/patroni
+ReadWritePaths=/var/lib/postgresql /var/log/patroni /var/run/postgresql /tmp
+
+# Logs
+StandardOutput=append:/var/log/patroni/patroni.log
+StandardError=append:/var/log/patroni/patroni.log
+SyslogIdentifier=patroni
+
+# Limits
+LimitNOFILE=65536
+
+# Alerte sur failure (item 19 — alerter.service à créer)
+OnFailure=alerter@%i.service
+
+[Install]
+WantedBy=multi-user.target
