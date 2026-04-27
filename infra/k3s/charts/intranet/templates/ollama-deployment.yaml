@@ -1,0 +1,122 @@
+{{- if .Values.ollama.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "intranet.fullname" . }}-ollama
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ollama
+spec:
+  # Ollama : un seul réplica (modèles locaux pré-chargés sur PVC dédié)
+  replicas: 1
+  strategy:
+    type: Recreate    # PVC ReadWriteOnce — pas de rolling update possible
+  selector:
+    matchLabels:
+      {{- include "intranet.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: ollama
+  template:
+    metadata:
+      labels:
+        {{- include "intranet.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: ollama
+    spec:
+      {{- if .Values.ollama.preloadModels }}
+      initContainers:
+        - name: preload-models
+          image: {{ include "intranet.image" (dict "repo" .Values.ollama.image.repository "tag" .Values.ollama.image.tag "global" .Values.global) }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              ollama serve &
+              SERVE_PID=$!
+              # Attendre que le serveur démarre
+              until ollama list > /dev/null 2>&1; do
+                sleep 2
+              done
+              {{- range .Values.ollama.preloadModels }}
+              ollama pull {{ . }}
+              {{- end }}
+              kill $SERVE_PID
+              wait
+          env:
+            - name: OLLAMA_HOST
+              value: "0.0.0.0:11434"
+            - name: OLLAMA_MODELS
+              value: /root/.ollama/models
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+      {{- end }}
+      containers:
+        - name: ollama
+          image: {{ include "intranet.image" (dict "repo" .Values.ollama.image.repository "tag" .Values.ollama.image.tag "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.ollama.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.ollama.service.port }}
+          env:
+            - name: OLLAMA_HOST
+              value: "0.0.0.0:11434"
+            {{- range $key, $value := .Values.ollama.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.ollama.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /api/tags
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/tags
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: {{ include "intranet.fullname" . }}-ollama-models
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "intranet.fullname" . }}-ollama-models
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.ollama.persistence.accessMode }}
+  storageClassName: {{ .Values.global.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.ollama.persistence.size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "intranet.fullname" . }}-ollama
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ollama
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.ollama.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "intranet.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ollama
+{{- end }}

@@ -1,0 +1,332 @@
+# ============================================================================
+# OMNITECH Intranet — values.yaml par defaut (dev / preprod)
+#
+# Override pour prod : --values values.prod.yaml
+# Override pour dev  : --values values.dev.yaml
+# ============================================================================
+
+global:
+  # Domaine principal (Ingress + CORS + cookies)
+  domain: intranet.omnitech-security.fr
+  # Ressources : "small" / "medium" / "large" — preset pour 100 / 500 / 2000 users
+  size: small
+  # ImageRegistry pour images privees (laisser vide = Docker Hub / GHCR)
+  imageRegistry: ""
+  imagePullSecrets: []
+  # Storage class par defaut (k3s = local-path-provisioner)
+  storageClass: local-path
+
+# ============================================================================
+# Backend (NestJS)
+# ============================================================================
+backend:
+  enabled: true
+  replicas: 2
+  image:
+    repository: omnitech/backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 1500Mi
+  env:
+    NODE_ENV: production
+    LOG_LEVEL: info
+    HIBP_ENABLED: "true"
+    RAG_ENABLED: "true"
+    OLLAMA_ENABLED: "true"
+  # Variables sensibles : injectees depuis le Secret `omnitech-secrets`
+  envFromSecret: omnitech-secrets
+  # Probes
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 3000
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 3000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  # Horizontal Pod Autoscaler (HPA) — CPU + custom metric request_duration
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    customMetric:
+      enabled: false  # passer a true si Prometheus + adapter installes
+      name: http_request_duration_seconds
+      targetAverageValue: 500m  # 500 ms
+
+# ============================================================================
+# Frontend (Next.js)
+# ============================================================================
+frontend:
+  enabled: true
+  replicas: 2
+  image:
+    repository: omnitech/frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3001
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 768Mi
+  env:
+    NEXT_PUBLIC_APP_NAME: "OMNITECH Intranet"
+  # Probes
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 3001
+    initialDelaySeconds: 60
+    periodSeconds: 30
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 3001
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+# ============================================================================
+# PostgreSQL 16 — StatefulSet (1 replica, ne PAS scaler horizontalement)
+# Production multi-noeud : utiliser un operateur Cloud (CloudNativePG /
+# Zalando) ou un service externe (RDS / Cloud SQL).
+# ============================================================================
+postgres:
+  enabled: true
+  image:
+    repository: postgres
+    tag: 16-alpine
+    pullPolicy: IfNotPresent
+  service:
+    port: 5432
+  persistence:
+    enabled: true
+    size: 50Gi
+    accessMode: ReadWriteOnce
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  env:
+    POSTGRES_USER: omnitech
+    POSTGRES_DB: omnitech_intranet
+    POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+
+# ============================================================================
+# Redis 7 — StatefulSet (1 replica, sans Sentinel pour simplicite)
+# ============================================================================
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
+  service:
+    port: 6379
+  persistence:
+    enabled: true
+    size: 8Gi
+    accessMode: ReadWriteOnce
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 768Mi
+
+# ============================================================================
+# Meilisearch
+# ============================================================================
+meilisearch:
+  enabled: true
+  image:
+    repository: getmeili/meilisearch
+    tag: v1.11
+    pullPolicy: IfNotPresent
+  service:
+    port: 7700
+  persistence:
+    enabled: true
+    size: 20Gi
+    accessMode: ReadWriteOnce
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  env:
+    MEILI_ENV: production
+    MEILI_NO_ANALYTICS: "true"
+
+# ============================================================================
+# Ollama (LLM local — RAG + embeddings)
+# ============================================================================
+ollama:
+  enabled: true
+  image:
+    repository: ollama/ollama
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    port: 11434
+  persistence:
+    enabled: true
+    size: 50Gi
+    accessMode: ReadWriteOnce
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+  env:
+    OLLAMA_KEEP_ALIVE: 30m
+    OLLAMA_NUM_PARALLEL: "2"
+  # Modeles a precharger (executes en initContainer)
+  preloadModels:
+    - qwen2:0.5b
+    - bge-m3
+
+# ============================================================================
+# OnlyOffice Document Server
+# ============================================================================
+onlyoffice:
+  enabled: true
+  image:
+    repository: onlyoffice/documentserver
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    port: 80
+  persistence:
+    enabled: true
+    size: 10Gi
+    accessMode: ReadWriteOnce
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+# ============================================================================
+# Stirling PDF (outils PDF — desactive par defaut, opt-in en prod)
+# ============================================================================
+stirlingPdf:
+  enabled: false
+  image:
+    repository: stirlingtools/stirling-pdf
+    tag: latest
+  service:
+    port: 8080
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# ============================================================================
+# Ingress (Traefik — installe par defaut sur k3s)
+# ============================================================================
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    enabled: true
+    secretName: omnitech-intranet-tls
+
+# ============================================================================
+# Secrets — methode preferee : Sealed Secrets ou ExternalSecrets
+#
+# Recommandation OMNITECH :
+#   - Si cluster mono-tenant : Sealed Secrets (https://sealed-secrets.netlify.app)
+#     -> simple, suffisant, fonctionne offline
+#   - Si cluster mutualise / multi-team : ExternalSecrets + HashiCorp Vault
+#     ou AWS Secrets Manager (rotation automatique)
+#
+# Voir docs/infrastructure/K3S_DEPLOYMENT.md section "Secrets".
+# ============================================================================
+secrets:
+  # Si `useSealedSecrets: true`, on attend un SealedSecret deja applique
+  # qui produira le Secret nomme `omnitech-secrets`.
+  # Si `false`, on cree un Secret en clair depuis les valeurs ci-dessous
+  # (UNIQUEMENT pour dev / preprod).
+  useSealedSecrets: true
+  # Plain-text secrets — REMPLACER en dev, ignorer en prod (gere par sealed)
+  plain:
+    POSTGRES_PASSWORD: "changeme-dev"
+    REDIS_PASSWORD: "changeme-dev"
+    JWT_ACCESS_SECRET: "changeme-dev-64-chars-minimum-please-use-openssl-rand-hex-32"
+    JWT_REFRESH_SECRET: "changeme-dev-64-chars-minimum-please-use-openssl-rand-hex-32"
+    MEILI_MASTER_KEY: "changeme-dev"
+    ONLYOFFICE_JWT_SECRET: "changeme-dev"
+    SMTP_PASSWORD: "changeme-dev"
+    DOCUSEAL_API_KEY: "changeme-dev"
+    DOCUSEAL_WEBHOOK_SECRET: "changeme-dev"
+
+# ============================================================================
+# Service accounts + securite
+# ============================================================================
+serviceAccount:
+  create: true
+  name: omnitech-intranet
+
+podSecurityContext:
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+  runAsNonRoot: true
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false   # Next.js a besoin d'ecrire dans .next/cache
+  runAsNonRoot: true
+
+# ============================================================================
+# NetworkPolicy : interdire tout trafic entrant non explicitement autorise
+# ============================================================================
+networkPolicy:
+  enabled: true
+  # Allow ingress de Traefik vers backend + frontend uniquement
+  allowedNamespaces:
+    - kube-system   # Traefik
+    - default       # Si l'app est deployee dans default

@@ -1,0 +1,97 @@
+{{- if .Values.onlyoffice.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "intranet.fullname" . }}-onlyoffice
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: onlyoffice
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "intranet.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: onlyoffice
+  template:
+    metadata:
+      labels:
+        {{- include "intranet.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: onlyoffice
+    spec:
+      containers:
+        - name: documentserver
+          image: {{ include "intranet.image" (dict "repo" .Values.onlyoffice.image.repository "tag" .Values.onlyoffice.image.tag "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.onlyoffice.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.onlyoffice.service.port }}
+          env:
+            - name: JWT_ENABLED
+              value: "true"
+            - name: JWT_HEADER
+              value: "Authorization"
+            - name: JWT_IN_BODY
+              value: "true"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "intranet.secretName" . }}
+                  key: ONLYOFFICE_JWT_SECRET
+          resources:
+            {{- toYaml .Values.onlyoffice.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/www/onlyoffice/Data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "intranet.fullname" . }}-onlyoffice-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "intranet.fullname" . }}-onlyoffice-data
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.onlyoffice.persistence.accessMode }}
+  storageClassName: {{ .Values.global.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.onlyoffice.persistence.size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "intranet.fullname" . }}-onlyoffice
+  labels:
+    {{- include "intranet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: onlyoffice
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.onlyoffice.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "intranet.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: onlyoffice
+{{- end }}

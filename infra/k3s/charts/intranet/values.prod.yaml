@@ -1,0 +1,164 @@
+# ============================================================================
+# values.prod.yaml — overrides production
+#
+# Usage :
+#   helm upgrade --install intranet infra/k3s/charts/intranet \
+#     -f infra/k3s/charts/intranet/values.prod.yaml \
+#     --namespace intranet --create-namespace
+#
+# Pré-requis :
+#   - cert-manager + ClusterIssuer "letsencrypt-prod" installés
+#   - Sealed Secrets controller installé OU external-secrets-operator + Vault
+#   - Un SealedSecret produisant le Secret `omnitech-secrets` déjà appliqué
+#   - StorageClass "longhorn" (recommandé en multi-noeud) ou "local-path"
+# ============================================================================
+
+global:
+  domain: intranet.omnitech-security.fr
+  size: medium
+  imageRegistry: registry.omnitech-security.fr   # Harbor on-prem (ou vide pour Docker Hub)
+  imagePullSecrets:
+    - name: omnitech-registry-credentials
+  storageClass: longhorn   # Stockage répliqué multi-noeud (PVCs ReadWriteOnce)
+
+backend:
+  replicas: 3
+  image:
+    repository: omnitech/backend
+    tag: "1.0.0"           # Tag immuable — JAMAIS "latest" en prod
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 500m
+      memory: 768Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  env:
+    NODE_ENV: production
+    LOG_LEVEL: info
+    HIBP_ENABLED: "true"
+    RAG_ENABLED: "true"
+    OLLAMA_ENABLED: "true"
+    RBAC_RAG_ENABLED: "true"
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 65
+    customMetric:
+      enabled: true
+      name: http_request_duration_seconds
+      targetAverageValue: 500m
+
+frontend:
+  replicas: 3
+  image:
+    repository: omnitech/frontend
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 200m
+      memory: 384Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+postgres:
+  persistence:
+    size: 100Gi
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+
+redis:
+  persistence:
+    size: 16Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1500m
+      memory: 1Gi
+
+meilisearch:
+  persistence:
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  env:
+    MEILI_ENV: production
+    MEILI_NO_ANALYTICS: "true"
+    MEILI_LOG_LEVEL: INFO
+
+ollama:
+  enabled: true
+  persistence:
+    size: 100Gi
+  resources:
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+    limits:
+      cpu: 8000m
+      memory: 16Gi
+  preloadModels:
+    - qwen2:0.5b
+    - bge-m3
+
+onlyoffice:
+  enabled: true
+  persistence:
+    size: 30Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+
+stirlingPdf:
+  enabled: true
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Sécurité réseau (rate-limit, body-size)
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-rate-limit@kubernetescrd
+  tls:
+    enabled: true
+    secretName: omnitech-intranet-tls
+
+# En production, on impose Sealed Secrets — JAMAIS de plain
+secrets:
+  useSealedSecrets: true
+  plain: {}   # ignoré quand useSealedSecrets=true
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - kube-system
+    - intranet
