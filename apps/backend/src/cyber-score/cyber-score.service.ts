@@ -174,7 +174,7 @@ export class CyberScoreService {
     const now = new Date();
     const d30 = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
     const d90 = new Date(now.getTime() - 90 * 24 * 3600 * 1000);
-    const d7 = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+    const _d7 = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
 
     const safe = async <T>(
       p: () => Promise<T>,

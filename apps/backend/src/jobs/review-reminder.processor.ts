@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
@@ -25,7 +25,7 @@ export class ReviewReminderProcessor extends WorkerHost {
     await this.reviewQueue.add('check-reviews', {});
   }
 
-  async process(job: Job): Promise<any> {
+  async process(_job: Job): Promise<any> {
     this.logger.log('Processing review reminders');
 
     const now = new Date();

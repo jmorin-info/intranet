@@ -128,7 +128,7 @@ export class LdapController {
   @Roles(UserRole.SUPER_ADMIN)
   async testAuth(
     @Body() body: { email: string; password: string },
-    @CurrentUser() user: RequestUser,
+    @CurrentUser() _user: RequestUser,
   ) {
     const config = await this.ldapService.getConfig();
     if (!config.enabled) {

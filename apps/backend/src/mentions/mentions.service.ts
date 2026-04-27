@@ -38,7 +38,7 @@ export class MentionsService {
     // Négatif : ne match pas si précédé de "//", "@", ou d'un caractère alphanumérique (évite emails).
     const matches = [
       ...stripped.matchAll(
-        /(^|[\s\(\[\{>,;])@([a-zA-Z][a-zA-Z0-9_.\-]{1,62})/g,
+        /(^|[\s([{>,;])@([a-zA-Z][a-zA-Z0-9_.-]{1,62})/g,
       ),
     ];
     const handles = new Set<string>();

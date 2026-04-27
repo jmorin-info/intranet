@@ -819,7 +819,7 @@ export class MediaService {
       "file",
     );
     const filename = item.title
-      ? `${item.title.replace(/[^a-z0-9-_\.]/gi, "_")}.${mime.split("/")[1] ?? "bin"}`
+      ? `${item.title.replace(/[^a-z0-9-_.]/gi, "_")}.${mime.split("/")[1] ?? "bin"}`
       : path.basename(filePath);
 
     // Log téléchargement (analytics Marketing)

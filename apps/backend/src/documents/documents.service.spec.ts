@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentsService } from './documents.service';
+import { DocumentsRepository } from './documents.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { AuditService } from '../audit/audit.service';
@@ -10,6 +11,7 @@ import { CacheService } from '../common/cache/cache.service';
 describe('DocumentsService', () => {
   let service: DocumentsService;
   let prisma: any;
+  let repo: any;
 
   beforeEach(async () => {
     prisma = {
@@ -30,10 +32,23 @@ describe('DocumentsService', () => {
         findMany: jest.fn().mockResolvedValue([]),
       },
     };
+    repo = {
+      findById: jest.fn().mockResolvedValue({ id: 'doc-1', title: 'Test' }),
+      findByIdRaw: jest.fn().mockResolvedValue(null),
+      findManyWithCount: jest.fn().mockResolvedValue([[], 0]),
+      count: jest.fn().mockResolvedValue(10),
+      groupByCategory: jest
+        .fn()
+        .mockResolvedValue([{ category: 'POLICY', _count: 5 }]),
+      groupByStatus: jest.fn().mockResolvedValue([]),
+      findManyForBulk: jest.fn().mockResolvedValue([]),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DocumentsService,
+        { provide: DocumentsRepository, useValue: repo },
         { provide: PrismaService, useValue: prisma },
         { provide: StorageService, useValue: { upload: jest.fn(), generateChecksum: jest.fn() } },
         { provide: AuditService, useValue: { log: jest.fn() } },
@@ -63,10 +78,12 @@ describe('DocumentsService', () => {
       expect(result).toHaveProperty('byClassification');
     });
 
-    it('should call prisma count and groupBy', async () => {
+    it('should call repository count + groupByCategory + groupByStatus', async () => {
       await service.getStatistics();
-      expect(prisma.document.count).toHaveBeenCalledWith({ where: { deletedAt: null } });
-      expect(prisma.document.groupBy).toHaveBeenCalled();
+      // After repository pattern migration, calls go via repo, not prisma directly.
+      expect(repo.count).toHaveBeenCalledWith({ deletedAt: null });
+      expect(repo.groupByCategory).toHaveBeenCalled();
+      expect(repo.groupByStatus).toHaveBeenCalled();
     });
   });
 

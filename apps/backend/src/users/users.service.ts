@@ -153,7 +153,7 @@ export class UsersService {
 
   private sanitizeUser(user: any) {
     if (!user) return user;
-    const { passwordHash, mfaSecret, ...safe } = user;
+    const { passwordHash: _passwordHash, mfaSecret: _mfaSecret, ...safe } = user;
     return safe;
   }
 
@@ -335,7 +335,7 @@ export class UsersService {
     if (!/[A-Z]/.test(password)) errors.push("Au moins une majuscule");
     if (!/[a-z]/.test(password)) errors.push("Au moins une minuscule");
     if (!/[0-9]/.test(password)) errors.push("Au moins un chiffre");
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password))
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password))
       errors.push("Au moins un caractère spécial");
     if (errors.length > 0) {
       throw new BadRequestException(

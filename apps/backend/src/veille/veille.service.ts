@@ -305,7 +305,7 @@ export class VeilleService {
    * Bulk mark ALL unprocessed items as processed (acknowledged)
    * Also purge items older than 90 days to prevent infinite growth
    */
-  async bulkProcessAll(userId: string) {
+  async bulkProcessAll(_userId: string) {
     const updated = await this.prisma.veilleItem.updateMany({
       where: { isProcessed: false },
       data: { isProcessed: true },

@@ -50,7 +50,9 @@ export class SignaturesService {
     }
 
     let docusealSubmissionId: string | null = null;
-    let docusealSlug: string | null = null;
+    // docusealSlug est capture pour debug uniquement — non persiste cote DB
+    // (on n'utilise que submission_id pour les callbacks).
+    let _docusealSlug: string | null = null;
 
     // Call DocuSeal API to create submission
     try {
@@ -84,7 +86,7 @@ export class SignaturesService {
           data[0]?.submission_id?.toString() ||
           data[0]?.id?.toString() ||
           null;
-        docusealSlug = data[0]?.slug || null;
+        _docusealSlug = data[0]?.slug || null;
       } else {
         this.logger.warn(
           `DocuSeal API returned ${response.status}: ${await response.text()}`,

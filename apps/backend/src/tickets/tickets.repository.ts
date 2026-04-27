@@ -125,6 +125,37 @@ export class TicketsRepository {
     });
   }
 
+  async groupByStatus(where?: any) {
+    return this.prisma.ticket.groupBy({
+      by: ['status'],
+      where,
+      _count: { status: true },
+    });
+  }
+
+  // ── KB / cross-domain reads ────────────────────────────────────
+
+  /**
+   * Detail include used by `generateKbDraft` — fetches all the public
+   * comments + creator/assignee/department metadata needed to build the
+   * KB article HTML.
+   */
+  async findByIdForKb(id: string) {
+    return this.prisma.ticket.findUnique({
+      where: { id },
+      include: {
+        comments: {
+          where: { isInternal: false },
+          orderBy: { createdAt: 'asc' as const },
+          include: { author: { select: { firstName: true, lastName: true } } },
+        },
+        creator: { select: { firstName: true, lastName: true } },
+        assignee: { select: { firstName: true, lastName: true, id: true } },
+        department: { select: { name: true, id: true } },
+      },
+    });
+  }
+
   // ── Bulk / batch queries ───────────────────────────────────────
 
   async findManyRaw(where: any, select?: any, orderBy?: any, take?: number) {

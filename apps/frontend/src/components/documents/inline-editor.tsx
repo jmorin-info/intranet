@@ -42,7 +42,8 @@ export function InlineEditor({
     (command: string, arg?: string) => {
       if (disabled) return;
       ref.current?.focus();
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      // execCommand est deprecated mais reste l'unique API pour l'edition
+      // riche dans les contenteditable hors de TipTap/ProseMirror.
       document.execCommand(command, false, arg);
       if (ref.current) {
         const html = ref.current.innerHTML;

@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { MulterModule } from "@nestjs/platform-express";
 import { DocumentsController } from "./documents.controller";
 import { DocumentsService } from "./documents.service";
+import { DocumentsRepository } from "./documents.repository";
 import { DocumentPermissionsController } from "./document-permissions.controller";
 import { DocumentPermissionsService } from "./document-permissions.service";
 import { DocumentSharesService } from "./document-shares.service";
@@ -44,6 +45,7 @@ import { WorkflowRulesModule } from "../workflow-rules/workflow-rules.module";
     DocumentsController,
   ],
   providers: [
+    DocumentsRepository,
     DocumentsService,
     DocumentPermissionsService,
     DocumentSharesService,

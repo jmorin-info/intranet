@@ -187,7 +187,7 @@ export class CalendarController {
     if (!token || typeof token !== 'string' || token.length < 16) {
       throw new BadRequestException('Token requis');
     }
-    if (!slug || !/^[a-zA-Z0-9_\-]+$/.test(slug)) {
+    if (!slug || !/^[a-zA-Z0-9_-]+$/.test(slug)) {
       throw new BadRequestException('Slug invalide');
     }
     // Empêche le clash avec "export.ics" et autres routes (NestJS matchera

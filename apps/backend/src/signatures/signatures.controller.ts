@@ -13,7 +13,6 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { rowsToCsv, csvFilename, CsvColumn } from '../common/utils/csv-export';
-import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
 import { UserThrottle } from '../auth/decorators/user-throttle.decorator';

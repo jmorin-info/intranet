@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TicketsService } from './tickets.service';
+import { TicketsRepository } from './tickets.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../audit/audit.service';
+import { CacheService } from '../common/cache/cache.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('TicketsService', () => {
@@ -46,19 +48,46 @@ describe('TicketsService', () => {
           author: { id: 'user-1', firstName: 'Test', lastName: 'User', role: 'COLLABORATEUR' },
         }),
       },
+      ticketSpaceMember: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      ticketSpace: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      appConfig: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
       user: {
         findMany: jest.fn().mockResolvedValue([]),
         findFirst: jest.fn().mockResolvedValue(null),
         findUnique: jest.fn().mockResolvedValue({ id: 'user-1', departmentId: null }),
       },
+      // Repository raw queries used by `nextReference` — mocked to keep
+      // tests hermetic (no real Postgres sequence creation needed).
+      $executeRawUnsafe: jest.fn().mockResolvedValue(0),
+      $queryRaw: jest.fn().mockResolvedValue([{ nextval: BigInt(6) }]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TicketsService,
+        // Use the REAL repository wrapping the mocked prisma — keeps the
+        // existing `prisma.ticket.*` mocks valid since the repo just
+        // forwards to prisma.
+        TicketsRepository,
         { provide: PrismaService, useValue: prisma },
         { provide: NotificationsService, useValue: { create: jest.fn() } },
         { provide: AuditService, useValue: { log: jest.fn() } },
+        {
+          provide: CacheService,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(undefined),
+            del: jest.fn().mockResolvedValue(undefined),
+            wrap: jest.fn().mockImplementation(async (_k: string, _t: number, fn: () => any) => fn()),
+          },
+        },
       ],
     }).compile();
 

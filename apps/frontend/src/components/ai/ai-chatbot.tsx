@@ -525,7 +525,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
   const abortRef = useRef<AbortController | null>(null);
   const lastQuestionRef = useRef<string>('');
 
-  const module = detectModule(pathname || "/");
+  const currentModule = detectModule(pathname || "/");
   const pageContext = getPageContext(pathname || "/");
   const contextActions = getActionsForRole(
     pageContext,
@@ -712,7 +712,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
           role: 'user',
           content: query,
           timestamp: Date.now(),
-          context: { page: pathname || '/', module },
+          context: { page: pathname || '/', module: currentModule },
         };
         addMessage(userMsg);
         setInput('');
@@ -732,7 +732,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
           role: 'assistant',
           content: '',
           timestamp: Date.now(),
-          context: { page: pathname || '/', module },
+          context: { page: pathname || '/', module: currentModule },
         });
       }
       setLoading(true);
@@ -741,7 +741,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
       let local: AssistantResponse | null = null;
       try {
         const before = Date.now();
-        local = await generateResponse(query, module, user?.role || 'COLLABORATEUR');
+        local = await generateResponse(query, currentModule, user?.role || 'COLLABORATEUR');
         // Si la réponse locale est riche (actions ou contenu non générique), on la prend
         const isRich = !!local.actions?.length || local.content.length > 200;
         if (isRich || (Date.now() - before) > 500) {

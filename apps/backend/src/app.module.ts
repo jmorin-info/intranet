@@ -82,6 +82,7 @@ import { SystemMonitoringModule } from "./system-monitoring/system-monitoring.mo
 import { TrustModule } from "./trust/trust.module";
 import { CyberScoreModule } from "./cyber-score/cyber-score.module";
 import { PcaModule } from "./pca/pca.module";
+import { DataExportModule } from "./data-export/data-export.module";
 
 @Module({
   imports: [
@@ -181,6 +182,7 @@ import { PcaModule } from "./pca/pca.module";
     TrustModule,
     CyberScoreModule,
     PcaModule,
+    DataExportModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

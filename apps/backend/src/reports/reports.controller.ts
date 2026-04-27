@@ -4,7 +4,6 @@ import {
   Query,
   UseGuards,
   Res,
-  StreamableFile,
 } from "@nestjs/common";
 import { Response } from "express";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
