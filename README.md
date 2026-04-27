@@ -141,6 +141,26 @@ docker logs omnitech-backend | jq 'select(.req.id == "abc-123")'
 Les champs `password`, `token`, `secret`, `cookie`, `authorization` sont
 automatiquement remplacés par `[REDACTED]` (ISO 27001 A.5.34).
 
+## Design system
+
+Les composants partagés (Button, Card, DataTable, Skeleton, EmptyState…) sont
+isolés dans `packages/ui` (`@omnitech/ui`) et documentés via Storybook 8.
+
+```bash
+pnpm --filter @omnitech/ui storybook       # serveur local sur :6006
+pnpm --filter @omnitech/ui build-storybook # build statique
+```
+
+19 stories couvrent les primitives MVP, alignées avec la charte
+[SEAL System](docs/design-system/SEAL_USAGE.md) (couleurs PANTONE
+`f9964a` / `004469`, typo Century Gothic / Nunito, dark mode).
+
+Les pull requests qui touchent `packages/ui/**`, `globals.css` ou la config
+Tailwind déclenchent le workflow GitHub Actions
+[`chromatic.yml`](.github/workflows/chromatic.yml) qui publie le Storybook
+sur Chromatic et détecte les régressions visuelles. Configurer une fois le
+secret `CHROMATIC_PROJECT_TOKEN` (cf [`STORYBOOK.md`](docs/design-system/STORYBOOK.md)).
+
 ## Build hardening
 
 Le build local reste tolérant (`eslint.ignoreDuringBuilds: true` dans
