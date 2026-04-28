@@ -538,7 +538,64 @@ export class TicketsService {
       limit,
     );
 
-    // Add SLA info to each ticket
+    // Calcul des mentions par ticket — une seule query sur tous les commentaires
+    // visibles (filter isInternal pour les non-admin), puis extraction +
+    // résolution des handles via MentionsService.
+    //
+    // Permet au frontend de filtrer "Mes mentions" sans rien recalculer
+    // côté client (avant ce fix : heuristique nom = faux positifs sur
+    // homonymes, faux négatifs sur les mentions internes admin-only).
+    const ticketIds = data.map((t: any) => t.id);
+    const mentionedByTicket = new Map<string, string[]>();
+    if (ticketIds.length > 0 && this.mentions) {
+      const commentWhere: Record<string, unknown> = {
+        ticketId: { in: ticketIds },
+      };
+      // Non-admin : seulement les commentaires publics (cohérent avec
+      // TICKET_DETAIL_INCLUDE_USER côté repository).
+      if (!isAdmin) {
+        commentWhere.isInternal = false;
+      }
+      const comments = await this.prisma.ticketComment.findMany({
+        where: commentWhere,
+        select: { ticketId: true, content: true },
+      });
+      // Group par ticket → collect handles uniques
+      const handlesByTicket = new Map<string, Set<string>>();
+      for (const c of comments) {
+        const handles = this.mentions.extractHandles(c.content);
+        if (handles.length === 0) continue;
+        const set = handlesByTicket.get(c.ticketId) ?? new Set<string>();
+        for (const h of handles) set.add(h);
+        handlesByTicket.set(c.ticketId, set);
+      }
+      // Résout tous les handles uniques en un seul appel pour minimiser DB
+      const allHandles = new Set<string>();
+      for (const set of handlesByTicket.values()) {
+        for (const h of set) allHandles.add(h);
+      }
+      const resolved = await this.mentions.resolveHandles([...allHandles]);
+      // Map handle → userId (un user peut matcher plusieurs handles)
+      const handleToUserId = new Map<string, string>();
+      for (const u of resolved) {
+        const local = u.email.split("@")[0]?.toLowerCase();
+        if (local) handleToUserId.set(local, u.id);
+        // ne pas tenter de reconstruire firstname.lastname → email — on
+        // re-query si on veut être strict, mais la majorité des cas passent
+        // par le local-part.
+      }
+      // Construit la liste finale
+      for (const [tid, handles] of handlesByTicket.entries()) {
+        const userIds = new Set<string>();
+        for (const h of handles) {
+          const uid = handleToUserId.get(h);
+          if (uid) userIds.add(uid);
+        }
+        if (userIds.size > 0) mentionedByTicket.set(tid, [...userIds]);
+      }
+    }
+
+    // Add SLA info + mentionedUserIds to each ticket
     const enriched = data.map((t: any) => {
       const slaHours = SLA_HOURS[t.priority] || 24;
       const deadline = new Date(t.createdAt.getTime() + slaHours * 3600000);
@@ -552,6 +609,11 @@ export class TicketsService {
       );
       return {
         ...t,
+        // Scalar `assigneeId` est déjà inclus par Prisma (via include — tous
+        // les scalars sont retournés). On le garantit ici pour le contrat
+        // explicite côté frontend (filter chip "Mes tickets").
+        assigneeId: t.assigneeId ?? null,
+        mentionedUserIds: mentionedByTicket.get(t.id) ?? [],
         sla: {
           deadline: deadline.toISOString(),
           hours: slaHours,

@@ -647,10 +647,10 @@ export default function TicketsPage() {
     });
   }, [filteredTickets, ticketSortField, ticketSortOrder]);
 
-  // Filtres rapides Wave C — applique apres le sort (chips OR avec filtres
-  // existants). Le serveur ne fournit pas assigneeId sur l'item liste donc
-  // on injecte une approximation via myTicketsOnly + tickets.assignee non
-  // null (pour 'sla-exceeded' / 'today' / 'week' on filtre purement).
+  // Filtres rapides Wave C — applique apres le sort. Depuis le fix backend
+  // 2026-04-28, le serveur expose `assigneeId` (scalar) et `mentionedUserIds`
+  // (calculé depuis les commentaires via MentionsService.resolveHandles)
+  // directement sur chaque item de la liste. Plus d'heuristique nom.
   const chipFilteredTickets = useMemo(() => {
     if (activeChips.size === 0) return sortedFilteredTickets;
     type TicketLite = {
@@ -663,17 +663,14 @@ export default function TicketsPage() {
     };
     const lite: Array<TicketLite & TicketItem> = sortedFilteredTickets.map((t) => ({
       ...t,
-      // Approximation : si l'utilisateur courant est assignee, on lie son id.
-      assigneeId:
-        t.assignee && user
-          ? user.firstName === t.assignee.firstName && user.lastName === t.assignee.lastName
-            ? user.id
-            : 'other'
-          : null,
+      assigneeId: ((t as unknown as { assigneeId?: string | null })
+        .assigneeId ?? null) as string | null,
       priority: (['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(t.priority)
         ? t.priority
         : 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
-      mentionedUserIds: [],
+      mentionedUserIds:
+        ((t as unknown as { mentionedUserIds?: string[] }).mentionedUserIds ??
+          []) as string[],
     }));
     return applyTicketChipFilters(lite, {
       active: activeChips,
