@@ -159,7 +159,7 @@ export function DocumentHeader({
                 />
                 {transitions.length > 0 && (
                   <ChevronDown
-                    className={`h-3 w-3 text-seal-gray-500 transition-transform ${statusDropdownOpen ? "rotate-180" : ""}`}
+                    className={`h-3 w-3 text-seal-gray-500 dark:text-slate-400 transition-transform ${statusDropdownOpen ? "rotate-180" : ""}`}
                   />
                 )}
               </button>
@@ -188,7 +188,7 @@ export function DocumentHeader({
                     doc.status !== "ARCHIVED" && (
                       <>
                         <div className="my-1 border-t border-gray-100 dark:border-slate-800" />
-                        <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-seal-gray-500 font-semibold">
+                        <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 font-semibold">
                           Actions admin
                         </div>
                         <button
@@ -253,7 +253,7 @@ export function DocumentHeader({
                           Valider la revue
                         </span>
                         {!doc.approver && (
-                          <span className="ml-auto text-[10px] text-seal-gray-500">
+                          <span className="ml-auto text-[10px] text-seal-gray-500 dark:text-slate-400">
                             (approbateur requis)
                           </span>
                         )}

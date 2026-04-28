@@ -246,7 +246,7 @@ export function DocumentVersionsPanel({
                               Version actuelle
                             </span>
                           )}
-                          <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] text-seal-gray-500">
+                          <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] text-seal-gray-500 dark:text-slate-400">
                             {formatFileSize(version.fileSizeBytes)}
                           </span>
                         </div>
@@ -263,7 +263,7 @@ export function DocumentVersionsPanel({
                         <button
                           onClick={() => copyChecksum(version.checksum)}
                           title="Cliquer pour copier le checksum SHA-256"
-                          className="mt-1.5 inline-flex items-center gap-1 font-mono text-[10px] text-seal-gray-500 hover:text-primary transition break-all text-left"
+                          className="mt-1.5 inline-flex items-center gap-1 font-mono text-[10px] text-seal-gray-500 dark:text-slate-400 hover:text-primary transition break-all text-left"
                         >
                           {copiedChecksum === version.checksum ? (
                             <Check className="h-3 w-3 flex-shrink-0 text-emerald-500" />
