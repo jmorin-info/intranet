@@ -27,6 +27,8 @@ import {
 } from '@omnitech/ui';
 import { ArrowLeft, Save, Send, X, Image, FileText, RefreshCw, Eye, EyeOff, Sparkles, Newspaper } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
+import { EditorPreview, useEditorPreviewMode } from '@/components/editor/editor-preview';
+import { useEditorAutosave } from '@/hooks/use-editor-autosave';
 
 // Schéma local étendu (incl. champs optionnels) — réutilise les règles min de @/lib/validation/schemas
 const newsSchema = z.object({
@@ -59,7 +61,11 @@ export default function ComposeNewsPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('image');
   const [notifyOnPublish, setNotifyOnPublish] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  // Mode d'apercu persistant (edit-only / split-h / split-v / preview-only).
+  const [previewMode, setPreviewMode] = useEditorPreviewMode('edit-only');
+  const showPreview = previewMode !== 'edit-only';
+  const setShowPreview = (next: boolean) =>
+    setPreviewMode(next ? 'split-h' : 'edit-only');
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   // DOMPurify lazy-loaded — n'entre dans le bundle qu'au moment où l'utilisateur
   // ouvre l'aperçu live (showPreview=true).
@@ -166,6 +172,12 @@ export default function ComposeNewsPage() {
         }
       }
 
+      // Nettoie le draft local apres publication reussie.
+      try {
+        window.localStorage.removeItem('wiki-draft:news:new');
+      } catch {
+        /* noop */
+      }
       router.push('/news');
     } catch (error: unknown) {
       const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Erreur';
@@ -174,6 +186,67 @@ export default function ComposeNewsPage() {
       setLoading(false);
     }
   };
+
+  // Autosave brouillon dans localStorage. La cle est stable ('news:new')
+  // car la page de compose n'a pas d'id encore. Le draft est efface une
+  // fois la publication reussie.
+  const titleVal = watch('title') || '';
+  const excerptVal = watch('excerpt') || '';
+  const categoryVal = watch('category') || '';
+  const draftValue = useMemo(
+    () => ({ title: titleVal, excerpt: excerptVal, category: categoryVal, content }),
+    [titleVal, excerptVal, categoryVal, content],
+  );
+  const draftEmpty = useMemo(
+    () => ({ title: '', excerpt: '', category: '', content: '' }),
+    [],
+  );
+  const autosave = useEditorAutosave({
+    entityKey: 'news:new',
+    value: draftValue,
+    serverValue: draftEmpty,
+  });
+
+  // Restauration du brouillon (toast une seule fois).
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    if (!autosave.hasUnsavedDraft) return;
+    restoredRef.current = true;
+    const draft = autosave.loadDraft();
+    if (!draft) return;
+    toast(t('editor.autosave.draftFound') ?? 'Brouillon trouve. Restaurer ?', {
+      action: {
+        label: t('editor.autosave.restore') ?? 'Restaurer',
+        onClick: () => {
+          if (draft.title) setValue('title', draft.title, { shouldValidate: true });
+          if (draft.excerpt) setValue('excerpt', draft.excerpt);
+          if (draft.category) setValue('category', draft.category);
+          if (draft.content) setContent(draft.content);
+          toast.success('Brouillon restaure');
+        },
+      },
+      cancel: {
+        label: t('editor.autosave.discard') ?? 'Ignorer',
+        onClick: () => autosave.clearDraft(),
+      },
+      duration: 10_000,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autosave.hasUnsavedDraft]);
+
+  // Cmd/Ctrl+S — flush immediat du draft (puis toast confirmation).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        autosave.flushNow();
+        toast.success('Brouillon enregistre localement');
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [autosave]);
 
   return (
     <div className={`mx-auto space-y-6 ${showPreview ? 'max-w-6xl' : 'max-w-3xl'}`}>

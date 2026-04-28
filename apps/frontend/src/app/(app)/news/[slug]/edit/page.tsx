@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,6 +20,8 @@ import {
 } from '@omnitech/ui';
 import { ArrowLeft, Save, X, Trash2, Newspaper } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
+import { EditorPreview, useEditorPreviewMode } from '@/components/editor/editor-preview';
+import { useEditorAutosave } from '@/hooks/use-editor-autosave';
 
 const newsSchema = z.object({
   title: z.string().min(3, 'Titre requis'),
@@ -96,6 +98,12 @@ export default function EditNewsPage() {
     try {
       await api.patch(`/news/${newsId}`, data);
       toast.success('Article mis à jour');
+      // Nettoie le draft local apres save serveur reussi.
+      try {
+        window.localStorage.removeItem(`wiki-draft:news:${newsId}`);
+      } catch {
+        /* noop */
+      }
       router.push(`/news/${slug}`);
     } catch (error: unknown) {
       const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Erreur';
@@ -104,6 +112,45 @@ export default function EditNewsPage() {
       setSaving(false);
     }
   };
+
+  // Mode apercu live persiste.
+  const [previewMode, setPreviewMode] = useEditorPreviewMode('edit-only');
+
+  // Autosave brouillon (entityKey = 'news:<id>'). Le serverValue est la
+  // valeur initiale chargee depuis l'API, donc le hook detecte un draft
+  // local non sauvegarde si on a ferme l'onglet en cours d'edition.
+  const titleVal = watch('title') || '';
+  const excerptVal = watch('excerpt') || '';
+  const categoryVal = watch('category') || '';
+  const draftValue = useMemo(
+    () => ({ title: titleVal, excerpt: excerptVal, category: categoryVal, content }),
+    [titleVal, excerptVal, categoryVal, content],
+  );
+  const serverDraftValue = useMemo(
+    () => ({ title: '', excerpt: '', category: '', content: '' }),
+    [],
+  );
+  const autosave = useEditorAutosave({
+    entityKey: newsId ? `news:${newsId}` : 'news:loading',
+    value: draftValue,
+    serverValue: serverDraftValue,
+    disabled: !newsId,
+  });
+
+  // Cmd/Ctrl+S — flush draft et soumet le formulaire (save serveur).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        autosave.flushNow();
+        // Submit form via React Hook Form
+        handleSubmit(onSubmit)();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autosave, newsId]);
 
   const handleDelete = async () => {
     if (!newsId) return;
@@ -217,9 +264,17 @@ export default function EditNewsPage() {
               </div>
             </div>
 
-            {/* WYSIWYG Content editor */}
+            {/* WYSIWYG Content editor — wrappe par EditorPreview (split / preview) */}
             <div className="space-y-1">
-              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Contenu</label>
+              <div className="flex items-center justify-between">
+                <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">Contenu</label>
+                {autosave.lastSavedAt && (
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                    Brouillon sauvegarde
+                  </span>
+                )}
+              </div>
+              <EditorPreview html={content} mode={previewMode} onModeChange={setPreviewMode}>
               <div className="flex flex-wrap items-center gap-1 border border-b-0 border-gray-300 dark:border-slate-600 rounded-t-lg p-2 bg-gray-50 dark:bg-slate-800 overflow-x-auto">
                 {[
                   { cmd: 'bold', label: 'B', style: 'font-semibold' },
@@ -255,6 +310,7 @@ export default function EditNewsPage() {
                 onInput={(e) => setValue('content', (e.target as HTMLDivElement).innerHTML, { shouldValidate: true, shouldDirty: true })}
                 suppressContentEditableWarning
               />
+              </EditorPreview>
               {errors.content?.message && (
                 <p className="text-xs text-red-500 mt-1">{errors.content.message}</p>
               )}

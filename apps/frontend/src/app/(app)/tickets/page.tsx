@@ -25,6 +25,11 @@ import dynamic from 'next/dynamic';
 import type { SmartFilter } from '@/lib/smart-filter';
 import { PageHeader } from '@/components/layout/page-header';
 import { ExportButton } from '@/components/ui/export-button';
+import { TicketKanban, type KanbanTicket, type TicketStatus as KanbanTicketStatus } from '@/components/tickets/ticket-kanban';
+import { TicketFilterChips, applyTicketChipFilters, type TicketFilterChipId } from '@/components/tickets/ticket-filter-chips';
+import { TicketQuickActions } from '@/components/tickets/ticket-quick-actions';
+import { useTicketShortcuts, TicketShortcutsModal } from '@/components/tickets/ticket-shortcuts';
+import { useTicketsViewMode } from '@/hooks/use-tickets-view-mode';
 import { eventBus, createEvent, useEntityEvents } from '@/lib/events';
 import { useAISuggestions } from '@/lib/ai-ux';
 import { AISuggestionBar } from '@/components/ai/ai-suggestion-bar';
@@ -322,7 +327,9 @@ export default function TicketsPage() {
   const [form, setForm] = useState({ title: '', description: '', category: 'OTHER', priority: 'MEDIUM', tagsInput: '', departmentId: '' });
   // Validation errors côté formulaire de création (zod)
   const [createErrors, setCreateErrors] = useState<Partial<Record<'title' | 'description' | 'category' | 'priority', string>>>({});
-  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
+  const [viewMode, setViewMode] = useTicketsViewMode('table');
+  // Filtres rapides Wave C (chips Mes / Mentions / SLA / Aujourd'hui / Semaine)
+  const [activeChips, setActiveChips] = useState<Set<TicketFilterChipId>>(new Set());
   const [myTicketsOnly, setMyTicketsOnly] = useState(false);
   const [sourceTab, setSourceTab] = useState<SourceTab>('all');
   const [clientFilter, setClientFilter] = useState('');
@@ -640,6 +647,83 @@ export default function TicketsPage() {
     });
   }, [filteredTickets, ticketSortField, ticketSortOrder]);
 
+  // Filtres rapides Wave C — applique apres le sort (chips OR avec filtres
+  // existants). Le serveur ne fournit pas assigneeId sur l'item liste donc
+  // on injecte une approximation via myTicketsOnly + tickets.assignee non
+  // null (pour 'sla-exceeded' / 'today' / 'week' on filtre purement).
+  const chipFilteredTickets = useMemo(() => {
+    if (activeChips.size === 0) return sortedFilteredTickets;
+    type TicketLite = {
+      id: string;
+      status: string;
+      priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+      assigneeId: string | null;
+      createdAt: string;
+      mentionedUserIds: string[];
+    };
+    const lite: Array<TicketLite & TicketItem> = sortedFilteredTickets.map((t) => ({
+      ...t,
+      // Approximation : si l'utilisateur courant est assignee, on lie son id.
+      assigneeId:
+        t.assignee && user
+          ? user.firstName === t.assignee.firstName && user.lastName === t.assignee.lastName
+            ? user.id
+            : 'other'
+          : null,
+      priority: (['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(t.priority)
+        ? t.priority
+        : 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+      mentionedUserIds: [],
+    }));
+    return applyTicketChipFilters(lite, {
+      active: activeChips,
+      currentUserId: user?.id ?? null,
+    });
+  }, [sortedFilteredTickets, activeChips, user]);
+
+  // Wave C — index du ticket "focuse" pour la navigation clavier j/k.
+  const [focusedIdx, setFocusedIdx] = useState(0);
+  useEffect(() => {
+    // Reset focus si la liste change
+    if (focusedIdx >= chipFilteredTickets.length) setFocusedIdx(0);
+  }, [chipFilteredTickets.length, focusedIdx]);
+
+  const focusedTicket = chipFilteredTickets[focusedIdx];
+  const [shortcutsOpen, setShortcutsOpen] = useTicketShortcuts({
+    onCreate: () => setShowCreate(true),
+    onFocusNext: () =>
+      setFocusedIdx((i) =>
+        chipFilteredTickets.length === 0
+          ? 0
+          : Math.min(i + 1, chipFilteredTickets.length - 1),
+      ),
+    onFocusPrev: () => setFocusedIdx((i) => Math.max(i - 1, 0)),
+    onOpenFocused: () => {
+      if (focusedTicket) router.push(`/tickets/${focusedTicket.id}`);
+    },
+    onAssignToMe: () => {
+      if (!focusedTicket || !user) return;
+      api
+        .patch(`/tickets/${focusedTicket.id}`, { assigneeId: user.id })
+        .then(() => {
+          toast.success('Ticket assigne');
+          fetchTickets();
+        })
+        .catch(() => toast.error('Erreur'));
+    },
+    onMarkResolved: () => {
+      if (!focusedTicket) return;
+      api
+        .patch(`/tickets/${focusedTicket.id}`, { status: 'RESOLVED' })
+        .then(() => {
+          toast.success('Ticket resolu');
+          fetchTickets();
+        })
+        .catch(() => toast.error('Erreur'));
+    },
+    disabled: showCreate, // desactive raccourcis pendant la modale de creation
+  });
+
   const categoryLabel = (cat: string): string => {
     const labels: Record<string, string> = {
       INCIDENT: t('tickets.category.incident'), REQUEST: t('tickets.category.request'), ACCESS: t('tickets.category.access'),
@@ -924,7 +1008,7 @@ export default function TicketsPage() {
         </span>
       );
     }},
-    { key: 'actions' , header: '', className: 'w-24', render: (ticket) => (
+    { key: 'actions' , header: '', className: 'w-32', render: (ticket) => (
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
         {/* Quick status change */}
         <div className="relative">
@@ -989,6 +1073,31 @@ export default function TicketsPage() {
         >
           {copiedRef === ticket.reference ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
+        {/* Wave C — menu actions rapides (assign / resolve / archive / copy link) */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <TicketQuickActions
+            ticketId={ticket.id}
+            ticketReference={ticket.reference}
+            ticketUrl={`/tickets/${ticket.id}`}
+            disabled={ticket.status === 'CLOSED'}
+            onAssignToMe={
+              user
+                ? async (id) => {
+                    await api.patch(`/tickets/${id}`, { assigneeId: user.id });
+                    fetchTickets();
+                  }
+                : undefined
+            }
+            onMarkResolved={async (id) => {
+              await api.patch(`/tickets/${id}`, { status: 'RESOLVED' });
+              fetchTickets();
+            }}
+            onArchive={async (id) => {
+              await api.patch(`/tickets/${id}`, { status: 'CLOSED' });
+              fetchTickets();
+            }}
+          />
+        </div>
       </div>
     )},
   ];
@@ -1040,6 +1149,15 @@ export default function TicketsPage() {
                 { header: 'Assigné à', accessor: (r: any) => r?.assignedTo?.email || '' },
               ]}
             />
+            <button
+              type="button"
+              onClick={() => setShortcutsOpen(true)}
+              className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 dark:text-slate-400 transition"
+              aria-label="Afficher les raccourcis clavier"
+              title="Raccourcis clavier (?)"
+            >
+              <HelpCircle className="h-5 w-5" />
+            </button>
             <Button onClick={() => setShowCreate(true)}>
               <Plus className="h-4 w-4" /> {t('tickets.new')}
             </Button>
@@ -1223,6 +1341,8 @@ export default function TicketsPage() {
             onFilter={applySmartFilter}
             placeholder="Essayez : mes tickets ouverts cette semaine critiques"
           />
+          {/* Quick filter chips Wave C — Mes / Mentions / SLA / Aujourd'hui / Semaine */}
+          <TicketFilterChips active={activeChips} onChange={setActiveChips} />
           {/* Status filter pills with counts */}
           <div className="flex gap-1.5 items-center flex-wrap">
             <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mr-1">Statut</span>
@@ -1364,13 +1484,13 @@ export default function TicketsPage() {
             <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
               Chargement…
             </div>
-          ) : sortedFilteredTickets.length === 0 ? (
+          ) : chipFilteredTickets.length === 0 ? (
             <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
               <Ticket className="mx-auto mb-2 h-8 w-8 opacity-50" />
               {t('tickets.empty')}
             </div>
           ) : (
-            sortedFilteredTickets.map((ticket) => {
+            chipFilteredTickets.map((ticket) => {
               const sla = getSlaStatus(ticket);
               return (
                 <button
@@ -1481,7 +1601,7 @@ export default function TicketsPage() {
         ) : (
           <DataTable
             columns={columns}
-            data={sortedFilteredTickets}
+            data={chipFilteredTickets}
             keyExtractor={(t) => t.id}
             loading={loading}
             sortBy={ticketSortField}
@@ -1501,12 +1621,23 @@ export default function TicketsPage() {
       )}
 
       {viewMode === 'kanban' && !fetchError && (
-        <KanbanBoard
-          tickets={sortedFilteredTickets}
-          isAdmin={!!isAdmin}
-          getSlaStatus={getSlaStatus}
-          categoryBadgeVariant={categoryBadgeVariant}
-          categoryLabel={categoryLabel}
+        <TicketKanban
+          tickets={chipFilteredTickets.map<KanbanTicket>((t) => ({
+            id: t.id,
+            reference: t.reference,
+            title: t.title,
+            status: (['OPEN', 'IN_PROGRESS', 'WAITING', 'RESOLVED', 'CLOSED'].includes(t.status)
+              ? t.status
+              : 'OPEN') as KanbanTicketStatus,
+            priority: (['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(t.priority)
+              ? t.priority
+              : 'MEDIUM') as KanbanTicket['priority'],
+            assigneeName: t.assignee
+              ? `${t.assignee.firstName} ${t.assignee.lastName}`
+              : null,
+            createdAt: t.createdAt,
+          }))}
+          loading={loading}
           onStatusChange={async (ticketId, newStatus) => {
             try {
               await api.patch(`/tickets/${ticketId}`, { status: newStatus });
@@ -1514,7 +1645,7 @@ export default function TicketsPage() {
               fetchTickets();
             } catch { toast.error('Erreur de mise a jour'); }
           }}
-          onCardClick={(id) => router.push(`/tickets/${id}`)}
+          onOpenTicket={(id) => router.push(`/tickets/${id}`)}
         />
       )}
 
@@ -1965,6 +2096,12 @@ export default function TicketsPage() {
           </div>
         </div>
       </Dialog>
+
+      {/* Wave C — modale d'aide raccourcis clavier (ouverte par '?') */}
+      <TicketShortcutsModal
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
     </div>
     </AIOrchestratedLayout>
   );
