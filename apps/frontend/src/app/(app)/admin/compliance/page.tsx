@@ -1,11 +1,11 @@
 "use client";
 
-import React, { Suspense, lazy, useCallback } from "react";
+import React, { Suspense, lazy, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Shield, ClipboardList, BarChart3, Layers } from "lucide-react";
 import { Skeleton } from "@omnitech/ui";
 import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
-import { useTranslation } from "@/lib/i18n";
 
 const ComplianceOverview = lazy(() =>
   import("./ComplianceOverview").then((m) => ({
@@ -30,12 +30,12 @@ const ComplianceFrameworks = lazy(() =>
 
 type TabId = "overview" | "planning" | "controls" | "frameworks";
 
-const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
-  { id: "overview", label: "Vue d'ensemble", icon: BarChart3 },
-  { id: "planning", label: "Planning", icon: ClipboardList },
-  { id: "controls", label: "Contrôles", icon: Shield },
-  { id: "frameworks", label: "Référentiels", icon: Layers },
-];
+const TAB_ICONS: Record<TabId, React.ElementType> = {
+  overview: BarChart3,
+  planning: ClipboardList,
+  controls: Shield,
+  frameworks: Layers,
+};
 
 function TabFallback() {
   return (
@@ -52,9 +52,23 @@ function TabFallback() {
 }
 
 function CompliancePageInner() {
-  const { t } = useTranslation();
+  const t = useTranslations("admin.compliancePage");
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  const tabs = useMemo<Array<{ id: TabId; label: string; icon: React.ElementType }>>(
+    () => [
+      { id: "overview", label: t("tabs.overview"), icon: TAB_ICONS.overview },
+      { id: "planning", label: t("tabs.planning"), icon: TAB_ICONS.planning },
+      { id: "controls", label: t("tabs.controls"), icon: TAB_ICONS.controls },
+      {
+        id: "frameworks",
+        label: t("tabs.frameworks"),
+        icon: TAB_ICONS.frameworks,
+      },
+    ],
+    [t],
+  );
 
   const rawTab = searchParams.get("tab");
   const activeTab: TabId =
@@ -81,10 +95,10 @@ function CompliancePageInner() {
       {/* Tab bar — sticky on mobile pour rester accessible en scroll long */}
       <div
         role="tablist"
-        aria-label="Sous-sections conformité"
+        aria-label={t("tablistAriaLabel")}
         className="sticky top-0 z-20 -mx-4 sm:mx-0 px-4 sm:px-0 bg-gray-50/95 dark:bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/70 supports-[backdrop-filter]:dark:bg-slate-950/70 flex items-center gap-1 border-b border-gray-200 dark:border-slate-700 mb-6 overflow-x-auto"
       >
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button

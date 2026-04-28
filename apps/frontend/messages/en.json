@@ -616,6 +616,15 @@
       "empty": "No external access",
       "saveSuccess": "Access saved",
       "saveError": "Could not save access"
+    },
+    "compliancePage": {
+      "tablistAriaLabel": "Compliance sub-sections",
+      "tabs": {
+        "overview": "Overview",
+        "planning": "Planning",
+        "controls": "Controls",
+        "frameworks": "Frameworks"
+      }
     }
   },
   "tickets": {

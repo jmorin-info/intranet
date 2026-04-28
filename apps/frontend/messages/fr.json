@@ -616,6 +616,15 @@
       "empty": "Aucun accès externe",
       "saveSuccess": "Accès enregistré",
       "saveError": "Impossible d'enregistrer l'accès"
+    },
+    "compliancePage": {
+      "tablistAriaLabel": "Sous-sections conformité",
+      "tabs": {
+        "overview": "Vue d'ensemble",
+        "planning": "Planning",
+        "controls": "Contrôles",
+        "frameworks": "Référentiels"
+      }
     }
   },
   "tickets": {
