@@ -92,7 +92,13 @@ const CreateFromTemplateDialog = dynamic(
 // Types, helpers et constantes (DocumentCard, status tabs, validity, badges)
 // extraits dans `_components/` pour alléger l'orchestrateur.
 import { DocumentCard } from "./_components/document-card";
-import { STATUS_TAB_DEFS } from "./_components/helpers";
+import {
+  STATUS_TAB_DEFS,
+  CLASS_COLORS,
+  CARD_CLASS_BADGE,
+  getValidityInfo,
+  categoryBadgeVariant,
+} from "./_components/helpers";
 import type { Document, PaginatedDocs, StatusTabKey } from "./_components/types";
 import { useDocumentsColumns } from "./_components/use-documents-columns";
 

@@ -1316,14 +1316,59 @@ model WikiPage {
   editLockUserId    String?
   editLockExpiresAt DateTime?
 
-  author   User              @relation("WikiAuthor", fields: [authorId], references: [id])
-  versions WikiPageVersion[]
+  author    User               @relation("WikiAuthor", fields: [authorId], references: [id])
+  versions  WikiPageVersion[]
+  backlinks WikiPageBacklink[] @relation("FromPageBacklinks")
+  tagLinks  WikiPageTag[]
 
   @@index([authorId])
   @@index([category])
   @@index([slug])
   @@index([visibility])
   @@index([ownerDepartmentId])
+}
+
+/// Backlinks bidirectionnels [[slug]] — index persistant alimenté à chaque
+/// création/update de WikiPage (Wave C item 12).
+model WikiPageBacklink {
+  id              String   @id @default(uuid())
+  fromPageId      String
+  toPageSlug      String
+  occurrenceCount Int      @default(1)
+  createdAt       DateTime @default(now())
+
+  fromPage WikiPage @relation("FromPageBacklinks", fields: [fromPageId], references: [id], onDelete: Cascade)
+
+  @@unique([fromPageId, toPageSlug])
+  @@index([toPageSlug])
+  @@index([fromPageId])
+}
+
+/// Tags persistants pour les pages wiki (Wave C item 12).
+model WikiTag {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  colorHex  String?
+  createdAt DateTime @default(now())
+
+  pages WikiPageTag[]
+
+  @@index([slug])
+}
+
+/// Relation many-to-many WikiPage <-> WikiTag.
+model WikiPageTag {
+  pageId    String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  page WikiPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  tag  WikiTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([pageId, tagId])
+  @@unique([pageId, tagId])
+  @@index([tagId])
 }
 
 model WikiPageVersion {
@@ -2719,6 +2764,8 @@ model DocumentTemplate {
   @@index([category, deletedAt])
   @@index([slug])
   @@index([createdById])
+}
+
 // =============================================================================
 // Wave D — UEBA : Détection comportement anormal (Item 28)
 // =============================================================================

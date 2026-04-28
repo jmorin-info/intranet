@@ -10,7 +10,13 @@
 -- Voir docs/security/UEBA_BEHAVIOR_DETECTION.md.
 --
 -- Idempotente — l'enum BehaviorAlertSeverity est créé par
--- 20260428_behavior_rule/migration.sql, on le réutilise.
+-- 20260428_behavior_rule/migration.sql, on duplique l'ENUM ici (idempotent).
+
+DO $$ BEGIN
+  CREATE TYPE "BehaviorAlertSeverity" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 DO $$ BEGIN
   CREATE TYPE "BehaviorAlertStatus" AS ENUM ('NEW', 'ACKNOWLEDGED', 'RESOLVED', 'FALSE_POSITIVE');

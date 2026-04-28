@@ -194,7 +194,7 @@ export default function SignatureDetailPage() {
         title="Signature électronique"
         subtitle={sig.documentVersion.document.title}
         icon={PenLine}
-        action={
+        actions={
           <Button
             variant="outline"
             onClick={() => router.push('/signatures')}
@@ -378,7 +378,7 @@ export default function SignatureDetailPage() {
                     </Tooltip>
                   ) : (
                     <Tooltip content="Pas de certificat qualifié — niveau eIDAS AES">
-                      <Badge variant="secondary" className="gap-1">
+                      <Badge variant="navy" className="gap-1">
                         <Award className="h-3 w-3" /> Niveau AES
                       </Badge>
                     </Tooltip>
@@ -391,7 +391,7 @@ export default function SignatureDetailPage() {
                     </Tooltip>
                   ) : (
                     <Tooltip content="Pas d'horodatage TSA externe (TSA_URL non configuré)">
-                      <Badge variant="outline" className="gap-1">
+                      <Badge variant="navy" className="gap-1">
                         <Stamp className="h-3 w-3" /> Sans TSA
                       </Badge>
                     </Tooltip>

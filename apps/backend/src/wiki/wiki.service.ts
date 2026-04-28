@@ -237,7 +237,11 @@ export class WikiService {
     if (filters?.tag) {
       const tagSlug = filters.tag.trim().toLowerCase();
       if (tagSlug) {
-        where.tags = { some: { tag: { slug: tagSlug } } };
+        // Le champ relation s'appelle `tagLinks` côté schema (cf WikiPageTag).
+        // Le champ `tags` String[] existe aussi mais c'est l'ancien (legacy).
+        (where as Record<string, unknown>).tagLinks = {
+          some: { tag: { slug: tagSlug } },
+        };
       }
     }
 
