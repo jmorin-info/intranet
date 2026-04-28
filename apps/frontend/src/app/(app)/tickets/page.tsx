@@ -25,6 +25,11 @@ import dynamic from 'next/dynamic';
 import type { SmartFilter } from '@/lib/smart-filter';
 import { PageHeader } from '@/components/layout/page-header';
 import { ExportButton } from '@/components/ui/export-button';
+import { TicketKanban, type KanbanTicket, type TicketStatus as KanbanTicketStatus } from '@/components/tickets/ticket-kanban';
+import { TicketFilterChips, applyTicketChipFilters, type TicketFilterChipId } from '@/components/tickets/ticket-filter-chips';
+import { TicketQuickActions } from '@/components/tickets/ticket-quick-actions';
+import { useTicketShortcuts, TicketShortcutsModal } from '@/components/tickets/ticket-shortcuts';
+import { useTicketsViewMode } from '@/hooks/use-tickets-view-mode';
 import { eventBus, createEvent, useEntityEvents } from '@/lib/events';
 import { useAISuggestions } from '@/lib/ai-ux';
 import { AISuggestionBar } from '@/components/ai/ai-suggestion-bar';
@@ -322,7 +327,9 @@ export default function TicketsPage() {
   const [form, setForm] = useState({ title: '', description: '', category: 'OTHER', priority: 'MEDIUM', tagsInput: '', departmentId: '' });
   // Validation errors côté formulaire de création (zod)
   const [createErrors, setCreateErrors] = useState<Partial<Record<'title' | 'description' | 'category' | 'priority', string>>>({});
-  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
+  const [viewMode, setViewMode] = useTicketsViewMode('table');
+  // Filtres rapides Wave C (chips Mes / Mentions / SLA / Aujourd'hui / Semaine)
+  const [activeChips, setActiveChips] = useState<Set<TicketFilterChipId>>(new Set());
   const [myTicketsOnly, setMyTicketsOnly] = useState(false);
   const [sourceTab, setSourceTab] = useState<SourceTab>('all');
   const [clientFilter, setClientFilter] = useState('');
@@ -639,6 +646,40 @@ export default function TicketsPage() {
       return ticketSortOrder === 'asc' ? cmp : -cmp;
     });
   }, [filteredTickets, ticketSortField, ticketSortOrder]);
+
+  // Filtres rapides Wave C — applique apres le sort (chips OR avec filtres
+  // existants). Le serveur ne fournit pas assigneeId sur l'item liste donc
+  // on injecte une approximation via myTicketsOnly + tickets.assignee non
+  // null (pour 'sla-exceeded' / 'today' / 'week' on filtre purement).
+  const chipFilteredTickets = useMemo(() => {
+    if (activeChips.size === 0) return sortedFilteredTickets;
+    type TicketLite = {
+      id: string;
+      status: string;
+      priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+      assigneeId: string | null;
+      createdAt: string;
+      mentionedUserIds: string[];
+    };
+    const lite: Array<TicketLite & TicketItem> = sortedFilteredTickets.map((t) => ({
+      ...t,
+      // Approximation : si l'utilisateur courant est assignee, on lie son id.
+      assigneeId:
+        t.assignee && user
+          ? user.firstName === t.assignee.firstName && user.lastName === t.assignee.lastName
+            ? user.id
+            : 'other'
+          : null,
+      priority: (['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(t.priority)
+        ? t.priority
+        : 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+      mentionedUserIds: [],
+    }));
+    return applyTicketChipFilters(lite, {
+      active: activeChips,
+      currentUserId: user?.id ?? null,
+    });
+  }, [sortedFilteredTickets, activeChips, user]);
 
   const categoryLabel = (cat: string): string => {
     const labels: Record<string, string> = {
@@ -1364,13 +1405,13 @@ export default function TicketsPage() {
             <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
               Chargement…
             </div>
-          ) : sortedFilteredTickets.length === 0 ? (
+          ) : chipFilteredTickets.length === 0 ? (
             <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
               <Ticket className="mx-auto mb-2 h-8 w-8 opacity-50" />
               {t('tickets.empty')}
             </div>
           ) : (
-            sortedFilteredTickets.map((ticket) => {
+            chipFilteredTickets.map((ticket) => {
               const sla = getSlaStatus(ticket);
               return (
                 <button
@@ -1481,7 +1522,7 @@ export default function TicketsPage() {
         ) : (
           <DataTable
             columns={columns}
-            data={sortedFilteredTickets}
+            data={chipFilteredTickets}
             keyExtractor={(t) => t.id}
             loading={loading}
             sortBy={ticketSortField}
@@ -1501,12 +1542,23 @@ export default function TicketsPage() {
       )}
 
       {viewMode === 'kanban' && !fetchError && (
-        <KanbanBoard
-          tickets={sortedFilteredTickets}
-          isAdmin={!!isAdmin}
-          getSlaStatus={getSlaStatus}
-          categoryBadgeVariant={categoryBadgeVariant}
-          categoryLabel={categoryLabel}
+        <TicketKanban
+          tickets={chipFilteredTickets.map<KanbanTicket>((t) => ({
+            id: t.id,
+            reference: t.reference,
+            title: t.title,
+            status: (['OPEN', 'IN_PROGRESS', 'WAITING', 'RESOLVED', 'CLOSED'].includes(t.status)
+              ? t.status
+              : 'OPEN') as KanbanTicketStatus,
+            priority: (['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(t.priority)
+              ? t.priority
+              : 'MEDIUM') as KanbanTicket['priority'],
+            assigneeName: t.assignee
+              ? `${t.assignee.firstName} ${t.assignee.lastName}`
+              : null,
+            createdAt: t.createdAt,
+          }))}
+          loading={loading}
           onStatusChange={async (ticketId, newStatus) => {
             try {
               await api.patch(`/tickets/${ticketId}`, { status: newStatus });
@@ -1514,7 +1566,7 @@ export default function TicketsPage() {
               fetchTickets();
             } catch { toast.error('Erreur de mise a jour'); }
           }}
-          onCardClick={(id) => router.push(`/tickets/${id}`)}
+          onOpenTicket={(id) => router.push(`/tickets/${id}`)}
         />
       )}
 
