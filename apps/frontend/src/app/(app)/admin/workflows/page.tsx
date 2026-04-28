@@ -7,6 +7,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
@@ -14,7 +15,6 @@ import { Button, Card, CardContent, Dialog, Skeleton, EmptyState } from '@omnite
 import { Plus, Workflow as WorkflowIcon, CheckCircle2, Circle, RefreshCw, Sparkles } from 'lucide-react';
 import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
 import { PageHeader } from '@/components/layout/page-header';
-import { useTranslation } from '@/lib/i18n';
 
 type DocumentCategory =
   | 'POLICY'
@@ -39,21 +39,21 @@ interface ApprovalWorkflow {
   _count?: { instances: number };
 }
 
-const CATEGORY_LABELS: Record<DocumentCategory | 'ALL', string> = {
-  ALL: 'Toutes catégories',
-  POLICY: 'Politique',
-  PROCEDURE: 'Procédure',
-  PLAN: 'Plan',
-  RECORD: 'Enregistrement',
-  FORM: 'Formulaire',
-  GUIDE: 'Guide',
-  REPORT: 'Rapport',
-  CONTRACT: 'Contrat',
-  OTHER: 'Autre',
-};
+const CATEGORY_KEYS: Array<DocumentCategory | 'ALL'> = [
+  'ALL',
+  'POLICY',
+  'PROCEDURE',
+  'PLAN',
+  'RECORD',
+  'FORM',
+  'GUIDE',
+  'REPORT',
+  'CONTRACT',
+  'OTHER',
+];
 
 export default function WorkflowsAdminPage() {
-  const { t } = useTranslation();
+  const t = useTranslations('admin.workflowsPage');
   const [workflows, setWorkflows] = useState<ApprovalWorkflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -70,12 +70,12 @@ export default function WorkflowsAdminPage() {
       const { data } = await api.get<ApprovalWorkflow[]>('/approval-workflows');
       setWorkflows(data);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Impossible de charger les workflows');
+      toast.error(err?.response?.data?.message || err?.message || t('errors.load'));
       logger.error(err, { page: 'admin/workflows', context: 'load' });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -83,7 +83,7 @@ export default function WorkflowsAdminPage() {
 
   const handleCreate = async () => {
     if (!form.name.trim()) {
-      toast.error('Le nom est obligatoire');
+      toast.error(t('errors.nameRequired'));
       return;
     }
     setSaving(true);
@@ -93,12 +93,12 @@ export default function WorkflowsAdminPage() {
         description: form.description.trim() || undefined,
         documentCategory: form.documentCategory || null,
       });
-      toast.success('Workflow créé');
+      toast.success(t('toasts.created'));
       setDialogOpen(false);
       setForm({ name: '', description: '', documentCategory: '' });
       await load();
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Erreur lors de la création');
+      toast.error(err?.response?.data?.message || err?.message || t('errors.createFailed'));
     } finally {
       setSaving(false);
     }
@@ -108,8 +108,8 @@ export default function WorkflowsAdminPage() {
     <div className="p-6 space-y-6">
       <AdminGroupTabs group="compliance" />
       <PageHeader
-        title="Workflows d'approbation"
-        subtitle={t('admin.workflows.subtitle')}
+        title={t('title')}
+        subtitle={t('subtitle')}
         icon={WorkflowIcon}
         hub="admin"
         actions={
@@ -121,26 +121,26 @@ export default function WorkflowsAdminPage() {
                 try {
                   const { data } = await api.post('/approval-workflows/seed-presets');
                   if (data.created?.length > 0) {
-                    toast.success(`${data.created.length} workflow(s) prédéfini(s) ajouté(s)`);
+                    toast.success(t('toasts.presetsAdded', { count: data.created.length }));
                     void load();
                   } else {
-                    toast.info('Tous les presets sont déjà en place');
+                    toast.info(t('toasts.presetsAlreadyInPlace'));
                   }
                 } catch {
-                  toast.error('Échec du chargement des presets');
+                  toast.error(t('errors.loadPresets'));
                 }
               }}
             >
               <Sparkles className="h-4 w-4" />
-              Charger les presets
+              {t('actions.loadPresets')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Rafraîchir
+              {t('actions.refresh')}
             </Button>
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Nouveau workflow
+              {t('actions.newWorkflow')}
             </Button>
           </div>
         }
@@ -155,8 +155,8 @@ export default function WorkflowsAdminPage() {
       ) : workflows.length === 0 ? (
         <EmptyState
           type="general"
-          title="Aucun workflow configuré"
-          description="Créez un workflow d'approbation pour valider les documents selon vos règles internes."
+          title={t('empty.title')}
+          description={t('empty.description')}
         />
       ) : (
       <Card>
@@ -165,12 +165,12 @@ export default function WorkflowsAdminPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-slate-700">
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Nom</th>
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Catégorie</th>
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Étapes</th>
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Instances</th>
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Défaut</th>
-                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">Actif</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">{t('table.name')}</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">{t('table.category')}</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">{t('table.steps')}</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">{t('table.instances')}</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">{t('table.default')}</th>
+                  <th className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-3 text-left text-[10px] uppercase tracking-widest font-medium text-seal-gray-500 dark:text-slate-500">{t('table.active')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
@@ -193,7 +193,7 @@ export default function WorkflowsAdminPage() {
                       ) : null}
                     </td>
                     <td className="p-3 text-seal-navy dark:text-slate-200">
-                      {CATEGORY_LABELS[wf.documentCategory ?? 'ALL']}
+                      {t(`categories.${wf.documentCategory ?? 'ALL'}`)}
                     </td>
                     <td className="p-3 text-seal-navy dark:text-slate-200">
                       <span>{wf.steps.length}</span>
@@ -227,11 +227,11 @@ export default function WorkflowsAdminPage() {
                     <td className="p-3">
                       {wf.isActive ? (
                         <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 text-xs">
-                          Actif
+                          {t('status.active')}
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded bg-gray-200 text-gray-700 dark:bg-slate-700 dark:text-slate-300 text-xs">
-                          Inactif
+                          {t('status.inactive')}
                         </span>
                       )}
                     </td>
@@ -248,24 +248,24 @@ export default function WorkflowsAdminPage() {
         <Dialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
-          title="Nouveau workflow"
+          title={t('dialog.title')}
         >
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
-                Nom *
+                {t('dialog.nameLabel')}
               </label>
               <input
                 type="text"
                 className="w-full border rounded px-3 py-2 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Validation politiques RSSI"
+                placeholder={t('dialog.namePlaceholder')}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
-                Description
+                {t('dialog.descriptionLabel')}
               </label>
               <textarea
                 className="w-full border rounded px-3 py-2 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
@@ -278,7 +278,7 @@ export default function WorkflowsAdminPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
-                Catégorie de document
+                {t('dialog.categoryLabel')}
               </label>
               <select
                 className="w-full border rounded px-3 py-2 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
@@ -290,22 +290,20 @@ export default function WorkflowsAdminPage() {
                   })
                 }
               >
-                <option value="">Toutes catégories</option>
-                {(Object.keys(CATEGORY_LABELS) as Array<DocumentCategory | 'ALL'>)
-                  .filter((k) => k !== 'ALL')
-                  .map((k) => (
-                    <option key={k} value={k}>
-                      {CATEGORY_LABELS[k]}
-                    </option>
-                  ))}
+                <option value="">{t('categories.ALL')}</option>
+                {CATEGORY_KEYS.filter((k) => k !== 'ALL').map((k) => (
+                  <option key={k} value={k}>
+                    {t(`categories.${k}`)}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                Annuler
+                {t('dialog.cancel')}
               </Button>
               <Button onClick={handleCreate} disabled={saving}>
-                {saving ? 'Création…' : 'Créer'}
+                {saving ? t('dialog.creating') : t('dialog.create')}
               </Button>
             </div>
           </div>

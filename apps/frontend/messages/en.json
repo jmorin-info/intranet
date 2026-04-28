@@ -626,6 +626,64 @@
         "frameworks": "Frameworks"
       }
     },
+    "workflowsPage": {
+      "title": "Approval workflows",
+      "subtitle": "Document validation workflow configuration (ISO 27001 A.5.1)",
+      "actions": {
+        "loadPresets": "Load presets",
+        "refresh": "Refresh",
+        "newWorkflow": "New workflow"
+      },
+      "empty": {
+        "title": "No workflow configured",
+        "description": "Create an approval workflow to validate documents according to your internal rules."
+      },
+      "table": {
+        "name": "Name",
+        "category": "Category",
+        "steps": "Steps",
+        "instances": "Instances",
+        "default": "Default",
+        "active": "Active"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "categories": {
+        "ALL": "All categories",
+        "POLICY": "Policy",
+        "PROCEDURE": "Procedure",
+        "PLAN": "Plan",
+        "RECORD": "Record",
+        "FORM": "Form",
+        "GUIDE": "Guide",
+        "REPORT": "Report",
+        "CONTRACT": "Contract",
+        "OTHER": "Other"
+      },
+      "dialog": {
+        "title": "New workflow",
+        "nameLabel": "Name *",
+        "namePlaceholder": "CISO policy validation",
+        "descriptionLabel": "Description",
+        "categoryLabel": "Document category",
+        "cancel": "Cancel",
+        "create": "Create",
+        "creating": "Creating…"
+      },
+      "errors": {
+        "load": "Unable to load workflows",
+        "loadPresets": "Failed to load presets",
+        "nameRequired": "Name is required",
+        "createFailed": "Error during creation"
+      },
+      "toasts": {
+        "created": "Workflow created",
+        "presetsAdded": "{count} preset workflow(s) added",
+        "presetsAlreadyInPlace": "All presets already in place"
+      }
+    },
     "feedbackPage": {
       "title": "Reviews & satisfaction surveys",
       "subtitle": "Moderate employee testimonials and run satisfaction surveys (results + new survey creation).",

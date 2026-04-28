@@ -626,6 +626,64 @@
         "frameworks": "Référentiels"
       }
     },
+    "workflowsPage": {
+      "title": "Workflows d'approbation",
+      "subtitle": "Configuration des workflows de validation des documents (ISO 27001 A.5.1)",
+      "actions": {
+        "loadPresets": "Charger les presets",
+        "refresh": "Rafraîchir",
+        "newWorkflow": "Nouveau workflow"
+      },
+      "empty": {
+        "title": "Aucun workflow configuré",
+        "description": "Créez un workflow d'approbation pour valider les documents selon vos règles internes."
+      },
+      "table": {
+        "name": "Nom",
+        "category": "Catégorie",
+        "steps": "Étapes",
+        "instances": "Instances",
+        "default": "Défaut",
+        "active": "Actif"
+      },
+      "status": {
+        "active": "Actif",
+        "inactive": "Inactif"
+      },
+      "categories": {
+        "ALL": "Toutes catégories",
+        "POLICY": "Politique",
+        "PROCEDURE": "Procédure",
+        "PLAN": "Plan",
+        "RECORD": "Enregistrement",
+        "FORM": "Formulaire",
+        "GUIDE": "Guide",
+        "REPORT": "Rapport",
+        "CONTRACT": "Contrat",
+        "OTHER": "Autre"
+      },
+      "dialog": {
+        "title": "Nouveau workflow",
+        "nameLabel": "Nom *",
+        "namePlaceholder": "Validation politiques RSSI",
+        "descriptionLabel": "Description",
+        "categoryLabel": "Catégorie de document",
+        "cancel": "Annuler",
+        "create": "Créer",
+        "creating": "Création…"
+      },
+      "errors": {
+        "load": "Impossible de charger les workflows",
+        "loadPresets": "Échec du chargement des presets",
+        "nameRequired": "Le nom est obligatoire",
+        "createFailed": "Erreur lors de la création"
+      },
+      "toasts": {
+        "created": "Workflow créé",
+        "presetsAdded": "{count} workflow(s) prédéfini(s) ajouté(s)",
+        "presetsAlreadyInPlace": "Tous les presets sont déjà en place"
+      }
+    },
     "feedbackPage": {
       "title": "Avis & enquêtes de satisfaction",
       "subtitle": "Modérez les témoignages des collaborateurs et pilotez les enquêtes de satisfaction (résultats + création de nouvelles enquêtes).",
