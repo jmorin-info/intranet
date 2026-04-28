@@ -171,16 +171,25 @@ export default function MySignaturesPage() {
                         <span>{formatRelativeTime(sig.createdAt)}</span>
                         {sig.signedAt && <span>Signe le {formatDate(sig.signedAt)}</span>}
                       </div>
-                      {sig.docusealSubmissionId && (
-                        <a
-                          href={`${process.env.NEXT_PUBLIC_DOCUSEAL_URL || 'http://localhost:7000'}/s/${sig.docusealSubmissionId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline mt-1"
+                      <div className="flex flex-wrap items-center gap-3 mt-1">
+                        {sig.docusealSubmissionId && (
+                          <a
+                            href={`${process.env.NEXT_PUBLIC_DOCUSEAL_URL || 'http://localhost:7000'}/s/${sig.docusealSubmissionId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                          >
+                            <ExternalLink className="h-3 w-3" /> DocuSeal
+                          </a>
+                        )}
+                        {/* Wave D — lien vers la page détail (preuve eIDAS-AES) */}
+                        <Link
+                          href={`/signatures/${sig.id}`}
+                          className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
                         >
-                          <ExternalLink className="h-3 w-3" /> DocuSeal
-                        </a>
-                      )}
+                          <FileText className="h-3 w-3" /> Détail / Preuve
+                        </Link>
+                      </div>
                     </div>
                     {isPending && (
                       <Button onClick={() => setConfirmSignId(sig.id)} className="flex-shrink-0 w-full sm:w-auto sm:max-w-[140px] transition duration-200 min-h-[44px]">

@@ -20,6 +20,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SignaturesService } from './signatures.service';
+import { EvidenceService } from './evidence.service';
 import { CreateSignatureDto } from './dto/create-signature.dto';
 import { RequestUser } from '../common/interfaces';
 import { UserRole } from '../common/enums';
@@ -31,7 +32,10 @@ import { RequireFreshMfa } from '../mfa/decorators/require-fresh-mfa.decorator';
 // considérées sensibles : exigent une re-validation MFA récente (12 h max).
 @RequireFreshMfa()
 export class SignaturesController {
-  constructor(private readonly signaturesService: SignaturesService) {}
+  constructor(
+    private readonly signaturesService: SignaturesService,
+    private readonly evidenceService: EvidenceService,
+  ) {}
 
   @Get('templates')
   @Roles(UserRole.ADMIN, UserRole.REVIEWER, UserRole.DIRECTION, UserRole.SUPER_ADMIN)
@@ -170,5 +174,65 @@ export class SignaturesController {
   @Roles(UserRole.COLLABORATEUR)
   getByDocument(@Param('documentId', ParseUUIDPipe) documentId: string) {
     return this.signaturesService.getByDocument(documentId);
+  }
+
+  /**
+   * Wave D item 26 — eIDAS-AES evidence consultation.
+   *
+   * Retourne les preuves capturées (sans le payload DocuSeal brut pour
+   * limiter la surface d'exposition). Accès limité au signataire,
+   * demandeur, ou ADMIN+/DIRECTION (cf. EvidenceService.getEvidenceForUser).
+   */
+  @Get(':id/evidence')
+  async getEvidence(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    const sig = await this.evidenceService.getEvidenceForUser(
+      id,
+      user.id,
+      user.role,
+    );
+    const ev = sig.evidence!;
+    return {
+      id: ev.id,
+      signedAt: ev.signedAt,
+      signerEmail: ev.signerEmail,
+      signerIpAddress: ev.signerIpAddress,
+      signerUserAgent: ev.signerUserAgent,
+      documentHashSha256: ev.documentHashSha256,
+      hasCertificateChain: Boolean(ev.certificateChain),
+      hasTsa: Boolean(ev.tsa),
+      createdAt: ev.createdAt,
+      signer: sig.signer,
+      requestedBy: sig.requestedBy,
+      document: sig.documentVersion.document,
+    };
+  }
+
+  /**
+   * Wave D item 26 — Export PDF "Preuve de signature" eIDAS-AES.
+   *
+   * Génère un rapport PDF eIDAS niveau AES avec toutes les preuves
+   * capturées et un hash SHA-256 du rapport pour vérification ultérieure.
+   */
+  @Get(':id/evidence-report')
+  async getEvidenceReport(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+    @Res() res: Response,
+  ) {
+    const { buffer, fileName, hash } = await this.evidenceService.exportPdfReport(
+      id,
+      user.id,
+      user.role,
+    );
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+      'X-Report-SHA256': hash,
+      'Cache-Control': 'private, no-store',
+    });
+    res.send(buffer);
   }
 }
