@@ -1,0 +1,237 @@
+name: E2E Playwright
+
+# Wave G — exécution Playwright dédiée. Le job CI principal (`ci.yml`) ne fait
+# qu'un `playwright test --list` (compile-only). Ce workflow lance la suite
+# complète sur les flux critiques avec services postgres/redis/meili.
+#
+# Stratégie :
+#   - PR + push sur main → run la suite "smoke" (auth + dashboard + portal + pwa)
+#     en mode mocks (`E2E_API_URL` pointant sur backend stub).
+#   - workflow_dispatch (manuel) → suite complète y compris destructive
+#     (RUN_DESTRUCTIVE=1) sur l'env CI éphémère (services up, DB seed).
+
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'e2e/**'
+      - 'playwright.config.ts'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/e2e.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      destructive:
+        description: 'Run destructive tests (RUN_DESTRUCTIVE=1)'
+        required: false
+        default: 'false'
+        type: boolean
+      grep:
+        description: 'Playwright --grep filter (e.g. "auth|documents")'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  HUSKY: '0'
+  CI: '1'
+
+jobs:
+  e2e:
+    name: Playwright (chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: omnitech_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+      meilisearch:
+        image: getmeili/meilisearch:v1.10
+        env:
+          MEILI_MASTER_KEY: e2e-master-key
+          MEILI_NO_ANALYTICS: 'true'
+          MEILI_ENV: development
+        ports:
+          - 7700:7700
+        options: >-
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:7700/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/omnitech_e2e
+      REDIS_URL: redis://localhost:6379
+      MEILISEARCH_HOST: http://localhost:7700
+      MEILISEARCH_KEY: e2e-master-key
+      JWT_SECRET: e2e-jwt-secret-must-be-at-least-32-chars-long
+      JWT_REFRESH_SECRET: e2e-refresh-secret-must-be-at-least-32-chars
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+      NODE_ENV: test
+      BASE_URL: http://localhost:3001
+      E2E_API_URL: http://localhost:3000/api
+      E2E_ADMIN_EMAIL: admin@e2e.local
+      E2E_ADMIN_PASSWORD: Admin123!
+      RUN_DESTRUCTIVE: ${{ github.event.inputs.destructive == 'true' && '1' || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm -C packages/database exec prisma generate
+
+      - name: Apply Prisma migrations + seed
+        run: |
+          pnpm -C packages/database exec prisma migrate deploy
+          # Seed minimal dataset (admin user + 1 collab + a few docs/tickets)
+          if [ -f packages/database/prisma/seed.ts ] || [ -f packages/database/prisma/seed.js ]; then
+            pnpm -C packages/database exec prisma db seed || echo "seed not configured — skipping"
+          fi
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      - name: Build backend
+        run: pnpm -C apps/backend run build
+
+      - name: Build frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3000/api
+        run: pnpm -C apps/frontend run build
+
+      - name: Start backend (background)
+        env:
+          PORT: 3000
+        run: |
+          pnpm -C apps/backend run start:prod > backend.log 2>&1 &
+          echo $! > backend.pid
+          # Wait for /api/health
+          for i in {1..60}; do
+            if curl -sf http://localhost:3000/api/health > /dev/null; then
+              echo "Backend up."
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Start frontend (background)
+        env:
+          PORT: 3001
+          NEXT_PUBLIC_API_URL: http://localhost:3000/api
+        run: |
+          pnpm -C apps/frontend run start > frontend.log 2>&1 &
+          echo $! > frontend.pid
+          for i in {1..60}; do
+            if curl -sf http://localhost:3001 > /dev/null; then
+              echo "Frontend up."
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run Playwright tests
+        run: |
+          if [ -n "${{ github.event.inputs.grep }}" ]; then
+            pnpm exec playwright test --project=chromium --grep "${{ github.event.inputs.grep }}"
+          else
+            pnpm exec playwright test --project=chromium
+          fi
+
+      - name: Stop background services
+        if: always()
+        run: |
+          [ -f backend.pid ]  && kill "$(cat backend.pid)"  2>/dev/null || true
+          [ -f frontend.pid ] && kill "$(cat frontend.pid)" 2>/dev/null || true
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload traces & videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload server logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs
+          path: |
+            backend.log
+            frontend.log
+          if-no-files-found: ignore
+          retention-days: 3
