@@ -74,7 +74,6 @@ import { CertificatesModule } from "./certificates/certificates.module";
 import { ExternalPersonsModule } from "./external-persons/external-persons.module";
 import { KnowBe4Module } from "./knowbe4/knowbe4.module";
 import { BackupModule } from "./backup/backup.module";
-import { AdminModule } from "./admin/admin.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { ChatModule } from "./chat/chat.module";
 import { TicketSpacesModule } from "./ticket-spaces/ticket-spaces.module";
@@ -87,6 +86,8 @@ import { PcaModule } from "./pca/pca.module";
 import { DataExportModule } from "./data-export/data-export.module";
 import { CryptoModule } from "./common/crypto/crypto.module";
 import { WebDAVModule } from "./webdav/webdav.module";
+import { BehaviorDetectionModule } from "./behavior-detection/behavior-detection.module";
+import { NoaMemoryModule } from "./noa-memory/noa-memory.module";
 
 @Module({
   imports: [
@@ -178,7 +179,6 @@ import { WebDAVModule } from "./webdav/webdav.module";
     ExternalPersonsModule,
     KnowBe4Module,
     BackupModule,
-    AdminModule,
     DashboardModule,
     ChatModule,
     TicketSpacesModule,
@@ -191,6 +191,9 @@ import { WebDAVModule } from "./webdav/webdav.module";
     DataExportModule,
     CryptoModule,
     WebDAVModule,
+    // Wave D — Items 28 + 31
+    BehaviorDetectionModule,
+    NoaMemoryModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

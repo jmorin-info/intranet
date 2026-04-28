@@ -224,6 +224,11 @@ model User {
   // pouvoir générer un token WebDAV et utiliser l'endpoint /api/v1/webdav/*.
   // Doublé d'un feature flag global AppConfig "webdav.enabled".
   webdavEnabled               Boolean   @default(false)
+  // Mémoire conversationnelle Noa (item 31). Default true (opt-out) car la
+  // valeur principale du feature suppose la persistance entre sessions. Le
+  // user peut désactiver depuis /profile : recall renvoie [] et store
+  // devient no-op. Suppression /api/v1/noa/memory pour right-to-erasure RGPD.
+  noaMemoryEnabled            Boolean   @default(true)
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
 
@@ -341,6 +346,12 @@ model User {
   ssoIdentities              SsoIdentity[]
   // === Wave D — Templates de documents === 2026-04-28
   documentTemplatesCreated   DocumentTemplate[]          @relation("DocTemplateCreator")
+  // === Wave D — UEBA (Item 28) === 2026-04-28
+  behaviorAlerts             BehaviorAlert[]             @relation("BehaviorAlertUser")
+  behaviorAlertsAcknowledged BehaviorAlert[]             @relation("BehaviorAlertAck")
+  behaviorAlertsResolved     BehaviorAlert[]             @relation("BehaviorAlertResolved")
+  // === Wave D — Noa memory (Item 31) === 2026-04-28
+  noaMemories                NoaMemory[]                 @relation("NoaMemoryUser")
 
   @@index([departmentId])
   @@index([role])
@@ -2583,7 +2594,6 @@ model DocumentShare {
   @@index([createdById])
 }
 
-<<<<<<< HEAD
 // =====================================================================
 // Wave D item 18 — WebAuthn FIDO2 (clés de sécurité matérielles + passkeys)
 // =====================================================================
@@ -2688,4 +2698,136 @@ model DocumentTemplate {
   @@index([category, deletedAt])
   @@index([slug])
   @@index([createdById])
+// =============================================================================
+// Wave D — UEBA : Détection comportement anormal (Item 28)
+// =============================================================================
+// Approche règles + scoring sur les `AuditLog` (pas de ML : 100 users → coût
+// trop élevé et bruit ML > règles statistiques calibrées). Voir
+// docs/security/UEBA_BEHAVIOR_DETECTION.md pour la liste complète des règles
+// R001..R008 et les seuils par défaut.
+
+enum BehaviorAlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum BehaviorAlertStatus {
+  NEW
+  ACKNOWLEDGED
+  RESOLVED
+  FALSE_POSITIVE
+}
+
+/// Alerte comportementale levée par BehaviorDetectionService (cron 5 min).
+///
+/// `evidence` JSON : payload structuré contenant les pièces à conviction
+/// (auditLogIds, IPs, timestamps, score breakdown). Volontairement pas de
+/// FK vers AuditLog — les preuves sont snapshotées pour rester lisibles
+/// même après anonymisation RGPD (cf. AuditAnonymizationService).
+///
+/// `score` : float 0-1, calculé par la règle (combinaison threshold * severity).
+/// Un score >= 0.75 déclenche une notif HIGH/CRITICAL automatique au RSSI.
+model BehaviorAlert {
+  id               String                @id @default(uuid())
+  /// User concerné par l'alerte (peut être null si l'événement déclencheur
+  /// vient d'une action anonyme — ex: failed login sur email inexistant).
+  userId           String?
+  /// Code de la règle déclenchée (R001..R008). Référence string libre vers
+  /// BehaviorRule.code, pas de FK pour permettre la désactivation/suppression
+  /// d'une règle sans casser l'historique.
+  ruleCode         String
+  severity         BehaviorAlertSeverity
+  /// Score normalisé 0-1 (combinaison du threshold + multiplier severity).
+  /// Utilisé pour le tri/filtrage côté UI (top alertes du jour).
+  score            Float
+  title            String
+  description      String                @db.Text
+  /// Snapshot des preuves : { auditLogIds: [...], ips: [...], timestamps: [...],
+  /// breakdown: {...} }. Lu par le frontend pour afficher la timeline détaillée.
+  evidence         Json
+  status           BehaviorAlertStatus   @default(NEW)
+  /// Acteur RSSI/SUPER_ADMIN qui a acquitté l'alerte (workflow triage).
+  acknowledgedById String?
+  acknowledgedAt   DateTime?
+  /// Acteur RSSI/SUPER_ADMIN qui a clos l'alerte (résolu OU faux positif).
+  resolvedById     String?
+  resolvedAt       DateTime?
+  /// Commentaire libre laissé par l'analyste lors d'acknowledge / resolve /
+  /// false-positive. Persisté pour audit ISO 27001 A.5.36.
+  resolutionNote   String?               @db.Text
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  user           User? @relation("BehaviorAlertUser", fields: [userId], references: [id], onDelete: SetNull)
+  acknowledgedBy User? @relation("BehaviorAlertAck", fields: [acknowledgedById], references: [id], onDelete: SetNull)
+  resolvedBy     User? @relation("BehaviorAlertResolved", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, severity, createdAt])
+  @@index([userId, createdAt])
+  @@index([ruleCode, createdAt])
+  @@index([severity, status])
+}
+
+/// Règle de détection comportementale (R001..R008). Persistée en base pour
+/// permettre au RSSI de toggler enabled / ajuster threshold sans redéploiement.
+/// `threshold` JSON : config par règle (ex R001 : { window: 600, minIps: 3,
+/// minLogins: 10 }). Voir BehaviorDetectionService.ruleDefaults pour les
+/// défauts injectés au seed initial.
+model BehaviorRule {
+  id          String                @id @default(uuid())
+  code        String                @unique // R001..R008
+  name        String
+  description String                @db.Text
+  severity    BehaviorAlertSeverity
+  /// Config JSON spécifique à chaque règle (windows, seuils, listes blanches).
+  threshold   Json
+  enabled     Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([enabled])
+}
+
+// =============================================================================
+// Wave D — Noa Memory : mémoire conversationnelle persistante (Item 31)
+// =============================================================================
+// Persistance des faits utilisateur extraits par Ollama après chaque échange
+// chat. Embedding pgvector pour le recall sémantique (top-k cosine).
+// Voir docs/architecture/NOA_MEMORY.md pour l'architecture détaillée.
+//
+// pgvector : la colonne `embedding vector(1024)` est ajoutée par migration
+// ALTER TABLE — Prisma ne supporte pas nativement pgvector (cf. RagChunk).
+
+/// Mémoire utilisateur Noa : 1 fait extrait = 1 ligne. Multiples par user.
+/// `key` : libellé court (ex "preference.ton", "projet.actif"). Permet le
+/// dédoublonnage souple (UPSERT sur (userId, key) si la valeur évolue).
+/// `value` : phrase complète, idiomatique, telle qu'elle sera réinjectée.
+/// `importanceScore` : 0..1, retourné par le LLM lors de l'extraction. Filtré
+/// au recall (>0.5 par défaut) pour limiter le bruit.
+/// `expiresAt` : TTL optionnel (default 6 mois sur les memories peu accédées).
+model NoaMemory {
+  id              String   @id @default(uuid())
+  userId          String
+  key             String
+  value           String   @db.Text
+  /// Métadonnées extraites par le LLM (sourceMessageId, conversationId, raw).
+  metadata        Json?
+  /// 0..1 — score d'importance (preference forte = 0.9, mention isolée = 0.3).
+  importanceScore Float    @default(0.5)
+  /// Compteur de "hits" lors des recalls : incrémenté à chaque fois que ce
+  /// memory est sélectionné dans le top-k. Sert au refresh de TTL (les
+  /// memories souvent rappelés ne sont jamais purgés).
+  recallCount     Int      @default(0)
+  /// Dernier recall — utilisé pour le recency boost dans le scoring.
+  lastRecalledAt  DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  expiresAt       DateTime?
+
+  user User @relation("NoaMemoryUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, importanceScore(sort: Desc)])
+  @@index([userId, key])
 }

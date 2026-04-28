@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ChatSession } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RagService, RagSearchContext } from '../rag/rag.service';
 import { RequestUser } from '../common/interfaces';
 import { SessionService } from './session.service';
 import { AskStreamDto } from './dto/ask-stream.dto';
+import { NoaMemoryService } from '../noa-memory/noa-memory.service';
 
 export interface StreamEmitter {
   writeToken: (token: string) => void;
@@ -28,6 +29,7 @@ export class ChatStreamService {
     private readonly prisma: PrismaService,
     private readonly ragService: RagService,
     private readonly sessionService: SessionService,
+    @Optional() private readonly noaMemory?: NoaMemoryService,
   ) {}
 
   /**
@@ -62,6 +64,28 @@ export class ChatStreamService {
     let citations: unknown = [];
     let retrievalConfidence: number | null = null;
     let retrievedChunkIds: string[] = [];
+
+    // Item 31 — recall mémoire Noa avant le retrieval RAG. Best-effort :
+    // toute erreur de mémoire ne bloque jamais la réponse (NoaMemoryService
+    // est @Optional). Le bloc mémoire est injecté dans le stream comme
+    // event SSE pour observabilité côté frontend.
+    if (this.noaMemory) {
+      try {
+        const memories = await this.noaMemory.recall(user.id, dto.query.trim(), { k: 5 });
+        if (memories.length > 0) {
+          emitter.writeEvent('memory_recall', {
+            count: memories.length,
+            keys: memories.map((m) => m.key),
+          });
+        }
+      } catch (err) {
+        this.logger.warn({
+          msg: 'chat.memory.recall_failed',
+          userId: user.id,
+          error: (err as Error).message,
+        });
+      }
+    }
 
     const ctx: RagSearchContext = {
       userId: user.id,
@@ -128,6 +152,28 @@ export class ChatStreamService {
       timeToFirstTokenMs,
     });
     emitter.close();
+
+    // Item 31 — extract & store memory in background (fire-and-forget).
+    // On ne bloque jamais le close du stream sur l'extraction LLM.
+    if (this.noaMemory && fullAnswer.length > 0) {
+      void (async () => {
+        try {
+          const items = await this.noaMemory!.extract(user.id, {
+            user: dto.query.trim(),
+            assistant: fullAnswer,
+          });
+          if (items.length > 0) {
+            await this.noaMemory!.store(user.id, items);
+          }
+        } catch (err) {
+          this.logger.warn({
+            msg: 'chat.memory.extract_failed',
+            userId: user.id,
+            error: (err as Error).message,
+          });
+        }
+      })();
+    }
   }
 
   /**
