@@ -626,6 +626,44 @@
         "frameworks": "Frameworks"
       }
     },
+    "systemHealth": {
+      "title": "System health",
+      "subtitle": "{up}/{total} services UP · Refreshed {refreshed} · Auto-refresh every 30 s{uptime}",
+      "uptimeLabel": "Uptime",
+      "refresh": "Refresh",
+      "backendDependencies": "Backend dependencies",
+      "footerNote": "Access restricted to ADMIN and SUPER_ADMIN roles · Auto-refresh every 30 seconds",
+      "status": {
+        "operational": "Operational",
+        "outage": "Outage",
+        "degraded": "Degraded"
+      },
+      "serviceStatus": {
+        "up": "Operational",
+        "down": "OFFLINE",
+        "degraded": "Degraded",
+        "notConfigured": "Not configured",
+        "unknown": "Unknown"
+      },
+      "metrics": {
+        "version": "Version",
+        "uptime": "Uptime",
+        "memoryRss": "Memory RSS",
+        "activeUsers": "Active users"
+      },
+      "services": {
+        "database": "PostgreSQL",
+        "redis": "Redis",
+        "smtp": "SMTP",
+        "ldap": "LDAP / AD",
+        "storage": "Storage",
+        "clamav": "ClamAV",
+        "meilisearch": "Meilisearch",
+        "ollama": "RAG AI (Ollama)",
+        "onlyoffice": "OnlyOffice",
+        "stirling": "Stirling PDF"
+      }
+    },
     "darkModeAudit": {
       "title": "Dark mode audit",
       "subtitle": "Detects elements with a light background that lack a dark: variant (luminance > 0.9 heuristic).",

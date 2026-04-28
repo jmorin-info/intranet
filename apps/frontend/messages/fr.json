@@ -626,6 +626,44 @@
         "frameworks": "Référentiels"
       }
     },
+    "systemHealth": {
+      "title": "Santé système",
+      "subtitle": "{up}/{total} services UP · Rafraichi {refreshed} · Auto-refresh toutes les 30 s{uptime}",
+      "uptimeLabel": "Uptime",
+      "refresh": "Rafraîchir",
+      "backendDependencies": "Dépendances backend",
+      "footerNote": "Accès réservé aux rôles ADMIN et SUPER_ADMIN · Auto-refresh toutes les 30 secondes",
+      "status": {
+        "operational": "Opérationnel",
+        "outage": "Panne",
+        "degraded": "Dégradé"
+      },
+      "serviceStatus": {
+        "up": "Opérationnel",
+        "down": "HORS LIGNE",
+        "degraded": "Dégradé",
+        "notConfigured": "Non configuré",
+        "unknown": "Inconnu"
+      },
+      "metrics": {
+        "version": "Version",
+        "uptime": "Uptime",
+        "memoryRss": "Mémoire RSS",
+        "activeUsers": "Utilisateurs actifs"
+      },
+      "services": {
+        "database": "PostgreSQL",
+        "redis": "Redis",
+        "smtp": "SMTP",
+        "ldap": "LDAP / AD",
+        "storage": "Stockage",
+        "clamav": "ClamAV",
+        "meilisearch": "Meilisearch",
+        "ollama": "RAG AI (Ollama)",
+        "onlyoffice": "OnlyOffice",
+        "stirling": "Stirling PDF"
+      }
+    },
     "darkModeAudit": {
       "title": "Audit dark mode",
       "subtitle": "Détecte les éléments avec fond clair sans variante dark: (heuristique luminance > 0.9).",
