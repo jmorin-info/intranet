@@ -494,7 +494,7 @@ export default function TicketDetailPage() {
       {/* Header */}
       <div className="flex items-start gap-3 sm:gap-4">
         <button onClick={() => router.back()} className="mt-1 h-11 w-11 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary flex-shrink-0" aria-label="Retour à la liste des tickets">
-          <ArrowLeft className="h-5 w-5 text-seal-gray-500" />
+          <ArrowLeft className="h-5 w-5 text-seal-gray-500 dark:text-slate-400" />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
@@ -557,7 +557,7 @@ export default function TicketDetailPage() {
           {/* Ticket age */}
           <div className="flex items-center gap-3 mt-1.5">
             <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-seal-navy dark:text-white">
-              <Clock className="h-3 w-3 text-seal-gray-500" />
+              <Clock className="h-3 w-3 text-seal-gray-500 dark:text-slate-400" />
               Créé il y a {getTicketAge(ticket.createdAt)}
             </span>
           </div>
@@ -798,7 +798,7 @@ export default function TicketDetailPage() {
                   <div className="border-l-2 border-gray-200 dark:border-slate-600 absolute -left-[14px] top-5 bottom-0 h-full" />
                   <div>
                     <p className="text-sm font-semibold text-seal-navy dark:text-white">Ticket créé</p>
-                    <p className="text-[10px] text-seal-gray-500">{formatDateTime(ticket.createdAt)} — {ticket.creator.firstName} {ticket.creator.lastName}</p>
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{formatDateTime(ticket.createdAt)} — {ticket.creator.firstName} {ticket.creator.lastName}</p>
                   </div>
                 </div>
                 {/* Current status */}
@@ -811,7 +811,7 @@ export default function TicketDetailPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-seal-navy dark:text-white">{statusLabel[ticket.status] || ticket.status}</p>
-                      <p className="text-[10px] text-seal-gray-500">{formatDateTime(ticket.updatedAt)}{ticket.assignee ? ` — ${ticket.assignee.firstName} ${ticket.assignee.lastName}` : ''}</p>
+                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{formatDateTime(ticket.updatedAt)}{ticket.assignee ? ` — ${ticket.assignee.firstName} ${ticket.assignee.lastName}` : ''}</p>
                     </div>
                   </div>
                 )}
@@ -823,7 +823,7 @@ export default function TicketDetailPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-seal-navy dark:text-white">Résolu</p>
-                      <p className="text-[10px] text-seal-gray-500">{formatDateTime(ticket.resolvedAt)}</p>
+                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">{formatDateTime(ticket.resolvedAt)}</p>
                     </div>
                   </div>
                 )}
@@ -919,7 +919,7 @@ export default function TicketDetailPage() {
               <div className="max-h-[calc(100dvh-20rem)] lg:max-h-[500px] overflow-y-auto p-4 space-y-1 scroll-smooth">
                 {ticket.comments.length === 0 && (
                   <div className="text-center py-8">
-                    <Send className="h-8 w-8 text-seal-gray-500/20 mx-auto mb-2" />
+                    <Send className="h-8 w-8 text-seal-gray-500/20 dark:text-slate-500/30 mx-auto mb-2" />
                     <p className="text-sm text-seal-gray-500 dark:text-slate-400">{t('tickets.detail.noComments')}</p>
                     <p className="text-xs text-seal-gray-500/60 dark:text-slate-500 mt-1">Démarrez la conversation ci-dessous</p>
                   </div>
@@ -1046,20 +1046,20 @@ export default function TicketDetailPage() {
             <CardHeader><h3 className="text-sm font-semibold text-seal-navy dark:text-white">{t('tickets.detail.info')}</h3></CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-seal-gray-500">{t('tickets.detail.creator')}</span>
+                <span className="text-seal-gray-500 dark:text-slate-400">{t('tickets.detail.creator')}</span>
                 <span className="font-semibold text-seal-navy dark:text-white">{ticket.creator.firstName} {ticket.creator.lastName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-seal-gray-500">{t('tickets.detail.assignee')}</span>
+                <span className="text-seal-gray-500 dark:text-slate-400">{t('tickets.detail.assignee')}</span>
                 <span className="font-semibold text-seal-navy dark:text-white">{ticket.assignee ? `${ticket.assignee.firstName} ${ticket.assignee.lastName}` : t('tickets.detail.unassigned')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-seal-gray-500">{t('tickets.detail.createdAt')}</span>
+                <span className="text-seal-gray-500 dark:text-slate-400">{t('tickets.detail.createdAt')}</span>
                 <span className="text-seal-navy dark:text-white">{formatDateTime(ticket.createdAt)}</span>
               </div>
               {ticket.resolvedAt && (
                 <div className="flex justify-between">
-                  <span className="text-seal-gray-500">{t('tickets.detail.resolvedAt')}</span>
+                  <span className="text-seal-gray-500 dark:text-slate-400">{t('tickets.detail.resolvedAt')}</span>
                   <span className="text-seal-navy dark:text-white">{formatDateTime(ticket.resolvedAt)}</span>
                 </div>
               )}

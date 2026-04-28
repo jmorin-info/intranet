@@ -59,7 +59,7 @@ export default function ProfileIntegrationsPage() {
     <div className="container mx-auto px-4 py-6 max-w-5xl">
       <Link
         href="/profile"
-        className="inline-flex items-center text-sm text-seal-blue hover:underline mb-3"
+        className="inline-flex items-center text-sm text-seal-blue dark:text-blue-300 hover:underline mb-3"
       >
         <ArrowLeft className="w-4 h-4 mr-1" />
         {t("back")}

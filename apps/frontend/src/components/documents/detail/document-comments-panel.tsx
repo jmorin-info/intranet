@@ -53,7 +53,7 @@ export function DocumentCommentsPanel({
 
       {comments.length === 0 ? (
         <div className="text-center py-8">
-          <MessageSquare className="h-8 w-8 text-seal-gray-500/30 mx-auto mb-2" />
+          <MessageSquare className="h-8 w-8 text-seal-gray-500/30 dark:text-slate-500/40 mx-auto mb-2" />
           <p className="text-sm text-seal-gray-500 dark:text-slate-400">
             Aucun commentaire pour le moment
           </p>

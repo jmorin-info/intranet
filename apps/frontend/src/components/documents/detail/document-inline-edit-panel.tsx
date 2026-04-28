@@ -46,7 +46,7 @@ export function DocumentInlineEditPanel({
       />
       {canEdit && (
         <div className="flex items-center justify-end gap-2">
-          <span className="text-xs text-seal-gray-500">
+          <span className="text-xs text-seal-gray-500 dark:text-slate-400">
             {dirty ? "Modifications non enregistrées" : "À jour"}
           </span>
           <Button onClick={onSave} loading={saving} disabled={!dirty}>
