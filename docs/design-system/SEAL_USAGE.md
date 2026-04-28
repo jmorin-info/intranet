@@ -104,6 +104,73 @@ Automatisable via `node scripts/seal-migrate.mjs --apply`.
 - Cas ambigus : `docs/migration/seal-migration-ambiguous.md`
 - Charte utilisateur MEMORY : `/root/.claude/projects/-root/memory/seal_charter.md`
 
+## 8. Alignement des types UI `@omnitech/ui` (Wave G)
+
+Lors de la stub-ification post-Wave D et de la réactivation Wave G, plusieurs
+divergences entre le code livré par les agents et l'API officielle de
+`@omnitech/ui` ont été corrigées. **Tout nouveau code doit suivre ces APIs
+exactes**, pas les variantes shadcn/ui par défaut.
+
+### `Column<T>` (DataTable)
+
+```ts
+interface Column<T> {
+  key: string;       // ← obligatoire, unique par colonne
+  header: string;
+  sortable?: boolean;
+  className?: string;
+  render?: (item: T) => React.ReactNode;  // ← pas `accessor`
+}
+```
+
+`DataTable<T>` requiert également `keyExtractor: (item: T) => string`.
+
+### `Button` — `variant` autorisés
+
+`'primary' | 'secondary' | 'danger' | 'destructive' | 'ghost' | 'outline' | 'link' | 'seal' | 'seal-blue' | 'seal-green'`.
+
+> **Pas** de `'default'`. Mapping : `'default'` → `'primary'`.
+
+### `Badge` — `variant` autorisés
+
+`'draft' | 'in-review' | 'pending-approval' | 'approved' | 'obsolete' | 'archived' | 'info' | 'success' | 'warning' | 'error' | 'primary' | 'navy' | 'seal-orange' | 'seal-blue' | 'seal-green' | 'seal-bordeaux'`.
+
+> **Pas** de `'default' | 'secondary' | 'outline'`. Mapping :
+> - `'default'` / `'secondary'` / `'outline'` → `'navy'`
+> - severity (`CRITICAL/HIGH/MEDIUM/LOW`) → `error/warning/info/navy`
+
+### `EmptyState.icon`
+
+Attend un `LucideIcon` (composant), **pas** un élément JSX :
+
+```tsx
+// ✅ correct
+<EmptyState icon={Brain} title="…" />
+
+// ❌ refus typecheck
+<EmptyState icon={<Brain className="h-10 w-10" />} title="…" />
+```
+
+### `Dialog` API
+
+`onClose: () => void` — **pas** `onOpenChange`. Pour un wrapper rétrocompat
+qui supporte les deux, exposer les deux props et appeler les deux à la
+fermeture (cf. `CreateFromTemplateDialog`).
+
+`Dialog` accepte `size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'` à la place de
+`className="max-w-Xl"`.
+
+### `Select` API
+
+Prop `options: SelectOption[]` (avec `{ value: string; label: string }`),
+**pas** d'enfants `<option>`. Utiliser `placeholder` pour l'option vide.
+
+### `PageHeader`
+
+Prop `actions` (pluriel), pas `action`. Accepte `hub?: 'monEspace' | 'work' |
+'security' | 'admin' | 'rssi' | 'neutral'` pour la couleur du cartouche
+d'icône.
+
 ---
 
-*Dernière mise à jour : 2026-04-20 — session 3 de la migration SEAL.*
+*Dernière mise à jour : 2026-04-28 — Wave G (réactivation 4 pages stub).*
