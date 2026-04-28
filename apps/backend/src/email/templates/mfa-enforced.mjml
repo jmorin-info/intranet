@@ -1,0 +1,40 @@
+<!-- subject:fr [OMNITECH] MFA obligatoire à partir du {{ enforcementDate }} -->
+<!-- subject:en [OMNITECH] MFA enforcement starts on {{ enforcementDate }} -->
+{{> greeting }}
+
+<mj-section padding="16px 32px 0 32px">
+  <mj-column>
+    <mj-text font-size="16px" color="{{ colors.navy }}" font-weight="bold" padding="0 0 4px 0">
+      Authentification multi-facteurs (MFA) bient&ocirc;t obligatoire
+    </mj-text>
+    <mj-text color="{{ colors.darkGray }}" padding="0 0 12px 0">
+      Conform&eacute;ment &agrave; notre politique de s&eacute;curit&eacute; ISO 27001 A.9.4.2 et &agrave; la
+      directive NIS2 applicable au groupe SFPI, l'authentification multi-facteurs
+      devient obligatoire pour tous les comptes &agrave; partir du
+      <strong style="color:{{ colors.bordeaux }};">{{ enforcementDate }}</strong>.
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="0 32px">
+  <mj-column background-color="#fffbeb" border-left="4px solid {{ colors.orange }}" padding="14px 18px">
+    <mj-text padding="0" color="#78350f" font-size="13px">
+      <strong>&#9888; Action requise avant le {{ enforcementDate }}</strong><br/>
+      Configurez d&egrave;s maintenant votre application TOTP (Authenticator,
+      1Password, Bitwarden) ou votre cl&eacute; de s&eacute;curit&eacute; FIDO2/WebAuthn.
+      Apr&egrave;s cette date, la connexion sans MFA sera refus&eacute;e.
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="24px 32px 32px 32px">
+  <mj-column>
+    <mj-button href="{{ mfaSetupUrl }}" background-color="{{ colors.orange }}">
+      Configurer la MFA maintenant
+    </mj-button>
+    <mj-text align="center" font-size="11px" color="{{ colors.mediumGray }}" padding="14px 0 0 0">
+      Besoin d'aide ? Consultez le <a href="{{ appUrl }}/wiki/mfa" class="seal-link">guide MFA</a>
+      ou contactez le support helpdesk.
+    </mj-text>
+  </mj-column>
+</mj-section>
