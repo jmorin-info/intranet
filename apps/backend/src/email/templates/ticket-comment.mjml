@@ -1,0 +1,31 @@
+<!-- subject:fr [OMNITECH] Nouveau commentaire ticket #{{ ticketId }} -->
+<!-- subject:en [OMNITECH] New comment on ticket #{{ ticketId }} -->
+{{> greeting }}
+
+<mj-section padding="16px 32px 0 32px">
+  <mj-column>
+    <mj-text font-size="16px" color="{{ colors.navy }}" font-weight="bold" padding="0 0 4px 0">
+      Nouveau commentaire sur votre ticket
+    </mj-text>
+    <mj-text color="{{ colors.darkGray }}" padding="0 0 12px 0">
+      <strong>{{ commentAuthor }}</strong> a comment&eacute; le ticket
+      <strong>#{{ ticketId }} &mdash; {{ ticketTitle }}</strong>.
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="0 32px">
+  <mj-column background-color="#fefce8" border-left="3px solid {{ colors.orange }}" padding="14px 18px">
+    <mj-text padding="0" color="#78350f" font-size="13px" font-style="italic">
+      &laquo; {{ commentExcerpt }} &raquo;
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="24px 32px 32px 32px">
+  <mj-column>
+    <mj-button href="{{ ticketUrl }}" background-color="{{ colors.orange }}">
+      R&eacute;pondre dans le ticket
+    </mj-button>
+  </mj-column>
+</mj-section>
