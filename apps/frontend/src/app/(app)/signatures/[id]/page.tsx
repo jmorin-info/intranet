@@ -230,7 +230,7 @@ export default function SignatureDetailPage() {
                 {isPending && 'En attente de signature'}
                 {isRejected && 'Refusé'}
               </p>
-              <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+              <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
                 <Link
                   href={`/documents/${sig.documentVersion.document.id}`}
                   className="hover:underline inline-flex items-center gap-1"
@@ -397,7 +397,7 @@ export default function SignatureDetailPage() {
                     </Tooltip>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-2 italic">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 italic">
                   Référence réglementaire : ETSI EN 319 122-1 (CAdES-B-LT) —
                   voir docs/compliance/EIDAS_AES_CONFORMITY.md
                 </p>
@@ -426,10 +426,10 @@ function TimelineRow({
   variant?: 'success';
 }) {
   const dotColor = !done
-    ? 'bg-slate-200 text-slate-500'
+    ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
     : variant === 'success'
-      ? 'bg-emerald-100 text-emerald-600'
-      : 'bg-blue-100 text-blue-600';
+      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300';
   return (
     <div className="flex items-start gap-3">
       <div className={`rounded-full p-1.5 ${dotColor} flex-shrink-0`}>
@@ -438,10 +438,10 @@ function TimelineRow({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium">{title}</p>
         {date && (
-          <p className="text-[11px] text-slate-500">{formatDateTime(date)}</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">{formatDateTime(date)}</p>
         )}
         {description && (
-          <p className="text-xs text-slate-600 mt-0.5">{description}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">{description}</p>
         )}
       </div>
     </div>
@@ -463,7 +463,7 @@ function EvidenceRow({
 }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-3 text-xs">
-      <div className="flex items-center gap-1.5 text-slate-600">
+      <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
         {icon}
         <span className="font-medium">{label}</span>
       </div>

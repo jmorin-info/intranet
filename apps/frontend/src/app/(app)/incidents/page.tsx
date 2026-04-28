@@ -424,7 +424,7 @@ export default function IncidentsPage() {
             </span>
           </div>
         ) : (
-          <span className="text-xs text-seal-gray-500/60 italic">Non assigné</span>
+          <span className="text-xs text-seal-gray-500/60 dark:text-slate-500 italic">Non assigné</span>
         ),
     },
     {
@@ -661,7 +661,7 @@ export default function IncidentsPage() {
         </CardContent>
         {incidents && incidents.meta.totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-4 border-t border-gray-200 dark:border-slate-700">
-            <span className="text-xs text-seal-gray-500">
+            <span className="text-xs text-seal-gray-500 dark:text-slate-400">
               Page {incidents.meta.page} / {incidents.meta.totalPages} —{' '}
               {incidents.meta.total} incidents
             </span>

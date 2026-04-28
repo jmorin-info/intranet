@@ -480,7 +480,7 @@ export default function WorkflowGraphEditorPage() {
   );
 
   if (loading || !graph) {
-    return <div className="p-6 text-gray-500">Chargement…</div>;
+    return <div className="p-6 text-gray-500 dark:text-slate-400">Chargement…</div>;
   }
 
   return (
@@ -490,12 +490,12 @@ export default function WorkflowGraphEditorPage() {
         <div className="flex items-center gap-3">
           <Link
             href={`/admin/workflows/${id}`}
-            className="inline-flex items-center text-sm text-seal-blue hover:underline"
+            className="inline-flex items-center text-sm text-seal-blue dark:text-blue-300 hover:underline"
           >
             <ArrowLeft className="w-4 h-4 mr-1" />
             Retour au détail
           </Link>
-          <span className="text-gray-300">|</span>
+          <span className="text-gray-300 dark:text-slate-600">|</span>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Éditeur visuel : {graph.name}
           </h1>
@@ -513,9 +513,9 @@ export default function WorkflowGraphEditorPage() {
             </Badge>
           )}
           {saving ? (
-            <span className="text-xs text-gray-500">Sauvegarde…</span>
+            <span className="text-xs text-gray-500 dark:text-slate-400">Sauvegarde…</span>
           ) : (
-            <span className="text-xs text-gray-400">Enregistré</span>
+            <span className="text-xs text-gray-400 dark:text-slate-500">Enregistré</span>
           )}
         </div>
       </header>
@@ -526,7 +526,7 @@ export default function WorkflowGraphEditorPage() {
           className="w-56 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-2 overflow-y-auto"
           aria-label="Palette de nœuds"
         >
-          <h2 className="text-xs uppercase font-bold tracking-wider text-gray-500 mb-2">
+          <h2 className="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-slate-400 mb-2">
             Ajouter un nœud
           </h2>
           {(['APPROVAL', 'BRANCH', 'PARALLEL_ALL', 'PARALLEL_ANY', 'DELEGATE', 'END'] as NodeType[]).map(
@@ -544,7 +544,7 @@ export default function WorkflowGraphEditorPage() {
                     className="w-3 h-3 rounded-full"
                     style={{ background: bg }}
                   />
-                  <Icon className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                  <Icon className="w-4 h-4 text-gray-500 dark:text-slate-400" aria-hidden="true" />
                   {NODE_TYPE_LABELS[type]}
                 </button>
               );
@@ -552,10 +552,10 @@ export default function WorkflowGraphEditorPage() {
           )}
 
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h2 className="text-xs uppercase font-bold tracking-wider text-gray-500 mb-2">
+            <h2 className="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-slate-400 mb-2">
               Légende
             </h2>
-            <p className="text-xs text-gray-500 leading-relaxed">
+            <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
               • Cliquer sur "Lier" sur un nœud puis sur un autre pour créer une transition.
               <br />• Glisser un nœud pour le repositionner.
               <br />• Sauvegarde auto toutes les 500&nbsp;ms.
@@ -692,7 +692,7 @@ export default function WorkflowGraphEditorPage() {
               onDelete={() => removeNode(selectedNode.id)}
             />
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-slate-400">
               Sélectionnez un nœud pour éditer ses propriétés.
             </p>
           )}
@@ -767,7 +767,7 @@ function NodeProperties({
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
           Propriétés du nœud
         </h2>
-        <p className="text-xs text-gray-500">{NODE_TYPE_LABELS[node.type]}</p>
+        <p className="text-xs text-gray-500 dark:text-slate-400">{NODE_TYPE_LABELS[node.type]}</p>
       </div>
 
       <label className="block">
@@ -834,7 +834,7 @@ function NodeProperties({
                 }
                 className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-sm"
               />
-              <span className="text-xs text-gray-500 mt-1 block">
+              <span className="text-xs text-gray-500 dark:text-slate-400 mt-1 block">
                 Nombre d'approbations distinctes nécessaires pour valider l'étape (multi-niveaux).
               </span>
             </label>
@@ -869,7 +869,7 @@ function NodeProperties({
             }}
             className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-xs font-mono"
           />
-          <span className="text-xs text-gray-500 mt-1 block">
+          <span className="text-xs text-gray-500 dark:text-slate-400 mt-1 block">
             Forme : {`{"field":"...", "op":"eq|gte|in|...", "value":...}`} ou
             {` {"and":[…]} / {"or":[…]}`}.
           </span>
