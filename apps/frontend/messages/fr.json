@@ -626,6 +626,82 @@
         "frameworks": "Référentiels"
       }
     },
+    "feedbackPage": {
+      "title": "Avis & enquêtes de satisfaction",
+      "subtitle": "Modérez les témoignages des collaborateurs et pilotez les enquêtes de satisfaction (résultats + création de nouvelles enquêtes).",
+      "tabs": {
+        "testimonials": "Témoignages collaborateurs",
+        "surveys": "Enquêtes satisfaction"
+      },
+      "errors": {
+        "generic": "Erreur",
+        "loadTestimonials": "Erreur de chargement",
+        "loadSurveys": "Erreur de chargement des enquêtes"
+      },
+      "testimonials": {
+        "filters": {
+          "pending": "En attente",
+          "approved": "Approuvés",
+          "rejected": "Rejetés",
+          "all": "Tous"
+        },
+        "badges": {
+          "approved": "Approuvé",
+          "rejected": "Rejeté",
+          "pending": "En attente"
+        },
+        "empty": {
+          "title": "Aucun témoignage",
+          "pending": "Aucun témoignage en attente de modération.",
+          "approved": "Aucun témoignage approuvé pour l'instant.",
+          "rejected": "Aucun témoignage rejeté.",
+          "all": "Aucun témoignage soumis pour l'instant."
+        },
+        "deletedAuthor": "Auteur supprimé",
+        "reasonLabel": "Motif :",
+        "reasonPlaceholder": "Motif (optionnel)",
+        "cancel": "Annuler",
+        "confirmReject": "Confirmer rejet",
+        "approve": "Approuver",
+        "reject": "Rejeter",
+        "delete": "Supprimer",
+        "confirmDelete": "Supprimer définitivement ce témoignage ?",
+        "toasts": {
+          "approved": "Témoignage approuvé",
+          "rejected": "Témoignage rejeté",
+          "deleted": "Supprimé"
+        }
+      },
+      "surveys": {
+        "stats": {
+          "surveys": "Enquêtes",
+          "totalResponses": "Réponses totales",
+          "averageRating": "Note moyenne",
+          "responseRate": "Taux de réponse"
+        },
+        "heading": "Enquêtes ({count})",
+        "newSurvey": "Nouvelle enquête",
+        "viewResults": "Résultats",
+        "responseCount": "{count} réponses",
+        "questionCount": "{count} questions",
+        "createdRelative": "Créée {time}",
+        "expiresRelative": "Expire {date}",
+        "badges": {
+          "active": "Active",
+          "closed": "Fermée",
+          "anonymous": "Anonyme"
+        },
+        "empty": {
+          "title": "Aucune enquête",
+          "description": "Créez votre première enquête de satisfaction pour recueillir les retours des collaborateurs.",
+          "action": "Créer une enquête"
+        },
+        "confirmDelete": "Supprimer l'enquête « {title} » ? Les réponses seront également perdues.",
+        "toasts": {
+          "deleted": "Enquête supprimée"
+        }
+      }
+    },
     "systemHealth": {
       "title": "Santé système",
       "subtitle": "{up}/{total} services UP · Rafraichi {refreshed} · Auto-refresh toutes les 30 s{uptime}",

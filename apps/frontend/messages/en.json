@@ -626,6 +626,82 @@
         "frameworks": "Frameworks"
       }
     },
+    "feedbackPage": {
+      "title": "Reviews & satisfaction surveys",
+      "subtitle": "Moderate employee testimonials and run satisfaction surveys (results + new survey creation).",
+      "tabs": {
+        "testimonials": "Employee testimonials",
+        "surveys": "Satisfaction surveys"
+      },
+      "errors": {
+        "generic": "Error",
+        "loadTestimonials": "Failed to load",
+        "loadSurveys": "Failed to load surveys"
+      },
+      "testimonials": {
+        "filters": {
+          "pending": "Pending",
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "all": "All"
+        },
+        "badges": {
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "pending": "Pending"
+        },
+        "empty": {
+          "title": "No testimonials",
+          "pending": "No testimonials awaiting moderation.",
+          "approved": "No approved testimonials yet.",
+          "rejected": "No rejected testimonials.",
+          "all": "No testimonials submitted yet."
+        },
+        "deletedAuthor": "Author deleted",
+        "reasonLabel": "Reason:",
+        "reasonPlaceholder": "Reason (optional)",
+        "cancel": "Cancel",
+        "confirmReject": "Confirm rejection",
+        "approve": "Approve",
+        "reject": "Reject",
+        "delete": "Delete",
+        "confirmDelete": "Permanently delete this testimonial?",
+        "toasts": {
+          "approved": "Testimonial approved",
+          "rejected": "Testimonial rejected",
+          "deleted": "Deleted"
+        }
+      },
+      "surveys": {
+        "stats": {
+          "surveys": "Surveys",
+          "totalResponses": "Total responses",
+          "averageRating": "Average rating",
+          "responseRate": "Response rate"
+        },
+        "heading": "Surveys ({count})",
+        "newSurvey": "New survey",
+        "viewResults": "Results",
+        "responseCount": "{count} responses",
+        "questionCount": "{count} questions",
+        "createdRelative": "Created {time}",
+        "expiresRelative": "Expires {date}",
+        "badges": {
+          "active": "Active",
+          "closed": "Closed",
+          "anonymous": "Anonymous"
+        },
+        "empty": {
+          "title": "No surveys",
+          "description": "Create your first satisfaction survey to collect feedback from employees.",
+          "action": "Create a survey"
+        },
+        "confirmDelete": "Delete survey \"{title}\"? Responses will also be lost.",
+        "toasts": {
+          "deleted": "Survey deleted"
+        }
+      }
+    },
     "systemHealth": {
       "title": "System health",
       "subtitle": "{up}/{total} services UP · Refreshed {refreshed} · Auto-refresh every 30 s{uptime}",
