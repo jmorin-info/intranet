@@ -26,17 +26,15 @@
 import React, { useCallback, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
 import { isRoleAtLeast, UserRole } from "@omnitech/shared";
-import { Button, Card, CardContent } from "@omnitech/ui";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAIOrchestrator } from "@/lib/ai-orchestrator";
 import { useAISuggestions } from "@/lib/ai-ux";
 import { useUIVisibility } from "@/lib/ui-os/execution";
-import { useTranslations } from "next-intl";
 import { AISuggestionBar } from "@/components/ai/ai-suggestion-bar";
 import { AIExplainabilityHints } from "@/components/ai/ai-explainability-hints";
-import { QuickLinks } from "@/components/widgets/quick-links";
+import { DashboardErrorFallback } from "@/components/dashboard/dashboard-error-fallback";
+import { DashboardQuickLinksRow } from "@/components/dashboard/dashboard-quick-links-row";
 import {
   loadDashboardFace,
   saveDashboardFace,
@@ -133,7 +131,6 @@ const defaultPrefs: DashboardWidgetPrefs = {
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
-  const t = useTranslations("dashboard");
   const aiSuggestions = useAISuggestions("dashboard");
   // Side-effect hooks: trigger AI orchestration + UI visibility sync.
   useAIOrchestrator("DASHBOARD");
@@ -208,27 +205,7 @@ export default function DashboardPage() {
   }
 
   if (data.error && !data.loading) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="py-8 text-center">
-            <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-3" />
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400">
-              {t("loadError")}
-            </p>
-            <Button
-              className="mt-4"
-              onClick={() => {
-                data.setError(false);
-                window.location.reload();
-              }}
-            >
-              {t("retry")}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <DashboardErrorFallback onReset={() => data.setError(false)} />;
   }
 
   const showOnboarding =
@@ -287,16 +264,7 @@ export default function DashboardPage() {
             firstName={user?.firstName}
           />
 
-          {prefs.showQuickLinks && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 lg:col-span-2">
-                <p className="text-[10px] font-medium uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">
-                  {t("quickAccess")}
-                </p>
-                <QuickLinks />
-              </div>
-            </div>
-          )}
+          {prefs.showQuickLinks && <DashboardQuickLinksRow />}
 
           <DashboardRecentPages isManager={isManager} />
 

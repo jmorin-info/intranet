@@ -2,24 +2,14 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
-import { useParams, useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { useParams } from "next/navigation";
 import {
   isRoleAtLeast,
   UserRole,
   getStatusTransitions,
 } from "@omnitech/shared";
-import {
-  Button,
-  ConfirmDialog,
-  Skeleton,
-  Card,
-  CardContent,
-  EmptyState,
-} from "@omnitech/ui";
-import { ArrowLeft, PenLine } from "lucide-react";
-import { useTranslation } from "@/lib/i18n";
+import { Button } from "@omnitech/ui";
+import { PenLine } from "lucide-react";
 import { EntityBreadcrumb } from "@/components/ui/entity-breadcrumb";
 
 import { getReviewDeadlineInfo } from "@/components/documents/detail/helpers";
@@ -41,6 +31,9 @@ import {
   AcknowledgmentBanner,
 } from "@/components/documents/detail/document-banners";
 import { useDocumentDetail } from "@/components/documents/detail/use-document-detail";
+import { DocumentDetailLoading } from "./_components/document-detail-loading";
+import { DocumentDetailNotFound } from "./_components/document-detail-not-found";
+import { DocumentDetailDialogs } from "./_components/document-detail-dialogs";
 
 const ReadingMode = dynamic(
   () =>
@@ -49,88 +42,15 @@ const ReadingMode = dynamic(
 );
 
 export default function DocumentDetailPage() {
-  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const ctx = useDocumentDetail(id);
 
   if (ctx.loading) {
-    return (
-      <div className="space-y-6 animate-fade-in-up">
-        {/* Breadcrumb */}
-        <Skeleton className="h-4 w-56 shimmer" />
-        {/* Header card */}
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="flex-1 min-w-0 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-5 w-20 rounded-full shimmer" />
-                  <Skeleton className="h-5 w-24 rounded-full shimmer" />
-                  <Skeleton className="h-5 w-16 rounded-full shimmer" />
-                </div>
-                <Skeleton className="h-4 w-32 shimmer" />
-                <Skeleton className="h-7 w-3/4 shimmer" />
-                <Skeleton className="h-4 w-full shimmer" />
-                <Skeleton className="h-4 w-5/6 shimmer" />
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Skeleton className="h-9 w-24 rounded-btn shimmer" />
-                <Skeleton className="h-9 w-28 rounded-btn shimmer" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <div className="lg:col-span-3 space-y-4">
-            {/* Workflow timeline */}
-            <Skeleton className="h-20 w-full rounded-card shimmer" />
-            {/* Tabs */}
-            <div className="flex items-center gap-1 border-b border-gray-200 dark:border-slate-700">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-9 w-24 shimmer" />
-              ))}
-            </div>
-            {/* Tab content */}
-            <Card>
-              <CardContent className="space-y-3 p-6">
-                <Skeleton className="h-4 w-full shimmer" />
-                <Skeleton className="h-4 w-11/12 shimmer" />
-                <Skeleton className="h-4 w-10/12 shimmer" />
-                <Skeleton className="h-4 w-9/12 shimmer" />
-              </CardContent>
-            </Card>
-          </div>
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-3">
-            <Skeleton className="h-32 w-full rounded-card shimmer" />
-            <Skeleton className="h-24 w-full rounded-card shimmer" />
-          </div>
-        </div>
-      </div>
-    );
+    return <DocumentDetailLoading />;
   }
 
   const { doc, user } = ctx;
-  if (!doc || !user)
-    return (
-      <div className="max-w-5xl mx-auto py-12">
-        <EmptyState
-          type="documents"
-          title="Document introuvable"
-          description="Ce document n'existe pas, a été supprimé, ou vous n'y avez pas accès. Vérifiez vos droits ou retournez à la liste."
-          action={
-            <Button
-              variant="outline"
-              onClick={() => router.push("/documents")}
-              aria-label="Retour à la liste des documents"
-            >
-              <ArrowLeft className="h-4 w-4" /> {t("documents.detail.back")}
-            </Button>
-          }
-        />
-      </div>
-    );
+  if (!doc || !user) return <DocumentDetailNotFound />;
 
   const versions = doc.versions || [];
   const sigs = doc.signatureRequests || [];
@@ -359,54 +279,21 @@ export default function DocumentDetailPage() {
         />
       </div>
 
-      <ConfirmDialog
-        open={!!ctx.confirmSignId}
-        onClose={() => ctx.setConfirmSignId(null)}
-        onConfirm={async () => {
-          const sigId = ctx.confirmSignId;
-          ctx.setConfirmSignId(null);
-          try {
-            await api.patch(`/signatures/${sigId}/sign`);
-            toast.success("Document signé");
-            await ctx.refreshDocument();
-          } catch {
-            toast.error("Erreur signature");
-          }
-        }}
-        title="Confirmer la signature"
-        description="Confirmez-vous la signature de ce document ?"
-        confirmLabel="Signer"
-        variant="primary"
-      />
-      <ConfirmDialog
-        open={ctx.showObsoleteDialog}
-        onClose={() => ctx.setShowObsoleteDialog(false)}
-        onConfirm={() => ctx.handleAction("mark-obsolete")}
-        title="Marquer comme obsolète"
-        description="Ce document sera marqué comme obsolète et ne sera plus visible par les collaborateurs. Cette action est réversible."
-        confirmLabel="Confirmer"
-        variant="danger"
-        loading={ctx.actionLoading}
-      />
-      <ConfirmDialog
-        open={ctx.showArchiveDialog}
-        onClose={() => ctx.setShowArchiveDialog(false)}
-        onConfirm={() => ctx.handleAction("archive")}
-        title="Archiver le document"
-        description="Le document sera archivé. Seuls les administrateurs pourront le remettre en brouillon."
-        confirmLabel="Archiver"
-        variant="danger"
-        loading={ctx.actionLoading}
-      />
-      <ConfirmDialog
-        open={ctx.showDeleteDoc}
-        onClose={() => ctx.setShowDeleteDoc(false)}
-        onConfirm={ctx.handleDeleteDoc}
-        title="Supprimer le document"
-        description={`Supprimer définitivement "${doc?.title}" ? Cette action est irréversible et supprimera toutes les versions et signatures associées.`}
-        confirmLabel="Supprimer"
-        variant="danger"
-        loading={ctx.deletingDoc}
+      <DocumentDetailDialogs
+        confirmSignId={ctx.confirmSignId}
+        setConfirmSignId={ctx.setConfirmSignId}
+        refreshDocument={ctx.refreshDocument}
+        showObsoleteDialog={ctx.showObsoleteDialog}
+        setShowObsoleteDialog={ctx.setShowObsoleteDialog}
+        showArchiveDialog={ctx.showArchiveDialog}
+        setShowArchiveDialog={ctx.setShowArchiveDialog}
+        showDeleteDoc={ctx.showDeleteDoc}
+        setShowDeleteDoc={ctx.setShowDeleteDoc}
+        handleDeleteDoc={ctx.handleDeleteDoc}
+        deletingDoc={ctx.deletingDoc}
+        actionLoading={ctx.actionLoading}
+        handleAction={ctx.handleAction}
+        docTitle={doc.title}
       />
 
       {canOpenReadingMode && readingModePdfUrl && (
