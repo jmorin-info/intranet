@@ -1,0 +1,57 @@
+<!-- subject:fr [OMNITECH] Signature requise — {{ documentTitle }} -->
+<!-- subject:en [OMNITECH] Signature required — {{ documentTitle }} -->
+{{> greeting }}
+
+<mj-section padding="16px 32px 0 32px">
+  <mj-column>
+    <mj-text font-size="16px" color="{{ colors.navy }}" font-weight="bold" padding="0 0 4px 0">
+      Document en attente de votre signature
+    </mj-text>
+    <mj-text color="{{ colors.darkGray }}" padding="0 0 12px 0">
+      Un document vous est soumis pour signature &eacute;lectronique par
+      <strong>{{ requesterName }}</strong>. Merci de proc&eacute;der &agrave; sa relecture
+      puis &agrave; sa signature avant la date limite indiqu&eacute;e ci-dessous.
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="0 32px">
+  <mj-column background-color="#f8f9fa" border-radius="6px" padding="0">
+    <mj-table padding="14px 18px" font-size="13px">
+      <tr style="border-bottom:1px solid #e5e7eb;">
+        <td style="padding:6px 0;color:#6b7280;font-weight:600;width:140px;">Document</td>
+        <td style="padding:6px 0;color:#111827;">{{ documentTitle }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #e5e7eb;">
+        <td style="padding:6px 0;color:#6b7280;font-weight:600;">Classification</td>
+        <td style="padding:6px 0;">
+          <span class="seal-badge" style="background:{{ colors.blue }};">{{ documentClassification }}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;color:#6b7280;font-weight:600;">Date limite</td>
+        <td style="padding:6px 0;color:#b45309;font-weight:bold;">{{ deadline }}</td>
+      </tr>
+    </mj-table>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="24px 32px 8px 32px">
+  <mj-column>
+    <mj-button href="{{ documentUrl }}" background-color="{{ colors.orange }}">
+      Signer le document
+    </mj-button>
+    <mj-text align="center" font-size="11px" color="{{ colors.mediumGray }}" padding="14px 0 0 0">
+      Signature qualifi&eacute;e eIDAS &mdash; valeur juridique &eacute;quivalente &agrave; une signature manuscrite.
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="0 32px 32px 32px">
+  <mj-column>
+    <mj-text font-size="11px" color="{{ colors.mediumGray }}" align="center" padding="8px 0 0 0">
+      Si vous estimez que cette demande est erron&eacute;e, contactez le RSSI ou
+      <a href="{{ appUrl }}/helpdesk/new" class="seal-link">ouvrez un ticket helpdesk</a>.
+    </mj-text>
+  </mj-column>
+</mj-section>

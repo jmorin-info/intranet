@@ -1,0 +1,31 @@
+<!-- subject:fr [OMNITECH] {{ authorName }} vous a mentionné -->
+<!-- subject:en [OMNITECH] {{ authorName }} mentioned you -->
+{{> greeting }}
+
+<mj-section padding="16px 32px 0 32px">
+  <mj-column>
+    <mj-text font-size="16px" color="{{ colors.navy }}" font-weight="bold" padding="0 0 4px 0">
+      Vous avez &eacute;t&eacute; mentionn&eacute;(e)
+    </mj-text>
+    <mj-text color="{{ colors.darkGray }}" padding="0 0 12px 0">
+      <strong>{{ authorName }}</strong> vous a mentionn&eacute;(e) dans
+      &laquo; {{ contextTitle }} &raquo;.
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="0 32px">
+  <mj-column background-color="#f8f9fa" border-left="3px solid {{ colors.blue }}" padding="14px 18px">
+    <mj-text padding="0" color="{{ colors.darkGray }}" font-size="13px" font-style="italic">
+      &laquo; {{ excerpt }} &raquo;
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="24px 32px 32px 32px">
+  <mj-column>
+    <mj-button href="{{ contextUrl }}" background-color="{{ colors.blue }}">
+      Voir et r&eacute;pondre
+    </mj-button>
+  </mj-column>
+</mj-section>
