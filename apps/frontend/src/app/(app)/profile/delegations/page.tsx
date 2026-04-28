@@ -200,7 +200,7 @@ export default function DelegationsPage() {
     <div className="container mx-auto px-4 py-6 max-w-5xl">
       <Link
         href="/profile"
-        className="inline-flex items-center text-sm text-seal-blue hover:underline mb-3"
+        className="inline-flex items-center text-sm text-seal-blue dark:text-blue-300 hover:underline mb-3"
       >
         <ArrowLeft className="w-4 h-4 mr-1" />
         Retour au profil
@@ -209,7 +209,7 @@ export default function DelegationsPage() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <UserCheck className="w-6 h-6 text-seal-orange" />
+            <UserCheck className="w-6 h-6 text-seal-orange dark:text-orange-300" />
             Mes délégations d'approbation
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -231,9 +231,9 @@ export default function DelegationsPage() {
       <Card className="mb-6">
         <CardHeader>
           <h2 className="font-semibold flex items-center gap-2">
-            <UserPlus className="w-4 h-4 text-seal-blue" />
+            <UserPlus className="w-4 h-4 text-seal-blue dark:text-blue-300" />
             Délégations que vous représentez
-            <span className="text-xs text-gray-500 font-normal">
+            <span className="text-xs text-gray-500 dark:text-slate-400 font-normal">
               ({received.length} active(s))
             </span>
           </h2>
@@ -260,7 +260,7 @@ export default function DelegationsPage() {
                       <div className="font-medium">
                         {d.fromUser?.firstName} {d.fromUser?.lastName}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 dark:text-slate-400">
                         {formatDate(d.startDate)} → {formatDate(d.endDate)}
                         {d.reason && ` · ${d.reason}`}
                         {d.auto && (
@@ -283,9 +283,9 @@ export default function DelegationsPage() {
       <Card>
         <CardHeader>
           <h2 className="font-semibold flex items-center gap-2">
-            <CalendarRange className="w-4 h-4 text-seal-orange" />
+            <CalendarRange className="w-4 h-4 text-seal-orange dark:text-orange-300" />
             Délégations que vous émettez
-            <span className="text-xs text-gray-500 font-normal">
+            <span className="text-xs text-gray-500 dark:text-slate-400 font-normal">
               ({given.filter((d) => getStatus(d).variant === 'success').length} active(s) /
               {given.length} au total)
             </span>
@@ -313,11 +313,11 @@ export default function DelegationsPage() {
                     <div className="flex-1">
                       <div className="font-medium">
                         → {d.toUser?.firstName} {d.toUser?.lastName}{' '}
-                        <span className="text-xs text-gray-500 font-normal">
+                        <span className="text-xs text-gray-500 dark:text-slate-400 font-normal">
                           ({d.toUser?.email})
                         </span>
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 dark:text-slate-400">
                         {formatDate(d.startDate)} → {formatDate(d.endDate)}
                         {d.reason && ` · ${d.reason}`}
                         {d.scope === 'SCOPED' && d.categories.length > 0 && (

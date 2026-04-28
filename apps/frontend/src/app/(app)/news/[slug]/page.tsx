@@ -405,19 +405,19 @@ export default function NewsArticlePage() {
                           toast.success("Lien copié dans le presse-papiers"),
                         )
                     }
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-seal-gray-500 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
                   >
                     <Link2 className="h-3 w-3" /> Copier le lien
                   </button>
                   <a
                     href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(`${post.excerpt || post.title}\n\nLire l'article : ${typeof window !== "undefined" ? window.location.href : ""}`)}`}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-seal-gray-500 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
                   >
                     <Mail className="h-3 w-3" /> Partager par email
                   </a>
                   <button
                     onClick={() => window.print()}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-seal-gray-500 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs font-medium text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
                   >
                     <Printer className="h-3 w-3" /> Imprimer
                   </button>
@@ -453,7 +453,7 @@ export default function NewsArticlePage() {
                   <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 space-y-3">
                     <div className="grid grid-cols-3 gap-3">
                       <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/15 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-seal-gray-500">
+                        <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-400">
                           Lecteurs
                         </p>
                         <p className="text-xl font-medium text-emerald-700 dark:text-emerald-400 mt-1">
@@ -461,7 +461,7 @@ export default function NewsArticlePage() {
                         </p>
                       </div>
                       <div className="rounded-lg border border-gray-200 dark:border-slate-700 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-seal-gray-500">
+                        <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-400">
                           Total actifs
                         </p>
                         <p className="text-xl font-medium text-seal-navy dark:text-white mt-1">
@@ -477,7 +477,7 @@ export default function NewsArticlePage() {
                               : "border-red-200 dark:border-red-800 bg-red-50/60 dark:bg-red-900/15"
                         }`}
                       >
-                        <p className="text-[10px] uppercase tracking-wider text-seal-gray-500">
+                        <p className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-400">
                           Taux de lecture
                         </p>
                         <p
