@@ -1,0 +1,51 @@
+<!-- subject:fr [URGENT] Alerte sécurité {{ alertSeverity }} — {{ alertTitle }} -->
+<!-- subject:en [URGENT] Security alert {{ alertSeverity }} — {{ alertTitle }} -->
+{{> greeting }}
+
+<mj-section padding="16px 32px 0 32px">
+  <mj-column>
+    <mj-text padding="0 0 8px 0">
+      <span class="seal-badge" style="background:{{ colors.bordeaux }};">ALERTE {{ alertSeverity }}</span>
+    </mj-text>
+    <mj-text font-size="18px" color="{{ colors.bordeaux }}" font-weight="bold" padding="0 0 8px 0">
+      &#9888; {{ alertTitle }}
+    </mj-text>
+    <mj-text color="{{ colors.darkGray }}" padding="0 0 12px 0">
+      Une activit&eacute; suspecte a &eacute;t&eacute; d&eacute;tect&eacute;e par le moteur UEBA et n&eacute;cessite
+      votre attention imm&eacute;diate en tant que RSSI.
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="0 32px">
+  <mj-column background-color="#fef2f2" border-left="4px solid {{ colors.bordeaux }}" padding="14px 18px">
+    <mj-text padding="0" color="#7f1d1d" font-size="13px" line-height="20px">
+      <strong>R&eacute;sum&eacute; de l'incident :</strong><br/>
+      {{ alertSummary }}
+    </mj-text>
+    <mj-text padding="10px 0 0 0" font-size="11px" color="#991b1b">
+      D&eacute;tect&eacute; le {{ detectionTime }}
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="24px 32px 8px 32px">
+  <mj-column>
+    <mj-button href="{{ alertUrl }}" background-color="{{ colors.bordeaux }}">
+      Investiguer l'alerte
+    </mj-button>
+    <mj-text align="center" font-size="12px" color="{{ colors.mediumGray }}" padding="14px 0 0 0">
+      <strong>Action recommand&eacute;e :</strong> classifier (vrai/faux positif), escalader
+      vers le SOC si confirm&eacute;, et documenter les contre-mesures.
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="0 32px 32px 32px">
+  <mj-column>
+    <mj-text font-size="11px" color="{{ colors.mediumGray }}" align="center" padding="8px 0 0 0">
+      Conform&eacute;ment &agrave; ISO 27001 A.16.1.5, tous les incidents s&eacute;curit&eacute; doivent &ecirc;tre
+      trac&eacute;s et trait&eacute;s dans les d&eacute;lais d&eacute;finis dans la PCA.
+    </mj-text>
+  </mj-column>
+</mj-section>

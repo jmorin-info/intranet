@@ -1,0 +1,62 @@
+<!-- subject:fr Bienvenue chez OMNITECH Security {{ firstName }} ! -->
+<!-- subject:en Welcome to OMNITECH Security, {{ firstName }}! -->
+<mj-section padding="32px 32px 0 32px">
+  <mj-column>
+    <mj-text font-size="22px" color="{{ colors.navy }}" font-weight="bold" padding="0 0 8px 0">
+      Bienvenue {{ firstName }} !
+    </mj-text>
+    <mj-text color="{{ colors.darkGray }}" padding="0 0 12px 0">
+      Toute l'&eacute;quipe OMNITECH Security est ravie de vous accueillir au sein du groupe SFPI.
+      Votre compte intranet est maintenant pr&ecirc;t.
+    </mj-text>
+    <mj-text color="{{ colors.darkGray }}" padding="0 0 12px 0">
+      Votre manager <strong>{{ managerName }}</strong> sera votre point de contact pour
+      l'onboarding. N'h&eacute;sitez pas &agrave; lui poser vos questions au cours des prochains jours.
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="0 32px">
+  <mj-column background-color="#f8f9fa" border-radius="6px" padding="0">
+    <mj-table padding="14px 18px" font-size="13px">
+      <tr style="border-bottom:1px solid #e5e7eb;">
+        <td style="padding:6px 0;color:#6b7280;font-weight:600;width:160px;">URL intranet</td>
+        <td style="padding:6px 0;color:#111827;">
+          <a href="{{ firstLoginUrl }}" class="seal-link">{{ firstLoginUrl }}</a>
+        </td>
+      </tr>
+      <tr style="border-bottom:1px solid #e5e7eb;">
+        <td style="padding:6px 0;color:#6b7280;font-weight:600;">Mot de passe temporaire</td>
+        <td style="padding:6px 0;color:#111827;">
+          <code style="background:#fff;padding:3px 8px;border:1px solid #e5e7eb;border-radius:4px;">{{ temporaryPassword }}</code>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;color:#6b7280;font-weight:600;">Manager</td>
+        <td style="padding:6px 0;color:#111827;">{{ managerName }}</td>
+      </tr>
+    </mj-table>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="0 32px">
+  <mj-column background-color="#fef2f2" border-left="3px solid {{ colors.bordeaux }}" padding="14px 18px">
+    <mj-text padding="0" color="#7f1d1d" font-size="13px">
+      <strong>S&eacute;curit&eacute; :</strong> &agrave; votre premi&egrave;re connexion, vous serez invit&eacute;(e)
+      &agrave; changer votre mot de passe et &agrave; configurer la MFA. Ne partagez jamais
+      vos identifiants par email ou messagerie instantan&eacute;e.
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="24px 32px 32px 32px">
+  <mj-column>
+    <mj-button href="{{ firstLoginUrl }}" background-color="{{ colors.orange }}">
+      Acc&eacute;der &agrave; mon intranet
+    </mj-button>
+    <mj-text align="center" font-size="11px" color="{{ colors.mediumGray }}" padding="14px 0 0 0">
+      D&eacute;couvrez le <a href="{{ appUrl }}/wiki/onboarding" class="seal-link">guide onboarding</a>
+      pour bien d&eacute;marrer.
+    </mj-text>
+  </mj-column>
+</mj-section>

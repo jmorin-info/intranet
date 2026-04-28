@@ -88,6 +88,7 @@ import { CryptoModule } from "./common/crypto/crypto.module";
 import { WebDAVModule } from "./webdav/webdav.module";
 import { BehaviorDetectionModule } from "./behavior-detection/behavior-detection.module";
 import { NoaMemoryModule } from "./noa-memory/noa-memory.module";
+import { EmailModule } from "./email/email.module";
 
 @Module({
   imports: [
@@ -194,6 +195,8 @@ import { NoaMemoryModule } from "./noa-memory/noa-memory.module";
     // Wave D — Items 28 + 31
     BehaviorDetectionModule,
     NoaMemoryModule,
+    // Wave G — Email templates MJML + service render/send unifié
+    EmailModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

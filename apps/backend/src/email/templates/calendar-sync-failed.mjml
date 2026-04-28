@@ -1,0 +1,42 @@
+<!-- subject:fr [OMNITECH] Synchronisation calendrier en échec -->
+<!-- subject:en [OMNITECH] Calendar sync failed -->
+{{> greeting }}
+
+<mj-section padding="16px 32px 0 32px">
+  <mj-column>
+    <mj-text font-size="16px" color="{{ colors.navy }}" font-weight="bold" padding="0 0 4px 0">
+      Synchronisation calendrier en &eacute;chec
+    </mj-text>
+    <mj-text color="{{ colors.darkGray }}" padding="0 0 12px 0">
+      La synchronisation entre l'intranet et votre <strong>{{ calendarProvider }}</strong>
+      a &eacute;chou&eacute;. Vos &eacute;v&eacute;nements professionnels ne sont plus mis &agrave; jour automatiquement
+      jusqu'&agrave; r&eacute;solution.
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="0 32px">
+  <mj-column background-color="#fef2f2" border-left="3px solid {{ colors.bordeaux }}" padding="14px 18px">
+    <mj-text padding="0" color="#7f1d1d" font-size="13px">
+      <strong>Cause d&eacute;tect&eacute;e :</strong> {{ errorReason }}<br/>
+      <strong>Derni&egrave;re synchro r&eacute;ussie :</strong> {{ lastSuccessTime }}
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="24px 32px 8px 32px">
+  <mj-column>
+    <mj-button href="{{ retryUrl }}" background-color="{{ colors.orange }}">
+      Reconnecter mon calendrier
+    </mj-button>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="0 32px 32px 32px">
+  <mj-column>
+    <mj-text font-size="11px" color="{{ colors.mediumGray }}" padding="8px 0 0 0">
+      Si l'erreur persiste apr&egrave;s reconnexion, ouvrez un ticket helpdesk en pr&eacute;cisant
+      l'horaire de la derni&egrave;re tentative pour faciliter le diagnostic.
+    </mj-text>
+  </mj-column>
+</mj-section>

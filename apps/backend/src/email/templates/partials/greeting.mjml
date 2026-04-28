@@ -1,0 +1,7 @@
+<mj-section padding="32px 32px 0 32px">
+  <mj-column>
+    <mj-text color="{{ colors.navy }}" font-size="14px" padding="0">
+      Bonjour {{ firstName }},
+    </mj-text>
+  </mj-column>
+</mj-section>
