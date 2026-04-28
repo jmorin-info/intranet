@@ -5,9 +5,9 @@
  * Ping toutes les 10 secondes.
  */
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
-import { useTranslation } from "@/lib/i18n";
 import { PageHeader } from "@/components/layout/page-header";
 import {
   Activity,
@@ -56,18 +56,18 @@ interface ServiceStatus {
 
 const SERVICE_MAP: Array<{
   key: string;
-  label: string;
+  labelKey: string;
   icon: React.ElementType;
 }> = [
-  { key: "database", label: "PostgreSQL", icon: Database },
-  { key: "redis", label: "Redis", icon: Zap },
-  { key: "smtp", label: "SMTP", icon: Mail },
-  { key: "ldap", label: "LDAP / AD", icon: Shield },
-  { key: "storage", label: "Stockage", icon: HardDrive },
-  { key: "clamav", label: "ClamAV", icon: Shield },
-  { key: "meilisearch", label: "Meilisearch", icon: Search },
-  { key: "ollama", label: "RAG AI (Ollama)", icon: Sparkles },
-  { key: "onlyoffice", label: "OnlyOffice", icon: FileText },
+  { key: "database", labelKey: "database", icon: Database },
+  { key: "redis", labelKey: "redis", icon: Zap },
+  { key: "smtp", labelKey: "smtp", icon: Mail },
+  { key: "ldap", labelKey: "ldap", icon: Shield },
+  { key: "storage", labelKey: "storage", icon: HardDrive },
+  { key: "clamav", labelKey: "clamav", icon: Shield },
+  { key: "meilisearch", labelKey: "meilisearch", icon: Search },
+  { key: "ollama", labelKey: "ollama", icon: Sparkles },
+  { key: "onlyoffice", labelKey: "onlyoffice", icon: FileText },
 ];
 
 function formatUptime(seconds: number): string {
@@ -86,7 +86,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function SystemHealthPage() {
-  const { t } = useTranslation();
+  const t = useTranslations("admin.systemHealth");
   const [health, setHealth] = useState<Health | null>(null);
   const [loading, setLoading] = useState(true);
   const [onlyOfficeOk, setOnlyOfficeOk] = useState<boolean | null>(null);
@@ -150,14 +150,14 @@ export default function SystemHealthPage() {
       raw && VALID_STATES.includes(raw as ServiceHealthState)
         ? (raw as ServiceHealthState)
         : "unknown";
-    return { name: s.key, label: s.label, icon: s.icon, status };
+    return { name: s.key, label: t(`services.${s.labelKey}`), icon: s.icon, status };
   });
 
   // Extra services not covered by /health endpoint — checked via dedicated endpoints
   const extraServices: ServiceStatus[] = [
     {
       name: "stirling",
-      label: "Stirling PDF",
+      label: t("services.stirling"),
       icon: FileText,
       status:
         stirlingOk === true ? "up" : stirlingOk === false ? "down" : "unknown",
@@ -192,8 +192,13 @@ export default function SystemHealthPage() {
       <AdminGroupTabs group="audit" />
 
       <PageHeader
-        title="Santé système"
-        subtitle={`${upCount}/${allServices.length} services UP · Rafraichi ${lastUpdate ? lastUpdate.toLocaleTimeString("fr-FR") : "—"} · Auto-refresh toutes les 30 s${health?.uptime ? ` · Uptime : ${formatUptime(health.uptime)}` : ""}`}
+        title={t("title")}
+        subtitle={t("subtitle", {
+          up: upCount,
+          total: allServices.length,
+          refreshed: lastUpdate ? lastUpdate.toLocaleTimeString("fr-FR") : "—",
+          uptime: health?.uptime ? ` · ${t("uptimeLabel")} : ${formatUptime(health.uptime)}` : "",
+        })}
         icon={Activity}
         hub="admin"
         actions={
@@ -211,17 +216,17 @@ export default function SystemHealthPage() {
               {globalStatus === "down" && <XCircle className="h-3 w-3" />}
               {globalStatus === "degraded" && <Clock className="h-3 w-3" />}
               {globalStatus === "up"
-                ? "Opérationnel"
+                ? t("status.operational")
                 : globalStatus === "down"
-                  ? "Panne"
-                  : "Dégradé"}
+                  ? t("status.outage")
+                  : t("status.degraded")}
             </span>
             <button
               onClick={() => void load()}
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-medium text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
             >
               <RefreshCw className="h-3 w-3" />
-              Rafraîchir
+              {t("refresh")}
             </button>
           </>
         }
@@ -232,7 +237,7 @@ export default function SystemHealthPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in-up">
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
             <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">
-              Version
+              {t("metrics.version")}
             </p>
             <p className="text-xl font-light text-seal-navy dark:text-white">
               {health.version || "—"}
@@ -240,7 +245,7 @@ export default function SystemHealthPage() {
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
             <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">
-              Uptime
+              {t("metrics.uptime")}
             </p>
             <p className="text-xl font-light text-seal-navy dark:text-white">
               {health.uptime ? formatUptime(health.uptime) : "—"}
@@ -248,7 +253,7 @@ export default function SystemHealthPage() {
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
             <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">
-              Mémoire RSS
+              {t("metrics.memoryRss")}
             </p>
             <p className="text-xl font-light text-seal-navy dark:text-white">
               {health.memory?.rss ? formatBytes(health.memory.rss) : "—"}
@@ -256,7 +261,7 @@ export default function SystemHealthPage() {
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
             <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mb-1">
-              Utilisateurs actifs
+              {t("metrics.activeUsers")}
             </p>
             <p className="text-xl font-light text-seal-navy dark:text-white">
               {health.counts?.activeUsers ?? "—"}
@@ -268,7 +273,7 @@ export default function SystemHealthPage() {
       {/* Services grid */}
       <div>
         <p className="text-[10px] uppercase tracking-widest text-seal-gray-500 dark:text-slate-500 mb-2">
-          Dépendances backend
+          {t("backendDependencies")}
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {allServices.map((svc) => {
@@ -312,14 +317,14 @@ export default function SystemHealthPage() {
                 </p>
                 <p className="text-[10px] uppercase text-seal-gray-500 dark:text-slate-500 mt-0.5">
                   {svc.status === "up"
-                    ? "Opérationnel"
+                    ? t("serviceStatus.up")
                     : svc.status === "down"
-                      ? "HORS LIGNE"
+                      ? t("serviceStatus.down")
                       : svc.status === "degraded"
-                        ? "Dégradé"
+                        ? t("serviceStatus.degraded")
                         : svc.status === "not_configured"
-                          ? "Non configuré"
-                          : "Inconnu"}
+                          ? t("serviceStatus.notConfigured")
+                          : t("serviceStatus.unknown")}
                 </p>
               </div>
             );
@@ -328,8 +333,7 @@ export default function SystemHealthPage() {
       </div>
 
       <p className="text-[10px] text-seal-gray-500/70 dark:text-slate-600 text-center">
-        Accès réservé aux rôles ADMIN et SUPER_ADMIN · Auto-refresh toutes les
-        30 secondes
+        {t("footerNote")}
       </p>
     </div>
   );

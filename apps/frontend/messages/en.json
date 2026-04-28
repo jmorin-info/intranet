@@ -616,6 +616,384 @@
       "empty": "No external access",
       "saveSuccess": "Access saved",
       "saveError": "Could not save access"
+    },
+    "compliancePage": {
+      "tablistAriaLabel": "Compliance sub-sections",
+      "tabs": {
+        "overview": "Overview",
+        "planning": "Planning",
+        "controls": "Controls",
+        "frameworks": "Frameworks"
+      }
+    },
+    "reportsPage": {
+      "title": "Reports",
+      "subtitle": "ISO 27001 compliance exports and dashboards",
+      "download": "Download XLSX",
+      "downloaded": "Report downloaded",
+      "tooLarge": "The report is too large. Try a shorter period.",
+      "generateError": "Error generating report",
+      "lastGeneratedAt": "Last generated: {date}",
+      "automatic": {
+        "title": "Automatic reports",
+        "description": "Weekly report: every Monday 7am (sent to ADMIN/SUPER_ADMIN) — Monthly CISO report: 1st of the month 8am (sent to SUPER_ADMIN)"
+      },
+      "stats": {
+        "totalDocuments": "Total documents",
+        "users": "Users",
+        "tickets": "Tickets",
+        "complianceRate": "Compliance rate"
+      },
+      "export": {
+        "csv": "Export CSV",
+        "xlsx": "Export Excel",
+        "json": "Export JSON"
+      },
+      "reports": {
+        "docRegistry": {
+          "title": "ISO Document Registry",
+          "description": "Full DMS registry export: reference, title, version, status, owner, next review, ISO controls."
+        },
+        "ackReport": {
+          "title": "Acknowledgment Report",
+          "description": "Read rate per document, list of employees who have not yet acknowledged receipt."
+        },
+        "complianceDashboard": {
+          "title": "Compliance Dashboard",
+          "description": "ISO 27001 compliance statistics: control coverage, overdue document reviews, pending signatures."
+        },
+        "auditExport": {
+          "title": "Audit Log Export",
+          "description": "Full audit log export for analysis or submission to an external auditor."
+        },
+        "monthlySMSI": {
+          "title": "Monthly ISMS Report",
+          "description": "Automatic ISMS report: documents, incidents, watch, tickets, ISO coverage. A.5.35."
+        },
+        "externalAccess": {
+          "title": "External Access Registry",
+          "description": "Excel export of the contractor access registry: company, status, expiry dates, pending reviews."
+        },
+        "quizStats": {
+          "title": "Security Quiz Results",
+          "description": "Statistics on security awareness quiz results: scores and pass rates per user."
+        },
+        "documentsCsv": {
+          "title": "Documents export (CSV)",
+          "description": "Full list of documents with reference, status, classification, owner and dates. CSV format for BI integration."
+        },
+        "ticketsCsv": {
+          "title": "Tickets export (CSV)",
+          "description": "List of tickets with reference, status, priority, category, creator, assignee. CSV format."
+        },
+        "auditCsv": {
+          "title": "Audit log export (CSV)",
+          "description": "Full history of user actions for analysis and ISO 27001 A.5.28 compliance. CSV format."
+        },
+        "smsiIndicators": {
+          "title": "ISMS indicators (JSON)",
+          "description": "Consolidated security KPIs: MFA adoption, incidents, document compliance, ISO coverage, charter acknowledgment."
+        }
+      }
+    },
+    "externalAccessPage": {
+      "title": "Contractor access",
+      "subtitle": "Isolated portal, MFA mandatory, monthly CISO review",
+      "grantAccess": "Grant access",
+      "summary": "<strong>{active}</strong> active accesses, <strong>{due}</strong> pending review",
+      "stats": {
+        "active": "Active",
+        "expiringSoon": "Expiring < 30d",
+        "reviewRequired": "Review required",
+        "revoked": "Revoked"
+      },
+      "expiry": {
+        "expired": "Expired",
+        "expiresInDays": "Expires in {days}d"
+      },
+      "actions": {
+        "review": "Review",
+        "revoke": "Revoke"
+      },
+      "badges": {
+        "reviewRequired": "Review required",
+        "revoked": "Revoked"
+      },
+      "row": {
+        "granted": "Granted: {date}",
+        "expires": "Expires: {date}",
+        "timeout": "Timeout: {seconds}s",
+        "lastReview": "Last review: {date}",
+        "never": "Never"
+      },
+      "empty": {
+        "title": "No active access",
+        "description": "No external contractor has active access."
+      },
+      "activeAccesses": "Active accesses ({count})",
+      "revokedAccesses": "Revoked accesses ({count})",
+      "dueReview": {
+        "title": "Monthly review required",
+        "description": "{count} access(es) not reviewed in over 30 days (CISO obligation — monthly review)"
+      },
+      "grantForm": {
+        "title": "New contractor",
+        "modeCreate": "Create account",
+        "modeExisting": "Existing account",
+        "email": "Email",
+        "emailPlaceholder": "firstname.lastname@company.com",
+        "firstName": "First name",
+        "firstNamePlaceholder": "John",
+        "lastName": "Last name",
+        "lastNamePlaceholder": "DOE",
+        "company": "Company",
+        "companyPlaceholder": "CHEOPS Technology",
+        "contractRef": "Contract ref.",
+        "contractRefPlaceholder": "CTR-2026-001",
+        "expiration": "Expiration",
+        "userId": "Contractor user ID",
+        "userIdPlaceholder": "Account UUID",
+        "createAccount": "Create account",
+        "grant": "Grant",
+        "cancel": "Cancel"
+      },
+      "credentials": {
+        "title": "Contractor credentials",
+        "warning": "This password will not be shown again. Save it and share it securely.",
+        "emailLabel": "Email:",
+        "passwordLabel": "Password:",
+        "copy": "Copy",
+        "close": "Close"
+      },
+      "revokeDialog": {
+        "title": "Revoke access",
+        "description": "Revoke {firstName} {lastName}'s access ({company})? The user will no longer be able to access the platform.",
+        "confirm": "Revoke"
+      },
+      "export": {
+        "id": "ID",
+        "contractor": "Contractor",
+        "email": "Email",
+        "active": "Active",
+        "yes": "Yes",
+        "no": "No",
+        "createdAt": "Created",
+        "expiresAt": "Expires",
+        "lastReview": "Last review"
+      },
+      "errors": {
+        "generic": "Error",
+        "grant": "Error granting access",
+        "revoke": "Error revoking access",
+        "review": "Error reviewing access"
+      },
+      "toasts": {
+        "granted": "Access granted",
+        "revoked": "Access revoked",
+        "reviewed": "Access reviewed",
+        "accountCreated": "Contractor account created",
+        "copied": "Copied"
+      }
+    },
+    "workflowsPage": {
+      "title": "Approval workflows",
+      "subtitle": "Document validation workflow configuration (ISO 27001 A.5.1)",
+      "actions": {
+        "loadPresets": "Load presets",
+        "refresh": "Refresh",
+        "newWorkflow": "New workflow"
+      },
+      "empty": {
+        "title": "No workflow configured",
+        "description": "Create an approval workflow to validate documents according to your internal rules."
+      },
+      "table": {
+        "name": "Name",
+        "category": "Category",
+        "steps": "Steps",
+        "instances": "Instances",
+        "default": "Default",
+        "active": "Active"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "categories": {
+        "ALL": "All categories",
+        "POLICY": "Policy",
+        "PROCEDURE": "Procedure",
+        "PLAN": "Plan",
+        "RECORD": "Record",
+        "FORM": "Form",
+        "GUIDE": "Guide",
+        "REPORT": "Report",
+        "CONTRACT": "Contract",
+        "OTHER": "Other"
+      },
+      "dialog": {
+        "title": "New workflow",
+        "nameLabel": "Name *",
+        "namePlaceholder": "CISO policy validation",
+        "descriptionLabel": "Description",
+        "categoryLabel": "Document category",
+        "cancel": "Cancel",
+        "create": "Create",
+        "creating": "Creating…"
+      },
+      "errors": {
+        "load": "Unable to load workflows",
+        "loadPresets": "Failed to load presets",
+        "nameRequired": "Name is required",
+        "createFailed": "Error during creation"
+      },
+      "toasts": {
+        "created": "Workflow created",
+        "presetsAdded": "{count} preset workflow(s) added",
+        "presetsAlreadyInPlace": "All presets already in place"
+      }
+    },
+    "feedbackPage": {
+      "title": "Reviews & satisfaction surveys",
+      "subtitle": "Moderate employee testimonials and run satisfaction surveys (results + new survey creation).",
+      "tabs": {
+        "testimonials": "Employee testimonials",
+        "surveys": "Satisfaction surveys"
+      },
+      "errors": {
+        "generic": "Error",
+        "loadTestimonials": "Failed to load",
+        "loadSurveys": "Failed to load surveys"
+      },
+      "testimonials": {
+        "filters": {
+          "pending": "Pending",
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "all": "All"
+        },
+        "badges": {
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "pending": "Pending"
+        },
+        "empty": {
+          "title": "No testimonials",
+          "pending": "No testimonials awaiting moderation.",
+          "approved": "No approved testimonials yet.",
+          "rejected": "No rejected testimonials.",
+          "all": "No testimonials submitted yet."
+        },
+        "deletedAuthor": "Author deleted",
+        "reasonLabel": "Reason:",
+        "reasonPlaceholder": "Reason (optional)",
+        "cancel": "Cancel",
+        "confirmReject": "Confirm rejection",
+        "approve": "Approve",
+        "reject": "Reject",
+        "delete": "Delete",
+        "confirmDelete": "Permanently delete this testimonial?",
+        "toasts": {
+          "approved": "Testimonial approved",
+          "rejected": "Testimonial rejected",
+          "deleted": "Deleted"
+        }
+      },
+      "surveys": {
+        "stats": {
+          "surveys": "Surveys",
+          "totalResponses": "Total responses",
+          "averageRating": "Average rating",
+          "responseRate": "Response rate"
+        },
+        "heading": "Surveys ({count})",
+        "newSurvey": "New survey",
+        "viewResults": "Results",
+        "responseCount": "{count} responses",
+        "questionCount": "{count} questions",
+        "createdRelative": "Created {time}",
+        "expiresRelative": "Expires {date}",
+        "badges": {
+          "active": "Active",
+          "closed": "Closed",
+          "anonymous": "Anonymous"
+        },
+        "empty": {
+          "title": "No surveys",
+          "description": "Create your first satisfaction survey to collect feedback from employees.",
+          "action": "Create a survey"
+        },
+        "confirmDelete": "Delete survey \"{title}\"? Responses will also be lost.",
+        "toasts": {
+          "deleted": "Survey deleted"
+        }
+      }
+    },
+    "systemHealth": {
+      "title": "System health",
+      "subtitle": "{up}/{total} services UP · Refreshed {refreshed} · Auto-refresh every 30 s{uptime}",
+      "uptimeLabel": "Uptime",
+      "refresh": "Refresh",
+      "backendDependencies": "Backend dependencies",
+      "footerNote": "Access restricted to ADMIN and SUPER_ADMIN roles · Auto-refresh every 30 seconds",
+      "status": {
+        "operational": "Operational",
+        "outage": "Outage",
+        "degraded": "Degraded"
+      },
+      "serviceStatus": {
+        "up": "Operational",
+        "down": "OFFLINE",
+        "degraded": "Degraded",
+        "notConfigured": "Not configured",
+        "unknown": "Unknown"
+      },
+      "metrics": {
+        "version": "Version",
+        "uptime": "Uptime",
+        "memoryRss": "Memory RSS",
+        "activeUsers": "Active users"
+      },
+      "services": {
+        "database": "PostgreSQL",
+        "redis": "Redis",
+        "smtp": "SMTP",
+        "ldap": "LDAP / AD",
+        "storage": "Storage",
+        "clamav": "ClamAV",
+        "meilisearch": "Meilisearch",
+        "ollama": "RAG AI (Ollama)",
+        "onlyoffice": "OnlyOffice",
+        "stirling": "Stirling PDF"
+      }
+    },
+    "darkModeAudit": {
+      "title": "Dark mode audit",
+      "subtitle": "Detects elements with a light background that lack a dark: variant (luminance > 0.9 heuristic).",
+      "start": "Start audit",
+      "runningProgress": "Audit in progress… {progress}%",
+      "exportCsv": "Export CSV ({count})",
+      "auditStarted": "Audit started — pages are loaded in the background",
+      "auditCompleted": "Audit done — {findings} suspicious element(s) across {pages} page(s)",
+      "scanningInfo": "Scanning {count} pages… Do not leave this page.",
+      "noIssues": "No issues detected",
+      "pagesAudited": "{count} page(s) audited. No suspicious element.",
+      "suspectElements": "{count} suspicious element(s)",
+      "table": {
+        "page": "Page",
+        "tag": "Tag",
+        "classes": "Classes",
+        "background": "Background",
+        "text": "Text"
+      },
+      "csv": {
+        "page": "Page",
+        "tag": "Tag",
+        "classes": "Classes",
+        "background": "Background",
+        "color": "Color",
+        "snippet": "Text (excerpt)"
+      }
     }
   },
   "tickets": {

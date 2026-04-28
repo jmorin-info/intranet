@@ -616,6 +616,384 @@
       "empty": "Aucun accès externe",
       "saveSuccess": "Accès enregistré",
       "saveError": "Impossible d'enregistrer l'accès"
+    },
+    "compliancePage": {
+      "tablistAriaLabel": "Sous-sections conformité",
+      "tabs": {
+        "overview": "Vue d'ensemble",
+        "planning": "Planning",
+        "controls": "Contrôles",
+        "frameworks": "Référentiels"
+      }
+    },
+    "reportsPage": {
+      "title": "Rapports",
+      "subtitle": "Exports et tableaux de bord conformité ISO 27001",
+      "download": "Télécharger XLSX",
+      "downloaded": "Rapport téléchargé",
+      "tooLarge": "Le rapport est trop volumineux. Essayez avec une période plus courte.",
+      "generateError": "Erreur lors de la génération du rapport",
+      "lastGeneratedAt": "Dernière génération : {date}",
+      "automatic": {
+        "title": "Rapports automatiques",
+        "description": "Rapport hebdomadaire : chaque lundi à 7h (envoyé aux ADMIN/SUPER_ADMIN) — Rapport mensuel RSSI : 1er du mois à 8h (envoyé aux SUPER_ADMIN)"
+      },
+      "stats": {
+        "totalDocuments": "Documents totaux",
+        "users": "Utilisateurs",
+        "tickets": "Tickets",
+        "complianceRate": "Taux de conformité"
+      },
+      "export": {
+        "csv": "Exporter CSV",
+        "xlsx": "Exporter Excel",
+        "json": "Exporter JSON"
+      },
+      "reports": {
+        "docRegistry": {
+          "title": "Registre documentaire ISO",
+          "description": "Export complet du registre GED : référence, titre, version, statut, responsable, prochaine révision, contrôles ISO."
+        },
+        "ackReport": {
+          "title": "Rapport accusés de réception",
+          "description": "Taux de lecture par document, liste des collaborateurs n'ayant pas encore accusé réception."
+        },
+        "complianceDashboard": {
+          "title": "Tableau de bord conformité",
+          "description": "Statistiques de conformité ISO 27001 : couverture des contrôles, documents en retard de révision, signatures en attente."
+        },
+        "auditExport": {
+          "title": "Export journal d'audit",
+          "description": "Export complet du journal d'audit pour analyse ou soumission à un auditeur externe."
+        },
+        "monthlySMSI": {
+          "title": "Rapport mensuel SMSI",
+          "description": "Rapport automatique du SMSI : documents, incidents, veille, tickets, couverture ISO. A.5.35."
+        },
+        "externalAccess": {
+          "title": "Registre accès prestataires",
+          "description": "Export Excel du registre des accès prestataires : entreprise, statut, dates d'expiration, révisions requises."
+        },
+        "quizStats": {
+          "title": "Bilan quiz sécurité",
+          "description": "Statistiques des résultats aux quiz de sensibilisation sécurité : scores, taux de réussite par utilisateur."
+        },
+        "documentsCsv": {
+          "title": "Export documents (CSV)",
+          "description": "Liste complète des documents avec référence, statut, classification, propriétaire et dates. Format CSV pour intégration BI."
+        },
+        "ticketsCsv": {
+          "title": "Export tickets (CSV)",
+          "description": "Liste des tickets avec référence, statut, priorité, catégorie, créateur, assigné. Format CSV."
+        },
+        "auditCsv": {
+          "title": "Export journal d'audit (CSV)",
+          "description": "Historique complet des actions utilisateur pour analyse et conformité ISO 27001 A.5.28. Format CSV."
+        },
+        "smsiIndicators": {
+          "title": "Indicateurs SMSI (JSON)",
+          "description": "KPIs sécurité consolidés : adoption MFA, incidents, conformité documentaire, couverture ISO, adhésion chartes."
+        }
+      }
+    },
+    "externalAccessPage": {
+      "title": "Accès prestataires",
+      "subtitle": "Portail isolé, MFA obligatoire, revue mensuelle RSSI",
+      "grantAccess": "Accorder un accès",
+      "summary": "<strong>{active}</strong> accès actifs, <strong>{due}</strong> en attente de revue",
+      "stats": {
+        "active": "Actifs",
+        "expiringSoon": "Expirent < 30j",
+        "reviewRequired": "Revue requise",
+        "revoked": "Révoqués"
+      },
+      "expiry": {
+        "expired": "Expire",
+        "expiresInDays": "Expire dans {days}j"
+      },
+      "actions": {
+        "review": "Réviser",
+        "revoke": "Révoquer"
+      },
+      "badges": {
+        "reviewRequired": "Revue requise",
+        "revoked": "Révoqué"
+      },
+      "row": {
+        "granted": "Accordé : {date}",
+        "expires": "Expire : {date}",
+        "timeout": "Timeout : {seconds}s",
+        "lastReview": "Dernière revue : {date}",
+        "never": "Jamais"
+      },
+      "empty": {
+        "title": "Aucun accès actif",
+        "description": "Aucun prestataire externe n'a d'accès actif."
+      },
+      "activeAccesses": "Accès actifs ({count})",
+      "revokedAccesses": "Accès révoqués ({count})",
+      "dueReview": {
+        "title": "Revue mensuelle requise",
+        "description": "{count} accès n'ont pas été révisés depuis plus de 30 jours (obligation RSSI — revue mensuelle)"
+      },
+      "grantForm": {
+        "title": "Nouveau prestataire",
+        "modeCreate": "Créer un compte",
+        "modeExisting": "Compte existant",
+        "email": "Email",
+        "emailPlaceholder": "prenom.nom@entreprise.fr",
+        "firstName": "Prénom",
+        "firstNamePlaceholder": "Jean",
+        "lastName": "Nom",
+        "lastNamePlaceholder": "DUPONT",
+        "company": "Société",
+        "companyPlaceholder": "CHEOPS Technology",
+        "contractRef": "Réf. contrat",
+        "contractRefPlaceholder": "CTR-2026-001",
+        "expiration": "Expiration",
+        "userId": "User ID du prestataire",
+        "userIdPlaceholder": "UUID du compte",
+        "createAccount": "Créer le compte",
+        "grant": "Accorder",
+        "cancel": "Annuler"
+      },
+      "credentials": {
+        "title": "Identifiants du prestataire",
+        "warning": "Ce mot de passe ne sera plus affiché. Notez-le et transmettez-le de manière sécurisée.",
+        "emailLabel": "Email :",
+        "passwordLabel": "Mot de passe :",
+        "copy": "Copier",
+        "close": "Fermer"
+      },
+      "revokeDialog": {
+        "title": "Révoquer l'accès",
+        "description": "Révoquer l'accès de {firstName} {lastName} ({company}) ? L'utilisateur ne pourra plus accéder à la plateforme.",
+        "confirm": "Révoquer"
+      },
+      "export": {
+        "id": "ID",
+        "contractor": "Prestataire",
+        "email": "Email",
+        "active": "Actif",
+        "yes": "Oui",
+        "no": "Non",
+        "createdAt": "Créé le",
+        "expiresAt": "Expire le",
+        "lastReview": "Dernière revue"
+      },
+      "errors": {
+        "generic": "Erreur",
+        "grant": "Erreur lors de l'attribution de l'accès",
+        "revoke": "Erreur lors de la révocation de l'accès",
+        "review": "Erreur lors de la révision de l'accès"
+      },
+      "toasts": {
+        "granted": "Accès accordé",
+        "revoked": "Accès révoqué",
+        "reviewed": "Accès révisé",
+        "accountCreated": "Compte prestataire créé",
+        "copied": "Copié"
+      }
+    },
+    "workflowsPage": {
+      "title": "Workflows d'approbation",
+      "subtitle": "Configuration des workflows de validation des documents (ISO 27001 A.5.1)",
+      "actions": {
+        "loadPresets": "Charger les presets",
+        "refresh": "Rafraîchir",
+        "newWorkflow": "Nouveau workflow"
+      },
+      "empty": {
+        "title": "Aucun workflow configuré",
+        "description": "Créez un workflow d'approbation pour valider les documents selon vos règles internes."
+      },
+      "table": {
+        "name": "Nom",
+        "category": "Catégorie",
+        "steps": "Étapes",
+        "instances": "Instances",
+        "default": "Défaut",
+        "active": "Actif"
+      },
+      "status": {
+        "active": "Actif",
+        "inactive": "Inactif"
+      },
+      "categories": {
+        "ALL": "Toutes catégories",
+        "POLICY": "Politique",
+        "PROCEDURE": "Procédure",
+        "PLAN": "Plan",
+        "RECORD": "Enregistrement",
+        "FORM": "Formulaire",
+        "GUIDE": "Guide",
+        "REPORT": "Rapport",
+        "CONTRACT": "Contrat",
+        "OTHER": "Autre"
+      },
+      "dialog": {
+        "title": "Nouveau workflow",
+        "nameLabel": "Nom *",
+        "namePlaceholder": "Validation politiques RSSI",
+        "descriptionLabel": "Description",
+        "categoryLabel": "Catégorie de document",
+        "cancel": "Annuler",
+        "create": "Créer",
+        "creating": "Création…"
+      },
+      "errors": {
+        "load": "Impossible de charger les workflows",
+        "loadPresets": "Échec du chargement des presets",
+        "nameRequired": "Le nom est obligatoire",
+        "createFailed": "Erreur lors de la création"
+      },
+      "toasts": {
+        "created": "Workflow créé",
+        "presetsAdded": "{count} workflow(s) prédéfini(s) ajouté(s)",
+        "presetsAlreadyInPlace": "Tous les presets sont déjà en place"
+      }
+    },
+    "feedbackPage": {
+      "title": "Avis & enquêtes de satisfaction",
+      "subtitle": "Modérez les témoignages des collaborateurs et pilotez les enquêtes de satisfaction (résultats + création de nouvelles enquêtes).",
+      "tabs": {
+        "testimonials": "Témoignages collaborateurs",
+        "surveys": "Enquêtes satisfaction"
+      },
+      "errors": {
+        "generic": "Erreur",
+        "loadTestimonials": "Erreur de chargement",
+        "loadSurveys": "Erreur de chargement des enquêtes"
+      },
+      "testimonials": {
+        "filters": {
+          "pending": "En attente",
+          "approved": "Approuvés",
+          "rejected": "Rejetés",
+          "all": "Tous"
+        },
+        "badges": {
+          "approved": "Approuvé",
+          "rejected": "Rejeté",
+          "pending": "En attente"
+        },
+        "empty": {
+          "title": "Aucun témoignage",
+          "pending": "Aucun témoignage en attente de modération.",
+          "approved": "Aucun témoignage approuvé pour l'instant.",
+          "rejected": "Aucun témoignage rejeté.",
+          "all": "Aucun témoignage soumis pour l'instant."
+        },
+        "deletedAuthor": "Auteur supprimé",
+        "reasonLabel": "Motif :",
+        "reasonPlaceholder": "Motif (optionnel)",
+        "cancel": "Annuler",
+        "confirmReject": "Confirmer rejet",
+        "approve": "Approuver",
+        "reject": "Rejeter",
+        "delete": "Supprimer",
+        "confirmDelete": "Supprimer définitivement ce témoignage ?",
+        "toasts": {
+          "approved": "Témoignage approuvé",
+          "rejected": "Témoignage rejeté",
+          "deleted": "Supprimé"
+        }
+      },
+      "surveys": {
+        "stats": {
+          "surveys": "Enquêtes",
+          "totalResponses": "Réponses totales",
+          "averageRating": "Note moyenne",
+          "responseRate": "Taux de réponse"
+        },
+        "heading": "Enquêtes ({count})",
+        "newSurvey": "Nouvelle enquête",
+        "viewResults": "Résultats",
+        "responseCount": "{count} réponses",
+        "questionCount": "{count} questions",
+        "createdRelative": "Créée {time}",
+        "expiresRelative": "Expire {date}",
+        "badges": {
+          "active": "Active",
+          "closed": "Fermée",
+          "anonymous": "Anonyme"
+        },
+        "empty": {
+          "title": "Aucune enquête",
+          "description": "Créez votre première enquête de satisfaction pour recueillir les retours des collaborateurs.",
+          "action": "Créer une enquête"
+        },
+        "confirmDelete": "Supprimer l'enquête « {title} » ? Les réponses seront également perdues.",
+        "toasts": {
+          "deleted": "Enquête supprimée"
+        }
+      }
+    },
+    "systemHealth": {
+      "title": "Santé système",
+      "subtitle": "{up}/{total} services UP · Rafraichi {refreshed} · Auto-refresh toutes les 30 s{uptime}",
+      "uptimeLabel": "Uptime",
+      "refresh": "Rafraîchir",
+      "backendDependencies": "Dépendances backend",
+      "footerNote": "Accès réservé aux rôles ADMIN et SUPER_ADMIN · Auto-refresh toutes les 30 secondes",
+      "status": {
+        "operational": "Opérationnel",
+        "outage": "Panne",
+        "degraded": "Dégradé"
+      },
+      "serviceStatus": {
+        "up": "Opérationnel",
+        "down": "HORS LIGNE",
+        "degraded": "Dégradé",
+        "notConfigured": "Non configuré",
+        "unknown": "Inconnu"
+      },
+      "metrics": {
+        "version": "Version",
+        "uptime": "Uptime",
+        "memoryRss": "Mémoire RSS",
+        "activeUsers": "Utilisateurs actifs"
+      },
+      "services": {
+        "database": "PostgreSQL",
+        "redis": "Redis",
+        "smtp": "SMTP",
+        "ldap": "LDAP / AD",
+        "storage": "Stockage",
+        "clamav": "ClamAV",
+        "meilisearch": "Meilisearch",
+        "ollama": "RAG AI (Ollama)",
+        "onlyoffice": "OnlyOffice",
+        "stirling": "Stirling PDF"
+      }
+    },
+    "darkModeAudit": {
+      "title": "Audit dark mode",
+      "subtitle": "Détecte les éléments avec fond clair sans variante dark: (heuristique luminance > 0.9).",
+      "start": "Démarrer l'audit",
+      "runningProgress": "Audit en cours… {progress}%",
+      "exportCsv": "Export CSV ({count})",
+      "auditStarted": "Audit démarré — navigation dans les pages en arrière-plan",
+      "auditCompleted": "Audit terminé — {findings} élément(s) suspect(s) sur {pages} page(s)",
+      "scanningInfo": "Scan de {count} pages… Ne quittez pas cette page.",
+      "noIssues": "Aucun problème détecté",
+      "pagesAudited": "{count} page(s) auditée(s). Aucun élément suspect.",
+      "suspectElements": "{count} élément(s) suspect(s)",
+      "table": {
+        "page": "Page",
+        "tag": "Tag",
+        "classes": "Classes",
+        "background": "Background",
+        "text": "Texte"
+      },
+      "csv": {
+        "page": "Page",
+        "tag": "Tag",
+        "classes": "Classes",
+        "background": "Background",
+        "color": "Color",
+        "snippet": "Texte (extrait)"
+      }
     }
   },
   "tickets": {
