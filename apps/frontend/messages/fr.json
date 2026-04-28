@@ -626,6 +626,105 @@
         "frameworks": "Référentiels"
       }
     },
+    "externalAccessPage": {
+      "title": "Accès prestataires",
+      "subtitle": "Portail isolé, MFA obligatoire, revue mensuelle RSSI",
+      "grantAccess": "Accorder un accès",
+      "summary": "<strong>{active}</strong> accès actifs, <strong>{due}</strong> en attente de revue",
+      "stats": {
+        "active": "Actifs",
+        "expiringSoon": "Expirent < 30j",
+        "reviewRequired": "Revue requise",
+        "revoked": "Révoqués"
+      },
+      "expiry": {
+        "expired": "Expire",
+        "expiresInDays": "Expire dans {days}j"
+      },
+      "actions": {
+        "review": "Réviser",
+        "revoke": "Révoquer"
+      },
+      "badges": {
+        "reviewRequired": "Revue requise",
+        "revoked": "Révoqué"
+      },
+      "row": {
+        "granted": "Accordé : {date}",
+        "expires": "Expire : {date}",
+        "timeout": "Timeout : {seconds}s",
+        "lastReview": "Dernière revue : {date}",
+        "never": "Jamais"
+      },
+      "empty": {
+        "title": "Aucun accès actif",
+        "description": "Aucun prestataire externe n'a d'accès actif."
+      },
+      "activeAccesses": "Accès actifs ({count})",
+      "revokedAccesses": "Accès révoqués ({count})",
+      "dueReview": {
+        "title": "Revue mensuelle requise",
+        "description": "{count} accès n'ont pas été révisés depuis plus de 30 jours (obligation RSSI — revue mensuelle)"
+      },
+      "grantForm": {
+        "title": "Nouveau prestataire",
+        "modeCreate": "Créer un compte",
+        "modeExisting": "Compte existant",
+        "email": "Email",
+        "emailPlaceholder": "prenom.nom@entreprise.fr",
+        "firstName": "Prénom",
+        "firstNamePlaceholder": "Jean",
+        "lastName": "Nom",
+        "lastNamePlaceholder": "DUPONT",
+        "company": "Société",
+        "companyPlaceholder": "CHEOPS Technology",
+        "contractRef": "Réf. contrat",
+        "contractRefPlaceholder": "CTR-2026-001",
+        "expiration": "Expiration",
+        "userId": "User ID du prestataire",
+        "userIdPlaceholder": "UUID du compte",
+        "createAccount": "Créer le compte",
+        "grant": "Accorder",
+        "cancel": "Annuler"
+      },
+      "credentials": {
+        "title": "Identifiants du prestataire",
+        "warning": "Ce mot de passe ne sera plus affiché. Notez-le et transmettez-le de manière sécurisée.",
+        "emailLabel": "Email :",
+        "passwordLabel": "Mot de passe :",
+        "copy": "Copier",
+        "close": "Fermer"
+      },
+      "revokeDialog": {
+        "title": "Révoquer l'accès",
+        "description": "Révoquer l'accès de {firstName} {lastName} ({company}) ? L'utilisateur ne pourra plus accéder à la plateforme.",
+        "confirm": "Révoquer"
+      },
+      "export": {
+        "id": "ID",
+        "contractor": "Prestataire",
+        "email": "Email",
+        "active": "Actif",
+        "yes": "Oui",
+        "no": "Non",
+        "createdAt": "Créé le",
+        "expiresAt": "Expire le",
+        "lastReview": "Dernière revue"
+      },
+      "errors": {
+        "generic": "Erreur",
+        "grant": "Erreur lors de l'attribution de l'accès",
+        "revoke": "Erreur lors de la révocation de l'accès",
+        "review": "Erreur lors de la révision de l'accès"
+      },
+      "toasts": {
+        "granted": "Accès accordé",
+        "revoked": "Accès révoqué",
+        "reviewed": "Accès révisé",
+        "accountCreated": "Compte prestataire créé",
+        "copied": "Copié"
+      }
+    },
     "workflowsPage": {
       "title": "Workflows d'approbation",
       "subtitle": "Configuration des workflows de validation des documents (ISO 27001 A.5.1)",

@@ -626,6 +626,105 @@
         "frameworks": "Frameworks"
       }
     },
+    "externalAccessPage": {
+      "title": "Contractor access",
+      "subtitle": "Isolated portal, MFA mandatory, monthly CISO review",
+      "grantAccess": "Grant access",
+      "summary": "<strong>{active}</strong> active accesses, <strong>{due}</strong> pending review",
+      "stats": {
+        "active": "Active",
+        "expiringSoon": "Expiring < 30d",
+        "reviewRequired": "Review required",
+        "revoked": "Revoked"
+      },
+      "expiry": {
+        "expired": "Expired",
+        "expiresInDays": "Expires in {days}d"
+      },
+      "actions": {
+        "review": "Review",
+        "revoke": "Revoke"
+      },
+      "badges": {
+        "reviewRequired": "Review required",
+        "revoked": "Revoked"
+      },
+      "row": {
+        "granted": "Granted: {date}",
+        "expires": "Expires: {date}",
+        "timeout": "Timeout: {seconds}s",
+        "lastReview": "Last review: {date}",
+        "never": "Never"
+      },
+      "empty": {
+        "title": "No active access",
+        "description": "No external contractor has active access."
+      },
+      "activeAccesses": "Active accesses ({count})",
+      "revokedAccesses": "Revoked accesses ({count})",
+      "dueReview": {
+        "title": "Monthly review required",
+        "description": "{count} access(es) not reviewed in over 30 days (CISO obligation — monthly review)"
+      },
+      "grantForm": {
+        "title": "New contractor",
+        "modeCreate": "Create account",
+        "modeExisting": "Existing account",
+        "email": "Email",
+        "emailPlaceholder": "firstname.lastname@company.com",
+        "firstName": "First name",
+        "firstNamePlaceholder": "John",
+        "lastName": "Last name",
+        "lastNamePlaceholder": "DOE",
+        "company": "Company",
+        "companyPlaceholder": "CHEOPS Technology",
+        "contractRef": "Contract ref.",
+        "contractRefPlaceholder": "CTR-2026-001",
+        "expiration": "Expiration",
+        "userId": "Contractor user ID",
+        "userIdPlaceholder": "Account UUID",
+        "createAccount": "Create account",
+        "grant": "Grant",
+        "cancel": "Cancel"
+      },
+      "credentials": {
+        "title": "Contractor credentials",
+        "warning": "This password will not be shown again. Save it and share it securely.",
+        "emailLabel": "Email:",
+        "passwordLabel": "Password:",
+        "copy": "Copy",
+        "close": "Close"
+      },
+      "revokeDialog": {
+        "title": "Revoke access",
+        "description": "Revoke {firstName} {lastName}'s access ({company})? The user will no longer be able to access the platform.",
+        "confirm": "Revoke"
+      },
+      "export": {
+        "id": "ID",
+        "contractor": "Contractor",
+        "email": "Email",
+        "active": "Active",
+        "yes": "Yes",
+        "no": "No",
+        "createdAt": "Created",
+        "expiresAt": "Expires",
+        "lastReview": "Last review"
+      },
+      "errors": {
+        "generic": "Error",
+        "grant": "Error granting access",
+        "revoke": "Error revoking access",
+        "review": "Error reviewing access"
+      },
+      "toasts": {
+        "granted": "Access granted",
+        "revoked": "Access revoked",
+        "reviewed": "Access reviewed",
+        "accountCreated": "Contractor account created",
+        "copied": "Copied"
+      }
+    },
     "workflowsPage": {
       "title": "Approval workflows",
       "subtitle": "Document validation workflow configuration (ISO 27001 A.5.1)",
