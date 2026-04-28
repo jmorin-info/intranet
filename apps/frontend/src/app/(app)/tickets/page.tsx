@@ -965,7 +965,7 @@ export default function TicketsPage() {
         </span>
       );
     }},
-    { key: 'actions' , header: '', className: 'w-24', render: (ticket) => (
+    { key: 'actions' , header: '', className: 'w-32', render: (ticket) => (
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
         {/* Quick status change */}
         <div className="relative">
@@ -1030,6 +1030,31 @@ export default function TicketsPage() {
         >
           {copiedRef === ticket.reference ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
+        {/* Wave C — menu actions rapides (assign / resolve / archive / copy link) */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <TicketQuickActions
+            ticketId={ticket.id}
+            ticketReference={ticket.reference}
+            ticketUrl={`/tickets/${ticket.id}`}
+            disabled={ticket.status === 'CLOSED'}
+            onAssignToMe={
+              user
+                ? async (id) => {
+                    await api.patch(`/tickets/${id}`, { assigneeId: user.id });
+                    fetchTickets();
+                  }
+                : undefined
+            }
+            onMarkResolved={async (id) => {
+              await api.patch(`/tickets/${id}`, { status: 'RESOLVED' });
+              fetchTickets();
+            }}
+            onArchive={async (id) => {
+              await api.patch(`/tickets/${id}`, { status: 'CLOSED' });
+              fetchTickets();
+            }}
+          />
+        </div>
       </div>
     )},
   ];
@@ -1264,6 +1289,8 @@ export default function TicketsPage() {
             onFilter={applySmartFilter}
             placeholder="Essayez : mes tickets ouverts cette semaine critiques"
           />
+          {/* Quick filter chips Wave C — Mes / Mentions / SLA / Aujourd'hui / Semaine */}
+          <TicketFilterChips active={activeChips} onChange={setActiveChips} />
           {/* Status filter pills with counts */}
           <div className="flex gap-1.5 items-center flex-wrap">
             <span className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mr-1">Statut</span>
