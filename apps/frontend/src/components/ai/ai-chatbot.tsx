@@ -580,27 +580,54 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
     return undefined;
   }, [open]);
 
-  // Close on ESC
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, close]);
-
   /**
    * Stop génération (Feature 1) — abort le controller SSE/HTTP en cours.
+   *
+   * On marque immédiatement le DERNIER message assistant comme `aborted`
+   * pour que le marqueur "(arrêté)" apparaisse même si la résolution du
+   * fetch tarde (le user a cliqué Stop, on lui donne un retour visuel
+   * instantané — la branche `aborted` du finally de tryRagStream
+   * confirmera l'état).
    */
   const stopGeneration = useCallback(() => {
     if (abortRef.current) {
       abortRef.current.abort();
       abortRef.current = null;
     }
+    // Marque le dernier message assistant comme arrêté pour feedback UI
+    // immédiat — on lit le state à la volée pour ne pas re-créer le hook
+    // à chaque mutation de `messages`.
+    const list = useChatbotStore.getState().messages;
+    const lastAssistant = [...list].reverse().find((m) => m.role === 'assistant');
+    if (lastAssistant) {
+      updateMessage(lastAssistant.id, { aborted: true });
+    }
     setStreaming(false);
     setLoading(false);
-  }, [setLoading, setStreaming]);
+  }, [setLoading, setStreaming, updateMessage]);
+
+  // ESC handling :
+  //   - pendant un streaming/loading : Esc = STOP (n'a pas pour effet de
+  //     fermer le panel, car l'utilisateur est en train de parler à l'IA et
+  //     veut juste arrêter la réponse trop longue / hors-sujet).
+  //   - sinon : Esc = ferme le panel (comportement modal historique).
+  // Nb : en mode `embedded`, on ne ferme pas — on stoppe seulement.
+  useEffect(() => {
+    if (!open && !embedded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (loading || streaming) {
+        if (abortRef.current) {
+          e.preventDefault();
+          stopGeneration();
+        }
+        return;
+      }
+      if (!embedded) close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, embedded, loading, streaming, close, stopGeneration]);
 
   /**
    * Tente une requête RAG en SSE pour récupérer le queryId + sources.
