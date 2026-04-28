@@ -51,6 +51,7 @@ import {
   ProfileDepartmentCard,
   ProfileNotificationsSummary,
   ProfileTestimonialCta,
+  ProfileIntegrationsCard,
   ProfileChartesCard,
   ProfileQuizCard,
   ProfileKeyboardCard,
@@ -317,6 +318,7 @@ export default function ProfilePage() {
           />
           <ProfileDepartmentCard departmentName={user.departmentName} />
           <ProfileNotificationsSummary unreadCount={unreadNotifCount} />
+          <ProfileIntegrationsCard />
           <ProfileTestimonialCta />
           <ProfileChartesCard chartes={chartes} />
           <ProfileSecuritySection profile={profile} />

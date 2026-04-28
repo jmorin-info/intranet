@@ -142,6 +142,12 @@ export class WebDAVService {
   }
 
   async listTokens(userId: string) {
+    // Garde-cohérence : si la feature globale est OFF ou si l'utilisateur n'a
+    // pas la permission, on lève 403 ici aussi pour que le frontend (page
+    // /profile/integrations) puisse afficher le bon bandeau pédagogique
+    // dès l'arrivée — sinon il devrait attendre la première tentative de
+    // mint pour découvrir l'état.
+    await this.ensureUserAllowed(userId);
     const rows = await (this.prisma as any).webDAVToken.findMany({
       where: { userId },
       select: {

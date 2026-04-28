@@ -11,6 +11,7 @@ import {
   FileText,
   Trophy,
   Keyboard,
+  Plug,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
@@ -128,6 +129,36 @@ export function ProfileTestimonialCta() {
         onClose={() => setTestimonialDialogOpen(false)}
       />
     </>
+  );
+}
+
+// ---------- Integrations link card (WebDAV Obsidian + Calendar Google/Outlook) ----------
+export function ProfileIntegrationsCard() {
+  return (
+    <Link
+      href="/profile/integrations"
+      className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-xl"
+    >
+      <Card className="border-dashed border-[#296DC1]/30 bg-gradient-to-br from-[#296DC1]/5 to-transparent hover:border-[#296DC1]/60 transition-colors cursor-pointer">
+        <CardContent className="py-4 flex items-center gap-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#296DC1]/15 flex-shrink-0">
+            <Plug className="h-5 w-5 text-[#296DC1]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
+              Mes intégrations
+            </h3>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
+              Calendrier Google/Outlook, vault Obsidian via WebDAV,
+              notifications push…
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-[#296DC1] whitespace-nowrap">
+            Configurer →
+          </span>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
