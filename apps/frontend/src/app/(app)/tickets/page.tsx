@@ -681,6 +681,49 @@ export default function TicketsPage() {
     });
   }, [sortedFilteredTickets, activeChips, user]);
 
+  // Wave C — index du ticket "focuse" pour la navigation clavier j/k.
+  const [focusedIdx, setFocusedIdx] = useState(0);
+  useEffect(() => {
+    // Reset focus si la liste change
+    if (focusedIdx >= chipFilteredTickets.length) setFocusedIdx(0);
+  }, [chipFilteredTickets.length, focusedIdx]);
+
+  const focusedTicket = chipFilteredTickets[focusedIdx];
+  const [shortcutsOpen, setShortcutsOpen] = useTicketShortcuts({
+    onCreate: () => setShowCreate(true),
+    onFocusNext: () =>
+      setFocusedIdx((i) =>
+        chipFilteredTickets.length === 0
+          ? 0
+          : Math.min(i + 1, chipFilteredTickets.length - 1),
+      ),
+    onFocusPrev: () => setFocusedIdx((i) => Math.max(i - 1, 0)),
+    onOpenFocused: () => {
+      if (focusedTicket) router.push(`/tickets/${focusedTicket.id}`);
+    },
+    onAssignToMe: () => {
+      if (!focusedTicket || !user) return;
+      api
+        .patch(`/tickets/${focusedTicket.id}`, { assigneeId: user.id })
+        .then(() => {
+          toast.success('Ticket assigne');
+          fetchTickets();
+        })
+        .catch(() => toast.error('Erreur'));
+    },
+    onMarkResolved: () => {
+      if (!focusedTicket) return;
+      api
+        .patch(`/tickets/${focusedTicket.id}`, { status: 'RESOLVED' })
+        .then(() => {
+          toast.success('Ticket resolu');
+          fetchTickets();
+        })
+        .catch(() => toast.error('Erreur'));
+    },
+    disabled: showCreate, // desactive raccourcis pendant la modale de creation
+  });
+
   const categoryLabel = (cat: string): string => {
     const labels: Record<string, string> = {
       INCIDENT: t('tickets.category.incident'), REQUEST: t('tickets.category.request'), ACCESS: t('tickets.category.access'),
@@ -1106,6 +1149,15 @@ export default function TicketsPage() {
                 { header: 'Assigné à', accessor: (r: any) => r?.assignedTo?.email || '' },
               ]}
             />
+            <button
+              type="button"
+              onClick={() => setShortcutsOpen(true)}
+              className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500 dark:text-slate-400 transition"
+              aria-label="Afficher les raccourcis clavier"
+              title="Raccourcis clavier (?)"
+            >
+              <HelpCircle className="h-5 w-5" />
+            </button>
             <Button onClick={() => setShowCreate(true)}>
               <Plus className="h-4 w-4" /> {t('tickets.new')}
             </Button>
@@ -2044,6 +2096,12 @@ export default function TicketsPage() {
           </div>
         </div>
       </Dialog>
+
+      {/* Wave C — modale d'aide raccourcis clavier (ouverte par '?') */}
+      <TicketShortcutsModal
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
     </div>
     </AIOrchestratedLayout>
   );
