@@ -1,0 +1,99 @@
+<!--
+  Layout principal des emails OMNITECH Security (Wave G).
+  Toutes les notifications mail héritent automatiquement de ce layout
+  (header logo + bande gradient SEAL + footer RGPD/ISO 27001).
+
+  Pour insérer le contenu spécifique d'un template, utiliser le marqueur
+  partial-content (voir EmailRenderService.render).
+-->
+<mjml>
+  <mj-head>
+    <mj-title>OMNITECH Security</mj-title>
+    <mj-preview>Notification OMNITECH Security</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="'Century Gothic','Trebuchet MS','Segoe UI',Arial,sans-serif" />
+      <mj-text color="{{ colors.darkGray }}" font-size="14px" line-height="22px" />
+      <mj-button background-color="{{ colors.orange }}" color="#ffffff" font-weight="bold" border-radius="6px" inner-padding="12px 28px" />
+      <mj-section background-color="{{ colors.white }}" padding="0" />
+    </mj-attributes>
+    <mj-style inline="inline">
+      .seal-link { color: {{ colors.blue }}; text-decoration: underline; }
+      .seal-muted { color: {{ colors.mediumGray }}; font-size: 11px; }
+      .seal-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+        color: #ffffff;
+      }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="{{ colors.lightGray }}" width="600px">
+
+    <!-- Header avec logo -->
+    <mj-section background-color="{{ colors.navy }}" padding="28px 24px 20px">
+      <mj-column>
+        <mj-image
+          src="{{ appUrl }}/logo-email.png"
+          alt="OMNITECH Security"
+          width="56px"
+          height="56px"
+          padding="0 0 8px 0"
+          align="center" />
+        <mj-text align="center" color="#ffffff" font-size="20px" font-weight="bold" letter-spacing="1px" padding="0">
+          OMNITECH Security
+        </mj-text>
+        <mj-text align="center" color="rgba(255,255,255,0.55)" font-size="11px" letter-spacing="2px" padding="2px 0 0 0">
+          GROUPE SFPI
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Bande gradient SEAL : bleu → orange → bordeaux -->
+    <mj-section padding="0">
+      <mj-group>
+        <mj-column width="33.33%">
+          <mj-text background-color="{{ colors.blue }}" padding="0" font-size="0" line-height="0">&nbsp;</mj-text>
+        </mj-column>
+        <mj-column width="33.34%">
+          <mj-text background-color="{{ colors.orange }}" padding="0" font-size="0" line-height="0">&nbsp;</mj-text>
+        </mj-column>
+        <mj-column width="33.33%">
+          <mj-text background-color="{{ colors.bordeaux }}" padding="0" font-size="0" line-height="0">&nbsp;</mj-text>
+        </mj-column>
+      </mj-group>
+    </mj-section>
+
+    <!-- Body : injection du template -->
+    {{> content }}
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" border-top="1px solid #e5e7eb" padding="20px 24px">
+      <mj-column>
+        <mj-text font-size="11px" color="{{ colors.mediumGray }}" line-height="16px" padding="0">
+          OMNITECH Security &mdash; Groupe SFPI<br/>
+          Contr&ocirc;le d'acc&egrave;s &bull; Hypervision SEAL System &bull; Vid&eacute;osurveillance avanc&eacute;e<br/>
+          Saint-M&eacute;dard-en-Jalles &bull; ISO 27001 certifi&eacute;
+        </mj-text>
+        <mj-text font-size="11px" color="{{ colors.mediumGray }}" padding="12px 0 0 0">
+          {{#if locale}}
+            {{#each languages}}{{/each}}
+          {{/if}}
+          <a href="{{ preferencesUrl }}" class="seal-link">G&eacute;rer mes notifications</a>
+          &nbsp;&middot;&nbsp;
+          <a href="{{ appUrl }}/legal/rgpd" class="seal-link">RGPD</a>
+          &nbsp;&middot;&nbsp;
+          <a href="{{ appUrl }}/legal/mentions" class="seal-link">Mentions l&eacute;gales</a>
+        </mj-text>
+        <mj-text font-size="10px" color="#d1d5db" align="center" padding="10px 0 0 0">
+          Cet email a &eacute;t&eacute; envoy&eacute; par l'intranet OMNITECH Security.
+          Aucun pixel de tracking n'est utilis&eacute;.<br/>
+          &copy; {{ currentYear }} OMNITECH Security &mdash; Tous droits r&eacute;serv&eacute;s.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>
