@@ -80,6 +80,7 @@ import DOMPurify from 'dompurify';
 import { BookmarkButton } from '@/components/bookmark-button';
 import { WikiOutline, extractOutline } from '@/components/wiki/wiki-outline';
 import { WikiBacklinks } from '@/components/wiki/wiki-backlinks';
+import { WikiTagInput, type WikiTagOption } from '@/components/wiki/wiki-tag-input';
 import { CategoryDndView } from '@/components/wiki/category-dnd-view';
 import {
   WikiSlashMenu,
@@ -334,6 +335,9 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
   const [showCreatePersonal, setShowCreatePersonal] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editingPage, setEditingPage] = useState<WikiPage | null>(null);
+  const [editingTags, setEditingTags] = useState<WikiTagOption[]>([]);
+  const [viewingPageTags, setViewingPageTags] = useState<WikiTagOption[]>([]);
+  const [tagFilter, setTagFilter] = useState<WikiTagOption | null>(null);
   const [formData, setFormData] = useState<{
     title: string;
     slug: string;
@@ -705,6 +709,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
 
   const resetForm = (visibility: WikiVisibility = 'PUBLIC') => {
     setFormData({ title: '', slug: '', category: '', content: '', visibility });
+    setEditingTags([]);
   };
 
   useEffect(() => {
@@ -1135,6 +1140,11 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
       setViewingPage(data);
       setWikiQuestion('');
       setWikiAnswer(null);
+      // Charge les tags pour les afficher dans l'entete + cliquables.
+      api
+        .get<WikiTagOption[]>(`/wiki/pages/${data.id}/tags`)
+        .then((res) => setViewingPageTags(Array.isArray(res.data) ? res.data : []))
+        .catch(() => setViewingPageTags([]));
     } catch {
       toast.error(t('wiki.fetchError'));
     }
@@ -1218,6 +1228,13 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
       content: page.content || '',
       visibility: (page.visibility as WikiVisibility) || 'PUBLIC',
     });
+    // Charge les tags actuels de la page (best-effort, n'empeche pas l'edition).
+    try {
+      const { data } = await api.get<WikiTagOption[]>(`/wiki/pages/${page.id}/tags`);
+      setEditingTags(Array.isArray(data) ? data : []);
+    } catch {
+      setEditingTags([]);
+    }
     setShowEdit(true);
 
     // Refresh the lock every 60s while the editor is open so the TTL does
@@ -1242,10 +1259,20 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
         category: formData.category || undefined,
         content: editorContentRef.current || formData.content,
       });
+      // Persist tags via PATCH /wiki/pages/:id/tags (idempotent).
+      try {
+        await api.patch(`/wiki/pages/${editingPage.id}/tags`, {
+          tagIds: editingTags.map((tag) => tag.id),
+        });
+      } catch {
+        // Le contenu a ete sauvegarde - on ne bloque pas si les tags echouent.
+        toast.error('Tags non sauvegardes (le contenu a ete enregistre).');
+      }
       toast.success(t('wiki.updated'));
       await releaseLock(editingPage.id);
       setShowEdit(false);
       setEditingPage(null);
+      setEditingTags([]);
       resetForm();
       // If we were viewing this page, refresh it
       if (viewingPage?.id === editingPage.id) {
@@ -1774,6 +1801,19 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
               </span>
             </div>
           )}
+          {/* Tags — disponible en édition (et création pour cohérence). */}
+          {isEdit && (
+            <div className="space-y-1">
+              <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
+                {t('wiki.tags.label') ?? 'Tags'}
+              </label>
+              <WikiTagInput
+                value={editingTags}
+                onChange={setEditingTags}
+                canCreate={!!isAdmin}
+              />
+            </div>
+          )}
           <div className={`space-y-1 ${isEditorFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-slate-900 p-6 flex flex-col' : ''}`}>
             <div className="flex items-center justify-between">
               <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">{t('wiki.contentLabel')}</label>
@@ -2255,6 +2295,32 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                       {(viewingPage.collaborators?.length ?? 0) > 1 ? 's' : ''}
                     </Badge>
                   )}
+                  {/* Tags badges (cliquable -> filtre sur la liste) */}
+                  {viewingPageTags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => {
+                        setTagFilter(tag);
+                        setSearch(tag.name);
+                        setViewingPage(null);
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity"
+                      style={
+                        tag.colorHex
+                          ? {
+                              backgroundColor: `${tag.colorHex}1a`,
+                              color: tag.colorHex,
+                              border: `1px solid ${tag.colorHex}40`,
+                            }
+                          : { backgroundColor: 'rgb(243 244 246)', color: 'rgb(55 65 81)' }
+                      }
+                      title={t('wiki.tags.filterByTag') ?? `Filtrer par "${tag.name}"`}
+                      aria-label={`Filtrer par tag ${tag.name}`}
+                    >
+                      #{tag.name}
+                    </button>
+                  ))}
                 </div>
 
                 {/* Title */}
@@ -2740,6 +2806,41 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
             <span> — <span className="text-seal-navy dark:text-white font-semibold">{sorted.length}</span> résultat{sorted.length !== 1 ? 's' : ''}</span>
           )}
         </p>
+      )}
+
+      {/* Tag filter banner — visible quand un tag a ete clique */}
+      {tagFilter && (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+          <span className="text-seal-gray-500 dark:text-slate-400">
+            {t('wiki.tags.filterByTag') ?? 'Filtré par tag'} :
+          </span>
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold"
+            style={
+              tagFilter.colorHex
+                ? {
+                    backgroundColor: `${tagFilter.colorHex}1a`,
+                    color: tagFilter.colorHex,
+                    border: `1px solid ${tagFilter.colorHex}40`,
+                  }
+                : { backgroundColor: 'rgb(243 244 246)', color: 'rgb(55 65 81)' }
+            }
+          >
+            #{tagFilter.name}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setTagFilter(null);
+              if (search === tagFilter.name) setSearch('');
+            }}
+            className="ml-auto inline-flex items-center gap-1 text-seal-gray-500 hover:text-seal-bordeaux dark:text-slate-400 dark:hover:text-red-300"
+            aria-label="Retirer le filtre tag"
+          >
+            <X className="h-3 w-3" />
+            Retirer
+          </button>
+        </div>
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
