@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { logger } from "@/lib/logger";
-import { useTranslation } from "@/lib/i18n";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Card, CardContent, Button, Skeleton } from "@omnitech/ui";
 import {
@@ -26,8 +26,7 @@ import { PageHeader } from "@/components/layout/page-header";
 
 interface ReportConfig {
   id: string;
-  titleKey: string;
-  descriptionKey: string;
+  i18nKey: string;
   icon: React.ElementType;
   endpoint: string;
   filename: string;
@@ -37,8 +36,7 @@ interface ReportConfig {
 const reportConfigs: ReportConfig[] = [
   {
     id: "doc-registry",
-    titleKey: "reports.docRegistry.title",
-    descriptionKey: "reports.docRegistry.description",
+    i18nKey: "docRegistry",
     icon: FileSpreadsheet,
     endpoint: "/reports/document-registry",
     filename: "registre-documentaire-iso.xlsx",
@@ -46,8 +44,7 @@ const reportConfigs: ReportConfig[] = [
   },
   {
     id: "ack-report",
-    titleKey: "reports.ackReport.title",
-    descriptionKey: "reports.ackReport.description",
+    i18nKey: "ackReport",
     icon: Users,
     endpoint: "/reports/acknowledgment-stats",
     filename: "rapport-accuses-reception.xlsx", // filename kept ASCII-safe intentionally
@@ -55,8 +52,7 @@ const reportConfigs: ReportConfig[] = [
   },
   {
     id: "compliance-dashboard",
-    titleKey: "reports.complianceDashboard.title",
-    descriptionKey: "reports.complianceDashboard.description",
+    i18nKey: "complianceDashboard",
     icon: BarChart3,
     endpoint: "/reports/dashboard-stats",
     filename: "tableau-bord-conformité.json",
@@ -64,8 +60,7 @@ const reportConfigs: ReportConfig[] = [
   },
   {
     id: "audit-export",
-    titleKey: "reports.auditExport.title",
-    descriptionKey: "reports.auditExport.description",
+    i18nKey: "auditExport",
     icon: ClipboardList,
     endpoint: "/reports/audit-trail",
     filename: "journal-audit.xlsx",
@@ -73,8 +68,7 @@ const reportConfigs: ReportConfig[] = [
   },
   {
     id: "monthly-smsi",
-    titleKey: "reports.monthlySMSI.title",
-    descriptionKey: "reports.monthlySMSI.description",
+    i18nKey: "monthlySMSI",
     icon: BarChart3,
     endpoint: "/reports/monthly-smsi",
     filename: "rapport-smsi-mensuel.xlsx",
@@ -82,8 +76,7 @@ const reportConfigs: ReportConfig[] = [
   },
   {
     id: "external-access",
-    titleKey: "reports.externalAccess.title",
-    descriptionKey: "reports.externalAccess.description",
+    i18nKey: "externalAccess",
     icon: ShieldCheck,
     endpoint: "/reports/external-access",
     filename: "registre-acces-prestataires.xlsx", // filename kept ASCII-safe intentionally
@@ -91,8 +84,7 @@ const reportConfigs: ReportConfig[] = [
   },
   {
     id: "quiz-stats",
-    titleKey: "reports.quizStats.title",
-    descriptionKey: "reports.quizStats.description",
+    i18nKey: "quizStats",
     icon: GraduationCap,
     endpoint: "/reports/quiz-stats",
     filename: "bilan-quiz-sécurité.xlsx",
@@ -100,9 +92,7 @@ const reportConfigs: ReportConfig[] = [
   },
   {
     id: "documents-csv",
-    titleKey: "Export documents (CSV)",
-    descriptionKey:
-      "Liste complète des documents avec référence, statut, classification, propriétaire et dates. Format CSV pour intégration BI.",
+    i18nKey: "documentsCsv",
     icon: FileText,
     endpoint: "/documents/export/csv",
     filename: "documents-export.csv",
@@ -110,9 +100,7 @@ const reportConfigs: ReportConfig[] = [
   },
   {
     id: "tickets-csv",
-    titleKey: "Export tickets (CSV)",
-    descriptionKey:
-      "Liste des tickets avec référence, statut, priorité, catégorie, créateur, assigné. Format CSV.",
+    i18nKey: "ticketsCsv",
     icon: FileText,
     endpoint: "/tickets/export/csv",
     filename: "tickets-export.csv",
@@ -120,9 +108,7 @@ const reportConfigs: ReportConfig[] = [
   },
   {
     id: "audit-csv",
-    titleKey: "Export journal d'audit (CSV)",
-    descriptionKey:
-      "Historique complet des actions utilisateur pour analyse et conformité ISO 27001 A.5.28. Format CSV.",
+    i18nKey: "auditCsv",
     icon: ClipboardList,
     endpoint: "/audit/export/csv",
     filename: "audit-trail-export.csv",
@@ -130,9 +116,7 @@ const reportConfigs: ReportConfig[] = [
   },
   {
     id: "smsi-indicators",
-    titleKey: "Indicateurs SMSI (JSON)",
-    descriptionKey:
-      "KPIs sécurité consolidés : adoption MFA, incidents, conformité documentaire, couverture ISO, adhésion chartes.",
+    i18nKey: "smsiIndicators",
     icon: TrendingUp,
     endpoint: "/reports/smsi-indicators",
     filename: "indicateurs-smsi.json",
@@ -141,7 +125,7 @@ const reportConfigs: ReportConfig[] = [
 ];
 
 export default function AdminReportsPage() {
-  const { t } = useTranslation();
+  const t = useTranslations("admin.reportsPage");
   const [downloading, setDownloading] = useState<string | null>(null);
   const [reportMonth, setReportMonth] = useState(() => {
     const now = new Date();
@@ -212,15 +196,15 @@ export default function AdminReportsPage() {
         ...prev,
         [report.id]: new Date().toLocaleString("fr-FR"),
       }));
-      toast.success(`${t("reports.downloaded")} — ${t(report.titleKey)}`);
+      toast.success(`${t("downloaded")} — ${t(`reports.${report.i18nKey}.title`)}`);
     } catch (error: unknown) {
       const err = error as {
         response?: { data?: { message?: string }; status?: number };
       };
       if (err.response?.status === 504) {
-        toast.error(t("reports.tooLarge"));
+        toast.error(t("tooLarge"));
       } else {
-        toast.error(err.response?.data?.message || t("reports.generateError"));
+        toast.error(err.response?.data?.message || t("generateError"));
       }
     } finally {
       setDownloading(null);
@@ -231,8 +215,8 @@ export default function AdminReportsPage() {
     <div className="space-y-6">
       <AdminGroupTabs group="audit" />
       <PageHeader
-        title={t("reports.title")}
-        subtitle={t("reports.subtitle")}
+        title={t("title")}
+        subtitle={t("subtitle")}
         icon={BarChart3}
         hub="admin"
       />
@@ -249,7 +233,8 @@ export default function AdminReportsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               {
-                label: "Documents totaux",
+                key: "totalDocuments",
+                label: t("stats.totalDocuments"),
                 value: quickStats.totalDocuments ?? "-",
                 icon: FileText,
                 color: "text-primary",
@@ -257,7 +242,8 @@ export default function AdminReportsPage() {
                 numValue: quickStats.totalDocuments,
               },
               {
-                label: "Utilisateurs",
+                key: "users",
+                label: t("stats.users"),
                 value: quickStats.totalUsers ?? quickStats.activeUsers ?? "-",
                 icon: Users,
                 color: "text-blue-600",
@@ -265,7 +251,8 @@ export default function AdminReportsPage() {
                 numValue: quickStats.totalUsers ?? quickStats.activeUsers,
               },
               {
-                label: "Tickets",
+                key: "tickets",
+                label: t("stats.tickets"),
                 value: quickStats.totalTickets ?? "-",
                 icon: ClipboardList,
                 color: "text-amber-600",
@@ -273,7 +260,8 @@ export default function AdminReportsPage() {
                 numValue: quickStats.totalTickets,
               },
               {
-                label: "Taux de conformité",
+                key: "complianceRate",
+                label: t("stats.complianceRate"),
                 value: quickStats.complianceRate
                   ? `${quickStats.complianceRate}%`
                   : "-",
@@ -284,7 +272,7 @@ export default function AdminReportsPage() {
               },
             ].map((stat, idx) => (
               <Card
-                key={stat.label}
+                key={stat.key}
                 className="stagger-item"
                 style={{ animationDelay: `${idx * 60}ms` }}
               >
@@ -300,7 +288,7 @@ export default function AdminReportsPage() {
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                     {stat.label}
                   </p>
-                  {stat.label === "Taux de conformité" &&
+                  {stat.key === "complianceRate" &&
                     typeof stat.numValue === "number" && (
                       <div className="mt-2 h-1.5 w-full rounded-full bg-gray-100 dark:bg-slate-700 overflow-hidden">
                         <div
@@ -328,12 +316,10 @@ export default function AdminReportsPage() {
             <Clock className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm font-semibold text-seal-navy dark:text-white">
-                Rapports automatiques
+                {t("automatic.title")}
               </p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                Rapport hebdomadaire : chaque lundi à 7h (envoyé aux
-                ADMIN/SUPER_ADMIN) — Rapport mensuel RSSI : 1er du mois à 8h
-                (envoyé aux SUPER_ADMIN)
+                {t("automatic.description")}
               </p>
             </div>
           </div>
@@ -369,7 +355,7 @@ export default function AdminReportsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
-                        {t(report.titleKey)}
+                        {t(`reports.${report.i18nKey}.title`)}
                       </h3>
                       {report.format && (
                         <span
@@ -381,13 +367,13 @@ export default function AdminReportsPage() {
                       )}
                     </div>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-                      {t(report.descriptionKey)}
+                      {t(`reports.${report.i18nKey}.description`)}
                     </p>
                     {hasBeenGenerated && (
                       <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#006233]/5 dark:bg-[#006233]/10 px-2.5 py-1 border border-[#006233]/10">
                         <Clock className="h-3 w-3 text-[#006233]" />
                         <span className="text-[10px] font-medium text-[#006233] dark:text-emerald-400">
-                          Derniere generation : {lastGenerated[report.id]}
+                          {t("lastGeneratedAt", { date: lastGenerated[report.id] ?? "" })}
                         </span>
                       </div>
                     )}
@@ -415,12 +401,12 @@ export default function AdminReportsPage() {
                     <Download className="h-4 w-4" />
                   )}
                   {report.format === "CSV"
-                    ? "Exporter CSV"
+                    ? t("export.csv")
                     : report.format === "XLSX"
-                      ? "Exporter Excel"
+                      ? t("export.xlsx")
                       : report.format === "JSON"
-                        ? "Exporter JSON"
-                        : t("reports.download")}
+                        ? t("export.json")
+                        : t("download")}
                 </Button>
               </div>
             </Card>

@@ -626,6 +626,76 @@
         "frameworks": "Frameworks"
       }
     },
+    "reportsPage": {
+      "title": "Reports",
+      "subtitle": "ISO 27001 compliance exports and dashboards",
+      "download": "Download XLSX",
+      "downloaded": "Report downloaded",
+      "tooLarge": "The report is too large. Try a shorter period.",
+      "generateError": "Error generating report",
+      "lastGeneratedAt": "Last generated: {date}",
+      "automatic": {
+        "title": "Automatic reports",
+        "description": "Weekly report: every Monday 7am (sent to ADMIN/SUPER_ADMIN) — Monthly CISO report: 1st of the month 8am (sent to SUPER_ADMIN)"
+      },
+      "stats": {
+        "totalDocuments": "Total documents",
+        "users": "Users",
+        "tickets": "Tickets",
+        "complianceRate": "Compliance rate"
+      },
+      "export": {
+        "csv": "Export CSV",
+        "xlsx": "Export Excel",
+        "json": "Export JSON"
+      },
+      "reports": {
+        "docRegistry": {
+          "title": "ISO Document Registry",
+          "description": "Full DMS registry export: reference, title, version, status, owner, next review, ISO controls."
+        },
+        "ackReport": {
+          "title": "Acknowledgment Report",
+          "description": "Read rate per document, list of employees who have not yet acknowledged receipt."
+        },
+        "complianceDashboard": {
+          "title": "Compliance Dashboard",
+          "description": "ISO 27001 compliance statistics: control coverage, overdue document reviews, pending signatures."
+        },
+        "auditExport": {
+          "title": "Audit Log Export",
+          "description": "Full audit log export for analysis or submission to an external auditor."
+        },
+        "monthlySMSI": {
+          "title": "Monthly ISMS Report",
+          "description": "Automatic ISMS report: documents, incidents, watch, tickets, ISO coverage. A.5.35."
+        },
+        "externalAccess": {
+          "title": "External Access Registry",
+          "description": "Excel export of the contractor access registry: company, status, expiry dates, pending reviews."
+        },
+        "quizStats": {
+          "title": "Security Quiz Results",
+          "description": "Statistics on security awareness quiz results: scores and pass rates per user."
+        },
+        "documentsCsv": {
+          "title": "Documents export (CSV)",
+          "description": "Full list of documents with reference, status, classification, owner and dates. CSV format for BI integration."
+        },
+        "ticketsCsv": {
+          "title": "Tickets export (CSV)",
+          "description": "List of tickets with reference, status, priority, category, creator, assignee. CSV format."
+        },
+        "auditCsv": {
+          "title": "Audit log export (CSV)",
+          "description": "Full history of user actions for analysis and ISO 27001 A.5.28 compliance. CSV format."
+        },
+        "smsiIndicators": {
+          "title": "ISMS indicators (JSON)",
+          "description": "Consolidated security KPIs: MFA adoption, incidents, document compliance, ISO coverage, charter acknowledgment."
+        }
+      }
+    },
     "externalAccessPage": {
       "title": "Contractor access",
       "subtitle": "Isolated portal, MFA mandatory, monthly CISO review",

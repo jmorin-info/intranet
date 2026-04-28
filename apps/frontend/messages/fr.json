@@ -626,6 +626,76 @@
         "frameworks": "Référentiels"
       }
     },
+    "reportsPage": {
+      "title": "Rapports",
+      "subtitle": "Exports et tableaux de bord conformité ISO 27001",
+      "download": "Télécharger XLSX",
+      "downloaded": "Rapport téléchargé",
+      "tooLarge": "Le rapport est trop volumineux. Essayez avec une période plus courte.",
+      "generateError": "Erreur lors de la génération du rapport",
+      "lastGeneratedAt": "Dernière génération : {date}",
+      "automatic": {
+        "title": "Rapports automatiques",
+        "description": "Rapport hebdomadaire : chaque lundi à 7h (envoyé aux ADMIN/SUPER_ADMIN) — Rapport mensuel RSSI : 1er du mois à 8h (envoyé aux SUPER_ADMIN)"
+      },
+      "stats": {
+        "totalDocuments": "Documents totaux",
+        "users": "Utilisateurs",
+        "tickets": "Tickets",
+        "complianceRate": "Taux de conformité"
+      },
+      "export": {
+        "csv": "Exporter CSV",
+        "xlsx": "Exporter Excel",
+        "json": "Exporter JSON"
+      },
+      "reports": {
+        "docRegistry": {
+          "title": "Registre documentaire ISO",
+          "description": "Export complet du registre GED : référence, titre, version, statut, responsable, prochaine révision, contrôles ISO."
+        },
+        "ackReport": {
+          "title": "Rapport accusés de réception",
+          "description": "Taux de lecture par document, liste des collaborateurs n'ayant pas encore accusé réception."
+        },
+        "complianceDashboard": {
+          "title": "Tableau de bord conformité",
+          "description": "Statistiques de conformité ISO 27001 : couverture des contrôles, documents en retard de révision, signatures en attente."
+        },
+        "auditExport": {
+          "title": "Export journal d'audit",
+          "description": "Export complet du journal d'audit pour analyse ou soumission à un auditeur externe."
+        },
+        "monthlySMSI": {
+          "title": "Rapport mensuel SMSI",
+          "description": "Rapport automatique du SMSI : documents, incidents, veille, tickets, couverture ISO. A.5.35."
+        },
+        "externalAccess": {
+          "title": "Registre accès prestataires",
+          "description": "Export Excel du registre des accès prestataires : entreprise, statut, dates d'expiration, révisions requises."
+        },
+        "quizStats": {
+          "title": "Bilan quiz sécurité",
+          "description": "Statistiques des résultats aux quiz de sensibilisation sécurité : scores, taux de réussite par utilisateur."
+        },
+        "documentsCsv": {
+          "title": "Export documents (CSV)",
+          "description": "Liste complète des documents avec référence, statut, classification, propriétaire et dates. Format CSV pour intégration BI."
+        },
+        "ticketsCsv": {
+          "title": "Export tickets (CSV)",
+          "description": "Liste des tickets avec référence, statut, priorité, catégorie, créateur, assigné. Format CSV."
+        },
+        "auditCsv": {
+          "title": "Export journal d'audit (CSV)",
+          "description": "Historique complet des actions utilisateur pour analyse et conformité ISO 27001 A.5.28. Format CSV."
+        },
+        "smsiIndicators": {
+          "title": "Indicateurs SMSI (JSON)",
+          "description": "KPIs sécurité consolidés : adoption MFA, incidents, conformité documentaire, couverture ISO, adhésion chartes."
+        }
+      }
+    },
     "externalAccessPage": {
       "title": "Accès prestataires",
       "subtitle": "Portail isolé, MFA obligatoire, revue mensuelle RSSI",
