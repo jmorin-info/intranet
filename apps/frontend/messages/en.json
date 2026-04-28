@@ -625,6 +625,34 @@
         "controls": "Controls",
         "frameworks": "Frameworks"
       }
+    },
+    "darkModeAudit": {
+      "title": "Dark mode audit",
+      "subtitle": "Detects elements with a light background that lack a dark: variant (luminance > 0.9 heuristic).",
+      "start": "Start audit",
+      "runningProgress": "Audit in progress… {progress}%",
+      "exportCsv": "Export CSV ({count})",
+      "auditStarted": "Audit started — pages are loaded in the background",
+      "auditCompleted": "Audit done — {findings} suspicious element(s) across {pages} page(s)",
+      "scanningInfo": "Scanning {count} pages… Do not leave this page.",
+      "noIssues": "No issues detected",
+      "pagesAudited": "{count} page(s) audited. No suspicious element.",
+      "suspectElements": "{count} suspicious element(s)",
+      "table": {
+        "page": "Page",
+        "tag": "Tag",
+        "classes": "Classes",
+        "background": "Background",
+        "text": "Text"
+      },
+      "csv": {
+        "page": "Page",
+        "tag": "Tag",
+        "classes": "Classes",
+        "background": "Background",
+        "color": "Color",
+        "snippet": "Text (excerpt)"
+      }
     }
   },
   "tickets": {

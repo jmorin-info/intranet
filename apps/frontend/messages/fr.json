@@ -625,6 +625,34 @@
         "controls": "Contrôles",
         "frameworks": "Référentiels"
       }
+    },
+    "darkModeAudit": {
+      "title": "Audit dark mode",
+      "subtitle": "Détecte les éléments avec fond clair sans variante dark: (heuristique luminance > 0.9).",
+      "start": "Démarrer l'audit",
+      "runningProgress": "Audit en cours… {progress}%",
+      "exportCsv": "Export CSV ({count})",
+      "auditStarted": "Audit démarré — navigation dans les pages en arrière-plan",
+      "auditCompleted": "Audit terminé — {findings} élément(s) suspect(s) sur {pages} page(s)",
+      "scanningInfo": "Scan de {count} pages… Ne quittez pas cette page.",
+      "noIssues": "Aucun problème détecté",
+      "pagesAudited": "{count} page(s) auditée(s). Aucun élément suspect.",
+      "suspectElements": "{count} élément(s) suspect(s)",
+      "table": {
+        "page": "Page",
+        "tag": "Tag",
+        "classes": "Classes",
+        "background": "Background",
+        "text": "Texte"
+      },
+      "csv": {
+        "page": "Page",
+        "tag": "Tag",
+        "classes": "Classes",
+        "background": "Background",
+        "color": "Color",
+        "snippet": "Texte (extrait)"
+      }
     }
   },
   "tickets": {
