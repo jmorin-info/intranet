@@ -207,10 +207,65 @@ const BLOCKS: SeedBlock[] = [
       },
     ],
   },
+  // ---------------------------------------------------------------------------
+  // Trust center — engagements ISO/SOC2 (consommé par
+  // apps/frontend/src/app/trust/components/trust-commitments.tsx).
+  // Les iconKey doivent rester dans le ICON_REGISTRY du composant.
+  // ---------------------------------------------------------------------------
+  {
+    key: "trust.commitments",
+    locale: "fr",
+    title: "Trust center — engagements",
+    body: "Liste des engagements affichés sur /trust dans la section « Ce que nous garantissons ».",
+    data: [
+      {
+        iconKey: "Flag",
+        accent: "bordeaux",
+        title: "Souveraineté",
+        body: "Hébergement en France (Scaleway), sous-traitants exclusivement dans l’Union européenne.",
+      },
+      {
+        iconKey: "Lock",
+        accent: "blue",
+        title: "Chiffrement en transit",
+        body: "TLS 1.2+ obligatoire, HSTS 2 ans avec preload, bcrypt pour les mots de passe.",
+      },
+      {
+        iconKey: "KeyRound",
+        accent: "orange",
+        title: "MFA partout",
+        body: "MFA obligatoire pour les administrateurs, disponible pour l’ensemble des utilisateurs.",
+      },
+      {
+        iconKey: "ListChecks",
+        accent: "green",
+        title: "93 contrôles ISO 27001",
+        body: "L’intégralité des contrôles Annex A 2022 est implémentée et tracée dans l’intranet.",
+      },
+      {
+        iconKey: "FlaskConical",
+        accent: "blue",
+        title: "Backup testé chaque semaine",
+        body: "Drill automatisé de restauration hebdomadaire avec rapport horodaté et alerting.",
+      },
+      {
+        iconKey: "ShieldCheck",
+        accent: "bordeaux",
+        title: "Protection WAF & observabilité",
+        body: "BunkerWeb en bordure, Sentry pour la détection d’anomalies applicatives.",
+      },
+      {
+        iconKey: "PhoneCall",
+        accent: "orange",
+        title: "SLA incident",
+        body: "Accusé réception < 4 h pour incident critique, 24 h pour incident majeur.",
+      },
+    ],
+  },
 ];
 
 async function main() {
-  console.log(`Démarrage seed CMS — ${BLOCKS.length} blocs welcome.* à poser.`);
+  console.log(`Démarrage seed CMS — ${BLOCKS.length} blocs à poser.`);
 
   let upserts = 0;
   for (const block of BLOCKS) {
