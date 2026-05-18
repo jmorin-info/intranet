@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { defineConfig } from "vitest/config";
+import path from "path";
 
 /**
  * Vitest config minimale pour l'app frontend.
@@ -10,13 +10,21 @@ import path from 'path';
  */
 export default defineConfig({
   test: {
-    environment: 'node',
-    include: ['src/**/*.{test,spec}.ts'],
+    environment: "node",
+    include: ["src/**/*.{test,spec}.ts"],
     globals: false,
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      "@": path.resolve(__dirname, "src"),
+      // `server-only` est un module sentinelle Next.js qui empêche
+      // l'import depuis du code client. En tests unitaires Node, on l'aliase
+      // sur un no-op pour pouvoir importer les normalizers co-localisés
+      // dans les Server Components.
+      "server-only": path.resolve(
+        __dirname,
+        "src/lib/__mocks__/server-only.ts",
+      ),
     },
   },
 });

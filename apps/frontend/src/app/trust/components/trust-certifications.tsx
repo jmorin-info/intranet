@@ -1,4 +1,5 @@
 import { CheckCircle2, Rocket, CalendarClock } from "lucide-react";
+import { getContentBlocks, getBlockData } from "@/lib/cms";
 
 type CertStatus = "conforme" | "en_cours" | "planifie";
 
@@ -10,7 +11,32 @@ interface Certification {
   lastAuditLabel: string;
 }
 
-const CERTIFICATIONS: Certification[] = [
+const STATUS_META: Record<
+  CertStatus,
+  { label: string; icon: typeof CheckCircle2; cls: string }
+> = {
+  conforme: {
+    label: "Conforme",
+    icon: CheckCircle2,
+    cls: "bg-[#006233]/10 text-[#006233] ring-[#006233]/25",
+  },
+  en_cours: {
+    label: "En cours",
+    icon: Rocket,
+    cls: "bg-[#f9964a]/10 text-[#f9964a] ring-[#f9964a]/25",
+  },
+  planifie: {
+    label: "Planifié",
+    icon: CalendarClock,
+    cls: "bg-[#296dc1]/10 text-[#296dc1] ring-[#296dc1]/25",
+  },
+};
+
+/**
+ * Fallback hardcodé : valeur affichée si le bloc CMS `trust.certifications`
+ * est absent / vide / mal formé. Reflète l'état réel du SMSI en 2026.
+ */
+const FALLBACK_CERTIFICATIONS: Certification[] = [
   {
     title: "ISO 27001:2022",
     subtitle: "SMSI certifié",
@@ -51,28 +77,43 @@ const CERTIFICATIONS: Certification[] = [
   },
 ];
 
-const STATUS_META: Record<
-  CertStatus,
-  { label: string; icon: typeof CheckCircle2; cls: string }
-> = {
-  conforme: {
-    label: "Conforme",
-    icon: CheckCircle2,
-    cls: "bg-[#006233]/10 text-[#006233] ring-[#006233]/25",
-  },
-  en_cours: {
-    label: "En cours",
-    icon: Rocket,
-    cls: "bg-[#f9964a]/10 text-[#f9964a] ring-[#f9964a]/25",
-  },
-  planifie: {
-    label: "Planifié",
-    icon: CalendarClock,
-    cls: "bg-[#296dc1]/10 text-[#296dc1] ring-[#296dc1]/25",
-  },
-};
+/**
+ * Valide qu'un item brut venant du JSON CMS est bien une Certification.
+ * Filtre les status inconnus (qui casseraient le rendu en accédant à
+ * STATUS_META[undefined]).
+ */
+function normalizeCertification(raw: unknown): Certification | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const title = typeof o.title === "string" ? o.title : null;
+  const subtitle = typeof o.subtitle === "string" ? o.subtitle : null;
+  const description = typeof o.description === "string" ? o.description : null;
+  const status = typeof o.status === "string" ? o.status : null;
+  const lastAuditLabel =
+    typeof o.lastAuditLabel === "string" ? o.lastAuditLabel : null;
+  if (!title || !subtitle || !description || !status || !lastAuditLabel) {
+    return null;
+  }
+  if (!(status in STATUS_META)) return null;
+  return {
+    title,
+    subtitle,
+    description,
+    status: status as CertStatus,
+    lastAuditLabel,
+  };
+}
 
-export function TrustCertifications() {
+export async function TrustCertifications() {
+  const blocks = await getContentBlocks(["trust.certifications"], "fr");
+  const raw = getBlockData<unknown[]>(blocks, "trust.certifications", []);
+  const fromCms = Array.isArray(raw)
+    ? raw
+        .map(normalizeCertification)
+        .filter((c): c is Certification => c !== null)
+    : [];
+  const certifications = fromCms.length > 0 ? fromCms : FALLBACK_CERTIFICATIONS;
+
   return (
     <section
       id="certifications"
@@ -96,7 +137,7 @@ export function TrustCertifications() {
       </div>
 
       <ul role="list" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {CERTIFICATIONS.map((cert) => {
+        {certifications.map((cert) => {
           const meta = STATUS_META[cert.status];
           const StatusIcon = meta.icon;
           return (
@@ -137,3 +178,6 @@ export function TrustCertifications() {
     </section>
   );
 }
+
+export { normalizeCertification, FALLBACK_CERTIFICATIONS };
+export type { Certification, CertStatus };

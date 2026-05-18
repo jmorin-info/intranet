@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Dashboard greeting / top-bar block.
@@ -10,15 +10,21 @@
  * toggle) is lifted from the parent page.
  */
 
-import React from 'react';
-import Link from 'next/link';
-import { Button } from '@omnitech/ui';
-import { FileText, RefreshCw, Settings, ShieldCheck, Ticket } from 'lucide-react';
-import { ClockWidget } from '@/components/widgets/clock-widget';
-import { WeatherWidget } from '@/components/widgets/weather-widget';
-import { AIControlToggle } from '@/components/ai/ai-control-toggle';
-import { useTranslation } from '@/lib/i18n';
-import { getDailyTip } from './dashboard-tips-banner';
+import React from "react";
+import Link from "next/link";
+import { Button } from "@omnitech/ui";
+import {
+  FileText,
+  RefreshCw,
+  Settings,
+  ShieldCheck,
+  Ticket,
+} from "lucide-react";
+import { ClockWidget } from "@/components/widgets/clock-widget";
+import { WeatherWidget } from "@/components/widgets/weather-widget";
+import { AIControlToggle } from "@/components/ai/ai-control-toggle";
+import { useTranslation } from "@/lib/i18n";
+import { useDailyTip } from "./dashboard-tips-banner";
 
 interface DashboardGreetingProps {
   firstName: string | undefined;
@@ -43,18 +49,18 @@ export function DashboardGreeting({
   const hour = new Date().getHours();
   const greeting =
     hour < 12
-      ? t('dashboard.greeting.morning')
+      ? t("dashboard.greeting.morning")
       : hour < 18
-        ? t('dashboard.greeting.afternoon')
-        : t('dashboard.greeting.evening');
-  const timeEmoji = hour < 12 ? '☀️' : hour < 18 ? '🌤️' : '🌙';
-  const dateStr = new Date().toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+        ? t("dashboard.greeting.afternoon")
+        : t("dashboard.greeting.evening");
+  const timeEmoji = hour < 12 ? "☀️" : hour < 18 ? "🌤️" : "🌙";
+  const dateStr = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
-  const tip = getDailyTip();
+  const tip = useDailyTip();
 
   return (
     <div className="py-3 px-1">
@@ -62,7 +68,10 @@ export function DashboardGreeting({
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-[26px] font-medium text-seal-navy dark:text-white tracking-tight leading-tight">
-              <span className="text-seal-gray-500 dark:text-slate-400 font-light">{greeting},</span> {firstName}
+              <span className="text-seal-gray-500 dark:text-slate-400 font-light">
+                {greeting},
+              </span>{" "}
+              {firstName}
             </h1>
             <AIControlToggle />
             <button
@@ -80,16 +89,18 @@ export function DashboardGreeting({
               title="Actualiser le tableau de bord"
               aria-label="Actualiser le tableau de bord"
             >
-              <RefreshCw className={`h-5 w-5 text-seal-gray-500 dark:text-slate-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-5 w-5 text-seal-gray-500 dark:text-slate-400 ${isRefreshing ? "animate-spin" : ""}`}
+              />
             </button>
-            {typeof profileScore === 'number' && (
+            {typeof profileScore === "number" && (
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                   profileScore > 80
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                     : profileScore > 50
-                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                      : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                 }`}
                 title="Score de complétion du profil"
               >
@@ -99,19 +110,27 @@ export function DashboardGreeting({
             )}
           </div>
           <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5 capitalize">
-            {dateStr} <span className="text-seal-gray-500/60 dark:text-slate-500">— voici votre espace {timeEmoji}</span>
+            {dateStr}{" "}
+            <span className="text-seal-gray-500/60 dark:text-slate-500">
+              — voici votre espace {timeEmoji}
+            </span>
           </p>
-          <p className="text-xs text-seal-gray-500/70 dark:text-slate-500 mt-1.5 italic max-w-md">{tip}</p>
+          <p className="text-xs text-seal-gray-500/70 dark:text-slate-500 mt-1.5 italic max-w-md">
+            {tip}
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/documents/new" title="Créer un nouveau document dans la base documentaire">
+          <Link
+            href="/documents/new"
+            title="Créer un nouveau document dans la base documentaire"
+          >
             <Button variant="secondary" size="sm">
-              <FileText className="h-4 w-4" /> {t('dashboard.newDocument')}
+              <FileText className="h-4 w-4" /> {t("dashboard.newDocument")}
             </Button>
           </Link>
           <Link href="/tickets" title="Ouvrir un nouveau ticket au support IT">
             <Button variant="outline" size="sm">
-              <Ticket className="h-4 w-4" /> {t('dashboard.newTicket')}
+              <Ticket className="h-4 w-4" /> {t("dashboard.newTicket")}
             </Button>
           </Link>
           <div className="hidden xl:flex items-center gap-6">
