@@ -17,6 +17,8 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
 import { useTranslation } from "@/lib/i18n";
+import { useCmsBlocks, getBlockData } from "@/lib/cms-client";
+import { FALLBACK_KIOSK_LABELS, normalizeKioskLabels } from "./_cms";
 
 interface NewsItem {
   id: string;
@@ -112,6 +114,11 @@ export default function KioskPage() {
 function KioskInner() {
   const params = useSearchParams();
   const interval = Math.max(5, Number(params.get("interval")) || 15) * 1000;
+
+  const blocks = useCmsBlocks(["kiosk.labels"], "fr");
+  const labels =
+    normalizeKioskLabels(getBlockData<unknown>(blocks, "kiosk.labels", null)) ??
+    FALLBACK_KIOSK_LABELS;
 
   const [slide, setSlide] = useState(0);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -212,13 +219,11 @@ function KioskInner() {
         {slide === 0 && (
           <section className="h-full">
             <p className="text-xs uppercase tracking-[0.4em] text-slate-900 mb-6">
-              Actualités
+              {labels.news.title}
             </p>
             <div className="grid grid-cols-1 gap-6">
               {news.length === 0 ? (
-                <p className="text-white/40 text-lg">
-                  Aucune actualité pour le moment.
-                </p>
+                <p className="text-white/40 text-lg">{labels.news.empty}</p>
               ) : (
                 news.slice(0, 3).map((n) => (
                   <article
@@ -253,11 +258,11 @@ function KioskInner() {
         {slide === 1 && (
           <section className="h-full">
             <p className="text-xs uppercase tracking-[0.4em] text-slate-900 mb-6">
-              Veille cyber · CERT-FR
+              {labels.veille.title}
             </p>
             <div className="space-y-4">
               {veille.length === 0 ? (
-                <p className="text-white/40 text-lg">Aucune alerte récente.</p>
+                <p className="text-white/40 text-lg">{labels.veille.empty}</p>
               ) : (
                 veille.slice(0, 5).map((v) => (
                   <div
@@ -297,12 +302,12 @@ function KioskInner() {
         {slide === 2 && (
           <section className="h-full">
             <p className="text-xs uppercase tracking-[0.4em] text-slate-900 mb-6">
-              Indicateurs SMSI
+              {labels.indicators.title}
             </p>
             <div className="grid grid-cols-2 gap-8">
               {indicators.length === 0 ? (
                 <p className="text-white/40 text-lg col-span-2">
-                  Indicateurs indisponibles.
+                  {labels.indicators.empty}
                 </p>
               ) : (
                 indicators.map((i) => (
@@ -327,7 +332,7 @@ function KioskInner() {
       {/* Footer : progress indicator */}
       <footer className="absolute bottom-0 inset-x-0 flex items-center justify-between px-16 py-6">
         <p className="text-[11px] text-white/30 uppercase tracking-widest">
-          OMNITECH Security · Portail Intranet · ISO 27001
+          {labels.footer}
         </p>
         <div className="flex gap-2">
           {[0, 1, 2].map((i) => (

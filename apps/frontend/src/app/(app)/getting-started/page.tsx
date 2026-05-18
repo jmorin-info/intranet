@@ -1,141 +1,78 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@omnitech/ui";
 import { useAuthStore } from "@/stores/auth-store";
 import { api } from "@/lib/api";
-import { useTranslation } from "@/lib/i18n";
+import { useCmsBlocks, getBlockData } from "@/lib/cms-client";
 import {
-  User,
   Shield,
   Sparkles,
   ArrowRight,
   Keyboard,
-  Layers,
-  FileSignature,
-  Search,
   CheckCircle2,
   Circle,
   HelpCircle,
   Command,
 } from "lucide-react";
-
-/* ------------------------------------------------------------------ */
-/*  Onboarding steps                                                   */
-/* ------------------------------------------------------------------ */
-
-interface OnboardingStep {
-  id: string;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  href: string;
-  actionLabel: string;
-  gradient: string;
-}
-
-const STEPS: OnboardingStep[] = [
-  {
-    id: "profile",
-    icon: User,
-    title: "Votre profil",
-    description:
-      "Completez votre profil et ajoutez une photo pour que vos collegues vous identifient facilement.",
-    href: "/profile",
-    actionLabel: "Modifier mon profil",
-    gradient: "from-purple-500 to-purple-600",
-  },
-  {
-    id: "mfa",
-    icon: Shield,
-    title: "Activer le MFA",
-    description:
-      "Renforcez la sécurité de votre compte en activant l'authentification multi-facteurs (2FA).",
-    href: "/mfa",
-    actionLabel: "Configurer le MFA",
-    gradient: "from-emerald-500 to-emerald-600",
-  },
-  {
-    id: "spaces",
-    icon: Layers,
-    title: "Explorer vos espaces",
-    description:
-      "Decouvrez les espaces de tickets : chaque equipe dispose de son propre espace avec des workflows adaptes.",
-    href: "/tickets",
-    actionLabel: "Voir les espaces",
-    gradient: "from-blue-500 to-blue-600",
-  },
-  {
-    id: "chartes",
-    icon: FileSignature,
-    title: "Signer les chartes",
-    description:
-      "Consultez et signez les chartes obligatoires (charte informatique, RGPD, sécurité).",
-    href: "/chartes",
-    actionLabel: "Voir les chartes",
-    gradient: "from-seal-bordeaux to-red-700",
-  },
-  {
-    id: "ai",
-    icon: Sparkles,
-    title: "Decouvrir l'assistant IA",
-    description:
-      "Utilisez la recherche intelligente pour trouver documents, tickets et procedures en un instant.",
-    href: "/search",
-    actionLabel: "Essayer la recherche",
-    gradient: "from-[#F68D2E] to-[#e07d1f]",
-  },
-];
-
-/* ------------------------------------------------------------------ */
-/*  Raccourcis clavier                                                 */
-/* ------------------------------------------------------------------ */
-
-const SHORTCUTS: { keys: string; label: string }[] = [
-  { keys: "⌘K", label: "Recherche rapide / palette de commandes" },
-  { keys: "?", label: "Afficher tous les raccourcis clavier" },
-  { keys: "Ctrl+Shift+D", label: "Nouveau document express" },
-  { keys: "Alt", label: "Mode focus (masquer la sidebar)" },
-  { keys: "Ctrl+Alt+1-4", label: "Naviguer entre les hubs" },
-];
-
-/* ------------------------------------------------------------------ */
-/*  Page                                                               */
-/* ------------------------------------------------------------------ */
+import {
+  FALLBACK_STEPS,
+  FALLBACK_SHORTCUTS,
+  STEP_ICON_REGISTRY,
+  normalizeStep,
+  normalizeShortcut,
+  type OnboardingStep,
+  type KeyboardShortcut,
+  type StepStatusKey,
+} from "./_cms";
 
 export default function WelcomePage() {
-  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  const blocks = useCmsBlocks(
+    ["onboarding.steps", "onboarding.shortcuts"],
+    "fr",
+  );
   const [chartesSigned, setChartesSigned] = useState<boolean>(false);
-  const [chartesLoaded, setChartesLoaded] = useState(false);
 
-  // Fetch charter signature status. Le backend renvoie { allSigned: boolean }
-  // — PAS un array. Avant ce fix, la réponse (non-array) retombait sur le else
-  // → chartesSigned restait à false même si toutes les chartes étaient signées.
   useEffect(() => {
     api
       .get<{ allSigned: boolean }>("/chartes/status")
       .then((r) => setChartesSigned(r.data?.allSigned === true))
-      .catch(() => setChartesSigned(false))
-      .finally(() => setChartesLoaded(true));
+      .catch(() => setChartesSigned(false));
   }, []);
 
-  // Compute step completion. Le profil est considéré complet si au moins
-  // l'avatar OU le téléphone est renseigné (on évite de pénaliser les users
-  // qui ont complété certaines infos mais pas l'avatar, par exemple).
-  const stepStatus: Record<string, boolean> = {
+  const steps: OnboardingStep[] = useMemo(() => {
+    const raw = getBlockData<unknown[]>(blocks, "onboarding.steps", []);
+    const fromCms = Array.isArray(raw)
+      ? raw.map(normalizeStep).filter((s): s is OnboardingStep => s !== null)
+      : [];
+    return fromCms.length > 0 ? fromCms : FALLBACK_STEPS;
+  }, [blocks]);
+
+  const shortcuts: KeyboardShortcut[] = useMemo(() => {
+    const raw = getBlockData<unknown[]>(blocks, "onboarding.shortcuts", []);
+    const fromCms = Array.isArray(raw)
+      ? raw
+          .map(normalizeShortcut)
+          .filter((s): s is KeyboardShortcut => s !== null)
+      : [];
+    return fromCms.length > 0 ? fromCms : FALLBACK_SHORTCUTS;
+  }, [blocks]);
+
+  const stepStatus: Record<StepStatusKey, boolean> = {
     profile: !!user?.avatarUrl || !!user?.phone,
     mfa: !!user?.mfaEnabled,
-    spaces: false, // always todo — exploratory
+    spaces: false,
     chartes: chartesSigned,
-    ai: false, // always todo — exploratory
+    ai: false,
   };
 
   const completedCount = Object.values(stepStatus).filter(Boolean).length;
-  const totalSteps = STEPS.length;
-  const progressPercent = Math.round((completedCount / totalSteps) * 100);
+  const totalSteps = steps.length;
+  const progressPercent =
+    totalSteps === 0 ? 0 : Math.round((completedCount / totalSteps) * 100);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -146,7 +83,6 @@ export default function WelcomePage() {
         hub="monEspace"
       />
 
-      {/* Message d'accueil */}
       <Card className="mb-8 border-l-4 border-l-[#F68D2E]">
         <CardContent className="py-6">
           <div className="flex items-start gap-4">
@@ -168,7 +104,6 @@ export default function WelcomePage() {
         </CardContent>
       </Card>
 
-      {/* Progress bar */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
@@ -186,10 +121,9 @@ export default function WelcomePage() {
         </div>
       </div>
 
-      {/* Onboarding steps */}
       <div className="mb-10 space-y-3">
-        {STEPS.map((step, idx) => {
-          const Icon = step.icon;
+        {steps.map((step, idx) => {
+          const Icon = STEP_ICON_REGISTRY[step.iconKey];
           const done = stepStatus[step.id] ?? false;
           return (
             <Card
@@ -201,7 +135,6 @@ export default function WelcomePage() {
               }}
             >
               <CardContent className="flex items-center gap-4 py-4">
-                {/* Step status icon */}
                 <div className="flex-shrink-0">
                   {done ? (
                     <CheckCircle2 className="h-6 w-6 text-emerald-500" />
@@ -210,14 +143,12 @@ export default function WelcomePage() {
                   )}
                 </div>
 
-                {/* Step icon */}
                 <div
                   className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${step.gradient} shadow-md`}
                 >
                   <Icon className="h-5 w-5 text-white" />
                 </div>
 
-                {/* Step content */}
                 <div className="min-w-0 flex-1">
                   <h4
                     className={`text-sm font-semibold ${done ? "text-seal-gray-500 dark:text-slate-400 line-through" : "text-seal-navy dark:text-white"}`}
@@ -229,7 +160,6 @@ export default function WelcomePage() {
                   </p>
                 </div>
 
-                {/* Action button */}
                 <Link
                   href={step.href}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors flex-shrink-0 ${
@@ -247,7 +177,6 @@ export default function WelcomePage() {
         })}
       </div>
 
-      {/* Raccourcis clavier */}
       <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
         Raccourcis clavier utiles
       </h3>
@@ -260,7 +189,7 @@ export default function WelcomePage() {
             </p>
           </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {SHORTCUTS.map((s) => (
+            {shortcuts.map((s) => (
               <div
                 key={s.keys}
                 className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-slate-800"
@@ -288,7 +217,6 @@ export default function WelcomePage() {
         </CardContent>
       </Card>
 
-      {/* Bottom links */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Link href="/tips" className="group block">
           <Card hoverable className="h-full">

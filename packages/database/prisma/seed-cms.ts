@@ -417,6 +417,244 @@ const BLOCKS: SeedBlock[] = [
       "En télétravail, verrouillez votre poste même chez vous si d'autres personnes partagent votre espace.",
     ],
   },
+  // ---------------------------------------------------------------------------
+  // Hub Sécurité — 7 cartes. iconKey doit rester dans ICON_REGISTRY de
+  // apps/frontend/src/app/(app)/hub/security/page.tsx. badgeKey (optionnel)
+  // référence un compteur dynamique (incidents, alerts, veille, chartes,
+  // tickets) — la valeur du badge reste API-driven, le CMS n'édite que la
+  // métadonnée textuelle.
+  // ---------------------------------------------------------------------------
+  {
+    key: "hub.security.cards",
+    locale: "fr",
+    title: "Hub Sécurité — cartes",
+    body: "7 cartes du hub /hub/security : Incidents, Alertes, Veille, Chartes, Helpdesk, Quiz, Satisfaction.",
+    data: [
+      {
+        title: "Incidents",
+        description:
+          "Cycle de vie des incidents de sécurité et plans de remédiation.",
+        href: "/incidents",
+        iconKey: "Siren",
+        badgeKey: "incidents",
+      },
+      {
+        title: "Alertes",
+        description: "Alertes de sécurité et accusés de lecture.",
+        href: "/alerts",
+        iconKey: "ShieldAlert",
+        badgeKey: "alerts",
+      },
+      {
+        title: "Veille cyber",
+        description: "Bulletins CERT-FR / ANSSI agrégés pour le kit OMNITECH.",
+        href: "/veille",
+        iconKey: "Rss",
+        badgeKey: "veille",
+      },
+      {
+        title: "Chartes & politiques",
+        description: "Chartes signées, politiques de sécurité et attestations.",
+        href: "/chartes",
+        iconKey: "BookOpen",
+        badgeKey: "chartes",
+      },
+      {
+        title: "Helpdesk & Self-service",
+        description:
+          "FAQ, base de connaissances et création de tickets assistée.",
+        href: "/helpdesk",
+        iconKey: "Headset",
+        badgeKey: "tickets",
+      },
+      {
+        title: "Quiz sécurité",
+        description: "Campagnes de sensibilisation et quiz de formation.",
+        href: "/quiz",
+        iconKey: "GraduationCap",
+      },
+      {
+        title: "Satisfaction",
+        description: "Enquêtes de satisfaction et collecte de retours.",
+        href: "/satisfaction",
+        iconKey: "Star",
+      },
+    ],
+  },
+  // ---------------------------------------------------------------------------
+  // Hub Travail — 8 cartes. Mêmes contraintes que hub.security.cards (iconKey,
+  // badgeKey optionnel).
+  // ---------------------------------------------------------------------------
+  {
+    key: "hub.work.cards",
+    locale: "fr",
+    title: "Hub Travail — cartes",
+    body: "8 cartes du hub /hub/work : Documents, Procédures, Actualités, Wiki, Annuaire, Fichiers, Recherche, PDF.",
+    data: [
+      {
+        title: "Documents (GED)",
+        description:
+          "Politiques, procédures, notes internes — recherche, validation et signature.",
+        href: "/documents",
+        iconKey: "FileText",
+        badgeKey: "docs",
+      },
+      {
+        title: "Procédures opérationnelles",
+        description: "Bibliothèque des procédures métier et runbooks IT.",
+        href: "/procedures",
+        iconKey: "ClipboardEdit",
+        badgeKey: "procs",
+      },
+      {
+        title: "Actualités",
+        description: "Communications internes, annonces et notes de direction.",
+        href: "/news",
+        iconKey: "Newspaper",
+        badgeKey: "news",
+      },
+      {
+        title: "Wiki & Runbooks",
+        description: "Base de connaissances collaborative et runbooks IT.",
+        href: "/wiki",
+        iconKey: "BookMarked",
+        badgeKey: "wiki",
+      },
+      {
+        title: "Annuaire",
+        description: "Collaborateurs, organigramme, départements et contacts.",
+        href: "/directory",
+        iconKey: "Users",
+      },
+      {
+        title: "Fichiers réseau",
+        description: "Partages SMB et ressources réseau autorisées.",
+        href: "/files",
+        iconKey: "HardDrive",
+      },
+      {
+        title: "Recherche globale",
+        description: "Rechercher dans documents, wiki, actualités et tickets.",
+        href: "/search",
+        iconKey: "Search",
+      },
+      {
+        title: "Outils PDF",
+        description: "Fusion, découpe, OCR et utilitaires PDF.",
+        href: "/tools/pdf",
+        iconKey: "FileType",
+      },
+    ],
+  },
+  // ---------------------------------------------------------------------------
+  // Onboarding — 5 étapes premiers pas (/getting-started). L'id doit rester
+  // dans {profile,mfa,spaces,chartes,ai} car il pilote la complétion calculée
+  // côté client. Le gradient doit rester dans la whitelist (purge Tailwind).
+  // ---------------------------------------------------------------------------
+  {
+    key: "onboarding.steps",
+    locale: "fr",
+    title: "Onboarding — étapes",
+    body: "5 étapes affichées sur /getting-started avec progress bar.",
+    data: [
+      {
+        id: "profile",
+        iconKey: "User",
+        title: "Votre profil",
+        description:
+          "Completez votre profil et ajoutez une photo pour que vos collegues vous identifient facilement.",
+        href: "/profile",
+        actionLabel: "Modifier mon profil",
+        gradient: "from-purple-500 to-purple-600",
+      },
+      {
+        id: "mfa",
+        iconKey: "Shield",
+        title: "Activer le MFA",
+        description:
+          "Renforcez la sécurité de votre compte en activant l'authentification multi-facteurs (2FA).",
+        href: "/mfa",
+        actionLabel: "Configurer le MFA",
+        gradient: "from-emerald-500 to-emerald-600",
+      },
+      {
+        id: "spaces",
+        iconKey: "Layers",
+        title: "Explorer vos espaces",
+        description:
+          "Decouvrez les espaces de tickets : chaque equipe dispose de son propre espace avec des workflows adaptes.",
+        href: "/tickets",
+        actionLabel: "Voir les espaces",
+        gradient: "from-blue-500 to-blue-600",
+      },
+      {
+        id: "chartes",
+        iconKey: "FileSignature",
+        title: "Signer les chartes",
+        description:
+          "Consultez et signez les chartes obligatoires (charte informatique, RGPD, sécurité).",
+        href: "/chartes",
+        actionLabel: "Voir les chartes",
+        gradient: "from-seal-bordeaux to-red-700",
+      },
+      {
+        id: "ai",
+        iconKey: "Sparkles",
+        title: "Decouvrir l'assistant IA",
+        description:
+          "Utilisez la recherche intelligente pour trouver documents, tickets et procedures en un instant.",
+        href: "/search",
+        actionLabel: "Essayer la recherche",
+        gradient: "from-[#F68D2E] to-[#e07d1f]",
+      },
+    ],
+  },
+  // ---------------------------------------------------------------------------
+  // Onboarding — raccourcis clavier (5 entrées).
+  // ---------------------------------------------------------------------------
+  {
+    key: "onboarding.shortcuts",
+    locale: "fr",
+    title: "Onboarding — raccourcis clavier",
+    body: "Liste affichée sur /getting-started sous la barre de progression.",
+    data: [
+      { keys: "⌘K", label: "Recherche rapide / palette de commandes" },
+      { keys: "?", label: "Afficher tous les raccourcis clavier" },
+      { keys: "Ctrl+Shift+D", label: "Nouveau document express" },
+      { keys: "Alt", label: "Mode focus (masquer la sidebar)" },
+      { keys: "Ctrl+Alt+1-4", label: "Naviguer entre les hubs" },
+    ],
+  },
+  // ---------------------------------------------------------------------------
+  // Login — tagline affichée sous le logo (panneau gauche).
+  // ---------------------------------------------------------------------------
+  {
+    key: "auth.tagline",
+    locale: "fr",
+    title: "Login — tagline produit",
+    body: "Contrôle d'accès • Hypervision SEAL System • Vidéosurveillance avancée",
+  },
+  // ---------------------------------------------------------------------------
+  // Kiosque — labels des 3 écrans rotatifs + footer.
+  // ---------------------------------------------------------------------------
+  {
+    key: "kiosk.labels",
+    locale: "fr",
+    title: "Kiosque — labels d'écrans",
+    body: "Titres et empty states des écrans Actualités / Veille / Indicateurs + footer.",
+    data: {
+      news: { title: "Actualités", empty: "Aucune actualité pour le moment." },
+      veille: {
+        title: "Veille cyber · CERT-FR",
+        empty: "Aucune alerte récente.",
+      },
+      indicators: {
+        title: "Indicateurs SMSI",
+        empty: "Indicateurs indisponibles.",
+      },
+      footer: "OMNITECH Security · Portail Intranet · ISO 27001",
+    },
+  },
 ];
 
 async function main() {

@@ -12,8 +12,27 @@ import { Button } from "@omnitech/ui";
 import { Shield, Lock, Mail, Key, UserCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { loginSchema, type LoginFormData } from "@/lib/validation/schemas";
+import { useCmsBlocks, getBlockText } from "@/lib/cms-client";
 
 type LoginForm = LoginFormData;
+
+const FALLBACK_AUTH_TAGLINE =
+  "Contrôle d'accès • Hypervision SEAL System • Vidéosurveillance avancée";
+
+/**
+ * Tagline sous le logo du panneau de gauche. Texte court éditable via le
+ * bloc CMS `auth.tagline` ; le fallback hardcodé reste affiché tant que la
+ * réponse réseau n'est pas arrivée (pas de flash).
+ */
+function AuthTagline() {
+  const blocks = useCmsBlocks(["auth.tagline"], "fr");
+  const text = getBlockText(blocks, "auth.tagline", FALLBACK_AUTH_TAGLINE);
+  return (
+    <p className="text-white/50 text-sm text-center max-w-xs leading-relaxed">
+      {text}
+    </p>
+  );
+}
 
 function LoginPageInner() {
   const router = useRouter();
@@ -180,10 +199,7 @@ function LoginPageInner() {
             Security
           </p>
           <div className="w-16 h-0.5 bg-[#F68D2E] rounded-full mt-6 mb-6" />
-          <p className="text-white/50 text-sm text-center max-w-xs leading-relaxed">
-            Contrôle d&apos;accès &bull; Hypervision SEAL System &bull;
-            Vidéosurveillance avancée
-          </p>
+          <AuthTagline />
         </div>
 
         {/* Bottom: badges + group */}
