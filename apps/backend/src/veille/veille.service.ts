@@ -28,7 +28,7 @@ const RSS_FEEDS = [
   { name: "CERT-FR Alertes", url: "https://www.cert.ssi.gouv.fr/alerte/feed/" },
   { name: "CERT-FR Avis", url: "https://www.cert.ssi.gouv.fr/avis/feed/" },
   { name: "CERT-FR CTI", url: "https://www.cert.ssi.gouv.fr/cti/feed/" },
-  { name: "ANSSI", url: "https://cyber.gouv.fr/feed/actualites/rss.xml" },
+  { name: "ANSSI", url: "https://cyber.gouv.fr/actualites/rss/" },
   { name: "CNIL", url: "https://www.cnil.fr/fr/flux-rss" },
 
   // --- Autorités UE / US (conformité : NIS2, DORA, AI Act) ---

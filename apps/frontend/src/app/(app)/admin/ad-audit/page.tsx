@@ -175,7 +175,7 @@ export default function AdAuditPage() {
     const csv = [headers, ...rows]
       .map((r) => r.map((v) => `"${(v || "").replace(/"/g, '""')}"`).join(";"))
       .join("\r\n");
-    const blob = new Blob(["\uFEFF" + csv], {
+    const blob = new Blob(["﻿" + csv], {
       type: "text/csv;charset=utf-8;",
     });
     const url = URL.createObjectURL(blob);

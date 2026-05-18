@@ -1,4 +1,4 @@
-import { Mail, KeyRound, Clock, Wrench } from 'lucide-react';
+import { Mail, KeyRound, Clock, Wrench } from "lucide-react";
 
 export function TrustDisclosure() {
   return (
@@ -13,19 +13,19 @@ export function TrustDisclosure() {
         </p>
         <h2
           id="disclosure-title"
-          className="mt-1 font-display text-2xl font-bold text-[#004469] sm:text-3xl dark:text-white"
+          className="mt-1 font-display text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white"
         >
           Politique de divulgation responsable
         </h2>
         <p className="mt-2 max-w-3xl text-[#837274] dark:text-slate-400">
-          Vous avez identifié une vulnérabilité&nbsp;? Contactez-nous de
-          manière coordonnée. Nous ne poursuivons jamais un chercheur agissant
-          de bonne foi dans le cadre de cette politique.
+          Vous avez identifié une vulnérabilité&nbsp;? Contactez-nous de manière
+          coordonnée. Nous ne poursuivons jamais un chercheur agissant de bonne
+          foi dans le cadre de cette politique.
         </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <div className="relative overflow-hidden rounded-2xl border border-[#004469]/10 bg-gradient-to-br from-[#004469] to-[#0b5482] p-6 text-white shadow-sm">
+        <div className="relative overflow-hidden rounded-2xl border border-[#F68D2E]/10 bg-gradient-to-br from-[#F68D2E] to-[#0b5482] p-6 text-white shadow-sm">
           <div className="flex items-center gap-3">
             <Mail className="h-6 w-6 text-[#f9964a]" aria-hidden="true" />
             <div>
@@ -52,10 +52,13 @@ export function TrustDisclosure() {
         </div>
 
         <ul role="list" className="grid gap-3">
-          <li className="flex items-start gap-3 rounded-2xl border border-[#004469]/10 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <Clock className="mt-0.5 h-5 w-5 shrink-0 text-[#296dc1]" aria-hidden="true" />
+          <li className="flex items-start gap-3 rounded-2xl border border-[#F68D2E]/10 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <Clock
+              className="mt-0.5 h-5 w-5 shrink-0 text-[#296dc1]"
+              aria-hidden="true"
+            />
             <div>
-              <div className="font-semibold text-[#004469] dark:text-white">
+              <div className="font-semibold text-slate-900 dark:text-white">
                 Accusé de réception &lt; 48&nbsp;h
               </div>
               <div className="text-sm text-[#837274] dark:text-slate-400">
@@ -64,10 +67,13 @@ export function TrustDisclosure() {
               </div>
             </div>
           </li>
-          <li className="flex items-start gap-3 rounded-2xl border border-[#004469]/10 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <Wrench className="mt-0.5 h-5 w-5 shrink-0 text-[#006233]" aria-hidden="true" />
+          <li className="flex items-start gap-3 rounded-2xl border border-[#F68D2E]/10 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <Wrench
+              className="mt-0.5 h-5 w-5 shrink-0 text-[#006233]"
+              aria-hidden="true"
+            />
             <div>
-              <div className="font-semibold text-[#004469] dark:text-white">
+              <div className="font-semibold text-slate-900 dark:text-white">
                 Correctif &lt; 90&nbsp;jours
               </div>
               <div className="text-sm text-[#837274] dark:text-slate-400">

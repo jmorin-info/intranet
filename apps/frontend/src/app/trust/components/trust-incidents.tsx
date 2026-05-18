@@ -1,4 +1,4 @@
-import { CheckCircle2, FileLock2 } from 'lucide-react';
+import { CheckCircle2, FileLock2 } from "lucide-react";
 
 export function TrustIncidents() {
   return (
@@ -13,7 +13,7 @@ export function TrustIncidents() {
         </p>
         <h2
           id="incidents-title"
-          className="mt-1 font-display text-2xl font-bold text-[#004469] sm:text-3xl dark:text-white"
+          className="mt-1 font-display text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white"
         >
           Incidents majeurs
         </h2>

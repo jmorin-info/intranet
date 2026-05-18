@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import dynamic from 'next/dynamic';
-import { Button } from '@omnitech/ui';
+import React, { useState } from "react";
+import dynamic from "next/dynamic";
+import { Button } from "@omnitech/ui";
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,19 +11,19 @@ import {
   BookOpen,
   Search,
   RotateCcw,
-} from 'lucide-react';
+} from "lucide-react";
 
 const Document = dynamic(
-  () => import('react-pdf').then((mod) => {
-    mod.pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-    return mod.Document;
-  }),
+  () =>
+    import("react-pdf").then((mod) => {
+      mod.pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+      return mod.Document;
+    }),
   { ssr: false },
 );
-const Page = dynamic(
-  () => import('react-pdf').then((mod) => mod.Page),
-  { ssr: false },
-);
+const Page = dynamic(() => import("react-pdf").then((mod) => mod.Page), {
+  ssr: false,
+});
 
 interface PdfViewerProps {
   url: string;
@@ -31,18 +31,32 @@ interface PdfViewerProps {
   onOpenReadingMode?: () => void;
 }
 
-export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps) {
+export function PdfViewer({
+  url,
+  className,
+  onOpenReadingMode,
+}: PdfViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
   const [error, setError] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [pageInput, setPageInput] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [pageInput, setPageInput] = useState("");
 
+  // Fallback : si react-pdf échoue (worker non chargé, blob inattendu, etc.),
+  // on bascule sur le viewer PDF natif du navigateur via <iframe>. Plus fiable,
+  // gère zoom/recherche/impression nativement.
   if (error) {
     return (
-      <div className="flex items-center justify-center py-12 text-sm text-seal-gray-500">
-        Impossible de charger l&apos;apercu PDF
+      <div className={className}>
+        <div className="rounded-t-lg border border-gray-200 bg-gray-50 dark:bg-slate-800 dark:border-slate-700 px-4 py-2 text-xs text-seal-gray-500 dark:text-slate-400">
+          Aperçu via le visualiseur natif du navigateur
+        </div>
+        <iframe
+          src={url}
+          title="Aperçu PDF"
+          className="w-full h-[80vh] rounded-b-lg border border-t-0 border-gray-200 dark:border-slate-700 bg-white"
+        />
       </div>
     );
   }
@@ -56,11 +70,12 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
     e.preventDefault();
     const parsed = parseInt(pageInput, 10);
     if (!Number.isNaN(parsed)) goToPage(parsed);
-    setPageInput('');
+    setPageInput("");
   };
 
   // Progress percentage for indicator
-  const progressPct = numPages > 0 ? Math.round((pageNumber / numPages) * 100) : 0;
+  const progressPct =
+    numPages > 0 ? Math.round((pageNumber / numPages) * 100) : 0;
 
   return (
     <div className={className}>
@@ -86,14 +101,14 @@ export function PdfViewer({ url, className, onOpenReadingMode }: PdfViewerProps)
             <input
               type="text"
               inputMode="numeric"
-              value={pageInput !== '' ? pageInput : pageNumber}
-              onChange={(e) => setPageInput(e.target.value.replace(/\D/g, ''))}
+              value={pageInput !== "" ? pageInput : pageNumber}
+              onChange={(e) => setPageInput(e.target.value.replace(/\D/g, ""))}
               onBlur={handlePageInputSubmit}
               className="w-12 rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-1 py-0.5 text-center text-sm text-seal-navy dark:text-white"
               aria-label="Numéro de page"
             />
             <span className="text-sm text-seal-navy dark:text-white">
-              / {numPages || '—'}
+              / {numPages || "—"}
             </span>
           </form>
           <Button

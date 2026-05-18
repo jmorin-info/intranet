@@ -137,7 +137,7 @@ function InfoDialog({
       />
       <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 max-w-lg w-full max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95">
         <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-          <h3 className="font-semibold text-[#004469] dark:text-white text-lg">
+          <h3 className="font-semibold text-slate-900 dark:text-white text-lg">
             {title}
           </h3>
           <button
@@ -148,7 +148,7 @@ function InfoDialog({
             <X className="h-4 w-4 text-[#837274] dark:text-slate-400" />
           </button>
         </div>
-        <div className="px-6 py-5 space-y-4 text-sm text-[#004469] dark:text-slate-300 leading-relaxed">
+        <div className="px-6 py-5 space-y-4 text-sm text-slate-900 dark:text-slate-300 leading-relaxed">
           {children}
         </div>
       </div>
@@ -187,7 +187,10 @@ export default function WelcomePage() {
   // connecté, sinon → invité. Rétrocompat : on regarde aussi le legacy
   // localStorage pour ne pas faire le ping inutile pendant la transition.
   useEffect(() => {
-    const legacyToken = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const legacyToken =
+      typeof window !== "undefined"
+        ? localStorage.getItem("accessToken")
+        : null;
     if (legacyToken) {
       setIsLoggedIn(true);
       return;
@@ -292,7 +295,7 @@ export default function WelcomePage() {
         {isLoggedIn ? (
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 bg-[#004469] hover:bg-[#003352] text-white rounded-full pl-4 pr-5 py-3 shadow-xl text-sm font-semibold transition-all hover:scale-105"
+            className="flex items-center gap-2 bg-[#F68D2E] hover:bg-[#d97420] text-white rounded-full pl-4 pr-5 py-3 shadow-xl text-sm font-semibold transition-all hover:scale-105"
           >
             <ArrowLeft className="h-4 w-4" />
             {t("portal.backToIntranet")}
@@ -300,7 +303,7 @@ export default function WelcomePage() {
         ) : (
           <Link
             href="/login"
-            className="flex items-center gap-2 bg-[#004469] hover:bg-[#003352] text-white rounded-full pl-4 pr-5 py-3 shadow-xl text-sm font-semibold transition-all hover:scale-105"
+            className="flex items-center gap-2 bg-[#F68D2E] hover:bg-[#d97420] text-white rounded-full pl-4 pr-5 py-3 shadow-xl text-sm font-semibold transition-all hover:scale-105"
           >
             <ArrowLeft className="h-4 w-4" />
             {t("common.back")}
@@ -308,7 +311,7 @@ export default function WelcomePage() {
         )}
       </div>
       {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#004469]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-white/10">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0f1419]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/welcome" className="flex items-center gap-2.5">
             <OmnitechLogo size="sm" variant="full" className="text-white" />
@@ -353,7 +356,7 @@ export default function WelcomePage() {
 
       {/* HERO — uses inline style for reliable padding-top over the fixed header */}
       <section
-        className="bg-[#004469] dark:bg-slate-900 relative overflow-hidden"
+        className="bg-gradient-to-br from-[#0a0d12] via-[#0f1419] to-[#13171e] dark:bg-slate-900 relative overflow-hidden"
         style={{ paddingTop: "8rem", paddingBottom: "6rem" }}
       >
         <div className="absolute inset-0 pointer-events-none">
@@ -400,7 +403,7 @@ export default function WelcomePage() {
               <div className="flex flex-wrap items-center gap-4 mt-10">
                 <Link
                   href={isLoggedIn ? "/dashboard" : "/login"}
-                  className="flex items-center gap-2.5 bg-gradient-to-r from-[#F68D2E] to-[#e67d1e] hover:from-[#e67d1e] hover:to-[#d06a10] rounded-xl px-8 py-4 text-base font-semibold text-white transition-all shadow-[0_0_24px_rgba(246,141,46,0.5)] hover:shadow-[0_0_36px_rgba(246,141,46,0.7)] hover:scale-[1.03] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F68D2E] focus-visible:ring-offset-2 focus-visible:ring-offset-[#003654]"
+                  className="flex items-center gap-2.5 bg-gradient-to-r from-[#F68D2E] to-[#e67d1e] hover:from-[#e67d1e] hover:to-[#d06a10] rounded-xl px-8 py-4 text-base font-semibold text-white transition-all shadow-[0_0_24px_rgba(246,141,46,0.5)] hover:shadow-[0_0_36px_rgba(246,141,46,0.7)] hover:scale-[1.03] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F68D2E] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0d12]"
                   aria-label={
                     isLoggedIn
                       ? "Retour au tableau de bord"
@@ -450,7 +453,7 @@ export default function WelcomePage() {
                     label: "Documents gérés",
                     value: info.stats.documents,
                     icon: FileText,
-                    color: "bg-[#F68D2E]/20 text-[#F68D2E]",
+                    color: "bg-[#F68D2E]/20 text-slate-900",
                   },
                   {
                     label: "Documents approuvés",
@@ -545,7 +548,7 @@ export default function WelcomePage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-[#004469] dark:text-white text-sm">
+                <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
                   ISO 27001 : 2022 — SMSI certifié
                 </h3>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
@@ -563,7 +566,7 @@ export default function WelcomePage() {
               <p className="text-[10px] text-[#837274] dark:text-slate-500 uppercase tracking-wider font-semibold">
                 Référentiels
               </p>
-              <p className="text-xs text-[#004469] dark:text-white font-medium">
+              <p className="text-xs text-slate-900 dark:text-white font-medium">
                 ISO 27001 · NIS2 · ANSSI
               </p>
             </div>
@@ -572,7 +575,7 @@ export default function WelcomePage() {
               <p className="text-[10px] text-[#837274] dark:text-slate-500 uppercase tracking-wider font-semibold">
                 Gouvernance
               </p>
-              <p className="text-xs text-[#004469] dark:text-white font-medium">
+              <p className="text-xs text-slate-900 dark:text-white font-medium">
                 RSSI · PSSI · EBIOS RM
               </p>
             </div>
@@ -589,10 +592,10 @@ export default function WelcomePage() {
             className="text-left bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200/80 dark:border-slate-700 p-4 flex items-center gap-3 cursor-pointer hover:shadow-lg hover:border-[#F68D2E]/40 transition-all"
           >
             <div className="h-10 w-10 rounded-lg bg-[#F68D2E]/10 flex items-center justify-center flex-shrink-0">
-              <Cpu className="h-5 w-5 text-[#F68D2E]" />
+              <Cpu className="h-5 w-5 text-slate-900" />
             </div>
             <div>
-              <h3 className="font-semibold text-[#004469] dark:text-white text-sm">
+              <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
                 SEAL System
               </h3>
               <p className="text-[10px] text-[#837274] dark:text-slate-400 mt-0.5">
@@ -609,7 +612,7 @@ export default function WelcomePage() {
               <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-[#004469] dark:text-white text-sm">
+              <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
                 Groupe SFPI
               </h3>
               <p className="text-[10px] text-[#837274] dark:text-slate-400 mt-0.5">
@@ -621,30 +624,30 @@ export default function WelcomePage() {
             <button
               type="button"
               onClick={() => setOpenDialog("access")}
-              className="text-left bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200/80 dark:border-slate-700 p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:shadow-lg hover:border-[#004469]/40 transition-all"
+              className="text-left bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200/80 dark:border-slate-700 p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:shadow-lg hover:border-[#F68D2E]/40 transition-all"
             >
-              <Lock className="h-5 w-5 text-[#004469] dark:text-blue-400" />
-              <span className="text-[10px] font-semibold text-[#004469] dark:text-white text-center leading-tight">
+              <Lock className="h-5 w-5 text-slate-900 dark:text-blue-400" />
+              <span className="text-[10px] font-semibold text-slate-900 dark:text-white text-center leading-tight">
                 Contrôle d&apos;accès
               </span>
             </button>
             <button
               type="button"
               onClick={() => setOpenDialog("video")}
-              className="text-left bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200/80 dark:border-slate-700 p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:shadow-lg hover:border-[#004469]/40 transition-all"
+              className="text-left bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200/80 dark:border-slate-700 p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:shadow-lg hover:border-[#F68D2E]/40 transition-all"
             >
-              <Camera className="h-5 w-5 text-[#004469] dark:text-blue-400" />
-              <span className="text-[10px] font-semibold text-[#004469] dark:text-white text-center leading-tight">
+              <Camera className="h-5 w-5 text-slate-900 dark:text-blue-400" />
+              <span className="text-[10px] font-semibold text-slate-900 dark:text-white text-center leading-tight">
                 Vidéo&shy;surveillance
               </span>
             </button>
             <button
               type="button"
               onClick={() => setOpenDialog("hyper")}
-              className="text-left bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200/80 dark:border-slate-700 p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:shadow-lg hover:border-[#004469]/40 transition-all"
+              className="text-left bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200/80 dark:border-slate-700 p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:shadow-lg hover:border-[#F68D2E]/40 transition-all"
             >
-              <Monitor className="h-5 w-5 text-[#004469] dark:text-blue-400" />
-              <span className="text-[10px] font-semibold text-[#004469] dark:text-white text-center leading-tight">
+              <Monitor className="h-5 w-5 text-slate-900 dark:text-blue-400" />
+              <span className="text-[10px] font-semibold text-slate-900 dark:text-white text-center leading-tight">
                 Hyper&shy;vision
               </span>
             </button>
@@ -654,7 +657,7 @@ export default function WelcomePage() {
 
       {/* Cyber Alert Ticker */}
       {alerts.length > 0 && (
-        <section className="bg-[#004469] dark:bg-slate-800 py-3 overflow-hidden mt-4 mb-12">
+        <section className="bg-[#0f1419] dark:bg-slate-800 py-3 overflow-hidden mt-4 mb-12">
           <div className="max-w-7xl mx-auto px-4 flex items-center gap-3">
             <div className="flex-shrink-0 flex items-center gap-2 bg-red-500/20 rounded-full px-3 py-1">
               <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
@@ -696,7 +699,7 @@ export default function WelcomePage() {
       {/* COMMENT CA MARCHE */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
         <div className="text-center mb-12">
-          <h2 className="text-2xl font-semibold text-[#004469] dark:text-white">
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
             Comment ça marche
           </h2>
           <p className="text-sm text-[#837274] dark:text-slate-400 mt-2">
@@ -737,10 +740,10 @@ export default function WelcomePage() {
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 h-7 w-7 rounded-full bg-[#F68D2E] text-white text-xs font-semibold flex items-center justify-center shadow-md">
                 {s.step}
               </div>
-              <div className="h-12 w-12 rounded-xl bg-[#004469]/10 dark:bg-slate-700 flex items-center justify-center mx-auto mt-3 mb-4">
-                <s.icon className="h-6 w-6 text-[#004469] dark:text-blue-400" />
+              <div className="h-12 w-12 rounded-xl bg-[#F68D2E]/10 dark:bg-slate-700 flex items-center justify-center mx-auto mt-3 mb-4">
+                <s.icon className="h-6 w-6 text-slate-900 dark:text-blue-400" />
               </div>
-              <h3 className="font-semibold text-[#004469] dark:text-white text-sm mb-2">
+              <h3 className="font-semibold text-slate-900 dark:text-white text-sm mb-2">
                 {s.title}
               </h3>
               <p className="text-xs text-[#837274] dark:text-slate-400 leading-relaxed">
@@ -752,7 +755,7 @@ export default function WelcomePage() {
       </section>
 
       {/* CHIFFRES CLES */}
-      <section className="bg-[#004469] dark:bg-slate-900 py-16">
+      <section className="bg-gradient-to-br from-[#0a0d12] via-[#0f1419] to-[#13171e] dark:bg-slate-900 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-light text-white tracking-tight">
@@ -768,7 +771,7 @@ export default function WelcomePage() {
                 label: "Documents gérés",
                 value: info?.stats.documents || 0,
                 icon: FileText,
-                color: "text-[#F68D2E]",
+                color: "text-slate-900",
               },
               {
                 label: "Documents approuvés",
@@ -837,7 +840,7 @@ export default function WelcomePage() {
         <section className="py-16 bg-gray-50 dark:bg-slate-800/50">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-10">
-              <h2 className="text-2xl font-semibold text-[#004469] dark:text-white">
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
                 Ce qu&apos;en disent nos collaborateurs
               </h2>
               <p className="text-sm text-[#837274] dark:text-slate-400 mt-2">
@@ -850,7 +853,7 @@ export default function WelcomePage() {
                   key={t.id}
                   className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 p-5 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <p className="text-sm text-[#004469] dark:text-white leading-relaxed italic">
+                  <p className="text-sm text-slate-900 dark:text-white leading-relaxed italic">
                     «&nbsp;{t.quote}&nbsp;»
                   </p>
                   {t.department && (
@@ -868,7 +871,7 @@ export default function WelcomePage() {
       {/* SERVICES */}
       <section id="services" className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
         <div className="text-center mb-10">
-          <h2 className="text-2xl font-semibold text-[#004469] dark:text-white">
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
             Nos services
           </h2>
           <p className="text-sm text-[#837274] dark:text-slate-400 mt-1">
@@ -880,42 +883,42 @@ export default function WelcomePage() {
             {
               icon: FileText,
               title: "GED / Base documentaire",
-              desc: "Cycle de vie complet des documents ISO 27001 : r\u00e9daction, revue, approbation, publication et archivage.",
+              desc: "Cycle de vie complet des documents ISO 27001 : rédaction, revue, approbation, publication et archivage.",
             },
             {
               icon: Shield,
-              title: "Conformit\u00e9 s\u00e9curit\u00e9",
-              desc: "Tableau de bord SMSI, suivi des contr\u00f4les ISO 27001 et NIS2, audits et revues p\u00e9riodiques.",
+              title: "Conformité sécurité",
+              desc: "Tableau de bord SMSI, suivi des contrôles ISO 27001 et NIS2, audits et revues périodiques.",
             },
             {
               icon: Rss,
-              title: "Veille cybers\u00e9curit\u00e9",
-              desc: "Flux CERT-FR, ANSSI et CVE agr\u00e9g\u00e9s, class\u00e9s par th\u00e8me et s\u00e9v\u00e9rit\u00e9, avec alertes en temps r\u00e9el.",
+              title: "Veille cybersécurité",
+              desc: "Flux CERT-FR, ANSSI et CVE agrégés, classés par thème et sévérité, avec alertes en temps réel.",
             },
             {
               icon: Ticket,
               title: "Tickets IT / Helpdesk",
-              desc: "Incidents et demandes centralis\u00e9s avec SLA, priorit\u00e9s, chatbot d\u0027assistance et portail self-service.",
+              desc: "Incidents et demandes centralisés avec SLA, priorités, chatbot d'assistance et portail self-service.",
             },
             {
               icon: BookOpen,
               title: "Wiki interne",
-              desc: "Base de connaissances collaborative : runbooks, proc\u00e9dures op\u00e9rationnelles et documentation \u00e9quipe.",
+              desc: "Base de connaissances collaborative : runbooks, procédures opérationnelles et documentation équipe.",
             },
             {
               icon: AlertTriangle,
               title: "Gestion des incidents",
-              desc: "Signalement, qualification et suivi des incidents de s\u00e9curit\u00e9 avec workflow d\u0027escalade RSSI.",
+              desc: "Signalement, qualification et suivi des incidents de sécurité avec workflow d'escalade RSSI.",
             },
             {
               icon: Newspaper,
-              title: "Actualit\u00e9s internes",
-              desc: "Communications officielles, annonces RSSI, formations et \u00e9v\u00e9nements internes OMNITECH.",
+              title: "Actualités internes",
+              desc: "Communications officielles, annonces RSSI, formations et événements internes OMNITECH.",
             },
             {
               icon: Star,
               title: "Quiz et sensibilisation",
-              desc: "Quiz cybers\u00e9curit\u00e9, enqu\u00eates de satisfaction et programme de formation continue des collaborateurs.",
+              desc: "Quiz cybersécurité, enquêtes de satisfaction et programme de formation continue des collaborateurs.",
             },
           ].map((f) => (
             <div
@@ -923,9 +926,9 @@ export default function WelcomePage() {
               className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200/80 dark:border-slate-700 p-6 hover:shadow-md hover:-translate-y-0.5 transition-all"
             >
               <div className="h-11 w-11 rounded-xl bg-[#F68D2E]/10 flex items-center justify-center mb-4">
-                <f.icon className="h-5 w-5 text-[#F68D2E]" />
+                <f.icon className="h-5 w-5 text-slate-900" />
               </div>
-              <h3 className="font-semibold text-[#004469] dark:text-white text-sm mb-2">
+              <h3 className="font-semibold text-slate-900 dark:text-white text-sm mb-2">
                 {f.title}
               </h3>
               <p className="text-xs text-[#837274] dark:text-slate-400 leading-relaxed">
@@ -940,7 +943,7 @@ export default function WelcomePage() {
       <section className="py-16 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-2xl font-semibold text-[#004469] dark:text-white">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
               Nos engagements sécurité
             </h2>
             <p className="text-sm text-[#837274] dark:text-slate-400 mt-2">
@@ -974,7 +977,7 @@ export default function WelcomePage() {
                 >
                   <v.icon className="h-8 w-8" />
                 </div>
-                <h3 className="font-semibold text-[#004469] dark:text-white text-lg">
+                <h3 className="font-semibold text-slate-900 dark:text-white text-lg">
                   {v.title}
                 </h3>
                 <p className="text-sm text-[#837274] dark:text-slate-400 mt-2 leading-relaxed">
@@ -990,7 +993,7 @@ export default function WelcomePage() {
       <section className="py-16 bg-white dark:bg-slate-900" id="vie-entreprise">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-semibold text-[#004469] dark:text-white">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
               Vie en entreprise
             </h2>
             <p className="text-sm text-[#837274] dark:text-slate-400 mt-2">
@@ -1033,7 +1036,7 @@ export default function WelcomePage() {
                 >
                   <item.icon className="h-6 w-6" />
                 </div>
-                <h3 className="font-semibold text-[#004469] dark:text-white">
+                <h3 className="font-semibold text-slate-900 dark:text-white">
                   {item.title}
                 </h3>
                 <p className="text-sm text-[#837274] dark:text-slate-400 mt-2">
@@ -1053,7 +1056,7 @@ export default function WelcomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-semibold text-[#004469] dark:text-white">
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
                 Flux d&apos;informations et mises à jour
               </h2>
               <p className="text-sm text-[#837274] dark:text-slate-400 mt-1">
@@ -1080,12 +1083,12 @@ export default function WelcomePage() {
                     >
                       <div className="flex items-center gap-2 mb-3">
                         {n.isPinned && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[#F68D2E]/20 px-2.5 py-0.5 text-[10px] font-semibold text-[#F68D2E]">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#F68D2E]/20 px-2.5 py-0.5 text-[10px] font-semibold text-slate-900">
                             <Pin className="h-3 w-3" /> Important
                           </span>
                         )}
                         {n.category && (
-                          <span className="rounded-full bg-[#F68D2E]/10 px-2.5 py-0.5 text-[10px] font-semibold text-[#F68D2E]">
+                          <span className="rounded-full bg-[#F68D2E]/10 px-2.5 py-0.5 text-[10px] font-semibold text-slate-900">
                             {n.category}
                           </span>
                         )}
@@ -1094,7 +1097,7 @@ export default function WelcomePage() {
                         </span>
                       </div>
                       <h3
-                        className={`font-semibold text-[#004469] dark:text-white line-clamp-2 ${n.isPinned ? "text-base" : "text-sm"}`}
+                        className={`font-semibold text-slate-900 dark:text-white line-clamp-2 ${n.isPinned ? "text-base" : "text-sm"}`}
                       >
                         {n.title}
                       </h3>
@@ -1107,7 +1110,7 @@ export default function WelcomePage() {
                         <p className="text-[10px] text-[#837274]/60 dark:text-slate-500">
                           {n.author.firstName} {n.author.lastName}
                         </p>
-                        <span className="text-[10px] font-semibold text-[#F68D2E] flex items-center gap-1">
+                        <span className="text-[10px] font-semibold text-slate-900 flex items-center gap-1">
                           Connectez-vous pour lire la suite{" "}
                           <ArrowRight className="h-3 w-3" />
                         </span>
@@ -1147,7 +1150,7 @@ export default function WelcomePage() {
       >
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-semibold text-[#004469] dark:text-white">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
               Centre de ressources publiques
             </h2>
             <p className="text-sm text-[#837274] dark:text-slate-400 mt-1">
@@ -1167,11 +1170,11 @@ export default function WelcomePage() {
                 className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group"
               >
                 <div className="flex items-start gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-lg bg-[#004469]/10 dark:bg-slate-700 flex items-center justify-center flex-shrink-0 group-hover:bg-[#F68D2E]/10 transition-colors">
-                    <FileText className="h-5 w-5 text-[#004469] dark:text-blue-400 group-hover:text-[#F68D2E] transition-colors" />
+                  <div className="h-10 w-10 rounded-lg bg-[#F68D2E]/10 dark:bg-slate-700 flex items-center justify-center flex-shrink-0 group-hover:bg-[#F68D2E]/10 transition-colors">
+                    <FileText className="h-5 w-5 text-slate-900 dark:text-blue-400 group-hover:text-[#F68D2E] transition-colors" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-[#004469] dark:text-white text-sm line-clamp-2">
+                    <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2">
                       {d.title}
                     </p>
                     <p className="text-[10px] font-mono text-[#837274] dark:text-slate-500 mt-0.5">
@@ -1185,7 +1188,7 @@ export default function WelcomePage() {
                   </p>
                 )}
                 <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-700">
-                  <span className="rounded-full bg-[#004469]/10 dark:bg-slate-700 px-2.5 py-0.5 text-[10px] font-semibold text-[#004469] dark:text-blue-300">
+                  <span className="rounded-full bg-[#F68D2E]/10 dark:bg-slate-700 px-2.5 py-0.5 text-[10px] font-semibold text-slate-900 dark:text-blue-300">
                     {d.category}
                   </span>
                   <div className="flex items-center gap-2 ml-auto">
@@ -1245,7 +1248,7 @@ export default function WelcomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Météo */}
             <div className="bg-[#F5F5F5] dark:bg-slate-800 rounded-xl p-6 border border-gray-100 dark:border-slate-700">
-              <h3 className="font-semibold text-[#004469] dark:text-white text-sm mb-4">
+              <h3 className="font-semibold text-slate-900 dark:text-white text-sm mb-4">
                 Météo
               </h3>
               <WeatherWidget />
@@ -1262,7 +1265,7 @@ export default function WelcomePage() {
       <section className="py-16 bg-white dark:bg-slate-900">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-light text-[#004469] dark:text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-light text-slate-900 dark:text-white tracking-tight">
               Conformité et référentiels
             </h2>
             <p className="text-sm text-[#837274] dark:text-slate-400 mt-2">
@@ -1291,7 +1294,7 @@ export default function WelcomePage() {
                   "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:ring-amber-700/40",
                 violet:
                   "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:ring-violet-700/40",
-                navy: "bg-[#004469]/5 text-[#004469] ring-[#004469]/20 dark:bg-[#004469]/30 dark:text-white dark:ring-white/10",
+                navy: "bg-[#F68D2E]/5 text-slate-900 ring-[#F68D2E]/20 dark:bg-[#F68D2E]/30 dark:text-white dark:ring-white/10",
               };
               return (
                 <li key={chip.label}>
@@ -1310,7 +1313,7 @@ export default function WelcomePage() {
               <div className="h-14 w-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-4 ring-4 ring-emerald-50 dark:ring-emerald-900/10">
                 <BadgeCheck className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <h3 className="font-semibold text-[#004469] dark:text-white">
+              <h3 className="font-semibold text-slate-900 dark:text-white">
                 ISO 27001:2022
               </h3>
               <p className="text-xs text-[#837274] dark:text-slate-400 mt-2 leading-relaxed">
@@ -1326,7 +1329,7 @@ export default function WelcomePage() {
               <div className="h-14 w-14 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4 ring-4 ring-blue-50 dark:ring-blue-900/10">
                 <Shield className="h-7 w-7 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="font-semibold text-[#004469] dark:text-white">
+              <h3 className="font-semibold text-slate-900 dark:text-white">
                 Directive NIS2
               </h3>
               <p className="text-xs text-[#837274] dark:text-slate-400 mt-2 leading-relaxed">
@@ -1342,7 +1345,7 @@ export default function WelcomePage() {
               <div className="h-14 w-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4 ring-4 ring-amber-50 dark:ring-amber-900/10">
                 <Lock className="h-7 w-7 text-amber-600 dark:text-amber-400" />
               </div>
-              <h3 className="font-semibold text-[#004469] dark:text-white">
+              <h3 className="font-semibold text-slate-900 dark:text-white">
                 ANSSI / EBIOS RM
               </h3>
               <p className="text-xs text-[#837274] dark:text-slate-400 mt-2 leading-relaxed">
@@ -1361,48 +1364,48 @@ export default function WelcomePage() {
       {/* FAQ */}
       <section className="py-16 bg-gray-50 dark:bg-slate-800/50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <h2 className="text-2xl font-semibold text-[#004469] dark:text-white text-center mb-8">
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-white text-center mb-8">
             Questions fréquentes
           </h2>
           {[
             {
-              q: "Comment acc\u00e9der \u00e0 l'intranet ?",
-              a: "Connectez-vous avec vos identifiants Active Directory — il s'agit du m\u00eame login que votre session Windows. L'authentification multi-facteurs (MFA) peut \u00eatre requise selon votre profil. En cas de difficult\u00e9, le support IT est joignable via le portail de tickets.",
+              q: "Comment accéder à l'intranet ?",
+              a: "Connectez-vous avec vos identifiants Active Directory — il s'agit du même login que votre session Windows. L'authentification multi-facteurs (MFA) peut être requise selon votre profil. En cas de difficulté, le support IT est joignable via le portail de tickets.",
             },
             {
               q: "Comment configurer le MFA ?",
-              a: "Depuis votre tableau de bord, rendez-vous dans Mon profil > S\u00e9curit\u00e9 > MFA. Scannez le QR code affich\u00e9 avec Microsoft Authenticator ou Google Authenticator, puis saisissez le code \u00e0 6 chiffres g\u00e9n\u00e9r\u00e9 par l'application. Le MFA sera activ\u00e9 imm\u00e9diatement et renforc\u00e9 \u00e0 chaque connexion.",
+              a: "Depuis votre tableau de bord, rendez-vous dans Mon profil > Sécurité > MFA. Scannez le QR code affiché avec Microsoft Authenticator ou Google Authenticator, puis saisissez le code à 6 chiffres généré par l'application. Le MFA sera activé immédiatement et renforcé à chaque connexion.",
             },
             {
-              q: "J'ai oubli\u00e9 mon mot de passe",
-              a: 'Sur la page de connexion, cliquez sur "Mot de passe oubli\u00e9". Un lien de r\u00e9initialisation s\u00e9curis\u00e9 sera envoy\u00e9 \u00e0 votre adresse email professionnelle. Ce lien expire au bout de 30 minutes. Si vous ne recevez pas l\'email, v\u00e9rifiez vos courriers ind\u00e9sirables ou contactez le support IT.',
+              q: "J'ai oublié mon mot de passe",
+              a: 'Sur la page de connexion, cliquez sur "Mot de passe oublié". Un lien de réinitialisation sécurisé sera envoyé à votre adresse email professionnelle. Ce lien expire au bout de 30 minutes. Si vous ne recevez pas l\'email, vérifiez vos courriers indésirables ou contactez le support IT.',
             },
             {
-              q: "Comment cr\u00e9er un ticket IT ?",
-              a: "Acc\u00e9dez \u00e0 Tickets IT > Nouveau ticket depuis la barre lat\u00e9rale. D\u00e9crivez pr\u00e9cis\u00e9ment votre probl\u00e8me, s\u00e9lectionnez la cat\u00e9gorie et la priorit\u00e9 appropri\u00e9es. Un technicien sera automatiquement assign\u00e9 en fonction du SLA applicable et vous recevrez des notifications \u00e0 chaque \u00e9tape du traitement.",
+              q: "Comment créer un ticket IT ?",
+              a: "Accédez à Tickets IT > Nouveau ticket depuis la barre latérale. Décrivez précisément votre problème, sélectionnez la catégorie et la priorité appropriées. Un technicien sera automatiquement assigné en fonction du SLA applicable et vous recevrez des notifications à chaque étape du traitement.",
             },
             {
-              q: "O\u00f9 trouver les proc\u00e9dures IT ?",
-              a: "L'ensemble des proc\u00e9dures op\u00e9rationnelles est centralis\u00e9 dans la section Documents de l'intranet, organis\u00e9 par cat\u00e9gorie (s\u00e9curit\u00e9, r\u00e9seau, poste de travail, etc.). Chaque document est t\u00e9l\u00e9chargeable en PDF et soumis au workflow de validation ISO 27001.",
+              q: "Où trouver les procédures IT ?",
+              a: "L'ensemble des procédures opérationnelles est centralisé dans la section Documents de l'intranet, organisé par catégorie (sécurité, réseau, poste de travail, etc.). Chaque document est téléchargeable en PDF et soumis au workflow de validation ISO 27001.",
             },
             {
               q: "Comment publier un document confidentiel ?",
-              a: 'R\u00e9digez le document dans l\'\u00e9diteur int\u00e9gr\u00e9, attribuez-lui la classification "Confidentiel" (ISO 27001 A.5.12), puis soumettez-le en revue. Apr\u00e8s validation du r\u00e9viseur d\u00e9sign\u00e9, un approbateur habilit\u00e9 signe \u00e9lectroniquement le document pour publication restreinte aux seuls collaborateurs autoris\u00e9s.',
+              a: 'Rédigez le document dans l\'éditeur intégré, attribuez-lui la classification "Confidentiel" (ISO 27001 A.5.12), puis soumettez-le en revue. Après validation du réviseur désigné, un approbateur habilité signe électroniquement le document pour publication restreinte aux seuls collaborateurs autorisés.',
             },
             {
-              q: "Comment signaler un incident de s\u00e9curit\u00e9 ?",
-              a: "Utilisez le module Incidents accessible depuis la barre lat\u00e9rale, ou contactez directement le RSSI. D\u00e9crivez les faits constat\u00e9s, l'impact estim\u00e9 et les syst\u00e8mes concern\u00e9s. Le workflow d'\u00e9scalade int\u00e9gr\u00e9 notifie automatiquement les parties prenantes selon la s\u00e9v\u00e9rit\u00e9 d\u00e9clar\u00e9e.",
+              q: "Comment signaler un incident de sécurité ?",
+              a: "Utilisez le module Incidents accessible depuis la barre latérale, ou contactez directement le RSSI. Décrivez les faits constatés, l'impact estimé et les systèmes concernés. Le workflow d'éscalade intégré notifie automatiquement les parties prenantes selon la sévérité déclarée.",
             },
             {
               q: "Comment fonctionne la classification des documents ?",
-              a: "Le syst\u00e8me repose sur quatre niveaux conformes \u00e0 l'ISO 27001 A.5.12 : Public (diffusable sans restriction), Interne (r\u00e9serv\u00e9 aux collaborateurs), Confidentiel (acc\u00e8s sur besoin d'en conna\u00eetre uniquement) et Secret (cercle restreint, validation obligatoire du RSSI). Chaque niveau d\u00e9termine les droits d'acc\u00e8s, de partage et de t\u00e9l\u00e9chargement.",
+              a: "Le système repose sur quatre niveaux conformes à l'ISO 27001 A.5.12 : Public (diffusable sans restriction), Interne (réservé aux collaborateurs), Confidentiel (accès sur besoin d'en connaître uniquement) et Secret (cercle restreint, validation obligatoire du RSSI). Chaque niveau détermine les droits d'accès, de partage et de téléchargement.",
             },
           ].map((item, i) => (
             <details
               key={i}
               className="mb-3 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden group"
             >
-              <summary className="px-5 py-4 cursor-pointer font-semibold text-[#004469] dark:text-white text-sm flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-800 transition">
+              <summary className="px-5 py-4 cursor-pointer font-semibold text-slate-900 dark:text-white text-sm flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                 {item.q}
                 <ChevronRight className="h-4 w-4 text-[#837274] transition-transform group-open:rotate-90" />
               </summary>
@@ -1416,7 +1419,7 @@ export default function WelcomePage() {
 
       {/* CTA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-        <div className="bg-[#004469] dark:bg-slate-800 rounded-2xl p-8 sm:p-12 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-[#0a0d12] via-[#0f1419] to-[#13171e] dark:bg-slate-800 rounded-2xl p-8 sm:p-12 relative overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-[#F68D2E]/10" />
           </div>
@@ -1442,7 +1445,7 @@ export default function WelcomePage() {
         {/* External access section */}
         <div className="mt-8 border-t border-gray-200 dark:border-slate-700 pt-8">
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-[#004469] dark:text-white">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
               Espace Prestataires
             </h3>
             <p className="text-sm text-[#837274] dark:text-slate-400 mt-1">
@@ -1451,7 +1454,7 @@ export default function WelcomePage() {
             <div className="mt-4 flex justify-center gap-3">
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 rounded-lg border-2 border-[#F68D2E] bg-transparent px-6 py-2.5 text-sm font-semibold text-[#F68D2E] hover:bg-[#F68D2E] hover:text-white transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg border-2 border-[#F68D2E] bg-transparent px-6 py-2.5 text-sm font-semibold text-slate-900 hover:bg-[#F68D2E] hover:text-white transition-colors"
               >
                 <ExternalLink className="h-4 w-4" />
                 Portail Prestataire
@@ -1479,46 +1482,46 @@ export default function WelcomePage() {
           internationaux.
         </p>
         <div>
-          <h4 className="font-semibold text-[#004469] dark:text-white mb-2">
+          <h4 className="font-semibold text-slate-900 dark:text-white mb-2">
             Référentiels
           </h4>
           <ul className="space-y-2 text-xs text-[#837274] dark:text-slate-400">
             <li>
-              <strong className="text-[#004469] dark:text-white">
+              <strong className="text-slate-900 dark:text-white">
                 ISO 27001
               </strong>{" "}
               — Norme internationale de management de la sécurité de
               l&apos;information, structurée autour de 93 contrôles (Annexe A).
             </li>
             <li>
-              <strong className="text-[#004469] dark:text-white">NIS2</strong> —
+              <strong className="text-slate-900 dark:text-white">NIS2</strong> —
               Directive européenne imposant des obligations de cybersécurité aux
               entités essentielles et importantes.
             </li>
             <li>
-              <strong className="text-[#004469] dark:text-white">ANSSI</strong>{" "}
+              <strong className="text-slate-900 dark:text-white">ANSSI</strong>{" "}
               — Agence nationale de la sécurité des systèmes d&apos;information,
               autorité française de référence en cybersécurité.
             </li>
           </ul>
         </div>
         <div>
-          <h4 className="font-semibold text-[#004469] dark:text-white mb-2">
+          <h4 className="font-semibold text-slate-900 dark:text-white mb-2">
             Gouvernance
           </h4>
           <ul className="space-y-2 text-xs text-[#837274] dark:text-slate-400">
             <li>
-              <strong className="text-[#004469] dark:text-white">RSSI</strong> —
+              <strong className="text-slate-900 dark:text-white">RSSI</strong> —
               Responsable de la Sécurité des Systèmes d&apos;Information, pilote
               la stratégie de sécurité et supervise les audits.
             </li>
             <li>
-              <strong className="text-[#004469] dark:text-white">PSSI</strong> —
+              <strong className="text-slate-900 dark:text-white">PSSI</strong> —
               Politique de Sécurité du Système d&apos;Information, document
               cadre validé par la Direction générale.
             </li>
             <li>
-              <strong className="text-[#004469] dark:text-white">
+              <strong className="text-slate-900 dark:text-white">
                 EBIOS RM
               </strong>{" "}
               — Méthode d&apos;analyse de risques de l&apos;ANSSI, utilisée pour
@@ -1528,7 +1531,7 @@ export default function WelcomePage() {
         </div>
         <Link
           href="/wiki?search=ISO+27001"
-          className="inline-flex items-center gap-2 bg-[#004469] hover:bg-[#003352] text-white rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors mt-2"
+          className="inline-flex items-center gap-2 bg-[#F68D2E] hover:bg-[#d97420] text-white rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors mt-2"
         >
           En savoir plus <ArrowRight className="h-4 w-4" />
         </Link>
@@ -1547,21 +1550,21 @@ export default function WelcomePage() {
         </p>
         <ul className="space-y-2 text-xs text-[#837274] dark:text-slate-400">
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Centralisation
             </strong>{" "}
             — Agrège les flux de tous les sous-systèmes (contrôle d&apos;accès,
             vidéo, intrusion, incendie) en temps réel.
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Cartographie interactive
             </strong>{" "}
             — Plans 2D/3D des sites avec positionnement des équipements et états
             en direct.
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Scénarios automatisés
             </strong>{" "}
             — Réponses programmées aux événements (confinement, évacuation,
@@ -1584,21 +1587,21 @@ export default function WelcomePage() {
         </p>
         <ul className="space-y-2 text-xs text-[#837274] dark:text-slate-400">
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               DOM-SECURITY
             </strong>{" "}
             — Branche historique spécialisée dans les serrures et cylindres
             haute sécurité.
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Présence internationale
             </strong>{" "}
             — Implantations en France, Allemagne, Italie, et plus de 20 pays
             couverts.
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Synergie groupe
             </strong>{" "}
             — OMNITECH bénéficie de l&apos;expertise mécanique et électronique
@@ -1620,28 +1623,28 @@ export default function WelcomePage() {
         </p>
         <ul className="space-y-2 text-xs text-[#837274] dark:text-slate-400">
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Authentification multi-facteurs
             </strong>{" "}
             — Badge + code PIN, badge + biométrie, ou combinaison personnalisée
             selon le niveau de sûreté requis.
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Gestion centralisée
             </strong>{" "}
             — Administration des droits, plages horaires, zones et anti-passback
             depuis le SEAL System.
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Intégration AD / LDAP
             </strong>{" "}
             — Synchronisation avec l&apos;annuaire Active Directory pour une
             gestion unifiée des identités.
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Traçabilité complète
             </strong>{" "}
             — Journal horodaté de tous les passages, exportable pour audits ISO
@@ -1663,28 +1666,28 @@ export default function WelcomePage() {
         </p>
         <ul className="space-y-2 text-xs text-[#837274] dark:text-slate-400">
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Analyse vidéo IA
             </strong>{" "}
             — Détection de comportements anormaux, comptage de personnes,
             reconnaissance de plaques d&apos;immatriculation (LPR).
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Stockage sécurisé
             </strong>{" "}
             — Enregistrement chiffré conforme RGPD avec rétention paramétrable
             (30 jours par défaut).
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Levée de doute vidéo
             </strong>{" "}
             — Vérification visuelle en temps réel lors du déclenchement
             d&apos;alarmes, réduisant les interventions inutiles.
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Multi-sites
             </strong>{" "}
             — Supervision de dizaines de sites depuis un poste centralisé via le
@@ -1707,28 +1710,28 @@ export default function WelcomePage() {
         </p>
         <ul className="space-y-2 text-xs text-[#837274] dark:text-slate-400">
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Vue unifiée
             </strong>{" "}
             — Tableau de bord unique corrélant les événements de tous les
             systèmes, avec niveaux de priorité et workflows d&apos;escalade.
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Scénarios de crise
             </strong>{" "}
             — Plans de réponse automatisés (confinement, évacuation, alerte
             RSSI) déclenchés sur événement ou manuellement.
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               Reporting et conformité
             </strong>{" "}
             — Rapports d&apos;activité, statistiques de temps de réponse et
             indicateurs ISO 27001 exportables.
           </li>
           <li>
-            <strong className="text-[#004469] dark:text-white">
+            <strong className="text-slate-900 dark:text-white">
               API ouverte
             </strong>{" "}
             — Intégration avec SIEM (Wazuh), supervision IT (Centreon) et outils
@@ -1738,7 +1741,7 @@ export default function WelcomePage() {
       </InfoDialog>
 
       {/* FOOTER */}
-      <footer className="bg-[#004469] dark:bg-slate-900 text-white/60 py-12 pb-20 sm:pb-12 border-t border-white/10">
+      <footer className="bg-[#0f1419] dark:bg-slate-900 text-white/60 py-12 pb-20 sm:pb-12 border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
             <div>
@@ -1885,7 +1888,7 @@ export default function WelcomePage() {
             </div>
             <Link
               href="/login"
-              className="inline-block mt-2 text-[#F68D2E] hover:text-[#F68D2E]/80 transition-colors"
+              className="inline-block mt-2 text-slate-900 hover:text-[#F68D2E]/80 transition-colors"
             >
               Connexion collaborateur
             </Link>

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * MessageToolbar — barre d'actions sous chaque message du chatbot.
@@ -10,14 +10,21 @@
  *   8. Feedback +/− avec raison sur 👎
  */
 
-import React, { useState } from 'react';
-import { Copy, Check, RefreshCw, Pencil, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { toast } from 'sonner';
-import { FeedbackPanel } from './feedback-panel';
-import { api } from '@/lib/api';
+import React, { useState } from "react";
+import {
+  Copy,
+  Check,
+  RefreshCw,
+  Pencil,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
+import { toast } from "sonner";
+import { FeedbackPanel } from "./feedback-panel";
+import { api } from "@/lib/api";
 
 interface MessageToolbarProps {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   /** True si c'est le dernier message assistant (régénération possible). */
   isLastAssistant?: boolean;
@@ -44,20 +51,20 @@ export function MessageToolbar({
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(content);
       } else {
-        const ta = document.createElement('textarea');
+        const ta = document.createElement("textarea");
         ta.value = content;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
         document.body.appendChild(ta);
         ta.select();
-        document.execCommand('copy');
+        document.execCommand("copy");
         document.body.removeChild(ta);
       }
       setCopied(true);
-      toast.success('Copié dans le presse-papier');
+      toast.success("Copié dans le presse-papier");
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error('Impossible de copier');
+      toast.error("Impossible de copier");
     }
   };
 
@@ -66,7 +73,7 @@ export function MessageToolbar({
     setFeedbackGiven(1);
     try {
       await api.post(`/rag/${queryId}/feedback`, { rating: 1 });
-      toast.success('Merci pour votre retour');
+      toast.success("Merci pour votre retour");
     } catch {
       /* silent */
     }
@@ -79,12 +86,15 @@ export function MessageToolbar({
 
   const submitNegativeFeedback = async (feedbackJson: string) => {
     if (!queryId) return;
-    await api.post(`/rag/${queryId}/feedback`, { rating: -1, feedback: feedbackJson });
+    await api.post(`/rag/${queryId}/feedback`, {
+      rating: -1,
+      feedback: feedbackJson,
+    });
     setFeedbackGiven(-1);
   };
 
   const btn =
-    'inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-gray-500 hover:bg-gray-100 hover:text-[#004469] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400 transition';
+    "inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-gray-500 hover:bg-gray-100 hover:text-[#F68D2E] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400 transition";
 
   return (
     <>
@@ -107,7 +117,7 @@ export function MessageToolbar({
           )}
         </button>
 
-        {role === 'user' && onEdit && (
+        {role === "user" && onEdit && (
           <button
             type="button"
             onClick={onEdit}
@@ -119,7 +129,7 @@ export function MessageToolbar({
           </button>
         )}
 
-        {role === 'assistant' && isLastAssistant && onRegenerate && (
+        {role === "assistant" && isLastAssistant && onRegenerate && (
           <button
             type="button"
             onClick={onRegenerate}
@@ -131,13 +141,13 @@ export function MessageToolbar({
           </button>
         )}
 
-        {role === 'assistant' && queryId && (
+        {role === "assistant" && queryId && (
           <>
             <button
               type="button"
               onClick={handleThumbsUp}
               disabled={feedbackGiven !== null}
-              className={`${btn} ${feedbackGiven === 1 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 opacity-100' : ''}`}
+              className={`${btn} ${feedbackGiven === 1 ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 opacity-100" : ""}`}
               title="Réponse utile"
               aria-label="Marquer la réponse comme utile"
             >
@@ -147,7 +157,7 @@ export function MessageToolbar({
               type="button"
               onClick={handleThumbsDown}
               disabled={feedbackGiven !== null}
-              className={`${btn} ${feedbackGiven === -1 ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 opacity-100' : ''}`}
+              className={`${btn} ${feedbackGiven === -1 ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 opacity-100" : ""}`}
               title="Préciser un problème"
               aria-label="Réponse non utile — préciser la raison"
             >

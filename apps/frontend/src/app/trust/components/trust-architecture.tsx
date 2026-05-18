@@ -5,7 +5,7 @@ import {
   Database,
   ArrowRight,
   CloudOff,
-} from 'lucide-react';
+} from "lucide-react";
 
 /**
  * Schéma textuel simple (pas de lib graphique) pour que le rendu reste
@@ -13,10 +13,10 @@ import {
  */
 export function TrustArchitecture() {
   const nodes = [
-    { icon: User, label: 'Utilisateur', caption: 'Navigateur / mobile' },
-    { icon: Shield, label: 'WAF BunkerWeb', caption: 'Filtrage bordure' },
-    { icon: Server, label: 'Intranet', caption: 'NestJS / Next.js' },
-    { icon: Database, label: 'DB chiffrée', caption: 'PostgreSQL AES' },
+    { icon: User, label: "Utilisateur", caption: "Navigateur / mobile" },
+    { icon: Shield, label: "WAF BunkerWeb", caption: "Filtrage bordure" },
+    { icon: Server, label: "Intranet", caption: "NestJS / Next.js" },
+    { icon: Database, label: "DB chiffrée", caption: "PostgreSQL AES" },
   ];
 
   return (
@@ -31,13 +31,13 @@ export function TrustArchitecture() {
         </p>
         <h2
           id="architecture-title"
-          className="mt-1 font-display text-2xl font-bold text-[#004469] sm:text-3xl dark:text-white"
+          className="mt-1 font-display text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white"
         >
           Une architecture sécurisée par conception
         </h2>
       </div>
 
-      <div className="rounded-3xl border border-[#004469]/10 bg-gradient-to-br from-white via-[#f7f7f5] to-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
+      <div className="rounded-3xl border border-[#F68D2E]/10 bg-gradient-to-br from-white via-[#f7f7f5] to-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
         <ol
           role="list"
           aria-label="Flux de données de l’utilisateur à la base chiffrée"
@@ -50,15 +50,15 @@ export function TrustArchitecture() {
                 key={n.label}
                 className="flex flex-1 items-center gap-3 md:flex-col md:text-center"
               >
-                <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-[#004469]/10 bg-white p-4 shadow-sm md:w-full md:flex-col md:items-center md:text-center dark:border-slate-700 dark:bg-slate-800">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#004469]/5 ring-1 ring-[#004469]/15 md:h-14 md:w-14">
+                <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-[#F68D2E]/10 bg-white p-4 shadow-sm md:w-full md:flex-col md:items-center md:text-center dark:border-slate-700 dark:bg-slate-800">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F68D2E]/5 ring-1 ring-[#F68D2E]/15 md:h-14 md:w-14">
                     <Icon
-                      className="h-5 w-5 text-[#004469] md:h-6 md:w-6 dark:text-slate-100"
+                      className="h-5 w-5 text-slate-900 md:h-6 md:w-6 dark:text-slate-100"
                       aria-hidden="true"
                     />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-display text-sm font-bold text-[#004469] dark:text-white">
+                    <div className="font-display text-sm font-bold text-slate-900 dark:text-white">
                       {n.label}
                     </div>
                     <div className="text-xs text-[#837274] dark:text-slate-400">
@@ -84,13 +84,10 @@ export function TrustArchitecture() {
         </ol>
 
         <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-[#006233]/20 bg-[#006233]/5 p-4">
-          <CloudOff
-            className="h-5 w-5 text-[#006233]"
-            aria-hidden="true"
-          />
+          <CloudOff className="h-5 w-5 text-[#006233]" aria-hidden="true" />
           <p className="text-sm font-medium text-[#006233]">
-            Zéro dépendance cloud externe : aucun service propriétaire
-            américain dans le chemin critique des données clients.
+            Zéro dépendance cloud externe : aucun service propriétaire américain
+            dans le chemin critique des données clients.
           </p>
         </div>
       </div>

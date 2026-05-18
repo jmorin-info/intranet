@@ -41,15 +41,12 @@ export default function WebAuthnPage() {
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
   const [newLabel, setNewLabel] = useState("");
-  const supported =
-    typeof window !== "undefined" && browserSupportsWebAuthn();
+  const supported = typeof window !== "undefined" && browserSupportsWebAuthn();
 
   const refresh = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get<Credential[]>(
-        "/mfa/webauthn/credentials",
-      );
+      const { data } = await api.get<Credential[]>("/mfa/webauthn/credentials");
       setCredentials(data);
     } catch (err) {
       logger.error(err, { page: "webauthn", context: "list" });
@@ -115,7 +112,8 @@ export default function WebAuthnPage() {
   };
 
   const transportIcon = (transports: string[]) => {
-    if (transports.includes("internal")) return <Smartphone className="h-4 w-4" />;
+    if (transports.includes("internal"))
+      return <Smartphone className="h-4 w-4" />;
     if (transports.includes("usb")) return <Usb className="h-4 w-4" />;
     return <Key className="h-4 w-4" />;
   };
@@ -145,7 +143,7 @@ export default function WebAuthnPage() {
       <Card>
         <CardHeader>
           <h2 className="font-semibold text-seal-navy dark:text-white flex items-center gap-2">
-            <Plus className="h-5 w-5 text-[#F68D2E]" /> Ajouter une clé
+            <Plus className="h-5 w-5 text-slate-900" /> Ajouter une clé
           </h2>
         </CardHeader>
         <CardContent className="space-y-4">

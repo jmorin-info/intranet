@@ -209,7 +209,11 @@ export function ComplianceOverview() {
         icon={Shield}
         hub="admin"
         actions={
-          <Button onClick={handleFullScan} loading={scanning} disabled={scanning}>
+          <Button
+            onClick={handleFullScan}
+            loading={scanning}
+            disabled={scanning}
+          >
             <ScanSearch className="h-4 w-4" />
             {scanning ? "Analyse en cours..." : "Scanner tous les documents"}
           </Button>
@@ -582,7 +586,7 @@ export function ComplianceOverview() {
                         `${g.controlCode};${g.controlTitle.replace(/;/g, ",")};${g.domain};${g.status};${g.documentCount};${g.documents.map((d) => d.reference).join(", ")}`,
                     )
                     .join("\n");
-                  const blob = new Blob(["\uFEFF" + header + rows], {
+                  const blob = new Blob(["﻿" + header + rows], {
                     type: "text/csv;charset=utf-8;",
                   });
                   const url = URL.createObjectURL(blob);

@@ -171,7 +171,9 @@ export default function AdminReportsPage() {
           totalTickets: totalTickets || dash.totalTickets,
         });
       })
-      .catch((err) => logger.error(err, { page: "admin/reports", context: "load stats" }))
+      .catch((err) =>
+        logger.error(err, { page: "admin/reports", context: "load stats" }),
+      )
       .finally(() => setStatsLoading(false));
   }, []);
 
@@ -196,7 +198,9 @@ export default function AdminReportsPage() {
         ...prev,
         [report.id]: new Date().toLocaleString("fr-FR"),
       }));
-      toast.success(`${t("downloaded")} — ${t(`reports.${report.i18nKey}.title`)}`);
+      toast.success(
+        `${t("downloaded")} — ${t(`reports.${report.i18nKey}.title`)}`,
+      );
     } catch (error: unknown) {
       const err = error as {
         response?: { data?: { message?: string }; status?: number };
@@ -340,7 +344,7 @@ export default function AdminReportsPage() {
               ? "bg-[#006233]/10 text-[#006233] dark:bg-[#006233]/20 dark:text-emerald-300 border border-[#006233]/20"
               : report.format === "CSV"
                 ? "bg-[#296DC1]/10 text-[#296DC1] dark:bg-[#296DC1]/20 dark:text-blue-300 border border-[#296DC1]/20"
-                : "bg-[#F68D2E]/10 text-[#F68D2E] dark:bg-[#F68D2E]/20 dark:text-orange-300 border border-[#F68D2E]/20";
+                : "bg-[#F68D2E]/10 text-slate-900 dark:bg-[#F68D2E]/20 dark:text-orange-300 border border-[#F68D2E]/20";
           const hasBeenGenerated = !!lastGenerated[report.id];
           return (
             <Card
@@ -373,7 +377,9 @@ export default function AdminReportsPage() {
                       <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#006233]/5 dark:bg-[#006233]/10 px-2.5 py-1 border border-[#006233]/10">
                         <Clock className="h-3 w-3 text-[#006233]" />
                         <span className="text-[10px] font-medium text-[#006233] dark:text-emerald-400">
-                          {t("lastGeneratedAt", { date: lastGenerated[report.id] ?? "" })}
+                          {t("lastGeneratedAt", {
+                            date: lastGenerated[report.id] ?? "",
+                          })}
                         </span>
                       </div>
                     )}

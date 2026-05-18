@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * /admin/pca — Module PCA (Plan de Continuité d'Activité) interactif.
@@ -14,11 +14,11 @@
  *                  + A.8.13 / A.8.14 (backups / redondance)
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import { toast } from 'sonner';
+import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 import {
   Activity,
   CalendarClock,
@@ -35,17 +35,17 @@ import {
   Terminal,
   TimerReset,
   Zap,
-} from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { RoleGuard } from '@/components/role-guard';
-import { UserRole } from '@omnitech/shared';
-import { Badge, Button, Card, CardContent, EmptyState } from '@omnitech/ui';
+} from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
+import { RoleGuard } from "@/components/role-guard";
+import { UserRole } from "@omnitech/shared";
+import { Badge, Button, Card, CardContent, EmptyState } from "@omnitech/ui";
 
 // ───────────────────────────────────────────────────────────────────────────
 // Types alignés sur les DTO backend (apps/backend/src/pca/*)
 // ───────────────────────────────────────────────────────────────────────────
 
-type RunStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
+type RunStatus = "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "CANCELLED";
 
 interface Scenario {
   id: string;
@@ -100,34 +100,36 @@ interface RunsResponse {
 // ───────────────────────────────────────────────────────────────────────────
 
 const STATUS_CLASSES: Record<RunStatus, string> = {
-  PENDING: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
-  RUNNING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
-  SUCCESS: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-  FAILED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-  CANCELLED: 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300',
+  PENDING: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+  RUNNING:
+    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  SUCCESS:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  FAILED: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  CANCELLED: "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300",
 };
 
 const STATUS_LABELS: Record<RunStatus, string> = {
-  PENDING: 'En attente',
-  RUNNING: 'En cours',
-  SUCCESS: 'Succès',
-  FAILED: 'Échec',
-  CANCELLED: 'Annulé',
+  PENDING: "En attente",
+  RUNNING: "En cours",
+  SUCCESS: "Succès",
+  FAILED: "Échec",
+  CANCELLED: "Annulé",
 };
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 function formatDuration(ms: number | null): string {
-  if (ms === null || ms === undefined) return '—';
+  if (ms === null || ms === undefined) return "—";
   if (ms < 1000) return `${ms} ms`;
   const sec = ms / 1000;
   if (sec < 60) return `${sec.toFixed(1)} s`;
@@ -153,7 +155,7 @@ function PcaPageInner() {
   const [kpis, setKpis] = useState<Kpis | null>(null);
   const [schedule, setSchedule] = useState<ScheduledJob[]>([]);
   const [runs, setRuns] = useState<RunRow[]>([]);
-  const [meta, setMeta] = useState<RunsResponse['meta']>({
+  const [meta, setMeta] = useState<RunsResponse["meta"]>({
     total: 0,
     page: 1,
     limit: 20,
@@ -167,9 +169,9 @@ function PcaPageInner() {
     setLoading(true);
     try {
       const [scenRes, kpiRes, scheduleRes, runsRes] = await Promise.all([
-        api.get<Scenario[]>('/pca/scenarios'),
-        api.get<Kpis>('/pca/kpis'),
-        api.get<ScheduledJob[]>('/pca/schedule'),
+        api.get<Scenario[]>("/pca/scenarios"),
+        api.get<Kpis>("/pca/kpis"),
+        api.get<ScheduledJob[]>("/pca/schedule"),
         api.get<RunsResponse>(`/pca/runs?page=${page}&limit=20`),
       ]);
       setScenarios(scenRes.data);
@@ -178,7 +180,7 @@ function PcaPageInner() {
       setRuns(runsRes.data.data);
       setMeta(runsRes.data.meta);
     } catch {
-      toast.error('Impossible de charger les données PCA');
+      toast.error("Impossible de charger les données PCA");
     } finally {
       setLoading(false);
     }
@@ -199,10 +201,10 @@ function PcaPageInner() {
     try {
       const headers: Record<string, string> = {};
       if (scenario.destructive) {
-        headers['X-Confirm'] = 'I-understand-this-is-destructive';
+        headers["X-Confirm"] = "I-understand-this-is-destructive";
       }
       const { data } = await api.post<{ runId: string; status: RunStatus }>(
-        '/pca/runs',
+        "/pca/runs",
         { scenarioId: scenario.id },
         { headers },
       );
@@ -210,10 +212,11 @@ function PcaPageInner() {
       router.push(`/admin/pca/runs/${data.runId}`);
     } catch (err: unknown) {
       const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { message?: string } } }).response
+              ?.data?.message
           : undefined;
-      toast.error(msg || 'Impossible de démarrer le scénario');
+      toast.error(msg || "Impossible de démarrer le scénario");
     } finally {
       setLaunchingId(null);
     }
@@ -227,9 +230,14 @@ function PcaPageInner() {
         icon={ShieldCheck}
         hub="admin"
         actions={
-          <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadAll}
+            disabled={loading}
+          >
             <RefreshCw
-              className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+              className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
             />
             Rafraîchir
           </Button>
@@ -244,8 +252,9 @@ function PcaPageInner() {
         <KpiCard
           label="Dernier test"
           value={
-            kpis?.daysSinceLastRun === null || kpis?.daysSinceLastRun === undefined
-              ? '—'
+            kpis?.daysSinceLastRun === null ||
+            kpis?.daysSinceLastRun === undefined
+              ? "—"
               : kpis.daysSinceLastRun === 0
                 ? "Aujourd'hui"
                 : `Il y a ${kpis.daysSinceLastRun} j`
@@ -257,7 +266,7 @@ function PcaPageInner() {
           label="Taux de succès (30j)"
           value={
             kpis?.successRate30d === null || kpis?.successRate30d === undefined
-              ? '—'
+              ? "—"
               : `${kpis.successRate30d}%`
           }
           icon={CheckCircle2}
@@ -269,7 +278,7 @@ function PcaPageInner() {
         />
         <KpiCard
           label="Prochain test planifié"
-          value={kpis?.nextScheduled?.humanSchedule || '—'}
+          value={kpis?.nextScheduled?.humanSchedule || "—"}
           icon={CalendarClock}
           hint={kpis?.nextScheduled?.scenarioId}
         />
@@ -364,7 +373,8 @@ function PcaPageInner() {
                           <span
                             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_CLASSES[r.status]}`}
                           >
-                            {r.status === 'RUNNING' || r.status === 'PENDING' ? (
+                            {r.status === "RUNNING" ||
+                            r.status === "PENDING" ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
                             ) : null}
                             {STATUS_LABELS[r.status]}
@@ -376,13 +386,13 @@ function PcaPageInner() {
                         <td className="px-4 py-3 text-gray-600 dark:text-slate-300">
                           {r.triggeredByUser
                             ? `${r.triggeredByUser.firstName} ${r.triggeredByUser.lastName}`
-                            : '—'}
+                            : "—"}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <Link
                             href={`/admin/pca/runs/${r.id}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-[#004469] hover:underline dark:text-blue-300"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-slate-900 hover:underline dark:text-blue-300"
                           >
                             Détail
                             <ChevronRight className="h-3.5 w-3.5" />
@@ -425,7 +435,10 @@ function PcaPageInner() {
       </section>
 
       {/* ─── Cron / doc ────────────────────────────────────────────────── */}
-      <section aria-label="Planification et documentation" className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <section
+        aria-label="Planification et documentation"
+        className="grid grid-cols-1 gap-4 lg:grid-cols-2"
+      >
         <Card>
           <CardContent className="p-6">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-seal-navy dark:text-white">
@@ -467,8 +480,8 @@ function PcaPageInner() {
             </h3>
             <p className="mb-3 text-sm text-seal-gray-500 dark:text-slate-400">
               Le runbook complet de restauration (pas-à-pas, contrôles, preuves
-              ISO A.5.30) est disponible dans <code>RESTORE.md</code> à la racine
-              du projet.
+              ISO A.5.30) est disponible dans <code>RESTORE.md</code> à la
+              racine du projet.
             </p>
             <div className="flex flex-wrap gap-2">
               <Link href="/admin/backups">
@@ -506,7 +519,7 @@ function KpiCard({ label, value, icon: Icon, hint }: KpiCardProps) {
   return (
     <Card>
       <CardContent className="flex items-start gap-3 p-4">
-        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#004469]/10 text-[#004469]">
+        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#F68D2E]/10 text-slate-900">
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">

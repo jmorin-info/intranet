@@ -99,7 +99,11 @@ import {
   getValidityInfo,
   categoryBadgeVariant,
 } from "./_components/helpers";
-import type { Document, PaginatedDocs, StatusTabKey } from "./_components/types";
+import type {
+  Document,
+  PaginatedDocs,
+  StatusTabKey,
+} from "./_components/types";
 import { useDocumentsColumns } from "./_components/use-documents-columns";
 
 function DocumentsContent() {
@@ -474,7 +478,7 @@ function DocumentsContent() {
         r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"),
       ),
     ].join("\n");
-    const blob = new Blob(["\uFEFF" + csv], {
+    const blob = new Blob(["﻿" + csv], {
       type: "text/csv;charset=utf-8;",
     });
     const url = URL.createObjectURL(blob);
@@ -1273,7 +1277,7 @@ function DocumentsContent() {
             <EmptyState
               type="documents"
               title="Aucun document pour le moment"
-              description="Votre base documentaire ISO 27001 est vide. Cr\u00e9ez votre premier document pour d\u00e9marrer le r\u00e9f\u00e9rentiel."
+              description="Votre base documentaire ISO 27001 est vide. Créez votre premier document pour démarrer le référentiel."
               action={
                 canCreate ? (
                   <Button onClick={() => router.push("/documents/new")}>
@@ -1294,7 +1298,11 @@ function DocumentsContent() {
               {/* Mobile: cards layout (< md) — table view sur mobile = cards par défaut */}
               <div className="md:hidden space-y-2">
                 {loading ? (
-                  <div className="space-y-2" aria-label="Chargement des documents" aria-busy="true">
+                  <div
+                    className="space-y-2"
+                    aria-label="Chargement des documents"
+                    aria-busy="true"
+                  >
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div
                         key={i}
@@ -1447,8 +1455,8 @@ function DocumentsContent() {
                   }}
                   emptyMessage={
                     hasFilters
-                      ? "Aucun document ne correspond \u00e0 ces crit\u00e8res. Ajustez vos filtres ou lancez une nouvelle recherche."
-                      : "Aucun document pour le moment. Cr\u00e9ez-en un pour d\u00e9marrer."
+                      ? "Aucun document ne correspond à ces critères. Ajustez vos filtres ou lancez une nouvelle recherche."
+                      : "Aucun document pour le moment. Créez-en un pour démarrer."
                   }
                   emptyIcon={
                     <FileText className="h-12 w-12 text-seal-gray-500/30 dark:text-slate-600" />
@@ -1556,7 +1564,7 @@ function DocumentsContent() {
             <EmptyState
               type="documents"
               title={t("documents.empty")}
-              description="Aucun document ne correspond aux filtres s\u00e9lectionn\u00e9s. R\u00e9initialisez vos crit\u00e8res ou cr\u00e9ez un nouveau document."
+              description="Aucun document ne correspond aux filtres sélectionnés. Réinitialisez vos critères ou créez un nouveau document."
               action={
                 <div className="flex flex-wrap items-center gap-2 justify-center">
                   {(hasFilters ||

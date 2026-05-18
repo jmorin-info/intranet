@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * ConversationMenu — Features 5 + 10.
@@ -9,16 +9,16 @@
  *   - Partage par lien (POST /rag/conversations/share, valide 7 jours)
  */
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Download, FileText, Link2, Share2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { api } from '@/lib/api';
-import type { ChatMessage } from '@/stores/chatbot-store';
+import React, { useEffect, useRef, useState } from "react";
+import { Download, FileText, Link2, Share2 } from "lucide-react";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import type { ChatMessage } from "@/stores/chatbot-store";
 import {
   buildConversationMarkdown,
   downloadMarkdown,
   exportConversationPdf,
-} from './export-conversation';
+} from "./export-conversation";
 
 interface ConversationMenuProps {
   messages: ChatMessage[];
@@ -26,9 +26,13 @@ interface ConversationMenuProps {
   module?: string;
 }
 
-export function ConversationMenu({ messages, user, module }: ConversationMenuProps) {
+export function ConversationMenu({
+  messages,
+  user,
+  module,
+}: ConversationMenuProps) {
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState<'md' | 'pdf' | 'share' | null>(null);
+  const [busy, setBusy] = useState<"md" | "pdf" | "share" | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -38,23 +42,23 @@ export function ConversationMenu({ messages, user, module }: ConversationMenuPro
       if (!wrapperRef.current?.contains(e.target as Node)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === "Escape") setOpen(false);
     };
-    document.addEventListener('mousedown', onClick);
-    document.addEventListener('keydown', onKey);
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener('mousedown', onClick);
-      document.removeEventListener('keydown', onKey);
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
   const handleMarkdown = () => {
-    setBusy('md');
+    setBusy("md");
     try {
       const md = buildConversationMarkdown(messages, { user, module });
       const filename = `conversation-omnitech-${new Date().toISOString().slice(0, 10)}.md`;
       downloadMarkdown(filename, md);
-      toast.success('Conversation exportée en Markdown');
+      toast.success("Conversation exportée en Markdown");
       setOpen(false);
     } catch {
       toast.error("Échec de l'export Markdown");
@@ -64,10 +68,10 @@ export function ConversationMenu({ messages, user, module }: ConversationMenuPro
   };
 
   const handlePdf = async () => {
-    setBusy('pdf');
+    setBusy("pdf");
     try {
       await exportConversationPdf(messages, { user, module });
-      toast.success('PDF généré et téléchargé');
+      toast.success("PDF généré et téléchargé");
       setOpen(false);
     } catch {
       toast.error("Échec de l'export PDF");
@@ -77,7 +81,7 @@ export function ConversationMenu({ messages, user, module }: ConversationMenuPro
   };
 
   const handleShare = async () => {
-    setBusy('share');
+    setBusy("share");
     try {
       const payload = messages.map((m) => ({
         role: m.role,
@@ -85,14 +89,17 @@ export function ConversationMenu({ messages, user, module }: ConversationMenuPro
         timestamp: m.timestamp,
         sources: m.sources,
       }));
-      const res = await api.post<{ token: string; url: string; expiresAt: string }>(
-        '/rag/conversations/share',
-        { messages: payload },
-      );
-      const url = res.data.url || `${window.location.origin}/share/conversation/${res.data.token}`;
+      const res = await api.post<{
+        token: string;
+        url: string;
+        expiresAt: string;
+      }>("/rag/conversations/share", { messages: payload });
+      const url =
+        res.data.url ||
+        `${window.location.origin}/share/conversation/${res.data.token}`;
       try {
         await navigator.clipboard.writeText(url);
-        toast.success('Lien copié — valide 7 jours');
+        toast.success("Lien copié — valide 7 jours");
       } catch {
         toast.success(`Lien généré : ${url}`);
       }
@@ -101,12 +108,12 @@ export function ConversationMenu({ messages, user, module }: ConversationMenuPro
       // Fallback : copie un lien local "preview" (non persistant)
       try {
         const md = buildConversationMarkdown(messages, { user, module });
-        const blob = new Blob([md], { type: 'text/markdown' });
+        const blob = new Blob([md], { type: "text/markdown" });
         const url = URL.createObjectURL(blob);
         await navigator.clipboard.writeText(url);
-        toast.warning('Partage en ligne indisponible — lien local copié');
+        toast.warning("Partage en ligne indisponible — lien local copié");
       } catch {
-        toast.error('Impossible de partager la conversation');
+        toast.error("Impossible de partager la conversation");
       }
     } finally {
       setBusy(null);
@@ -141,9 +148,13 @@ export function ConversationMenu({ messages, user, module }: ConversationMenuPro
             disabled={busy !== null}
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-50"
           >
-            <Download className="h-4 w-4 text-[#004469] dark:text-blue-400" />
+            <Download className="h-4 w-4 text-slate-900 dark:text-blue-400" />
             <span className="flex-1 text-left">Exporter en Markdown</span>
-            {busy === 'md' && <span className="text-[10px] text-gray-400 dark:text-slate-500">…</span>}
+            {busy === "md" && (
+              <span className="text-[10px] text-gray-400 dark:text-slate-500">
+                …
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -152,9 +163,13 @@ export function ConversationMenu({ messages, user, module }: ConversationMenuPro
             disabled={busy !== null}
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-seal-navy dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-50"
           >
-            <FileText className="h-4 w-4 text-[#F68D2E]" />
+            <FileText className="h-4 w-4 text-slate-900" />
             <span className="flex-1 text-left">Exporter en PDF</span>
-            {busy === 'pdf' && <span className="text-[10px] text-gray-400 dark:text-slate-500">…</span>}
+            {busy === "pdf" && (
+              <span className="text-[10px] text-gray-400 dark:text-slate-500">
+                …
+              </span>
+            )}
           </button>
           <div className="my-1 border-t border-gray-100 dark:border-slate-800" />
           <button
@@ -166,7 +181,11 @@ export function ConversationMenu({ messages, user, module }: ConversationMenuPro
           >
             <Link2 className="h-4 w-4 text-emerald-600" />
             <span className="flex-1 text-left">Partager (lien 7 jours)</span>
-            {busy === 'share' && <span className="text-[10px] text-gray-400 dark:text-slate-500">…</span>}
+            {busy === "share" && (
+              <span className="text-[10px] text-gray-400 dark:text-slate-500">
+                …
+              </span>
+            )}
           </button>
         </div>
       )}

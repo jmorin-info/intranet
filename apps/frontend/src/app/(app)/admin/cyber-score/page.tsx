@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Page /admin/cyber-score — score cyber /100 basé sur 10 domaines ISO 27001:2022.
@@ -12,14 +12,21 @@
  * Bouton "Recalculer maintenant" → POST /cyber-score/recompute.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { api } from '@/lib/api';
-import { useTranslation } from '@/lib/i18n';
-import { Card, CardContent, CardHeader, Button, Skeleton, Badge } from '@omnitech/ui';
-import { UserRole } from '@omnitech/shared';
-import { RoleGuard } from '@/components/role-guard';
-import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
-import { PageHeader } from '@/components/layout/page-header';
+import React, { useCallback, useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Button,
+  Skeleton,
+  Badge,
+} from "@omnitech/ui";
+import { UserRole } from "@omnitech/shared";
+import { RoleGuard } from "@/components/role-guard";
+import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   ShieldCheck,
   RefreshCw,
@@ -27,7 +34,7 @@ import {
   ArrowDown,
   Minus,
   TrendingUp,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface Signal {
   label: string;
@@ -60,11 +67,11 @@ interface HistoryPoint {
 }
 
 // Palette SEAL ISO (orange/vert/bordeaux, respecte la charte)
-const SEAL_GREEN = '#006233';
-const SEAL_ORANGE = '#f9964a';
-const SEAL_BORDEAUX = '#892034';
-const SEAL_NAVY = '#004469';
-const SEAL_TAUPE = '#837274';
+const SEAL_GREEN = "#006233";
+const SEAL_ORANGE = "#f9964a";
+const SEAL_BORDEAUX = "#892034";
+const SEAL_NAVY = "#F68D2E";
+const SEAL_TAUPE = "#837274";
 
 /**
  * Palette seal selon le niveau de score. Pas de red générique — on reste
@@ -77,9 +84,9 @@ function scoreColor(score: number): string {
 }
 
 function scoreLabel(score: number): string {
-  if (score >= 80) return 'Bon';
-  if (score >= 60) return 'À surveiller';
-  return 'À corriger';
+  if (score >= 80) return "Bon";
+  if (score >= 60) return "À surveiller";
+  return "À corriger";
 }
 
 /**
@@ -95,7 +102,10 @@ function ScoreGauge({ score }: { score: number }) {
   const color = scoreColor(score);
 
   return (
-    <div className="relative inline-block" style={{ width: size, height: size }}>
+    <div
+      className="relative inline-block"
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} className="-rotate-90">
         <circle
           cx={size / 2}
@@ -116,15 +126,19 @@ function ScoreGauge({ score }: { score: number }) {
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={dashoffset}
-          style={{ transition: 'stroke-dashoffset 600ms ease-out' }}
+          style={{ transition: "stroke-dashoffset 600ms ease-out" }}
         />
       </svg>
       <div
         className="absolute inset-0 flex flex-col items-center justify-center"
         style={{ color }}
       >
-        <div className="text-5xl font-bold tabular-nums leading-none">{score}</div>
-        <div className="text-xs uppercase tracking-wider opacity-70 mt-2">/ 100</div>
+        <div className="text-5xl font-bold tabular-nums leading-none">
+          {score}
+        </div>
+        <div className="text-xs uppercase tracking-wider opacity-70 mt-2">
+          / 100
+        </div>
       </div>
     </div>
   );
@@ -161,16 +175,21 @@ function Sparkline({
   const points = data
     .map((d, i) => {
       const x = pad + i * xStep;
-      const y = height - pad - ((d.score - minScore) / range) * (height - pad * 2);
+      const y =
+        height - pad - ((d.score - minScore) / range) * (height - pad * 2);
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
-    .join(' ');
+    .join(" ");
   const lastScore = data[data.length - 1]!.score;
   const color = scoreColor(lastScore);
-  const fillPath = `M${pad},${height - pad} L${points.replaceAll(' ', ' L')} L${(width - pad).toFixed(1)},${height - pad} Z`;
+  const fillPath = `M${pad},${height - pad} L${points.replaceAll(" ", " L")} L${(width - pad).toFixed(1)},${height - pad} Z`;
 
   return (
-    <svg width="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+    <svg
+      width="100%"
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+    >
       <path d={fillPath} fill={color} fillOpacity={0.12} />
       <polyline
         points={points}
@@ -184,13 +203,7 @@ function Sparkline({
   );
 }
 
-function TrendBadge({
-  label,
-  delta,
-}: {
-  label: string;
-  delta: number | null;
-}) {
+function TrendBadge({ label, delta }: { label: string; delta: number | null }) {
   const { t } = useTranslation();
   if (delta === null) {
     return (
@@ -198,7 +211,9 @@ function TrendBadge({
         <span className="text-xs uppercase tracking-wider text-seal-gray-400">
           {label}
         </span>
-        <span className="text-sm text-seal-gray-400">{t('cyberScore.noTrend')}</span>
+        <span className="text-sm text-seal-gray-400">
+          {t("cyberScore.noTrend")}
+        </span>
       </div>
     );
   }
@@ -233,7 +248,9 @@ function DomainCard({ domain }: { domain: Domain }) {
             <div className="text-sm font-semibold text-seal-navy dark:text-white truncate">
               {domain.name}
             </div>
-            <div className="text-xs text-seal-gray-400 font-mono">{domain.iso}</div>
+            <div className="text-xs text-seal-gray-400 font-mono">
+              {domain.iso}
+            </div>
           </div>
           <div
             className="flex-shrink-0 rounded-md px-2.5 py-1 text-sm font-semibold tabular-nums"
@@ -264,7 +281,7 @@ function DomainCard({ domain }: { domain: Domain }) {
                   {s.value}
                 </span>
                 <Badge variant="info" className="text-[10px] tabular-nums">
-                  {t('cyberScore.weight')} {s.weight}
+                  {t("cyberScore.weight")} {s.weight}
                 </Badge>
               </span>
             </li>
@@ -296,17 +313,17 @@ function CyberScoreContent() {
     setError(null);
     try {
       const [scoreRes, histRes] = await Promise.all([
-        api.get<CyberScoreResponse>('/cyber-score'),
+        api.get<CyberScoreResponse>("/cyber-score"),
         api
-          .get<HistoryPoint[]>('/cyber-score/history', { params: { days: 90 } })
+          .get<HistoryPoint[]>("/cyber-score/history", { params: { days: 90 } })
           .catch(() => ({ data: [] as HistoryPoint[] })),
       ]);
       setData(scoreRes.data);
       setHistory(histRes.data || []);
     } catch (err: any) {
       // eslint-disable-next-line no-console
-      console.error('cyber-score load error', err);
-      setError(t('cyberScore.error'));
+      console.error("cyber-score load error", err);
+      setError(t("cyberScore.error"));
     } finally {
       setLoading(false);
     }
@@ -319,34 +336,34 @@ function CyberScoreContent() {
   const recompute = useCallback(async () => {
     setRecomputing(true);
     try {
-      const res = await api.post<CyberScoreResponse>('/cyber-score/recompute');
+      const res = await api.post<CyberScoreResponse>("/cyber-score/recompute");
       setData(res.data);
       // Refresh history (new snapshot added).
       const h = await api
-        .get<HistoryPoint[]>('/cyber-score/history', { params: { days: 90 } })
+        .get<HistoryPoint[]>("/cyber-score/history", { params: { days: 90 } })
         .catch(() => ({ data: [] as HistoryPoint[] }));
       setHistory(h.data || []);
     } catch (err: any) {
       // eslint-disable-next-line no-console
-      console.error('cyber-score recompute error', err);
-      setError(t('cyberScore.error'));
+      console.error("cyber-score recompute error", err);
+      setError(t("cyberScore.error"));
     } finally {
       setRecomputing(false);
     }
   }, [t]);
 
   const computedAtLabel = data
-    ? new Date(data.computedAt).toLocaleString('fr-FR', {
-        dateStyle: 'short',
-        timeStyle: 'short',
+    ? new Date(data.computedAt).toLocaleString("fr-FR", {
+        dateStyle: "short",
+        timeStyle: "short",
       })
-    : '';
+    : "";
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t('cyberScore.title')}
-        subtitle={t('cyberScore.subtitle')}
+        title={t("cyberScore.title")}
+        subtitle={t("cyberScore.subtitle")}
         icon={ShieldCheck}
       />
 
@@ -383,7 +400,7 @@ function CyberScoreContent() {
                 <>
                   <div className="flex items-center gap-3 flex-wrap">
                     <h2 className="text-xl font-semibold text-seal-navy dark:text-white">
-                      {t('cyberScore.global')}
+                      {t("cyberScore.global")}
                     </h2>
                     <Badge
                       style={{
@@ -397,16 +414,16 @@ function CyberScoreContent() {
                     </Badge>
                   </div>
                   <p className="text-xs text-seal-gray-400 mt-1">
-                    {t('cyberScore.computedAt')} : {computedAtLabel}
+                    {t("cyberScore.computedAt")} : {computedAtLabel}
                   </p>
 
                   <div className="mt-4 flex items-center gap-6 flex-wrap">
                     <TrendBadge
-                      label={t('cyberScore.trend7d')}
+                      label={t("cyberScore.trend7d")}
                       delta={data.trends.delta7d}
                     />
                     <TrendBadge
-                      label={t('cyberScore.trend30d')}
+                      label={t("cyberScore.trend30d")}
                       delta={data.trends.delta30d}
                     />
                     <div className="ml-auto">
@@ -417,12 +434,12 @@ function CyberScoreContent() {
                         className="gap-2"
                       >
                         <RefreshCw
-                          className={`h-4 w-4 ${recomputing ? 'animate-spin' : ''}`}
+                          className={`h-4 w-4 ${recomputing ? "animate-spin" : ""}`}
                           aria-hidden
                         />
                         {recomputing
-                          ? t('cyberScore.recomputing')
-                          : t('cyberScore.recompute')}
+                          ? t("cyberScore.recomputing")
+                          : t("cyberScore.recompute")}
                       </Button>
                     </div>
                   </div>
@@ -439,7 +456,7 @@ function CyberScoreContent() {
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-seal-gray-500" aria-hidden />
             <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
-              {t('cyberScore.history')}
+              {t("cyberScore.history")}
             </h3>
           </div>
         </CardHeader>
@@ -447,7 +464,9 @@ function CyberScoreContent() {
           {loading ? (
             <Skeleton className="h-20 w-full" />
           ) : history.length === 0 ? (
-            <p className="text-xs text-seal-gray-400">{t('cyberScore.historyEmpty')}</p>
+            <p className="text-xs text-seal-gray-400">
+              {t("cyberScore.historyEmpty")}
+            </p>
           ) : (
             <Sparkline data={history} />
           )}

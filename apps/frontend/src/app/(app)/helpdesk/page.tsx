@@ -118,8 +118,8 @@ function MyRecentTickets() {
     <div className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#004469]/10 dark:bg-[#004469]/30">
-            <Inbox className="h-4 w-4 text-[#004469] dark:text-blue-400" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F68D2E]/10 dark:bg-[#F68D2E]/30">
+            <Inbox className="h-4 w-4 text-slate-900 dark:text-blue-400" />
           </div>
           <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
             {t("myRecentTickets")}
@@ -127,7 +127,7 @@ function MyRecentTickets() {
         </div>
         <Link
           href="/tickets?userId=me"
-          className="text-xs font-medium text-[#004469] dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+          className="text-xs font-medium text-slate-900 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
         >
           {t("viewAll")}
           <ChevronRight className="h-3 w-3" />
@@ -174,7 +174,7 @@ function MyRecentTickets() {
             </p>
             <Link
               href="/tickets?create=true"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#004469] px-3 py-2 text-xs font-semibold text-white hover:bg-[#003352] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#F68D2E] px-3 py-2 text-xs font-semibold text-white hover:bg-[#d97420] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy focus-visible:ring-offset-2"
             >
               <Ticket className="h-3.5 w-3.5" aria-hidden="true" />
               {t("createFirstTicket")}
@@ -222,13 +222,12 @@ function MyRecentTickets() {
                 </div>
                 <div className="flex items-center gap-1 text-xs text-seal-gray-500 dark:text-slate-500 shrink-0">
                   <Clock className="h-3 w-3" />
-                  {new Date(ticket.updatedAt || ticket.createdAt).toLocaleDateString(
-                    "fr-FR",
-                    {
-                      day: "2-digit",
-                      month: "short",
-                    },
-                  )}
+                  {new Date(
+                    ticket.updatedAt || ticket.createdAt,
+                  ).toLocaleDateString("fr-FR", {
+                    day: "2-digit",
+                    month: "short",
+                  })}
                 </div>
               </Link>
             );
@@ -274,7 +273,7 @@ function QuickSuggestions({ onSetTab }: { onSetTab: (id: TabId) => void }) {
     <div className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
       <div className="border-b border-gray-100 dark:border-slate-800 px-4 py-3">
         <h3 className="text-sm font-semibold text-seal-navy dark:text-white flex items-center gap-2">
-          <BookOpen className="h-4 w-4 text-[#004469] dark:text-blue-400" />
+          <BookOpen className="h-4 w-4 text-slate-900 dark:text-blue-400" />
           {t("frequentRequests")}
         </h3>
       </div>
@@ -282,7 +281,7 @@ function QuickSuggestions({ onSetTab }: { onSetTab: (id: TabId) => void }) {
         {suggestions.map((s) => {
           const content = (
             <>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#004469]/10 dark:bg-[#004469]/30 text-[#004469] dark:text-blue-400 shrink-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F68D2E]/10 dark:bg-[#F68D2E]/30 text-slate-900 dark:text-blue-400 shrink-0">
                 <s.icon className="h-4 w-4" />
               </div>
               <span className="text-sm text-seal-navy dark:text-slate-200 flex-1">
@@ -382,15 +381,12 @@ function SupportPageInner() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main column: chatbot + suggestions */}
           <div className="lg:col-span-2 space-y-6">
-            <AIChatbot
-              mode="embedded"
-              placeholder={t("chatPlaceholder")}
-            />
+            <AIChatbot mode="embedded" placeholder={t("chatPlaceholder")} />
 
             {/* Always-visible CTA "Créer un ticket" — the escape hatch when
                 the IA does not answer. */}
             <div className="rounded-2xl border border-[#F68D2E]/30 bg-gradient-to-br from-[#F68D2E]/5 to-transparent dark:from-[#F68D2E]/10 dark:border-[#F68D2E]/40 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F68D2E]/10 text-[#F68D2E] shrink-0">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F68D2E]/10 text-slate-900 shrink-0">
                 <Ticket className="h-6 w-6" />
               </div>
               <div className="flex-1">

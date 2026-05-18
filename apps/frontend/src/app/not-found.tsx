@@ -1,19 +1,23 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
-import { OmnitechLogo } from '@/components/omnitech-logo';
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { OmnitechLogo } from "@/components/omnitech-logo";
 
 export default function NotFound() {
   const router = useRouter();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#004469]/5 via-white to-[#F68D2E]/5 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#F68D2E]/5 via-white to-[#F68D2E]/5 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="text-center px-6">
         <OmnitechLogo size="lg" variant="icon" className="mx-auto mb-6" />
-        <h1 className="text-8xl font-semibold text-seal-navy/20 dark:text-white/10">404</h1>
-        <h2 className="text-xl font-semibold text-seal-navy dark:text-white -mt-4">Page introuvable</h2>
+        <h1 className="text-8xl font-semibold text-seal-navy/20 dark:text-white/10">
+          404
+        </h1>
+        <h2 className="text-xl font-semibold text-seal-navy dark:text-white -mt-4">
+          Page introuvable
+        </h2>
         <p className="mt-3 text-sm text-seal-gray-500 dark:text-slate-400 max-w-sm mx-auto">
           La page que vous recherchez n&apos;existe pas ou a été déplacée.
           Vérifiez l&apos;URL ou retournez au tableau de bord.
@@ -35,7 +39,7 @@ export default function NotFound() {
           </Link>
         </div>
         <p className="mt-6 text-xs text-seal-gray-500 dark:text-slate-500">
-          Lien cassé ou page disparue ?{' '}
+          Lien cassé ou page disparue ?{" "}
           <Link
             href="/helpdesk"
             className="font-semibold text-seal-blue hover:underline dark:text-seal-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"

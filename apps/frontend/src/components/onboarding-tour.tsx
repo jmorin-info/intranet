@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { usePathname } from 'next/navigation';
-import { toast } from 'sonner';
-import { Button } from '@omnitech/ui';
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
+import { toast } from "sonner";
+import { Button } from "@omnitech/ui";
 import {
   ChevronRight,
   ChevronLeft,
@@ -14,22 +14,22 @@ import {
   Sparkles,
   Target,
   SkipForward,
-} from 'lucide-react';
-import { useAuthStore } from '@/stores/auth-store';
+} from "lucide-react";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   getOnboardingSteps,
   type OnboardingStepData,
   type OnboardingStepChallenge,
-} from './onboarding/onboarding-steps';
-import { MiniMockup } from './onboarding/mini-mockup';
+} from "./onboarding/onboarding-steps";
+import { MiniMockup } from "./onboarding/mini-mockup";
 
 /* ------------------------------------------------------------------ */
 /*  Storage key + events                                               */
 /* ------------------------------------------------------------------ */
 
-const STORAGE_KEY = 'onboarding_completed';
-const CHALLENGES_KEY = 'onboarding_challenges_completed';
-const RESTART_EVENT = 'omnitech:onboarding:restart';
+const STORAGE_KEY = "onboarding_completed";
+const CHALLENGES_KEY = "onboarding_challenges_completed";
+const RESTART_EVENT = "omnitech:onboarding:restart";
 
 /* ------------------------------------------------------------------ */
 /*  Challenge matching helpers                                         */
@@ -42,15 +42,15 @@ const RESTART_EVENT = 'omnitech:onboarding:restart';
 function matchKeyboardCombo(expected: string, e: KeyboardEvent): boolean {
   const parts = expected
     .toLowerCase()
-    .split('+')
+    .split("+")
     .map((p) => p.trim())
     .filter(Boolean);
-  const wantCtrl = parts.includes('control') || parts.includes('ctrl');
-  const wantShift = parts.includes('shift');
-  const wantAlt = parts.includes('alt');
-  const wantMeta = parts.includes('meta') || parts.includes('cmd');
+  const wantCtrl = parts.includes("control") || parts.includes("ctrl");
+  const wantShift = parts.includes("shift");
+  const wantAlt = parts.includes("alt");
+  const wantMeta = parts.includes("meta") || parts.includes("cmd");
   const mainKey = parts.find(
-    (p) => !['control', 'ctrl', 'shift', 'alt', 'meta', 'cmd'].includes(p),
+    (p) => !["control", "ctrl", "shift", "alt", "meta", "cmd"].includes(p),
   );
   if (!mainKey) return false;
 
@@ -69,7 +69,7 @@ function loadCompletedChallenges(): Set<number> {
     if (!raw) return new Set();
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((n): n is number => typeof n === 'number'));
+    return new Set(parsed.filter((n): n is number => typeof n === "number"));
   } catch {
     return new Set();
   }
@@ -122,12 +122,12 @@ function useHighlightRect(selector: string | undefined): DOMRect | null {
       setRect(el.getBoundingClientRect());
     }
     compute();
-    window.addEventListener('resize', compute);
-    window.addEventListener('scroll', compute, true);
+    window.addEventListener("resize", compute);
+    window.addEventListener("scroll", compute, true);
     const t = setTimeout(compute, 120);
     return () => {
-      window.removeEventListener('resize', compute);
-      window.removeEventListener('scroll', compute, true);
+      window.removeEventListener("resize", compute);
+      window.removeEventListener("scroll", compute, true);
       clearTimeout(t);
     };
   }, [selector]);
@@ -145,9 +145,11 @@ export function OnboardingTour() {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
-  const [direction, setDirection] = useState<'next' | 'prev'>('next');
+  const [direction, setDirection] = useState<"next" | "prev">("next");
   const [isAnimating, setIsAnimating] = useState(false);
-  const [challengeCompleted, setChallengeCompleted] = useState<Set<number>>(() => new Set());
+  const [challengeCompleted, setChallengeCompleted] = useState<Set<number>>(
+    () => new Set(),
+  );
 
   // Steps personnalisés selon le rôle de l'utilisateur connecté.
   // Si user pas encore chargé, tours par défaut (COLLABORATEUR) — sera
@@ -164,7 +166,7 @@ export function OnboardingTour() {
     setChallengeCompleted(loadCompletedChallenges());
     try {
       const done = localStorage.getItem(STORAGE_KEY);
-      if (done !== 'true') {
+      if (done !== "true") {
         // Slight delay so the main layout paints first
         const t = setTimeout(() => setOpen(true), 800);
         return () => clearTimeout(t);
@@ -178,7 +180,7 @@ export function OnboardingTour() {
   useEffect(() => {
     function onRestart() {
       setStep(0);
-      setDirection('next');
+      setDirection("next");
       setChallengeCompleted(new Set());
       setOpen(true);
     }
@@ -200,55 +202,60 @@ export function OnboardingTour() {
   useEffect(() => {
     if (!open) return;
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'ArrowLeft') {
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
-        setDirection('prev');
+        setDirection("prev");
         setStep((s) => (s > 0 ? s - 1 : s));
-      } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+      } else if (e.key === "ArrowRight" || e.key === "Enter") {
         // Ne pas swallow la touche si elle correspond au défi en cours
         // (on laisse l'event se propager pour l'app + le détecteur).
         if (hasPendingChallenge) return;
         e.preventDefault();
-        setDirection('next');
+        setDirection("next");
         setStep((s) => {
           if (s >= steps.length - 1) {
-            try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
+            try {
+              localStorage.setItem(STORAGE_KEY, "true");
+            } catch {
+              /* ignore */
+            }
             setOpen(false);
             return s;
           }
           return s + 1;
         });
-      } else if (e.key === 'Escape') {
+      } else if (e.key === "Escape") {
         e.preventDefault();
-        try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
+        try {
+          localStorage.setItem(STORAGE_KEY, "true");
+        } catch {
+          /* ignore */
+        }
         setOpen(false);
       }
     }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, steps.length, hasPendingChallenge]);
 
   const highlight = useHighlightRect(open ? current?.highlight : undefined);
 
   // Helper : marque un défi comme validé + persiste + toast.
-  const completeChallenge = useCallback(
-    (stepIdx: number, label?: string) => {
-      setChallengeCompleted((prev) => {
-        if (prev.has(stepIdx)) return prev;
-        const next = new Set(prev);
-        next.add(stepIdx);
-        persistCompletedChallenges(next);
-        return next;
-      });
-      toast.success(label ?? 'Défi validé !');
-    },
-    [],
-  );
+  const completeChallenge = useCallback((stepIdx: number, label?: string) => {
+    setChallengeCompleted((prev) => {
+      if (prev.has(stepIdx)) return prev;
+      const next = new Set(prev);
+      next.add(stepIdx);
+      persistCompletedChallenges(next);
+      return next;
+    });
+    toast.success(label ?? "Défi validé !");
+  }, []);
 
   // Détecteur clavier : valide un challenge `keyboard` si la combinaison matche.
   useEffect(() => {
     if (!open || !challenge || isChallengeDone) return;
-    if (challenge.kind !== 'keyboard' || !challenge.keys) return;
+    if (challenge.kind !== "keyboard" || !challenge.keys) return;
     const expected = challenge.keys;
     const currentStep = step;
     const successLabel = challenge.successLabel;
@@ -257,15 +264,18 @@ export function OnboardingTour() {
         completeChallenge(currentStep, successLabel);
       }
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [open, challenge, isChallengeDone, step, completeChallenge]);
 
   // Détecteur route : valide un challenge `visitRoute` quand pathname matche.
   useEffect(() => {
     if (!open || !challenge || isChallengeDone) return;
-    if (challenge.kind !== 'visitRoute' || !challenge.route) return;
-    if (pathname === challenge.route || pathname?.startsWith(challenge.route + '/')) {
+    if (challenge.kind !== "visitRoute" || !challenge.route) return;
+    if (
+      pathname === challenge.route ||
+      pathname?.startsWith(challenge.route + "/")
+    ) {
       completeChallenge(step, challenge.successLabel);
     }
   }, [open, challenge, isChallengeDone, pathname, step, completeChallenge]);
@@ -274,23 +284,27 @@ export function OnboardingTour() {
   // sur un élément matching le selector (ou un descendant).
   useEffect(() => {
     if (!open || !challenge || isChallengeDone) return;
-    if (challenge.kind !== 'clickSelector' || !challenge.selector) return;
+    if (challenge.kind !== "clickSelector" || !challenge.selector) return;
     const selector = challenge.selector;
     const currentStep = step;
     const successLabel = challenge.successLabel;
     function onClick(e: MouseEvent) {
       const target = e.target as Element | null;
-      if (target && typeof target.closest === 'function' && target.closest(selector)) {
+      if (
+        target &&
+        typeof target.closest === "function" &&
+        target.closest(selector)
+      ) {
         completeChallenge(currentStep, successLabel);
       }
     }
-    document.addEventListener('click', onClick, true);
-    return () => document.removeEventListener('click', onClick, true);
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
   }, [open, challenge, isChallengeDone, step, completeChallenge]);
 
   const finish = useCallback(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, 'true');
+      localStorage.setItem(STORAGE_KEY, "true");
     } catch {
       /* ignore */
     }
@@ -298,7 +312,7 @@ export function OnboardingTour() {
   }, []);
 
   const goToStep = useCallback(
-    (newStep: number, dir: 'next' | 'prev') => {
+    (newStep: number, dir: "next" | "prev") => {
       if (isAnimating) return;
       setIsAnimating(true);
       setDirection(dir);
@@ -315,12 +329,12 @@ export function OnboardingTour() {
       finish();
       return;
     }
-    goToStep(step + 1, 'next');
+    goToStep(step + 1, "next");
   }, [step, steps.length, finish, goToStep]);
 
   const handlePrev = useCallback(() => {
     if (step > 0) {
-      goToStep(step - 1, 'prev');
+      goToStep(step - 1, "prev");
     }
   }, [step, goToStep]);
 
@@ -336,7 +350,7 @@ export function OnboardingTour() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="onboarding-title"
-      style={{ animation: 'otFadeIn 0.3s ease-out' }}
+      style={{ animation: "otFadeIn 0.3s ease-out" }}
     >
       {/* Highlight ring around target element */}
       {highlight && (
@@ -347,7 +361,7 @@ export function OnboardingTour() {
             left: highlight.left - 6,
             width: highlight.width + 12,
             height: highlight.height + 12,
-            boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)',
+            boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
           }}
         />
       )}
@@ -357,10 +371,10 @@ export function OnboardingTour() {
           courts. Backdrop plus contrasté pour effet "visite guidée" premium. */}
       <div
         className="relative z-10 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] dark:bg-slate-900 dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)]"
-        style={{ animation: 'otSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}
+        style={{ animation: "otSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)" }}
       >
         {/* Header — gradient + progress bar + phase indicator */}
-        <div className="relative bg-gradient-to-r from-[#004469] via-[#004469] to-[#003352] dark:from-slate-800 dark:to-slate-900 px-6 py-3">
+        <div className="relative bg-gradient-to-r from-[#F68D2E] via-[#F68D2E] to-[#d97420] dark:from-slate-800 dark:to-slate-900 px-6 py-3">
           {/* Progress bar intégrée au header */}
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/10">
             <div
@@ -380,10 +394,10 @@ export function OnboardingTour() {
                 </p>
                 <p className="text-[11px] text-white/90 font-medium truncate">
                   {step < 5
-                    ? 'Phase 1 · Prise en main'
+                    ? "Phase 1 · Prise en main"
                     : step < steps.length - 1
-                    ? 'Phase 2 · Votre rôle'
-                    : 'Phase 3 · Pour aller plus loin'}
+                      ? "Phase 2 · Votre rôle"
+                      : "Phase 3 · Pour aller plus loin"}
                 </p>
               </div>
             </div>
@@ -408,16 +422,19 @@ export function OnboardingTour() {
           <div
             className={`transition-all duration-200 ease-out ${
               isAnimating
-                ? direction === 'next'
-                  ? 'translate-x-6 opacity-0'
-                  : '-translate-x-6 opacity-0'
-                : 'translate-x-0 opacity-100'
+                ? direction === "next"
+                  ? "translate-x-6 opacity-0"
+                  : "-translate-x-6 opacity-0"
+                : "translate-x-0 opacity-100"
             }`}
           >
             <div className="flex items-start gap-3">
               <span
                 className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl"
-                style={{ backgroundColor: 'rgba(249,150,74,0.14)', color: '#F9964A' }}
+                style={{
+                  backgroundColor: "rgba(249,150,74,0.14)",
+                  color: "#F9964A",
+                }}
                 aria-hidden="true"
               >
                 <Icon className="h-5 w-5" />
@@ -426,7 +443,7 @@ export function OnboardingTour() {
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-seal-gray-500 dark:text-slate-500">
                   Étape {step + 1} / {steps.length}
                   {user?.role && step >= 5 && step < steps.length - 1 && (
-                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#004469]/10 dark:bg-[#F9964A]/10 text-[9px] font-medium text-[#004469] dark:text-[#F9964A] normal-case tracking-normal">
+                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#F68D2E]/10 dark:bg-[#F9964A]/10 text-[9px] font-medium text-slate-900 dark:text-[#F9964A] normal-case tracking-normal">
                       Personnalisé pour votre rôle
                     </span>
                   )}
@@ -454,7 +471,10 @@ export function OnboardingTour() {
             {current.bullets && current.bullets.length > 0 && (
               <ul className="mt-4 space-y-1.5">
                 {current.bullets.map((b, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-seal-gray-500 dark:text-slate-400">
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-xs text-seal-gray-500 dark:text-slate-400"
+                  >
                     <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-emerald-500" />
                     <span>{b}</span>
                   </li>
@@ -497,7 +517,7 @@ export function OnboardingTour() {
                     Défi validé
                   </p>
                   <p className="mt-0.5 text-sm font-medium text-emerald-800 dark:text-emerald-200">
-                    {challenge.successLabel ?? 'Continuez quand vous voulez.'}
+                    {challenge.successLabel ?? "Continuez quand vous voulez."}
                   </p>
                 </div>
               </div>
@@ -514,7 +534,9 @@ export function OnboardingTour() {
                 className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-[#F9964A]/10 hover:bg-[#F9964A]/20 px-3 py-1.5 text-xs font-semibold text-[#F9964A] transition-colors"
               >
                 {current.cta.label} <ArrowRight className="h-3.5 w-3.5" />
-                <span className="ml-1 text-[9px] font-normal text-[#F9964A]/70">(nouvel onglet)</span>
+                <span className="ml-1 text-[9px] font-normal text-[#F9964A]/70">
+                  (nouvel onglet)
+                </span>
               </a>
             )}
           </div>
@@ -526,10 +548,10 @@ export function OnboardingTour() {
                 key={i}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   i === step
-                    ? 'w-6 bg-[#F9964A]'
+                    ? "w-6 bg-[#F9964A]"
                     : i < step
-                    ? 'w-1.5 bg-[#004469] dark:bg-blue-400'
-                    : 'w-1.5 bg-gray-300 dark:bg-slate-600'
+                      ? "w-1.5 bg-[#F68D2E] dark:bg-blue-400"
+                      : "w-1.5 bg-gray-300 dark:bg-slate-600"
                 }`}
               />
             ))}
@@ -542,7 +564,12 @@ export function OnboardingTour() {
                 Passer
               </Button>
               {!isFirst && (
-                <Button variant="ghost" size="sm" onClick={handlePrev} className="gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handlePrev}
+                  className="gap-1"
+                >
                   <ChevronLeft className="h-4 w-4" />
                   Retour
                 </Button>
@@ -567,9 +594,13 @@ export function OnboardingTour() {
                 onClick={hasPendingChallenge ? undefined : handleNext}
                 disabled={hasPendingChallenge}
                 className="gap-1"
-                title={hasPendingChallenge ? 'Complétez le défi pour continuer' : undefined}
+                title={
+                  hasPendingChallenge
+                    ? "Complétez le défi pour continuer"
+                    : undefined
+                }
               >
-                {isLast ? 'Terminé' : 'Suivant'}
+                {isLast ? "Terminé" : "Suivant"}
                 {!isLast && <ChevronRight className="h-4 w-4" />}
               </Button>
             </div>
@@ -579,26 +610,38 @@ export function OnboardingTour() {
         {/* Footer — raccourcis clavier (aide discrète, écran ≥ md) */}
         <div className="hidden md:flex items-center justify-center gap-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50 px-6 py-2">
           <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">←</kbd>
-            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">→</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">
+              ←
+            </kbd>
+            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">
+              →
+            </kbd>
             Naviguer
           </span>
           <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">Entrée</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">
+              Entrée
+            </kbd>
             Suivant
           </span>
           <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">Esc</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[9px] font-mono">
+              Esc
+            </kbd>
             Fermer
           </span>
         </div>
       </div>
 
       {/* Inline keyframes — no styled-jsx needed */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes otFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes otSlideUp { from { opacity: 0; transform: translateY(24px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
-      `}} />
+      `,
+        }}
+      />
     </div>
   );
 

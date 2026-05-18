@@ -1,28 +1,34 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth-store';
-import { toast } from 'sonner';
-import { OmnitechLogo } from '@/components/omnitech-logo';
-import { Card, Button, Badge } from '@omnitech/ui';
-import { Shield, CheckCircle2, FileText, AlertTriangle, PartyPopper } from 'lucide-react';
-import nextDynamic from 'next/dynamic';
-import { useTranslation } from '@/lib/i18n';
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
+import { OmnitechLogo } from "@/components/omnitech-logo";
+import { Card, Button, Badge } from "@omnitech/ui";
+import {
+  Shield,
+  CheckCircle2,
+  FileText,
+  AlertTriangle,
+  PartyPopper,
+} from "lucide-react";
+import nextDynamic from "next/dynamic";
+import { useTranslation } from "@/lib/i18n";
 
 // Load react-pdf client-only (uses Promise.withResolvers unavailable in Node 20 SSR)
 const PdfDocument = nextDynamic(
-  () => import('react-pdf').then((mod) => {
-    mod.pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-    return mod.Document;
-  }),
+  () =>
+    import("react-pdf").then((mod) => {
+      mod.pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+      return mod.Document;
+    }),
   { ssr: false },
 );
-const PdfPage = nextDynamic(
-  () => import('react-pdf').then((mod) => mod.Page),
-  { ssr: false },
-);
+const PdfPage = nextDynamic(() => import("react-pdf").then((mod) => mod.Page), {
+  ssr: false,
+});
 
 interface CharteVersion {
   id: string;
@@ -46,7 +52,7 @@ interface CharteWithVersion {
 export default function ChartesWallPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [chartes, setChartes] = useState<CharteWithVersion[]>([]);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -63,13 +69,20 @@ export default function ChartesWallPage() {
   const hasSeenAllPages = maxPageSeen >= numPages && numPages > 0;
 
   useEffect(() => {
-    if (!isAuthenticated) { router.push('/login'); return; }
-    api.get('/chartes/unsigned')
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+    api
+      .get("/chartes/unsigned")
       .then(({ data }) => {
-        if (data.length === 0) { router.push('/dashboard'); return; }
+        if (data.length === 0) {
+          router.push("/dashboard");
+          return;
+        }
         setChartes(data);
       })
-      .catch(() => router.push('/dashboard'))
+      .catch(() => router.push("/dashboard"))
       .finally(() => setLoading(false));
   }, [isAuthenticated, router]);
 
@@ -95,7 +108,7 @@ export default function ChartesWallPage() {
     try {
       await api.post(`/chartes/${charte.id}/sign`);
       const now = new Date().toISOString();
-      setSignedDates(prev => ({ ...prev, [charte.id]: now }));
+      setSignedDates((prev) => ({ ...prev, [charte.id]: now }));
       setJustSigned(charte.id);
       // Show inline confirmation for 2s then advance
       setTimeout(() => {
@@ -106,14 +119,15 @@ export default function ChartesWallPage() {
         } else {
           setAllDone(true);
           setTimeout(() => {
-            const redirectTo = sessionStorage.getItem('postChartesRedirect') || '/dashboard';
-            sessionStorage.removeItem('postChartesRedirect');
+            const redirectTo =
+              sessionStorage.getItem("postChartesRedirect") || "/dashboard";
+            sessionStorage.removeItem("postChartesRedirect");
             router.push(redirectTo);
           }, 3500);
         }
       }, 2000);
     } catch {
-      toast.error('Erreur de signature');
+      toast.error("Erreur de signature");
     } finally {
       setSigning(false);
     }
@@ -132,12 +146,13 @@ export default function ChartesWallPage() {
       }
       setAllDone(true);
       setTimeout(() => {
-        const redirectTo = sessionStorage.getItem('postChartesRedirect') || '/dashboard';
-        sessionStorage.removeItem('postChartesRedirect');
+        const redirectTo =
+          sessionStorage.getItem("postChartesRedirect") || "/dashboard";
+        sessionStorage.removeItem("postChartesRedirect");
         router.push(redirectTo);
       }, 3500);
     } catch {
-      toast.error('Erreur de signature — progression conservée');
+      toast.error("Erreur de signature — progression conservée");
       // Reset PDF state so the user can read the next unsigned charte
       resetPdfState();
     } finally {
@@ -153,10 +168,10 @@ export default function ChartesWallPage() {
     // `withCredentials` qui demande au navigateur d'attacher les cookies
     // de l'origine cible (anti-XSS, plus de Bearer manuel).
     return {
-      url: `${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/?$/, '/api/v1')}/chartes/${currentCharte.id}/pdf`,
+      url: `${(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "/api/v1")}/chartes/${currentCharte.id}/pdf`,
       withCredentials: true,
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCharte?.id]);
 
   if (loading || !currentCharte) {
@@ -177,7 +192,7 @@ export default function ChartesWallPage() {
 
   if (allDone) {
     return (
-      <div className="min-h-screen bg-[#004469] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#F68D2E] flex items-center justify-center p-4">
         <div className="text-center animate-in fade-in zoom-in-95 duration-500">
           <div className="relative mx-auto w-24 h-24 mb-6">
             <div className="absolute inset-0 rounded-full bg-emerald-400/20 animate-ping" />
@@ -185,38 +200,51 @@ export default function ChartesWallPage() {
               <PartyPopper className="h-12 w-12 text-emerald-400" />
             </div>
           </div>
-          <h2 className="text-3xl font-semibold text-white mb-3">Toutes les chartes sont signées !</h2>
-          <p className="text-white/60 text-sm mb-2">{totalCount} / {totalCount} chartes approuvées</p>
+          <h2 className="text-3xl font-semibold text-white mb-3">
+            Toutes les chartes sont signées !
+          </h2>
+          <p className="text-white/60 text-sm mb-2">
+            {totalCount} / {totalCount} chartes approuvées
+          </p>
           <div className="w-64 mx-auto h-2 bg-white/10 rounded-full overflow-hidden mb-4">
             <div className="h-full bg-emerald-400 rounded-full w-full transition-all duration-1000" />
           </div>
-          <p className="text-white/40 text-xs">Redirection vers le tableau de bord...</p>
+          <p className="text-white/40 text-xs">
+            Redirection vers le tableau de bord...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#004469] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#F68D2E] flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
         {/* Header */}
         <div className="text-center mb-6">
           <OmnitechLogo size="lg" variant="icon" className="mx-auto mb-4" />
-          <h1 className="text-2xl font-semibold text-white">Chartes obligatoires</h1>
+          <h1 className="text-2xl font-semibold text-white">
+            Chartes obligatoires
+          </h1>
           <p className="text-white/50 text-sm mt-1">
-            Vous devez lire et approuver les documents suivants avant d&apos;accéder à l&apos;intranet
+            Vous devez lire et approuver les documents suivants avant
+            d&apos;accéder à l&apos;intranet
           </p>
 
           {/* Progress bar */}
           <div className="mt-4 max-w-xs mx-auto">
             <div className="flex items-center justify-between text-xs text-white/60 mb-1.5">
-              <span>{signedCount} / {totalCount} chartes signees</span>
+              <span>
+                {signedCount} / {totalCount} chartes signees
+              </span>
               <span>{Math.round((signedCount / totalCount) * 100)}%</span>
             </div>
             <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
               <div
                 className="h-full bg-emerald-400 rounded-full transition-all duration-500"
-                style={{ width: `${totalCount > 0 ? (signedCount / totalCount) * 100 : 0}%` }}
+                style={{
+                  width: `${totalCount > 0 ? (signedCount / totalCount) * 100 : 0}%`,
+                }}
               />
             </div>
           </div>
@@ -226,12 +254,18 @@ export default function ChartesWallPage() {
               <div
                 key={i}
                 className={`h-2 w-8 rounded-full ${
-                  i < current ? 'bg-emerald-400' : i === current ? 'bg-primary' : 'bg-white/20'
+                  i < current
+                    ? "bg-emerald-400"
+                    : i === current
+                      ? "bg-primary"
+                      : "bg-white/20"
                 }`}
               />
             ))}
           </div>
-          <p className="text-white/40 text-xs mt-2">{current + 1} / {chartes.length}</p>
+          <p className="text-white/40 text-xs mt-2">
+            {current + 1} / {chartes.length}
+          </p>
         </div>
 
         {/* Charte card */}
@@ -239,14 +273,18 @@ export default function ChartesWallPage() {
           {/* Title bar */}
           <div className="bg-[#F68D2E]/10 px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Shield className="h-5 w-5 text-[#F68D2E]" />
+              <Shield className="h-5 w-5 text-slate-900" />
               <div>
-                <h2 className="font-semibold text-[#004469] dark:text-white text-sm">{charte.title}</h2>
+                <h2 className="font-semibold text-slate-900 dark:text-white text-sm">
+                  {charte.title}
+                </h2>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[10px] text-[#837274] dark:text-slate-400">
                     Version {version.versionNumber}
                   </span>
-                  <Badge variant="navy" className="text-[9px]">{charte.classification}</Badge>
+                  <Badge variant="navy" className="text-[9px]">
+                    {charte.classification}
+                  </Badge>
                   <Badge variant="approved" className="text-[9px]">
                     <CheckCircle2 className="h-3 w-3" /> Validée Direction
                   </Badge>
@@ -265,17 +303,19 @@ export default function ChartesWallPage() {
             <div className="flex items-center justify-between px-6 py-2 bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <Button
-                  variant="ghost" size="sm"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => goToPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage <= 1}
                 >
                   ← Précédent
                 </Button>
                 <span className="text-sm text-seal-navy dark:text-white font-medium">
-                  Page {currentPage} / {numPages || '...'}
+                  Page {currentPage} / {numPages || "..."}
                 </span>
                 <Button
-                  variant="ghost" size="sm"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => goToPage(Math.min(numPages, currentPage + 1))}
                   disabled={currentPage >= numPages}
                 >
@@ -287,19 +327,23 @@ export default function ChartesWallPage() {
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 w-24 rounded-full bg-gray-200 dark:bg-slate-600 overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-300 ${hasSeenAllPages ? 'bg-emerald-500' : 'bg-[#F68D2E]'}`}
-                        style={{ width: `${numPages > 0 ? Math.round(maxPageSeen / numPages * 100) : 0}%` }}
+                        className={`h-full rounded-full transition-all duration-300 ${hasSeenAllPages ? "bg-emerald-500" : "bg-[#F68D2E]"}`}
+                        style={{
+                          width: `${numPages > 0 ? Math.round((maxPageSeen / numPages) * 100) : 0}%`,
+                        }}
                       />
                     </div>
                     <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                       {hasSeenAllPages
-                        ? '✓ Document lu en entier'
+                        ? "✓ Document lu en entier"
                         : `Pages lues : ${maxPageSeen}/${numPages}`}
                     </span>
                   </div>
                 )}
                 {numPages <= 1 && numPages > 0 && (
-                  <span className="text-[10px] text-emerald-500">✓ Document lu</span>
+                  <span className="text-[10px] text-emerald-500">
+                    ✓ Document lu
+                  </span>
                 )}
               </div>
             </div>
@@ -309,7 +353,7 @@ export default function ChartesWallPage() {
               <PdfDocument
                 file={pdfFile}
                 onLoadSuccess={({ numPages: n }) => setNumPages(n)}
-                onLoadError={() => toast.error('Impossible de charger le PDF')}
+                onLoadError={() => toast.error("Impossible de charger le PDF")}
                 loading={
                   <div className="flex items-center justify-center py-20">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -337,10 +381,21 @@ export default function ChartesWallPage() {
                     <CheckCircle2 className="h-8 w-8 text-emerald-500" />
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-seal-navy dark:text-white">Charte signee</h3>
-                <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">{charte.title}</p>
+                <h3 className="text-lg font-semibold text-seal-navy dark:text-white">
+                  Charte signee
+                </h3>
+                <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
+                  {charte.title}
+                </p>
                 <p className="text-xs text-emerald-600 mt-2">
-                  Signe le {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  Signe le{" "}
+                  {new Date().toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </p>
               </div>
             </div>
@@ -353,7 +408,14 @@ export default function ChartesWallPage() {
               <div className="flex items-center gap-2 mb-3 animate-fade-in-up">
                 <Badge variant="approved" className="text-xs">
                   <CheckCircle2 className="h-3 w-3" />
-                  Signe le {new Date(signedDates[charte.id] as string).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  Signe le{" "}
+                  {new Date(
+                    signedDates[charte.id] as string,
+                  ).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </Badge>
               </div>
             )}
@@ -361,30 +423,36 @@ export default function ChartesWallPage() {
               <div className="flex items-center gap-2 text-xs text-amber-600 mb-3">
                 <AlertTriangle className="h-4 w-4" />
                 Veuillez consulter toutes les pages du document avant de valider
-                (page {maxPageSeen}/{numPages || '...'})
+                (page {maxPageSeen}/{numPages || "..."})
               </div>
             )}
             <Button
               className="w-full"
               onClick={handleSign}
               loading={signing}
-              disabled={!hasSeenAllPages || signingAll || !!signedDates[charte.id]}
+              disabled={
+                !hasSeenAllPages || signingAll || !!signedDates[charte.id]
+              }
             >
               <CheckCircle2 className="h-4 w-4" />
-              {signedDates[charte.id] ? 'Charte signee' : `J'ai lu et j'approuve cette charte — ${charte.title} (v${version.versionNumber})`}
+              {signedDates[charte.id]
+                ? "Charte signee"
+                : `J'ai lu et j'approuve cette charte — ${charte.title} (v${version.versionNumber})`}
             </Button>
-            {hasSeenAllPages && chartes.length > 1 && current < chartes.length - 1 && (
-              <Button
-                variant="ghost"
-                className="w-full mt-2 text-primary"
-                onClick={handleSignAll}
-                loading={signingAll}
-                disabled={signing}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Tout signer ({chartes.length - current} restantes)
-              </Button>
-            )}
+            {hasSeenAllPages &&
+              chartes.length > 1 &&
+              current < chartes.length - 1 && (
+                <Button
+                  variant="ghost"
+                  className="w-full mt-2 text-primary"
+                  onClick={handleSignAll}
+                  loading={signingAll}
+                  disabled={signing}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Tout signer ({chartes.length - current} restantes)
+                </Button>
+              )}
             {version.changeLog && (
               <p className="text-[10px] text-center text-seal-gray-500 dark:text-slate-400 mt-2">
                 Modifications : {version.changeLog}

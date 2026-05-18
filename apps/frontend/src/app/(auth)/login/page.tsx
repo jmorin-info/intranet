@@ -121,7 +121,7 @@ function LoginPageInner() {
 
   if (!authChecked) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#004469]">
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-[#0a0d12] via-[#0f1419] to-[#13171e]">
         <Image
           src="/logo-icon-white.png"
           alt="OMNITECH"
@@ -136,7 +136,7 @@ function LoginPageInner() {
   return (
     <div className="flex min-h-screen">
       {/* Left panel - branding */}
-      <div className="hidden lg:flex lg:w-[55%] bg-[#004469] flex-col justify-between p-0 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[55%] bg-gradient-to-br from-[#0a0d12] via-[#0f1419] to-[#13171e] flex-col justify-between p-0 relative overflow-hidden">
         {/* Background pattern */}
         <div className="absolute inset-0">
           {/* Diagonal orange accent — top right */}
@@ -228,7 +228,7 @@ function LoginPageInner() {
             <p className="text-2xl font-light text-seal-navy dark:text-white tracking-tight">
               OMNITECH
             </p>
-            <p className="text-[#F68D2E] text-xs font-medium tracking-[0.35em] uppercase mt-1">
+            <p className="text-slate-900 text-xs font-medium tracking-[0.35em] uppercase mt-1">
               Security
             </p>
           </div>

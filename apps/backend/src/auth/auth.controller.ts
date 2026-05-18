@@ -25,7 +25,6 @@ import { LoginDto } from "./dto/login.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { RequestUser } from "../common/interfaces";
-import { UserRole } from "../common/enums";
 import { UsersService } from "../users/users.service";
 import { SkipMfaCheck } from "../mfa/decorators/skip-mfa-check.decorator";
 import { AllowCrossSite } from "./decorators/allow-cross-site.decorator";
@@ -140,13 +139,11 @@ export class AuthController {
       };
     }
 
-    // Politique MFA : prestataires par défaut + utilisateurs ciblés par
-    // `mfaRequired=true` (admin a imposé la politique MFA).
-    // Dans ces cas, on émet un token avec un flag mfaSetupRequired pour que le
-    // frontend redirige vers la page d'enrôlement MFA avant toute autre action.
-    const mfaSetupRequired =
-      !user.mfaEnabled &&
-      (user.role === UserRole.PRESTATAIRE || user.mfaRequired === true);
+    // Politique MFA : enrôlement obligatoire à la première connexion pour tous
+    // les utilisateurs qui n'ont pas encore activé MFA. Le frontend redirige
+    // vers /mfa avant toute autre action tant que le flag est posé.
+    // (Avant : limité aux PRESTATAIRE ou users avec mfaRequired=true.)
+    const mfaSetupRequired = !user.mfaEnabled;
 
     // Login (with optional mfaSetupRequired flag)
     const loginResult = await this.authService.login(user, ip, userAgent);
@@ -264,7 +261,9 @@ export class AuthController {
     if (!body?.email) {
       return { webauthn: false };
     }
-    const user = await this.usersService.findByEmail(body.email).catch(() => null);
+    const user = await this.usersService
+      .findByEmail(body.email)
+      .catch(() => null);
     if (!user) return { webauthn: false };
     const hasKeys = await this.webauthnService.hasCredentials(user.id);
     if (!hasKeys) return { webauthn: false };

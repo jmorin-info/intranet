@@ -189,7 +189,7 @@ export default function DirectoryPage() {
         row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","),
       )
       .join("\n");
-    const blob = new Blob(["\uFEFF" + csvContent], {
+    const blob = new Blob(["﻿" + csvContent], {
       type: "text/csv;charset=utf-8;",
     });
     const url = URL.createObjectURL(blob);

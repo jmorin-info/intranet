@@ -501,7 +501,24 @@ export class TicketsService {
     } else if (!isAdmin && accessibleSpaceIds) {
       // Aucun filtre explicite : user ne voit que les tickets de ses espaces
       // (+ tickets legacy sans spaceId pour rétro-compat pendant la migration)
-      where.spaceId = { in: [...accessibleSpaceIds, null] };
+      // Prisma : on ne peut pas mettre `null` dans un `in: []` — on combine
+      // donc OR explicite (uuid in spaces) + (spaceId is null).
+      const spaceFilter: Record<string, unknown>[] = [
+        { spaceId: { in: accessibleSpaceIds } },
+        { spaceId: null },
+      ];
+      // Si un OR existe déjà (creator/assignee/department visibility), on
+      // wrap dans un AND pour ne pas écraser le OR précédent.
+      if (Array.isArray(where.OR)) {
+        where.AND = [
+          ...((where.AND as Record<string, unknown>[]) || []),
+          { OR: where.OR as Record<string, unknown>[] },
+          { OR: spaceFilter },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = spaceFilter;
+      }
     }
 
     if (filters.status) {

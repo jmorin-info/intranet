@@ -89,6 +89,8 @@ import { WebDAVModule } from "./webdav/webdav.module";
 import { BehaviorDetectionModule } from "./behavior-detection/behavior-detection.module";
 import { NoaMemoryModule } from "./noa-memory/noa-memory.module";
 import { EmailModule } from "./email/email.module";
+import { AdminModule } from "./admin/admin.module";
+import { MaintenanceModule } from "./maintenance/maintenance.module";
 
 @Module({
   imports: [
@@ -197,6 +199,10 @@ import { EmailModule } from "./email/email.module";
     NoaMemoryModule,
     // Wave G — Email templates MJML + service render/send unifié
     EmailModule,
+    // Admin endpoints cross-cutting (backup, webdav toggle, integrations OAuth, …)
+    AdminModule,
+    // Mode maintenance (middleware global + AppConfig flag + script deploy)
+    MaintenanceModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

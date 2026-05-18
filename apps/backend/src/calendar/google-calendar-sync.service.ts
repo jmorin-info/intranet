@@ -9,6 +9,7 @@ import axios, { AxiosError } from "axios";
 import { PrismaService } from "../prisma/prisma.service";
 import { CryptoService } from "../common/crypto/crypto.service";
 import { AuditService } from "../audit/audit.service";
+import { OAuthCredsService } from "./oauth-creds.service";
 
 const GOOGLE_OAUTH_AUTHORIZE_URL =
   "https://accounts.google.com/o/oauth2/v2/auth";
@@ -70,19 +71,20 @@ export class GoogleCalendarSyncService {
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
     private readonly audit: AuditService,
+    private readonly creds: OAuthCredsService,
   ) {}
 
   // -- Configuration helpers -----------------------------------------------
 
   private get clientId(): string {
-    const v = process.env.GOOGLE_OAUTH_CLIENT_ID;
-    if (!v) throw new Error("GOOGLE_OAUTH_CLIENT_ID not configured");
+    const v = this.creds.getGoogle().clientId;
+    if (!v) throw new Error("Google OAuth client_id not configured");
     return v;
   }
 
   private get clientSecret(): string {
-    const v = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-    if (!v) throw new Error("GOOGLE_OAUTH_CLIENT_SECRET not configured");
+    const v = this.creds.getGoogle().clientSecret;
+    if (!v) throw new Error("Google OAuth client_secret not configured");
     return v;
   }
 
@@ -92,10 +94,7 @@ export class GoogleCalendarSyncService {
   }
 
   isConfigured(): boolean {
-    return Boolean(
-      process.env.GOOGLE_OAUTH_CLIENT_ID &&
-        process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-    );
+    return this.creds.isGoogleConfigured();
   }
 
   // -- OAuth ----------------------------------------------------------------
@@ -216,11 +215,11 @@ export class GoogleCalendarSyncService {
    * la ligne CalendarConnection localement).
    */
   async disconnect(userId: string): Promise<void> {
-    const connection = await (
-      this.prisma as any
-    ).calendarConnection.findUnique({
-      where: { userId_provider: { userId, provider: "GOOGLE" } },
-    });
+    const connection = await (this.prisma as any).calendarConnection.findUnique(
+      {
+        where: { userId_provider: { userId, provider: "GOOGLE" } },
+      },
+    );
     if (!connection) throw new NotFoundException("Pas de connexion Google");
 
     // Révoque le refresh_token côté Google (best-effort)
@@ -257,10 +256,7 @@ export class GoogleCalendarSyncService {
 
   private async getValidAccessToken(connection: any): Promise<string> {
     const now = Date.now();
-    if (
-      connection.expiresAt &&
-      connection.expiresAt.getTime() - 60_000 > now
-    ) {
+    if (connection.expiresAt && connection.expiresAt.getTime() - 60_000 > now) {
       return this.crypto.decrypt(connection.accessTokenEnc);
     }
     if (!connection.refreshTokenEnc) {
@@ -478,11 +474,11 @@ export class GoogleCalendarSyncService {
   // -- Helpers --------------------------------------------------------------
 
   private async getActiveConnection(userId: string) {
-    const connection = await (
-      this.prisma as any
-    ).calendarConnection.findUnique({
-      where: { userId_provider: { userId, provider: "GOOGLE" } },
-    });
+    const connection = await (this.prisma as any).calendarConnection.findUnique(
+      {
+        where: { userId_provider: { userId, provider: "GOOGLE" } },
+      },
+    );
     if (!connection || !connection.syncEnabled) return null;
     return connection;
   }
@@ -607,9 +603,7 @@ export class GoogleCalendarSyncService {
     skipped: number;
     errors: number;
   }> {
-    const connections = await (
-      this.prisma as any
-    ).calendarConnection.findMany({
+    const connections = await (this.prisma as any).calendarConnection.findMany({
       where: { provider: "GOOGLE", syncEnabled: true },
       select: { userId: true, id: true },
     });

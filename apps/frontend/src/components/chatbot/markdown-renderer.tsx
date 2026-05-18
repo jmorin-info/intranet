@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * MarkdownRenderer — rendu markdown léger avec syntax highlighting (Feature 7).
@@ -12,10 +12,10 @@
  * (copier individuellement) que dangerouslySetInnerHTML ne permet pas.
  */
 
-import React from 'react';
-import Link from 'next/link';
-import { ChevronDown } from 'lucide-react';
-import { CodeBlock } from './code-block';
+import React from "react";
+import Link from "next/link";
+import { ChevronDown } from "lucide-react";
+import { CodeBlock } from "./code-block";
 
 interface MarkdownRendererProps {
   content: string;
@@ -26,7 +26,7 @@ interface MarkdownRendererProps {
 }
 
 interface Segment {
-  type: 'code' | 'text';
+  type: "code" | "text";
   content: string;
   language?: string;
 }
@@ -38,13 +38,17 @@ function segmentize(md: string): Segment[] {
   let m: RegExpExecArray | null;
   while ((m = codeBlockRe.exec(md)) !== null) {
     if (m.index > last) {
-      segments.push({ type: 'text', content: md.slice(last, m.index) });
+      segments.push({ type: "text", content: md.slice(last, m.index) });
     }
-    segments.push({ type: 'code', content: m[2] ?? '', language: m[1] || undefined });
+    segments.push({
+      type: "code",
+      content: m[2] ?? "",
+      language: m[1] || undefined,
+    });
     last = m.index + m[0].length;
   }
   if (last < md.length) {
-    segments.push({ type: 'text', content: md.slice(last) });
+    segments.push({ type: "text", content: md.slice(last) });
   }
   return segments;
 }
@@ -61,7 +65,7 @@ function renderInline(line: string, key: number): React.ReactNode {
       <Link
         key={key}
         href={actionMatch[2]!}
-        className="flex items-center gap-1.5 mt-1.5 text-xs font-medium text-[#004469] dark:text-blue-400 hover:underline"
+        className="flex items-center gap-1.5 mt-1.5 text-xs font-medium text-slate-900 dark:text-blue-400 hover:underline"
       >
         <ChevronDown className="h-3 w-3 rotate-[-90deg]" />
         {actionMatch[1]}
@@ -74,7 +78,7 @@ function renderInline(line: string, key: number): React.ReactNode {
   if (heading3) {
     return (
       <p key={key} className="mt-2 mb-1 font-semibold text-sm">
-        {parseInline(heading3[1] ?? '')}
+        {parseInline(heading3[1] ?? "")}
       </p>
     );
   }
@@ -82,7 +86,7 @@ function renderInline(line: string, key: number): React.ReactNode {
   if (heading2) {
     return (
       <p key={key} className="mt-2 mb-1 font-semibold text-base">
-        {parseInline(heading2[1] ?? '')}
+        {parseInline(heading2[1] ?? "")}
       </p>
     );
   }
@@ -92,7 +96,7 @@ function renderInline(line: string, key: number): React.ReactNode {
   if (listItem) {
     return (
       <li key={key} className="ml-4 list-disc">
-        {parseInline(listItem[1] ?? '')}
+        {parseInline(listItem[1] ?? "")}
       </li>
     );
   }
@@ -102,15 +106,15 @@ function renderInline(line: string, key: number): React.ReactNode {
   if (numList) {
     return (
       <li key={key} className="ml-4 list-decimal">
-        {parseInline(numList[2] ?? '')}
+        {parseInline(numList[2] ?? "")}
       </li>
     );
   }
 
-  if (line.trim() === '') return <br key={key} />;
+  if (line.trim() === "") return <br key={key} />;
 
   return (
-    <p key={key} className={key > 0 ? 'mt-1' : ''}>
+    <p key={key} className={key > 0 ? "mt-1" : ""}>
       {parseInline(line)}
     </p>
   );
@@ -125,15 +129,16 @@ function parseInline(text: string): React.ReactNode[] {
   let m: RegExpExecArray | null;
   let i = 0;
   while ((m = re.exec(text)) !== null) {
-    if (m.index > last) out.push(<span key={`t-${i++}`}>{text.slice(last, m.index)}</span>);
+    if (m.index > last)
+      out.push(<span key={`t-${i++}`}>{text.slice(last, m.index)}</span>);
     const tok = m[0];
-    if (tok.startsWith('**')) {
+    if (tok.startsWith("**")) {
       out.push(
         <strong key={`b-${i++}`} className="font-semibold">
           {tok.slice(2, -2)}
         </strong>,
       );
-    } else if (tok.startsWith('`')) {
+    } else if (tok.startsWith("`")) {
       out.push(
         <code
           key={`c-${i++}`}
@@ -142,7 +147,7 @@ function parseInline(text: string): React.ReactNode[] {
           {tok.slice(1, -1)}
         </code>,
       );
-    } else if (tok.startsWith('[')) {
+    } else if (tok.startsWith("[")) {
       const linkMatch = tok.match(/\[([^\]]+)\]\(([^)]+)\)/);
       if (linkMatch) {
         out.push(
@@ -151,13 +156,13 @@ function parseInline(text: string): React.ReactNode[] {
             href={linkMatch[2]}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#004469] dark:text-blue-400 underline"
+            className="text-slate-900 dark:text-blue-400 underline"
           >
             {linkMatch[1]}
           </a>,
         );
       }
-    } else if (tok.startsWith('*')) {
+    } else if (tok.startsWith("*")) {
       out.push(
         <em key={`i-${i++}`} className="italic">
           {tok.slice(1, -1)}
@@ -166,23 +171,26 @@ function parseInline(text: string): React.ReactNode[] {
     }
     last = m.index + tok.length;
   }
-  if (last < text.length) out.push(<span key={`t-${i++}`}>{text.slice(last)}</span>);
+  if (last < text.length)
+    out.push(<span key={`t-${i++}`}>{text.slice(last)}</span>);
   return out;
 }
 
 export function MarkdownRenderer({ content, dense }: MarkdownRendererProps) {
   const segments = segmentize(content);
   return (
-    <div className={dense ? 'text-sm leading-relaxed' : 'text-sm leading-relaxed'}>
+    <div
+      className={dense ? "text-sm leading-relaxed" : "text-sm leading-relaxed"}
+    >
       {segments.map((seg, idx) => {
-        if (seg.type === 'code') {
-          return <CodeBlock key={idx} code={seg.content} language={seg.language} />;
+        if (seg.type === "code") {
+          return (
+            <CodeBlock key={idx} code={seg.content} language={seg.language} />
+          );
         }
-        const lines = seg.content.split('\n');
+        const lines = seg.content.split("\n");
         return (
-          <div key={idx}>
-            {lines.map((line, i) => renderInline(line, i))}
-          </div>
+          <div key={idx}>{lines.map((line, i) => renderInline(line, i))}</div>
         );
       })}
     </div>

@@ -664,7 +664,7 @@ export function HelpdeskChat() {
         {!showChat ? (
           <button onClick={() => setShowChat(true)} className="w-full">
             <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
-              <div className="bg-gradient-to-r from-[#004469] to-[#003352] rounded-t-xl px-4 py-3 flex items-center gap-3">
+              <div className="bg-gradient-to-r from-[#F68D2E] to-[#d97420] rounded-t-xl px-4 py-3 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
                   <Bot className="h-4 w-4 text-white" />
                 </div>
@@ -684,7 +684,7 @@ export function HelpdeskChat() {
         ) : (
           <Card className="overflow-hidden">
             {/* Chat header */}
-            <div className="bg-gradient-to-r from-[#004469] to-[#003352] rounded-t-xl px-4 py-3 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-[#F68D2E] to-[#d97420] rounded-t-xl px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
                   <Bot className="h-4 w-4 text-white" />
@@ -753,7 +753,7 @@ export function HelpdeskChat() {
                   )}
                   <div className="max-w-[85%] sm:max-w-[80%] space-y-2 min-w-0">
                     <div
-                      className={`rounded-xl p-3 ${msg.role === "user" ? "bg-primary text-white" : "bg-[#f0f7fb] dark:bg-slate-800/80 border border-[#004469]/10 dark:border-slate-700"}`}
+                      className={`rounded-xl p-3 ${msg.role === "user" ? "bg-primary text-white" : "bg-[#f0f7fb] dark:bg-slate-800/80 border border-[#F68D2E]/10 dark:border-slate-700"}`}
                     >
                       {/* RAG confidence badge */}
                       {msg.source === "rag" && msg.ragScore != null && (
@@ -885,7 +885,7 @@ export function HelpdeskChat() {
                     )}
                   </div>
                   {msg.role === "user" && (
-                    <div className="h-8 w-8 rounded-full bg-[#004469] flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <div className="h-8 w-8 rounded-full bg-[#F68D2E] flex items-center justify-center flex-shrink-0 shadow-sm">
                       <span className="text-[11px] font-semibold text-white">
                         {userInitials}
                       </span>

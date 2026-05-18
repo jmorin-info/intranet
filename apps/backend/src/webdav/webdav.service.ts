@@ -12,6 +12,8 @@ import { AuditService } from "../audit/audit.service";
 import { slugify } from "../common/utils/slugify";
 import { sanitizeRichText } from "../common/sanitize";
 import { VaultNode, ParsedMarkdown } from "./webdav.types";
+import { marked } from "marked";
+import TurndownService from "turndown";
 
 const DEFAULT_FOLDER = "_inbox";
 
@@ -275,74 +277,105 @@ export class WebDAVService {
    *   - /<cat>/<slug>.md     → un fichier
    */
   async listVault(userId: string, pathPrefix: string): Promise<VaultNode[]> {
-    const cleaned = this.normalizePath(pathPrefix);
-    const pages = await this.prisma.wikiPage.findMany({
-      where: {
-        authorId: userId,
-        isPublished: true,
-      },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        category: true,
-        content: true,
-        updatedAt: true,
-        createdAt: true,
-      },
-      orderBy: { updatedAt: "desc" },
-    });
+    // normalizePath retourne "" pour la racine — on uniformise sur "/" en interne.
+    const norm = this.normalizePath(pathPrefix);
+    const cleaned = norm === "" ? "/" : norm;
+    const [pages, ghosts, ghostFiles] = await Promise.all([
+      this.prisma.wikiPage.findMany({
+        where: { authorId: userId, isPublished: true },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          category: true,
+          content: true,
+          updatedAt: true,
+          createdAt: true,
+          webdavFolder: true,
+          webdavFilename: true,
+        },
+        orderBy: { updatedAt: "desc" },
+      }),
+      this.getGhostFolders(userId),
+      this.getGhostFiles(userId),
+    ]);
 
-    const nodes: VaultNode[] = [];
+    // Calcule le "display folder" et "display filename" pour chaque page :
+    //   - prioritairement les noms WebDAV originaux (préservent espaces/accents)
+    //   - sinon fallback sur catégorie slugifiée + slug (legacy pré-migration)
+    const displayPathFor = (
+      p: (typeof pages)[number],
+    ): { folder: string; filename: string; absPath: string } => {
+      const folder =
+        (p.webdavFolder && p.webdavFolder.trim()) ||
+        this.folderName(p.category) ||
+        DEFAULT_FOLDER;
+      const filename = (p.webdavFilename && p.webdavFilename.trim()) || p.slug;
+      const absPath = `/${folder}/${filename}.md`;
+      return { folder, filename, absPath };
+    };
 
-    if (cleaned === "" || cleaned === "/") {
-      // Racine → liste les catégories distinctes (uniques + bucket par défaut)
-      const cats = new Set<string>();
-      for (const p of pages) {
-        cats.add(p.category || DEFAULT_FOLDER);
-      }
-      // Le dossier racine lui-même
-      nodes.push({
-        type: "directory",
-        path: "/",
-        name: "",
-        modified: new Date().toISOString(),
-      });
-      for (const cat of Array.from(cats).sort()) {
-        const folder = this.folderName(cat);
-        nodes.push({
-          type: "directory",
-          path: `/${folder}/`,
-          name: folder,
-          modified: new Date().toISOString(),
-        });
-      }
-      return nodes;
+    // Index des pages par chemin display absolu (pour lookup rapide)
+    const pagesByPath = new Map<string, (typeof pages)[number]>();
+    const allFolders = new Set<string>();
+    for (const p of pages) {
+      const { folder, absPath } = displayPathFor(p);
+      pagesByPath.set(absPath, p);
+      allFolders.add(`/${folder}`);
     }
 
-    // Décompose <folder>[/<filename>]
-    const parts = cleaned.split("/").filter(Boolean);
-    if (parts.length === 0) return nodes;
+    // Tous les dossiers connus (chemins normalisés sans trailing slash) :
+    //   - racine "/"
+    //   - chaque dossier dérivé d'une page wiki
+    //   - chaque ghost folder utilisateur
+    const allDirs = new Set<string>(["/"]);
+    for (const f of allFolders) allDirs.add(f);
+    for (const g of ghosts) allDirs.add(g);
 
-    const folder = parts[0]!;
-    const filename = parts[1];
+    const dirNode = (path: string): VaultNode => ({
+      type: "directory",
+      path: path === "/" ? "/" : `${path}/`,
+      name: path === "/" ? "" : (path.split("/").pop() ?? ""),
+      modified: new Date().toISOString(),
+    });
+    const childPrefix = (parent: string): string =>
+      parent === "/" ? "/" : `${parent}/`;
+    const isDirectChild = (parent: string, candidate: string): boolean => {
+      if (candidate === parent) return false;
+      const pref = childPrefix(parent);
+      if (!candidate.startsWith(pref)) return false;
+      const rest = candidate.slice(pref.length);
+      return rest.length > 0 && !rest.includes("/");
+    };
 
-    if (filename) {
-      // Cible précise un fichier — retourne juste lui
-      const slug = filename.replace(/\.md$/i, "");
-      const page = pages.find(
-        (p) =>
-          p.slug === slug && this.folderName(p.category) === folder,
-      );
-      if (!page) {
-        throw new NotFoundException("File not found");
-      }
+    // Ghost file direct ?
+    if (cleaned in ghostFiles) {
+      const content = ghostFiles[cleaned]!;
+      const name = cleaned.split("/").pop() || cleaned;
+      return [
+        {
+          type: "file",
+          path: cleaned,
+          name,
+          size: Buffer.byteLength(content, "utf8"),
+          modified: new Date().toISOString(),
+          created: new Date().toISOString(),
+          etag: `"gf-${Buffer.from(cleaned).toString("hex").slice(0, 16)}"`,
+          content,
+        },
+      ];
+    }
+
+    // Page wiki directe (chemin display) ?
+    if (/\.md$/i.test(cleaned) && pagesByPath.has(cleaned)) {
+      const page = pagesByPath.get(cleaned)!;
+      const { folder, filename } = displayPathFor(page);
       const md = this.toMarkdown(page);
       return [
         {
           type: "file",
-          path: `/${folder}/${slug}.md`,
-          name: `${slug}.md`,
+          path: cleaned,
+          name: `${filename}.md`,
           size: Buffer.byteLength(md, "utf8"),
           modified: page.updatedAt.toISOString(),
           created: page.createdAt.toISOString(),
@@ -352,29 +385,334 @@ export class WebDAVService {
       ];
     }
 
-    // Liste un dossier
-    const folderPages = pages.filter(
-      (p) => this.folderName(p.category) === folder,
-    );
-    nodes.push({
-      type: "directory",
-      path: `/${folder}/`,
-      name: folder,
-      modified: new Date().toISOString(),
-    });
-    for (const p of folderPages) {
+    // Le chemin .md ne matche aucune page → 404
+    if (/\.md$/i.test(cleaned)) {
+      throw new NotFoundException("File not found");
+    }
+
+    // Cible un dossier
+    if (!allDirs.has(cleaned)) {
+      throw new NotFoundException("Folder not found");
+    }
+
+    const nodes: VaultNode[] = [];
+    nodes.push(dirNode(cleaned));
+
+    // Sous-dossiers directs
+    for (const d of allDirs) {
+      if (isDirectChild(cleaned, d)) nodes.push(dirNode(d));
+    }
+
+    // Fichiers .md dont le parent direct = cleaned
+    const childPref = childPrefix(cleaned);
+    for (const p of pages) {
+      const { absPath, filename } = displayPathFor(p);
+      if (!absPath.startsWith(childPref)) continue;
+      const rest = absPath.slice(childPref.length);
+      if (rest.includes("/")) continue;
       const md = this.toMarkdown(p);
       nodes.push({
         type: "file",
-        path: `/${folder}/${p.slug}.md`,
-        name: `${p.slug}.md`,
+        path: absPath,
+        name: `${filename}.md`,
         size: Buffer.byteLength(md, "utf8"),
         modified: p.updatedAt.toISOString(),
         created: p.createdAt.toISOString(),
         etag: this.etag(p.id, p.updatedAt),
       });
     }
+
+    // Ghost files dont le parent direct = cleaned
+    for (const [path, content] of Object.entries(ghostFiles)) {
+      if (!path.startsWith(childPref)) continue;
+      const rest = path.slice(childPref.length);
+      if (rest.length === 0 || rest.includes("/")) continue;
+      nodes.push({
+        type: "file",
+        path,
+        name: rest,
+        size: Buffer.byteLength(content, "utf8"),
+        modified: new Date().toISOString(),
+        created: new Date().toISOString(),
+        etag: `"gf-${Buffer.from(path).toString("hex").slice(0, 16)}"`,
+      });
+    }
+
     return nodes;
+  }
+
+  // -- Vault prefix ----------------------------------------------------------
+  // Remotely Save (et clients similaires) préfixent toutes les requêtes par
+  // le nom du vault Obsidian. Ex : vault `Obsidian Vault` → toutes les
+  // requêtes deviennent `/Obsidian%20Vault/<path>`. Pour permettre à
+  // l'utilisateur de voir ses pages wiki existantes (qui sont à la racine),
+  // on stocke un préfixe optionnel par utilisateur dans AppConfig. Quand
+  // une requête arrive, on retire ce préfixe avant le routage.
+
+  private vaultPrefixKey(userId: string): string {
+    return `webdav.vault-prefix.${userId}`;
+  }
+
+  /**
+   * Lit le préfixe vault pour cet utilisateur. Renvoie null si non configuré.
+   * Le préfixe stocké est toujours dans le format `/<name>` sans slash final.
+   */
+  async getVaultPrefix(userId: string): Promise<string | null> {
+    const cfg = await this.prisma.appConfig.findUnique({
+      where: { key: this.vaultPrefixKey(userId) },
+    });
+    if (!cfg?.value) return null;
+    const v = cfg.value.trim();
+    if (!v) return null;
+    // Normalise : doit commencer par "/" et ne pas finir par "/"
+    let s = v.startsWith("/") ? v : `/${v}`;
+    if (s.length > 1 && s.endsWith("/")) s = s.slice(0, -1);
+    return s;
+  }
+
+  /**
+   * Définit ou efface le préfixe vault. Passer une chaîne vide pour effacer.
+   * Validation : pas de path traversal, longueur max 100, caractères safe.
+   */
+  async setVaultPrefix(
+    userId: string,
+    prefix: string | null | undefined,
+  ): Promise<{ prefix: string | null }> {
+    await this.ensureUserAllowed(userId);
+    const key = this.vaultPrefixKey(userId);
+    const trimmed = (prefix || "").trim();
+    if (!trimmed) {
+      await this.prisma.appConfig.deleteMany({ where: { key } });
+      return { prefix: null };
+    }
+    if (trimmed.length > 100) {
+      throw new BadRequestException("Vault prefix trop long (max 100)");
+    }
+    if (trimmed.includes("..") || trimmed.includes("\\")) {
+      throw new BadRequestException("Caractères interdits dans le préfixe");
+    }
+    let normalized = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+    if (normalized.length > 1 && normalized.endsWith("/")) {
+      normalized = normalized.slice(0, -1);
+    }
+    // Caractères autorisés : alphanum, espace, underscore, tiret, point, slash
+    if (!/^\/[a-zA-Z0-9 _\-.\/]+$/.test(normalized)) {
+      throw new BadRequestException(
+        "Le préfixe ne doit contenir que des lettres, chiffres, espaces, _, -, . et /",
+      );
+    }
+    await this.prisma.appConfig.upsert({
+      where: { key },
+      create: { key, value: normalized, updatedAt: new Date() },
+      update: { value: normalized, updatedAt: new Date() },
+    });
+    void this.audit.log({
+      userId,
+      action: "WEBDAV_VAULT_PREFIX_SET",
+      resourceType: "AppConfig",
+      resourceId: key,
+      severity: "INFO",
+      metadata: { prefix: normalized },
+    });
+    return { prefix: normalized };
+  }
+
+  /**
+   * Retire le préfixe vault d'un chemin si présent. Sinon renvoie le path
+   * inchangé. Le path entrant peut être URL-encoded (ex : "%20" pour espace) :
+   * on décode pour la comparaison, et on retourne le résultat **décodé**.
+   * Le downstream (normalizePath dans listVault/parseFilePath) gère déjà le
+   * decode mais l'idempotence est OK.
+   */
+  applyVaultPrefixStrip(prefix: string | null, vaultPath: string): string {
+    if (!prefix) return vaultPath;
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(vaultPath);
+    } catch {
+      return vaultPath; // path invalide → on laisse downstream gérer
+    }
+    if (decoded === prefix || decoded === prefix + "/") return "/";
+    if (decoded.startsWith(prefix + "/")) {
+      const rest = decoded.slice(prefix.length);
+      return rest || "/";
+    }
+    return vaultPath;
+  }
+
+  // -- Ghost folders ---------------------------------------------------------
+  // Les dossiers WebDAV créés via MKCOL ne correspondent à aucune entité
+  // métier (les "vrais" dossiers sont déduits des catégories WikiPage).
+  // Pour que la conformité WebDAV soit suffisante (et notamment pour que
+  // Remotely Save / clients équivalents valident leur self-test "MKCOL puis
+  // PROPFIND"), on persiste les dossiers vides comme une liste de chemins
+  // par utilisateur dans AppConfig (clé `webdav.ghost-folders.<userId>`).
+  // Ces ghost folders disparaissent automatiquement quand toutes leurs
+  // sous-pages sont supprimées (best-effort, traité dans deleteFile).
+
+  private ghostFoldersKey(userId: string): string {
+    return `webdav.ghost-folders.${userId}`;
+  }
+
+  async getGhostFolders(userId: string): Promise<string[]> {
+    const cfg = await this.prisma.appConfig.findUnique({
+      where: { key: this.ghostFoldersKey(userId) },
+    });
+    if (!cfg?.value) return [];
+    try {
+      const arr = JSON.parse(cfg.value);
+      return Array.isArray(arr)
+        ? arr.filter((p): p is string => typeof p === "string")
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private async writeGhostFolders(
+    userId: string,
+    folders: string[],
+  ): Promise<void> {
+    const dedup = Array.from(new Set(folders.filter(Boolean))).sort();
+    const key = this.ghostFoldersKey(userId);
+    if (dedup.length === 0) {
+      await this.prisma.appConfig.deleteMany({ where: { key } });
+      return;
+    }
+    const value = JSON.stringify(dedup);
+    await this.prisma.appConfig.upsert({
+      where: { key },
+      create: { key, value, updatedAt: new Date() },
+      update: { value, updatedAt: new Date() },
+    });
+  }
+
+  /**
+   * MKCOL — enregistre un dossier persistant pour cet utilisateur.
+   * Idempotent : retourner sans erreur si le dossier existe déjà
+   * (ghost OU dérivé d'une catégorie wiki).
+   */
+  async createFolder(userId: string, vaultPath: string): Promise<void> {
+    await this.ensureUserAllowed(userId);
+    const norm = this.normalizePath(vaultPath);
+    if (!norm || norm === "" || norm === "/") return; // root
+    const list = await this.getGhostFolders(userId);
+    if (list.includes(norm)) return;
+    list.push(norm);
+    await this.writeGhostFolders(userId, list);
+  }
+
+  // -- Ghost files -----------------------------------------------------------
+  // Stockage minimal pour les fichiers non-.md ou à profondeur >2 (que le
+  // mapping flat WikiPage ne sait pas représenter). Utilisé essentiellement
+  // pour les self-tests Remotely Save / WebDAV clients : create test file →
+  // GET → DELETE en quelques millisecondes. Pas destiné à du stockage long.
+  // Quota dur : 64 Ko par fichier, 256 Ko total par utilisateur.
+
+  private static readonly GHOST_FILE_MAX = 64 * 1024;
+  private static readonly GHOST_FILES_QUOTA = 256 * 1024;
+
+  private ghostFilesKey(userId: string): string {
+    return `webdav.ghost-files.${userId}`;
+  }
+
+  async getGhostFiles(userId: string): Promise<Record<string, string>> {
+    const cfg = await this.prisma.appConfig.findUnique({
+      where: { key: this.ghostFilesKey(userId) },
+    });
+    if (!cfg?.value) return {};
+    try {
+      const obj = JSON.parse(cfg.value);
+      if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+        if (typeof k === "string" && typeof v === "string") out[k] = v;
+      }
+      return out;
+    } catch {
+      return {};
+    }
+  }
+
+  private async writeGhostFiles(
+    userId: string,
+    files: Record<string, string>,
+  ): Promise<void> {
+    const key = this.ghostFilesKey(userId);
+    if (Object.keys(files).length === 0) {
+      await this.prisma.appConfig.deleteMany({ where: { key } });
+      return;
+    }
+    const value = JSON.stringify(files);
+    if (value.length > WebDAVService.GHOST_FILES_QUOTA) {
+      throw new BadRequestException(
+        `Ghost files quota dépassé (${WebDAVService.GHOST_FILES_QUOTA} octets)`,
+      );
+    }
+    await this.prisma.appConfig.upsert({
+      where: { key },
+      create: { key, value, updatedAt: new Date() },
+      update: { value, updatedAt: new Date() },
+    });
+  }
+
+  async putGhostFile(
+    userId: string,
+    vaultPath: string,
+    content: string,
+  ): Promise<{ created: boolean; etag: string; modified: Date }> {
+    await this.ensureUserAllowed(userId);
+    const norm = this.normalizePath(vaultPath);
+    if (!norm || norm === "/" || norm === "") {
+      throw new BadRequestException("Invalid ghost file path");
+    }
+    if (content.length > WebDAVService.GHOST_FILE_MAX) {
+      throw new BadRequestException(
+        `Ghost file trop volumineux (max ${WebDAVService.GHOST_FILE_MAX} octets)`,
+      );
+    }
+    const files = await this.getGhostFiles(userId);
+    const created = !(norm in files);
+    files[norm] = content;
+    await this.writeGhostFiles(userId, files);
+    const modified = new Date();
+    const etag = `"gf-${Buffer.from(norm).toString("hex").slice(0, 16)}-${modified.getTime()}"`;
+    return { created, etag, modified };
+  }
+
+  async getGhostFile(
+    userId: string,
+    vaultPath: string,
+  ): Promise<{ content: string; modified: Date; etag: string } | null> {
+    const norm = this.normalizePath(vaultPath);
+    const files = await this.getGhostFiles(userId);
+    if (!(norm in files)) return null;
+    const modified = new Date();
+    const etag = `"gf-${Buffer.from(norm).toString("hex").slice(0, 16)}"`;
+    return { content: files[norm]!, modified, etag };
+  }
+
+  async deleteGhostFile(userId: string, vaultPath: string): Promise<boolean> {
+    const norm = this.normalizePath(vaultPath);
+    const files = await this.getGhostFiles(userId);
+    if (!(norm in files)) return false;
+    delete files[norm];
+    await this.writeGhostFiles(userId, files);
+    return true;
+  }
+
+  /**
+   * Supprime un ghost folder (et ses sous-dossiers ghost récursivement).
+   * Ne touche pas aux pages wiki — celles-là passent par deleteFile.
+   */
+  async removeGhostFolder(userId: string, vaultPath: string): Promise<void> {
+    const norm = this.normalizePath(vaultPath);
+    if (!norm || norm === "/") return;
+    const list = await this.getGhostFolders(userId);
+    const prefix = norm.endsWith("/") ? norm : norm + "/";
+    const filtered = list.filter((p) => p !== norm && !p.startsWith(prefix));
+    if (filtered.length === list.length) return;
+    await this.writeGhostFolders(userId, filtered);
   }
 
   /** Récupère un fichier (.md) par son chemin virtuel. */
@@ -382,12 +720,20 @@ export class WebDAVService {
     userId: string,
     pathStr: string,
   ): Promise<{ content: string; modified: Date; etag: string }> {
-    const { folder, slug } = this.parseFilePath(pathStr);
+    const { folder, slug, originalFolder, originalFilename } =
+      this.parseFilePath(pathStr);
+    // Lookup prioritaire par nom WebDAV original ; fallback sur slug+folder.
     const page = await this.prisma.wikiPage.findFirst({
       where: {
         authorId: userId,
-        slug,
         isPublished: true,
+        OR: [
+          {
+            webdavFolder: originalFolder,
+            webdavFilename: originalFilename,
+          },
+          { slug },
+        ],
       },
       select: {
         id: true,
@@ -397,10 +743,19 @@ export class WebDAVService {
         content: true,
         updatedAt: true,
         createdAt: true,
+        webdavFolder: true,
+        webdavFilename: true,
       },
     });
     if (!page) throw new NotFoundException("File not found");
-    if (this.folderName(page.category) !== folder) {
+    // Vérifie cohérence folder uniquement si on a fallback sur slug
+    if (
+      !(
+        page.webdavFolder === originalFolder &&
+        page.webdavFilename === originalFilename
+      ) &&
+      this.folderName(page.category) !== folder
+    ) {
       throw new NotFoundException("File not found in this folder");
     }
     const md = this.toMarkdown(page);
@@ -421,26 +776,51 @@ export class WebDAVService {
     pathStr: string,
     body: string,
   ): Promise<{ created: boolean; etag: string; modified: Date }> {
-    const { folder, slug } = this.parseFilePath(pathStr);
+    await this.ensureUserAllowed(userId);
+    const { folder, slug, originalFolder, originalFilename } =
+      this.parseFilePath(pathStr);
     const parsed = this.parseMarkdown(body);
 
     const titleFromFm =
       typeof parsed.frontmatter.title === "string"
         ? parsed.frontmatter.title.trim()
         : "";
-    const title = titleFromFm || this.deslugify(slug);
+    // Préfère le nom de fichier original (lisible humain) sur le slug ASCII.
+    const title = titleFromFm || originalFilename || this.deslugify(slug);
 
-    // Catégorie = nom du dossier (sauf bucket par défaut → null)
-    const category = folder === DEFAULT_FOLDER ? null : folder;
+    // Catégorie = nom du dossier ORIGINAL (préserve accents/espaces côté UI),
+    // sauf bucket par défaut → null.
+    const category = originalFolder === DEFAULT_FOLDER ? null : originalFolder;
 
-    // Le contenu HTML stocké est le markdown natif (les pages wiki acceptent
-    // déjà du contenu varié — sanitizeRichText supprime les tags dangereux).
-    const safeContent = sanitizeRichText(parsed.body);
+    // L'UI wiki rend le `content` via dangerouslySetInnerHTML — il attend
+    // donc du HTML. Obsidian envoie du markdown brut + wikilinks [[…]] que
+    // marked ne gère pas nativement. On préprocesse puis on convertit.
+    const preprocessed = WebDAVService.preprocessObsidianMd(parsed.body || "");
+    const html = marked.parse(preprocessed, { async: false }) as string;
+    const safeContent = sanitizeRichText(html);
 
+    // Recherche prioritaire par nom WebDAV original (round-trip parfait).
+    // Fallback sur slug pour les pages créées via l'UI wiki avant la migration.
     const existing = await this.prisma.wikiPage.findFirst({
-      where: { authorId: userId, slug },
-      select: { id: true, content: true, updatedAt: true },
+      where: {
+        authorId: userId,
+        OR: [
+          {
+            webdavFolder: originalFolder,
+            webdavFilename: originalFilename,
+          },
+          { slug },
+        ],
+      },
+      select: { id: true, slug: true, content: true, updatedAt: true },
     });
+
+    // Résolution de conflit slug : si un autre user a déjà un slug `foo` et
+    // qu'on en crée un nouveau, slug est @unique global → on suffixe avec
+    // un fragment du userId pour garantir l'unicité.
+    const finalSlug = existing
+      ? existing.slug
+      : await this.ensureUniqueSlug(slug, userId);
 
     if (existing) {
       // Snapshot version avant overwrite (cohérent avec WikiService.update)
@@ -461,6 +841,8 @@ export class WebDAVService {
           title: sanitizeRichText(title),
           content: safeContent,
           category,
+          webdavFolder: originalFolder,
+          webdavFilename: originalFilename,
         },
         select: { id: true, updatedAt: true },
       });
@@ -470,7 +852,7 @@ export class WebDAVService {
         resourceType: "WikiPage",
         resourceId: existing.id,
         severity: "INFO",
-        metadata: { path: pathStr, slug, folder },
+        metadata: { path: pathStr, slug: finalSlug, folder },
       });
       return {
         created: false,
@@ -483,12 +865,14 @@ export class WebDAVService {
     const created = await this.prisma.wikiPage.create({
       data: {
         title: sanitizeRichText(title),
-        slug,
+        slug: finalSlug,
         content: safeContent,
         category,
         authorId: userId,
         isPublished: true,
         visibility: "PRIVATE",
+        webdavFolder: originalFolder,
+        webdavFilename: originalFilename,
       },
       select: { id: true, updatedAt: true },
     });
@@ -498,7 +882,7 @@ export class WebDAVService {
       resourceType: "WikiPage",
       resourceId: created.id,
       severity: "INFO",
-      metadata: { path: pathStr, slug, folder },
+      metadata: { path: pathStr, slug: finalSlug, folder },
     });
     return {
       created: true,
@@ -508,14 +892,50 @@ export class WebDAVService {
   }
 
   /**
+   * Garantit l'unicité du slug (contrainte `slug @unique` sur WikiPage).
+   * Si le slug existe déjà (autre user ou ancienne page), suffixe avec un
+   * fragment du userId. Si toujours collision (ultra rare), on incrémente.
+   */
+  private async ensureUniqueSlug(
+    slug: string,
+    userId: string,
+  ): Promise<string> {
+    const exists = await this.prisma.wikiPage.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!exists) return slug;
+    const suffix = userId.replace(/-/g, "").slice(0, 6);
+    const candidate = `${slug}-${suffix}`;
+    const conflict = await this.prisma.wikiPage.findUnique({
+      where: { slug: candidate },
+      select: { id: true },
+    });
+    if (!conflict) return candidate;
+    // Très rare : on tente avec un timestamp court
+    return `${candidate}-${Date.now().toString(36)}`;
+  }
+
+  /**
    * Soft-delete une page wiki. Idempotent : si la page n'existe pas ou est
    * déjà supprimée, on retourne 404 — Obsidian gère ça correctement.
    */
   async deleteFile(userId: string, pathStr: string): Promise<void> {
-    const { slug } = this.parseFilePath(pathStr);
+    const { slug, originalFolder, originalFilename } =
+      this.parseFilePath(pathStr);
+    // Lookup prioritaire par nom WebDAV original (round-trip), fallback sur slug.
     const page = await this.prisma.wikiPage.findFirst({
-      where: { authorId: userId, slug },
-      select: { id: true },
+      where: {
+        authorId: userId,
+        OR: [
+          {
+            webdavFolder: originalFolder,
+            webdavFilename: originalFilename,
+          },
+          { slug },
+        ],
+      },
+      select: { id: true, slug: true },
     });
     if (!page) throw new NotFoundException("File not found");
     await this.prisma.wikiPage.delete({ where: { id: page.id } });
@@ -525,7 +945,7 @@ export class WebDAVService {
       resourceType: "WikiPage",
       resourceId: page.id,
       severity: "WARN",
-      metadata: { path: pathStr, slug },
+      metadata: { path: pathStr, slug: page.slug },
     });
   }
 
@@ -625,42 +1045,61 @@ export class WebDAVService {
   }
 
   private deslugify(slug: string): string {
-    return slug
-      .replace(/-/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
   /**
    * Parse un chemin `/<folder>/<slug>.md` et retourne ses composants.
    * Lève BadRequestException si le path n'est pas un fichier .md.
    */
-  parseFilePath(pathStr: string): { folder: string; slug: string } {
+  /**
+   * Décompose un chemin WebDAV en `(folder, slug, originalFolder, originalFilename)`.
+   *
+   * - `originalFolder` / `originalFilename` : noms reçus tels quels (avec
+   *   espaces, accents, émojis…) — utilisés pour le round-trip vers Obsidian.
+   * - `folder` / `slug` : versions slugifiées kebab-case ASCII utilisées en
+   *   DB (slug est `@unique` et sert à `/wiki/<slug>`).
+   *
+   * Tolère arbitrairement de profondeur de path. Au-delà de 2 niveaux, on
+   * applique un fallback : on aplatit en concaténant les segments parent dans
+   * `originalFolder` (l'utilisateur peut nesté librement sur Obsidian, le
+   * wiki affichera la catégorie reconstruite).
+   */
+  parseFilePath(pathStr: string): {
+    folder: string;
+    slug: string;
+    originalFolder: string;
+    originalFilename: string;
+  } {
     const cleaned = this.normalizePath(pathStr);
     if (!cleaned.toLowerCase().endsWith(".md")) {
       throw new BadRequestException("WebDAV: only .md files are supported");
     }
     const parts = cleaned.split("/").filter(Boolean);
-    if (parts.length < 1 || parts.length > 2) {
-      throw new BadRequestException("WebDAV: invalid path depth");
+    if (parts.length < 1) {
+      throw new BadRequestException("WebDAV: invalid path");
     }
-    let folder = DEFAULT_FOLDER;
-    let filename = parts[0]!;
-    if (parts.length === 2) {
-      folder = parts[0]!;
-      filename = parts[1]!;
+    let originalFolder = DEFAULT_FOLDER;
+    let originalFilename = parts[parts.length - 1]!;
+    if (parts.length >= 2) {
+      // Tous les segments avant le filename sont aplatis en folder.
+      // Ex : /Cat A/Sous/file.md → folder = "Cat A / Sous"
+      originalFolder = parts.slice(0, -1).join(" / ");
     }
-    const slug = filename.replace(/\.md$/i, "");
-    if (!/^[a-z0-9-]{1,200}$/i.test(slug)) {
+    originalFilename = originalFilename.replace(/\.md$/i, "");
+    if (originalFilename.length === 0) {
+      throw new BadRequestException("WebDAV: empty filename");
+    }
+    if (originalFilename.length > 200 || originalFolder.length > 200) {
       throw new BadRequestException(
-        "WebDAV: slug must match [a-z0-9-]{1,200}",
+        "WebDAV: filename or folder too long (max 200 chars)",
       );
     }
-    if (!/^[a-z0-9_-]{1,100}$/i.test(folder)) {
-      throw new BadRequestException(
-        "WebDAV: folder must match [a-z0-9_-]{1,100}",
-      );
-    }
-    return { folder, slug };
+    // Slugify pour la couche DB (slug @unique en kebab-case ASCII)
+    const slug = slugify(originalFilename, { maxLength: 200 }) || "untitled";
+    const folder =
+      slugify(originalFolder, { maxLength: 100 }) || DEFAULT_FOLDER;
+    return { folder, slug, originalFolder, originalFilename };
   }
 
   /**
@@ -705,11 +1144,75 @@ export class WebDAVService {
     const fmLines = Object.entries(fm)
       .map(([k, v]) => `${k}: ${this.yamlSafe(v)}`)
       .join("\n");
-    // Note : page.content est stocké comme HTML "rich-text" dans la DB ;
-    // pour les vaults Obsidian on l'expose tel quel — Obsidian parse l'HTML
-    // dans les .md sans souci. Lors d'un PUT depuis Obsidian, on récupère
-    // du markdown pur qui sera re-stocké inchangé (plus prévisible).
-    return `---\n${fmLines}\n---\n\n${page.content}`;
+    // page.content est stocké en HTML (l'UI wiki rend du HTML). Pour Obsidian,
+    // on convertit HTML → markdown via Turndown pour que l'utilisateur ait
+    // une expérience native (pas de balises HTML dans son vault).
+    const body = WebDAVService.htmlToMarkdown(page.content || "");
+    return `---\n${fmLines}\n---\n\n${body}`;
+  }
+
+  /**
+   * Pré-traite le markdown Obsidian avant marked.parse :
+   *   - retire le frontmatter YAML (déjà extrait par parseMarkdown)
+   *   - convertit les wikilinks [[slug|texte]] en liens markdown standards
+   *   - convertit les wikilinks simples [[slug]] en liens
+   *   - remplace les inclusions d'images Obsidian ![[file]] par un placeholder
+   */
+  private static preprocessObsidianMd(md: string): string {
+    if (!md) return "";
+    let s = md.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
+    const slugifyTarget = (t: string): string =>
+      t
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+    s = s.replace(
+      /\[\[([^\]|]+)\|([^\]]+)\]\]/g,
+      (_m, target, label) =>
+        `[${label.trim()}](/wiki/${slugifyTarget(target)})`,
+    );
+    s = s.replace(
+      /\[\[([^\]]+)\]\]/g,
+      (_m, target) => `[${target.trim()}](/wiki/${slugifyTarget(target)})`,
+    );
+    s = s.replace(
+      /!\[\[([^\]]+)\]\]/g,
+      (_m, file) => `*[Image Obsidian non synchronisée : ${file.trim()}]*`,
+    );
+    return s;
+  }
+
+  // Singleton Turndown configuré pour mapper proprement les éléments HTML
+  // courants — initialisé lazily pour ne pas pénaliser les autres usages
+  // de WebDAVService qui ne touchent pas à la conversion.
+  private static turndownInstance: TurndownService | null = null;
+  private static htmlToMarkdown(html: string): string {
+    if (!html) return "";
+    if (!WebDAVService.turndownInstance) {
+      const td = new TurndownService({
+        headingStyle: "atx", // ## H2 plutôt que H2\n----
+        codeBlockStyle: "fenced", // ```code``` plutôt qu'indent
+        bulletListMarker: "-",
+        emDelimiter: "_",
+        hr: "---",
+      });
+      // Préserver les codes inline + blocs (ne pas casser ``` -> indent)
+      td.addRule("fencedCodeBlock", {
+        filter: (node: any): boolean =>
+          node.nodeName === "PRE" &&
+          node.firstChild != null &&
+          node.firstChild.nodeName === "CODE",
+        replacement: (_content: string, node: any): string => {
+          const code = node.firstChild?.textContent ?? "";
+          const cls = node.firstChild?.className ?? "";
+          const lang = cls.match(/language-(\S+)/)?.[1] ?? "";
+          return `\n\n\`\`\`${lang}\n${code.replace(/\n$/, "")}\n\`\`\`\n\n`;
+        },
+      });
+      WebDAVService.turndownInstance = td;
+    }
+    return WebDAVService.turndownInstance.turndown(html);
   }
 
   private yamlSafe(v: string): string {

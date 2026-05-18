@@ -1,43 +1,50 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { api } from '@/lib/api';
-import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
-import { PageHeader } from '@/components/layout/page-header';
-import { Database, Download, Trash2, Upload, Loader2, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
-import { useTranslation } from '@/lib/i18n';
-import { EmptyState } from '@omnitech/ui';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api } from "@/lib/api";
+import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
+import { PageHeader } from "@/components/layout/page-header";
+import {
+  Database,
+  Download,
+  Trash2,
+  Upload,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n";
+import { EmptyState } from "@omnitech/ui";
 
 interface BackupFile {
   filename: string;
   size: number;
   createdAt: string;
-  type: 'db' | 'storage' | 'unknown';
+  type: "db" | "storage" | "unknown";
 }
 
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 o';
+  if (bytes === 0) return "0 o";
   const k = 1024;
-  const sizes = ['o', 'Ko', 'Mo', 'Go', 'To'];
+  const sizes = ["o", "Ko", "Mo", "Go", "To"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Date(iso).toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  db: 'Base de données',
-  storage: 'Fichiers',
-  unknown: 'Autre',
+  db: "Base de données",
+  storage: "Fichiers",
+  unknown: "Autre",
 };
 
 export default function BackupsPage() {
@@ -56,10 +63,10 @@ export default function BackupsPage() {
   const loadBackups = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get<BackupFile[]>('/backup/list');
+      const { data } = await api.get<BackupFile[]>("/backup/list");
       setBackups(data);
     } catch {
-      toast.error('Impossible de charger la liste des sauvegardes');
+      toast.error("Impossible de charger la liste des sauvegardes");
     } finally {
       setLoading(false);
     }
@@ -72,15 +79,17 @@ export default function BackupsPage() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const { data } = await api.post<{ success: boolean; message: string }>('/backup/export');
+      const { data } = await api.post<{ success: boolean; message: string }>(
+        "/backup/export",
+      );
       if (data.success) {
-        toast.success('Sauvegarde terminée avec succès');
+        toast.success("Sauvegarde terminée avec succès");
         await loadBackups();
       } else {
-        toast.error(data.message || 'Échec de la sauvegarde');
+        toast.error(data.message || "Échec de la sauvegarde");
       }
     } catch {
-      toast.error('Erreur lors du lancement de la sauvegarde');
+      toast.error("Erreur lors du lancement de la sauvegarde");
     } finally {
       setExporting(false);
     }
@@ -88,17 +97,20 @@ export default function BackupsPage() {
 
   const handleDownload = async (filename: string) => {
     try {
-      const response = await api.get(`/backup/download/${encodeURIComponent(filename)}`, {
-        responseType: 'blob',
-      });
+      const response = await api.get(
+        `/backup/download/${encodeURIComponent(filename)}`,
+        {
+          responseType: "blob",
+        },
+      );
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = filename;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch {
-      toast.error('Erreur lors du téléchargement');
+      toast.error("Erreur lors du téléchargement");
     }
   };
 
@@ -109,16 +121,19 @@ export default function BackupsPage() {
       toast.success(`Sauvegarde supprimée : ${filename}`);
       await loadBackups();
     } catch {
-      toast.error('Erreur lors de la suppression');
+      toast.error("Erreur lors de la suppression");
     } finally {
       setDeletingFile(null);
     }
   };
 
   const handleFileSelect = (file: File) => {
-    const valid = file.name.endsWith('.sql.gz') || file.name.endsWith('.tar.gz') || file.name.endsWith('.tgz');
+    const valid =
+      file.name.endsWith(".sql.gz") ||
+      file.name.endsWith(".tar.gz") ||
+      file.name.endsWith(".tgz");
     if (!valid) {
-      toast.error('Format non supporté. Utilisez .sql.gz ou .tar.gz');
+      toast.error("Format non supporté. Utilisez .sql.gz ou .tar.gz");
       return;
     }
     setConfirmRestore(file);
@@ -130,18 +145,22 @@ export default function BackupsPage() {
     setConfirmRestore(null);
     try {
       const formData = new FormData();
-      formData.append('file', confirmRestore);
-      const { data } = await api.post<{ success: boolean; message: string }>('/backup/restore', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 600_000,
-      });
+      formData.append("file", confirmRestore);
+      const { data } = await api.post<{ success: boolean; message: string }>(
+        "/backup/restore",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 600_000,
+        },
+      );
       if (data.success) {
-        toast.success('Restauration terminée avec succès');
+        toast.success("Restauration terminée avec succès");
       } else {
-        toast.error(data.message || 'Échec de la restauration');
+        toast.error(data.message || "Échec de la restauration");
       }
     } catch {
-      toast.error('Erreur lors de la restauration');
+      toast.error("Erreur lors de la restauration");
     } finally {
       setRestoring(false);
     }
@@ -166,48 +185,70 @@ export default function BackupsPage() {
             <button
               onClick={handleExport}
               disabled={exporting}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#004469] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#003352] disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#F68D2E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#d97420] disabled:opacity-50"
             >
-              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-              {exporting ? 'En cours...' : 'Sauvegarde DB'}
+              {exporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="h-4 w-4" />
+              )}
+              {exporting ? "En cours..." : "Sauvegarde DB"}
             </button>
             <button
               onClick={async () => {
                 setExportingFull(true);
                 try {
-                  const { data } = await api.post('/backup/export-full-network');
+                  const { data } = await api.post(
+                    "/backup/export-full-network",
+                  );
                   if (data.success) toast.success(data.message);
                   else toast.error(data.message);
                   loadBackups();
-                } catch { toast.error('Échec sauvegarde réseau'); }
-                finally { setExportingFull(false); }
+                } catch {
+                  toast.error("Échec sauvegarde réseau");
+                } finally {
+                  setExportingFull(false);
+                }
               }}
               disabled={exportingFull}
               className="inline-flex items-center gap-2 rounded-lg bg-[#296DC1] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1e5ba0] disabled:opacity-50"
             >
-              {exportingFull ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {exportingFull ? 'Envoi en cours...' : 'Sauvegarder sur serveur'}
+              {exportingFull ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              {exportingFull ? "Envoi en cours..." : "Sauvegarder sur serveur"}
             </button>
             <button
               onClick={async () => {
                 setDownloadingProject(true);
                 try {
-                  const res = await api.get('/backup/download-project', { responseType: 'blob' });
+                  const res = await api.get("/backup/download-project", {
+                    responseType: "blob",
+                  });
                   const url = window.URL.createObjectURL(res.data);
-                  const a = document.createElement('a');
+                  const a = document.createElement("a");
                   a.href = url;
-                  a.download = `omnitech-project-${new Date().toISOString().slice(0,10)}.tar.gz`;
+                  a.download = `omnitech-project-${new Date().toISOString().slice(0, 10)}.tar.gz`;
                   a.click();
                   window.URL.revokeObjectURL(url);
-                  toast.success('Téléchargement démarré');
-                } catch { toast.error('Échec du téléchargement'); }
-                finally { setDownloadingProject(false); }
+                  toast.success("Téléchargement démarré");
+                } catch {
+                  toast.error("Échec du téléchargement");
+                } finally {
+                  setDownloadingProject(false);
+                }
               }}
               disabled={downloadingProject}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-[#004469] dark:text-white transition hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white transition hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
             >
-              {downloadingProject ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              {downloadingProject ? 'Préparation...' : 'Télécharger le projet'}
+              {downloadingProject ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {downloadingProject ? "Préparation..." : "Télécharger le projet"}
             </button>
           </div>
         }
@@ -226,7 +267,10 @@ export default function BackupsPage() {
         {loading ? (
           <div className="space-y-3 p-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="stagger-item shimmer h-12 rounded-lg bg-gray-100 dark:bg-slate-700" />
+              <div
+                key={i}
+                className="stagger-item shimmer h-12 rounded-lg bg-gray-100 dark:bg-slate-700"
+              />
             ))}
           </div>
         ) : backups.length === 0 ? (
@@ -258,13 +302,15 @@ export default function BackupsPage() {
                       {b.filename}
                     </td>
                     <td className="px-6 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                        b.type === 'db'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                          : b.type === 'storage'
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                            : 'bg-gray-100 text-gray-600 dark:bg-slate-600 dark:text-slate-300'
-                      }`}>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          b.type === "db"
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                            : b.type === "storage"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                              : "bg-gray-100 text-gray-600 dark:bg-slate-600 dark:text-slate-300"
+                        }`}
+                      >
                         {TYPE_LABELS[b.type] || b.type}
                       </span>
                     </td>
@@ -278,7 +324,7 @@ export default function BackupsPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleDownload(b.filename)}
-                          className="rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-[#004469] dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-blue-300"
+                          className="rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-[#F68D2E] dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-blue-300"
                           title="Télécharger"
                         >
                           <Download className="h-4 w-4" />
@@ -312,24 +358,28 @@ export default function BackupsPage() {
             Restaurer une sauvegarde
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-            Uploadez un fichier .sql.gz (base de données) ou .tar.gz (fichiers) pour restaurer
+            Uploadez un fichier .sql.gz (base de données) ou .tar.gz (fichiers)
+            pour restaurer
           </p>
         </div>
         <div className="p-6">
           <div
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
             onDragLeave={() => setDragOver(false)}
             onDrop={onDrop}
             onClick={() => fileInputRef.current?.click()}
             className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition ${
               dragOver
-                ? 'border-[#004469] bg-blue-50 dark:border-blue-400 dark:bg-blue-900/10'
-                : 'border-gray-300 hover:border-gray-400 dark:border-slate-600 dark:hover:border-slate-500'
-            } ${restoring ? 'pointer-events-none opacity-50' : ''}`}
+                ? "border-[#F68D2E] bg-blue-50 dark:border-blue-400 dark:bg-blue-900/10"
+                : "border-gray-300 hover:border-gray-400 dark:border-slate-600 dark:hover:border-slate-500"
+            } ${restoring ? "pointer-events-none opacity-50" : ""}`}
           >
             {restoring ? (
               <>
-                <Loader2 className="mb-3 h-10 w-10 animate-spin text-[#004469] dark:text-blue-400" />
+                <Loader2 className="mb-3 h-10 w-10 animate-spin text-slate-900 dark:text-blue-400" />
                 <p className="text-sm font-medium text-gray-700 dark:text-slate-300">
                   Restauration en cours...
                 </p>
@@ -354,7 +404,7 @@ export default function BackupsPage() {
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) handleFileSelect(file);
-              e.target.value = '';
+              e.target.value = "";
             }}
           />
         </div>
@@ -379,8 +429,8 @@ export default function BackupsPage() {
               {confirmRestore.name} ({formatBytes(confirmRestore.size)})
             </p>
             <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
-              <strong>Cette action est irréversible.</strong> Les données actuelles seront
-              écrasées par le contenu de la sauvegarde.
+              <strong>Cette action est irréversible.</strong> Les données
+              actuelles seront écrasées par le contenu de la sauvegarde.
             </div>
             <div className="flex justify-end gap-3">
               <button

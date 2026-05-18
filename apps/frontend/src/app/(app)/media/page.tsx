@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { toast } from 'sonner';
-import { Button, Skeleton, EmptyState } from '@omnitech/ui';
-import { noa } from '@/lib/noa';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { toast } from "sonner";
+import { Button, Skeleton, EmptyState } from "@omnitech/ui";
+import { noa } from "@/lib/noa";
 import {
   Image as ImageIcon,
   Video,
@@ -18,16 +18,19 @@ import {
   LayoutGrid,
   Images,
   Film,
-} from 'lucide-react';
-import { useAuthStore } from '@/stores/auth-store';
-import { isRoleAtLeast, UserRole } from '@omnitech/shared';
-import { api } from '@/lib/api';
-import { withAuthToken } from '@/lib/media-url';
-import { MediaLightbox, type LightboxItem } from '@/components/media/media-lightbox';
-import { HoverVideoPreview } from '@/components/media/hover-video-preview';
-import { formatRelativeTime } from '@/lib/utils';
+} from "lucide-react";
+import { useAuthStore } from "@/stores/auth-store";
+import { isRoleAtLeast, UserRole } from "@omnitech/shared";
+import { api } from "@/lib/api";
+import { withAuthToken } from "@/lib/media-url";
+import {
+  MediaLightbox,
+  type LightboxItem,
+} from "@/components/media/media-lightbox";
+import { HoverVideoPreview } from "@/components/media/hover-video-preview";
+import { formatRelativeTime } from "@/lib/utils";
 
-type MediaKind = 'IMAGE' | 'VIDEO';
+type MediaKind = "IMAGE" | "VIDEO";
 
 interface PreviewItem {
   id: string;
@@ -43,7 +46,7 @@ interface Album {
   title: string;
   slug: string;
   description: string | null;
-  visibility: 'INTERNAL' | 'DEPARTMENT' | 'PRIVATE';
+  visibility: "INTERNAL" | "DEPARTMENT" | "PRIVATE";
   createdAt: string;
   coverItem: PreviewItem | null;
   previewItems: PreviewItem[];
@@ -63,24 +66,24 @@ interface FlatResponse {
 }
 
 const VISIBILITY_META: Record<
-  Album['visibility'],
+  Album["visibility"],
   { label: string; icon: React.ElementType; color: string }
 > = {
-  INTERNAL: { label: 'Interne', icon: Users, color: 'text-emerald-600' },
-  DEPARTMENT: { label: 'Département', icon: Building2, color: 'text-blue-600' },
-  PRIVATE: { label: 'Privé', icon: Lock, color: 'text-seal-gray-500' },
+  INTERNAL: { label: "Interne", icon: Users, color: "text-emerald-600" },
+  DEPARTMENT: { label: "Département", icon: Building2, color: "text-blue-600" },
+  PRIVATE: { label: "Privé", icon: Lock, color: "text-seal-gray-500" },
 };
 
-type Tab = 'albums' | 'photos' | 'videos';
+type Tab = "albums" | "photos" | "videos";
 
 const TABS: Array<{ id: Tab; label: string; icon: React.ElementType }> = [
-  { id: 'albums', label: 'Par album', icon: LayoutGrid },
-  { id: 'photos', label: 'Toutes les photos', icon: Images },
-  { id: 'videos', label: 'Toutes les vidéos', icon: Film },
+  { id: "albums", label: "Par album", icon: LayoutGrid },
+  { id: "photos", label: "Toutes les photos", icon: Images },
+  { id: "videos", label: "Toutes les vidéos", icon: Film },
 ];
 
 export default function MediaPage() {
-  const [tab, setTab] = useState<Tab>('albums');
+  const [tab, setTab] = useState<Tab>("albums");
   const [albums, setAlbums] = useState<Album[]>([]);
   const [flatItems, setFlatItems] = useState<FlatItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,40 +97,43 @@ export default function MediaPage() {
   const loadAlbums = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get<Album[]>('/media/albums');
+      const { data } = await api.get<Album[]>("/media/albums");
       setAlbums(Array.isArray(data) ? data : []);
     } catch {
-      toast.error('Erreur de chargement de la médiathèque');
+      toast.error("Erreur de chargement de la médiathèque");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const loadFlat = useCallback(async (type: 'IMAGE' | 'VIDEO') => {
+  const loadFlat = useCallback(async (type: "IMAGE" | "VIDEO") => {
     setLoading(true);
     try {
-      const { data } = await api.get<FlatResponse>('/media/items', {
+      const { data } = await api.get<FlatResponse>("/media/items", {
         params: { type, limit: 120 },
       });
       setFlatItems(data.items ?? []);
     } catch {
-      toast.error('Erreur de chargement des médias');
+      toast.error("Erreur de chargement des médias");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (tab === 'albums') loadAlbums();
-    else if (tab === 'photos') loadFlat('IMAGE');
-    else loadFlat('VIDEO');
+    if (tab === "albums") loadAlbums();
+    else if (tab === "photos") loadFlat("IMAGE");
+    else loadFlat("VIDEO");
   }, [tab, loadAlbums, loadFlat]);
 
   const openLightbox = (idx: number) => setLightboxIndex(idx);
   const closeLightbox = () => setLightboxIndex(null);
   const nextLightbox = () =>
-    setLightboxIndex((i) => (i !== null && i < flatItems.length - 1 ? i + 1 : i));
-  const prevLightbox = () => setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
+    setLightboxIndex((i) =>
+      i !== null && i < flatItems.length - 1 ? i + 1 : i,
+    );
+  const prevLightbox = () =>
+    setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
 
   const totalMediaCount = useMemo(
     () => albums.reduce((sum, a) => sum + a._count.items, 0),
@@ -137,7 +143,7 @@ export default function MediaPage() {
   return (
     <div className="mx-auto max-w-7xl">
       {/* Hero */}
-      <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#004469] via-[#004469] to-[#002a40] p-8 sm:p-12 text-white">
+      <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#F68D2E] via-[#F68D2E] to-[#002a40] p-8 sm:p-12 text-white">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#F9964A]/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#F9964A]/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
         <div className="relative flex items-start justify-between gap-4 flex-wrap">
@@ -149,13 +155,15 @@ export default function MediaPage() {
               Photos &amp; vidéos de l&apos;équipe
             </h1>
             <p className="text-sm sm:text-base text-white/70 max-w-2xl">
-              Événements, salons, équipes, projets — retrouvez et téléchargez les médias officiels
-              mis à disposition par l&apos;équipe Marketing.
+              Événements, salons, équipes, projets — retrouvez et téléchargez
+              les médias officiels mis à disposition par l&apos;équipe
+              Marketing.
             </p>
-            {tab === 'albums' && albums.length > 0 && (
+            {tab === "albums" && albums.length > 0 && (
               <p className="text-[11px] uppercase tracking-widest text-white/50 mt-4">
-                {albums.length} album{albums.length > 1 ? 's' : ''} · {totalMediaCount} média
-                {totalMediaCount > 1 ? 's' : ''}
+                {albums.length} album{albums.length > 1 ? "s" : ""} ·{" "}
+                {totalMediaCount} média
+                {totalMediaCount > 1 ? "s" : ""}
               </p>
             )}
           </div>
@@ -190,8 +198,8 @@ export default function MediaPage() {
               onClick={() => setTab(id)}
               className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition whitespace-nowrap ${
                 active
-                  ? 'border-[#F9964A] text-[#F9964A]'
-                  : 'border-transparent text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white'
+                  ? "border-[#F9964A] text-[#F9964A]"
+                  : "border-transparent text-seal-gray-500 dark:text-slate-400 hover:text-seal-navy dark:hover:text-white"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -202,13 +210,13 @@ export default function MediaPage() {
       </div>
 
       {/* Content */}
-      {tab === 'albums' ? (
+      {tab === "albums" ? (
         <AlbumsGrid albums={albums} loading={loading} canManage={canManage} />
       ) : (
         <FlatGallery
           items={flatItems}
           loading={loading}
-          kind={tab === 'photos' ? 'IMAGE' : 'VIDEO'}
+          kind={tab === "photos" ? "IMAGE" : "VIDEO"}
           onOpen={openLightbox}
         />
       )}
@@ -251,7 +259,7 @@ function AlbumsGrid({
   if (albums.length === 0) {
     return (
       <EmptyState
-        title={noa("Aucun album pour l'instant", 'loading')}
+        title={noa("Aucun album pour l'instant", "loading")}
         description={
           canManage
             ? "Créez votre premier album depuis l'espace de gestion pour partager des photos et vidéos avec vos collègues."
@@ -287,7 +295,12 @@ function AlbumCard({ album }: { album: Album }) {
   // Construit la mosaïque : 1 grand à gauche + jusqu'à 3 petits à droite.
   // Priorité aux previewItems (fraîcheur), fallback sur coverItem seul.
   const mosaic = useMemo(() => {
-    const base = album.previewItems?.length > 0 ? album.previewItems : album.coverItem ? [album.coverItem] : [];
+    const base =
+      album.previewItems?.length > 0
+        ? album.previewItems
+        : album.coverItem
+          ? [album.coverItem]
+          : [];
     // Si cover défini, on le met en tête pour qu'il soit le grand
     if (album.coverItem) {
       const filtered = base.filter((p) => p.id !== album.coverItem!.id);
@@ -308,7 +321,11 @@ function AlbumCard({ album }: { album: Album }) {
               <ImageIcon className="h-16 w-16 text-white/40" />
             </div>
           ) : hasMosaic ? (
-            <MosaicPreview items={mosaic} albumTitle={album.title} extra={extra} />
+            <MosaicPreview
+              items={mosaic}
+              albumTitle={album.title}
+              extra={extra}
+            />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -316,7 +333,7 @@ function AlbumCard({ album }: { album: Album }) {
               alt={album.title}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.opacity = '0.25';
+                (e.currentTarget as HTMLImageElement).style.opacity = "0.25";
               }}
             />
           )}
@@ -327,8 +344,8 @@ function AlbumCard({ album }: { album: Album }) {
               <VisIcon className="h-3 w-3" /> {vis.label}
             </span>
             <span className="inline-flex items-center gap-1 rounded-full backdrop-blur-md bg-black/40 px-2 py-0.5 text-[10px] font-semibold text-white">
-              {album._count.items} méd.{' '}
-              {album.coverItem?.type === 'VIDEO' ? (
+              {album._count.items} méd.{" "}
+              {album.coverItem?.type === "VIDEO" ? (
                 <Video className="h-3 w-3" />
               ) : (
                 <ImageIcon className="h-3 w-3" />
@@ -375,7 +392,10 @@ function MosaicPreview({
   if (!main) return null;
   const thumbs = rest.slice(0, 3);
   // Complète à 3 avec des placeholders vides si besoin (pour éviter le trou visuel)
-  const filled = [...thumbs, ...Array.from({ length: 3 - thumbs.length }, () => null)];
+  const filled = [
+    ...thumbs,
+    ...Array.from({ length: 3 - thumbs.length }, () => null),
+  ];
 
   return (
     <div className="grid grid-cols-3 grid-rows-3 gap-1 h-full w-full">
@@ -386,9 +406,11 @@ function MosaicPreview({
           src={withAuthToken(main.thumbnailUrl)}
           alt={albumTitle}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.25'; }}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.opacity = "0.25";
+          }}
         />
-        {main.type === 'VIDEO' && (
+        {main.type === "VIDEO" && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="h-10 w-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
               <Video className="h-4 w-4 text-white fill-white" />
@@ -411,9 +433,11 @@ function MosaicPreview({
                 alt=""
                 aria-hidden
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.25'; }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.opacity = "0.25";
+                }}
               />
-              {item.type === 'VIDEO' && (
+              {item.type === "VIDEO" && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <Video className="h-4 w-4 text-white fill-white drop-shadow-lg" />
                 </div>
@@ -421,7 +445,9 @@ function MosaicPreview({
               {/* Overlay "+N" sur la dernière tile s'il reste des médias */}
               {idx === filled.length - 1 && extra > 0 && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
-                  <span className="text-sm font-semibold text-white">+{extra}</span>
+                  <span className="text-sm font-semibold text-white">
+                    +{extra}
+                  </span>
                 </div>
               )}
             </>
@@ -462,9 +488,13 @@ function FlatGallery({
   if (items.length === 0) {
     return (
       <EmptyState
-        title={kind === 'IMAGE' ? 'Aucune photo disponible' : 'Aucune vidéo disponible'}
+        title={
+          kind === "IMAGE"
+            ? "Aucune photo disponible"
+            : "Aucune vidéo disponible"
+        }
         description={
-          kind === 'IMAGE'
+          kind === "IMAGE"
             ? "Aucune photo n'a encore été publiée dans les albums auxquels vous avez accès."
             : "Aucune vidéo n'a encore été publiée dans les albums auxquels vous avez accès."
         }
@@ -480,9 +510,9 @@ function FlatGallery({
           type="button"
           onClick={() => onOpen(idx)}
           className="block w-full break-inside-avoid rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-800 group relative shadow-sm hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#F9964A]"
-          aria-label={`Ouvrir ${item.title ?? 'le média'}`}
+          aria-label={`Ouvrir ${item.title ?? "le média"}`}
         >
-          {item.type === 'VIDEO' ? (
+          {item.type === "VIDEO" ? (
             <HoverVideoPreview
               thumbnailUrl={item.thumbnailUrl}
               fileUrl={item.fileUrl}
@@ -493,9 +523,11 @@ function FlatGallery({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={withAuthToken(item.thumbnailUrl)}
-              alt={item.title ?? ''}
+              alt={item.title ?? ""}
               className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.25'; }}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.opacity = "0.25";
+              }}
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
@@ -504,7 +536,9 @@ function FlatGallery({
                 {item.album.title}
               </p>
               {item.title && (
-                <p className="text-xs font-semibold text-white line-clamp-1 mt-0.5">{item.title}</p>
+                <p className="text-xs font-semibold text-white line-clamp-1 mt-0.5">
+                  {item.title}
+                </p>
               )}
             </div>
           </div>

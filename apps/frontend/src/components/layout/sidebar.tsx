@@ -179,7 +179,7 @@ const RailTooltip: React.FC<RailTooltipProps> = ({
     role="tooltip"
     className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 z-[60] opacity-0 translate-x-[-4px] group-hover/rail:opacity-100 group-hover/rail:translate-x-0 transition-all duration-150 whitespace-nowrap"
   >
-    <div className="relative bg-[#002a40]/95 backdrop-blur-sm text-white text-xs px-2.5 py-1.5 rounded-md shadow-lg border border-white/10 flex items-center gap-2">
+    <div className="relative bg-[#1a1d24]/95 backdrop-blur-sm text-white text-xs px-2.5 py-1.5 rounded-md shadow-lg border border-white/10 flex items-center gap-2">
       <span className="font-medium">{label}</span>
       {shortcut && (
         <span className="text-white/50 text-[10px] font-mono">{shortcut}</span>
@@ -189,7 +189,7 @@ const RailTooltip: React.FC<RailTooltipProps> = ({
           {badge > 99 ? "99+" : badge}
         </span>
       )}
-      <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#002a40]/95" />
+      <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#1a1d24]/95" />
     </div>
   </div>
 );
@@ -243,7 +243,7 @@ const RailButton: React.FC<RailButtonProps> = ({
         />
         <Icon className="h-[18px] w-[18px] drop-shadow-sm" strokeWidth={2} />
         {badge !== undefined && badge > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-red-600 px-1 text-[9px] font-semibold text-white ring-2 ring-[#002a40] shadow-lg">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-red-600 px-1 text-[9px] font-semibold text-white ring-2 ring-[#0f1419] shadow-lg">
             {badge > 9 ? "9+" : badge}
           </span>
         )}
@@ -486,8 +486,8 @@ export function Sidebar() {
       label: t("hub.monEspace"),
       href: "/dashboard",
       icon: Home,
-      accent: "#004469",
-      shortcut: "\u2325\u23181",
+      accent: "#F68D2E",
+      shortcut: "⌥⌘1",
       shortcutKey: "1",
       items: [
         {
@@ -528,7 +528,7 @@ export function Sidebar() {
       href: "/hub/work",
       icon: Briefcase,
       accent: "#296DC1",
-      shortcut: "\u2325\u23182",
+      shortcut: "⌥⌘2",
       shortcutKey: "2",
       items: [
         { label: t("nav.documents"), href: "/documents", icon: FileText },
@@ -570,7 +570,7 @@ export function Sidebar() {
       href: "/hub/security",
       icon: ShieldCheck,
       accent: "#892034",
-      shortcut: "\u2325\u23183",
+      shortcut: "⌥⌘3",
       shortcutKey: "3",
       items: [
         {
@@ -609,7 +609,7 @@ export function Sidebar() {
       icon: Cog,
       accent: "#F9964A",
       minRole: UserRole.ADMIN,
-      shortcut: "\u2325\u23184",
+      shortcut: "⌥⌘4",
       shortcutKey: "4",
       items: [
         // --- Identites & acces ---
@@ -818,7 +818,7 @@ export function Sidebar() {
       icon: Activity,
       accent: "#837274",
       minRole: UserRole.SUPER_ADMIN,
-      shortcut: "\u2325\u23185",
+      shortcut: "⌥⌘5",
       shortcutKey: "5",
       items: [
         {
@@ -1042,7 +1042,7 @@ export function Sidebar() {
         )}
         <aside
           className={cn(
-            "fixed left-0 top-0 z-50 h-screen w-64 bg-[#002a40] text-white flex flex-col",
+            "fixed left-0 top-0 z-50 h-screen w-64 bg-[#0f1419] text-white flex flex-col",
             "transition-transform duration-200 ease-out",
             // lg:sticky cassait le layout — sticky + h-screen réserve 100vh dans le flow
             "lg:translate-x-0",
@@ -1151,7 +1151,7 @@ export function Sidebar() {
         <div
           className={cn(
             "hidden lg:flex w-14 shrink-0 h-screen text-white",
-            "bg-gradient-to-b from-[#002a40] via-[#002640] to-[#001f35]",
+            "bg-gradient-to-b from-[#0f1419] via-[#13171e] to-[#161a21]",
             "shadow-[inset_-1px_0_0_rgba(255,255,255,0.04)]",
             "flex-col items-center py-3",
           )}
@@ -1222,7 +1222,7 @@ export function Sidebar() {
                 >
                   <span
                     className={cn(
-                      "h-2.5 w-2.5 rounded-full ring-2 ring-[#002a40] transition-colors duration-200",
+                      "h-2.5 w-2.5 rounded-full ring-2 ring-[#0f1419] transition-colors duration-200",
                       globalStatusColor,
                       globalStatus === "error" && "animate-pulse",
                     )}
@@ -1285,7 +1285,7 @@ export function Sidebar() {
         <div
           className={cn(
             "h-screen text-white flex flex-col",
-            "bg-gradient-to-b from-[#003253] via-[#002a45] to-[#001f35]",
+            "bg-gradient-to-b from-[#161a21] via-[#1a1d24] to-[#13171e]",
             "shadow-[inset_-1px_0_0_rgba(255,255,255,0.03),4px_0_24px_-8px_rgba(0,0,0,0.3)]",
             "overflow-hidden transition-[width,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
             // Mobile : full width drawer ; desktop : 240 / 0
@@ -1306,7 +1306,7 @@ export function Sidebar() {
                   width={160}
                   height={40}
                   className="h-10 w-auto object-contain drop-shadow-sm"
-                  style={{ height: 40, width: 'auto' }}
+                  style={{ height: 40, width: "auto" }}
                   priority
                 />
               </Link>
@@ -1371,7 +1371,7 @@ export function Sidebar() {
                     </button>
                   ) : (
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-mono text-white/40 pointer-events-none">
-                      {"\u2318."}
+                      {"⌘."}
                     </span>
                   )}
                 </div>

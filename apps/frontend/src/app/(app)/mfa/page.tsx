@@ -75,9 +75,17 @@ export default function MfaPage() {
       .then(({ data }) => {
         setMfaEnabled(data.mfaEnabled);
         setLastLoginAt(data.lastLoginAt || null);
-        if (data.mfaEnabled) setStep("done");
+        if (data.mfaEnabled) {
+          setStep("done");
+          // Nettoie le flag mfaSetupRequired si MFA est déjà activé. Sans ce
+          // nettoyage, AuthProvider re-redirige vers /mfa à chaque navigation
+          // tant que le flag traîne dans localStorage.
+          localStorage.removeItem("mfaSetupRequired");
+        }
       })
-      .catch((err) => logger.error(err, { page: "mfa", context: "load status" }))
+      .catch((err) =>
+        logger.error(err, { page: "mfa", context: "load status" }),
+      )
       .finally(() => setStatusLoading(false));
   }, []);
 
@@ -192,7 +200,7 @@ export default function MfaPage() {
       {step === "intro" && (
         <Card>
           <CardContent className="text-center py-8">
-            <Shield className="h-16 w-16 text-[#F68D2E] mx-auto mb-4" />
+            <Shield className="h-16 w-16 text-slate-900 mx-auto mb-4" />
             <h2 className="text-lg font-medium text-seal-navy dark:text-white mb-2">
               Protégez votre compte
             </h2>
@@ -301,7 +309,7 @@ export default function MfaPage() {
               </div>
             </div>
             <h2 className="font-semibold text-seal-navy dark:text-white flex items-center gap-2">
-              <QrCode className="h-5 w-5 text-[#F68D2E]" /> Scannez le QR code
+              <QrCode className="h-5 w-5 text-slate-900" /> Scannez le QR code
             </h2>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -367,7 +375,9 @@ export default function MfaPage() {
                 autoComplete="one-time-code"
                 {...registerCode("code", {
                   onChange: (e) => {
-                    const cleaned = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    const cleaned = e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 6);
                     setCodeValue("code", cleaned, { shouldValidate: true });
                   },
                 })}
@@ -375,7 +385,9 @@ export default function MfaPage() {
                 aria-invalid={!!codeErrors.code}
               />
               {codeErrors.code && (
-                <p className="text-red-500 text-xs mt-1">{codeErrors.code.message}</p>
+                <p className="text-red-500 text-xs mt-1">
+                  {codeErrors.code.message}
+                </p>
               )}
             </form>
           </CardContent>

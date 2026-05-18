@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * SlashCommands — Feature 6.
@@ -15,8 +15,8 @@
  * le re-submit après transformation.
  */
 
-import React, { useEffect, useRef } from 'react';
-import { FileText, BookOpen, Ticket, Play, HelpCircle } from 'lucide-react';
+import React, { useEffect, useRef } from "react";
+import { FileText, BookOpen, Ticket, Play, HelpCircle } from "lucide-react";
 
 export interface SlashCommandDef {
   id: string;
@@ -30,57 +30,57 @@ export interface SlashCommandDef {
 
 export const SLASH_COMMANDS: SlashCommandDef[] = [
   {
-    id: 'doc',
-    trigger: '/doc',
-    label: '/doc <terme>',
-    description: 'Recherche dans les documents GED',
+    id: "doc",
+    trigger: "/doc",
+    label: "/doc <terme>",
+    description: "Recherche dans les documents GED",
     Icon: FileText,
     transform: (input) => {
-      const arg = input.replace(/^\/doc\s*/i, '').trim();
+      const arg = input.replace(/^\/doc\s*/i, "").trim();
       return arg ? `Recherche dans les documents : ${arg}` : null;
     },
   },
   {
-    id: 'wiki',
-    trigger: '/wiki',
-    label: '/wiki <terme>',
-    description: 'Recherche dans la base de connaissances',
+    id: "wiki",
+    trigger: "/wiki",
+    label: "/wiki <terme>",
+    description: "Recherche dans la base de connaissances",
     Icon: BookOpen,
     transform: (input) => {
-      const arg = input.replace(/^\/wiki\s*/i, '').trim();
+      const arg = input.replace(/^\/wiki\s*/i, "").trim();
       return arg ? `Recherche dans le wiki : ${arg}` : null;
     },
   },
   {
-    id: 'ticket',
-    trigger: '/ticket',
-    label: '/ticket <terme>',
-    description: 'Recherche dans les tickets support',
+    id: "ticket",
+    trigger: "/ticket",
+    label: "/ticket <terme>",
+    description: "Recherche dans les tickets support",
     Icon: Ticket,
     transform: (input) => {
-      const arg = input.replace(/^\/ticket\s*/i, '').trim();
+      const arg = input.replace(/^\/ticket\s*/i, "").trim();
       return arg ? `Recherche dans les tickets : ${arg}` : null;
     },
   },
   {
-    id: 'run',
-    trigger: '/run',
-    label: '/run <runbook>',
-    description: 'Exécute un runbook',
+    id: "run",
+    trigger: "/run",
+    label: "/run <runbook>",
+    description: "Exécute un runbook",
     Icon: Play,
     transform: (input) => {
-      const arg = input.replace(/^\/run\s*/i, '').trim();
+      const arg = input.replace(/^\/run\s*/i, "").trim();
       return arg ? `Exécuter le runbook : ${arg}` : null;
     },
   },
   {
-    id: 'help',
-    trigger: '/help',
-    label: '/help',
-    description: 'Affiche toutes les commandes disponibles',
+    id: "help",
+    trigger: "/help",
+    label: "/help",
+    description: "Affiche toutes les commandes disponibles",
     Icon: HelpCircle,
     transform: () =>
-      'Liste les commandes slash disponibles : /doc, /wiki, /ticket, /run, /help.',
+      "Liste les commandes slash disponibles : /doc, /wiki, /ticket, /run, /help.",
   },
 ];
 
@@ -96,21 +96,27 @@ interface SlashCommandsProps {
  * Si l'input est juste `/`, on retourne tout.
  */
 export function filterSlashCommands(input: string): SlashCommandDef[] {
-  if (!input.startsWith('/')) return [];
-  const term = input.slice(1).split(/\s/)[0]?.toLowerCase() || '';
-  if (term === '') return SLASH_COMMANDS;
+  if (!input.startsWith("/")) return [];
+  const term = input.slice(1).split(/\s/)[0]?.toLowerCase() || "";
+  if (term === "") return SLASH_COMMANDS;
   return SLASH_COMMANDS.filter((c) =>
     c.trigger.slice(1).toLowerCase().startsWith(term),
   );
 }
 
-export function SlashCommands({ input, onPick, activeIndex = 0 }: SlashCommandsProps) {
+export function SlashCommands({
+  input,
+  onPick,
+  activeIndex = 0,
+}: SlashCommandsProps) {
   const filtered = filterSlashCommands(input);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const item = listRef.current?.children[activeIndex] as HTMLElement | undefined;
-    item?.scrollIntoView({ block: 'nearest' });
+    const item = listRef.current?.children[activeIndex] as
+      | HTMLElement
+      | undefined;
+    item?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
 
   if (filtered.length === 0) return null;
@@ -135,15 +141,15 @@ export function SlashCommands({ input, onPick, activeIndex = 0 }: SlashCommandsP
             onMouseDown={(e) => e.preventDefault()}
             className={`w-full text-left flex items-start gap-3 px-3 py-2.5 transition ${
               active
-                ? 'bg-[#004469]/10 dark:bg-[#004469]/30'
-                : 'hover:bg-gray-50 dark:hover:bg-slate-800'
+                ? "bg-[#F68D2E]/10 dark:bg-[#F68D2E]/30"
+                : "hover:bg-gray-50 dark:hover:bg-slate-800"
             }`}
           >
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-md shrink-0 ${
                 active
-                  ? 'bg-[#004469] text-white'
-                  : 'bg-gray-100 dark:bg-slate-800 text-[#004469] dark:text-blue-400'
+                  ? "bg-[#F68D2E] text-white"
+                  : "bg-gray-100 dark:bg-slate-800 text-slate-900 dark:text-blue-400"
               }`}
             >
               <Icon className="h-4 w-4" />

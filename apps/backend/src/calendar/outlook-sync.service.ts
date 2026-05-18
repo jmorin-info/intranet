@@ -9,18 +9,11 @@ import axios, { AxiosError } from "axios";
 import { PrismaService } from "../prisma/prisma.service";
 import { CryptoService } from "../common/crypto/crypto.service";
 import { AuditService } from "../audit/audit.service";
+import { OAuthCredsService } from "./oauth-creds.service";
 
-const MS_OAUTH_AUTHORIZE_URL =
-  "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
-const MS_OAUTH_TOKEN_URL =
-  "https://login.microsoftonline.com/common/oauth2/v2.0/token";
 const MS_GRAPH_API = "https://graph.microsoft.com/v1.0";
 
-const REQUIRED_SCOPES = [
-  "offline_access",
-  "Calendars.ReadWrite",
-  "User.Read",
-];
+const REQUIRED_SCOPES = ["offline_access", "Calendars.ReadWrite", "User.Read"];
 
 const SYNC_ERRORS_THRESHOLD = 5;
 
@@ -50,7 +43,8 @@ interface MsEvent {
  *
  * Flow OAuth2 (Microsoft Identity Platform v2.0) :
  *   1. GET /api/v1/calendar/connect/outlook?state=<csrf>
- *      → 302 vers https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+ *      → 302 vers https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize
+ *      ({tenant} = MICROSOFT_OAUTH_TENANT_ID env, défaut "common" pour multi-tenant)
  *   2. Microsoft redirige vers GET /api/v1/calendar/callback/outlook?code=...
  *      → on échange contre access+refresh, persiste chiffré.
  *
@@ -68,19 +62,20 @@ export class OutlookSyncService {
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
     private readonly audit: AuditService,
+    private readonly creds: OAuthCredsService,
   ) {}
 
   // -- Configuration --------------------------------------------------------
 
   private get clientId(): string {
-    const v = process.env.MICROSOFT_OAUTH_CLIENT_ID;
-    if (!v) throw new Error("MICROSOFT_OAUTH_CLIENT_ID not configured");
+    const v = this.creds.getOutlook().clientId;
+    if (!v) throw new Error("Microsoft OAuth client_id not configured");
     return v;
   }
 
   private get clientSecret(): string {
-    const v = process.env.MICROSOFT_OAUTH_CLIENT_SECRET;
-    if (!v) throw new Error("MICROSOFT_OAUTH_CLIENT_SECRET not configured");
+    const v = this.creds.getOutlook().clientSecret;
+    if (!v) throw new Error("Microsoft OAuth client_secret not configured");
     return v;
   }
 
@@ -89,11 +84,16 @@ export class OutlookSyncService {
     return `${base.replace(/\/$/, "")}/api/v1/calendar/callback/outlook`;
   }
 
+  private msAuthorizeUrl(): string {
+    return `https://login.microsoftonline.com/${this.creds.getOutlook().tenantId}/oauth2/v2.0/authorize`;
+  }
+
+  private msTokenUrl(): string {
+    return `https://login.microsoftonline.com/${this.creds.getOutlook().tenantId}/oauth2/v2.0/token`;
+  }
+
   isConfigured(): boolean {
-    return Boolean(
-      process.env.MICROSOFT_OAUTH_CLIENT_ID &&
-        process.env.MICROSOFT_OAUTH_CLIENT_SECRET,
-    );
+    return this.creds.isOutlookConfigured();
   }
 
   // -- OAuth ----------------------------------------------------------------
@@ -111,7 +111,7 @@ export class OutlookSyncService {
       state,
       prompt: "consent",
     });
-    return `${MS_OAUTH_AUTHORIZE_URL}?${params.toString()}`;
+    return `${this.msAuthorizeUrl()}?${params.toString()}`;
   }
 
   async handleCallback(
@@ -123,7 +123,7 @@ export class OutlookSyncService {
     let tokens: MsTokenResponse;
     try {
       const resp = await axios.post<MsTokenResponse>(
-        MS_OAUTH_TOKEN_URL,
+        this.msTokenUrl(),
         new URLSearchParams({
           code,
           client_id: this.clientId,
@@ -199,11 +199,11 @@ export class OutlookSyncService {
   }
 
   async disconnect(userId: string): Promise<void> {
-    const connection = await (
-      this.prisma as any
-    ).calendarConnection.findUnique({
-      where: { userId_provider: { userId, provider: "OUTLOOK" } },
-    });
+    const connection = await (this.prisma as any).calendarConnection.findUnique(
+      {
+        where: { userId_provider: { userId, provider: "OUTLOOK" } },
+      },
+    );
     if (!connection) throw new NotFoundException("Pas de connexion Outlook");
 
     // Microsoft ne fournit pas d'endpoint "revoke token" simple — il faut
@@ -227,10 +227,7 @@ export class OutlookSyncService {
 
   private async getValidAccessToken(connection: any): Promise<string> {
     const now = Date.now();
-    if (
-      connection.expiresAt &&
-      connection.expiresAt.getTime() - 60_000 > now
-    ) {
+    if (connection.expiresAt && connection.expiresAt.getTime() - 60_000 > now) {
       return this.crypto.decrypt(connection.accessTokenEnc);
     }
     if (!connection.refreshTokenEnc) {
@@ -243,7 +240,7 @@ export class OutlookSyncService {
     let tokens: MsTokenResponse;
     try {
       const resp = await axios.post<MsTokenResponse>(
-        MS_OAUTH_TOKEN_URL,
+        this.msTokenUrl(),
         new URLSearchParams({
           refresh_token: refresh,
           client_id: this.clientId,
@@ -451,11 +448,11 @@ export class OutlookSyncService {
   // -- Helpers --------------------------------------------------------------
 
   private async getActiveConnection(userId: string) {
-    const connection = await (
-      this.prisma as any
-    ).calendarConnection.findUnique({
-      where: { userId_provider: { userId, provider: "OUTLOOK" } },
-    });
+    const connection = await (this.prisma as any).calendarConnection.findUnique(
+      {
+        where: { userId_provider: { userId, provider: "OUTLOOK" } },
+      },
+    );
     if (!connection || !connection.syncEnabled) return null;
     return connection;
   }
@@ -502,10 +499,7 @@ export class OutlookSyncService {
     return body;
   }
 
-  private async upsertLocalEvent(
-    userId: string,
-    ev: MsEvent,
-  ): Promise<void> {
+  private async upsertLocalEvent(userId: string, ev: MsEvent): Promise<void> {
     if (!ev.id) return;
     const externalUid = `ms:${ev.id}`;
     const allDay = Boolean(ev.isAllDay);
@@ -519,8 +513,7 @@ export class OutlookSyncService {
 
     const data = {
       title: (ev.subject ?? "(Sans titre)").slice(0, 200),
-      description:
-        (ev.body?.content || ev.bodyPreview)?.slice(0, 2000) ?? null,
+      description: (ev.body?.content || ev.bodyPreview)?.slice(0, 2000) ?? null,
       location: ev.location?.displayName?.slice(0, 200) ?? null,
       startDate,
       endDate,
@@ -597,9 +590,7 @@ export class OutlookSyncService {
     skipped: number;
     errors: number;
   }> {
-    const connections = await (
-      this.prisma as any
-    ).calendarConnection.findMany({
+    const connections = await (this.prisma as any).calendarConnection.findMany({
       where: { provider: "OUTLOOK", syncEnabled: true },
       select: { userId: true, id: true },
     });

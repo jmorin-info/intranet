@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * <Toolbar />
@@ -16,8 +16,8 @@
  * pour faciliter la logique d'overflow.
  */
 
-import React, { useState, useRef, useEffect, useId } from 'react';
-import type { ComponentType, SVGProps, ReactNode } from 'react';
+import React, { useState, useRef, useEffect, useId } from "react";
+import type { ComponentType, SVGProps, ReactNode } from "react";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -29,7 +29,7 @@ export interface ToolbarAction {
   icon?: ComponentType<SVGProps<SVGSVGElement>>;
   onClick?: () => void;
   /** Variante visuelle du bouton. */
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: "primary" | "secondary" | "ghost";
   /** Désactive l'action. */
   disabled?: boolean;
   /** Raccourci clavier affiché à titre indicatif (ex: "⌘K"). */
@@ -74,15 +74,15 @@ export interface ToolbarProps {
 /*  Bouton action interne                                              */
 /* ------------------------------------------------------------------ */
 
-function variantClasses(v: ToolbarAction['variant'] = 'secondary'): string {
+function variantClasses(v: ToolbarAction["variant"] = "secondary"): string {
   switch (v) {
-    case 'primary':
-      return 'bg-[#004469] text-white hover:bg-[#00324f] dark:bg-[#F68D2E] dark:text-neutral-900 dark:hover:bg-[#F9964A]';
-    case 'ghost':
-      return 'bg-transparent text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800';
-    case 'secondary':
+    case "primary":
+      return "bg-[#F68D2E] text-white hover:bg-[#00324f] dark:bg-[#F68D2E] dark:text-neutral-900 dark:hover:bg-[#F9964A]";
+    case "ghost":
+      return "bg-transparent text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800";
+    case "secondary":
     default:
-      return 'bg-white text-neutral-800 ring-1 ring-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-100 dark:ring-neutral-700 dark:hover:bg-neutral-700';
+      return "bg-white text-neutral-800 ring-1 ring-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-100 dark:ring-neutral-700 dark:hover:bg-neutral-700";
   }
 }
 
@@ -94,11 +94,13 @@ function ActionBtn({ action }: { action: ToolbarAction }) {
       onClick={action.onClick}
       disabled={action.disabled}
       aria-label={action.label}
-      title={action.shortcut ? `${action.label} (${action.shortcut})` : action.label}
+      title={
+        action.shortcut ? `${action.label} (${action.shortcut})` : action.label
+      }
       className={
-        'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ' +
-        'transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F68D2E] focus-visible:ring-offset-1 ' +
-        'disabled:opacity-50 disabled:cursor-not-allowed ' +
+        "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium " +
+        "transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F68D2E] focus-visible:ring-offset-1 " +
+        "disabled:opacity-50 disabled:cursor-not-allowed " +
         variantClasses(action.variant)
       }
     >
@@ -120,16 +122,17 @@ function OverflowMenu({ items }: { items: ToolbarAction[] }) {
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === "Escape") setOpen(false);
     };
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener('mousedown', onDoc);
-      document.removeEventListener('keydown', onKey);
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
@@ -191,12 +194,12 @@ export function Toolbar({
   groups = [],
   searchable = false,
   onSearch,
-  searchPlaceholder = 'Rechercher…',
+  searchPlaceholder = "Rechercher…",
   searchValue,
   filters,
   rightSlot,
-  ariaLabel = 'Barre d’outils',
-  className = '',
+  ariaLabel = "Barre d’outils",
+  className = "",
 }: ToolbarProps): React.ReactElement {
   // Sur mobile : repli de tous les groupes non-sticky dans un overflow menu.
   const stickyGroups = groups.filter((g) => g.sticky);
@@ -208,7 +211,7 @@ export function Toolbar({
       role="toolbar"
       aria-label={ariaLabel}
       className={
-        'flex flex-wrap items-center gap-2 rounded-lg border border-neutral-200 bg-white/80 px-3 py-2 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-900/60 ' +
+        "flex flex-wrap items-center gap-2 rounded-lg border border-neutral-200 bg-white/80 px-3 py-2 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-900/60 " +
         className
       }
     >
@@ -220,7 +223,7 @@ export function Toolbar({
             onChange={(e) => onSearch?.(e.target.value)}
             placeholder={searchPlaceholder}
             aria-label={searchPlaceholder}
-            className="w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-[#004469] focus:outline-none focus:ring-2 focus:ring-[#F68D2E]/40 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+            className="w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-[#F68D2E] focus:outline-none focus:ring-2 focus:ring-[#F68D2E]/40 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500"
           />
         </div>
       )}
@@ -236,12 +239,12 @@ export function Toolbar({
               key={chip.id}
               type="button"
               onClick={chip.onToggle}
-              aria-pressed={chip.active ? 'true' : 'false'}
+              aria-pressed={chip.active ? "true" : "false"}
               className={
-                'rounded-full px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F68D2E] ' +
+                "rounded-full px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F68D2E] " +
                 (chip.active
-                  ? 'bg-[#004469] text-white dark:bg-[#F68D2E] dark:text-neutral-900'
-                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700')
+                  ? "bg-[#F68D2E] text-white dark:bg-[#F68D2E] dark:text-neutral-900"
+                  : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700")
               }
             >
               {chip.label}
@@ -299,7 +302,9 @@ export function Toolbar({
         </>
       )}
 
-      {rightSlot && <div className="ml-auto flex items-center gap-2">{rightSlot}</div>}
+      {rightSlot && (
+        <div className="ml-auto flex items-center gap-2">{rightSlot}</div>
+      )}
     </div>
   );
 }

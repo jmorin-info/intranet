@@ -3,6 +3,7 @@ import {
   All,
   Get,
   Post,
+  Put,
   Delete,
   Req,
   Res,
@@ -11,6 +12,7 @@ import {
   UseGuards,
   BadRequestException,
 } from "@nestjs/common";
+import { SkipThrottle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
@@ -70,12 +72,30 @@ export class WebDAVController {
 
   @Delete("users/me/webdav-token/:id")
   @UseGuards(JwtAuthGuard)
-  async revokeOne(
-    @CurrentUser() user: RequestUser,
-    @Param("id") id: string,
-  ) {
+  async revokeOne(@CurrentUser() user: RequestUser, @Param("id") id: string) {
     await this.webdav.revokeToken(user.id, id);
     return { success: true };
+  }
+
+  /**
+   * Préfixe vault Obsidian — utilisé par Remotely Save (auto-préfixe le path
+   * avec le nom du vault). Quand renseigné, le serveur strippe ce préfixe
+   * avant le routage des requêtes WebDAV. Ex : prefix="Obsidian Vault" →
+   * GET /Obsidian Vault/admin-sys/foo.md devient GET /admin-sys/foo.md.
+   */
+  @Get("users/me/webdav-prefix")
+  @UseGuards(JwtAuthGuard)
+  async getMyVaultPrefix(@CurrentUser() user: RequestUser) {
+    return { prefix: await this.webdav.getVaultPrefix(user.id) };
+  }
+
+  @Put("users/me/webdav-prefix")
+  @UseGuards(JwtAuthGuard)
+  async setMyVaultPrefix(
+    @CurrentUser() user: RequestUser,
+    @Body() body: { prefix?: string | null },
+  ) {
+    return this.webdav.setVaultPrefix(user.id, body?.prefix ?? null);
   }
 
   // -- WebDAV endpoint (Basic auth) -----------------------------------------
@@ -90,16 +110,15 @@ export class WebDAVController {
    */
   @All("webdav/obsidian/*path")
   @Public()
-  async handleWebdav(
-    @Req() req: Request,
-    @Res() res: Response,
-  ): Promise<void> {
+  @SkipThrottle()
+  async handleWebdav(@Req() req: Request, @Res() res: Response): Promise<void> {
     const method = req.method.toUpperCase();
 
     // --- Authentification Basic ---
     const auth = await this.authenticateRequest(req, res);
     if (!auth) return; // 401 envoyé
-    const { user, vaultUserId, vaultPath } = auth;
+    const { user, vaultUserId } = auth;
+    let { vaultPath } = auth;
 
     // Scope strict : la `userId` du path = user authentifié (pas d'accès
     // cross-user, sauf admin si on voulait l'autoriser — ici on refuse).
@@ -108,13 +127,20 @@ export class WebDAVController {
       return;
     }
 
+    // --- Strip vault prefix si configuré ---
+    // Permet aux clients (Remotely Save) qui auto-préfixent le path avec le
+    // nom du vault Obsidian de voir directement les catégories à la racine.
+    const prefix = await this.webdav.getVaultPrefix(user.id);
+    if (prefix)
+      vaultPath = this.webdav.applyVaultPrefixStrip(prefix, vaultPath);
+
     try {
       switch (method) {
         case "OPTIONS":
           this.handleOptions(res);
           return;
         case "PROPFIND":
-          await this.handlePropfind(req, res, user.id, vaultPath);
+          await this.handlePropfind(req, res, user.id, vaultPath, prefix);
           return;
         case "PROPPATCH":
           // Set props (mtime, custom). On accepte mais sans effet — Obsidian
@@ -122,8 +148,10 @@ export class WebDAVController {
           this.handleProppatchNoop(res);
           return;
         case "MKCOL":
-          // Création dossier — virtuelle, on accepte (les dossiers sont
-          // implicitement matérialisés via la catégorie de la première page).
+          // Persiste le dossier comme "ghost folder" pour qu'un PROPFIND
+          // immédiat sur le même chemin retourne 207 (et non 404).
+          // Indispensable pour les self-tests Remotely Save / autres clients.
+          await this.webdav.createFolder(user.id, vaultPath);
           this.send(res, 201, "");
           return;
         case "GET":
@@ -138,7 +166,13 @@ export class WebDAVController {
           return;
         case "COPY":
         case "MOVE":
-          await this.handleMove(req, res, user.id, vaultPath, method === "COPY");
+          await this.handleMove(
+            req,
+            res,
+            user.id,
+            vaultPath,
+            method === "COPY",
+          );
           return;
         case "LOCK":
           this.handleLock(res, vaultPath);
@@ -155,6 +189,58 @@ export class WebDAVController {
         err?.status && Number.isInteger(err.status) ? err.status : 500;
       this.send(res, status, err?.message || "WebDAV error", "text/plain");
     }
+  }
+
+  /**
+   * Lit le body brut de la requête PUT — bypass nécessaire car le body
+   * parser global de Nest (json/urlencoded) ne couvre pas application/
+   * octet-stream ni text/plain (CT typiques pour Obsidian / Remotely Save).
+   * Cap de sécurité à 5 MB pour éviter un OOM via PUT illimité.
+   */
+  private async readRequestBody(req: Request): Promise<string> {
+    const MAX_BODY = 5 * 1024 * 1024;
+    // 1. Si rawBody / body déjà parsés (ex : json depuis un client mal configuré)
+    const pre = (req as any).rawBody;
+    if (Buffer.isBuffer(pre) && pre.length > 0) return pre.toString("utf8");
+    if (typeof pre === "string" && pre.length > 0) return pre;
+    if (typeof req.body === "string" && req.body.length > 0) return req.body;
+    if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+      return req.body.toString("utf8");
+    }
+    // 2. Si l'objet `body` a été parsé en objet par body-parser (json),
+    // il est probablement vide (`{}`). On retombe sur la lecture stream
+    // si elle est encore possible — sinon chaîne vide.
+    return await new Promise<string>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      let size = 0;
+      let settled = false;
+      const finish = (value: string) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      };
+      const fail = (err: Error) => {
+        if (settled) return;
+        settled = true;
+        reject(err);
+      };
+      req.on("data", (chunk: Buffer | string) => {
+        const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
+        size += buf.length;
+        if (size > MAX_BODY) {
+          req.destroy();
+          fail(new BadRequestException("PUT body too large (>5MB)"));
+          return;
+        }
+        chunks.push(buf);
+      });
+      req.on("end", () => finish(Buffer.concat(chunks).toString("utf8")));
+      req.on("error", fail);
+      req.on("close", () => finish(Buffer.concat(chunks).toString("utf8")));
+      // Si le stream a déjà été terminé silencieusement, fini ou
+      // consommé en amont, on a un timeout léger pour ne pas bloquer.
+      setTimeout(() => finish(Buffer.concat(chunks).toString("utf8")), 1500);
+    });
   }
 
   // -- Auth helper -----------------------------------------------------------
@@ -185,9 +271,7 @@ export class WebDAVController {
       this.send(res, 401, "Unauthorized");
       return null;
     }
-    const decoded = Buffer.from(authHeader.slice(6), "base64").toString(
-      "utf8",
-    );
+    const decoded = Buffer.from(authHeader.slice(6), "base64").toString("utf8");
     const colonIdx = decoded.indexOf(":");
     if (colonIdx < 0) {
       res.set("WWW-Authenticate", 'Basic realm="OMNITECH WebDAV"');
@@ -225,13 +309,17 @@ export class WebDAVController {
     res: Response,
     userId: string,
     vaultPath: string,
+    prefix: string | null,
   ): Promise<void> {
     const depth = (req.headers.depth as string) || "1";
     let nodes: VaultNode[] = [];
     try {
       nodes = await this.webdav.listVault(userId, vaultPath);
     } catch (err: any) {
-      if (err?.status === 404 || err?.constructor?.name === "NotFoundException") {
+      if (
+        err?.status === 404 ||
+        err?.constructor?.name === "NotFoundException"
+      ) {
         this.send(res, 404, "Not Found");
         return;
       }
@@ -243,7 +331,7 @@ export class WebDAVController {
       nodes = nodes.slice(0, 1);
     }
 
-    const xml = this.buildMultiStatus(nodes);
+    const xml = this.buildMultiStatus(nodes, prefix);
     res.set({
       "Content-Type": 'application/xml; charset="utf-8"',
       DAV: "1, 2",
@@ -271,9 +359,18 @@ export class WebDAVController {
     vaultPath: string,
     headOnly: boolean,
   ): Promise<void> {
-    const file = await this.webdav.getFile(userId, vaultPath);
+    // Tente d'abord le ghost file (chemin arbitraire) — fallback sur WikiPage.
+    const ghost = await this.webdav.getGhostFile(userId, vaultPath);
+    let file: { content: string; modified: Date; etag: string };
+    if (ghost) {
+      file = ghost;
+    } else {
+      file = await this.webdav.getFile(userId, vaultPath);
+    }
     res.set({
-      "Content-Type": "text/markdown; charset=utf-8",
+      "Content-Type": ghost
+        ? "application/octet-stream"
+        : "text/markdown; charset=utf-8",
       "Last-Modified": file.modified.toUTCString(),
       ETag: file.etag,
       "Content-Length": Buffer.byteLength(file.content, "utf8").toString(),
@@ -297,19 +394,34 @@ export class WebDAVController {
     userId: string,
     vaultPath: string,
   ): Promise<void> {
-    const raw =
-      (req as any).rawBody && (req as any).rawBody.toString
-        ? (req as any).rawBody.toString("utf8")
-        : typeof req.body === "string"
-          ? req.body
-          : Buffer.isBuffer(req.body)
-            ? req.body.toString("utf8")
-            : JSON.stringify(req.body || "");
+    // Le body parser global (json/urlencoded) ne traite pas application/
+    // octet-stream ni text/plain (les content-types typiques d'un PUT WebDAV).
+    // → on lit le stream brut directement quand rawBody / req.body sont vides.
+    const raw = await this.readRequestBody(req);
 
-    if (!raw || typeof raw !== "string") {
+    if (raw === null || raw === undefined) {
       throw new BadRequestException("Empty PUT body");
     }
-    const result = await this.webdav.putFile(userId, vaultPath, raw);
+
+    // Routing :
+    //  - .md à profondeur ≤ 2 (`/<cat>/<slug>.md`) → WikiPage (mapping métier)
+    //  - sinon → ghost file (stockage AppConfig minimal, max 64 Ko)
+    const norm = (vaultPath || "/").replace(/\/+/g, "/");
+    const parts = norm.split("/").filter(Boolean);
+    const isMdMapping =
+      /\.md$/i.test(norm) && parts.length >= 1 && parts.length <= 2;
+
+    if (isMdMapping) {
+      const result = await this.webdav.putFile(userId, vaultPath, raw);
+      res.set({
+        ETag: result.etag,
+        "Last-Modified": result.modified.toUTCString(),
+      });
+      res.status(result.created ? 201 : 204).end();
+      return;
+    }
+
+    const result = await this.webdav.putGhostFile(userId, vaultPath, raw);
     res.set({
       ETag: result.etag,
       "Last-Modified": result.modified.toUTCString(),
@@ -322,7 +434,25 @@ export class WebDAVController {
     userId: string,
     vaultPath: string,
   ): Promise<void> {
-    await this.webdav.deleteFile(userId, vaultPath);
+    // 1. Si c'est un ghost file (peu importe l'extension), on le supprime.
+    const ghostDeleted = await this.webdav.deleteGhostFile(userId, vaultPath);
+    if (ghostDeleted) {
+      res.status(204).end();
+      return;
+    }
+    // 2. .md → page wiki (mapping métier)
+    if (/\.md$/i.test(vaultPath)) {
+      try {
+        await this.webdav.deleteFile(userId, vaultPath);
+        res.status(204).end();
+        return;
+      } catch (err: any) {
+        // Si la page n'existe pas non plus côté wiki, c'est un 404 honnête.
+        throw err;
+      }
+    }
+    // 3. Sinon : dossier → ghost folder
+    await this.webdav.removeGhostFolder(userId, vaultPath);
     res.status(204).end();
   }
 
@@ -382,24 +512,36 @@ export class WebDAVController {
 
   // -- XML helpers -----------------------------------------------------------
 
-  private buildMultiStatus(nodes: VaultNode[]): string {
-    const responses = nodes
-      .map((n) => this.nodeToXml(n))
-      .join("\n");
+  private buildMultiStatus(nodes: VaultNode[], prefix: string | null): string {
+    const responses = nodes.map((n) => this.nodeToXml(n, prefix)).join("\n");
     return `<?xml version="1.0" encoding="utf-8" ?>
 <D:multistatus xmlns:D="DAV:">
 ${responses}
 </D:multistatus>`;
   }
 
-  private nodeToXml(node: VaultNode): string {
+  private nodeToXml(node: VaultNode, prefix: string | null): string {
     const isDir = node.type === "directory";
-    const href = `/api/v1/webdav/obsidian/{user}` + (isDir ? node.path : node.path);
-    // {user} sera substitué par le client — on n'a pas l'userId ici dans le
-    // contexte Nest. En pratique on peut laisser path relatif ; les clients
-    // WebDAV tolèrent les hrefs relatifs au request URL.
-    void href;
-    const relHref = this.escapeXml(node.path);
+    // Réinjecte le préfixe vault dans le href pour que les clients qui
+    // valident `href.startsWith(<base>)` (Remotely Save : "after stripping
+    // doesn't starts with") trouvent leur compte. On URL-encode pour préserver
+    // les espaces (`Obsidian Vault` → `Obsidian%20Vault`).
+    const ensureLeadSlash = (s: string) => (s.startsWith("/") ? s : `/${s}`);
+    const encodePath = (p: string) =>
+      p
+        .split("/")
+        .map((seg) => encodeURIComponent(seg))
+        .join("/");
+    let outPath = node.path;
+    if (prefix && prefix !== "/") {
+      // node.path est "/" pour la racine, "/admin-sys" / "/admin-sys/foo.md"
+      // sinon. On préfixe en évitant le double slash.
+      outPath =
+        node.path === "/"
+          ? ensureLeadSlash(prefix) + (isDir ? "/" : "")
+          : ensureLeadSlash(prefix) + node.path;
+    }
+    const relHref = this.escapeXml(encodePath(outPath));
     const lastModified = node.modified
       ? new Date(node.modified).toUTCString()
       : new Date().toUTCString();

@@ -104,6 +104,13 @@ export function WebdavIntegrationCard(): React.ReactElement {
   const [label, setLabel] = useState("");
   const [minted, setMinted] = useState<WebDAVMintResponse | null>(null);
 
+  // Vault prefix — stripped server-side before routage. Permet à Remotely
+  // Save (qui auto-préfixe le path avec le nom du vault) de voir directement
+  // les catégories à la racine.
+  const [vaultPrefix, setVaultPrefix] = useState<string>("");
+  const [vaultPrefixSaved, setVaultPrefixSaved] = useState<string>("");
+  const [savingPrefix, setSavingPrefix] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -132,6 +139,42 @@ export function WebdavIntegrationCard(): React.ReactElement {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Charge le préfixe vault (silencieux : 401/403 = pas grave, le formulaire
+  // reste vide et l'utilisateur peut renseigner s'il veut).
+  useEffect(() => {
+    api
+      .get<{ prefix: string | null }>("/users/me/webdav-prefix")
+      .then(({ data }) => {
+        const p = data?.prefix ?? "";
+        setVaultPrefix(p);
+        setVaultPrefixSaved(p);
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveVaultPrefix = async () => {
+    setSavingPrefix(true);
+    try {
+      const { data } = await api.put<{ prefix: string | null }>(
+        "/users/me/webdav-prefix",
+        { prefix: vaultPrefix.trim() || null },
+      );
+      const p = data?.prefix ?? "";
+      setVaultPrefix(p);
+      setVaultPrefixSaved(p);
+      toast.success(
+        p ? `Préfixe vault enregistré : ${p}` : "Préfixe vault supprimé",
+      );
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Erreur lors de l'enregistrement";
+      toast.error(msg);
+    } finally {
+      setSavingPrefix(false);
+    }
+  };
 
   const handleCreate = async () => {
     setSubmitting(true);
@@ -192,10 +235,7 @@ export function WebdavIntegrationCard(): React.ReactElement {
     }
   };
 
-  const handleCopy = async (
-    text: string,
-    label?: string,
-  ): Promise<void> => {
+  const handleCopy = async (text: string, label?: string): Promise<void> => {
     const ok = await copyToClipboard(text);
     if (ok) toast.success(label ?? t("copied"));
     else toast.error(t("copyError"));
@@ -269,6 +309,59 @@ export function WebdavIntegrationCard(): React.ReactElement {
           </div>
         )}
 
+        {/* Préfixe vault Obsidian (Remotely Save) */}
+        {!loading && !forbidden && (
+          <div className="border-t border-gray-200 dark:border-slate-700 pt-3 mt-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 mb-1">
+              Préfixe vault Obsidian
+            </h4>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-2">
+              Remotely Save préfixe automatiquement les chemins avec le nom de
+              votre vault Obsidian (ex : <code>Obsidian Vault</code>). Si vous
+              renseignez ce nom ici, le serveur le strippera et vous verrez
+              directement les catégories du wiki à la racine de votre vault.
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                type="text"
+                placeholder="ex : Obsidian Vault"
+                value={vaultPrefix}
+                onChange={(e) => setVaultPrefix(e.target.value)}
+                className="flex-1 min-w-[200px] px-3 py-1.5 text-sm border border-gray-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-seal-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                data-testid="webdav-vault-prefix-input"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={saveVaultPrefix}
+                disabled={savingPrefix || vaultPrefix === vaultPrefixSaved}
+                data-testid="webdav-vault-prefix-save"
+              >
+                {savingPrefix ? "…" : "Enregistrer"}
+              </Button>
+              {vaultPrefixSaved && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setVaultPrefix("");
+                    void saveVaultPrefix();
+                  }}
+                  disabled={savingPrefix}
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Supprimer
+                </Button>
+              )}
+            </div>
+            {vaultPrefixSaved && (
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">
+                ✓ Actif : <code>{vaultPrefixSaved}</code>
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Liste */}
         {!loading && !forbidden && (
           <div className="pt-2">
@@ -326,9 +419,7 @@ export function WebdavIntegrationCard(): React.ReactElement {
       <Dialog
         open={createOpen}
         onClose={closeMintModal}
-        title={
-          minted ? t("tokenWarningTitle") : t("createTokenButton")
-        }
+        title={minted ? t("tokenWarningTitle") : t("createTokenButton")}
         size="md"
       >
         {!minted ? (
@@ -363,7 +454,9 @@ export function WebdavIntegrationCard(): React.ReactElement {
                 disabled={submitting}
                 data-testid="webdav-submit-create"
               >
-                {submitting ? t("createTokenSubmitting") : t("createTokenSubmit")}
+                {submitting
+                  ? t("createTokenSubmitting")
+                  : t("createTokenSubmit")}
               </Button>
             </div>
           </div>

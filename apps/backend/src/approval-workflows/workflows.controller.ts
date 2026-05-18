@@ -71,8 +71,20 @@ export class WorkflowsController {
   // Templates
   // ---------------------------------------------------------------------------
 
+  /**
+   * Lecture seule de la liste des templates de workflow.
+   * Tout utilisateur authentifié peut consulter — nécessaire pour démarrer
+   * un workflow sur son propre document (workflow-panel.tsx côté frontend
+   * doit lister les templates disponibles avant `POST /instance`).
+   * La création/modification reste réservée à ADMIN+.
+   */
   @Get()
-  @Roles(UserRole.REVIEWER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(
+    UserRole.COLLABORATEUR,
+    UserRole.REVIEWER,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
   findAll() {
     return this.service.findAll();
   }

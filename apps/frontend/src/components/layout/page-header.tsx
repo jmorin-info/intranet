@@ -1,18 +1,24 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { cn } from '@/lib/utils';
-import type { LucideIcon } from 'lucide-react';
+import React from "react";
+import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 
-type HubAccent = 'monEspace' | 'work' | 'security' | 'admin' | 'rssi' | 'neutral';
+type HubAccent =
+  | "monEspace"
+  | "work"
+  | "security"
+  | "admin"
+  | "rssi"
+  | "neutral";
 
 const ACCENTS: Record<HubAccent, string> = {
-  monEspace: '#004469',
-  work: '#296DC1',
-  security: '#892034',
-  admin: '#F9964A',
-  rssi: '#837274',
-  neutral: '#004469',
+  monEspace: "#F68D2E",
+  work: "#296DC1",
+  security: "#892034",
+  admin: "#F9964A",
+  rssi: "#837274",
+  neutral: "#F68D2E",
 };
 
 interface PageHeaderProps {
@@ -39,14 +45,14 @@ export function PageHeader({
   title,
   subtitle,
   icon: Icon,
-  hub = 'neutral',
+  hub = "neutral",
   actions,
   meta,
   className,
 }: PageHeaderProps) {
   const accent = ACCENTS[hub];
   return (
-    <header className={cn('mb-6', className)}>
+    <header className={cn("mb-6", className)}>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
           {Icon && (

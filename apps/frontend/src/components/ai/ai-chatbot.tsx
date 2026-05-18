@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bot,
@@ -485,12 +491,15 @@ interface AIChatbotProps {
    *              chatbot/store/history is visible as a full-width panel.
    *              The outer `open` state is ignored in embedded mode.
    */
-  mode?: 'floating' | 'embedded';
+  mode?: "floating" | "embedded";
   /** Custom placeholder for the input (embedded usage). */
   placeholder?: string;
 }
 
-export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {}) {
+export function AIChatbot({
+  mode = "floating",
+  placeholder,
+}: AIChatbotProps = {}) {
   const { t: _t } = useTranslation();
   void _t;
   const pathname = usePathname();
@@ -512,7 +521,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
     setSearchTerm,
     clearHistory,
   } = useChatbotStore();
-  const embedded = mode === 'embedded';
+  const embedded = mode === "embedded";
   const [input, setInput] = useState("");
   const [showActions, setShowActions] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -523,7 +532,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const lastQuestionRef = useRef<string>('');
+  const lastQuestionRef = useRef<string>("");
 
   const currentModule = detectModule(pathname || "/");
   const pageContext = getPageContext(pathname || "/");
@@ -598,7 +607,9 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
     // immédiat — on lit le state à la volée pour ne pas re-créer le hook
     // à chaque mutation de `messages`.
     const list = useChatbotStore.getState().messages;
-    const lastAssistant = [...list].reverse().find((m) => m.role === 'assistant');
+    const lastAssistant = [...list]
+      .reverse()
+      .find((m) => m.role === "assistant");
     if (lastAssistant) {
       updateMessage(lastAssistant.id, { aborted: true });
     }
@@ -641,9 +652,9 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
       // ANSSI A.5.34 — JWT vit en cookie httpOnly. `credentials: 'include'`
       // demande au navigateur d'attacher le cookie. On ne lit plus le token
       // depuis localStorage (anti-XSS).
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(
         /\/api\/?$/,
-        '/api/v1',
+        "/api/v1",
       );
       const controller = new AbortController();
       abortRef.current = controller;
@@ -651,14 +662,15 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
       let res: Response;
       try {
         res = await fetch(`${baseUrl}/rag/ask-stream`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ question }),
           signal: controller.signal,
         });
       } catch (err) {
-        if ((err as Error).name === 'AbortError') return { ok: false, aborted: true };
+        if ((err as Error).name === "AbortError")
+          return { ok: false, aborted: true };
         return { ok: false, aborted: false };
       }
 
@@ -668,24 +680,24 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
       setLoading(false);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = '';
-      let fullAnswer = '';
+      let buffer = "";
+      let fullAnswer = "";
 
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
           for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
+            if (!line.startsWith("data: ")) continue;
             try {
               const payload = JSON.parse(line.slice(6));
-              if (payload.type === 'token') {
+              if (payload.type === "token") {
                 fullAnswer += payload.token;
                 updateMessage(assistantId, { content: fullAnswer });
-              } else if (payload.type === 'meta') {
+              } else if (payload.type === "meta") {
                 updateMessage(assistantId, {
                   sources: payload.sources ?? [],
                   queryId: payload.queryId ?? undefined,
@@ -698,7 +710,8 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
         }
         return { ok: true, aborted: false };
       } catch (err) {
-        if ((err as Error).name === 'AbortError') return { ok: false, aborted: true };
+        if ((err as Error).name === "AbortError")
+          return { ok: false, aborted: true };
         return { ok: false, aborted: false };
       } finally {
         reader.cancel().catch(() => {});
@@ -710,12 +723,15 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
   );
 
   const handleSend = useCallback(
-    async (text?: string, opts: { regenerate?: boolean; replaceId?: string } = {}) => {
+    async (
+      text?: string,
+      opts: { regenerate?: boolean; replaceId?: string } = {},
+    ) => {
       let query = (text || input).trim();
       if (!query || loading || streaming) return;
 
       // Slash command transformation (Feature 6)
-      if (query.startsWith('/')) {
+      if (query.startsWith("/")) {
         const matches = filterSlashCommands(query);
         if (matches.length > 0) {
           const transformed = matches[0]!.transform(query);
@@ -736,30 +752,32 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
       if (!opts.regenerate) {
         const userMsg: ChatMessage = {
           id: `u-${Date.now()}`,
-          role: 'user',
+          role: "user",
           content: query,
           timestamp: Date.now(),
-          context: { page: pathname || '/', module: currentModule },
+          context: { page: pathname || "/", module: currentModule },
         };
         addMessage(userMsg);
-        setInput('');
+        setInput("");
       }
 
       const assistantId = opts.replaceId ?? `a-${Date.now()}`;
       // Si replaceId : on remplace en place, sinon on ajoute un message vide
       if (opts.replaceId) {
         updateMessage(opts.replaceId, {
-          content: '',
+          content: "",
           aborted: false,
-          regenerateCount: (messages.find((m) => m.id === opts.replaceId)?.regenerateCount ?? 0) + 1,
+          regenerateCount:
+            (messages.find((m) => m.id === opts.replaceId)?.regenerateCount ??
+              0) + 1,
         });
       } else {
         addMessage({
           id: assistantId,
-          role: 'assistant',
-          content: '',
+          role: "assistant",
+          content: "",
           timestamp: Date.now(),
-          context: { page: pathname || '/', module: currentModule },
+          context: { page: pathname || "/", module: currentModule },
         });
       }
       setLoading(true);
@@ -768,18 +786,20 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
       let local: AssistantResponse | null = null;
       try {
         const before = Date.now();
-        local = await generateResponse(query, currentModule, user?.role || 'COLLABORATEUR');
+        local = await generateResponse(
+          query,
+          currentModule,
+          user?.role || "COLLABORATEUR",
+        );
         // Si la réponse locale est riche (actions ou contenu non générique), on la prend
         const isRich = !!local.actions?.length || local.content.length > 200;
-        if (isRich || (Date.now() - before) > 500) {
+        if (isRich || Date.now() - before > 500) {
           const fullContent =
             local.content +
             (local.actions
-              ? '\n\n' +
-                local.actions
-                  .map((a) => `→ [${a.label}](${a.href})`)
-                  .join('\n')
-              : '');
+              ? "\n\n" +
+                local.actions.map((a) => `→ [${a.label}](${a.href})`).join("\n")
+              : "");
           updateMessage(assistantId, { content: fullContent });
           setLoading(false);
           return;
@@ -803,7 +823,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
 
       // 3. Fallback ultime : POST /rag/ask non-streaming
       try {
-        const { data } = await api.post('/rag/ask', { question: query });
+        const { data } = await api.post("/rag/ask", { question: query });
         if (data?.answer) {
           updateMessage(assistantId, {
             content: data.answer,
@@ -816,11 +836,11 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
             content:
               local.content +
               (local.actions
-                ? '\n\n' +
+                ? "\n\n" +
                   local.actions
                     .map((a) => `→ [${a.label}](${a.href})`)
-                    .join('\n')
-                : ''),
+                    .join("\n")
+                : ""),
           });
         } else {
           updateMessage(assistantId, {
@@ -830,7 +850,8 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
         }
       } catch {
         updateMessage(assistantId, {
-          content: 'Désolé, une erreur est survenue. Réessayez dans quelques instants.',
+          content:
+            "Désolé, une erreur est survenue. Réessayez dans quelques instants.",
         });
       } finally {
         setLoading(false);
@@ -856,11 +877,16 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
    * Régénère le dernier message assistant (Feature 3).
    */
   const handleRegenerateLast = useCallback(() => {
-    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+    const lastAssistant = [...messages]
+      .reverse()
+      .find((m) => m.role === "assistant");
     if (!lastAssistant) return;
-    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
     if (!lastUser) return;
-    void handleSend(lastUser.content, { regenerate: true, replaceId: lastAssistant.id });
+    void handleSend(lastUser.content, {
+      regenerate: true,
+      replaceId: lastAssistant.id,
+    });
   }, [messages, handleSend]);
 
   /**
@@ -911,7 +937,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
 
   // Slash command suggestions visibles ?
   const slashSuggestions = useMemo(
-    () => (input.startsWith('/') ? filterSlashCommands(input) : []),
+    () => (input.startsWith("/") ? filterSlashCommands(input) : []),
     [input],
   );
 
@@ -919,7 +945,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
     (cmd: SlashCommandDef) => {
       // Conserve l'argument si déjà tapé après la commande, sinon insère juste le trigger + espace
       const parts = input.split(/\s+/);
-      const arg = parts.slice(1).join(' ');
+      const arg = parts.slice(1).join(" ");
       const next = arg ? `${cmd.trigger} ${arg}` : `${cmd.trigger} `;
       setInput(next);
       inputRef.current?.focus();
@@ -932,10 +958,15 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
    */
   function highlightTerm(content: string, term: string): React.ReactNode {
     if (!term) return content;
-    const parts = content.split(new RegExp(`(${term.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')})`, 'gi'));
+    const parts = content.split(
+      new RegExp(`(${term.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")})`, "gi"),
+    );
     return parts.map((p, i) =>
       p.toLowerCase() === term.toLowerCase() ? (
-        <mark key={i} className="bg-yellow-200 dark:bg-yellow-700/50 text-inherit rounded px-0.5">
+        <mark
+          key={i}
+          className="bg-yellow-200 dark:bg-yellow-700/50 text-inherit rounded px-0.5"
+        >
           {p}
         </mark>
       ) : (
@@ -958,9 +989,9 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
         className="relative flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 bg-gradient-to-r from-[#004469]/5 to-[#F68D2E]/5 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 bg-gradient-to-r from-[#F68D2E]/5 to-[#F68D2E]/5 px-4 py-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#004469] to-[#F68D2E] shrink-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#F68D2E] to-[#F68D2E] shrink-0">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <div className="min-w-0">
@@ -1003,18 +1034,18 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
           {messages.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center text-center py-6 px-2">
               <p className="text-base font-semibold text-seal-navy dark:text-white mb-1">
-                Bonjour{user?.firstName ? ` ${user.firstName}` : ''} !
+                Bonjour{user?.firstName ? ` ${user.firstName}` : ""} !
               </p>
               <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-5 max-w-sm">
-                Décrivez votre problème — je peux peut-être répondre directement.
-                Sinon, créez un ticket en un clic.
+                Décrivez votre problème — je peux peut-être répondre
+                directement. Sinon, créez un ticket en un clic.
               </p>
               <div className="flex flex-col gap-2 w-full max-w-md">
                 {suggestions.map((s) => (
                   <button
                     key={s}
                     onClick={() => handleSend(s)}
-                    className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-seal-navy dark:text-slate-200 hover:border-[#004469] hover:text-[#004469] dark:hover:border-blue-400 dark:hover:text-blue-400 transition text-left"
+                    className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-seal-navy dark:text-slate-200 hover:border-[#F68D2E] hover:text-[#F68D2E] dark:hover:border-blue-400 dark:hover:text-blue-400 transition text-left"
                   >
                     {s}
                   </button>
@@ -1026,18 +1057,18 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
           {visibleMessages.map((msg) => {
             const lastAssistantId = [...messages]
               .reverse()
-              .find((m) => m.role === 'assistant')?.id;
+              .find((m) => m.role === "assistant")?.id;
             return (
               <div
                 key={msg.id}
-                className={`group flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`group flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div className="max-w-[85%]">
                   <div
                     className={`rounded-2xl px-4 py-3 text-sm leading-relaxed break-words [overflow-wrap:anywhere] ${
-                      msg.role === 'user'
-                        ? 'bg-[#004469] text-white rounded-br-md'
-                        : 'bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-md'
+                      msg.role === "user"
+                        ? "bg-[#F68D2E] text-white rounded-br-md"
+                        : "bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-md"
                     }`}
                   >
                     <MarkdownRenderer content={msg.content} dense />
@@ -1064,9 +1095,18 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
             <div className="flex justify-start">
               <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
                 <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span
+                    className="h-2 w-2 rounded-full bg-[#F68D2E] dark:bg-blue-400 animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  />
+                  <span
+                    className="h-2 w-2 rounded-full bg-[#F68D2E] dark:bg-blue-400 animate-bounce"
+                    style={{ animationDelay: "150ms" }}
+                  />
+                  <span
+                    className="h-2 w-2 rounded-full bg-[#F68D2E] dark:bg-blue-400 animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  />
                 </div>
               </div>
             </div>
@@ -1077,7 +1117,11 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
         {/* Input */}
         <div className="relative shrink-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2.5">
           {slashSuggestions.length > 0 && (
-            <SlashCommands input={input} onPick={pickSlashCommand} activeIndex={slashIndex} />
+            <SlashCommands
+              input={input}
+              onPick={pickSlashCommand}
+              activeIndex={slashIndex}
+            />
           )}
           <div className="flex items-center gap-2">
             <input
@@ -1090,36 +1134,43 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
               }}
               onKeyDown={(e) => {
                 if (slashSuggestions.length > 0) {
-                  if (e.key === 'ArrowDown') {
+                  if (e.key === "ArrowDown") {
                     e.preventDefault();
                     setSlashIndex((i) => (i + 1) % slashSuggestions.length);
                     return;
                   }
-                  if (e.key === 'ArrowUp') {
+                  if (e.key === "ArrowUp") {
                     e.preventDefault();
-                    setSlashIndex((i) => (i - 1 + slashSuggestions.length) % slashSuggestions.length);
+                    setSlashIndex(
+                      (i) =>
+                        (i - 1 + slashSuggestions.length) %
+                        slashSuggestions.length,
+                    );
                     return;
                   }
-                  if (e.key === 'Tab') {
+                  if (e.key === "Tab") {
                     e.preventDefault();
                     pickSlashCommand(slashSuggestions[slashIndex]!);
                     return;
                   }
                 }
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  if (slashSuggestions.length > 0 && !input.includes(' ')) {
+                  if (slashSuggestions.length > 0 && !input.includes(" ")) {
                     pickSlashCommand(slashSuggestions[slashIndex]!);
                     return;
                   }
                   handleSendOrEdit();
                 }
               }}
-              placeholder={placeholder || 'Décrivez votre problème… (tapez / pour les commandes)'}
-              className="flex-1 min-h-[44px] rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-[#004469] focus:bg-white dark:focus:bg-slate-900 px-3.5 text-sm text-seal-navy dark:text-white placeholder-seal-taupe/50 dark:placeholder-slate-500 focus:outline-none transition"
+              placeholder={
+                placeholder ||
+                "Décrivez votre problème… (tapez / pour les commandes)"
+              }
+              className="flex-1 min-h-[44px] rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-[#F68D2E] focus:bg-white dark:focus:bg-slate-900 px-3.5 text-sm text-seal-navy dark:text-white placeholder-seal-taupe/50 dark:placeholder-slate-500 focus:outline-none transition"
               disabled={loading}
             />
-            {(loading || streaming) ? (
+            {loading || streaming ? (
               <button
                 onClick={stopGeneration}
                 aria-label="Arrêter la génération"
@@ -1133,7 +1184,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
                 onClick={() => handleSendOrEdit()}
                 disabled={!input.trim()}
                 aria-label="Envoyer le message"
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#004469] text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-[#003352] active:scale-95 transition shrink-0"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F68D2E] text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-[#d97420] active:scale-95 transition shrink-0"
               >
                 <Send className="h-4 w-4" />
               </button>
@@ -1152,7 +1203,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
           hapticTap();
           toggle();
         }}
-        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex h-14 w-14 lg:h-12 lg:w-12 items-center justify-center rounded-full bg-[#004469] text-white shadow-xl hover:bg-[#003352] hover:scale-105 active:scale-95 transition-all duration-200 group touch-manipulation"
+        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex h-14 w-14 lg:h-12 lg:w-12 items-center justify-center rounded-full bg-[#F68D2E] text-white shadow-xl hover:bg-[#d97420] hover:scale-105 active:scale-95 transition-all duration-200 group touch-manipulation"
         title="Assistant OMNITECH"
         aria-label="Ouvrir l'assistant IA"
       >
@@ -1199,8 +1250,8 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
             className="absolute left-1/2 top-1.5 -translate-x-1/2 h-1 w-10 rounded-full bg-gray-300 dark:bg-slate-700 lg:hidden"
           />
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-9 w-9 lg:h-8 lg:w-8 items-center justify-center rounded-lg bg-[#004469]/10 dark:bg-[#004469]/30 shrink-0">
-              <Bot className="h-4 w-4 text-[#004469] dark:text-blue-400" />
+            <div className="flex h-9 w-9 lg:h-8 lg:w-8 items-center justify-center rounded-lg bg-[#F68D2E]/10 dark:bg-[#F68D2E]/30 shrink-0">
+              <Bot className="h-4 w-4 text-slate-900 dark:text-blue-400" />
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-seal-navy dark:text-white truncate">
@@ -1218,7 +1269,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
                   hapticTap();
                   setShowSearch((s) => !s);
                 }}
-                className={`flex h-11 w-11 lg:h-8 lg:w-8 items-center justify-center rounded-lg transition active:scale-95 touch-manipulation ${showSearch ? 'bg-[#004469]/10 text-[#004469] dark:bg-blue-900/30 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500'}`}
+                className={`flex h-11 w-11 lg:h-8 lg:w-8 items-center justify-center rounded-lg transition active:scale-95 touch-manipulation ${showSearch ? "bg-[#F68D2E]/10 text-slate-900 dark:bg-blue-900/30 dark:text-blue-400" : "hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500"}`}
                 title="Rechercher dans l'historique"
                 aria-label="Rechercher dans l'historique"
               >
@@ -1235,7 +1286,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
                 hapticTap();
                 setShowActions(!showActions);
               }}
-              className={`flex h-11 w-11 lg:h-8 lg:w-8 items-center justify-center rounded-lg transition active:scale-95 touch-manipulation ${showActions ? "bg-[#004469]/10 text-[#004469] dark:bg-blue-900/30 dark:text-blue-400" : "hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500"}`}
+              className={`flex h-11 w-11 lg:h-8 lg:w-8 items-center justify-center rounded-lg transition active:scale-95 touch-manipulation ${showActions ? "bg-[#F68D2E]/10 text-slate-900 dark:bg-blue-900/30 dark:text-blue-400" : "hover:bg-gray-100 dark:hover:bg-slate-800 text-seal-gray-500"}`}
               title="Actions rapides"
               aria-label="Actions rapides"
             >
@@ -1274,13 +1325,15 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Rechercher dans la conversation…"
-                className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-8 pr-3 py-1.5 text-xs text-seal-navy dark:text-white placeholder-seal-gray-400 focus:outline-none focus:border-[#004469]"
+                className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-8 pr-3 py-1.5 text-xs text-seal-navy dark:text-white placeholder-seal-gray-400 focus:outline-none focus:border-[#F68D2E]"
                 aria-label="Rechercher dans l'historique"
               />
             </div>
             {searchTerm && (
               <p className="mt-1 text-[10px] text-seal-gray-500">
-                {visibleMessages.length} résultat{visibleMessages.length !== 1 ? 's' : ''} sur {messages.length} message{messages.length !== 1 ? 's' : ''}
+                {visibleMessages.length} résultat
+                {visibleMessages.length !== 1 ? "s" : ""} sur {messages.length}{" "}
+                message{messages.length !== 1 ? "s" : ""}
               </p>
             )}
           </div>
@@ -1305,7 +1358,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
                   }}
                   className="w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 min-h-[44px] text-left hover:bg-white dark:hover:bg-slate-700 transition group active:scale-[0.99] touch-manipulation"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#004469]/10 dark:bg-[#004469]/30 text-[#004469] dark:text-blue-400 group-hover:bg-[#004469]/20 transition flex-shrink-0">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#F68D2E]/10 dark:bg-[#F68D2E]/30 text-slate-900 dark:text-blue-400 group-hover:bg-[#F68D2E]/20 transition flex-shrink-0">
                     <Zap className="h-3.5 w-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -1340,7 +1393,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
                   className="absolute inset-0 animate-pulse rounded-full bg-[#F68D2E]/20 blur-xl"
                   aria-hidden
                 />
-                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#004469] to-[#F68D2E] shadow-lg">
+                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F68D2E] to-[#F68D2E] shadow-lg">
                   <Sparkles className="h-7 w-7 text-white" />
                 </div>
               </div>
@@ -1356,7 +1409,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
                   <button
                     key={s}
                     onClick={() => handleSend(s)}
-                    className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-4 py-3 min-h-[44px] text-sm font-medium text-seal-navy dark:text-slate-200 hover:border-[#004469] hover:text-[#004469] dark:hover:border-blue-400 dark:hover:text-blue-400 active:scale-[0.98] transition touch-manipulation text-left"
+                    className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-4 py-3 min-h-[44px] text-sm font-medium text-seal-navy dark:text-slate-200 hover:border-[#F68D2E] hover:text-[#F68D2E] dark:hover:border-blue-400 dark:hover:text-blue-400 active:scale-[0.98] transition touch-manipulation text-left"
                   >
                     {s}
                   </button>
@@ -1368,18 +1421,18 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
           {visibleMessages.map((msg) => {
             const lastAssistantId = [...messages]
               .reverse()
-              .find((m) => m.role === 'assistant')?.id;
+              .find((m) => m.role === "assistant")?.id;
             return (
               <div
                 key={msg.id}
-                className={`group flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`group flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div className="max-w-[85%] sm:max-w-[75%] lg:max-w-[80%]">
                   <div
                     className={`rounded-2xl px-4 py-3 text-sm leading-relaxed break-words [overflow-wrap:anywhere] ${
-                      msg.role === 'user'
-                        ? 'bg-[#004469] text-white rounded-br-md'
-                        : 'bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-md'
+                      msg.role === "user"
+                        ? "bg-[#F68D2E] text-white rounded-br-md"
+                        : "bg-gray-50 dark:bg-slate-800 text-seal-navy dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-md"
                     }`}
                   >
                     <MarkdownRenderer content={msg.content} dense />
@@ -1389,9 +1442,9 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
                       </p>
                     )}
                     <p className="mt-1.5 text-[11px] opacity-60">
-                      {new Date(msg.timestamp).toLocaleTimeString('fr-FR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
+                      {new Date(msg.timestamp).toLocaleTimeString("fr-FR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </p>
                   </div>
@@ -1413,15 +1466,15 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
               <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
                 <div className="flex items-center gap-1.5">
                   <span
-                    className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce"
+                    className="h-2 w-2 rounded-full bg-[#F68D2E] dark:bg-blue-400 animate-bounce"
                     style={{ animationDelay: "0ms" }}
                   />
                   <span
-                    className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce"
+                    className="h-2 w-2 rounded-full bg-[#F68D2E] dark:bg-blue-400 animate-bounce"
                     style={{ animationDelay: "150ms" }}
                   />
                   <span
-                    className="h-2 w-2 rounded-full bg-[#004469] dark:bg-blue-400 animate-bounce"
+                    className="h-2 w-2 rounded-full bg-[#F68D2E] dark:bg-blue-400 animate-bounce"
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
@@ -1461,13 +1514,14 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
           {editingId && (
             <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
               <span className="text-[10px] text-amber-600 dark:text-amber-400">
-                Édition d&apos;un message — l&apos;envoi remplacera l&apos;ancien.
+                Édition d&apos;un message — l&apos;envoi remplacera
+                l&apos;ancien.
               </span>
               <button
                 type="button"
                 onClick={() => {
                   setEditingId(null);
-                  setInput('');
+                  setInput("");
                 }}
                 className="text-[10px] text-seal-gray-500 hover:text-seal-navy dark:hover:text-white underline"
               >
@@ -1486,42 +1540,48 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
               }}
               onKeyDown={(e) => {
                 if (slashSuggestions.length > 0) {
-                  if (e.key === 'ArrowDown') {
+                  if (e.key === "ArrowDown") {
                     e.preventDefault();
                     setSlashIndex((i) => (i + 1) % slashSuggestions.length);
                     return;
                   }
-                  if (e.key === 'ArrowUp') {
+                  if (e.key === "ArrowUp") {
                     e.preventDefault();
                     setSlashIndex(
-                      (i) => (i - 1 + slashSuggestions.length) % slashSuggestions.length,
+                      (i) =>
+                        (i - 1 + slashSuggestions.length) %
+                        slashSuggestions.length,
                     );
                     return;
                   }
-                  if (e.key === 'Tab') {
+                  if (e.key === "Tab") {
                     e.preventDefault();
                     pickSlashCommand(slashSuggestions[slashIndex]!);
                     return;
                   }
                 }
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  if (slashSuggestions.length > 0 && !input.includes(' ')) {
+                  if (slashSuggestions.length > 0 && !input.includes(" ")) {
                     pickSlashCommand(slashSuggestions[slashIndex]!);
                     return;
                   }
                   handleSendOrEdit();
                 }
               }}
-              placeholder={editingId ? 'Modifiez le message…' : 'Posez une question (/ pour les commandes)'}
-              className="flex-1 min-h-[44px] rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-[#004469] focus:bg-white dark:focus:bg-slate-900 px-3.5 text-base lg:text-sm text-seal-navy dark:text-white placeholder-seal-taupe/50 dark:placeholder-slate-500 focus:outline-none transition touch-manipulation"
+              placeholder={
+                editingId
+                  ? "Modifiez le message…"
+                  : "Posez une question (/ pour les commandes)"
+              }
+              className="flex-1 min-h-[44px] rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-[#F68D2E] focus:bg-white dark:focus:bg-slate-900 px-3.5 text-base lg:text-sm text-seal-navy dark:text-white placeholder-seal-taupe/50 dark:placeholder-slate-500 focus:outline-none transition touch-manipulation"
               inputMode="text"
               autoComplete="off"
               autoCorrect="on"
               enterKeyHint="send"
               disabled={loading && !streaming}
             />
-            {(loading || streaming) ? (
+            {loading || streaming ? (
               <button
                 onClick={stopGeneration}
                 aria-label="Arrêter la génération"
@@ -1535,7 +1595,7 @@ export function AIChatbot({ mode = 'floating', placeholder }: AIChatbotProps = {
                 onClick={() => handleSendOrEdit()}
                 disabled={!input.trim()}
                 aria-label="Envoyer le message"
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#004469] text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-[#003352] active:scale-95 transition touch-manipulation shrink-0"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F68D2E] text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-[#d97420] active:scale-95 transition touch-manipulation shrink-0"
               >
                 <Send className="h-4 w-4" />
               </button>

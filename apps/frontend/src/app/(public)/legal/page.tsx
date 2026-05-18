@@ -14,7 +14,7 @@ export default function LegalPage() {
   return (
     <div className="min-h-screen bg-[#F5F5F5] dark:bg-slate-950">
       {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#004469]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-white/10">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#F68D2E]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/welcome" className="flex items-center gap-2.5">
             <OmnitechLogo size="sm" variant="full" className="text-white" />
@@ -31,19 +31,19 @@ export default function LegalPage() {
 
       {/* HERO */}
       <section
-        className="bg-[#004469] dark:bg-slate-900 relative overflow-hidden"
+        className="bg-[#F68D2E] dark:bg-slate-900 relative overflow-hidden"
         style={{ paddingTop: "8rem", paddingBottom: "4rem" }}
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 relative">
           <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 mb-6">
-            <Scale className="h-4 w-4 text-[#F68D2E]" />
+            <Scale className="h-4 w-4 text-slate-900" />
             <span className="text-white/70 text-xs font-semibold tracking-wide">
               Information légale
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-light text-white leading-tight">
             Mentions{" "}
-            <span className="text-[#F68D2E] font-semibold">légales</span>
+            <span className="text-slate-900 font-semibold">légales</span>
           </h1>
           <p className="text-white/60 mt-4 text-base sm:text-lg max-w-2xl leading-relaxed">
             Informations relatives à l&apos;éditeur, au directeur de la
@@ -136,7 +136,7 @@ export default function LegalPage() {
               DSI / RSSI —{" "}
               <a
                 href="mailto:dpo@omnitech-security.fr"
-                className="text-[#F68D2E] hover:underline"
+                className="text-slate-900 hover:underline"
               >
                 dpo@omnitech-security.fr
               </a>
@@ -166,7 +166,7 @@ export default function LegalPage() {
                 </strong>{" "}
                 <a
                   href="mailto:dpo@omnitech-security.fr"
-                  className="text-[#F68D2E] hover:underline"
+                  className="text-slate-900 hover:underline"
                 >
                   dpo@omnitech-security.fr
                 </a>
@@ -203,7 +203,7 @@ export default function LegalPage() {
               collaborateurs et prestataires habilités d&apos;OMNITECH Security.
               Son utilisation est encadrée par le règlement intérieur, la charte
               informatique et les chartes de sécurité publiées dans la rubrique{" "}
-              <Link href="/chartes" className="text-[#F68D2E] hover:underline">
+              <Link href="/chartes" className="text-slate-900 hover:underline">
                 Chartes
               </Link>
               .

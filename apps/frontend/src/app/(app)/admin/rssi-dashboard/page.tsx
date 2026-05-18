@@ -165,7 +165,7 @@ function Sparkline({
   values,
   width = 280,
   height = 60,
-  stroke = "#004469",
+  stroke = "#F68D2E",
   fill = "rgba(246, 141, 46, 0.2)",
 }: SparklineProps) {
   if (!values || values.length === 0) {

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { WifiOff, Wifi, Database } from 'lucide-react';
-import { useNetworkStatus } from '@/hooks/use-network-status';
-import { isServingFromCache, onCacheStatusChange } from '@/lib/offline-cache';
+import React from "react";
+import { WifiOff, Wifi, Database } from "lucide-react";
+import { useNetworkStatus } from "@/hooks/use-network-status";
+import { isServingFromCache, onCacheStatusChange } from "@/lib/offline-cache";
 
 /**
  * Thin, non-blocking banner that slides in at the top of the viewport
@@ -39,11 +39,14 @@ export function OfflineIndicator() {
         <WifiOff className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
         <span>
           {fromCache
-            ? 'Mode hors ligne \u2014 donn\u00e9es en cache'
-            : 'Mode hors ligne \u2014 certaines actions sont mises en file d\u2019attente'}
+            ? "Mode hors ligne — données en cache"
+            : "Mode hors ligne — certaines actions sont mises en file d’attente"}
         </span>
         {fromCache && (
-          <Database className="h-3.5 w-3.5 flex-shrink-0 opacity-70" aria-hidden="true" />
+          <Database
+            className="h-3.5 w-3.5 flex-shrink-0 opacity-70"
+            aria-hidden="true"
+          />
         )}
       </div>
     );

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * <Page /> — primitive de page OMNITECH
@@ -25,8 +25,8 @@
  *     est ADDITIVE et peut être adoptée progressivement.
  */
 
-import React, { useState, useId } from 'react';
-import type { ComponentType, ReactNode, SVGProps } from 'react';
+import React, { useState, useId } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -92,14 +92,18 @@ function Breadcrumbs({ items }: { items: Breadcrumb[] }) {
               {item.href && !isLast ? (
                 <a
                   href={item.href}
-                  className="hover:text-[#004469] hover:underline dark:hover:text-[#F68D2E]"
+                  className="hover:text-[#F68D2E] hover:underline dark:hover:text-[#F68D2E]"
                 >
                   {item.label}
                 </a>
               ) : (
                 <span
-                  aria-current={isLast ? 'page' : undefined}
-                  className={isLast ? 'font-medium text-neutral-700 dark:text-neutral-200' : ''}
+                  aria-current={isLast ? "page" : undefined}
+                  className={
+                    isLast
+                      ? "font-medium text-neutral-700 dark:text-neutral-200"
+                      : ""
+                  }
                 >
                   {item.label}
                 </span>
@@ -127,7 +131,7 @@ function PageSection({
   collapsible = false,
   defaultCollapsed = false,
   toolbar,
-  className = '',
+  className = "",
   children,
 }: PageSectionProps): React.ReactElement {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
@@ -137,15 +141,15 @@ function PageSection({
   return (
     <section
       className={
-        'rounded-xl border border-neutral-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-900/60 ' +
+        "rounded-xl border border-neutral-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-900/60 " +
         className
       }
     >
       {hasHeader && (
         <header className="mb-3 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            {title && (
-              collapsible ? (
+            {title &&
+              (collapsible ? (
                 <button
                   type="button"
                   aria-expanded={!collapsed}
@@ -156,13 +160,13 @@ function PageSection({
                   <span
                     aria-hidden="true"
                     className={
-                      'inline-block text-neutral-400 transition-transform ' +
-                      (collapsed ? '' : 'rotate-90')
+                      "inline-block text-neutral-400 transition-transform " +
+                      (collapsed ? "" : "rotate-90")
                     }
                   >
                     ▶
                   </span>
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-700 group-hover:text-[#004469] dark:text-neutral-200 dark:group-hover:text-[#F68D2E]">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-700 group-hover:text-[#F68D2E] dark:text-neutral-200 dark:group-hover:text-[#F68D2E]">
                     {title}
                   </h2>
                 </button>
@@ -170,20 +174,24 @@ function PageSection({
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-200">
                   {title}
                 </h2>
-              )
-            )}
+              ))}
             {description && (
               <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
                 {description}
               </p>
             )}
           </div>
-          {toolbar && <div className="flex shrink-0 items-center gap-2">{toolbar}</div>}
+          {toolbar && (
+            <div className="flex shrink-0 items-center gap-2">{toolbar}</div>
+          )}
         </header>
       )}
 
       {(!collapsible || !collapsed) && (
-        <div id={contentId} className="text-sm text-neutral-800 dark:text-neutral-200">
+        <div
+          id={contentId}
+          className="text-sm text-neutral-800 dark:text-neutral-200"
+        >
           {children}
         </div>
       )}
@@ -195,9 +203,12 @@ function PageSection({
 /*  Page.Toolbar — simple slot aligné                                  */
 /* ------------------------------------------------------------------ */
 
-function PageToolbar({ className = '', children }: PageToolbarProps): React.ReactElement {
+function PageToolbar({
+  className = "",
+  children,
+}: PageToolbarProps): React.ReactElement {
   return (
-    <div className={'flex flex-wrap items-center gap-2 ' + className}>
+    <div className={"flex flex-wrap items-center gap-2 " + className}>
       {children}
     </div>
   );
@@ -213,19 +224,21 @@ function PageRoot({
   icon: Icon,
   actions,
   breadcrumbs,
-  className = '',
+  className = "",
   children,
 }: PageProps): React.ReactElement {
   return (
-    <div className={'space-y-6 ' + className}>
+    <div className={"space-y-6 " + className}>
       <header className="space-y-2">
-        {breadcrumbs && breadcrumbs.length > 0 && <Breadcrumbs items={breadcrumbs} />}
+        {breadcrumbs && breadcrumbs.length > 0 && (
+          <Breadcrumbs items={breadcrumbs} />
+        )}
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
             {Icon && (
               <div
                 aria-hidden="true"
-                className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#004469]/10 text-[#004469] dark:bg-[#F68D2E]/15 dark:text-[#F68D2E]"
+                className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F68D2E]/10 text-slate-900 dark:bg-[#F68D2E]/15 dark:text-slate-100"
               >
                 <Icon className="h-5 w-5" />
               </div>

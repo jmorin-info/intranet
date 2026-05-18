@@ -1,25 +1,25 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { OmnitechLogo } from '@/components/omnitech-logo';
+import type { Metadata } from "next";
+import Link from "next/link";
+import { OmnitechLogo } from "@/components/omnitech-logo";
 
 export const metadata: Metadata = {
-  title: 'Centre de confiance — OMNITECH Security',
+  title: "Centre de confiance — OMNITECH Security",
   description:
-    'Preuves de conformité, certifications et engagements sécurité d’OMNITECH Security. Transparence, souveraineté et ISO 27001.',
+    "Preuves de conformité, certifications et engagements sécurité d’OMNITECH Security. Transparence, souveraineté et ISO 27001.",
   robots: { index: true, follow: true },
   openGraph: {
-    title: 'Centre de confiance — OMNITECH Security',
+    title: "Centre de confiance — OMNITECH Security",
     description:
-      'Preuves de conformité, certifications et engagements sécurité.',
-    type: 'website',
-    locale: 'fr_FR',
-    siteName: 'OMNITECH Security',
+      "Preuves de conformité, certifications et engagements sécurité.",
+    type: "website",
+    locale: "fr_FR",
+    siteName: "OMNITECH Security",
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'Centre de confiance — OMNITECH Security',
+    card: "summary_large_image",
+    title: "Centre de confiance — OMNITECH Security",
     description:
-      'Preuves de conformité, certifications et engagements sécurité.',
+      "Preuves de conformité, certifications et engagements sécurité.",
   },
 };
 
@@ -36,10 +36,10 @@ export default function TrustLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-dvh bg-white text-[#004469] dark:bg-slate-950 dark:text-slate-100">
+    <div className="min-h-dvh bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <a
         href="#trust-main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-[#004469] focus:px-3 focus:py-2 focus:text-white"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-[#F68D2E] focus:px-3 focus:py-2 focus:text-white"
       >
         Aller au contenu
       </a>
@@ -52,16 +52,19 @@ export default function TrustLayout({
           >
             <OmnitechLogo size="sm" />
           </Link>
-          <nav className="flex items-center gap-2 text-sm" aria-label="Navigation principale">
+          <nav
+            className="flex items-center gap-2 text-sm"
+            aria-label="Navigation principale"
+          >
             <Link
               href="/welcome"
-              className="rounded-md px-3 py-1.5 text-[#004469] hover:bg-[#f9964a]/10 dark:text-slate-200"
+              className="rounded-md px-3 py-1.5 text-slate-900 hover:bg-[#f9964a]/10 dark:text-slate-200"
             >
               Accueil
             </Link>
             <Link
               href="/login"
-              className="rounded-md bg-[#004469] px-3 py-1.5 text-white hover:bg-[#004469]/90"
+              className="rounded-md bg-[#F68D2E] px-3 py-1.5 text-white hover:bg-[#F68D2E]/90"
             >
               Se connecter
             </Link>

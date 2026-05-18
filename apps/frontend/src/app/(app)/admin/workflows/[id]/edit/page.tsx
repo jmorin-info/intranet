@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Page admin — Éditeur visuel drag & drop des règles de workflow (item #24).
@@ -25,12 +25,12 @@ import React, {
   useMemo,
   useRef,
   useState,
-} from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { api } from '@/lib/api';
-import { logger } from '@/lib/logger';
-import { toast } from 'sonner';
+} from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Save,
@@ -44,17 +44,17 @@ import {
   PlayCircle,
   StopCircle,
   UserCheck,
-} from 'lucide-react';
-import { Button, Card, CardContent, Badge } from '@omnitech/ui';
+} from "lucide-react";
+import { Button, Card, CardContent, Badge } from "@omnitech/ui";
 
 type NodeType =
-  | 'START'
-  | 'APPROVAL'
-  | 'BRANCH'
-  | 'PARALLEL_ALL'
-  | 'PARALLEL_ANY'
-  | 'DELEGATE'
-  | 'END';
+  | "START"
+  | "APPROVAL"
+  | "BRANCH"
+  | "PARALLEL_ALL"
+  | "PARALLEL_ANY"
+  | "DELEGATE"
+  | "END";
 
 interface GraphNode {
   id: string;
@@ -87,36 +87,39 @@ interface Graph {
 }
 
 const NODE_TYPE_LABELS: Record<NodeType, string> = {
-  START: 'Début',
-  APPROVAL: 'Approbation',
-  BRANCH: 'Branchement',
-  PARALLEL_ALL: 'Parallèle (tous)',
-  PARALLEL_ANY: 'Parallèle (premier)',
-  DELEGATE: 'Délégation',
-  END: 'Fin',
+  START: "Début",
+  APPROVAL: "Approbation",
+  BRANCH: "Branchement",
+  PARALLEL_ALL: "Parallèle (tous)",
+  PARALLEL_ANY: "Parallèle (premier)",
+  DELEGATE: "Délégation",
+  END: "Fin",
 };
 
-const NODE_TYPE_COLORS: Record<NodeType, { bg: string; border: string; icon: typeof Workflow }> = {
-  START: { bg: '#006233', border: '#003c1f', icon: PlayCircle },
-  APPROVAL: { bg: '#296DC1', border: '#1a4f8f', icon: UserCheck },
-  BRANCH: { bg: '#F9964A', border: '#d27433', icon: GitBranch },
-  PARALLEL_ALL: { bg: '#892034', border: '#5e1624', icon: GitMerge },
-  PARALLEL_ANY: { bg: '#892034', border: '#5e1624', icon: GitMerge },
-  DELEGATE: { bg: '#004469', border: '#002a45', icon: Workflow },
-  END: { bg: '#762323', border: '#4a1515', icon: StopCircle },
+const NODE_TYPE_COLORS: Record<
+  NodeType,
+  { bg: string; border: string; icon: typeof Workflow }
+> = {
+  START: { bg: "#006233", border: "#003c1f", icon: PlayCircle },
+  APPROVAL: { bg: "#296DC1", border: "#1a4f8f", icon: UserCheck },
+  BRANCH: { bg: "#F9964A", border: "#d27433", icon: GitBranch },
+  PARALLEL_ALL: { bg: "#892034", border: "#5e1624", icon: GitMerge },
+  PARALLEL_ANY: { bg: "#892034", border: "#5e1624", icon: GitMerge },
+  DELEGATE: { bg: "#F68D2E", border: "#002a45", icon: Workflow },
+  END: { bg: "#762323", border: "#4a1515", icon: StopCircle },
 };
 
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 70;
 
 const ROLES = [
-  'COLLABORATEUR',
-  'AUDITEUR',
-  'PRESTATAIRE',
-  'REVIEWER',
-  'DIRECTION',
-  'ADMIN',
-  'SUPER_ADMIN',
+  "COLLABORATEUR",
+  "AUDITEUR",
+  "PRESTATAIRE",
+  "REVIEWER",
+  "DIRECTION",
+  "ADMIN",
+  "SUPER_ADMIN",
 ];
 
 /**
@@ -124,13 +127,13 @@ const ROLES = [
  * nouveaux nodes avant sauvegarde. Le backend acceptera l'id tel quel.
  */
 function generateId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
   // Fallback (anciens navigateurs) — RFC 4122 v4
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -168,19 +171,19 @@ export default function WorkflowGraphEditorPage() {
       if (!data.nodes || data.nodes.length === 0) {
         setGraph({
           workflowId: id,
-          name: data.name ?? 'Workflow',
+          name: data.name ?? "Workflow",
           nodes: [
             {
               id: generateId(),
-              type: 'START',
-              label: 'Début',
+              type: "START",
+              label: "Début",
               position: { x: 100, y: 200 },
               data: {},
             },
             {
               id: generateId(),
-              type: 'END',
-              label: 'Fin',
+              type: "END",
+              label: "Fin",
               position: { x: 600, y: 200 },
               data: {},
             },
@@ -191,8 +194,8 @@ export default function WorkflowGraphEditorPage() {
         setGraph(data);
       }
     } catch (err: unknown) {
-      toast.error('Impossible de charger le graphe');
-      logger.error(err, { page: 'admin/workflows/edit', context: 'loadGraph' });
+      toast.error("Impossible de charger le graphe");
+      logger.error(err, { page: "admin/workflows/edit", context: "loadGraph" });
     } finally {
       setLoading(false);
     }
@@ -209,24 +212,27 @@ export default function WorkflowGraphEditorPage() {
   const validateClient = useCallback((g: Graph): string[] => {
     const errors: string[] = [];
     if (g.nodes.length === 0) {
-      errors.push('Le graphe est vide.');
+      errors.push("Le graphe est vide.");
       return errors;
     }
-    const starts = g.nodes.filter((n) => n.type === 'START');
-    const ends = g.nodes.filter((n) => n.type === 'END');
-    if (starts.length === 0) errors.push('Aucun nœud START.');
-    if (starts.length > 1) errors.push(`${starts.length} nœuds START — un seul autorisé.`);
-    if (ends.length === 0) errors.push('Aucun nœud END.');
+    const starts = g.nodes.filter((n) => n.type === "START");
+    const ends = g.nodes.filter((n) => n.type === "END");
+    if (starts.length === 0) errors.push("Aucun nœud START.");
+    if (starts.length > 1)
+      errors.push(`${starts.length} nœuds START — un seul autorisé.`);
+    if (ends.length === 0) errors.push("Aucun nœud END.");
 
     // BRANCH ≥ 2 sortants
     for (const node of g.nodes) {
-      if (node.type === 'BRANCH') {
+      if (node.type === "BRANCH") {
         const out = g.edges.filter((e) => e.source === node.id);
         if (out.length < 2) {
-          errors.push(`BRANCH "${node.label}" : ${out.length} sortie(s) (au moins 2 requises).`);
+          errors.push(
+            `BRANCH "${node.label}" : ${out.length} sortie(s) (au moins 2 requises).`,
+          );
         }
       }
-      if (node.type === 'END') {
+      if (node.type === "END") {
         const out = g.edges.filter((e) => e.source === node.id);
         if (out.length > 0) {
           errors.push(`END "${node.label}" ne doit pas avoir de sortie.`);
@@ -259,7 +265,7 @@ export default function WorkflowGraphEditorPage() {
     for (const n of g.nodes) {
       if (color.get(n.id) === WHITE) dfs(n.id);
       if (hasCycle) {
-        errors.push('Cycle détecté dans le graphe (DAG requis).');
+        errors.push("Cycle détecté dans le graphe (DAG requis).");
         break;
       }
     }
@@ -276,7 +282,9 @@ export default function WorkflowGraphEditorPage() {
       }
       const orphans = g.nodes.filter((n) => !visited.has(n.id));
       if (orphans.length > 0) {
-        errors.push(`Orphelins (inaccessibles) : ${orphans.map((o) => o.label).join(', ')}.`);
+        errors.push(
+          `Orphelins (inaccessibles) : ${orphans.map((o) => o.label).join(", ")}.`,
+        );
       }
     }
 
@@ -287,21 +295,21 @@ export default function WorkflowGraphEditorPage() {
   // validation DAG/conditions n'a besoin de tourner QUE quand cette
   // signature change. Le drag pur (déplacement de nœud) ne touche que
   // x/y et ne doit donc pas re-trigger un parcours O(V+E) à chaque pixel.
-  const structureSignatureRef = useRef<string>('');
+  const structureSignatureRef = useRef<string>("");
   const lastValidationRef = useRef<string[]>([]);
 
   const computeStructureSignature = (g: Graph): string => {
     const nodesSig = g.nodes
       .map(
         (n) =>
-          `${n.id}|${n.type}|${n.label}|${JSON.stringify(n.data.condition ?? null)}|${n.data.minApprovers ?? ''}|${n.data.approverUserId ?? ''}|${n.data.approverRole ?? ''}|${n.data.approverDeptId ?? ''}`,
+          `${n.id}|${n.type}|${n.label}|${JSON.stringify(n.data.condition ?? null)}|${n.data.minApprovers ?? ""}|${n.data.approverUserId ?? ""}|${n.data.approverRole ?? ""}|${n.data.approverDeptId ?? ""}`,
       )
       .sort()
-      .join(';');
+      .join(";");
     const edgesSig = g.edges
-      .map((e) => `${e.source}->${e.target}|${e.label ?? ''}`)
+      .map((e) => `${e.source}->${e.target}|${e.label ?? ""}`)
       .sort()
-      .join(';');
+      .join(";");
     return `${nodesSig}#${edgesSig}`;
   };
 
@@ -333,7 +341,7 @@ export default function WorkflowGraphEditorPage() {
           } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })
               ?.response?.data?.message;
-            toast.error(msg ?? 'Erreur de sauvegarde');
+            toast.error(msg ?? "Erreur de sauvegarde");
           } finally {
             setSaving(false);
           }
@@ -398,7 +406,10 @@ export default function WorkflowGraphEditorPage() {
         id: generateId(),
         type,
         label: NODE_TYPE_LABELS[type],
-        position: { x: 200 + Math.random() * 200, y: 100 + Math.random() * 200 },
+        position: {
+          x: 200 + Math.random() * 200,
+          y: 100 + Math.random() * 200,
+        },
         data: { minApprovers: 1 },
       };
       return { ...g, nodes: [...g.nodes, newNode] };
@@ -421,7 +432,10 @@ export default function WorkflowGraphEditorPage() {
     }));
   };
 
-  const updateNodeData = (nodeId: string, dataPatch: Partial<GraphNode['data']>) => {
+  const updateNodeData = (
+    nodeId: string,
+    dataPatch: Partial<GraphNode["data"]>,
+  ) => {
     updateGraph((g) => ({
       ...g,
       nodes: g.nodes.map((n) =>
@@ -442,9 +456,7 @@ export default function WorkflowGraphEditorPage() {
     updateGraph((g) => {
       // anti-doublon
       if (
-        g.edges.some(
-          (e) => e.source === pendingEdgeFrom && e.target === toId,
-        )
+        g.edges.some((e) => e.source === pendingEdgeFrom && e.target === toId)
       ) {
         return g;
       }
@@ -480,7 +492,9 @@ export default function WorkflowGraphEditorPage() {
   );
 
   if (loading || !graph) {
-    return <div className="p-6 text-gray-500 dark:text-slate-400">Chargement…</div>;
+    return (
+      <div className="p-6 text-gray-500 dark:text-slate-400">Chargement…</div>
+    );
   }
 
   return (
@@ -513,9 +527,13 @@ export default function WorkflowGraphEditorPage() {
             </Badge>
           )}
           {saving ? (
-            <span className="text-xs text-gray-500 dark:text-slate-400">Sauvegarde…</span>
+            <span className="text-xs text-gray-500 dark:text-slate-400">
+              Sauvegarde…
+            </span>
           ) : (
-            <span className="text-xs text-gray-400 dark:text-slate-500">Enregistré</span>
+            <span className="text-xs text-gray-400 dark:text-slate-500">
+              Enregistré
+            </span>
           )}
         </div>
       </header>
@@ -529,34 +547,45 @@ export default function WorkflowGraphEditorPage() {
           <h2 className="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-slate-400 mb-2">
             Ajouter un nœud
           </h2>
-          {(['APPROVAL', 'BRANCH', 'PARALLEL_ALL', 'PARALLEL_ANY', 'DELEGATE', 'END'] as NodeType[]).map(
-            (type) => {
-              const { bg, icon: Icon } = NODE_TYPE_COLORS[type];
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => addNode(type)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm transition-colors"
-                  aria-label={`Ajouter un nœud ${NODE_TYPE_LABELS[type]}`}
-                >
-                  <span
-                    className="w-3 h-3 rounded-full"
-                    style={{ background: bg }}
-                  />
-                  <Icon className="w-4 h-4 text-gray-500 dark:text-slate-400" aria-hidden="true" />
-                  {NODE_TYPE_LABELS[type]}
-                </button>
-              );
-            },
-          )}
+          {(
+            [
+              "APPROVAL",
+              "BRANCH",
+              "PARALLEL_ALL",
+              "PARALLEL_ANY",
+              "DELEGATE",
+              "END",
+            ] as NodeType[]
+          ).map((type) => {
+            const { bg, icon: Icon } = NODE_TYPE_COLORS[type];
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => addNode(type)}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm transition-colors"
+                aria-label={`Ajouter un nœud ${NODE_TYPE_LABELS[type]}`}
+              >
+                <span
+                  className="w-3 h-3 rounded-full"
+                  style={{ background: bg }}
+                />
+                <Icon
+                  className="w-4 h-4 text-gray-500 dark:text-slate-400"
+                  aria-hidden="true"
+                />
+                {NODE_TYPE_LABELS[type]}
+              </button>
+            );
+          })}
 
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
             <h2 className="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-slate-400 mb-2">
               Légende
             </h2>
             <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
-              • Cliquer sur "Lier" sur un nœud puis sur un autre pour créer une transition.
+              • Cliquer sur "Lier" sur un nœud puis sur un autre pour créer une
+              transition.
               <br />• Glisser un nœud pour le repositionner.
               <br />• Sauvegarde auto toutes les 500&nbsp;ms.
             </p>
@@ -587,8 +616,18 @@ export default function WorkflowGraphEditorPage() {
               >
                 <path d="M 0 0 L 10 5 L 0 10 z" fill="#296DC1" />
               </marker>
-              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e5e7eb" strokeWidth="0.5" />
+              <pattern
+                id="grid"
+                width="40"
+                height="40"
+                patternUnits="userSpaceOnUse"
+              >
+                <path
+                  d="M 40 0 L 0 0 0 40"
+                  fill="none"
+                  stroke="#e5e7eb"
+                  strokeWidth="0.5"
+                />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
@@ -618,9 +657,10 @@ export default function WorkflowGraphEditorPage() {
                     stroke="transparent"
                     strokeWidth="14"
                     fill="none"
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: "pointer" }}
                     onClick={() => {
-                      if (confirm('Supprimer cette transition ?')) removeEdge(e.id);
+                      if (confirm("Supprimer cette transition ?"))
+                        removeEdge(e.id);
                     }}
                   />
                 </g>
@@ -636,7 +676,7 @@ export default function WorkflowGraphEditorPage() {
                 <g
                   key={n.id}
                   transform={`translate(${n.position.x}, ${n.position.y})`}
-                  style={{ cursor: 'move' }}
+                  style={{ cursor: "move" }}
                   onMouseDown={(e) => onNodeMouseDown(e, n)}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -652,10 +692,21 @@ export default function WorkflowGraphEditorPage() {
                     height={NODE_HEIGHT}
                     rx="8"
                     fill={bg}
-                    stroke={isSelected ? '#F9964A' : isPendingFrom ? '#006233' : border}
+                    stroke={
+                      isSelected
+                        ? "#F9964A"
+                        : isPendingFrom
+                          ? "#006233"
+                          : border
+                    }
                     strokeWidth={isSelected || isPendingFrom ? 3 : 1}
                   />
-                  <foreignObject x="0" y="0" width={NODE_WIDTH} height={NODE_HEIGHT}>
+                  <foreignObject
+                    x="0"
+                    y="0"
+                    width={NODE_WIDTH}
+                    height={NODE_HEIGHT}
+                  >
                     <div
                       className="w-full h-full flex flex-col justify-center px-3 text-white pointer-events-none"
                       // eslint-disable-next-line react/no-unknown-property
@@ -703,7 +754,10 @@ export default function WorkflowGraphEditorPage() {
       {validationErrors.length > 0 && (
         <div className="border-t border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 text-xs space-y-1">
           {validationErrors.map((err, i) => (
-            <div key={i} className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+            <div
+              key={i}
+              className="flex items-center gap-2 text-amber-800 dark:text-amber-200"
+            >
               <AlertTriangle className="w-3.5 h-3.5" />
               {err}
             </div>
@@ -712,7 +766,11 @@ export default function WorkflowGraphEditorPage() {
       )}
 
       {/* A11y : alternative liste (cachée visuellement, lue par les SR) */}
-      <div className="sr-only" role="region" aria-label="Liste des nœuds (alternative au canvas)">
+      <div
+        className="sr-only"
+        role="region"
+        aria-label="Liste des nœuds (alternative au canvas)"
+      >
         <h2>Nœuds du workflow</h2>
         <ul>
           {graph.nodes.map((n) => (
@@ -720,12 +778,15 @@ export default function WorkflowGraphEditorPage() {
               {NODE_TYPE_LABELS[n.type]} : {n.label}
               {graph.edges.filter((e) => e.source === n.id).length > 0 && (
                 <span>
-                  {' '}
-                  → vers{' '}
+                  {" "}
+                  → vers{" "}
                   {graph.edges
                     .filter((e) => e.source === n.id)
-                    .map((e) => graph.nodes.find((nn) => nn.id === e.target)?.label)
-                    .join(', ')}
+                    .map(
+                      (e) =>
+                        graph.nodes.find((nn) => nn.id === e.target)?.label,
+                    )
+                    .join(", ")}
                 </span>
               )}
             </li>
@@ -743,7 +804,7 @@ export default function WorkflowGraphEditorPage() {
 interface NodePropertiesProps {
   node: GraphNode;
   onLabelChange: (label: string) => void;
-  onDataChange: (patch: Partial<GraphNode['data']>) => void;
+  onDataChange: (patch: Partial<GraphNode["data"]>) => void;
   onStartEdge: () => void;
   isPendingFrom: boolean;
   onDelete: () => void;
@@ -758,8 +819,10 @@ function NodeProperties({
   onDelete,
 }: NodePropertiesProps) {
   const showApproverFields =
-    node.type === 'APPROVAL' || node.type === 'PARALLEL_ALL' || node.type === 'PARALLEL_ANY';
-  const showCondition = node.type === 'BRANCH';
+    node.type === "APPROVAL" ||
+    node.type === "PARALLEL_ALL" ||
+    node.type === "PARALLEL_ANY";
+  const showCondition = node.type === "BRANCH";
 
   return (
     <div className="space-y-4">
@@ -767,11 +830,15 @@ function NodeProperties({
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
           Propriétés du nœud
         </h2>
-        <p className="text-xs text-gray-500 dark:text-slate-400">{NODE_TYPE_LABELS[node.type]}</p>
+        <p className="text-xs text-gray-500 dark:text-slate-400">
+          {NODE_TYPE_LABELS[node.type]}
+        </p>
       </div>
 
       <label className="block">
-        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Libellé</span>
+        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          Libellé
+        </span>
         <input
           type="text"
           value={node.label}
@@ -788,8 +855,10 @@ function NodeProperties({
               Rôle approbateur
             </span>
             <select
-              value={node.data.approverRole ?? ''}
-              onChange={(e) => onDataChange({ approverRole: e.target.value || null })}
+              value={node.data.approverRole ?? ""}
+              onChange={(e) =>
+                onDataChange({ approverRole: e.target.value || null })
+              }
               className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-sm"
             >
               <option value="">— Aucun —</option>
@@ -808,17 +877,19 @@ function NodeProperties({
             <input
               type="number"
               min={1}
-              value={node.data.slaHours ?? ''}
+              value={node.data.slaHours ?? ""}
               onChange={(e) =>
                 onDataChange({
-                  slaHours: e.target.value ? parseInt(e.target.value, 10) : null,
+                  slaHours: e.target.value
+                    ? parseInt(e.target.value, 10)
+                    : null,
                 })
               }
               className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-sm"
             />
           </label>
 
-          {(node.type === 'PARALLEL_ALL' || node.type === 'PARALLEL_ANY') && (
+          {(node.type === "PARALLEL_ALL" || node.type === "PARALLEL_ANY") && (
             <label className="block">
               <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 Seuil minimum d'approbations
@@ -835,7 +906,8 @@ function NodeProperties({
                 className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-sm"
               />
               <span className="text-xs text-gray-500 dark:text-slate-400 mt-1 block">
-                Nombre d'approbations distinctes nécessaires pour valider l'étape (multi-niveaux).
+                Nombre d'approbations distinctes nécessaires pour valider
+                l'étape (multi-niveaux).
               </span>
             </label>
           )}
@@ -853,7 +925,7 @@ function NodeProperties({
             value={
               node.data.condition
                 ? JSON.stringify(node.data.condition, null, 2)
-                : ''
+                : ""
             }
             onChange={(e) => {
               const v = e.target.value.trim();
@@ -878,21 +950,21 @@ function NodeProperties({
 
       <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
         <Button
-          variant={isPendingFrom ? 'destructive' : 'primary'}
+          variant={isPendingFrom ? "destructive" : "primary"}
           className="w-full gap-1"
           size="sm"
           onClick={onStartEdge}
         >
           <Plus className="w-3.5 h-3.5" />
-          {isPendingFrom ? 'Cliquer un nœud cible…' : 'Lier vers un autre nœud'}
+          {isPendingFrom ? "Cliquer un nœud cible…" : "Lier vers un autre nœud"}
         </Button>
-        {node.type !== 'START' && node.type !== 'END' && (
+        {node.type !== "START" && node.type !== "END" && (
           <Button
             variant="outline"
             className="w-full gap-1 text-seal-bordeaux"
             size="sm"
             onClick={() => {
-              if (confirm('Supprimer ce nœud ?')) onDelete();
+              if (confirm("Supprimer ce nœud ?")) onDelete();
             }}
           >
             <Trash2 className="w-3.5 h-3.5" />

@@ -61,12 +61,12 @@ export default async function RootLayout({
         />
         <link rel="apple-touch-icon" href="/icon-180.png?v=3" sizes="180x180" />
         <link rel="manifest" href="/manifest.json?v=3" />
-        <meta name="theme-color" content="#004469" />
+        <meta name="theme-color" content="#F68D2E" />
         <meta name="application-name" content="OMNITECH Security" />
         <meta name="apple-mobile-web-app-title" content="OMNITECH Security" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileImage" content="/icon-192.png?v=3" />
-        <meta name="msapplication-TileColor" content="#004469" />
+        <meta name="msapplication-TileColor" content="#F68D2E" />
         <script
           nonce={nonce}
           dangerouslySetInnerHTML={{

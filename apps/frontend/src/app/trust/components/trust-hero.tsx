@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { Download, ShieldCheck } from 'lucide-react';
+import Link from "next/link";
+import { Download, ShieldCheck } from "lucide-react";
 
 /**
  * Hero full-width du Centre de confiance.
@@ -9,14 +9,14 @@ export function TrustHero() {
   return (
     <section
       aria-labelledby="trust-hero-title"
-      className="relative mt-6 overflow-hidden rounded-3xl border border-[#004469]/10 bg-gradient-to-br from-[#004469] via-[#0b5482] to-[#892034] p-8 text-white shadow-xl sm:p-12 lg:p-16"
+      className="relative mt-6 overflow-hidden rounded-3xl border border-[#F68D2E]/10 bg-gradient-to-br from-[#F68D2E] via-[#0b5482] to-[#892034] p-8 text-white shadow-xl sm:p-12 lg:p-16"
     >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-[0.18]"
         style={{
           backgroundImage:
-            'radial-gradient(circle at 20% 20%, rgba(249,150,74,0.9) 0%, transparent 45%), radial-gradient(circle at 80% 80%, rgba(41,109,193,0.9) 0%, transparent 40%)',
+            "radial-gradient(circle at 20% 20%, rgba(249,150,74,0.9) 0%, transparent 45%), radial-gradient(circle at 80% 80%, rgba(41,109,193,0.9) 0%, transparent 40%)",
         }}
       />
       <div
@@ -24,13 +24,16 @@ export function TrustHero() {
         className="pointer-events-none absolute inset-0 opacity-10"
         style={{
           backgroundImage:
-            'linear-gradient(transparent 95%, rgba(255,255,255,0.35) 95%), linear-gradient(90deg, transparent 95%, rgba(255,255,255,0.35) 95%)',
-          backgroundSize: '32px 32px',
+            "linear-gradient(transparent 95%, rgba(255,255,255,0.35) 95%), linear-gradient(90deg, transparent 95%, rgba(255,255,255,0.35) 95%)",
+          backgroundSize: "32px 32px",
         }}
       />
       <div className="relative">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wider backdrop-blur-sm">
-          <ShieldCheck className="h-3.5 w-3.5 text-[#f9964a]" aria-hidden="true" />
+          <ShieldCheck
+            className="h-3.5 w-3.5 text-[#f9964a]"
+            aria-hidden="true"
+          />
           Centre de confiance public
         </div>
         <h1

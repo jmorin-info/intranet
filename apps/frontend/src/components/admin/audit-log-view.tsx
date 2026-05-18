@@ -138,7 +138,7 @@ export function AuditLogView({ renderToolbar }: AuditLogViewProps = {}) {
       case "CRITICAL":
         return <AlertOctagon className="h-4 w-4 text-[#892034]" />;
       case "WARN":
-        return <AlertTriangle className="h-4 w-4 text-[#F68D2E]" />;
+        return <AlertTriangle className="h-4 w-4 text-slate-900" />;
       default:
         return <Info className="h-4 w-4 text-[#296DC1]" />;
     }
@@ -149,7 +149,7 @@ export function AuditLogView({ renderToolbar }: AuditLogViewProps = {}) {
       case "CRITICAL":
         return "bg-[#892034]/10 text-[#892034] dark:bg-[#892034]/20 dark:text-red-300 border border-[#892034]/20";
       case "WARN":
-        return "bg-[#F68D2E]/10 text-[#F68D2E] dark:bg-[#F68D2E]/20 dark:text-orange-300 border border-[#F68D2E]/20";
+        return "bg-[#F68D2E]/10 text-slate-900 dark:bg-[#F68D2E]/20 dark:text-orange-300 border border-[#F68D2E]/20";
       default:
         return "bg-[#296DC1]/10 text-[#296DC1] dark:bg-[#296DC1]/20 dark:text-blue-300 border border-[#296DC1]/20";
     }

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * RssiDashboardSummary — résumé compact du tableau de bord RSSI
@@ -13,13 +13,13 @@
  * Compatible dark mode. Auto-contenu : aucune prop obligatoire.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { api } from '@/lib/api';
-import { Card, CardContent, Skeleton, Button } from '@omnitech/ui';
-import { SystemHealthCompact } from '@/components/widgets/system-health-compact';
-import { LdapPendingWidget } from '@/components/widgets/ldap-pending-widget';
-import { SmsiIndicatorsWidget } from '@/components/widgets/smsi-indicators-widget';
+import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { api } from "@/lib/api";
+import { Card, CardContent, Skeleton, Button } from "@omnitech/ui";
+import { SystemHealthCompact } from "@/components/widgets/system-health-compact";
+import { LdapPendingWidget } from "@/components/widgets/ldap-pending-widget";
+import { SmsiIndicatorsWidget } from "@/components/widgets/smsi-indicators-widget";
 import {
   ShieldAlert,
   FileText,
@@ -32,13 +32,17 @@ import {
   AlertTriangle,
   ArrowRight,
   RefreshCw,
-} from 'lucide-react';
+} from "lucide-react";
 
 /** Forme renvoyée par GET /rssi-dashboard/snapshot */
 interface RssiSnapshot {
   generatedAt: string;
   incidents: { open: number; critical: number; thisMonth: number };
-  documents: { inReview: number; approvedLast30d: number; dueForReview: number };
+  documents: {
+    inReview: number;
+    approvedLast30d: number;
+    dueForReview: number;
+  };
   tickets: { open: number; avgResolutionHours: number };
   veille: { alertsLast7d: number; critical: number };
   chartes: { active: number; pendingSignatures: number };
@@ -49,15 +53,15 @@ interface RssiSnapshot {
 
 /* Threshold color helpers — consistent with RSSI dashboard page */
 function thresholdColor(pct: number): string {
-  if (pct >= 80) return 'text-emerald-600';
-  if (pct >= 50) return 'text-amber-600';
-  return 'text-red-600';
+  if (pct >= 80) return "text-emerald-600";
+  if (pct >= 50) return "text-amber-600";
+  return "text-red-600";
 }
 
 function thresholdBarBg(pct: number): string {
-  if (pct >= 80) return 'bg-emerald-500';
-  if (pct >= 50) return 'bg-amber-400';
-  return 'bg-red-400';
+  if (pct >= 80) return "bg-emerald-500";
+  if (pct >= 50) return "bg-amber-400";
+  return "bg-red-400";
 }
 
 interface KpiCard {
@@ -66,43 +70,46 @@ interface KpiCard {
   sub?: string;
   href: string;
   icon: React.ElementType;
-  tone: 'navy' | 'red' | 'amber' | 'blue' | 'emerald' | 'violet';
+  tone: "navy" | "red" | "amber" | "blue" | "emerald" | "violet";
   urgent?: boolean;
   /** Optional percentage for mini-bar visualization */
   barPct?: number;
 }
 
 /** Classes Tailwind par tonalité (cohérentes avec la charte SEAL) */
-const toneStyles: Record<KpiCard['tone'], { bg: string; icon: string; ring: string }> = {
+const toneStyles: Record<
+  KpiCard["tone"],
+  { bg: string; icon: string; ring: string }
+> = {
   navy: {
-    bg: 'bg-seal-navy/5 dark:bg-slate-800/60',
-    icon: 'text-seal-navy dark:text-blue-300',
-    ring: 'ring-seal-navy/10',
+    bg: "bg-seal-navy/5 dark:bg-slate-800/60",
+    icon: "text-seal-navy dark:text-blue-300",
+    ring: "ring-seal-navy/10",
   },
   red: {
-    bg: 'bg-red-50 dark:bg-red-900/20',
-    icon: 'text-red-600 dark:text-red-400',
-    ring: 'ring-red-200/50',
+    bg: "bg-red-50 dark:bg-red-900/20",
+    icon: "text-red-600 dark:text-red-400",
+    ring: "ring-red-200/50",
   },
   amber: {
-    bg: 'bg-amber-50 dark:bg-amber-900/20',
-    icon: 'text-amber-600 dark:text-amber-400',
-    ring: 'ring-amber-200/50',
+    bg: "bg-amber-50 dark:bg-amber-900/20",
+    icon: "text-amber-600 dark:text-amber-400",
+    ring: "ring-amber-200/50",
   },
   blue: {
-    bg: 'bg-blue-50 dark:bg-blue-900/20',
-    icon: 'text-blue-600 dark:text-blue-400',
-    ring: 'ring-blue-200/50',
+    bg: "bg-blue-50 dark:bg-blue-900/20",
+    icon: "text-blue-600 dark:text-blue-400",
+    ring: "ring-blue-200/50",
   },
   emerald: {
-    bg: 'bg-emerald-50 dark:bg-emerald-900/20',
-    icon: 'text-emerald-600 dark:text-emerald-400',
-    ring: 'ring-emerald-200/50',
+    bg: "bg-emerald-50 dark:bg-emerald-900/20",
+    icon: "text-emerald-600 dark:text-emerald-400",
+    ring: "ring-emerald-200/50",
   },
   violet: {
-    bg: 'bg-violet-50 dark:bg-violet-900/20',
-    icon: 'text-violet-600 dark:text-violet-400',
-    ring: 'ring-violet-200/50',
+    bg: "bg-violet-50 dark:bg-violet-900/20",
+    icon: "text-violet-600 dark:text-violet-400",
+    ring: "ring-violet-200/50",
   },
 };
 
@@ -115,7 +122,7 @@ export function RssiDashboardSummary() {
     setLoading(true);
     setError(false);
     api
-      .get<RssiSnapshot>('/rssi-dashboard/snapshot')
+      .get<RssiSnapshot>("/rssi-dashboard/snapshot")
       .then((r) => setData(r.data))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -165,70 +172,70 @@ export function RssiDashboardSummary() {
   // Construction des cards à partir du snapshot
   const cards: KpiCard[] = [
     {
-      label: 'Incidents ouverts',
+      label: "Incidents ouverts",
       value: data.incidents.open,
       sub: `${data.incidents.critical} critiques`,
-      href: '/incidents',
+      href: "/incidents",
       icon: ShieldAlert,
-      tone: data.incidents.critical > 0 ? 'red' : 'navy',
+      tone: data.incidents.critical > 0 ? "red" : "navy",
       urgent: data.incidents.critical > 0,
     },
     {
-      label: 'Documents en revue',
+      label: "Documents en revue",
       value: data.documents.inReview,
       sub: `${data.documents.dueForReview} à rafraîchir`,
-      href: '/documents?status=IN_REVIEW',
+      href: "/documents?status=IN_REVIEW",
       icon: FileText,
-      tone: 'blue',
+      tone: "blue",
     },
     {
-      label: 'Tickets ouverts',
+      label: "Tickets ouverts",
       value: data.tickets.open,
       sub: `MTTR ${data.tickets.avgResolutionHours}h`,
-      href: '/tickets',
+      href: "/tickets",
       icon: Ticket,
-      tone: 'amber',
+      tone: "amber",
     },
     {
-      label: 'Alertes veille (7j)',
+      label: "Alertes veille (7j)",
       value: data.veille.alertsLast7d,
       sub: `${data.veille.critical} critiques`,
-      href: '/veille',
+      href: "/veille",
       icon: Rss,
-      tone: data.veille.critical > 0 ? 'red' : 'emerald',
+      tone: data.veille.critical > 0 ? "red" : "emerald",
     },
     {
-      label: 'Chartes à signer',
+      label: "Chartes à signer",
       value: data.chartes.pendingSignatures,
       sub: `${data.chartes.active} actives`,
-      href: '/admin/chartes',
+      href: "/admin/chartes",
       icon: ScrollText,
-      tone: 'violet',
+      tone: "violet",
     },
     {
-      label: 'Couverture MFA',
+      label: "Couverture MFA",
       value: `${data.users.mfaCoveragePct}%`,
       sub: `${data.users.mfaEnabled}/${data.users.active} utilisateurs`,
-      href: '/admin/users',
+      href: "/admin/users",
       icon: KeyRound,
-      tone: data.users.mfaCoveragePct >= 80 ? 'emerald' : 'amber',
+      tone: data.users.mfaCoveragePct >= 80 ? "emerald" : "amber",
       barPct: data.users.mfaCoveragePct,
     },
     {
-      label: 'Revues d\u2019acces',
+      label: "Revues d’acces",
       value: data.accessReviews.pending,
       sub: `${data.accessReviews.overdue} en retard`,
-      href: '/admin/access-reviews',
+      href: "/admin/access-reviews",
       icon: ListChecks,
-      tone: data.accessReviews.overdue > 0 ? 'red' : 'navy',
+      tone: data.accessReviews.overdue > 0 ? "red" : "navy",
     },
     {
-      label: 'Audit 24h',
+      label: "Audit 24h",
       value: data.audit.eventsLast24h,
       sub: `${data.audit.failedLoginsLast24h} logins échoués`,
-      href: '/admin/audit?tab=log',
+      href: "/admin/audit?tab=log",
       icon: Activity,
-      tone: data.audit.failedLoginsLast24h > 5 ? 'amber' : 'navy',
+      tone: data.audit.failedLoginsLast24h > 5 ? "amber" : "navy",
     },
   ];
 
@@ -241,7 +248,8 @@ export function RssiDashboardSummary() {
             Vue RSSI consolidée
           </p>
           <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
-            Snapshot généré {new Date(data.generatedAt).toLocaleTimeString('fr-FR')}
+            Snapshot généré{" "}
+            {new Date(data.generatedAt).toLocaleTimeString("fr-FR")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -278,14 +286,19 @@ export function RssiDashboardSummary() {
                   </div>
                   <p
                     className={`text-2xl font-medium tabular-nums ${
-                      c.barPct != null ? thresholdColor(c.barPct) : 'text-seal-navy dark:text-white'
-                    } ${c.urgent ? 'badge-pulse' : ''}`}
+                      c.barPct != null
+                        ? thresholdColor(c.barPct)
+                        : "text-seal-navy dark:text-white"
+                    } ${c.urgent ? "badge-pulse" : ""}`}
                   >
                     {c.value}
                   </p>
                   {c.barPct != null && (
                     <div className="h-1 rounded-full bg-gray-200 dark:bg-slate-700 mt-1.5 overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${thresholdBarBg(c.barPct)}`} style={{ width: `${c.barPct}%` }} />
+                      <div
+                        className={`h-full rounded-full transition-all ${thresholdBarBg(c.barPct)}`}
+                        style={{ width: `${c.barPct}%` }}
+                      />
                     </div>
                   )}
                   {c.sub && (

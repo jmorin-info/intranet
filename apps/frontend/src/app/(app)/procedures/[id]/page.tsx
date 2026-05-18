@@ -234,7 +234,9 @@ export default function ProcedureViewerPage() {
       .then((blob) => {
         setFileUrl(URL.createObjectURL(blob));
       })
-      .catch((err) => logger.error(err, { page: "procedures/[id]", context: "download" }));
+      .catch((err) =>
+        logger.error(err, { page: "procedures/[id]", context: "download" }),
+      );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [downloadPath]);
 
@@ -467,33 +469,60 @@ export default function ProcedureViewerPage() {
           <CardContent>
             {isPdf && <PdfViewer url={fileUrl} />}
             {isDocx && <DocxViewer url={fileUrl} />}
-            {!isPdf && !isDocx && (
-              <div className="flex flex-col items-center py-12 text-seal-gray-500">
-                <FileText className="h-12 w-12 mb-3" />
-                <p className="text-sm">
-                  {t("procedureDetail.previewUnavailable")}
-                </p>
-                <Button
-                  variant="primary"
-                  className="mt-4"
-                  onClick={() =>
-                    downloadPath &&
-                    handleDownload(
-                      downloadPath,
-                      buildDocumentFilename(
-                        doc.reference,
-                        currentVersion?.versionNumber,
-                        currentVersion?.fileType,
-                        currentVersion?.fileUrl,
-                      ),
-                    )
-                  }
-                >
-                  <Download className="h-4 w-4" />
-                  {t("procedureDetail.downloadFile")}
-                </Button>
-              </div>
-            )}
+            {!isPdf &&
+              !isDocx &&
+              (() => {
+                // Excel / PowerPoint / autres formats Office → ouvrir via OnlyOffice
+                // (déjà intégré dans /documents/[id]/editor qui gère xlsx/pptx).
+                const ext = (currentVersion?.fileType || "").toLowerCase();
+                const isOffice =
+                  /excel|spreadsheet|sheet|xlsx?|xls|powerpoint|presentation|pptx?|ppt|odt|ods|odp/.test(
+                    ext,
+                  ) ||
+                  /\.(xlsx?|pptx?|odt|ods|odp|rtf)$/i.test(
+                    currentVersion?.fileUrl || "",
+                  );
+                return (
+                  <div className="flex flex-col items-center py-12 text-seal-gray-500">
+                    <FileText className="h-12 w-12 mb-3" />
+                    <p className="text-sm">
+                      {isOffice
+                        ? "Ce format s'ouvre dans l'éditeur OnlyOffice"
+                        : t("procedureDetail.previewUnavailable")}
+                    </p>
+                    <div className="flex items-center gap-3 mt-4">
+                      {isOffice && doc && (
+                        <Button
+                          variant="primary"
+                          onClick={() =>
+                            router.push(`/documents/${doc.id}/editor`)
+                          }
+                        >
+                          Ouvrir avec OnlyOffice
+                        </Button>
+                      )}
+                      <Button
+                        variant={isOffice ? "outline" : "primary"}
+                        onClick={() =>
+                          downloadPath &&
+                          handleDownload(
+                            downloadPath,
+                            buildDocumentFilename(
+                              doc.reference,
+                              currentVersion?.versionNumber,
+                              currentVersion?.fileType,
+                              currentVersion?.fileUrl,
+                            ),
+                          )
+                        }
+                      >
+                        <Download className="h-4 w-4" />
+                        {t("procedureDetail.downloadFile")}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
           </CardContent>
         </Card>
       )}
@@ -580,7 +609,7 @@ export default function ProcedureViewerPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-[#004469] dark:text-blue-400" />
+              <ShieldCheck className="h-5 w-5 text-slate-900 dark:text-blue-400" />
               <h2 className="text-lg font-medium text-seal-navy dark:text-white">
                 Contrôles ISO associés
               </h2>
@@ -593,8 +622,8 @@ export default function ProcedureViewerPage() {
                   key={isoControl.code}
                   className="flex items-center gap-4 px-6 py-3.5"
                 >
-                  <div className="h-8 w-8 rounded-lg bg-[#004469]/10 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-                    <ShieldCheck className="h-4 w-4 text-[#004469] dark:text-blue-400" />
+                  <div className="h-8 w-8 rounded-lg bg-[#F68D2E]/10 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                    <ShieldCheck className="h-4 w-4 text-slate-900 dark:text-blue-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-seal-navy dark:text-white">

@@ -14,7 +14,7 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-[#F5F5F5] dark:bg-slate-950">
       {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#004469]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-white/10">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#F68D2E]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/welcome" className="flex items-center gap-2.5">
             <OmnitechLogo size="sm" variant="full" className="text-white" />
@@ -31,19 +31,19 @@ export default function PrivacyPolicyPage() {
 
       {/* HERO */}
       <section
-        className="bg-[#004469] dark:bg-slate-900 relative overflow-hidden"
+        className="bg-[#F68D2E] dark:bg-slate-900 relative overflow-hidden"
         style={{ paddingTop: "8rem", paddingBottom: "4rem" }}
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 relative">
           <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 mb-6">
-            <ShieldCheck className="h-4 w-4 text-[#F68D2E]" />
+            <ShieldCheck className="h-4 w-4 text-slate-900" />
             <span className="text-white/70 text-xs font-semibold tracking-wide">
               RGPD · Articles 13 et 14
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-light text-white leading-tight">
             Politique de{" "}
-            <span className="text-[#F68D2E] font-semibold">
+            <span className="text-slate-900 font-semibold">
               confidentialité
             </span>
           </h1>
@@ -76,7 +76,7 @@ export default function PrivacyPolicyPage() {
               l&apos;adresse{" "}
               <a
                 href="mailto:dpo@omnitech-security.fr"
-                className="text-[#F68D2E] hover:underline"
+                className="text-slate-900 hover:underline"
               >
                 dpo@omnitech-security.fr
               </a>
@@ -231,7 +231,7 @@ export default function PrivacyPolicyPage() {
               Toute demande peut être adressée au DPO à l&apos;adresse{" "}
               <a
                 href="mailto:dpo@omnitech-security.fr"
-                className="text-[#F68D2E] hover:underline"
+                className="text-slate-900 hover:underline"
               >
                 dpo@omnitech-security.fr
               </a>

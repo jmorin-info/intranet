@@ -765,8 +765,8 @@ export default function VeillePage() {
 
                 {weeklySummary.total === 0 && (
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-2">
-                    Aucune alerte recens\u00e9e cette semaine. La prochaine
-                    collecte mettra \u00e0 jour ce r\u00e9sum\u00e9.
+                    Aucune alerte recensée cette semaine. La prochaine collecte
+                    mettra à jour ce résumé.
                   </p>
                 )}
               </div>
@@ -1396,7 +1396,11 @@ export default function VeillePage() {
                   onChange={(e) => setFilter(e.target.value)}
                   className="w-full sm:w-36"
                 />
-                <div className="flex items-center gap-1 border rounded-lg p-0.5 dark:border-slate-700" role="group" aria-label="Période de la veille">
+                <div
+                  className="flex items-center gap-1 border rounded-lg p-0.5 dark:border-slate-700"
+                  role="group"
+                  aria-label="Période de la veille"
+                >
                   {(
                     [
                       { id: "week", label: "7 jours" },
@@ -1490,7 +1494,7 @@ export default function VeillePage() {
                 description={
                   isAdmin
                     ? "Lancez une collecte pour récupérer les dernières alertes CERT-FR, ANSSI et NVD."
-                    : "Les analystes cybersécurité publient ici les bulletins de veille et alertes critiques. Aucun contenu n\u2019est disponible pour le moment."
+                    : "Les analystes cybersécurité publient ici les bulletins de veille et alertes critiques. Aucun contenu n’est disponible pour le moment."
                 }
                 action={
                   isAdmin ? (
@@ -1507,8 +1511,8 @@ export default function VeillePage() {
             ) : (
               <EmptyState
                 type="search"
-                title="Aucune alerte pour ces crit\u00e8res"
-                description="Aucune alerte de veille cybers\u00e9curit\u00e9 ne correspond aux filtres s\u00e9lectionn\u00e9s. Modifiez vos crit\u00e8res ou r\u00e9cup\u00e9rez les derniers flux CERT-FR et ANSSI."
+                title="Aucune alerte pour ces critères"
+                description="Aucune alerte de veille cybersécurité ne correspond aux filtres sélectionnés. Modifiez vos critères ou récupérez les derniers flux CERT-FR et ANSSI."
                 action={
                   isAdmin ? (
                     <Button onClick={handleFetch} loading={fetching}>
@@ -1584,7 +1588,11 @@ export default function VeillePage() {
                           </div>
                         </div>
                         {canAck && !item.isProcessed && (
-                          <div className="flex items-center gap-1 flex-shrink-0" role="group" aria-label="Actions sur l'alerte">
+                          <div
+                            className="flex items-center gap-1 flex-shrink-0"
+                            role="group"
+                            aria-label="Actions sur l'alerte"
+                          >
                             <button
                               onClick={() => handleAck(item.id, "APPLIED")}
                               className="h-9 w-9 sm:h-8 sm:w-8 flex items-center justify-center rounded-lg text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"

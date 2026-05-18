@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   Activity,
   KeyRound,
   Lock,
   ShieldAlert,
   AlertTriangle,
-} from 'lucide-react';
+} from "lucide-react";
 
-const API = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(
+const API = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(
   /\/api\/?$/,
-  '/api/v1',
+  "/api/v1",
 );
 
-type BadgeStatus = 'OK' | 'PARTIAL' | 'UNKNOWN';
+type BadgeStatus = "OK" | "PARTIAL" | "UNKNOWN";
 
 interface PublicBadge {
   key: string;
@@ -38,24 +38,27 @@ const BADGE_ICONS: Record<string, typeof KeyRound> = {
   audit: ShieldAlert,
 };
 
-const BADGE_COLORS: Record<BadgeStatus, { dot: string; bg: string; ring: string; label: string }> = {
+const BADGE_COLORS: Record<
+  BadgeStatus,
+  { dot: string; bg: string; ring: string; label: string }
+> = {
   OK: {
-    dot: 'bg-[#006233]',
-    bg: 'bg-[#006233]/8',
-    ring: 'ring-[#006233]/25',
-    label: 'Conforme',
+    dot: "bg-[#006233]",
+    bg: "bg-[#006233]/8",
+    ring: "ring-[#006233]/25",
+    label: "Conforme",
   },
   PARTIAL: {
-    dot: 'bg-[#f9964a]',
-    bg: 'bg-[#f9964a]/8',
-    ring: 'ring-[#f9964a]/25',
-    label: 'Partiel',
+    dot: "bg-[#f9964a]",
+    bg: "bg-[#f9964a]/8",
+    ring: "ring-[#f9964a]/25",
+    label: "Partiel",
   },
   UNKNOWN: {
-    dot: 'bg-[#837274]',
-    bg: 'bg-[#837274]/8',
-    ring: 'ring-[#837274]/25',
-    label: 'Non calculé',
+    dot: "bg-[#837274]",
+    bg: "bg-[#837274]/8",
+    ring: "ring-[#837274]/25",
+    label: "Non calculé",
   },
 };
 
@@ -72,7 +75,7 @@ export function TrustScore() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${API}/trust/score`, { cache: 'no-store' })
+    fetch(`${API}/trust/score`, { cache: "no-store" })
       .then(async (r) => {
         if (!r.ok) throw new Error(String(r.status));
         return r.json();
@@ -81,7 +84,7 @@ export function TrustScore() {
         if (!cancelled) setData(json);
       })
       .catch(() => {
-        if (!cancelled) setError('unavailable');
+        if (!cancelled) setError("unavailable");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -107,7 +110,7 @@ export function TrustScore() {
           </p>
           <h2
             id="score-title"
-            className="mt-1 font-display text-2xl font-bold text-[#004469] sm:text-3xl dark:text-white"
+            className="mt-1 font-display text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white"
           >
             Score cyber public
           </h2>
@@ -116,7 +119,7 @@ export function TrustScore() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         {/* Colonne score global */}
-        <div className="relative overflow-hidden rounded-2xl border border-[#004469]/10 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="relative overflow-hidden rounded-2xl border border-[#F68D2E]/10 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div
             aria-hidden="true"
             className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#f9964a]/10 blur-2xl"
@@ -144,7 +147,7 @@ export function TrustScore() {
             ) : (
               <>
                 <div className="mt-3 flex items-end gap-2">
-                  <div className="font-display text-6xl font-bold text-[#004469] dark:text-white">
+                  <div className="font-display text-6xl font-bold text-slate-900 dark:text-white">
                     {data?.score}
                   </div>
                   <div className="pb-2 text-lg text-[#837274] dark:text-slate-400">
@@ -152,10 +155,10 @@ export function TrustScore() {
                   </div>
                 </div>
                 <p className="mt-3 text-sm text-[#837274] dark:text-slate-400">
-                  Mis à jour le{' '}
+                  Mis à jour le{" "}
                   {data?.publishedAt
-                    ? new Date(data.publishedAt).toLocaleDateString('fr-FR')
-                    : '—'}
+                    ? new Date(data.publishedAt).toLocaleDateString("fr-FR")
+                    : "—"}
                 </p>
               </>
             )}
@@ -170,11 +173,11 @@ export function TrustScore() {
             return (
               <div
                 key={badge.key}
-                className={`group relative overflow-hidden rounded-2xl border border-[#004469]/10 ${colors.bg} p-4 ring-1 ${colors.ring} transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800`}
+                className={`group relative overflow-hidden rounded-2xl border border-[#F68D2E]/10 ${colors.bg} p-4 ring-1 ${colors.ring} transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800`}
               >
                 <div className="flex items-center justify-between">
                   <Icon
-                    className="h-5 w-5 text-[#004469] dark:text-slate-200"
+                    className="h-5 w-5 text-slate-900 dark:text-slate-200"
                     aria-hidden="true"
                   />
                   <span
@@ -182,13 +185,13 @@ export function TrustScore() {
                     aria-hidden="true"
                   />
                 </div>
-                <div className="mt-5 font-display text-lg font-bold text-[#004469] dark:text-white">
+                <div className="mt-5 font-display text-lg font-bold text-slate-900 dark:text-white">
                   {badge.label}
                 </div>
                 <div className="mt-1 text-xs text-[#837274] dark:text-slate-400">
                   {badge.caption}
                 </div>
-                <div className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-[#004469]/70 dark:text-slate-300">
+                <div className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-slate-900/70 dark:text-slate-300">
                   {colors.label}
                 </div>
               </div>
@@ -201,8 +204,28 @@ export function TrustScore() {
 }
 
 const PLACEHOLDER_BADGES: PublicBadge[] = [
-  { key: 'identities', label: 'Identités', status: 'UNKNOWN', caption: 'MFA & contrôle d’accès' },
-  { key: 'continuity', label: 'Continuité', status: 'UNKNOWN', caption: 'Sauvegardes testées' },
-  { key: 'crypto', label: 'Crypto', status: 'UNKNOWN', caption: 'TLS 1.2+ / HSTS' },
-  { key: 'audit', label: 'Audit', status: 'UNKNOWN', caption: 'Traçabilité 24/7' },
+  {
+    key: "identities",
+    label: "Identités",
+    status: "UNKNOWN",
+    caption: "MFA & contrôle d’accès",
+  },
+  {
+    key: "continuity",
+    label: "Continuité",
+    status: "UNKNOWN",
+    caption: "Sauvegardes testées",
+  },
+  {
+    key: "crypto",
+    label: "Crypto",
+    status: "UNKNOWN",
+    caption: "TLS 1.2+ / HSTS",
+  },
+  {
+    key: "audit",
+    label: "Audit",
+    status: "UNKNOWN",
+    caption: "Traçabilité 24/7",
+  },
 ];

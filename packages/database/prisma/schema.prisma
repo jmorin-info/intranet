@@ -1316,6 +1316,13 @@ model WikiPage {
   editLockUserId    String?
   editLockExpiresAt DateTime?
 
+  // WebDAV / Obsidian sync — préserve les noms originaux Obsidian (avec
+  // espaces, accents, émojis…) pour le round-trip. `slug` reste le slug
+  // kebab-case ASCII pour le routage URL ; ces colonnes servent à servir
+  // le bon nom de fichier/dossier à un client WebDAV.
+  webdavFolder   String? // ex : "13 Architecture et Projets"
+  webdavFilename String? // ex : "Sélection de LLM open source" (sans .md)
+
   author    User               @relation("WikiAuthor", fields: [authorId], references: [id])
   versions  WikiPageVersion[]
   backlinks WikiPageBacklink[] @relation("FromPageBacklinks")
@@ -1326,6 +1333,7 @@ model WikiPage {
   @@index([slug])
   @@index([visibility])
   @@index([ownerDepartmentId])
+  @@index([authorId, webdavFolder, webdavFilename])
 }
 
 /// Backlinks bidirectionnels [[slug]] — index persistant alimenté à chaque

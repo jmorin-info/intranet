@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * global-error.tsx — Top-level error boundary for the entire app.
@@ -45,7 +45,7 @@ export default function GlobalError({
           )}
           <button
             onClick={reset}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#004469] text-white hover:bg-[#003352] transition-colors font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F68D2E] text-white hover:bg-[#d97420] transition-colors font-medium"
           >
             Réessayer
           </button>
