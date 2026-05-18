@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, Scale } from "lucide-react";
 import { OmnitechLogo } from "@/components/omnitech-logo";
+import { SafeHtml } from "@/components/cms/safe-html";
+import { getContentPage } from "@/lib/cms";
 
 export const metadata = {
   title: "Mentions légales — OMNITECH Security",
@@ -8,9 +10,29 @@ export const metadata = {
     "Mentions légales de l'intranet OMNITECH Security : éditeur, directeur de la publication, hébergeur et propriété intellectuelle.",
 };
 
-const LAST_UPDATED = "25 avril 2026";
+const SLUG = "mentions-legales";
+// Fallback affiché tant que la DB n'est pas seedée. Toujours visible si
+// `getContentPage` retourne null (DRAFT/ARCHIVED/404/réseau down) → zéro
+// régression utilisateur. À retirer une fois le contenu CMS validé en prod.
+const FALLBACK_LAST_UPDATED = "25 avril 2026";
 
-export default function LegalPage() {
+function formatFrDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return FALLBACK_LAST_UPDATED;
+  }
+}
+
+export default async function LegalPage() {
+  // Route backend `/api/v1/content/pages/:slug` exposée en `@Public()` →
+  // accessible sans cookie auth. Si null, fallback hardcodé ci-dessous.
+  const cmsPage = await getContentPage(SLUG, "fr");
+
   return (
     <div className="min-h-screen bg-[#F5F5F5] dark:bg-slate-950">
       {/* HEADER */}
@@ -42,16 +64,22 @@ export default function LegalPage() {
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-light text-white leading-tight">
-            Mentions{" "}
-            <span className="text-slate-900 font-semibold">légales</span>
+            {cmsPage ? (
+              cmsPage.title
+            ) : (
+              <>
+                Mentions{" "}
+                <span className="text-slate-900 font-semibold">légales</span>
+              </>
+            )}
           </h1>
           <p className="text-white/60 mt-4 text-base sm:text-lg max-w-2xl leading-relaxed">
-            Informations relatives à l&apos;éditeur, au directeur de la
-            publication, à l&apos;hébergement et à la propriété intellectuelle
-            de l&apos;intranet.
+            {cmsPage?.excerpt ??
+              "Informations relatives à l'éditeur, au directeur de la publication, à l'hébergement et à la propriété intellectuelle de l'intranet."}
           </p>
           <p className="text-white/40 text-xs mt-6">
-            Dernière mise à jour : {LAST_UPDATED}
+            Dernière mise à jour :{" "}
+            {cmsPage ? formatFrDate(cmsPage.updatedAt) : FALLBACK_LAST_UPDATED}
           </p>
         </div>
       </section>
@@ -59,167 +87,182 @@ export default function LegalPage() {
       {/* CONTENU */}
       <article className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200/80 dark:border-slate-700 shadow-sm p-6 sm:p-10 space-y-8 text-[15px] leading-relaxed text-[#454955] dark:text-slate-300">
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              1. Éditeur du site
-            </h2>
-            <ul className="space-y-1.5">
-              <li>
-                <strong className="text-seal-navy dark:text-white">
-                  Raison sociale :
-                </strong>{" "}
-                OMNITECH Security
-              </li>
-              <li>
-                <strong className="text-seal-navy dark:text-white">
-                  Forme juridique :
-                </strong>{" "}
-                [à compléter]
-              </li>
-              <li>
-                <strong className="text-seal-navy dark:text-white">
-                  Siège social :
-                </strong>{" "}
-                [à compléter]
-              </li>
-              <li>
-                <strong className="text-seal-navy dark:text-white">
-                  SIRET :
-                </strong>{" "}
-                [à compléter]
-              </li>
-              <li>
-                <strong className="text-seal-navy dark:text-white">
-                  Affiliation :
-                </strong>{" "}
-                filiale du groupe SFPI
-              </li>
-              <li>
-                <strong className="text-seal-navy dark:text-white">
-                  Activité :
-                </strong>{" "}
-                conception, intégration et exploitation de systèmes de sûreté
-                pour sites à risques (contrôle d&apos;accès, vidéosurveillance,
-                hypervision SEAL System).
-              </li>
-            </ul>
-          </section>
+          {cmsPage ? (
+            // HTML déjà sanitisé côté backend (`sanitizeRichText`) + seconde
+            // passe DOMPurify côté client via `SafeHtml` (defense in depth,
+            // cf. `docs/cms/architecture.md` § 5.3).
+            <SafeHtml html={cmsPage.content} className="seal-prose" />
+          ) : (
+            <>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  1. Éditeur du site
+                </h2>
+                <ul className="space-y-1.5">
+                  <li>
+                    <strong className="text-seal-navy dark:text-white">
+                      Raison sociale :
+                    </strong>{" "}
+                    OMNITECH Security
+                  </li>
+                  <li>
+                    <strong className="text-seal-navy dark:text-white">
+                      Forme juridique :
+                    </strong>{" "}
+                    [à compléter]
+                  </li>
+                  <li>
+                    <strong className="text-seal-navy dark:text-white">
+                      Siège social :
+                    </strong>{" "}
+                    [à compléter]
+                  </li>
+                  <li>
+                    <strong className="text-seal-navy dark:text-white">
+                      SIRET :
+                    </strong>{" "}
+                    [à compléter]
+                  </li>
+                  <li>
+                    <strong className="text-seal-navy dark:text-white">
+                      Affiliation :
+                    </strong>{" "}
+                    filiale du groupe SFPI
+                  </li>
+                  <li>
+                    <strong className="text-seal-navy dark:text-white">
+                      Activité :
+                    </strong>{" "}
+                    conception, intégration et exploitation de systèmes de
+                    sûreté pour sites à risques (contrôle d&apos;accès,
+                    vidéosurveillance, hypervision SEAL System).
+                  </li>
+                </ul>
+              </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              2. Directeur de la publication
-            </h2>
-            <p>
-              La direction de la publication de l&apos;intranet est assurée par
-              la Direction d&apos;OMNITECH Security. Le contenu éditorial est
-              placé sous la responsabilité du Responsable de la sécurité des
-              systèmes d&apos;information (RSSI).
-            </p>
-          </section>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  2. Directeur de la publication
+                </h2>
+                <p>
+                  La direction de la publication de l&apos;intranet est assurée
+                  par la Direction d&apos;OMNITECH Security. Le contenu
+                  éditorial est placé sous la responsabilité du Responsable de
+                  la sécurité des systèmes d&apos;information (RSSI).
+                </p>
+              </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              3. Hébergement
-            </h2>
-            <p>
-              L&apos;intranet est hébergé en interne sur l&apos;infrastructure
-              d&apos;OMNITECH Security : machine virtuelle Linux dédiée,
-              administrée par la Direction des systèmes d&apos;information (DSI)
-              et supervisée par le RSSI. Aucun service de cloud public
-              n&apos;intervient dans l&apos;hébergement, le stockage ou le
-              traitement des données.
-            </p>
-            <p className="mt-3">
-              <strong className="text-seal-navy dark:text-white">
-                Contact technique :
-              </strong>{" "}
-              DSI / RSSI —{" "}
-              <a
-                href="mailto:dpo@omnitech-security.fr"
-                className="text-slate-900 hover:underline"
-              >
-                dpo@omnitech-security.fr
-              </a>
-            </p>
-          </section>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  3. Hébergement
+                </h2>
+                <p>
+                  L&apos;intranet est hébergé en interne sur
+                  l&apos;infrastructure d&apos;OMNITECH Security : machine
+                  virtuelle Linux dédiée, administrée par la Direction des
+                  systèmes d&apos;information (DSI) et supervisée par le RSSI.
+                  Aucun service de cloud public n&apos;intervient dans
+                  l&apos;hébergement, le stockage ou le traitement des données.
+                </p>
+                <p className="mt-3">
+                  <strong className="text-seal-navy dark:text-white">
+                    Contact technique :
+                  </strong>{" "}
+                  DSI / RSSI —{" "}
+                  <a
+                    href="mailto:dpo@omnitech-security.fr"
+                    className="text-slate-900 hover:underline"
+                  >
+                    dpo@omnitech-security.fr
+                  </a>
+                </p>
+              </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              4. Contact
-            </h2>
-            <ul className="space-y-1.5">
-              <li>
-                <strong className="text-seal-navy dark:text-white">
-                  Support interne :
-                </strong>{" "}
-                tickets via le module Helpdesk de l&apos;intranet.
-              </li>
-              <li>
-                <strong className="text-seal-navy dark:text-white">
-                  Contact général :
-                </strong>{" "}
-                [à compléter]
-              </li>
-              <li>
-                <strong className="text-seal-navy dark:text-white">
-                  Délégué à la protection des données :
-                </strong>{" "}
-                <a
-                  href="mailto:dpo@omnitech-security.fr"
-                  className="text-slate-900 hover:underline"
-                >
-                  dpo@omnitech-security.fr
-                </a>
-              </li>
-            </ul>
-          </section>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  4. Contact
+                </h2>
+                <ul className="space-y-1.5">
+                  <li>
+                    <strong className="text-seal-navy dark:text-white">
+                      Support interne :
+                    </strong>{" "}
+                    tickets via le module Helpdesk de l&apos;intranet.
+                  </li>
+                  <li>
+                    <strong className="text-seal-navy dark:text-white">
+                      Contact général :
+                    </strong>{" "}
+                    [à compléter]
+                  </li>
+                  <li>
+                    <strong className="text-seal-navy dark:text-white">
+                      Délégué à la protection des données :
+                    </strong>{" "}
+                    <a
+                      href="mailto:dpo@omnitech-security.fr"
+                      className="text-slate-900 hover:underline"
+                    >
+                      dpo@omnitech-security.fr
+                    </a>
+                  </li>
+                </ul>
+              </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              5. Propriété intellectuelle
-            </h2>
-            <p>
-              L&apos;ensemble des éléments composant l&apos;intranet — code
-              source, interface, identité graphique (charte SEAL), logos,
-              illustrations, textes éditoriaux, documents internes — constitue
-              une œuvre protégée au titre du Code de la propriété
-              intellectuelle. La propriété de ces éléments demeure exclusivement
-              celle d&apos;OMNITECH Security ou de ses concédants.
-            </p>
-            <p className="mt-3">
-              Toute reproduction, représentation, diffusion ou exploitation,
-              partielle ou totale, est interdite sans autorisation écrite
-              préalable. Les marques OMNITECH Security, SEAL System et celles du
-              groupe SFPI sont des marques déposées.
-            </p>
-          </section>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  5. Propriété intellectuelle
+                </h2>
+                <p>
+                  L&apos;ensemble des éléments composant l&apos;intranet — code
+                  source, interface, identité graphique (charte SEAL), logos,
+                  illustrations, textes éditoriaux, documents internes —
+                  constitue une œuvre protégée au titre du Code de la propriété
+                  intellectuelle. La propriété de ces éléments demeure
+                  exclusivement celle d&apos;OMNITECH Security ou de ses
+                  concédants.
+                </p>
+                <p className="mt-3">
+                  Toute reproduction, représentation, diffusion ou exploitation,
+                  partielle ou totale, est interdite sans autorisation écrite
+                  préalable. Les marques OMNITECH Security, SEAL System et
+                  celles du groupe SFPI sont des marques déposées.
+                </p>
+              </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              6. Conditions d&apos;utilisation
-            </h2>
-            <p>
-              L&apos;accès à l&apos;intranet est strictement réservé aux
-              collaborateurs et prestataires habilités d&apos;OMNITECH Security.
-              Son utilisation est encadrée par le règlement intérieur, la charte
-              informatique et les chartes de sécurité publiées dans la rubrique{" "}
-              <Link href="/chartes" className="text-slate-900 hover:underline">
-                Chartes
-              </Link>
-              .
-            </p>
-          </section>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  6. Conditions d&apos;utilisation
+                </h2>
+                <p>
+                  L&apos;accès à l&apos;intranet est strictement réservé aux
+                  collaborateurs et prestataires habilités d&apos;OMNITECH
+                  Security. Son utilisation est encadrée par le règlement
+                  intérieur, la charte informatique et les chartes de sécurité
+                  publiées dans la rubrique{" "}
+                  <Link
+                    href="/chartes"
+                    className="text-slate-900 hover:underline"
+                  >
+                    Chartes
+                  </Link>
+                  .
+                </p>
+              </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              7. Droit applicable
-            </h2>
-            <p>
-              Les présentes mentions légales sont régies par le droit français.
-              Tout litige relatif à leur interprétation ou à leur exécution
-              relève de la compétence des juridictions françaises compétentes.
-            </p>
-          </section>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  7. Droit applicable
+                </h2>
+                <p>
+                  Les présentes mentions légales sont régies par le droit
+                  français. Tout litige relatif à leur interprétation ou à leur
+                  exécution relève de la compétence des juridictions françaises
+                  compétentes.
+                </p>
+              </section>
+            </>
+          )}
         </div>
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 text-sm text-[#837274] dark:text-slate-400">

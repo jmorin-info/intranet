@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, Cookie } from "lucide-react";
 import { OmnitechLogo } from "@/components/omnitech-logo";
+import { SafeHtml } from "@/components/cms/safe-html";
+import { getContentPage } from "@/lib/cms";
 
 export const metadata = {
   title: "Politique cookies — OMNITECH Security",
@@ -8,7 +10,10 @@ export const metadata = {
     "Politique cookies de l'intranet OMNITECH Security : cookies strictement techniques, sans traceur, sans analytics et sans bandeau de consentement.",
 };
 
-const LAST_UPDATED = "25 avril 2026";
+const SLUG = "politique-cookies";
+// Fallback affiché tant que la DB n'est pas seedée. Toujours visible si
+// `getContentPage` retourne null (DRAFT/ARCHIVED/404/réseau down).
+const FALLBACK_LAST_UPDATED = "25 avril 2026";
 
 interface CookieEntry {
   name: string;
@@ -46,7 +51,23 @@ const ENTRIES: CookieEntry[] = [
   },
 ];
 
-export default function CookiesPage() {
+function formatFrDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return FALLBACK_LAST_UPDATED;
+  }
+}
+
+export default async function CookiesPage() {
+  // Route backend `/api/v1/content/pages/:slug` exposée en `@Public()` →
+  // accessible sans cookie auth. Si null, fallback hardcodé ci-dessous.
+  const cmsPage = await getContentPage(SLUG, "fr");
+
   return (
     <div className="min-h-screen bg-[#F5F5F5] dark:bg-slate-950">
       {/* HEADER */}
@@ -78,17 +99,22 @@ export default function CookiesPage() {
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-light text-white leading-tight">
-            Politique{" "}
-            <span className="text-slate-900 font-semibold">cookies</span>
+            {cmsPage ? (
+              cmsPage.title
+            ) : (
+              <>
+                Politique{" "}
+                <span className="text-slate-900 font-semibold">cookies</span>
+              </>
+            )}
           </h1>
           <p className="text-white/60 mt-4 text-base sm:text-lg max-w-2xl leading-relaxed">
-            L&apos;intranet OMNITECH Security utilise exclusivement des cookies
-            techniques nécessaires à son fonctionnement. Aucun cookie
-            publicitaire, aucun traceur tiers, aucun outil de mesure
-            d&apos;audience.
+            {cmsPage?.excerpt ??
+              "L'intranet OMNITECH Security utilise exclusivement des cookies techniques nécessaires à son fonctionnement. Aucun cookie publicitaire, aucun traceur tiers, aucun outil de mesure d'audience."}
           </p>
           <p className="text-white/40 text-xs mt-6">
-            Dernière mise à jour : {LAST_UPDATED}
+            Dernière mise à jour :{" "}
+            {cmsPage ? formatFrDate(cmsPage.updatedAt) : FALLBACK_LAST_UPDATED}
           </p>
         </div>
       </section>
@@ -96,115 +122,139 @@ export default function CookiesPage() {
       {/* CONTENU */}
       <article className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200/80 dark:border-slate-700 shadow-sm p-6 sm:p-10 space-y-8 text-[15px] leading-relaxed text-[#454955] dark:text-slate-300">
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              1. Pourquoi aucun bandeau de consentement ?
-            </h2>
-            <p>
-              Conformément à l&apos;article 82 de la loi Informatique et
-              Libertés et aux lignes directrices de la CNIL, les cookies
-              strictement nécessaires à la fourniture d&apos;un service
-              expressément demandé par l&apos;utilisateur (ici : se connecter à
-              l&apos;intranet et conserver ses préférences d&apos;affichage)
-              sont exemptés du recueil du consentement.
-            </p>
-            <p className="mt-3">
-              L&apos;intranet n&apos;utilise{" "}
-              <strong className="text-seal-navy dark:text-white">
-                aucun cookie tiers
-              </strong>
-              ,{" "}
-              <strong className="text-seal-navy dark:text-white">
-                aucun outil d&apos;analytics
-              </strong>{" "}
-              et{" "}
-              <strong className="text-seal-navy dark:text-white">
-                aucun pixel publicitaire
-              </strong>
-              . Aucun bandeau de consentement n&apos;est donc nécessaire.
-            </p>
-          </section>
+          {cmsPage ? (
+            // HTML déjà sanitisé côté backend (`sanitizeRichText`) + seconde
+            // passe DOMPurify côté client via `SafeHtml` (defense in depth).
+            // Important : la table des cookies (ENTRIES ci-dessus) doit être
+            // intégrée par l'auteur sous forme de `<table>` dans le HTML CMS —
+            // les balises table/thead/tbody/tr/td/th sont dans la whitelist
+            // `sanitize-html` côté backend.
+            <SafeHtml html={cmsPage.content} className="seal-prose" />
+          ) : (
+            <>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  1. Pourquoi aucun bandeau de consentement ?
+                </h2>
+                <p>
+                  Conformément à l&apos;article 82 de la loi Informatique et
+                  Libertés et aux lignes directrices de la CNIL, les cookies
+                  strictement nécessaires à la fourniture d&apos;un service
+                  expressément demandé par l&apos;utilisateur (ici : se
+                  connecter à l&apos;intranet et conserver ses préférences
+                  d&apos;affichage) sont exemptés du recueil du consentement.
+                </p>
+                <p className="mt-3">
+                  L&apos;intranet n&apos;utilise{" "}
+                  <strong className="text-seal-navy dark:text-white">
+                    aucun cookie tiers
+                  </strong>
+                  ,{" "}
+                  <strong className="text-seal-navy dark:text-white">
+                    aucun outil d&apos;analytics
+                  </strong>{" "}
+                  et{" "}
+                  <strong className="text-seal-navy dark:text-white">
+                    aucun pixel publicitaire
+                  </strong>
+                  . Aucun bandeau de consentement n&apos;est donc nécessaire.
+                </p>
+              </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              2. Liste exhaustive des éléments stockés
-            </h2>
-            <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-700">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 dark:bg-slate-900/40 text-seal-navy dark:text-white">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-semibold">Nom</th>
-                    <th className="text-left px-4 py-3 font-semibold">Type</th>
-                    <th className="text-left px-4 py-3 font-semibold">
-                      Finalité
-                    </th>
-                    <th className="text-left px-4 py-3 font-semibold">Durée</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ENTRIES.map((c) => (
-                    <tr
-                      key={c.name}
-                      className="border-t border-gray-100 dark:border-slate-700/60 align-top"
-                    >
-                      <td className="px-4 py-3 font-mono text-[13px] text-seal-navy dark:text-white">
-                        {c.name}
-                      </td>
-                      <td className="px-4 py-3 text-[13px]">{c.type}</td>
-                      <td className="px-4 py-3 text-[13px]">{c.finalite}</td>
-                      <td className="px-4 py-3 text-[13px]">{c.duree}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  2. Liste exhaustive des éléments stockés
+                </h2>
+                <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-700">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-slate-900/40 text-seal-navy dark:text-white">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-semibold">
+                          Nom
+                        </th>
+                        <th className="text-left px-4 py-3 font-semibold">
+                          Type
+                        </th>
+                        <th className="text-left px-4 py-3 font-semibold">
+                          Finalité
+                        </th>
+                        <th className="text-left px-4 py-3 font-semibold">
+                          Durée
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ENTRIES.map((c) => (
+                        <tr
+                          key={c.name}
+                          className="border-t border-gray-100 dark:border-slate-700/60 align-top"
+                        >
+                          <td className="px-4 py-3 font-mono text-[13px] text-seal-navy dark:text-white">
+                            {c.name}
+                          </td>
+                          <td className="px-4 py-3 text-[13px]">{c.type}</td>
+                          <td className="px-4 py-3 text-[13px]">
+                            {c.finalite}
+                          </td>
+                          <td className="px-4 py-3 text-[13px]">{c.duree}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              3. Sécurité des cookies
-            </h2>
-            <p>
-              Le cookie <code>refreshToken</code> est un cookie{" "}
-              <strong className="text-seal-navy dark:text-white">
-                httpOnly
-              </strong>{" "}
-              (inaccessible au JavaScript de la page),{" "}
-              <strong className="text-seal-navy dark:text-white">Secure</strong>{" "}
-              (transmis uniquement en HTTPS) et{" "}
-              <strong className="text-seal-navy dark:text-white">
-                SameSite=Strict
-              </strong>{" "}
-              (non envoyé en cas de requête inter-sites). Cette configuration
-              prévient les attaques de type vol de jeton et CSRF.
-            </p>
-          </section>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  3. Sécurité des cookies
+                </h2>
+                <p>
+                  Le cookie <code>refreshToken</code> est un cookie{" "}
+                  <strong className="text-seal-navy dark:text-white">
+                    httpOnly
+                  </strong>{" "}
+                  (inaccessible au JavaScript de la page),{" "}
+                  <strong className="text-seal-navy dark:text-white">
+                    Secure
+                  </strong>{" "}
+                  (transmis uniquement en HTTPS) et{" "}
+                  <strong className="text-seal-navy dark:text-white">
+                    SameSite=Strict
+                  </strong>{" "}
+                  (non envoyé en cas de requête inter-sites). Cette
+                  configuration prévient les attaques de type vol de jeton et
+                  CSRF.
+                </p>
+              </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              4. Gérer ou supprimer les cookies
-            </h2>
-            <p>
-              L&apos;utilisateur peut à tout moment supprimer les cookies depuis
-              les paramètres de son navigateur. Le cookie{" "}
-              <code>refreshToken</code> étant indispensable au maintien de la
-              session, sa suppression entraîne une nouvelle authentification. La
-              suppression des cookies <code>locale</code> et{" "}
-              <code>darkMode</code> n&apos;a pour conséquence que la
-              réinitialisation des préférences d&apos;affichage par défaut.
-            </p>
-          </section>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  4. Gérer ou supprimer les cookies
+                </h2>
+                <p>
+                  L&apos;utilisateur peut à tout moment supprimer les cookies
+                  depuis les paramètres de son navigateur. Le cookie{" "}
+                  <code>refreshToken</code> étant indispensable au maintien de
+                  la session, sa suppression entraîne une nouvelle
+                  authentification. La suppression des cookies{" "}
+                  <code>locale</code> et <code>darkMode</code> n&apos;a pour
+                  conséquence que la réinitialisation des préférences
+                  d&apos;affichage par défaut.
+                </p>
+              </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
-              5. Engagement de transparence
-            </h2>
-            <p>
-              Toute évolution de la liste des cookies utilisés sera reflétée
-              dans la présente page et signalée aux utilisateurs si elle
-              implique un changement de finalité.
-            </p>
-          </section>
+              <section>
+                <h2 className="text-xl font-semibold text-seal-navy dark:text-white mb-3">
+                  5. Engagement de transparence
+                </h2>
+                <p>
+                  Toute évolution de la liste des cookies utilisés sera reflétée
+                  dans la présente page et signalée aux utilisateurs si elle
+                  implique un changement de finalité.
+                </p>
+              </section>
+            </>
+          )}
         </div>
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 text-sm text-[#837274] dark:text-slate-400">
