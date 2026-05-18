@@ -499,4 +499,81 @@ export class ChartesService {
 
     return { signed, unsigned, charte, activeVersion };
   }
+
+  /**
+   * Envoie une notification SIGNATURE_REMINDER à tous les utilisateurs actifs
+   * qui n'ont pas encore signé la version active d'une charte mandatory.
+   *
+   * Exclusions :
+   *  - Les users avec exemption active (CharteExemption.revokedAt = NULL et
+   *    expiresAt = NULL ou future) ne sont pas relancés — ils sont dispensés.
+   *  - Le compte du déclencheur (admin) est notifié comme les autres uniquement
+   *    s'il fait partie des unsigned, sinon non.
+   *
+   * Toute l'opération est tracée dans AuditLog pour ISO 27001 A.5.34.
+   */
+  async remindUnsigned(charteId: string, actorId: string) {
+    const report = await this.getComplianceReport(charteId);
+    if (!("activeVersion" in report) || !report.activeVersion) {
+      throw new BadRequestException("Aucune version active pour cette charte.");
+    }
+
+    // Filtre exemptions actives
+    const now = new Date();
+    const exemptions = await this.prisma.charteExemption.findMany({
+      where: {
+        charteId,
+        revokedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      select: { userId: true },
+    });
+    const exemptedSet = new Set(exemptions.map((e) => e.userId));
+
+    const toRemind = report.unsigned.filter((u: any) => !exemptedSet.has(u.id));
+
+    if (toRemind.length === 0) {
+      return {
+        sent: 0,
+        exempted: exemptedSet.size,
+        total: report.unsigned.length,
+      };
+    }
+
+    // Notifications batch — créer en parallèle via Promise.all (idempotent côté DB).
+    // On ne dépend pas du NotificationsService pour éviter import circulaire :
+    // on insert direct dans Notification avec le type SIGNATURE_REMINDER.
+    await this.prisma.notification.createMany({
+      data: toRemind.map((u: any) => ({
+        userId: u.id,
+        type: "SIGNATURE_REMINDER" as any,
+        title: `Signature requise : ${report.charte.title}`,
+        body: "Vous n'avez pas encore signé cette charte. Merci de procéder à la signature.",
+        resourceType: "Charte",
+        resourceId: charteId,
+        metadata: { link: `/chartes/${report.charte.slug}` },
+      })),
+      skipDuplicates: true,
+    });
+
+    await this.audit.log({
+      userId: actorId,
+      action: "CHARTE_REMIND_UNSIGNED",
+      resourceType: "Charte",
+      resourceId: charteId,
+      severity: "INFO",
+      metadata: {
+        charteTitle: report.charte.title,
+        remindedCount: toRemind.length,
+        exemptedCount: exemptedSet.size,
+        totalUnsigned: report.unsigned.length,
+      },
+    });
+
+    return {
+      sent: toRemind.length,
+      exempted: exemptedSet.size,
+      total: report.unsigned.length,
+    };
+  }
 }

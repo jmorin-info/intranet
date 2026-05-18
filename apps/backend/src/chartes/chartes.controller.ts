@@ -187,6 +187,20 @@ export class ChartesController {
     return this.chartesService.remove(id, user.id);
   }
 
+  /**
+   * Envoie une notification SIGNATURE_REMINDER à tous les non-signataires
+   * actifs (en excluant ceux ayant une exemption active).
+   * Retourne { sent, exempted, total } pour feedback UI.
+   */
+  @Post(":id/remind")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async remindUnsigned(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.chartesService.remindUnsigned(id, user.id);
+  }
+
   // -------------------------------------------------------------------------
   // Exemptions — retirer/redonner l'obligation de signature à une personne
   // sans toucher au statut "mandatory" de la charte ni aux autres signataires.

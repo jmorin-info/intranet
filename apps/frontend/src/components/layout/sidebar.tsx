@@ -694,6 +694,12 @@ export function Sidebar() {
           minRole: UserRole.ADMIN,
         },
         {
+          label: "Gestion fine signatures",
+          href: "/admin/signatures/manage",
+          icon: PenLine,
+          minRole: UserRole.ADMIN,
+        },
+        {
           label: "Certifications",
           href: "/admin/certificates",
           icon: Award,
