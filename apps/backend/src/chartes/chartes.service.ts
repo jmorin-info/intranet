@@ -495,9 +495,45 @@ export class ChartesService {
       .filter((u) => signedUserIds.has(u.id))
       .map((u) => ({ ...u, signedAt: signedMap.get(u.id) }));
 
-    const unsigned = allActiveUsers.filter((u) => !signedUserIds.has(u.id));
+    // Exemptions actives (non révoquées, non expirées) — affichées séparément
+    // dans le rapport pour ne pas être confondues avec les retardataires.
+    const now = new Date();
+    const exemptions = await this.prisma.charteExemption.findMany({
+      where: {
+        charteId,
+        revokedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      include: {
+        exemptedBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+    });
+    const exemptedById = new Map(exemptions.map((e) => [e.userId, e]));
 
-    return { signed, unsigned, charte, activeVersion };
+    const exempted = allActiveUsers
+      .filter((u) => exemptedById.has(u.id))
+      .map((u) => {
+        const exemption = exemptedById.get(u.id)!;
+        return {
+          ...u,
+          exemption: {
+            id: exemption.id,
+            reason: exemption.reason,
+            exemptedAt: exemption.exemptedAt,
+            expiresAt: exemption.expiresAt,
+            exemptedBy: exemption.exemptedBy,
+          },
+        };
+      });
+
+    // Les unsigned "vrais" sont ceux qui n'ont ni signé ni exempté.
+    const unsigned = allActiveUsers.filter(
+      (u) => !signedUserIds.has(u.id) && !exemptedById.has(u.id),
+    );
+
+    return { signed, unsigned, exempted, charte, activeVersion };
   }
 
   /**
@@ -540,9 +576,11 @@ export class ChartesService {
       };
     }
 
-    // Notifications batch — créer en parallèle via Promise.all (idempotent côté DB).
-    // On ne dépend pas du NotificationsService pour éviter import circulaire :
-    // on insert direct dans Notification avec le type SIGNATURE_REMINDER.
+    // Notifications batch — insertion directe dans Notification (pas via
+    // NotificationsService pour éviter un import circulaire ChartesModule →
+    // NotificationsModule). Le modèle Notification ne possède pas de champ
+    // metadata : le slug de la charte est encodé via resourceType + resourceId
+    // que le frontend traduit en lien (/chartes/<slug>).
     await this.prisma.notification.createMany({
       data: toRemind.map((u: any) => ({
         userId: u.id,
@@ -551,7 +589,6 @@ export class ChartesService {
         body: "Vous n'avez pas encore signé cette charte. Merci de procéder à la signature.",
         resourceType: "Charte",
         resourceId: charteId,
-        metadata: { link: `/chartes/${report.charte.slug}` },
       })),
       skipDuplicates: true,
     });

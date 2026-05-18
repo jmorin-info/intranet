@@ -72,6 +72,24 @@ interface ComplianceReport {
     lastName: string;
     email: string;
   }>;
+  exempted?: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    exemption: {
+      id: string;
+      reason: string;
+      exemptedAt: string;
+      expiresAt: string | null;
+      exemptedBy: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+      } | null;
+    };
+  }>;
   charte: Charte;
   activeVersion: CharteVersion;
 }
@@ -759,7 +777,7 @@ export default function AdminChartesPage() {
                   <div className="animate-pulse h-40 bg-gray-100 dark:bg-slate-800 rounded" />
                 ) : compliance ? (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <Card>
                         <CardContent className="py-3">
                           <div className="flex items-center gap-2">
@@ -790,6 +808,21 @@ export default function AdminChartesPage() {
                           </div>
                         </CardContent>
                       </Card>
+                      <Card>
+                        <CardContent className="py-3">
+                          <div className="flex items-center gap-2">
+                            <Shield className="h-5 w-5 text-amber-500" />
+                            <div>
+                              <p className="text-xs text-seal-gray-500">
+                                Exemptés
+                              </p>
+                              <p className="text-2xl font-medium text-amber-600">
+                                {compliance.exempted?.length ?? 0}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
 
                     {compliance.unsigned.length > 0 && (
@@ -810,6 +843,58 @@ export default function AdminChartesPage() {
                               <span className="text-seal-gray-500 text-xs">
                                 {u.email}
                               </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {compliance.exempted && compliance.exempted.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-medium text-amber-600 mb-2 flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Utilisateurs exemptés ({compliance.exempted.length})
+                        </h3>
+                        <div className="space-y-1.5">
+                          {compliance.exempted.map((u) => (
+                            <div
+                              key={u.id}
+                              className="text-sm py-2 px-3 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200/40 dark:border-amber-800/40"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Shield className="h-3 w-3 text-amber-500" />
+                                <span className="font-medium">
+                                  {u.firstName} {u.lastName}
+                                </span>
+                                <span className="text-seal-gray-500 text-xs">
+                                  {u.email}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-seal-gray-500 dark:text-slate-400 ml-5 mt-1 italic">
+                                « {u.exemption.reason} »
+                              </div>
+                              <div className="text-[10px] text-seal-gray-500 dark:text-slate-500 ml-5 mt-0.5">
+                                Accordée le{" "}
+                                {new Date(
+                                  u.exemption.exemptedAt,
+                                ).toLocaleDateString("fr-FR")}
+                                {u.exemption.exemptedBy && (
+                                  <>
+                                    {" "}
+                                    par {u.exemption.exemptedBy.firstName}{" "}
+                                    {u.exemption.exemptedBy.lastName}
+                                  </>
+                                )}
+                                {u.exemption.expiresAt && (
+                                  <>
+                                    {" "}
+                                    · expire le{" "}
+                                    {new Date(
+                                      u.exemption.expiresAt,
+                                    ).toLocaleDateString("fr-FR")}
+                                  </>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
