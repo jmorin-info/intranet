@@ -3,9 +3,11 @@ import type { Metadata } from "next";
 import { getContentPage } from "@/lib/cms";
 import { SafeHtml } from "@/components/cms/safe-html";
 
+// Next.js 15 : params et searchParams sont devenus async (Promise) et doivent
+// être awaités côté Server Component. cf. https://nextjs.org/docs/messages/sync-dynamic-apis
 interface RouteParams {
-  params: { slug: string };
-  searchParams: { locale?: string };
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ locale?: string }>;
 }
 
 /**
@@ -13,7 +15,7 @@ interface RouteParams {
  *
  * - Server Component : pas d'interaction client, juste un fetch + render.
  * - HTML déjà sanitisé côté backend ; on relance DOMPurify ici en
- *   defense in depth (architecture § 5.3).
+ *   defense in depth (architecture § 5.3, via SafeHtml côté client).
  * - 404 si la page est DRAFT, ARCHIVED, soft-deleted, ou inexistante.
  * - Accessible sans authentification (route backend `@Public()`).
  */
@@ -21,8 +23,12 @@ export default async function PublicCmsPage({
   params,
   searchParams,
 }: RouteParams) {
-  const locale = searchParams?.locale === "en" ? "en" : "fr";
-  const page = await getContentPage(params.slug, locale);
+  const [{ slug }, { locale: localeRaw }] = await Promise.all([
+    params,
+    searchParams,
+  ]);
+  const locale = localeRaw === "en" ? "en" : "fr";
+  const page = await getContentPage(slug, locale);
   if (!page) notFound();
 
   return (
@@ -57,8 +63,12 @@ export async function generateMetadata({
   params,
   searchParams,
 }: RouteParams): Promise<Metadata> {
-  const locale = searchParams?.locale === "en" ? "en" : "fr";
-  const page = await getContentPage(params.slug, locale);
+  const [{ slug }, { locale: localeRaw }] = await Promise.all([
+    params,
+    searchParams,
+  ]);
+  const locale = localeRaw === "en" ? "en" : "fr";
+  const page = await getContentPage(slug, locale);
   if (!page) return { title: "Page introuvable" };
   return {
     title: page.seoTitle ?? page.title,
