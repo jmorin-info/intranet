@@ -4,11 +4,11 @@ import {
   ForbiddenException,
   BadRequestException,
   ConflictException,
-} from '@nestjs/common';
-import { slugify, generateUniqueSlug } from '../common/utils/slugify';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../audit/audit.service';
-import { StorageService } from '../storage/storage.service';
+} from "@nestjs/common";
+import { slugify, generateUniqueSlug } from "../common/utils/slugify";
+import { PrismaService } from "../prisma/prisma.service";
+import { AuditService } from "../audit/audit.service";
+import { StorageService } from "../storage/storage.service";
 
 @Injectable()
 export class ChartesService {
@@ -28,12 +28,12 @@ export class ChartesService {
       include: {
         versions: {
           where: { isActive: true },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           take: 1,
         },
         _count: { select: { signatures: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     if (!userId) return chartes;
@@ -43,7 +43,7 @@ export class ChartesService {
     // conditionnel (typing Prisma compliqué) par une requête dédiée.
     const activeVersionIds = chartes
       .map((c) => c.versions[0]?.id)
-      .filter((id): id is string => typeof id === 'string');
+      .filter((id): id is string => typeof id === "string");
 
     const signatures = activeVersionIds.length
       ? await this.prisma.charteSignature.findMany({
@@ -51,11 +51,15 @@ export class ChartesService {
           select: { charteVersionId: true, signedAt: true },
         })
       : [];
-    const signedByVersion = new Map(signatures.map((s) => [s.charteVersionId, s.signedAt]));
+    const signedByVersion = new Map(
+      signatures.map((s) => [s.charteVersionId, s.signedAt]),
+    );
 
     return chartes.map((c) => {
       const activeVersionId = c.versions[0]?.id;
-      const signedAt = activeVersionId ? signedByVersion.get(activeVersionId) ?? null : null;
+      const signedAt = activeVersionId
+        ? (signedByVersion.get(activeVersionId) ?? null)
+        : null;
       return { ...c, signedAt };
     });
   }
@@ -64,7 +68,7 @@ export class ChartesService {
     return this.prisma.charte.findUnique({
       where: { id },
       include: {
-        versions: { orderBy: { createdAt: 'desc' } },
+        versions: { orderBy: { createdAt: "desc" } },
         _count: { select: { signatures: true } },
       },
     });
@@ -74,37 +78,45 @@ export class ChartesService {
     const charte = await this.prisma.charte.findUnique({
       where: { slug },
       include: {
-        versions: { orderBy: { createdAt: 'desc' } },
+        versions: { orderBy: { createdAt: "desc" } },
         _count: { select: { signatures: true } },
       },
     });
-    if (!charte) throw new NotFoundException('Charte not found');
+    if (!charte) throw new NotFoundException("Charte not found");
     return charte;
   }
 
   // Create a new charte (admin only)
   // Si `slug` absent ou vide : auto-généré depuis le titre (normalisé + unique).
-  async create(data: { title: string; slug?: string; isMandatory?: boolean; classification?: string }) {
-    const title = typeof data?.title === 'string' ? data.title.trim() : '';
+  async create(data: {
+    title: string;
+    slug?: string;
+    isMandatory?: boolean;
+    classification?: string;
+  }) {
+    const title = typeof data?.title === "string" ? data.title.trim() : "";
     if (!title) {
-      throw new BadRequestException('Le titre de la charte est requis.');
+      throw new BadRequestException("Le titre de la charte est requis.");
     }
 
-    const rawSlug = typeof data?.slug === 'string' ? data.slug.trim() : '';
+    const rawSlug = typeof data?.slug === "string" ? data.slug.trim() : "";
     let slug: string;
     if (!rawSlug) {
       // Auto-generate depuis le titre, unique en DB
       slug = await generateUniqueSlug(
         title,
-        async (candidate) => !!(await this.prisma.charte.findUnique({ where: { slug: candidate } })),
-        { maxLength: 80, fallback: 'charte' },
+        async (candidate) =>
+          !!(await this.prisma.charte.findUnique({
+            where: { slug: candidate },
+          })),
+        { maxLength: 80, fallback: "charte" },
       );
     } else {
       // User a fourni un slug : on le normalise et on valide
       slug = slugify(rawSlug, { maxLength: 80 });
       if (!slug) {
         throw new BadRequestException(
-          'Le slug fourni est invalide (doit contenir au moins une lettre ou un chiffre).',
+          "Le slug fourni est invalide (doit contenir au moins une lettre ou un chiffre).",
         );
       }
       if (slug !== rawSlug.toLowerCase()) {
@@ -113,7 +125,9 @@ export class ChartesService {
       }
       const existing = await this.prisma.charte.findUnique({ where: { slug } });
       if (existing) {
-        throw new ConflictException(`Une charte avec le slug "${slug}" existe déjà.`);
+        throw new ConflictException(
+          `Une charte avec le slug "${slug}" existe déjà.`,
+        );
       }
     }
 
@@ -122,7 +136,7 @@ export class ChartesService {
         title,
         slug,
         isMandatory: data.isMandatory ?? true,
-        classification: data.classification || 'INTERNE',
+        classification: data.classification || "INTERNE",
       },
     });
   }
@@ -135,12 +149,14 @@ export class ChartesService {
     changeLog: string | undefined,
     userId: string,
   ) {
-    const charte = await this.prisma.charte.findUnique({ where: { id: charteId } });
-    if (!charte) throw new NotFoundException('Charte not found');
+    const charte = await this.prisma.charte.findUnique({
+      where: { id: charteId },
+    });
+    if (!charte) throw new NotFoundException("Charte not found");
 
     // Validate PDF
-    if (file.mimetype !== 'application/pdf') {
-      throw new ForbiddenException('Seuls les fichiers PDF sont acceptés');
+    if (file.mimetype !== "application/pdf") {
+      throw new ForbiddenException("Seuls les fichiers PDF sont acceptés");
     }
 
     // Upload file
@@ -182,11 +198,11 @@ export class ChartesService {
     // Audit log
     await this.audit.log({
       userId,
-      action: 'CHARTE_VERSION_UPLOADED',
-      resourceType: 'Charte',
+      action: "CHARTE_VERSION_UPLOADED",
+      resourceType: "Charte",
       resourceId: charteId,
       metadata: { versionNumber, changeLog, fileUrl },
-      severity: 'INFO',
+      severity: "INFO",
     });
 
     return version;
@@ -194,8 +210,10 @@ export class ChartesService {
 
   // Mark charte as signed by Direction
   async markSignedByDirection(charteId: string, userId: string) {
-    const charte = await this.prisma.charte.findUnique({ where: { id: charteId } });
-    if (!charte) throw new NotFoundException('Charte not found');
+    const charte = await this.prisma.charte.findUnique({
+      where: { id: charteId },
+    });
+    if (!charte) throw new NotFoundException("Charte not found");
 
     const updated = await this.prisma.charte.update({
       where: { id: charteId },
@@ -204,40 +222,59 @@ export class ChartesService {
 
     await this.audit.log({
       userId,
-      action: 'CHARTE_SIGNED_BY_DIRECTION',
-      resourceType: 'Charte',
+      action: "CHARTE_SIGNED_BY_DIRECTION",
+      resourceType: "Charte",
       resourceId: charteId,
-      severity: 'WARN',
+      severity: "WARN",
     });
 
     return updated;
   }
 
   // User signs a specific version of a charte
-  async sign(charteId: string, userId: string, ipAddress?: string, userAgent?: string) {
+  async sign(
+    charteId: string,
+    userId: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     const charte = await this.prisma.charte.findUnique({
       where: { id: charteId },
       include: { versions: { where: { isActive: true }, take: 1 } },
     });
-    if (!charte) throw new NotFoundException('Charte not found');
-    if (!charte.signedByDirection) throw new ForbiddenException('Cette charte n\'a pas encore été validée par la Direction');
+    if (!charte) throw new NotFoundException("Charte not found");
+    if (!charte.signedByDirection)
+      throw new ForbiddenException(
+        "Cette charte n'a pas encore été validée par la Direction",
+      );
 
     const activeVersion = charte.versions[0];
-    if (!activeVersion) throw new NotFoundException('Aucune version active pour cette charte');
+    if (!activeVersion)
+      throw new NotFoundException("Aucune version active pour cette charte");
 
     const sig = await this.prisma.charteSignature.upsert({
       where: {
-        charteId_charteVersionId_userId: { charteId, charteVersionId: activeVersion.id, userId },
+        charteId_charteVersionId_userId: {
+          charteId,
+          charteVersionId: activeVersion.id,
+          userId,
+        },
       },
-      create: { charteId, charteVersionId: activeVersion.id, userId, ipAddress, userAgent },
+      create: {
+        charteId,
+        charteVersionId: activeVersion.id,
+        userId,
+        ipAddress,
+        userAgent,
+      },
       update: { signedAt: new Date(), ipAddress, userAgent },
     });
 
     // Audit log for compliance tracking
     await this.audit.log({
       userId,
-      action: 'CHARTE_SIGNED',
-      resourceType: 'Charte',
+      action: "CHARTE_SIGNED",
+      resourceType: "Charte",
       resourceId: charteId,
       metadata: {
         charteTitle: charte.title,
@@ -245,7 +282,7 @@ export class ChartesService {
         charteVersionId: activeVersion.id,
         ipAddress,
       },
-      severity: 'INFO',
+      severity: "INFO",
     });
 
     await this.updateUserChartesStatus(userId);
@@ -265,7 +302,7 @@ export class ChartesService {
 
     // Get all active version IDs
     const activeVersionIds = mandatory
-      .map(c => c.versions[0]?.id)
+      .map((c) => c.versions[0]?.id)
       .filter((id): id is string => !!id);
 
     // Single query: get all signatures for this user on these versions
@@ -277,15 +314,33 @@ export class ChartesService {
       select: { charteId: true, charteVersionId: true },
     });
 
-    const signedSet = new Set(existingSignatures.map(s => `${s.charteId}:${s.charteVersionId}`));
+    const signedSet = new Set(
+      existingSignatures.map((s) => `${s.charteId}:${s.charteVersionId}`),
+    );
+
+    // Récupère les exemptions actives pour ce user (revokedAt = NULL + non
+    // expirées). Un user exempté d'une charte est considéré comme "compliant"
+    // sans avoir à signer — l'obligation lui est retirée nominativement.
+    const now = new Date();
+    const activeExemptions = await this.prisma.charteExemption.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        charteId: { in: mandatory.map((c) => c.id) },
+      },
+      select: { charteId: true },
+    });
+    const exemptedSet = new Set(activeExemptions.map((e) => e.charteId));
 
     return mandatory
-      .filter(charte => {
+      .filter((charte) => {
         const activeVersion = charte.versions[0];
         if (!activeVersion) return false;
+        if (exemptedSet.has(charte.id)) return false;
         return !signedSet.has(`${charte.id}:${activeVersion.id}`);
       })
-      .map(charte => ({ ...charte, activeVersion: charte.versions[0] }));
+      .map((charte) => ({ ...charte, activeVersion: charte.versions[0] }));
   }
 
   async hasSignedAllChartes(userId: string): Promise<boolean> {
@@ -311,16 +366,27 @@ export class ChartesService {
     return this.prisma.charteSignature.findMany({
       where,
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true, role: true, departmentId: true } },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+            departmentId: true,
+          },
+        },
         charteVersion: { select: { id: true, versionNumber: true } },
       },
-      orderBy: { signedAt: 'desc' },
+      orderBy: { signedAt: "desc" },
     });
   }
 
   async remove(charteId: string, userId: string) {
-    const charte = await this.prisma.charte.findUnique({ where: { id: charteId } });
-    if (!charte) throw new NotFoundException('Charte introuvable');
+    const charte = await this.prisma.charte.findUnique({
+      where: { id: charteId },
+    });
+    if (!charte) throw new NotFoundException("Charte introuvable");
 
     // Delete all signatures, versions, then the charte
     await this.prisma.charteSignature.deleteMany({ where: { charteId } });
@@ -333,25 +399,30 @@ export class ChartesService {
 
     await this.audit.log({
       userId,
-      action: 'CHARTE_DELETED',
-      resourceType: 'Charte',
+      action: "CHARTE_DELETED",
+      resourceType: "Charte",
       resourceId: charteId,
       metadata: { title: charte.title, slug: charte.slug },
-      severity: 'WARN',
+      severity: "WARN",
     });
 
-    return { message: 'Charte supprimée' };
+    return { message: "Charte supprimée" };
   }
 
-  async createFromDocument(documentId: string, slug: string, isMandatory: boolean, userId: string) {
+  async createFromDocument(
+    documentId: string,
+    slug: string,
+    isMandatory: boolean,
+    userId: string,
+  ) {
     const doc = await this.prisma.document.findUnique({
       where: { id: documentId },
-      include: { versions: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
     });
-    if (!doc) throw new NotFoundException('Document not found');
+    if (!doc) throw new NotFoundException("Document not found");
 
     const version = doc.versions[0];
-    if (!version) throw new NotFoundException('Document has no version');
+    if (!version) throw new NotFoundException("Document has no version");
 
     // Create the charte
     const charte = await this.prisma.charte.create({
@@ -359,7 +430,7 @@ export class ChartesService {
         title: doc.title,
         slug,
         isMandatory,
-        classification: doc.classification || 'INTERNE',
+        classification: doc.classification || "INTERNE",
         signedByDirection: false,
       },
     });
@@ -368,7 +439,7 @@ export class ChartesService {
     await this.prisma.charteVersion.create({
       data: {
         charteId: charte.id,
-        versionNumber: version.versionNumber || '1.0',
+        versionNumber: version.versionNumber || "1.0",
         fileUrl: version.fileUrl,
         fileType: version.fileType,
         fileSizeBytes: version.fileSizeBytes,
@@ -381,8 +452,8 @@ export class ChartesService {
 
     await this.audit.log({
       userId,
-      action: 'CHARTE_CREATED_FROM_DOCUMENT',
-      resourceType: 'Charte',
+      action: "CHARTE_CREATED_FROM_DOCUMENT",
+      resourceType: "Charte",
       resourceId: charte.id,
       metadata: { documentId, documentRef: doc.reference, title: doc.title },
     });
@@ -396,13 +467,20 @@ export class ChartesService {
       where: { id: charteId },
       include: { versions: { where: { isActive: true }, take: 1 } },
     });
-    if (!charte) throw new NotFoundException('Charte not found');
+    if (!charte) throw new NotFoundException("Charte not found");
     const activeVersion = charte.versions[0];
     if (!activeVersion) return { signed: [], unsigned: [], charte };
 
     const allActiveUsers = await this.prisma.user.findMany({
       where: { isActive: true, deletedAt: null },
-      select: { id: true, firstName: true, lastName: true, email: true, role: true, departmentId: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        departmentId: true,
+      },
     });
 
     const signatures = await this.prisma.charteSignature.findMany({
@@ -410,14 +488,14 @@ export class ChartesService {
       select: { userId: true, signedAt: true },
     });
 
-    const signedUserIds = new Set(signatures.map(s => s.userId));
-    const signedMap = new Map(signatures.map(s => [s.userId, s.signedAt]));
+    const signedUserIds = new Set(signatures.map((s) => s.userId));
+    const signedMap = new Map(signatures.map((s) => [s.userId, s.signedAt]));
 
     const signed = allActiveUsers
-      .filter(u => signedUserIds.has(u.id))
-      .map(u => ({ ...u, signedAt: signedMap.get(u.id) }));
+      .filter((u) => signedUserIds.has(u.id))
+      .map((u) => ({ ...u, signedAt: signedMap.get(u.id) }));
 
-    const unsigned = allActiveUsers.filter(u => !signedUserIds.has(u.id));
+    const unsigned = allActiveUsers.filter((u) => !signedUserIds.has(u.id));
 
     return { signed, unsigned, charte, activeVersion };
   }

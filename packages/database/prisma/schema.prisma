@@ -166,22 +166,22 @@ enum IncidentCategory {
 // =============================================================================
 
 model User {
-  id                          String    @id @default(uuid())
-  email                       String    @unique
+  id                          String          @id @default(uuid())
+  email                       String          @unique
   passwordHash                String
   firstName                   String
   lastName                    String
   role                        UserRole
   departmentId                String?
-  isActive                    Boolean   @default(true)
+  isActive                    Boolean         @default(true)
   lastLoginAt                 DateTime?
   deletedAt                   DateTime?
   gdprConsentAt               DateTime?
   gdprConsentIp               String?
   avatarUrl                   String?
   // MFA
-  mfaEnabled                  Boolean   @default(false)
-  mfaRequired                 Boolean   @default(false) // Politique MFA imposée par un admin : bloque la connexion tant que MFA n'est pas activé
+  mfaEnabled                  Boolean         @default(false)
+  mfaRequired                 Boolean         @default(false) // Politique MFA imposée par un admin : bloque la connexion tant que MFA n'est pas activé
   mfaSecret                   String?
   backupCodes                 String? // JSON array of hashed backup codes
   // Traçabilité de l'application de la politique MFA per-user (qui a forcé,
@@ -200,7 +200,7 @@ model User {
   // pour rétrocompat applicative et synchronisé par DigestService.
   digestFrequency             DigestFrequency @default(DAILY)
   // UI language preference (persisted so it follows the user across devices). Fallback: 'fr'.
-  locale                      String?   @default("fr")
+  locale                      String?         @default("fr")
   // Tracks the most recent password change (admin reset, self-change, token reset).
   // Used by AccessReviewsService (PASSWORDS campaigns) to detect stale credentials.
   // Nullable: backfilled to createdAt for existing rows via the 20260424 migration.
@@ -218,23 +218,25 @@ model User {
   // le feature flag global feature.humor.noa est ON et que l'utilisateur a
   // explicitement coché cette case (admin OU profile). Exclusions dures
   // côté frontend : routes /auth/*, /mfa/*, security, audit-logs, etc.
-  noaEnabled                  Boolean   @default(false)
+  noaEnabled                  Boolean         @default(false)
   // Permission per-user pour la sync WebDAV Obsidian (item 16).
   // Default false : l'admin opt-in explicitement pour chaque user qui doit
   // pouvoir générer un token WebDAV et utiliser l'endpoint /api/v1/webdav/*.
   // Doublé d'un feature flag global AppConfig "webdav.enabled".
-  webdavEnabled               Boolean   @default(false)
+  webdavEnabled               Boolean         @default(false)
   // Mémoire conversationnelle Noa (item 31). Default true (opt-out) car la
   // valeur principale du feature suppose la persistance entre sessions. Le
   // user peut désactiver depuis /profile : recall renvoie [] et store
   // devient no-op. Suppression /api/v1/noa/memory pour right-to-erasure RGPD.
-  noaMemoryEnabled            Boolean   @default(true)
-  createdAt                   DateTime  @default(now())
-  updatedAt                   DateTime  @updatedAt
+  noaMemoryEnabled            Boolean         @default(true)
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
 
   // Relations
   department                 Department?                 @relation(fields: [departmentId], references: [id])
   charteSignatures           CharteSignature[]
+  charteExemptions           CharteExemption[]           @relation("CharteExemptionUser")
+  charteExemptionsGranted    CharteExemption[]           @relation("CharteExemptionGrantor")
   onboardingSteps            OnboardingStep[]            @relation("OnboardingUser")
   securityAlerts             SecurityAlert[]             @relation("AlertAuthor")
   securityAlertReads         SecurityAlertRead[]
@@ -411,14 +413,14 @@ model Department {
   updatedAt DateTime @updatedAt
 
   // Relations
-  users             User[]
-  userMemberships   UserDepartment[]
-  tickets           Ticket[]         @relation("TicketDepartment")
-  calendarEvents    CalendarEvent[]  @relation("CalendarEventDept")
+  users               User[]
+  userMemberships     UserDepartment[]
+  tickets             Ticket[]             @relation("TicketDepartment")
+  calendarEvents      CalendarEvent[]      @relation("CalendarEventDept")
   // === NEW MODELS 2026-04-13 === Approval workflows
-  workflowStepsDept WorkflowStep[]   @relation("StepDept")
+  workflowStepsDept   WorkflowStep[]       @relation("StepDept")
   // === Médiathèque === 2026-04-21
-  mediaAlbums       MediaAlbum[]
+  mediaAlbums         MediaAlbum[]
   // === Permissions GED granulaires === 2026-04-26
   documentPermissions DocumentPermission[]
 }
@@ -456,7 +458,7 @@ model Document {
   content          String? // HTML content (inline editor) — null when document is uploaded
   isNative         Boolean          @default(false) // true = born-in-intranet, false = uploaded
   // === Wave D — Templates de documents === 2026-04-28
-  fromTemplateId   String?          // si rempli, document instancié depuis ce template
+  fromTemplateId   String? // si rempli, document instancié depuis ce template
   deletedAt        DateTime?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -662,9 +664,9 @@ model SignatureEvidence {
   signerIpAddress    String?
   signerUserAgent    String?
   documentHashSha256 String
-  certificateChain   String?  // PEM-encoded chain (X.509) — null si AES non-QES
-  tsa                String?  // RFC 3161 TimeStampToken (base64) — null si non requis
-  evidence           Json     // Payload DocuSeal brut + métadonnées capture
+  certificateChain   String? // PEM-encoded chain (X.509) — null si AES non-QES
+  tsa                String? // RFC 3161 TimeStampToken (base64) — null si non requis
+  evidence           Json // Payload DocuSeal brut + métadonnées capture
   createdAt          DateTime @default(now())
 
   signatureRequest SignatureRequest @relation(fields: [signatureRequestId], references: [id], onDelete: Cascade)
@@ -1129,6 +1131,34 @@ model Charte {
 
   versions   CharteVersion[]
   signatures CharteSignature[]
+  exemptions CharteExemption[]
+}
+
+/// Exemption nominative d'une charte mandatory pour un utilisateur donné.
+/// Permet à un ADMIN de retirer l'obligation de signature à une personne
+/// sans toucher au statut "mandatory" de la charte (qui reste exigée pour
+/// tous les autres). Trace complète (auteur, motif, date) pour audit ISO 27001.
+/// Une exemption peut avoir une date d'expiration (réintégration auto à
+/// l'obligation après cette date) ou être permanente (`expiresAt = null`).
+model CharteExemption {
+  id           String    @id @default(uuid())
+  charteId     String
+  userId       String
+  reason       String // motif obligatoire (audit)
+  exemptedById String // ADMIN ayant accordé l'exemption
+  exemptedAt   DateTime  @default(now())
+  expiresAt    DateTime? // null = permanent
+  revokedAt    DateTime? // exemption levée par admin (soft)
+  revokedById  String?
+  revokeReason String?
+
+  charte     Charte @relation(fields: [charteId], references: [id], onDelete: Cascade)
+  user       User   @relation("CharteExemptionUser", fields: [userId], references: [id])
+  exemptedBy User   @relation("CharteExemptionGrantor", fields: [exemptedById], references: [id])
+
+  @@unique([charteId, userId, revokedAt])
+  @@index([charteId])
+  @@index([userId, revokedAt])
 }
 
 model CharteVersion {
@@ -1635,14 +1665,14 @@ model CalendarEvent {
   //   TEAM      : visible par les membres du department lié (createdById ou departmentId)
   //   INTERNAL  : visible par tous les utilisateurs authentifiés (default)
   //   PUBLIC    : visible y compris par les utilisateurs externes/portail
-  visibility   String     @default("INTERNAL")
+  visibility   String    @default("INTERNAL")
   // Idempotence import iCal (RFC 5545 UID) — utilisé par /import et /sync
   // pour upsert sans dupliquer un évènement déjà importé. NULL pour les
   // events créés en interne (UID local = `<id>@omnitech-intranet`).
-  externalUid  String?    @unique
+  externalUid  String?   @unique
   deletedAt    DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   createdBy  User        @relation("CalendarEventCreator", fields: [createdById], references: [id])
   user       User?       @relation("CalendarEventUser", fields: [userId], references: [id])
@@ -1765,10 +1795,10 @@ model SavedFilter {
   //              ROLE       : visible par tous les users avec le rôle `sharedWithRole`
   //              PUBLIC     : visible par tous les users authentifiés
   // sharedById   : auteur du partage (en général == userId à la création, peut différer si transfert futur).
-  visibility               SavedFilterVisibility @default(PRIVATE)
-  sharedWithDepartmentId   String?
-  sharedWithRole           UserRole?
-  sharedById               String?
+  visibility             SavedFilterVisibility @default(PRIVATE)
+  sharedWithDepartmentId String?
+  sharedWithRole         UserRole?
+  sharedById             String?
 
   user User @relation("UserSavedFilters", fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1909,26 +1939,26 @@ enum ApprovalInstanceStatus {
 }
 
 model ApprovalStepInstance {
-  id           String           @id @default(uuid())
-  instanceId   String
-  stepId       String
+  id              String           @id @default(uuid())
+  instanceId      String
+  stepId          String
   // Approbateur pré-assigné pour cette step-instance. Utilisé par les modes
   // PARALLEL_ALL / PARALLEL_ANY où l'on matérialise une ligne par approbateur
   // attendu. Null pour SINGLE basé sur rôle/département (résolution dynamique).
-  assignedToId String?
-  decidedById  String?
-  decision     ApprovalDecision @default(PENDING)
-  comment      String?
-  decidedAt    DateTime?
-  escalatedAt  DateTime?
-  dueAt        DateTime?
+  assignedToId    String?
+  decidedById     String?
+  decision        ApprovalDecision @default(PENDING)
+  comment         String?
+  decidedAt       DateTime?
+  escalatedAt     DateTime?
+  dueAt           DateTime?
   // Champs ajoutés 2026-04-26 — Approbation N+1 dynamique (WorkflowRule).
   // `level` représente le palier hiérarchique (1 = N+1, 2 = N+2…) — utile
   // quand on instancie un workflow depuis une WorkflowRule où chaque step
   // déclare son niveau. `parallelGroupId` regroupe N step-instances qui
   // doivent être traitées en parallèle (même niveau hiérarchique). `deadlineAt`
   // est calculé à partir du champ `deadlineHours` de la règle.
-  level           Int?      @default(1)
+  level           Int?             @default(1)
   parallelGroupId String?
   deadlineAt      DateTime?
 
@@ -2026,23 +2056,23 @@ model WorkflowRuleAuditLog {
 // ============================================================
 
 model ApprovalDelegation {
-  id          String                  @id @default(uuid())
-  fromUserId  String
-  toUserId    String
-  startDate   DateTime
-  endDate     DateTime
-  reason      String?
-  scope       ApprovalDelegationScope @default(GLOBAL)
+  id         String                  @id @default(uuid())
+  fromUserId String
+  toUserId   String
+  startDate  DateTime
+  endDate    DateTime
+  reason     String?
+  scope      ApprovalDelegationScope @default(GLOBAL)
   // categoriesScope est un tableau d'enum DocumentCategory (texte) — utilisé
   // si scope=SCOPED. Vide ou null = pas de filtrage (équivalent GLOBAL).
-  categories  DocumentCategory[]      @default([])
-  auto        Boolean                 @default(false)
-  isActive    Boolean                 @default(true)
+  categories DocumentCategory[]      @default([])
+  auto       Boolean                 @default(false)
+  isActive   Boolean                 @default(true)
   // Si la délégation est révoquée manuellement (DELETE) on conserve la ligne
   // pour audit en mettant revokedAt.
-  revokedAt   DateTime?
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
+  revokedAt  DateTime?
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
 
   fromUser User @relation("DelegationFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
   toUser   User @relation("DelegationTo", fields: [toUserId], references: [id], onDelete: Cascade)
@@ -2062,15 +2092,15 @@ enum ApprovalDelegationScope {
 /// reconstituer la chaîne d'actions sur une approbation, en complément
 /// des audit logs métiers (AuditLog).
 model ApprovalAuditLog {
-  id              String   @id @default(uuid())
-  actorId         String?
-  action          String
+  id                 String   @id @default(uuid())
+  actorId            String?
+  action             String
   // Identifiants de la ressource concernée — au moins UN doit être renseigné.
-  delegationId    String?
+  delegationId       String?
   approvalInstanceId String?
-  stepInstanceId  String?
-  metadata        Json?
-  createdAt       DateTime @default(now())
+  stepInstanceId     String?
+  metadata           Json?
+  createdAt          DateTime @default(now())
 
   actor User? @relation("ApprovalAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
 
@@ -2680,27 +2710,27 @@ model DocumentShare {
 // `publicKey` = COSE key encodée Bytes (ne JAMAIS exposer via API).
 // `counter` = signature counter, incrémenté à chaque auth, anti-clonage.
 model WebAuthnCredential {
-  id            String    @id @default(cuid())
-  userId        String
+  id           String    @id @default(cuid())
+  userId       String
   // ID public du credential côté client (base64url). Unique global pour
   // permettre le lookup direct depuis l'allowCredentials de l'auth.
-  credentialId  String    @unique
+  credentialId String    @unique
   // Clé publique COSE (binaire). Source de vérité cryptographique.
-  publicKey     Bytes
+  publicKey    Bytes
   // Signature counter (anti-clonage). Reject si new <= old (sauf 0/0).
-  counter       Int       @default(0)
+  counter      Int       @default(0)
   // Transports supportés par l'authenticateur (usb, nfc, ble, internal,
   // hybrid). Permet au browser de choisir l'UI optimale.
-  transports    String[]
+  transports   String[]
   // 'singleDevice' (clé physique) | 'multiDevice' (passkey iCloud/Google).
-  deviceType    String?
+  deviceType   String?
   // True si la clé est synchronisée (passkey cloud). Surface en UI pour
   // que l'utilisateur sache qu'elle survit à la perte du device.
-  backedUp      Boolean   @default(false)
+  backedUp     Boolean   @default(false)
   // Label libre choisi par l'utilisateur ("YubiKey bureau", "iPhone",…).
-  label         String?
-  lastUsedAt    DateTime?
-  createdAt     DateTime  @default(now())
+  label        String?
+  lastUsedAt   DateTime?
+  createdAt    DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -2734,6 +2764,7 @@ model SsoIdentity {
   @@unique([provider, externalId])
   @@index([userId])
 }
+
 // =============================================================================
 // Wave D — Templates de documents avec variables dynamiques (item 25)
 // =============================================================================
@@ -2757,8 +2788,8 @@ model DocumentTemplate {
   slug           String           @unique
   description    String?
   category       DocumentCategory
-  content        String           // Markdown avec variables {{var}}
-  variables      Json             // Array<{ key, label, type, required, defaultValue?, options? }>
+  content        String // Markdown avec variables {{var}}
+  variables      Json // Array<{ key, label, type, required, defaultValue?, options? }>
   classification String           @default("INTERNE") // PUBLIC | INTERNE | CONFIDENTIEL | SECRET
   createdById    String
   deletedAt      DateTime?
@@ -2884,22 +2915,22 @@ model BehaviorRule {
 /// au recall (>0.5 par défaut) pour limiter le bruit.
 /// `expiresAt` : TTL optionnel (default 6 mois sur les memories peu accédées).
 model NoaMemory {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   userId          String
   key             String
-  value           String   @db.Text
+  value           String    @db.Text
   /// Métadonnées extraites par le LLM (sourceMessageId, conversationId, raw).
   metadata        Json?
   /// 0..1 — score d'importance (preference forte = 0.9, mention isolée = 0.3).
-  importanceScore Float    @default(0.5)
+  importanceScore Float     @default(0.5)
   /// Compteur de "hits" lors des recalls : incrémenté à chaque fois que ce
   /// memory est sélectionné dans le top-k. Sert au refresh de TTL (les
   /// memories souvent rappelés ne sont jamais purgés).
-  recallCount     Int      @default(0)
+  recallCount     Int       @default(0)
   /// Dernier recall — utilisé pour le recency boost dans le scoring.
   lastRecalledAt  DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   expiresAt       DateTime?
 
   user User @relation("NoaMemoryUser", fields: [userId], references: [id], onDelete: Cascade)
