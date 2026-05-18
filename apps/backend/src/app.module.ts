@@ -34,6 +34,7 @@ import { MfaModule } from "./mfa/mfa.module";
 import { MfaRequiredGuard } from "./mfa/mfa-required.guard";
 import { FreshMfaGuard } from "./mfa/fresh-mfa.guard";
 import { ChartesModule } from "./chartes/chartes.module";
+import { ContentModule } from "./content/content.module";
 import { AlertsModule } from "./alerts/alerts.module";
 import { ScannerModule } from "./scanner/scanner.module";
 import { RunbooksModule } from "./runbooks/runbooks.module";
@@ -143,6 +144,7 @@ import { MaintenanceModule } from "./maintenance/maintenance.module";
     PublicModule,
     MfaModule,
     ChartesModule,
+    ContentModule,
     AlertsModule,
     ScannerModule,
     RunbooksModule,

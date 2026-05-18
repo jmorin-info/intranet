@@ -88,6 +88,16 @@ enum AuditSeverity {
   CRITICAL
 }
 
+// CMS — statut éditorial d'une page ou d'un bloc.
+//   - DRAFT     : invisible en lecture publique, accessible en aperçu admin
+//   - PUBLISHED : visible sur les routes publiques (404 sinon)
+//   - ARCHIVED  : retiré du public, conservé pour l'historique
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 enum ValidationStepType {
   REVIEW
   APPROVAL
@@ -354,6 +364,11 @@ model User {
   behaviorAlertsResolved     BehaviorAlert[]             @relation("BehaviorAlertResolved")
   // === Wave D — Noa memory (Item 31) === 2026-04-28
   noaMemories                NoaMemory[]                 @relation("NoaMemoryUser")
+  // === CMS (pages éditoriales + blocs) === 2026-05-18
+  contentPagesAuthored       ContentPage[]               @relation("ContentPageAuthor")
+  contentPagesUpdated        ContentPage[]               @relation("ContentPageEditor")
+  contentRevisions           ContentRevision[]           @relation("ContentRevisionAuthor")
+  contentBlocksUpdated       ContentBlock[]              @relation("ContentBlockEditor")
 
   @@index([departmentId])
   @@index([role])
@@ -2937,4 +2952,95 @@ model NoaMemory {
 
   @@index([userId, importanceScore(sort: Desc)])
   @@index([userId, key])
+}
+
+// =============================================================================
+// CMS — Pages éditoriales statiques + blocs réutilisables (2026-05-18)
+// =============================================================================
+// Voir docs/cms/architecture.md.
+//
+// ContentPage : page éditoriale standalone avec URL publique (slug + locale).
+// ContentRevision : snapshot par version (créé à chaque update).
+// ContentBlock : bloc réutilisable identifié par key (welcome.hero.title, …).
+
+/// Page éditoriale : mentions légales, politique de confidentialité, accueil,
+/// FAQ, etc. Le contenu `content` est du HTML déjà sanitisé côté backend via
+/// `sanitizeRichText()` avant persistance.
+model ContentPage {
+  id             String        @id @default(uuid())
+  slug           String
+  locale         String        @default("fr")
+  title          String
+  excerpt        String?
+  /// HTML sanitisé (sanitize-html, whitelist commune intranet).
+  content        String        @db.Text
+  status         ContentStatus @default(DRAFT)
+  seoTitle       String?
+  seoDescription String?
+  publishedAt    DateTime?
+  authorId       String
+  updatedById    String?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  author    User              @relation("ContentPageAuthor", fields: [authorId], references: [id])
+  updatedBy User?             @relation("ContentPageEditor", fields: [updatedById], references: [id])
+  revisions ContentRevision[]
+
+  @@unique([slug, locale])
+  @@index([status, locale])
+  @@index([deletedAt])
+  @@index([publishedAt])
+}
+
+/// Snapshot d'une version d'une ContentPage. Créé à chaque update du service.
+/// La `version` est auto-incrémentée par page (1, 2, 3…).
+model ContentRevision {
+  id             String        @id @default(uuid())
+  pageId         String
+  version        Int
+  title          String
+  content        String        @db.Text
+  excerpt        String?
+  seoTitle       String?
+  seoDescription String?
+  status         ContentStatus
+  authorId       String
+  /// Message libre fourni par l'éditeur (ex : "Mise à jour DPO 2026-05").
+  comment        String?
+  createdAt      DateTime      @default(now())
+
+  page   ContentPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  author User        @relation("ContentRevisionAuthor", fields: [authorId], references: [id])
+
+  @@unique([pageId, version])
+  @@index([pageId, createdAt])
+}
+
+/// Bloc de contenu réutilisable identifié par `key` (ex `welcome.hero.title`,
+/// `welcome.services`). `body` = HTML court sanitisé. `data` = payload JSON
+/// structuré (listes de cartes, FAQ items, etc.) validé en entrée par DTO.
+/// Pas de versioning : la traçabilité passe par l'audit log.
+model ContentBlock {
+  id          String        @id @default(uuid())
+  key         String
+  locale      String        @default("fr")
+  title       String?
+  body        String        @db.Text
+  /// Données structurées (array d'items, config) sérialisées en JSON. Schéma
+  /// validé côté DTO selon la `key` (ex `welcome.services` attend un array
+  /// `{ icon, title, body, href }`).
+  data        Json?
+  status      ContentStatus @default(PUBLISHED)
+  updatedById String?
+  deletedAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  updatedBy User? @relation("ContentBlockEditor", fields: [updatedById], references: [id])
+
+  @@unique([key, locale])
+  @@index([deletedAt])
+  @@index([status, locale])
 }
