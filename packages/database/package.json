@@ -13,6 +13,7 @@
     "seed-wiki": "tsx prisma/seed-wiki.ts",
     "seed-content": "tsx prisma/seed-content.ts",
     "seed-news": "tsx prisma/seed-news.ts",
+    "seed-cms": "tsx prisma/seed-cms.ts",
     "import-caramel": "tsx prisma/import-caramel.ts",
     "import-notion": "tsx prisma/import-notion.ts",
     "import-csv": "tsx prisma/import-csv.ts",
