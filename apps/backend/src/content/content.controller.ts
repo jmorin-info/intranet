@@ -6,6 +6,7 @@ import {
   UseGuards,
   BadRequestException,
 } from "@nestjs/common";
+import { Public } from "../auth/decorators/public.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { ContentService } from "./content.service";
 import { SUPPORTED_LOCALES } from "./dto/create-content-page.dto";
@@ -29,6 +30,10 @@ export class ContentController {
     return this.content.getPublishedPage(slug, resolvedLocale);
   }
 
+  // Lecture publique (sans auth) : nécessaire pour la page Welcome qui se
+  // rend avant login. Le service masque déjà les blocs DRAFT / soft-deleted ;
+  // aucune donnée sensible ne fuit. cf. `docs/cms/architecture.md` § 3.2.
+  @Public()
   @Get("blocks")
   async getBlocks(
     @Query("keys") keys: string,
