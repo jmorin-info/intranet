@@ -714,6 +714,12 @@ export function Sidebar() {
           minRole: UserRole.ADMIN,
         },
         {
+          label: "Pages CMS",
+          href: "/admin/content",
+          icon: FileText,
+          minRole: UserRole.ADMIN,
+        },
+        {
           label: "Médiathèque",
           href: "/admin/media",
           icon: Camera,

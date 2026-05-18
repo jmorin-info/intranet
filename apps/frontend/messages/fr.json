@@ -390,6 +390,10 @@
         "title": "Dashboard RSSI",
         "description": "Vue agrégée risques + audits."
       },
+      "content": {
+        "title": "Pages CMS",
+        "description": "Pages éditoriales + blocs réutilisables."
+      },
       "chartes": {
         "title": "Chartes",
         "description": "Versionning + campagnes de signature."

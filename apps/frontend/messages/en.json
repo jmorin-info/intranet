@@ -390,6 +390,10 @@
         "title": "CISO dashboard",
         "description": "Aggregated view of risks and audits."
       },
+      "content": {
+        "title": "CMS pages",
+        "description": "Editorial pages + reusable blocks."
+      },
       "chartes": {
         "title": "Policies",
         "description": "Versioning + signature campaigns."
