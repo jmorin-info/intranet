@@ -221,11 +221,12 @@ async function main() {
       update: {
         title: block.title ?? null,
         body: block.body,
-        // `data` peut être undefined (pas de JSON sur les blocs text-only).
-        // On laisse Prisma écrire `null` côté DB si on lui passe null.
+        // `data` peut être undefined (blocs text-only). On écrit alors SQL
+        // NULL via `Prisma.DbNull`, aligné avec ce que produit le service
+        // admin (`content.service.ts`).
         data:
           block.data === undefined
-            ? Prisma.JsonNull
+            ? Prisma.DbNull
             : (block.data as Prisma.InputJsonValue),
         status: "PUBLISHED",
         // updatedById laissé null : seed system, pas d'utilisateur applicatif.
@@ -237,7 +238,7 @@ async function main() {
         body: block.body,
         data:
           block.data === undefined
-            ? Prisma.JsonNull
+            ? Prisma.DbNull
             : (block.data as Prisma.InputJsonValue),
         status: "PUBLISHED",
       },

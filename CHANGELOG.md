@@ -3,6 +3,66 @@
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Versionnement sémantique.
 
+## [Non publié] — 2026-05-18
+
+Module CMS interne (branche `feature/admin-content-management`) : gestion de
+pages éditoriales statiques et de blocs réutilisables sans redéploiement.
+
+### Ajouté
+
+#### Backend (NestJS) — module `apps/backend/src/content/`
+
+- **3 modèles Prisma** (migration `20260518100000_add_cms_content`) :
+  `ContentPage`, `ContentRevision`, `ContentBlock` + enum `ContentStatus`.
+- **ContentService** : sanitization HTML via `sanitizeRichText`, slug unique
+  via `generateUniqueSlug`, versioning automatique à chaque update, endpoints
+  dédiés publish/unpublish, restauration de révision avec snapshot préalable,
+  audit logs sur toutes les mutations (severity WARN sur DELETE).
+- **Routes admin** `/api/v1/admin/content/*` (`@Roles(ADMIN, SUPER_ADMIN)`,
+  `@UserThrottle` 30 créations/min, 60–120 patches/min).
+- **Routes publiques** `/api/v1/content/pages/:slug` (auth) et
+  `/api/v1/content/blocks?keys=` (`@Public()` car consommé par `/welcome`
+  avant login). Header `Cache-Control: private, max-age=300, stale-while-revalidate=3600`.
+
+#### Frontend (Next.js 15) — UI admin + Welcome dynamique
+
+- Routes `/admin/content` (landing), `/admin/content/pages` (liste + édition
+  avec RichTextEditor + sidebar SEO/statut/historique), `/admin/content/blocks`
+  (liste + création dialog + édition avec champ JSON validé).
+- Sidebar : entrée « Pages CMS » en section _Contenus & animation_.
+- Hub admin landing : carte « Pages CMS » en section _C — Content & Data_.
+- Page Welcome refactorée en Server Component pré-fetchant 6 blocs CMS avec
+  fallback hardcodé garantissant le rendu même DB vide.
+- Endpoint `/api/cms/revalidate` (secret partagé) pour invalider le cache à
+  la publication d'un bloc.
+
+#### Outils & seeder
+
+- `packages/database/prisma/seed-cms.ts` (idempotent, 6 blocs Welcome).
+  `pnpm --filter @omnitech/database run seed-cms`.
+- Variable `CMS_REVALIDATE_SECRET` documentée dans `.env.example`.
+
+#### Documentation
+
+- `docs/cms/architecture.md` (modèle, APIs, RBAC, sanitization, cache, scope).
+- `docs/cms/admin-guide.md` (workflow, troubleshooting, rôles, limites MVP).
+- `docs/cms/developer-guide.md` (conventions clés, helpers, extension, migrations).
+
+#### Tests
+
+- 84 tests Jest unit backend (ContentService, controllers, RBAC).
+- 19 tests Jest `common/sanitize.spec.ts` (suite XSS OWASP paramétrée).
+- 7 tests Vitest frontend (`cms.test.ts` helpers).
+- `e2e/cms-content.spec.ts` Playwright (CRUD + XSS strip + RBAC gated).
+
+### Notes ISO 27001
+
+- **A.5.33** : `actorSnapshot` capturé automatiquement dans `metadata`.
+- **A.8.28** : sanitization HTML en deux passes (backend `sanitize-html` +
+  frontend `DOMPurify` defense in depth).
+
+---
+
 ## [Non publié] — 2026-04-13
 
 Session majeure de migration vers HTTPS publique derrière BunkerWeb (WAF),
@@ -38,7 +98,7 @@ dédiés, et déploiement d'un premier batch de fonctionnalités d'enrichissemen
   injectable dans n'importe quel service.
   - Branché sur `TicketsService.addComment` (commentaires non-internes).
   - Branché sur `NewsService.create` (posts publiés, parsing titre + excerpt
-    + contenu plain-text).
+    - contenu plain-text).
 - **Module `kiosk/`** : controller avec 3 endpoints publics rate-limités pour
   l'affichage mural (`news`, `veille`, `stats`).
 - **Instrumentation OnlyOffice** : logs détaillés sur `/api/office/file`
@@ -175,7 +235,7 @@ dédiés, et déploiement d'un premier batch de fonctionnalités d'enrichissemen
   `stirling.omnitech-security.fr_CONTENT_SECURITY_POLICY` pour autoriser
   l'intranet comme origine d'embed.
 - **Bug chunks Next.js 404 après déploiement** (`ChunkLoadError: Loading
-  chunk 9734 failed`) : le service worker en cache-first servait un HTML
+chunk 9734 failed`) : le service worker en cache-first servait un HTML
   référençant des hashes de chunks qui n'existaient plus après rebuild.
   Nouveau SW v7 passe en network-first sur les navigations, et un handler
   global dans `layout.tsx` capture l'erreur à l'exécution, purge tous les
@@ -203,7 +263,7 @@ dédiés, et déploiement d'un premier batch de fonctionnalités d'enrichissemen
   (logs `[office/file] streaming ...` confirmés côté backend, converter
   génère bien un `Editor.bin` de 600 Ko côté conteneur), mais le rendu
   client reste vide. Les warnings console Firefox (`Feature Policy
-  ignored`, source map 404) sont cosmétiques. Le panneau de diagnostic
+ignored`, source map 404) sont cosmétiques. Le panneau de diagnostic
   DOM en direct ajouté dans cette session permettra d'identifier si le
   problème est CSS (dimensions du placeholder), JS (iframe non montée),
   ou rendu interne OnlyOffice (canvas 0×0 dans l'iframe).
