@@ -165,13 +165,16 @@ Préfixe : `/api/v1/content`
 | GET     | `/pages/:slug?locale=fr`          | Récupère une page PUBLIED (404 si DRAFT/ARCHIVED/manquante). Cache 5min.                                       |
 | GET     | `/blocks?keys=k1,k2,k3&locale=fr` | Batch fetch — retourne `{ [key]: ContentBlockPublic }` pour les blocs PUBLISHED. Manquants → omis. Cache 5min. |
 
-**Pourquoi `auth requise` sur les routes publiques** : l'intranet est interne (pas de visiteur anonyme). Les pages légales sont consultées par des collaborateurs authentifiés. Cela permet de garder l'`AuditService` du log d'accès. Si une page doit être exposée sans auth (`/welcome` accessible avant login), on ajoute la route au décorateur `@Public()` existant.
+**Auth sur les routes publiques** :
+
+- `GET /content/pages/:slug` → `JwtAuthGuard` (auth utilisateur requise). Les pages éditoriales (mentions légales, FAQ…) sont consultées par des collaborateurs authentifiés.
+- `GET /content/blocks` → `@Public()` (aucune auth). Nécessaire pour la page `/welcome` qui est rendue **avant** la connexion de l'utilisateur (landing page publique de l'intranet). Le service masque déjà les blocs `DRAFT` et soft-deleted ; seules les valeurs `PUBLISHED` fuitent — aucune donnée sensible.
 
 ### 3.3 Conventions de réponse
 
 - **Pagination** : `{ data: T[], meta: { total, page, limit, totalPages } }` — strict alignement avec `PaginatedResult<T>` (`apps/backend/src/common/interfaces.ts`).
 - **Codes** : 200/201/204 standards. 400 (validation), 401 (auth), 403 (rôle), 404 (introuvable ou non publié pour route publique), 409 (conflit slug).
-- **Headers de cache** sur routes publiques : `Cache-Control: private, max-age=300, stale-while-revalidate=3600`.
+- **Headers de cache** sur routes publiques : `Cache-Control: private, max-age=300, stale-while-revalidate=3600` posé directement par `ContentController` via `@Res({ passthrough: true })`. La directive `private` reste cohérente sur la route `@Public()` (blocs Welcome) : les caches partagés stricts l'acceptent et ne risquent pas de croiser des sessions différentes.
 
 ## 4. RBAC
 
