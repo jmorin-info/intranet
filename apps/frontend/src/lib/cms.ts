@@ -61,6 +61,72 @@ export async function getContentBlocks(
   }
 }
 
+/**
+ * Type minimal d'une ContentPage retournée par l'API publique.
+ * Aligné sur `apps/backend/src/content/content.service.ts:getPublishedPage`.
+ */
+export interface PublicContentPage {
+  id: string;
+  slug: string;
+  locale: string;
+  title: string;
+  excerpt: string | null;
+  content: string;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  publishedAt: string | null;
+  updatedAt: string;
+}
+
+/**
+ * Fetch une ContentPage PUBLIED par slug. Retourne `null` si :
+ *  - la page est DRAFT / ARCHIVED / soft-deleted (le backend renvoie 404),
+ *  - la requête réseau échoue (le caller doit gérer le fallback ou notFound()).
+ *
+ * Cache 5 min via `unstable_cache` tag `cms`. À utiliser dans des Server
+ * Components ; le HTML retourné est déjà sanitisé côté backend mais doit
+ * passer une seconde fois via DOMPurify avant `dangerouslySetInnerHTML`
+ * (defense in depth).
+ */
+export async function getContentPage(
+  slug: string,
+  locale = "fr",
+): Promise<PublicContentPage | null> {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
+  const cacheKey = `cms:page:${locale}:${slug}`;
+  const cached = unstable_cache(
+    async () => fetchPageRaw(slug, locale),
+    [cacheKey],
+    { revalidate: 300, tags: ["cms"] },
+  );
+  try {
+    return await cached();
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.warn("[cms] getContentPage failed:", err);
+    }
+    return null;
+  }
+}
+
+async function fetchPageRaw(
+  slug: string,
+  locale: string,
+): Promise<PublicContentPage | null> {
+  const qs = new URLSearchParams({ locale });
+  const url = `${API_BASE}/content/pages/${encodeURIComponent(slug)}?${qs.toString()}`;
+  const res = await fetch(url, {
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`CMS page fetch failed: ${res.status} ${res.statusText}`);
+  }
+  return (await res.json()) as PublicContentPage;
+}
+
 async function fetchBlocksRaw(
   keys: string[],
   locale: string,

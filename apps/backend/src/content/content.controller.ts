@@ -29,6 +29,12 @@ import { SUPPORTED_LOCALES } from "./dto/create-content-page.dto";
 export class ContentController {
   constructor(private readonly content: ContentService) {}
 
+  // Lecture publique d'une page éditoriale publiée. `@Public()` car les pages
+  // légales (mentions, confidentialité, cookies) doivent être accessibles
+  // SANS connexion préalable (RGPD A.13 — information avant traitement). Le
+  // service ne retourne que les pages PUBLISHED non soft-deleted ; aucune
+  // donnée brouillon ne fuit.
+  @Public()
   @Get("pages/:slug")
   async getPage(
     @Param("slug") slug: string,
