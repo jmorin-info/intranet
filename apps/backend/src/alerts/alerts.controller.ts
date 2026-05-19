@@ -1,22 +1,34 @@
-import { Controller, Get, Post, Param, Body, UseGuards, ParseUUIDPipe } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { AlertsService } from './alerts.service';
-import { RequestUser } from '../common/interfaces';
-import { UserRole } from '../common/enums';
-import { CreateAlertDto } from './dto/create-alert.dto';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  UseGuards,
+  ParseUUIDPipe,
+} from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { AlertsService } from "./alerts.service";
+import { RequestUser } from "../common/interfaces";
+import { UserRole } from "../common/enums";
+import { CreateAlertDto } from "./dto/create-alert.dto";
 
-@Controller('alerts')
+@Controller("alerts")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AlertsController {
   constructor(private readonly alertsService: AlertsService) {}
 
   @Get()
-  findAll() { return this.alertsService.findAll(); }
+  @Roles(UserRole.COLLABORATEUR)
+  findAll() {
+    return this.alertsService.findAll();
+  }
 
-  @Get('unread')
+  @Get("unread")
+  @Roles(UserRole.COLLABORATEUR)
   getUnread(@CurrentUser() user: RequestUser) {
     return this.alertsService.getUnreadForUser(user.id);
   }
@@ -27,19 +39,25 @@ export class AlertsController {
     return this.alertsService.create(body, user.id);
   }
 
-  @Post('mark-all-read')
+  // Action perso : marquer ses alertes lues. Accessible à COLLABORATEUR+.
+  @Post("mark-all-read")
+  @Roles(UserRole.COLLABORATEUR)
   markAllAsRead(@CurrentUser() user: RequestUser) {
     return this.alertsService.markAllAsRead(user.id);
   }
 
-  @Get('stats')
+  @Get("stats")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   getStats() {
     return this.alertsService.getStats();
   }
 
-  @Post(':id/read')
-  markRead(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
+  @Post(":id/read")
+  @Roles(UserRole.COLLABORATEUR)
+  markRead(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.alertsService.markRead(id, user.id);
   }
 }
