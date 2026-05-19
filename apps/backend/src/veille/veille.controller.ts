@@ -28,6 +28,7 @@ export class VeilleController {
   constructor(private readonly veilleService: VeilleService) {}
 
   @Get()
+  @Roles(UserRole.REVIEWER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   findAll(
     @Query("isProcessed") isProcessed: string,
     @Query("search") search: string,
@@ -122,6 +123,7 @@ export class VeilleController {
   }
 
   @Get("bulletins")
+  @Roles(UserRole.REVIEWER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   getBulletins(@Query("page") page: string, @Query("limit") limit: string) {
     return this.veilleService.getBulletins(
       safeParseInt(page, 1),
@@ -137,6 +139,7 @@ export class VeilleController {
   }
 
   @Get("bulletins/:id")
+  @Roles(UserRole.REVIEWER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   getBulletinById(@Param("id", ParseUUIDPipe) id: string) {
     return this.veilleService.getBulletinById(id);
   }

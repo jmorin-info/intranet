@@ -756,10 +756,14 @@ export function Sidebar() {
           minRole: UserRole.ADMIN,
         },
         {
+          // ISO 27001 A.5.18 — la revue des accès est pilotée par les
+          // REVIEWER (RSSI/auditeurs) ; le backend les accepte déjà. La
+          // précédente restriction SUPER_ADMIN cachait l'item à ceux qui
+          // doivent l'utiliser au quotidien.
           label: "Revue des acces",
           href: "/admin/access-reviews",
           icon: UserCheck2,
-          minRole: UserRole.SUPER_ADMIN,
+          minRole: UserRole.REVIEWER,
         },
         {
           label: t("nav.chartes"),
