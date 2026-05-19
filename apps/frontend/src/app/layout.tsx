@@ -6,6 +6,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { DarkModeInit } from "@/components/dark-mode-init";
 import { ChunkErrorRecovery } from "@/components/chunk-error-recovery";
+import { ThemeStyles } from "@/components/theme-styles";
 
 export const metadata: Metadata = {
   title: "OMNITECH Security — Intranet",
@@ -67,6 +68,10 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileImage" content="/icon-192.png?v=3" />
         <meta name="msapplication-TileColor" content="#F68D2E" />
+        {/* CMS-driven theme overrides — surcharge sélective des CSS vars
+            SEAL (couleurs / fontes / rayons). Vide si bloc `theme.tokens`
+            inexistant ou tous les champs invalides — pas de régression. */}
+        <ThemeStyles nonce={nonce} />
         <script
           nonce={nonce}
           dangerouslySetInnerHTML={{

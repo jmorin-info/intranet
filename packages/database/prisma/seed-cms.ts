@@ -736,6 +736,24 @@ const BLOCKS: SeedBlock[] = [
     data: [],
   },
   // ---------------------------------------------------------------------------
+  // Theme tokens — surcharge des CSS variables SEAL (couleurs / fontes /
+  // rayons). Initialement vide : aucune surcharge tant qu'un admin n'a pas
+  // poussé de valeurs depuis /admin/content/blocks/[theme.tokens id].
+  // Whitelist stricte côté frontend (cf. lib/cms-theme.ts), pas d'injection
+  // CSS arbitraire possible.
+  // ---------------------------------------------------------------------------
+  {
+    key: "theme.tokens",
+    locale: "fr",
+    title: "Theme — couleurs / fontes / rayons",
+    body: "Surcharge sélective des CSS variables du design system SEAL. Champs vides = valeurs par défaut conservées.",
+    data: {
+      colors: {},
+      fonts: {},
+      radii: {},
+    },
+  },
+  // ---------------------------------------------------------------------------
   // Kiosque — labels des 3 écrans rotatifs + footer.
   // ---------------------------------------------------------------------------
   {

@@ -801,6 +801,38 @@ const SCHEMAS: BlockSchema[] = [
       ],
     },
   },
+  // — Theme (couleurs/fontes/rayons) -----------------------------------------
+  {
+    key: "theme.tokens",
+    description:
+      "Surcharge des couleurs SEAL, fontes et rayons d'arrondi du design system. Format hex (#RRGGBB) pour les couleurs, longueur CSS (12px, 0.5rem) pour les rayons. Champ vide ou invalide → la valeur d'origine de globals.css est conservée.",
+    data: {
+      kind: "object",
+      fields: [
+        // Couleurs principales — section colors (l'éditeur structuré ne
+        // supporte pas les sous-objets typés pour l'instant ; chaque champ
+        // est documenté inline et le normalizer côté serveur ré-aplatit).
+        {
+          name: "colors",
+          label: "Couleurs (JSON `{sealOrange, sealBlue, ...}` hex)",
+          type: { kind: "string", multiline: true },
+          help: 'Ex: {"sealOrange":"#f9964a","sealNavy":"#004469"}. Clés valides : sealOrange, sealOrangeLight, sealBlue, sealGreen, sealBordeaux, sealNavy, sealTaupe, primary, primaryDark.',
+        },
+        {
+          name: "fonts",
+          label: "Fontes (JSON `{body, display}` font stacks)",
+          type: { kind: "string", multiline: true },
+          help: 'Ex: {"body":"\\"Inter\\", system-ui, sans-serif"}. Caractères autorisés : lettres, chiffres, espaces, virgules, tirets, guillemets.',
+        },
+        {
+          name: "radii",
+          label: "Rayons d'arrondi (JSON `{card, button, input}` px/rem)",
+          type: { kind: "string", multiline: true },
+          help: 'Ex: {"card":"12px","button":"8px","input":"6px"}.',
+        },
+      ],
+    },
+  },
   // — Navigation -------------------------------------------------------------
   {
     key: "nav.sidebar.custom_items",
