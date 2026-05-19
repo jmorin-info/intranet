@@ -1,5 +1,8 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { BehaviorDetectionService, haversineKm } from "./behavior-detection.service";
+import {
+  BehaviorDetectionService,
+  haversineKm,
+} from "./behavior-detection.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 
@@ -17,18 +20,26 @@ describe("BehaviorDetectionService", () => {
   let prisma: any;
   let notifications: any;
 
-  const buildRule = (overrides: Partial<{
-    code: string;
-    severity: string;
-    threshold: Record<string, unknown>;
-    enabled: boolean;
-  }> = {}) => ({
+  // Type retourné par buildRule : on duplique la forme d'un `BehaviorRule`
+  // mais avec `threshold: Record<string, unknown>` (le typage `Prisma.JsonValue`
+  // serait plus strict que ce que les évaluateurs `evalR00X` attendent en
+  // paramètre — ils consomment des `Record<string, unknown>`). On stub donc
+  // comme BehaviorRule au cast, en utilisant `as never` pour bypass la
+  // contravariance de `threshold` entre Json (Prisma) et Record (callee).
+  const buildRule = (
+    overrides: Partial<{
+      code: string;
+      severity: string;
+      threshold: Record<string, unknown>;
+      enabled: boolean;
+    }> = {},
+  ) => ({
     id: `rule-${overrides.code ?? "R000"}`,
     code: overrides.code ?? "R001",
     name: "test",
     description: "test",
     severity: (overrides.severity ?? "HIGH") as never,
-    threshold: overrides.threshold ?? {},
+    threshold: (overrides.threshold ?? {}) as never,
     enabled: overrides.enabled ?? true,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -189,7 +200,12 @@ describe("BehaviorDetectionService", () => {
 
       prisma.auditLog.findMany
         .mockResolvedValueOnce([
-          { id: "log-night", userId: "user-1", ipAddress: "10.0.0.1", createdAt: offHoursLogin },
+          {
+            id: "log-night",
+            userId: "user-1",
+            ipAddress: "10.0.0.1",
+            createdAt: offHoursLogin,
+          },
         ])
         .mockResolvedValueOnce(
           // historical : tous à 14h UTC = office hours
@@ -224,7 +240,12 @@ describe("BehaviorDetectionService", () => {
       offHoursLogin.setUTCHours(3);
       prisma.auditLog.findMany
         .mockResolvedValueOnce([
-          { id: "x", userId: "u", ipAddress: "1.2.3.4", createdAt: offHoursLogin },
+          {
+            id: "x",
+            userId: "u",
+            ipAddress: "1.2.3.4",
+            createdAt: offHoursLogin,
+          },
         ])
         .mockResolvedValueOnce([{ createdAt: new Date() }]); // < 10
       const created = await service.evalR002(rule, rule.threshold);
@@ -241,7 +262,11 @@ describe("BehaviorDetectionService", () => {
       const rule = buildRule({
         code: "R003",
         severity: "HIGH",
-        threshold: { windowSeconds: 300, minDownloads: 50, auditAction: "DOCUMENT_DOWNLOADED" },
+        threshold: {
+          windowSeconds: 300,
+          minDownloads: 50,
+          auditAction: "DOCUMENT_DOWNLOADED",
+        },
       });
       prisma.auditLog.groupBy.mockResolvedValue([
         { userId: "user-1", _count: { _all: 75 } },
@@ -269,7 +294,11 @@ describe("BehaviorDetectionService", () => {
       const rule = buildRule({
         code: "R004",
         severity: "CRITICAL",
-        threshold: { windowSeconds: 3600, minDistanceKm: 1000, requireDistinctCountries: true },
+        threshold: {
+          windowSeconds: 3600,
+          minDistanceKm: 1000,
+          requireDistinctCountries: true,
+        },
       });
       const t1 = new Date();
       const t2 = new Date(t1.getTime() + 30 * 60_000); // 30 min plus tard
@@ -286,7 +315,11 @@ describe("BehaviorDetectionService", () => {
       const rule = buildRule({
         code: "R004",
         severity: "CRITICAL",
-        threshold: { windowSeconds: 3600, minDistanceKm: 1000, requireDistinctCountries: true },
+        threshold: {
+          windowSeconds: 3600,
+          minDistanceKm: 1000,
+          requireDistinctCountries: true,
+        },
       });
       const t1 = new Date();
       const t2 = new Date(t1.getTime() + 5 * 60_000);
@@ -333,12 +366,20 @@ describe("BehaviorDetectionService", () => {
       const rule = buildRule({
         code: "R006",
         severity: "CRITICAL",
-        threshold: { windowSeconds: 60, adminPathPatterns: ["/admin", "/audit"] },
+        threshold: {
+          windowSeconds: 60,
+          adminPathPatterns: ["/admin", "/audit"],
+        },
       });
       const at = new Date();
       prisma.auditLog.findMany
         .mockResolvedValueOnce([
-          { id: "rc-1", resourceId: "target-user", createdAt: at, userId: "promoter" },
+          {
+            id: "rc-1",
+            resourceId: "target-user",
+            createdAt: at,
+            userId: "promoter",
+          },
         ])
         .mockResolvedValueOnce([
           {
@@ -358,12 +399,20 @@ describe("BehaviorDetectionService", () => {
     it("does not alert when the user does not touch admin endpoints", async () => {
       const rule = buildRule({
         code: "R006",
-        threshold: { windowSeconds: 60, adminPathPatterns: ["/admin", "/audit"] },
+        threshold: {
+          windowSeconds: 60,
+          adminPathPatterns: ["/admin", "/audit"],
+        },
       });
       const at = new Date();
       prisma.auditLog.findMany
         .mockResolvedValueOnce([
-          { id: "rc-1", resourceId: "target", createdAt: at, userId: "promoter" },
+          {
+            id: "rc-1",
+            resourceId: "target",
+            createdAt: at,
+            userId: "promoter",
+          },
         ])
         .mockResolvedValueOnce([]);
       const created = await service.evalR006(rule, rule.threshold);
@@ -422,7 +471,9 @@ describe("BehaviorDetectionService", () => {
           metadata: { classification: "PUBLIC" },
         })),
       );
-      prisma.document.findUnique.mockResolvedValue({ classification: "PUBLIC" });
+      prisma.document.findUnique.mockResolvedValue({
+        classification: "PUBLIC",
+      });
       const created = await service.evalR007(rule, rule.threshold);
       expect(created).toBe(0);
     });
@@ -563,7 +614,10 @@ describe("BehaviorDetectionService", () => {
   describe("runDetection resilience", () => {
     it("continues when one rule throws", async () => {
       prisma.behaviorRule.findMany.mockResolvedValue([
-        buildRule({ code: "R001", threshold: { minLogins: 10, minDistinctIps: 3 } }),
+        buildRule({
+          code: "R001",
+          threshold: { minLogins: 10, minDistinctIps: 3 },
+        }),
         buildRule({ code: "R003", threshold: { minDownloads: 50 } }),
       ]);
       prisma.auditLog.groupBy.mockImplementation(({ where }: any) => {
