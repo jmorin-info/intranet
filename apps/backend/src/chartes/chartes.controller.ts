@@ -36,7 +36,13 @@ export class ChartesController {
     private readonly storageService: StorageService,
   ) {}
 
+  // Chartes : exception RBAC — PRESTATAIRE (5) doit pouvoir voir et signer
+  // ses chartes obligatoires AVANT de pouvoir utiliser l'intranet. On
+  // explicite @Roles(PRESTATAIRE) (= tout user authentifié) pour rendre
+  // l'intention claire au lieu de "absence de @Roles".
+
   @Get()
+  @Roles(UserRole.PRESTATAIRE)
   findAll(@CurrentUser() user: RequestUser) {
     // On passe userId pour que chaque charte embarque `signedAt` (date de
     // signature par l'utilisateur courant) — évite l'affichage "À signer"
@@ -45,11 +51,13 @@ export class ChartesController {
   }
 
   @Get("unsigned")
+  @Roles(UserRole.PRESTATAIRE)
   getUnsigned(@CurrentUser() user: RequestUser) {
     return this.chartesService.getUnsignedChartes(user.id);
   }
 
   @Get("status")
+  @Roles(UserRole.PRESTATAIRE)
   async getStatus(@CurrentUser() user: RequestUser) {
     const allSigned = await this.chartesService.hasSignedAllChartes(user.id);
     return { allSigned };
@@ -122,6 +130,7 @@ export class ChartesController {
   }
 
   @Post(":id/sign")
+  @Roles(UserRole.PRESTATAIRE)
   sign(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -150,8 +159,10 @@ export class ChartesController {
     return this.chartesService.getComplianceReport(id);
   }
 
-  // Stream the active version PDF for a charte (authenticated users)
+  // Stream the active version PDF for a charte (PRESTATAIRE+ pour permettre
+  // au prestataire de lire les chartes qu'il doit signer)
   @Get(":id/pdf")
+  @Roles(UserRole.PRESTATAIRE)
   async streamPdf(
     @Param("id", ParseUUIDPipe) id: string,
     @Res() res: Response,
@@ -246,6 +257,7 @@ export class ChartesController {
 
   // :slug route MUST be last to avoid matching static routes like 'unsigned', 'status'
   @Get(":slug")
+  @Roles(UserRole.PRESTATAIRE)
   findBySlug(@Param("slug") slug: string) {
     return this.chartesService.findBySlug(slug);
   }
