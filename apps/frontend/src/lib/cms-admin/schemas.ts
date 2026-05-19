@@ -12,14 +12,14 @@
  * pages consommatrices (mêmes énums, mêmes registres d'icônes).
  */
 
+import { NAV_ICON_OPTIONS } from "./nav-icons";
+
 // ---------------------------------------------------------------------------
 // Types — Field, Schema
 // ---------------------------------------------------------------------------
 
-export interface EnumOption {
-  value: string;
-  label: string;
-}
+export type { EnumOption } from "./schemas-types";
+import type { EnumOption } from "./schemas-types";
 
 /** Type d'un champ unique au sein d'un objet/item. */
 export type FieldType =
@@ -195,6 +195,14 @@ const GRADIENTS_ONBOARDING: EnumOption[] = [
   { value: "from-blue-500 to-blue-600", label: "Bleu" },
   { value: "from-seal-bordeaux to-red-700", label: "Bordeaux" },
   { value: "from-[#F68D2E] to-[#e07d1f]", label: "Orange SEAL" },
+];
+
+const SIDEBAR_HUBS_OPTIONS: EnumOption[] = [
+  { value: "monEspace", label: "Mon espace (perso)" },
+  { value: "work", label: "Travail & Connaissance" },
+  { value: "security", label: "Sécurité & Conformité" },
+  { value: "admin", label: "Administration" },
+  { value: "rssi", label: "RSSI" },
 ];
 
 const ICONS_STIRLING: EnumOption[] = [
@@ -794,6 +802,75 @@ const SCHEMAS: BlockSchema[] = [
     },
   },
   // — Navigation -------------------------------------------------------------
+  {
+    key: "nav.sidebar.custom_items",
+    description:
+      "Items custom ajoutés à la sidebar (en plus de ceux hardcodés). L'item apparaît dans le hub choisi à la fin de la liste — utile pour des liens externes, des outils partenaires, des raccourcis temporaires.",
+    data: {
+      kind: "array",
+      item: {
+        kind: "object",
+        fields: [
+          {
+            name: "hub",
+            label: "Hub d'accueil",
+            type: { kind: "enum", options: SIDEBAR_HUBS_OPTIONS },
+            required: true,
+            help: "Détermine dans quel panneau de la sidebar l'item apparaît.",
+          },
+          {
+            name: "label",
+            label: "Libellé",
+            type: { kind: "string" },
+            required: true,
+            placeholder: "Mon outil partenaire",
+          },
+          {
+            name: "href",
+            label: "Lien",
+            type: { kind: "string" },
+            required: true,
+            placeholder: "/tools/external ou https://…",
+            help: "Lien interne (commence par /) ou URL externe complète.",
+          },
+          {
+            name: "iconKey",
+            label: "Icône",
+            type: { kind: "icon", options: NAV_ICON_OPTIONS },
+            required: true,
+          },
+          {
+            name: "external",
+            label: "Lien externe (s'ouvre dans un nouvel onglet)",
+            type: {
+              kind: "enum",
+              options: [
+                { value: "", label: "Non (lien interne)" },
+                { value: "true", label: "Oui (nouvel onglet, rel noopener)" },
+              ],
+            },
+          },
+        ],
+      },
+      itemTitle: (i) => {
+        const o = i as { label?: string; hub?: string };
+        return o.label && o.hub ? `${o.label} [${o.hub}]` : "Item custom";
+      },
+    },
+  },
+  {
+    key: "nav.sidebar.hidden",
+    description:
+      "Hrefs d'items de la sidebar à masquer. L'item disparaît de tous les panneaux (panel principal, épinglés, recents) — utile pour cacher des modules désactivés, des fonctionnalités en cours, ou des liens dépréciés.",
+    data: {
+      kind: "array",
+      item: {
+        kind: "string",
+        placeholder: "/wiki",
+      },
+      itemTitle: (i) => (typeof i === "string" ? i : "Href"),
+    },
+  },
   {
     key: "nav.sidebar.overrides",
     description:

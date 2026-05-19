@@ -28,6 +28,7 @@ import { useHealthStore } from "@/stores/health-store";
 import { useAdminCountsStore } from "@/stores/admin-counts-store";
 import { useTranslation } from "@/lib/i18n";
 import { useCmsBlocks, getBlockData } from "@/lib/cms-client";
+import { NAV_ICON_REGISTRY, isNavIconKey } from "@/lib/cms-admin/nav-icons";
 import { UserRole } from "@omnitech/shared";
 import { isRoleAtLeast } from "@omnitech/shared";
 import { Avatar } from "@omnitech/ui";
@@ -404,12 +405,17 @@ export function Sidebar() {
   } = useUIStore();
   const { t } = useTranslation();
 
-  // ---- CMS label overrides ------------------------------------------------
-  // Bloc `nav.sidebar.overrides` : `[{ href, label }]`. Permet à un admin
-  // de renommer un item de la sidebar (ex: "Documents" → "GED OMNITECH")
-  // sans toucher au code. Fetch côté client avec fallback vide → libellés
-  // hardcodés/i18n actuels affichés immédiatement.
-  const navCmsBlocks = useCmsBlocks(["nav.sidebar.overrides"], "fr");
+  // ---- CMS nav overrides --------------------------------------------------
+  // 3 blocs CMS pilotent la sidebar :
+  //  - `nav.sidebar.overrides`     : renommer un item par son href
+  //  - `nav.sidebar.hidden`        : masquer un item par son href
+  //  - `nav.sidebar.custom_items`  : ajouter des items custom à un hub donné
+  // Tous fetchés en un seul appel, fallback vide → comportement identique
+  // à avant la PR-6 (zéro régression si les blocs sont vides/absents).
+  const navCmsBlocks = useCmsBlocks(
+    ["nav.sidebar.overrides", "nav.sidebar.hidden", "nav.sidebar.custom_items"],
+    "fr",
+  );
   const labelOverrides = React.useMemo<Record<string, string>>(() => {
     const raw = getBlockData<unknown[]>(
       navCmsBlocks,
@@ -426,6 +432,45 @@ export function Sidebar() {
       }
     }
     return map;
+  }, [navCmsBlocks]);
+
+  const hiddenHrefs = React.useMemo<Set<string>>(() => {
+    const raw = getBlockData<unknown[]>(navCmsBlocks, "nav.sidebar.hidden", []);
+    if (!Array.isArray(raw)) return new Set();
+    return new Set(raw.filter((h): h is string => typeof h === "string"));
+  }, [navCmsBlocks]);
+
+  /**
+   * Items custom indexés par `hub`. Chaque entrée est convertie en `NavItem`
+   * (compatible avec `panelItems`). L'icône est résolue via
+   * `NAV_ICON_REGISTRY` ; un iconKey inconnu fait skip l'item plutôt que de
+   * crasher au render.
+   */
+  const customItemsByHub = React.useMemo<Record<string, NavItem[]>>(() => {
+    const raw = getBlockData<unknown[]>(
+      navCmsBlocks,
+      "nav.sidebar.custom_items",
+      [],
+    );
+    if (!Array.isArray(raw)) return {};
+    const byHub: Record<string, NavItem[]> = {};
+    for (const item of raw) {
+      if (!item || typeof item !== "object") continue;
+      const o = item as Record<string, unknown>;
+      const hub = typeof o.hub === "string" ? o.hub : null;
+      const label = typeof o.label === "string" ? o.label : null;
+      const href = typeof o.href === "string" ? o.href : null;
+      const iconKey = typeof o.iconKey === "string" ? o.iconKey : null;
+      if (!hub || !label || !href || !iconKey) continue;
+      if (!isNavIconKey(iconKey)) continue;
+      const navItem: NavItem = {
+        label,
+        href,
+        icon: NAV_ICON_REGISTRY[iconKey],
+      };
+      (byHub[hub] ??= []).push(navItem);
+    }
+    return byHub;
   }, [navCmsBlocks]);
 
   // ---- Local UI state ----------------------------------------------------
@@ -1032,21 +1077,35 @@ export function Sidebar() {
     filteredHubs.find((h) => h.id === activeHubId) ??
     filteredHubs[0];
 
-  // Items shown in the panel after the search filter
-  const panelItems: NavItem[] = selectedHub
-    ? filter.trim()
-      ? selectedHub.items
-          .filter((it) => !it.separator)
-          .filter((it) => matchesFilter(it.label))
-      : selectedHub.items
+  // Items shown in the panel — application des overrides CMS :
+  //  1. on prend la liste hardcodée du hub sélectionné,
+  //  2. on retire les hrefs présents dans `hiddenHrefs`,
+  //  3. on concat les items custom déclarés pour ce hub.
+  // Le filtre de recherche est appliqué APRÈS pour rester cohérent (un item
+  // custom doit être trouvable via la recherche).
+  const panelItemsBase: NavItem[] = selectedHub
+    ? [
+        ...selectedHub.items.filter(
+          (it) => it.separator || !hiddenHrefs.has(it.href),
+        ),
+        ...(customItemsByHub[selectedHub.id] ?? []),
+      ]
     : [];
+  const panelItems: NavItem[] = filter.trim()
+    ? panelItemsBase
+        .filter((it) => !it.separator)
+        .filter((it) => matchesFilter(labelOverrides[it.href] ?? it.label))
+    : panelItemsBase;
 
-  // Pins / recents resolved to real items
+  // Pins / recents resolved to real items — les items masqués via le bloc
+  // CMS `nav.sidebar.hidden` sont également retirés ici, sinon ils resteraient
+  // accessibles via les épinglés / récents (incohérent avec le panel).
   const pinnedItems: NavItem[] = sidebarPinned
+    .filter((href) => !hiddenHrefs.has(href))
     .map((href) => leafIndex.get(href))
     .filter((x): x is NavItem => Boolean(x));
   const recentItems: NavItem[] = sidebarRecents
-    .filter((href) => href !== pathname)
+    .filter((href) => href !== pathname && !hiddenHrefs.has(href))
     .map((href) => leafIndex.get(href))
     .filter((x): x is NavItem => Boolean(x))
     .slice(0, 3);

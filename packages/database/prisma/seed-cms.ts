@@ -721,6 +721,20 @@ const BLOCKS: SeedBlock[] = [
     body: "Renommer des items de sidebar par leur href, sans toucher au code.",
     data: [],
   },
+  {
+    key: "nav.sidebar.hidden",
+    locale: "fr",
+    title: "Sidebar — items masqués",
+    body: "Liste des hrefs à masquer de la sidebar (panneau + épinglés + récents).",
+    data: [],
+  },
+  {
+    key: "nav.sidebar.custom_items",
+    locale: "fr",
+    title: "Sidebar — items custom",
+    body: "Items custom ajoutés à un hub de la sidebar (liens externes, outils partenaires, raccourcis…).",
+    data: [],
+  },
   // ---------------------------------------------------------------------------
   // Kiosque — labels des 3 écrans rotatifs + footer.
   // ---------------------------------------------------------------------------
