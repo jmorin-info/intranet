@@ -1,28 +1,33 @@
-import { Controller, Get, Put, Body, Query, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { HelpdeskService } from './helpdesk.service';
-import { UserRole } from '../common/enums';
+import { Controller, Get, Put, Body, Query, UseGuards } from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { HelpdeskService } from "./helpdesk.service";
+import { UserRole } from "../common/enums";
 
-@Controller('helpdesk')
+@Controller("helpdesk")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class HelpdeskController {
   constructor(private readonly helpdeskService: HelpdeskService) {}
 
-  @Get('kb')
+  @Get("kb")
+  @Roles(UserRole.COLLABORATEUR)
   getKnowledgeBase() {
     return this.helpdeskService.getKnowledgeBase();
   }
 
-  @Get('kb/search')
-  searchKnowledgeBase(@Query('q') query: string) {
-    return this.helpdeskService.searchKnowledgeBase(query || '');
+  @Get("kb/search")
+  @Roles(UserRole.COLLABORATEUR)
+  searchKnowledgeBase(@Query("q") query: string) {
+    return this.helpdeskService.searchKnowledgeBase(query || "");
   }
 
-  @Put('kb')
+  @Put("kb")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  updateKnowledgeBase(@Body() body: Array<{ keywords: string[]; question: string; answer: string }>) {
+  updateKnowledgeBase(
+    @Body()
+    body: Array<{ keywords: string[]; question: string; answer: string }>,
+  ) {
     return this.helpdeskService.updateKnowledgeBase(body);
   }
 }

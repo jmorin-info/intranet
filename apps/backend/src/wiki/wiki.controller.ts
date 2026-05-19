@@ -43,6 +43,7 @@ export class WikiController {
   ) {}
 
   @Get()
+  @Roles(UserRole.COLLABORATEUR)
   async findAll(
     @CurrentUser() user: RequestUser,
     @Query("category") category?: string,
@@ -59,6 +60,7 @@ export class WikiController {
   }
 
   @Get("autocomplete")
+  @Roles(UserRole.COLLABORATEUR)
   async autocomplete(
     @CurrentUser() user: RequestUser,
     @Query("q") q?: string,
@@ -73,6 +75,7 @@ export class WikiController {
   }
 
   @Get("categories")
+  @Roles(UserRole.COLLABORATEUR)
   async categories(@CurrentUser() user: RequestUser) {
     return this.wikiService.getCategories(user);
   }
@@ -81,6 +84,7 @@ export class WikiController {
 
   /** Liste tous les tags wiki (toutes pages confondues). */
   @Get("tags")
+  @Roles(UserRole.COLLABORATEUR)
   async listTags() {
     return this.tagService.listAll();
   }
@@ -107,12 +111,14 @@ export class WikiController {
 
   /** Tags rattachés à une page. */
   @Get("pages/:id/tags")
+  @Roles(UserRole.COLLABORATEUR)
   async getPageTags(@Param("id", ParseUUIDPipe) id: string) {
     return this.tagService.listForPage(id);
   }
 
-  /** Remplace l'ensemble des tags d'une page. Auteur + admin uniquement. */
+  /** Remplace l'ensemble des tags d'une page. Auteur + admin uniquement (check service). */
   @Patch("pages/:id/tags")
+  @Roles(UserRole.COLLABORATEUR)
   async setPageTags(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() body: { tagIds: string[] },
@@ -123,6 +129,7 @@ export class WikiController {
 
   /** Backlinks pointant vers le slug donné (endpoint public à l'utilisateur).  */
   @Get("pages/:slug/backlinks")
+  @Roles(UserRole.COLLABORATEUR)
   async getBacklinksBySlug(
     @Param("slug") slug: string,
     @CurrentUser() user: RequestUser,
@@ -131,6 +138,7 @@ export class WikiController {
   }
 
   @Get(":slug")
+  @Roles(UserRole.COLLABORATEUR)
   async findBySlug(
     @Param("slug") slug: string,
     @CurrentUser() user: RequestUser,
@@ -152,10 +160,12 @@ export class WikiController {
   }
 
   /**
-   * Create a personal wiki page — any authenticated user can use this. The
-   * page defaults to PRIVATE visibility and the author becomes the owner.
+   * Create a personal wiki page — COLLABORATEUR+ peuvent l'utiliser (PRESTATAIRE
+   * et AUDITEUR sont exclus). La page démarre en visibilité PRIVATE avec
+   * l'auteur comme propriétaire.
    */
   @Post("personal")
+  @Roles(UserRole.COLLABORATEUR)
   async createPersonal(
     @Body() body: CreateWikiPageDto,
     @CurrentUser() user: RequestUser,
@@ -164,6 +174,7 @@ export class WikiController {
   }
 
   @Patch(":id")
+  @Roles(UserRole.COLLABORATEUR)
   async update(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() body: UpdateWikiPageDto,
@@ -173,6 +184,7 @@ export class WikiController {
   }
 
   @Patch(":id/share")
+  @Roles(UserRole.COLLABORATEUR)
   async share(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() body: ShareWikiPageDto,
@@ -182,6 +194,7 @@ export class WikiController {
   }
 
   @Post(":id/lock")
+  @Roles(UserRole.COLLABORATEUR)
   async acquireLock(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -190,6 +203,7 @@ export class WikiController {
   }
 
   @Delete(":id/lock")
+  @Roles(UserRole.COLLABORATEUR)
   async releaseLock(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -202,6 +216,7 @@ export class WikiController {
    * Response shape: `{ count, items: Array<{ id, title, slug, category, excerpt, updatedAt }> }`
    */
   @Get(":id/backlinks")
+  @Roles(UserRole.COLLABORATEUR)
   async getBacklinks(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -210,6 +225,7 @@ export class WikiController {
   }
 
   @Get(":id/versions")
+  @Roles(UserRole.COLLABORATEUR)
   async getVersions(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -225,6 +241,7 @@ export class WikiController {
   }
 
   @Post(":id/versions/:versionId/restore")
+  @Roles(UserRole.COLLABORATEUR)
   async restoreVersion(
     @Param("id", ParseUUIDPipe) id: string,
     @Param("versionId", ParseUUIDPipe) versionId: string,
@@ -234,6 +251,7 @@ export class WikiController {
   }
 
   @Post(":id/feedback")
+  @Roles(UserRole.COLLABORATEUR)
   async feedback(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() body: { rating: "up" | "down"; comment?: string },
@@ -243,16 +261,19 @@ export class WikiController {
   }
 
   @Delete(":id")
+  @Roles(UserRole.COLLABORATEUR)
   async delete(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
   ) {
+    // Le service vérifie ownership + droits avant suppression réelle.
     return this.wikiService.delete(id, user);
   }
 
   // ---- Attachments ----
 
   @Get(":id/attachments")
+  @Roles(UserRole.COLLABORATEUR)
   async getAttachments(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -261,6 +282,7 @@ export class WikiController {
   }
 
   @Post(":id/attachments")
+  @Roles(UserRole.COLLABORATEUR)
   @UseInterceptors(
     FileInterceptor("file", {
       storage: diskStorage({
@@ -330,6 +352,7 @@ export class WikiController {
   }
 
   @Delete(":id/attachments/:filename")
+  @Roles(UserRole.COLLABORATEUR)
   async removeAttachment(
     @Param("id", ParseUUIDPipe) id: string,
     @Param("filename") filename: string,

@@ -36,6 +36,7 @@ export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 
   @Get("templates")
+  @Roles(UserRole.COLLABORATEUR)
   getTemplates() {
     return TICKET_TEMPLATES;
   }
@@ -46,6 +47,7 @@ export class TicketsController {
    * List all active ticket spaces accessible to the current user.
    */
   @Get("spaces")
+  @Roles(UserRole.COLLABORATEUR)
   listSpaces(@CurrentUser() user: RequestUser) {
     return this.ticketsService.findAllSpaces(user);
   }
@@ -54,6 +56,7 @@ export class TicketsController {
    * Get a single space by slug or id.
    */
   @Get("spaces/:slugOrId")
+  @Roles(UserRole.COLLABORATEUR)
   getSpace(@Param("slugOrId") slugOrId: string) {
     return this.ticketsService.findSpaceBySlugOrId(slugOrId);
   }
@@ -63,11 +66,13 @@ export class TicketsController {
    * Reads from AppConfig (key `ticket_labels`) with sensible defaults.
    */
   @Get("labels")
+  @Roles(UserRole.COLLABORATEUR)
   getLabels() {
     return this.ticketsService.getLabels();
   }
 
   @Get()
+  @Roles(UserRole.COLLABORATEUR)
   findAll(
     @Query("status") status: string,
     @Query("priority") priority: string,
@@ -112,6 +117,7 @@ export class TicketsController {
    * Replaces 5 separate /tickets?status=X&limit=1 calls with a single groupBy query.
    */
   @Get("status-counts")
+  @Roles(UserRole.COLLABORATEUR)
   async getStatusCounts(@Query("userId") userId?: string) {
     return this.ticketsService.getStatusCounts(userId);
   }
@@ -135,6 +141,7 @@ export class TicketsController {
    * Returns tickets that belong to the current user's primary department.
    */
   @Get("my-department")
+  @Roles(UserRole.COLLABORATEUR)
   myDepartment(@CurrentUser() user: RequestUser) {
     return this.ticketsService.myDepartment(user);
   }
@@ -254,6 +261,7 @@ export class TicketsController {
   }
 
   @Get(":id")
+  @Roles(UserRole.COLLABORATEUR)
   findById(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -267,11 +275,13 @@ export class TicketsController {
    * surface "💡 Suggestion IA" nudges to agents.
    */
   @Get(":id/ai-suggestion")
+  @Roles(UserRole.COLLABORATEUR)
   getAiSuggestion(@Param("id", ParseUUIDPipe) id: string) {
     return this.ticketsService.getAiSuggestion(id);
   }
 
   @Post()
+  @Roles(UserRole.COLLABORATEUR)
   // Anti-spam helpdesk : 30 tickets/h par utilisateur (un humain n'en
   // crée pas 30 en une heure ; au-delà c'est un script ou un bug front).
   @UseGuards(UserThrottlerGuard)
@@ -303,6 +313,7 @@ export class TicketsController {
    * individuel de l'assigne (P1.10).
    */
   @Patch(":id/dates")
+  @Roles(UserRole.COLLABORATEUR)
   updateDates(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() body: UpdateTicketDatesDto,
@@ -322,6 +333,7 @@ export class TicketsController {
   }
 
   @Post(":id/comments")
+  @Roles(UserRole.COLLABORATEUR)
   addComment(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() body: { content: string; isInternal?: boolean },
