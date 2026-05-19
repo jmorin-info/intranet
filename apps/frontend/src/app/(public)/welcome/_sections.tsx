@@ -3,6 +3,7 @@
  * rendues uniquement si le bloc CMS correspondant a du contenu valide.
  *
  * Voir `_cms.ts` pour les schémas et normalizers.
+ * Voir `_layout.ts` pour l'ordre d'affichage (PR-14).
  */
 
 import { Info, AlertTriangle, CheckCircle2 } from "lucide-react";

@@ -762,6 +762,17 @@ const BLOCKS: SeedBlock[] = [
     data: null,
   },
   // ---------------------------------------------------------------------------
+  // Welcome — layout (PR-14). Ordre des sections optionnelles autour du
+  // WelcomeClient. Initialement vide → ordre par défaut appliqué.
+  // ---------------------------------------------------------------------------
+  {
+    key: "welcome.layout",
+    locale: "fr",
+    title: "Welcome — layout configurable",
+    body: "Ordre des sections optionnelles (banner, media, testimonials) sur /welcome.",
+    data: null,
+  },
+  // ---------------------------------------------------------------------------
   // Theme tokens — surcharge des CSS variables SEAL (couleurs / fontes /
   // rayons). Initialement vide : aucune surcharge tant qu'un admin n'a pas
   // poussé de valeurs depuis /admin/content/blocks/[theme.tokens id].

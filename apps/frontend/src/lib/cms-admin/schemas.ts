@@ -432,6 +432,28 @@ const SCHEMAS: BlockSchema[] = [
     },
   },
   {
+    key: "welcome.layout",
+    description:
+      "Ordre d'affichage des sections optionnelles autour du contenu principal de /welcome. Bloc vide → ordre par défaut (banner top, media+testimonials bottom). Une section non listée ne s'affiche pas.",
+    data: {
+      kind: "object",
+      fields: [
+        {
+          name: "topSections",
+          label: "Sections AVANT le contenu principal — JSON array ordonné",
+          type: { kind: "string", multiline: true },
+          help: 'Ex: ["banner"]. Clés valides : "banner", "media", "testimonials".',
+        },
+        {
+          name: "bottomSections",
+          label: "Sections APRÈS le contenu principal — JSON array ordonné",
+          type: { kind: "string", multiline: true },
+          help: 'Ex: ["testimonials", "media"].',
+        },
+      ],
+    },
+  },
+  {
     key: "welcome.media",
     description:
       "Section image ou vidéo de présentation sur /welcome (entre le client et les témoignages).",
