@@ -1,7 +1,9 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { DepartmentsService } from './departments.service';
+import { Controller, Get, UseGuards } from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { UserRole } from "../common/enums";
+import { DepartmentsService } from "./departments.service";
 
 /**
  * Routes "directory" greffées sur DepartmentsModule pour éviter la création
@@ -11,12 +13,13 @@ import { DepartmentsService } from './departments.service';
  * Tous rôles authentifiés y ont accès (vue publique de l'organisation,
  * non-sensible — équivalent au /users/directory existant).
  */
-@Controller('directory')
+@Controller("directory")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class DirectoryController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
-  @Get('org-chart')
+  @Get("org-chart")
+  @Roles(UserRole.COLLABORATEUR)
   async getOrgChart() {
     return this.departmentsService.getOrgChart();
   }

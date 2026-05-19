@@ -10,23 +10,23 @@ import {
   UseGuards,
   ParseUUIDPipe,
   ForbiddenException,
-} from '@nestjs/common';
-import type { Response } from 'express';
-import { rowsToCsv, csvFilename, CsvColumn } from '../common/utils/csv-export';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
-import { UserThrottle } from '../auth/decorators/user-throttle.decorator';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { SignaturesService } from './signatures.service';
-import { EvidenceService } from './evidence.service';
-import { CreateSignatureDto } from './dto/create-signature.dto';
-import { RequestUser } from '../common/interfaces';
-import { UserRole } from '../common/enums';
-import { RequireFreshMfa } from '../mfa/decorators/require-fresh-mfa.decorator';
+} from "@nestjs/common";
+import type { Response } from "express";
+import { rowsToCsv, csvFilename, CsvColumn } from "../common/utils/csv-export";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { UserThrottlerGuard } from "../auth/guards/user-throttler.guard";
+import { UserThrottle } from "../auth/decorators/user-throttle.decorator";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { SignaturesService } from "./signatures.service";
+import { EvidenceService } from "./evidence.service";
+import { CreateSignatureDto } from "./dto/create-signature.dto";
+import { RequestUser } from "../common/interfaces";
+import { UserRole } from "../common/enums";
+import { RequireFreshMfa } from "../mfa/decorators/require-fresh-mfa.decorator";
 
-@Controller('signatures')
+@Controller("signatures")
 @UseGuards(JwtAuthGuard, RolesGuard)
 // Toutes les actions sur les signatures (template, soumission, signature) sont
 // considérées sensibles : exigent une re-validation MFA récente (12 h max).
@@ -37,25 +37,40 @@ export class SignaturesController {
     private readonly evidenceService: EvidenceService,
   ) {}
 
-  @Get('templates')
-  @Roles(UserRole.ADMIN, UserRole.REVIEWER, UserRole.DIRECTION, UserRole.SUPER_ADMIN)
+  @Get("templates")
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.REVIEWER,
+    UserRole.DIRECTION,
+    UserRole.SUPER_ADMIN,
+  )
   listTemplates() {
     return this.signaturesService.listTemplates();
   }
 
-  @Get('submissions')
-  @Roles(UserRole.ADMIN, UserRole.REVIEWER, UserRole.DIRECTION, UserRole.SUPER_ADMIN)
+  @Get("submissions")
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.REVIEWER,
+    UserRole.DIRECTION,
+    UserRole.SUPER_ADMIN,
+  )
   listSubmissions() {
     return this.signaturesService.listSubmissions();
   }
 
-  @Get('submissions/:submissionId')
-  @Roles(UserRole.ADMIN, UserRole.REVIEWER, UserRole.DIRECTION, UserRole.SUPER_ADMIN)
-  getSubmission(@Param('submissionId') submissionId: string) {
+  @Get("submissions/:submissionId")
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.REVIEWER,
+    UserRole.DIRECTION,
+    UserRole.SUPER_ADMIN,
+  )
+  getSubmission(@Param("submissionId") submissionId: string) {
     return this.signaturesService.getSubmission(submissionId);
   }
 
-  @Get('all')
+  @Get("all")
   @Roles(UserRole.ADMIN, UserRole.DIRECTION, UserRole.SUPER_ADMIN)
   listAllSignatureRequests() {
     return this.signaturesService.listAllSignatureRequests();
@@ -65,10 +80,10 @@ export class SignaturesController {
    * CSV export of all signature requests (max 1000 rows).
    * ISO 27001 A.5.10 — export contrôlé.
    */
-  @Get('export/csv')
+  @Get("export/csv")
   @Roles(UserRole.ADMIN, UserRole.DIRECTION, UserRole.SUPER_ADMIN)
   async exportCsv(
-    @Query('status') status: string | undefined,
+    @Query("status") status: string | undefined,
     @Res() res: Response,
   ) {
     const all = await this.signaturesService.listAllSignatureRequests();
@@ -81,7 +96,11 @@ export class SignaturesController {
       createdAt: Date | string;
       signedAt: Date | string | null;
       signer: { firstName: string; lastName: string; email: string } | null;
-      requestedBy: { firstName: string; lastName: string; email: string } | null;
+      requestedBy: {
+        firstName: string;
+        lastName: string;
+        email: string;
+      } | null;
       documentVersion: {
         versionNumber?: string | null;
         document: { title: string; reference: string };
@@ -89,47 +108,57 @@ export class SignaturesController {
     };
 
     const columns: CsvColumn<Row>[] = [
-      { header: 'Document', accessor: (r) => r.documentVersion.document.title },
-      { header: 'Référence', accessor: (r) => r.documentVersion.document.reference },
-      { header: 'Version', accessor: (r) => r.documentVersion.versionNumber ?? '' },
-      { header: 'Statut', accessor: (r) => r.status },
+      { header: "Document", accessor: (r) => r.documentVersion.document.title },
       {
-        header: 'Signataire',
-        accessor: (r) =>
-          r.signer ? `${r.signer.firstName} ${r.signer.lastName}` : '',
+        header: "Référence",
+        accessor: (r) => r.documentVersion.document.reference,
       },
-      { header: 'Email signataire', accessor: (r) => r.signer?.email ?? '' },
       {
-        header: 'Demandé par',
+        header: "Version",
+        accessor: (r) => r.documentVersion.versionNumber ?? "",
+      },
+      { header: "Statut", accessor: (r) => r.status },
+      {
+        header: "Signataire",
+        accessor: (r) =>
+          r.signer ? `${r.signer.firstName} ${r.signer.lastName}` : "",
+      },
+      { header: "Email signataire", accessor: (r) => r.signer?.email ?? "" },
+      {
+        header: "Demandé par",
         accessor: (r) =>
           r.requestedBy
             ? `${r.requestedBy.firstName} ${r.requestedBy.lastName}`
-            : '',
+            : "",
       },
       {
-        header: 'Demandé le',
+        header: "Demandé le",
         accessor: (r) =>
-          r.createdAt ? new Date(r.createdAt).toISOString() : '',
+          r.createdAt ? new Date(r.createdAt).toISOString() : "",
       },
       {
-        header: 'Signé le',
-        accessor: (r) =>
-          r.signedAt ? new Date(r.signedAt).toISOString() : '',
+        header: "Signé le",
+        accessor: (r) => (r.signedAt ? new Date(r.signedAt).toISOString() : ""),
       },
     ];
 
     const csv = rowsToCsv<Row>(filtered.slice(0, 1000) as Row[], columns);
 
     res.set({
-      'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${csvFilename('signatures')}"`,
-      'Cache-Control': 'private, no-store',
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${csvFilename("signatures")}"`,
+      "Cache-Control": "private, no-store",
     });
     res.send(csv);
   }
 
-  @Post('request')
-  @Roles(UserRole.ADMIN, UserRole.REVIEWER, UserRole.DIRECTION, UserRole.SUPER_ADMIN)
+  @Post("request")
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.REVIEWER,
+    UserRole.DIRECTION,
+    UserRole.SUPER_ADMIN,
+  )
   createRequest(
     @Body() dto: CreateSignatureDto,
     @CurrentUser() user: RequestUser,
@@ -142,37 +171,39 @@ export class SignaturesController {
     );
   }
 
-  @Get('my')
+  @Get("my")
+  @Roles(UserRole.COLLABORATEUR)
   getMySignatures(@CurrentUser() user: RequestUser) {
     return this.signaturesService.getMySignatures(user.id);
   }
 
-  @Patch(':id/sign')
+  @Patch(":id/sign")
+  @Roles(UserRole.COLLABORATEUR)
   // Anti-abus signature : 20 signatures/h par utilisateur (un signataire
   // légitime ne signe pas 20 documents en une heure).
   @UseGuards(UserThrottlerGuard)
   @UserThrottle({ limit: 20, ttl: 60 * 60_000 })
   async signDirectly(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
   ) {
     // Verify the user is the signer
     const sig = await this.signaturesService.getStatus(id);
     if (sig.signerId !== user.id) {
-      throw new ForbiddenException('Seul le signataire désigné peut signer');
+      throw new ForbiddenException("Seul le signataire désigné peut signer");
     }
     return this.signaturesService.signDirectly(id, user.id);
   }
 
-  @Get(':id')
+  @Get(":id")
   @Roles(UserRole.COLLABORATEUR)
-  getStatus(@Param('id', ParseUUIDPipe) id: string) {
+  getStatus(@Param("id", ParseUUIDPipe) id: string) {
     return this.signaturesService.getStatus(id);
   }
 
-  @Get('document/:documentId')
+  @Get("document/:documentId")
   @Roles(UserRole.COLLABORATEUR)
-  getByDocument(@Param('documentId', ParseUUIDPipe) documentId: string) {
+  getByDocument(@Param("documentId", ParseUUIDPipe) documentId: string) {
     return this.signaturesService.getByDocument(documentId);
   }
 
@@ -183,9 +214,10 @@ export class SignaturesController {
    * limiter la surface d'exposition). Accès limité au signataire,
    * demandeur, ou ADMIN+/DIRECTION (cf. EvidenceService.getEvidenceForUser).
    */
-  @Get(':id/evidence')
+  @Get(":id/evidence")
+  @Roles(UserRole.COLLABORATEUR)
   async getEvidence(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
   ) {
     const sig = await this.evidenceService.getEvidenceForUser(
@@ -216,22 +248,20 @@ export class SignaturesController {
    * Génère un rapport PDF eIDAS niveau AES avec toutes les preuves
    * capturées et un hash SHA-256 du rapport pour vérification ultérieure.
    */
-  @Get(':id/evidence-report')
+  @Get(":id/evidence-report")
+  @Roles(UserRole.COLLABORATEUR)
   async getEvidenceReport(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
     @Res() res: Response,
   ) {
-    const { buffer, fileName, hash } = await this.evidenceService.exportPdfReport(
-      id,
-      user.id,
-      user.role,
-    );
+    const { buffer, fileName, hash } =
+      await this.evidenceService.exportPdfReport(id, user.id, user.role);
     res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${fileName}"`,
-      'X-Report-SHA256': hash,
-      'Cache-Control': 'private, no-store',
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${fileName}"`,
+      "X-Report-SHA256": hash,
+      "Cache-Control": "private, no-store",
     });
     res.send(buffer);
   }

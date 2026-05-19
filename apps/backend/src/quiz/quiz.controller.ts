@@ -1,65 +1,109 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Query, Param, UseGuards, ParseUUIDPipe, Res, ForbiddenException } from '@nestjs/common';
-import { Response } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { QuizService } from './quiz.service';
-import { RequestUser } from '../common/interfaces';
-import { UserRole } from '../common/enums';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Body,
+  Query,
+  Param,
+  UseGuards,
+  ParseUUIDPipe,
+  Res,
+  ForbiddenException,
+} from "@nestjs/common";
+import { Response } from "express";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { QuizService } from "./quiz.service";
+import { RequestUser } from "../common/interfaces";
+import { UserRole } from "../common/enums";
 
-@Controller('quiz')
+@Controller("quiz")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class QuizController {
   constructor(private readonly quizService: QuizService) {}
 
-  @Get('questions')
-  getQuestions(@Query('count') count?: string) {
-    return this.quizService.getRandomQuestions(parseInt(count || '10'));
+  @Get("questions")
+  @Roles(UserRole.COLLABORATEUR)
+  getQuestions(@Query("count") count?: string) {
+    return this.quizService.getRandomQuestions(parseInt(count || "10"));
   }
 
-  @Get('stats')
+  @Get("stats")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   getStats() {
     return this.quizService.getParticipationStats();
   }
 
-  @Post('submit')
-  submit(@CurrentUser() user: RequestUser, @Body() body: { score: number; total: number; answers: Record<string, number>; campaignTitle?: string }) {
-    return this.quizService.submitResult(user.id, body.score, body.total, body.answers, body.campaignTitle);
+  @Post("submit")
+  submit(
+    @CurrentUser() user: RequestUser,
+    @Body()
+    body: {
+      score: number;
+      total: number;
+      answers: Record<string, number>;
+      campaignTitle?: string;
+    },
+  ) {
+    return this.quizService.submitResult(
+      user.id,
+      body.score,
+      body.total,
+      body.answers,
+      body.campaignTitle,
+    );
   }
 
-  @Get('certificate/:auditLogId')
+  @Get("certificate/:auditLogId")
   async getCertificate(
-    @Param('auditLogId', ParseUUIDPipe) auditLogId: string,
+    @Param("auditLogId", ParseUUIDPipe) auditLogId: string,
     @CurrentUser() user: RequestUser,
     @Res() res: Response,
   ) {
     const data = await this.quizService.getCertificateData(auditLogId);
     // IDOR fix: a user can only fetch their own certificate. Admins/super-admins
     // can access any certificate (audit / re-issuance).
-    const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+    const isAdmin =
+      user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
     if (!isAdmin && data.userId !== user.id) {
-      throw new ForbiddenException('Vous ne pouvez consulter que vos propres certificats.');
+      throw new ForbiddenException(
+        "Vous ne pouvez consulter que vos propres certificats.",
+      );
     }
     const html = this.quizService.generateCertificate(
-      data.userId, data.userName, data.campaignTitle, data.score, data.total, data.date, data.auditLogId,
+      data.userId,
+      data.userName,
+      data.campaignTitle,
+      data.score,
+      data.total,
+      data.date,
+      data.auditLogId,
     );
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.send(html);
   }
 
-  @Get('leaderboard')
+  @Get("leaderboard")
+  @Roles(UserRole.COLLABORATEUR)
   leaderboard() {
     return this.quizService.getLeaderboard();
   }
 
-  @Get('my-results')
-  myResults(@CurrentUser() user: RequestUser, @Query('limit') limit?: string) {
-    return this.quizService.getMyResults(user.id, limit ? parseInt(limit, 10) : 20);
+  @Get("my-results")
+  @Roles(UserRole.COLLABORATEUR)
+  myResults(@CurrentUser() user: RequestUser, @Query("limit") limit?: string) {
+    return this.quizService.getMyResults(
+      user.id,
+      limit ? parseInt(limit, 10) : 20,
+    );
   }
 
-  @Put('questions')
+  @Put("questions")
   @Roles(UserRole.SUPER_ADMIN)
   updateQuestions(@Body() body: any[]) {
     return this.quizService.updateQuestions(body);
@@ -69,36 +113,52 @@ export class QuizController {
   // Campaign endpoints
   // =========================================================================
 
-  @Get('campaigns')
+  @Get("campaigns")
+  @Roles(UserRole.COLLABORATEUR)
   getCampaigns() {
     return this.quizService.getCampaigns();
   }
 
-  @Post('campaigns')
+  @Post("campaigns")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   createCampaign(
-    @Body() body: { title: string; description?: string; isActive?: boolean; questions: any[]; passingScore?: number },
+    @Body()
+    body: {
+      title: string;
+      description?: string;
+      isActive?: boolean;
+      questions: any[];
+      passingScore?: number;
+    },
   ) {
     return this.quizService.createCampaign(body);
   }
 
-  @Get('campaigns/:id')
-  getCampaignById(@Param('id', ParseUUIDPipe) id: string) {
+  @Get("campaigns/:id")
+  @Roles(UserRole.COLLABORATEUR)
+  getCampaignById(@Param("id", ParseUUIDPipe) id: string) {
     return this.quizService.getCampaignById(id);
   }
 
-  @Patch('campaigns/:id')
+  @Patch("campaigns/:id")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   updateCampaign(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: { title?: string; description?: string; isActive?: boolean; questions?: any; passingScore?: number },
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body()
+    body: {
+      title?: string;
+      description?: string;
+      isActive?: boolean;
+      questions?: any;
+      passingScore?: number;
+    },
   ) {
     return this.quizService.updateCampaign(id, body);
   }
 
-  @Delete('campaigns/:id')
+  @Delete("campaigns/:id")
   @Roles(UserRole.SUPER_ADMIN)
-  deleteCampaign(@Param('id', ParseUUIDPipe) id: string) {
+  deleteCampaign(@Param("id", ParseUUIDPipe) id: string) {
     return this.quizService.deleteCampaign(id);
   }
 }

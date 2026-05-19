@@ -44,6 +44,7 @@ export class MfaController {
   ) {}
 
   @Post("setup")
+  @Roles(UserRole.COLLABORATEUR)
   @UseGuards(UserThrottlerGuard)
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   setup(@CurrentUser() user: RequestUser, @Req() req: Request) {
@@ -51,6 +52,7 @@ export class MfaController {
   }
 
   @Post("activate")
+  @Roles(UserRole.COLLABORATEUR)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   activate(
     @CurrentUser() user: RequestUser,
@@ -61,6 +63,7 @@ export class MfaController {
   }
 
   @Post("verify")
+  @Roles(UserRole.COLLABORATEUR)
   // Anti brute-force MFA : 5 essais / 5 min par utilisateur (ANSSI R28).
   @UseGuards(UserThrottlerGuard)
   @UserThrottle({ limit: 5, ttl: 5 * 60_000 })
@@ -74,6 +77,7 @@ export class MfaController {
    * pour empêcher qu'une session volée sauve la 2FA sans challenge.
    */
   @Post("disable/me")
+  @Roles(UserRole.COLLABORATEUR)
   @UseGuards(UserThrottlerGuard)
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   disableOwn(
@@ -111,6 +115,7 @@ export class MfaController {
   }
 
   @Post("backup-codes")
+  @Roles(UserRole.COLLABORATEUR)
   @UseGuards(UserThrottlerGuard)
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   async generateBackupCodes(
@@ -195,6 +200,7 @@ export class MfaController {
   }
 
   @Get("status")
+  @Roles(UserRole.COLLABORATEUR)
   async status(@CurrentUser() user: RequestUser) {
     const [mfaEnabled, fullUser, webauthnCount] = await Promise.all([
       this.mfaService.isMfaRequired(user.id),

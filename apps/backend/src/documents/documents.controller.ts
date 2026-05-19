@@ -73,6 +73,7 @@ export class DocumentsController {
   ) {}
 
   @Get("templates")
+  @Roles(UserRole.COLLABORATEUR)
   getTemplates() {
     return [
       {
@@ -119,6 +120,7 @@ export class DocumentsController {
   }
 
   @Get()
+  @Roles(UserRole.COLLABORATEUR)
   findAll(
     @Query() filters: DocumentFiltersDto,
     @CurrentUser() user: RequestUser,
@@ -225,6 +227,7 @@ export class DocumentsController {
   }
 
   @Get(":id/history")
+  @Roles(UserRole.COLLABORATEUR)
   async getHistory(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -233,6 +236,7 @@ export class DocumentsController {
   }
 
   @Get(":id/related")
+  @Roles(UserRole.COLLABORATEUR)
   findRelated(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -246,6 +250,7 @@ export class DocumentsController {
   }
 
   @Get(":id")
+  @Roles(UserRole.COLLABORATEUR)
   findById(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -307,6 +312,7 @@ export class DocumentsController {
    * /documents/:id/versions, et le workflow repartira à zéro.
    */
   @Post(":id/reopen")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async reopen(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -338,6 +344,7 @@ export class DocumentsController {
    * and only while the document is in DRAFT or IN_REVIEW.
    */
   @Patch(":id/content")
+  @Roles(UserRole.COLLABORATEUR)
   updateInlineContent(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateInlineContentDto,
@@ -391,6 +398,7 @@ export class DocumentsController {
   }
 
   @Get(":id/versions")
+  @Roles(UserRole.COLLABORATEUR)
   getVersions(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -426,6 +434,7 @@ export class DocumentsController {
 
   /** Shortcut: download latest version of a document */
   @Get(":id/download")
+  @Roles(UserRole.COLLABORATEUR)
   async downloadLatest(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -449,6 +458,7 @@ export class DocumentsController {
   }
 
   @Get(":id/versions/:versionId/download")
+  @Roles(UserRole.COLLABORATEUR)
   async downloadVersion(
     @Param("id", ParseUUIDPipe) id: string,
     @Param("versionId", ParseUUIDPipe) versionId: string,

@@ -14,37 +14,39 @@ import {
   ParseUUIDPipe,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
-import { Response } from 'express';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import * as fs from 'fs';
-import * as path from 'path';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { CertificatesService } from './certificates.service';
-import { CreateCertificateDto } from './dto/create-certificate.dto';
-import { UpdateCertificateDto } from './dto/update-certificate.dto';
-import { RequestUser } from '../common/interfaces';
-import { UserRole } from '../common/enums';
+} from "@nestjs/common";
+import { Response } from "express";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { diskStorage } from "multer";
+import * as fs from "fs";
+import * as path from "path";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { CertificatesService } from "./certificates.service";
+import { CreateCertificateDto } from "./dto/create-certificate.dto";
+import { UpdateCertificateDto } from "./dto/update-certificate.dto";
+import { RequestUser } from "../common/interfaces";
+import { UserRole } from "../common/enums";
 
-const UPLOAD_PATH = path.join(process.cwd(), 'uploads', 'certificates');
+const UPLOAD_PATH = path.join(process.cwd(), "uploads", "certificates");
 
-@Controller('certificates')
+@Controller("certificates")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CertificatesController {
   constructor(private readonly certificatesService: CertificatesService) {}
 
-  @Get('my')
+  @Get("my")
+  @Roles(UserRole.COLLABORATEUR)
   findMy(@CurrentUser() user: RequestUser) {
     return this.certificatesService.findMy(user.id);
   }
 
-  @Post('my')
+  @Post("my")
+  @Roles(UserRole.COLLABORATEUR)
   @UseInterceptors(
-    FileInterceptor('file', {
+    FileInterceptor("file", {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
           if (!fs.existsSync(UPLOAD_PATH)) {
@@ -54,7 +56,7 @@ export class CertificatesController {
         },
         filename: (_req, file, cb) => {
           const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
+            Date.now() + "-" + Math.round(Math.random() * 1e9);
           const ext = path.extname(file.originalname);
           cb(null, `${uniqueSuffix}${ext}`);
         },
@@ -83,9 +85,10 @@ export class CertificatesController {
     return cert;
   }
 
-  @Patch('my/:id')
+  @Patch("my/:id")
+  @Roles(UserRole.COLLABORATEUR)
   @UseInterceptors(
-    FileInterceptor('file', {
+    FileInterceptor("file", {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
           if (!fs.existsSync(UPLOAD_PATH)) {
@@ -95,7 +98,7 @@ export class CertificatesController {
         },
         filename: (_req, file, cb) => {
           const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
+            Date.now() + "-" + Math.round(Math.random() * 1e9);
           const ext = path.extname(file.originalname);
           cb(null, `${uniqueSuffix}${ext}`);
         },
@@ -104,7 +107,7 @@ export class CertificatesController {
     }),
   )
   async updateMy(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateCertificateDto,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
@@ -128,13 +131,13 @@ export class CertificatesController {
   @Get()
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   findAll(
-    @Query('userId') userId?: string,
-    @Query('externalPersonId') externalPersonId?: string,
-    @Query('certType') certType?: string,
-    @Query('status') status?: 'valid' | 'expired' | 'all',
-    @Query('search') search?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query("userId") userId?: string,
+    @Query("externalPersonId") externalPersonId?: string,
+    @Query("certType") certType?: string,
+    @Query("status") status?: "valid" | "expired" | "all",
+    @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
     return this.certificatesService.findAll({
       userId,
@@ -147,28 +150,28 @@ export class CertificatesController {
     });
   }
 
-  @Get('stats')
+  @Get("stats")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   getStats() {
     return this.certificatesService.getStats();
   }
 
-  @Get('expiring')
+  @Get("expiring")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   findExpiring() {
     return this.certificatesService.findExpiring();
   }
 
-  @Get(':id')
+  @Get(":id")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Param("id", ParseUUIDPipe) id: string) {
     return this.certificatesService.findOne(id);
   }
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @UseInterceptors(
-    FileInterceptor('file', {
+    FileInterceptor("file", {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
           if (!fs.existsSync(UPLOAD_PATH)) {
@@ -178,7 +181,7 @@ export class CertificatesController {
         },
         filename: (_req, file, cb) => {
           const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
+            Date.now() + "-" + Math.round(Math.random() * 1e9);
           const ext = path.extname(file.originalname);
           cb(null, `${uniqueSuffix}${ext}`);
         },
@@ -207,10 +210,10 @@ export class CertificatesController {
     return cert;
   }
 
-  @Patch(':id')
+  @Patch(":id")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @UseInterceptors(
-    FileInterceptor('file', {
+    FileInterceptor("file", {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
           if (!fs.existsSync(UPLOAD_PATH)) {
@@ -220,7 +223,7 @@ export class CertificatesController {
         },
         filename: (_req, file, cb) => {
           const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
+            Date.now() + "-" + Math.round(Math.random() * 1e9);
           const ext = path.extname(file.originalname);
           cb(null, `${uniqueSuffix}${ext}`);
         },
@@ -229,7 +232,7 @@ export class CertificatesController {
     }),
   )
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateCertificateDto,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
@@ -250,19 +253,19 @@ export class CertificatesController {
     return cert;
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   remove(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
   ) {
     return this.certificatesService.remove(id, user.id);
   }
 
-  @Post(':id/upload')
+  @Post(":id/upload")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @UseInterceptors(
-    FileInterceptor('file', {
+    FileInterceptor("file", {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
           if (!fs.existsSync(UPLOAD_PATH)) {
@@ -272,7 +275,7 @@ export class CertificatesController {
         },
         filename: (_req, file, cb) => {
           const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
+            Date.now() + "-" + Math.round(Math.random() * 1e9);
           const ext = path.extname(file.originalname);
           cb(null, `${uniqueSuffix}${ext}`);
         },
@@ -281,12 +284,12 @@ export class CertificatesController {
     }),
   )
   async uploadFile(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
   ) {
     if (!file) {
-      throw new BadRequestException('No file provided');
+      throw new BadRequestException("No file provided");
     }
 
     const fileUrl = `/uploads/certificates/${file.filename}`;
@@ -305,19 +308,20 @@ export class CertificatesController {
     return cert;
   }
 
-  @Get(':id/download')
+  @Get(":id/download")
+  @Roles(UserRole.COLLABORATEUR)
   async downloadFile(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Res() res: Response,
   ) {
     const cert = await this.certificatesService.findOne(id);
     if (!cert.fileUrl) {
-      throw new NotFoundException('No file attached to this certificate');
+      throw new NotFoundException("No file attached to this certificate");
     }
 
     const filePath = path.join(process.cwd(), cert.fileUrl);
     if (!fs.existsSync(filePath)) {
-      throw new NotFoundException('File not found on disk');
+      throw new NotFoundException("File not found on disk");
     }
 
     res.download(filePath, cert.fileName || path.basename(filePath));
