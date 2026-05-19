@@ -133,10 +133,12 @@ const HUB_BY_SEGMENT: Record<string, HubCrumb> = {
 };
 
 // Shared control class — all controls share the same 36px height for visual alignment.
+// Focus ring élargi à 3px (audit a11y) pour rester perceptible sur les fonds
+// orangés et clairs ; offset-2 conservé pour distinguer du contenu.
 const CONTROL_BASE =
   "inline-flex h-9 items-center justify-center rounded-lg text-seal-gray-500 dark:text-slate-400 " +
   "hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-seal-blue dark:hover:text-seal-orange " +
-  "transition-colors focus-visible:outline-none focus-visible:ring-2 " +
+  "transition-colors focus-visible:outline-none focus-visible:ring-[3px] " +
   "focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white " +
   "dark:focus-visible:ring-offset-slate-900";
 

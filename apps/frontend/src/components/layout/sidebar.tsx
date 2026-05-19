@@ -232,7 +232,7 @@ const RailButton: React.FC<RailButtonProps> = ({
           "ring-1 ring-white/5",
           isSelected
             ? "bg-gradient-to-br from-white/15 to-white/5 text-white ring-white/15 shadow-[0_4px_12px_-4px_rgba(249,150,74,0.4)] scale-105"
-            : "text-white/55 hover:bg-white/[0.08] hover:text-white hover:ring-white/10 hover:scale-105",
+            : "text-white/70 hover:bg-white/[0.08] hover:text-white hover:ring-white/10 hover:scale-105",
         )}
       >
         {/* Barre d'accent active — allongée et plus fluide */}
@@ -1484,7 +1484,7 @@ export function Sidebar() {
               {/* Items */}
               <nav className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent py-2">
                 {panelItems.length === 0 ? (
-                  <div className="px-4 py-6 text-center text-[12px] text-white/40">
+                  <div className="px-4 py-6 text-center text-[12px] text-white/60">
                     Aucun résultat
                   </div>
                 ) : (

@@ -107,6 +107,14 @@
   --color-primary-light: rgba(246, 141, 46, 0.15);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.5);
+
+  /* A11y — boost de l'orange SEAL en dark mode pour passer le contraste
+     WCAG AA (4.5:1) sur du petit texte (badges, labels uppercase 9-12 px).
+     #f9964a sur #0f172a ratio ~5.5:1 (limite AA). #ffb27a ratio ~7:1 (AAA
+     pour body, AA pour large). On garde l'identité chromatique (toujours
+     orange SEAL) en remontant juste la luminosité. */
+  --seal-orange: #ffb27a;
+  --seal-orange-light: #ffd1a3;
 }
 
 * {

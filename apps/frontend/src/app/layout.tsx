@@ -122,10 +122,23 @@ export default async function RootLayout({
           <NextIntlClientProvider locale={locale} messages={messages}>
             <ChunkErrorRecovery />
             {children}
+            {/* A11y notifications (sonner) :
+                - `richColors` : success/error/warning ont des couleurs +
+                  icônes distinctes (pattern + couleur = ok daltonisme).
+                - sonner pose `role="status"` (success/info) et `role="alert"`
+                  (error) sur chaque toast → `aria-live` polite/assertive
+                  implicite. Pas besoin de wrapper aria-live supplémentaire.
+                - `visibleToasts={5}` : évite qu'un toast critique soit
+                  masqué quand plusieurs notifications arrivent en rafale.
+                - `duration={5000}` : 1 s de plus que le défaut, laisse
+                  le temps aux lecteurs d'écran de finir l'annonce avant
+                  la disparition. */}
             <Toaster
               position="top-center"
               richColors
               closeButton
+              visibleToasts={5}
+              duration={5000}
               toastOptions={{ style: { fontFamily: "var(--font-body)" } }}
             />
           </NextIntlClientProvider>
