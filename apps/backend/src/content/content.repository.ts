@@ -176,6 +176,24 @@ export class ContentRepository {
   // ─── Blocks ─────────────────────────────────────────────────────────
 
   async findManyBlocks(params: ListBlocksParams) {
+    // Recherche full-text étendue au champ `data` (JSON Prisma).
+    // Prisma typed where ne supporte le `string_contains` sur Json qu'avec
+    // un `path: []` explicite ; pour matcher n'importe où dans la structure
+    // (utile avec nos blocs qui contiennent des arrays imbriqués comme
+    // `welcome.faq`, `trust.commitments`, etc.) on fait une pré-requête raw
+    // qui retourne les IDs où `data::text ILIKE '%query%'`, puis on les
+    // injecte dans le `OR` typé.
+    let dataMatchIds: string[] = [];
+    if (params.search) {
+      const pattern = `%${params.search}%`;
+      const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM "ContentBlock"
+        WHERE "deletedAt" IS NULL
+          AND "data"::text ILIKE ${pattern}
+      `;
+      dataMatchIds = rows.map((r) => r.id);
+    }
+
     const where: Prisma.ContentBlockWhereInput = {
       deletedAt: null,
       ...(params.locale ? { locale: params.locale } : {}),
@@ -186,6 +204,9 @@ export class ContentRepository {
               { key: { contains: params.search, mode: "insensitive" } },
               { title: { contains: params.search, mode: "insensitive" } },
               { body: { contains: params.search, mode: "insensitive" } },
+              ...(dataMatchIds.length > 0
+                ? [{ id: { in: dataMatchIds } }]
+                : []),
             ],
           }
         : {}),
