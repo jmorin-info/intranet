@@ -707,6 +707,21 @@ const BLOCKS: SeedBlock[] = [
     },
   },
   // ---------------------------------------------------------------------------
+  // Navigation — overrides de libellés sidebar. Permet à un admin de
+  // renommer un item de la sidebar par son `href` sans toucher au code ni
+  // aux fichiers de traduction next-intl. Démarré vide : tant que l'admin
+  // n'ajoute pas d'item, les libellés hardcodés/i18n s'affichent normalement.
+  // Consommé par apps/frontend/src/components/layout/sidebar.tsx (hook
+  // useCmsBlocks → labelOverrides → PanelItem).
+  // ---------------------------------------------------------------------------
+  {
+    key: "nav.sidebar.overrides",
+    locale: "fr",
+    title: "Sidebar — overrides de libellés",
+    body: "Renommer des items de sidebar par leur href, sans toucher au code.",
+    data: [],
+  },
+  // ---------------------------------------------------------------------------
   // Kiosque — labels des 3 écrans rotatifs + footer.
   // ---------------------------------------------------------------------------
   {

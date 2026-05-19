@@ -27,6 +27,7 @@ import { useUIStore } from "@/stores/ui-store";
 import { useHealthStore } from "@/stores/health-store";
 import { useAdminCountsStore } from "@/stores/admin-counts-store";
 import { useTranslation } from "@/lib/i18n";
+import { useCmsBlocks, getBlockData } from "@/lib/cms-client";
 import { UserRole } from "@omnitech/shared";
 import { isRoleAtLeast } from "@omnitech/shared";
 import { Avatar } from "@omnitech/ui";
@@ -265,6 +266,8 @@ interface PanelItemProps {
   pinned: boolean;
   onTogglePin: (href: string) => void;
   onNavigate: () => void;
+  /** Si défini, écrase le `item.label` (override CMS via `nav.sidebar.overrides`). */
+  labelOverride?: string;
 }
 
 const PanelItem: React.FC<PanelItemProps> = ({
@@ -275,7 +278,9 @@ const PanelItem: React.FC<PanelItemProps> = ({
   pinned,
   onTogglePin,
   onNavigate,
+  labelOverride,
 }) => {
+  const displayLabel = labelOverride ?? item.label;
   if (item.separator) {
     return (
       <div
@@ -285,7 +290,7 @@ const PanelItem: React.FC<PanelItemProps> = ({
       >
         <span className="h-px flex-1 bg-white/10" />
         <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40">
-          {item.label}
+          {displayLabel}
         </span>
         <span className="h-px flex-1 bg-white/10" />
       </div>
@@ -320,7 +325,7 @@ const PanelItem: React.FC<PanelItemProps> = ({
         />
         <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
         <span className="flex-1 truncate">
-          {highlightMatch(item.label, filter)}
+          {highlightMatch(displayLabel, filter)}
         </span>
         {item.statusDot && (
           <span
@@ -398,6 +403,30 @@ export function Sidebar() {
     pushRecent,
   } = useUIStore();
   const { t } = useTranslation();
+
+  // ---- CMS label overrides ------------------------------------------------
+  // Bloc `nav.sidebar.overrides` : `[{ href, label }]`. Permet à un admin
+  // de renommer un item de la sidebar (ex: "Documents" → "GED OMNITECH")
+  // sans toucher au code. Fetch côté client avec fallback vide → libellés
+  // hardcodés/i18n actuels affichés immédiatement.
+  const navCmsBlocks = useCmsBlocks(["nav.sidebar.overrides"], "fr");
+  const labelOverrides = React.useMemo<Record<string, string>>(() => {
+    const raw = getBlockData<unknown[]>(
+      navCmsBlocks,
+      "nav.sidebar.overrides",
+      [],
+    );
+    if (!Array.isArray(raw)) return {};
+    const map: Record<string, string> = {};
+    for (const item of raw) {
+      if (!item || typeof item !== "object") continue;
+      const o = item as Record<string, unknown>;
+      if (typeof o.href === "string" && typeof o.label === "string") {
+        map[o.href] = o.label;
+      }
+    }
+    return map;
+  }, [navCmsBlocks]);
 
   // ---- Local UI state ----------------------------------------------------
   const [allowedModules, setAllowedModules] =
@@ -1408,6 +1437,7 @@ export function Sidebar() {
                       pinned={sidebarPinned.includes(item.href)}
                       onTogglePin={togglePinned}
                       onNavigate={() => pushRecent(item.href)}
+                      labelOverride={labelOverrides[item.href]}
                     />
                   ))
                 )}
@@ -1429,6 +1459,7 @@ export function Sidebar() {
                         pinned
                         onTogglePin={togglePinned}
                         onNavigate={() => pushRecent(it.href)}
+                        labelOverride={labelOverrides[it.href]}
                       />
                     ))}
                   </div>
@@ -1451,6 +1482,7 @@ export function Sidebar() {
                         pinned={sidebarPinned.includes(it.href)}
                         onTogglePin={togglePinned}
                         onNavigate={() => pushRecent(it.href)}
+                        labelOverride={labelOverrides[it.href]}
                       />
                     ))}
                   </div>

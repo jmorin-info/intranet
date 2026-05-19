@@ -20,6 +20,8 @@ import {
   type ContentBlock,
   type ContentStatus,
 } from "@/lib/cms-admin/types";
+import { resolveSchema, type BlockSchema } from "@/lib/cms-admin/schemas";
+import { StructuredEditor } from "../../_components/StructuredEditor";
 
 const STATUS_BADGE_VARIANT: Record<
   ContentStatus,
@@ -47,6 +49,9 @@ export default function AdminContentBlockEdit() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Mode d'édition de `data` : `structured` (form-driven via schéma connu)
+  // ou `json` (textarea brute). Par défaut, structured si la clé a un schéma.
+  const [editMode, setEditMode] = useState<"structured" | "json">("structured");
 
   useEffect(() => {
     let canceled = false;
@@ -64,6 +69,9 @@ export default function AdminContentBlockEdit() {
             : JSON.stringify(b.data, null, 2),
         );
         setStatus(b.status);
+        // Reset le mode d'édition : si un schéma existe, on démarre en
+        // structured ; sinon, json brut.
+        setEditMode(resolveSchema(b.key) ? "structured" : "json");
       } catch {
         toast.error("Bloc introuvable");
         router.push("/admin/content/blocks");
@@ -76,6 +84,32 @@ export default function AdminContentBlockEdit() {
       canceled = true;
     };
   }, [params.id, router]);
+
+  // Schéma résolu pour la clé du bloc (null si inconnue).
+  const schema: BlockSchema | null = useMemo(
+    () => (block ? resolveSchema(block.key) : null),
+    [block],
+  );
+
+  // Représentation parsée de `dataJson` — utilisée par l'éditeur structuré.
+  // Sync bidirectionnelle gérée plus bas via setDataObject().
+  const parsedData = useMemo<unknown>(() => {
+    if (!dataJson.trim()) return null;
+    try {
+      return JSON.parse(dataJson);
+    } catch {
+      return null;
+    }
+  }, [dataJson]);
+
+  function setDataObject(next: unknown) {
+    setDataError(null);
+    if (next === null || next === undefined) {
+      setDataJson("");
+    } else {
+      setDataJson(JSON.stringify(next, null, 2));
+    }
+  }
 
   const dirty = useMemo(() => {
     if (!block) return false;
@@ -191,23 +225,70 @@ export default function AdminContentBlockEdit() {
           </div>
 
           <div>
-            <label htmlFor="block-data-edit" className="seal-label">
-              Données structurées{" "}
-              <span className="text-xs text-seal-gray-500 font-normal">
-                (JSON optionnel — listes, configs)
-              </span>
-            </label>
-            <Textarea
-              id="block-data-edit"
-              rows={10}
-              value={dataJson}
-              onChange={(e) => {
-                setDataJson(e.target.value);
-                setDataError(null);
-              }}
-              className="font-mono text-xs"
-              placeholder='[{ "title": "...", "body": "..." }]'
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="block-data-edit" className="seal-label mb-0">
+                Données structurées{" "}
+                <span className="text-xs text-seal-gray-500 font-normal">
+                  {schema
+                    ? "(éditeur form-driven)"
+                    : "(JSON brut — clé sans schéma)"}
+                </span>
+              </label>
+              {schema && (
+                <div className="inline-flex items-center gap-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setEditMode("structured")}
+                    className={`px-2 py-1 rounded ${
+                      editMode === "structured"
+                        ? "bg-seal-navy text-white"
+                        : "text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    Formulaire
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditMode("json")}
+                    className={`px-2 py-1 rounded ${
+                      editMode === "json"
+                        ? "bg-seal-navy text-white"
+                        : "text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    JSON brut
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {schema?.description && editMode === "structured" && (
+              <p className="text-[11px] text-seal-gray-500 mb-2">
+                {schema.description}
+              </p>
+            )}
+
+            {schema && editMode === "structured" ? (
+              <div className="rounded-lg border border-seal-gray-300/40 p-3 bg-gray-50 dark:bg-slate-900/40">
+                <StructuredEditor
+                  schema={schema}
+                  value={parsedData}
+                  onChange={setDataObject}
+                />
+              </div>
+            ) : (
+              <Textarea
+                id="block-data-edit"
+                rows={10}
+                value={dataJson}
+                onChange={(e) => {
+                  setDataJson(e.target.value);
+                  setDataError(null);
+                }}
+                className="font-mono text-xs"
+                placeholder='[{ "title": "...", "body": "..." }]'
+              />
+            )}
             {dataError && (
               <p className="text-xs text-red-600 mt-1">{dataError}</p>
             )}
