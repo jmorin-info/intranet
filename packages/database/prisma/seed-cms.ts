@@ -736,6 +736,32 @@ const BLOCKS: SeedBlock[] = [
     data: [],
   },
   // ---------------------------------------------------------------------------
+  // Welcome — sections optionnelles (PR-13). Tous initialisés vides : la
+  // page /welcome conserve son rendu actuel tant qu'un admin n'a pas poussé
+  // de contenu. Chaque section s'affiche en standalone si valide.
+  // ---------------------------------------------------------------------------
+  {
+    key: "welcome.banner",
+    locale: "fr",
+    title: "Welcome — bandeau d'annonce",
+    body: "Bandeau en tête de /welcome. Mettre active:false pour masquer.",
+    data: null,
+  },
+  {
+    key: "welcome.testimonials",
+    locale: "fr",
+    title: "Welcome — témoignages",
+    body: "Témoignages utilisateurs affichés en bas de /welcome.",
+    data: [],
+  },
+  {
+    key: "welcome.media",
+    locale: "fr",
+    title: "Welcome — image / vidéo",
+    body: "Section image ou vidéo de présentation sur /welcome.",
+    data: null,
+  },
+  // ---------------------------------------------------------------------------
   // Theme tokens — surcharge des CSS variables SEAL (couleurs / fontes /
   // rayons). Initialement vide : aucune surcharge tant qu'un admin n'a pas
   // poussé de valeurs depuis /admin/content/blocks/[theme.tokens id].

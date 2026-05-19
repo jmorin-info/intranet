@@ -343,6 +343,134 @@ const SCHEMAS: BlockSchema[] = [
     },
   },
 
+  // — Welcome additions (PR-13) ----------------------------------------------
+  {
+    key: "welcome.banner",
+    description:
+      "Bandeau d'annonce affiché en tête de /welcome. Mettre `active: false` pour masquer sans dépublier (kill switch).",
+    data: {
+      kind: "object",
+      fields: [
+        {
+          name: "message",
+          label: "Message",
+          type: { kind: "string", multiline: true },
+          required: true,
+          placeholder: "Maintenance prévue dimanche 18h-22h",
+        },
+        {
+          name: "variant",
+          label: "Style",
+          type: {
+            kind: "enum",
+            options: [
+              { value: "info", label: "Info (bleu)" },
+              { value: "warn", label: "Avertissement (orange)" },
+              { value: "success", label: "Succès (vert)" },
+            ],
+          },
+          required: true,
+        },
+        {
+          name: "active",
+          label: "Actif (afficher la bannière)",
+          type: {
+            kind: "enum",
+            options: [
+              { value: "true", label: "Oui — afficher" },
+              { value: "false", label: "Non — masquer" },
+            ],
+          },
+          help: "Masquer sans dépublier le bloc.",
+        },
+        {
+          name: "ctaLabel",
+          label: "Libellé bouton (optionnel)",
+          type: { kind: "string" },
+        },
+        {
+          name: "ctaHref",
+          label: "Lien bouton (optionnel)",
+          type: { kind: "string" },
+          placeholder: "/maintenance",
+        },
+      ],
+    },
+  },
+  {
+    key: "welcome.testimonials",
+    description:
+      "Témoignages utilisateurs affichés en bas de /welcome (3-6 idéaux).",
+    data: {
+      kind: "array",
+      item: {
+        kind: "object",
+        fields: [
+          {
+            name: "quote",
+            label: "Citation",
+            type: { kind: "string", multiline: true },
+            required: true,
+          },
+          {
+            name: "author",
+            label: "Auteur",
+            type: { kind: "string" },
+            required: true,
+            placeholder: "Marie D.",
+          },
+          {
+            name: "role",
+            label: "Rôle / Fonction",
+            type: { kind: "string" },
+            required: true,
+            placeholder: "Responsable RSSI",
+          },
+        ],
+      },
+      itemTitle: (i) => (i as { author?: string })?.author ?? "Témoignage",
+    },
+  },
+  {
+    key: "welcome.media",
+    description:
+      "Section image ou vidéo de présentation sur /welcome (entre le client et les témoignages).",
+    data: {
+      kind: "object",
+      fields: [
+        {
+          name: "type",
+          label: "Type de média",
+          type: {
+            kind: "enum",
+            options: [
+              { value: "image", label: "Image" },
+              { value: "video", label: "Vidéo (HTML5 <video>)" },
+            ],
+          },
+          required: true,
+        },
+        {
+          name: "src",
+          label: "URL du média",
+          type: { kind: "string" },
+          required: true,
+          help: "Chemin relatif (/img/...) ou URL https://. Autres protocoles rejetés.",
+        },
+        {
+          name: "caption",
+          label: "Titre / Alt text (a11y)",
+          type: { kind: "string" },
+          required: true,
+        },
+        {
+          name: "description",
+          label: "Description (optionnel)",
+          type: { kind: "string", multiline: true },
+        },
+      ],
+    },
+  },
   // — Trust ------------------------------------------------------------------
   {
     key: "trust.hero",
