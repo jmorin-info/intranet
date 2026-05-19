@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   KeyRound,
@@ -8,6 +9,7 @@ import {
   ShieldAlert,
   AlertTriangle,
 } from "lucide-react";
+import { useCmsBlocks, getBlockData } from "@/lib/cms-client";
 
 const API = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(
   /\/api\/?$/,
@@ -31,7 +33,7 @@ interface PublicScore {
   publishedAt: string;
 }
 
-const BADGE_ICONS: Record<string, typeof KeyRound> = {
+const BADGE_ICON_REGISTRY: Record<string, LucideIcon> = {
   identities: KeyRound,
   continuity: Activity,
   crypto: Lock,
@@ -63,12 +65,66 @@ const BADGE_COLORS: Record<
 };
 
 /**
- * Appel /trust/score (public, sans auth). Affiche :
- *  - le score global /100 si calculé
- *  - un fallback "Score indisponible" si le service renvoie 503 ou null
- *  - 4 badges domaines qualitatifs (sans signaux sensibles)
+ * Fallback hardcodé : badges placeholder affichés tant que :
+ *  - le bloc CMS `trust.score.badges` n'est pas encore arrivé (avant fetch)
+ *  - le bloc CMS est absent ou mal formé
+ *  - ET l'API `/trust/score` ne retourne pas ses propres badges (priorité absolue)
+ */
+const FALLBACK_BADGES: PublicBadge[] = [
+  {
+    key: "identities",
+    label: "Identités",
+    status: "UNKNOWN",
+    caption: "MFA & contrôle d'accès",
+  },
+  {
+    key: "continuity",
+    label: "Continuité",
+    status: "UNKNOWN",
+    caption: "Sauvegardes testées",
+  },
+  {
+    key: "crypto",
+    label: "Crypto",
+    status: "UNKNOWN",
+    caption: "TLS 1.2+ / HSTS",
+  },
+  {
+    key: "audit",
+    label: "Audit",
+    status: "UNKNOWN",
+    caption: "Traçabilité 24/7",
+  },
+];
+
+const VALID_STATUSES: Record<BadgeStatus, true> = {
+  OK: true,
+  PARTIAL: true,
+  UNKNOWN: true,
+};
+
+function normalizeBadge(raw: unknown): PublicBadge | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const key = typeof o.key === "string" ? o.key : null;
+  const label = typeof o.label === "string" ? o.label : null;
+  const caption = typeof o.caption === "string" ? o.caption : null;
+  const status = typeof o.status === "string" ? o.status : null;
+  if (!key || !label || !caption || !status) return null;
+  if (!(status in VALID_STATUSES)) return null;
+  return { key, label, caption, status: status as BadgeStatus };
+}
+
+/**
+ * Section "Score cyber public" — score global + 4 badges domaines.
+ *
+ * Logique badges (priorité haute → basse) :
+ *  1. Badges renvoyés par l'API `/trust/score` (production live)
+ *  2. Bloc CMS `trust.score.badges` (édition admin)
+ *  3. Fallback hardcodé (FALLBACK_BADGES)
  */
 export function TrustScore() {
+  const cmsBlocks = useCmsBlocks(["trust.score.badges"], "fr");
   const [data, setData] = useState<PublicScore | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,6 +150,16 @@ export function TrustScore() {
     };
   }, []);
 
+  const cmsBadges = useMemo<PublicBadge[]>(() => {
+    const raw = getBlockData<unknown[]>(cmsBlocks, "trust.score.badges", []);
+    const fromCms = Array.isArray(raw)
+      ? raw.map(normalizeBadge).filter((b): b is PublicBadge => b !== null)
+      : [];
+    return fromCms.length > 0 ? fromCms : FALLBACK_BADGES;
+  }, [cmsBlocks]);
+
+  const badges = data?.badges?.length ? data.badges : cmsBadges;
+
   const scoreUnavailable =
     error !== null || data?.score === null || data?.score === undefined;
 
@@ -118,7 +184,6 @@ export function TrustScore() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-        {/* Colonne score global */}
         <div className="relative overflow-hidden rounded-2xl border border-[#F68D2E]/10 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div
             aria-hidden="true"
@@ -165,10 +230,9 @@ export function TrustScore() {
           </div>
         </div>
 
-        {/* Grille badges domaines */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {(data?.badges ?? PLACEHOLDER_BADGES).map((badge) => {
-            const Icon = BADGE_ICONS[badge.key] ?? ShieldAlert;
+          {badges.map((badge) => {
+            const Icon = BADGE_ICON_REGISTRY[badge.key] ?? ShieldAlert;
             const colors = BADGE_COLORS[badge.status] ?? BADGE_COLORS.UNKNOWN;
             return (
               <div
@@ -203,29 +267,5 @@ export function TrustScore() {
   );
 }
 
-const PLACEHOLDER_BADGES: PublicBadge[] = [
-  {
-    key: "identities",
-    label: "Identités",
-    status: "UNKNOWN",
-    caption: "MFA & contrôle d’accès",
-  },
-  {
-    key: "continuity",
-    label: "Continuité",
-    status: "UNKNOWN",
-    caption: "Sauvegardes testées",
-  },
-  {
-    key: "crypto",
-    label: "Crypto",
-    status: "UNKNOWN",
-    caption: "TLS 1.2+ / HSTS",
-  },
-  {
-    key: "audit",
-    label: "Audit",
-    status: "UNKNOWN",
-    caption: "Traçabilité 24/7",
-  },
-];
+export { normalizeBadge, FALLBACK_BADGES };
+export type { PublicBadge, BadgeStatus };

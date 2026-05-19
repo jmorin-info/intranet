@@ -166,3 +166,26 @@ export function normalizeShortcut(raw: unknown): KeyboardShortcut | null {
   if (!keys || !label) return null;
   return { keys, label };
 }
+
+// ---------------------------------------------------------------------------
+// Welcome message — card affichée en tête de /getting-started.
+// ---------------------------------------------------------------------------
+
+export interface WelcomeMessage {
+  title: string;
+  body: string;
+}
+
+export const FALLBACK_WELCOME_MESSAGE: WelcomeMessage = {
+  title: "La cybersécurité, notre valeur fondamentale",
+  body: "Chez OMNITECH Security, la protection de l'information est au cœur de chaque action. Cet intranet est conçu selon les exigences ISO 27001:2022 et NIS2. Chaque collaborateur est un maillon essentiel de notre chaîne de sécurité.",
+};
+
+export function normalizeWelcomeMessage(raw: unknown): WelcomeMessage | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const title = typeof o.title === "string" ? o.title : null;
+  const body = typeof o.body === "string" ? o.body : null;
+  if (!title || !body) return null;
+  return { title, body };
+}

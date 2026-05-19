@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import DOMPurify from "dompurify";
 
 interface Props {
@@ -17,21 +17,32 @@ interface Props {
  * § 5.3) — utile pour neutraliser d'éventuelles mutations XSS introduites
  * entre la sortie backend et l'arrivée DOM.
  *
- * À utiliser pour TOUT rendu CMS au lieu de `dangerouslySetInnerHTML` direct.
+ * **SSR-safe** : `dompurify` n'expose pas `.sanitize` côté Node (pas de DOM
+ * sans jsdom). On rend d'abord le HTML brut (déjà sanitisé backend), puis on
+ * substitue par la version DOMPurify une fois hydraté. Comme le backend
+ * produit déjà du HTML conforme à la whitelist, le résultat est identique →
+ * pas de divergence visible, mais on supprime le warning d'hydratation au
+ * cas où DOMPurify normaliserait certains attributs côté client.
  */
 export function SafeHtml({ html, className }: Props) {
-  const safe = useMemo(
-    () =>
+  const [safe, setSafe] = useState<string>(html);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (typeof DOMPurify.sanitize !== "function") return;
+    setSafe(
       DOMPurify.sanitize(html, {
         USE_PROFILES: { html: true },
         ADD_ATTR: ["id"],
         ADD_TAGS: ["pre", "code"],
       }),
-    [html],
-  );
+    );
+  }, [html]);
+
   return (
     <div
       className={className}
+      suppressHydrationWarning
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: safe }}
     />

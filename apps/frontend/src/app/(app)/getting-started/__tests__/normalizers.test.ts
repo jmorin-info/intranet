@@ -3,8 +3,10 @@ import { describe, it, expect } from "vitest";
 import {
   normalizeStep,
   normalizeShortcut,
+  normalizeWelcomeMessage,
   FALLBACK_STEPS,
   FALLBACK_SHORTCUTS,
+  FALLBACK_WELCOME_MESSAGE,
   ALLOWED_GRADIENTS,
 } from "../_cms";
 
@@ -71,5 +73,20 @@ describe("onboarding.shortcuts normalizer", () => {
     FALLBACK_SHORTCUTS.forEach((s) => {
       expect(normalizeShortcut(s)).toEqual(s);
     });
+  });
+});
+
+describe("onboarding.welcome_message normalizer", () => {
+  it("accepte un message bien formé", () => {
+    expect(normalizeWelcomeMessage(FALLBACK_WELCOME_MESSAGE)).toEqual(
+      FALLBACK_WELCOME_MESSAGE,
+    );
+  });
+
+  it("rejette si title ou body manque", () => {
+    expect(normalizeWelcomeMessage({ title: "X" })).toBeNull();
+    expect(normalizeWelcomeMessage({ body: "Y" })).toBeNull();
+    expect(normalizeWelcomeMessage(null)).toBeNull();
+    expect(normalizeWelcomeMessage("string")).toBeNull();
   });
 });

@@ -20,18 +20,21 @@ import {
 import {
   FALLBACK_STEPS,
   FALLBACK_SHORTCUTS,
+  FALLBACK_WELCOME_MESSAGE,
   STEP_ICON_REGISTRY,
   normalizeStep,
   normalizeShortcut,
+  normalizeWelcomeMessage,
   type OnboardingStep,
   type KeyboardShortcut,
   type StepStatusKey,
+  type WelcomeMessage,
 } from "./_cms";
 
 export default function WelcomePage() {
   const user = useAuthStore((s) => s.user);
   const blocks = useCmsBlocks(
-    ["onboarding.steps", "onboarding.shortcuts"],
+    ["onboarding.steps", "onboarding.shortcuts", "onboarding.welcome_message"],
     "fr",
   );
   const [chartesSigned, setChartesSigned] = useState<boolean>(false);
@@ -59,6 +62,15 @@ export default function WelcomePage() {
           .filter((s): s is KeyboardShortcut => s !== null)
       : [];
     return fromCms.length > 0 ? fromCms : FALLBACK_SHORTCUTS;
+  }, [blocks]);
+
+  const welcomeMessage: WelcomeMessage = useMemo(() => {
+    const raw = getBlockData<unknown>(
+      blocks,
+      "onboarding.welcome_message",
+      null,
+    );
+    return normalizeWelcomeMessage(raw) ?? FALLBACK_WELCOME_MESSAGE;
   }, [blocks]);
 
   const stepStatus: Record<StepStatusKey, boolean> = {
@@ -91,13 +103,10 @@ export default function WelcomePage() {
             </div>
             <div>
               <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-                La cybersécurité, notre valeur fondamentale
+                {welcomeMessage.title}
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-seal-gray-500 dark:text-slate-400">
-                Chez OMNITECH Security, la protection de l&apos;information est
-                au cœur de chaque action. Cet intranet est conçu selon les
-                exigences ISO 27001:2022 et NIS2. Chaque collaborateur est un
-                maillon essentiel de notre chaîne de sécurité.
+                {welcomeMessage.body}
               </p>
             </div>
           </div>

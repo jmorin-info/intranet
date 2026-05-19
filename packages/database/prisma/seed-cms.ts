@@ -635,6 +635,78 @@ const BLOCKS: SeedBlock[] = [
     body: "Contrôle d'accès • Hypervision SEAL System • Vidéosurveillance avancée",
   },
   // ---------------------------------------------------------------------------
+  // Trust score — 4 badges placeholder (Identités / Continuité / Crypto / Audit).
+  // Les badges sont remplacés en priorité par l'API /trust/score si elle
+  // renvoie ses propres badges (production live). Le CMS gère le placeholder.
+  // Status valide : OK | PARTIAL | UNKNOWN.
+  // Key valide pour l'icône : identities | continuity | crypto | audit.
+  // ---------------------------------------------------------------------------
+  {
+    key: "trust.score.badges",
+    locale: "fr",
+    title: "Trust score — badges placeholder",
+    body: "4 badges affichés sur /trust quand l'API /trust/score ne fournit pas les siens.",
+    data: [
+      {
+        key: "identities",
+        label: "Identités",
+        status: "UNKNOWN",
+        caption: "MFA & contrôle d'accès",
+      },
+      {
+        key: "continuity",
+        label: "Continuité",
+        status: "UNKNOWN",
+        caption: "Sauvegardes testées",
+      },
+      {
+        key: "crypto",
+        label: "Crypto",
+        status: "UNKNOWN",
+        caption: "TLS 1.2+ / HSTS",
+      },
+      {
+        key: "audit",
+        label: "Audit",
+        status: "UNKNOWN",
+        caption: "Traçabilité 24/7",
+      },
+    ],
+  },
+  // ---------------------------------------------------------------------------
+  // Tools/PDF — 6 raccourcis Stirling. iconKey ∈ {Merge, Scissors, ScanText,
+  // FileDown, Droplets, ArrowRightLeft}. path doit commencer par / (chemin
+  // Stirling PDF natif).
+  // ---------------------------------------------------------------------------
+  {
+    key: "tools.pdf.shortcuts",
+    locale: "fr",
+    title: "Outils PDF — raccourcis Stirling",
+    body: "Barre d'accès rapide vers les outils Stirling intégrés en iframe.",
+    data: [
+      { label: "Fusionner", path: "/merge-pdfs", iconKey: "Merge" },
+      { label: "Diviser", path: "/split-pdf-by-pages", iconKey: "Scissors" },
+      { label: "OCR", path: "/ocr-pdf", iconKey: "ScanText" },
+      { label: "Compresser", path: "/compress-pdf", iconKey: "FileDown" },
+      { label: "Filigraner", path: "/add-watermark", iconKey: "Droplets" },
+      { label: "Convertir", path: "/pdf-to-word", iconKey: "ArrowRightLeft" },
+    ],
+  },
+  // ---------------------------------------------------------------------------
+  // Onboarding — message d'accueil cybersécurité affiché en tête de
+  // /getting-started.
+  // ---------------------------------------------------------------------------
+  {
+    key: "onboarding.welcome_message",
+    locale: "fr",
+    title: "Onboarding — message d'accueil",
+    body: "Card affichée en tête de /getting-started, sous le PageHeader.",
+    data: {
+      title: "La cybersécurité, notre valeur fondamentale",
+      body: "Chez OMNITECH Security, la protection de l'information est au cœur de chaque action. Cet intranet est conçu selon les exigences ISO 27001:2022 et NIS2. Chaque collaborateur est un maillon essentiel de notre chaîne de sécurité.",
+    },
+  },
+  // ---------------------------------------------------------------------------
   // Kiosque — labels des 3 écrans rotatifs + footer.
   // ---------------------------------------------------------------------------
   {

@@ -1,17 +1,38 @@
-'use client';
+"use client";
 
-import React, { useEffect, useLayoutEffect, useState, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
-import { api } from '@/lib/api';
-import { Card, CardContent, Button } from '@omnitech/ui';
-import { useTranslation } from '@/lib/i18n';
-import { PageHeader } from '@/components/layout/page-header';
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { Card, CardContent, Button } from "@omnitech/ui";
+import { useTranslation } from "@/lib/i18n";
+import { PageHeader } from "@/components/layout/page-header";
+import { useCmsBlocks, getBlockData } from "@/lib/cms-client";
 import {
-  FileText, ExternalLink, RefreshCw, AlertTriangle, CheckCircle2,
-  Maximize2, Minimize2, Loader2, XCircle, Download, Copy,
-  Merge, Scissors, ScanText, FileDown, Droplets, ArrowRightLeft,
-} from 'lucide-react';
+  FALLBACK_STIRLING_TOOLS,
+  STIRLING_ICON_REGISTRY,
+  normalizeStirlingShortcut,
+  type StirlingShortcut,
+} from "./_cms";
+import {
+  FileText,
+  ExternalLink,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2,
+  Maximize2,
+  Minimize2,
+  Loader2,
+  XCircle,
+  Download,
+  Copy,
+} from "lucide-react";
 
 interface StirlingStatus {
   enabled: boolean;
@@ -37,12 +58,16 @@ interface StirlingStatus {
  * Résout l'URL Stirling depuis le point de vue du NAVIGATEUR.
  */
 function resolveClientUrl(backendUrl: string): string {
-  if (typeof window === 'undefined') return backendUrl;
+  if (typeof window === "undefined") return backendUrl;
   try {
     const parsed = new URL(backendUrl);
-    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '0.0.0.0') {
+    if (
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "0.0.0.0"
+    ) {
       const currentHost = window.location.hostname;
-      if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+      if (currentHost !== "localhost" && currentHost !== "127.0.0.1") {
         parsed.hostname = currentHost;
       }
     }
@@ -62,21 +87,25 @@ interface PreloadedDocument {
   blob: Blob;
 }
 
-/** Raccourcis outils Stirling */
-const STIRLING_TOOLS = [
-  { label: 'Fusionner', path: '/merge-pdfs', icon: Merge },
-  { label: 'Diviser', path: '/split-pdf-by-pages', icon: Scissors },
-  { label: 'OCR', path: '/ocr-pdf', icon: ScanText },
-  { label: 'Compresser', path: '/compress-pdf', icon: FileDown },
-  { label: 'Filigraner', path: '/add-watermark', icon: Droplets },
-  { label: 'Convertir', path: '/pdf-to-word', icon: ArrowRightLeft },
-] as const;
-
 export default function StirlingPdfPage() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
-  const docId = searchParams.get('doc');
-  const versionId = searchParams.get('version');
+  const docId = searchParams.get("doc");
+  const versionId = searchParams.get("version");
+
+  // Raccourcis outils Stirling — édités via le bloc CMS `tools.pdf.shortcuts`.
+  // Le fallback hardcodé (FALLBACK_STIRLING_TOOLS) reste affiché immédiatement
+  // pendant que le hook fetch le bloc CMS.
+  const cmsBlocks = useCmsBlocks(["tools.pdf.shortcuts"], "fr");
+  const stirlingTools = useMemo<StirlingShortcut[]>(() => {
+    const raw = getBlockData<unknown[]>(cmsBlocks, "tools.pdf.shortcuts", []);
+    const fromCms = Array.isArray(raw)
+      ? raw
+          .map(normalizeStirlingShortcut)
+          .filter((s): s is StirlingShortcut => s !== null)
+      : [];
+    return fromCms.length > 0 ? fromCms : FALLBACK_STIRLING_TOOLS;
+  }, [cmsBlocks]);
 
   const [status, setStatus] = useState<StirlingStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,34 +123,39 @@ export default function StirlingPdfPage() {
   const fetchStatus = async () => {
     setLoading(true);
     try {
-      const res = await api.get<StirlingStatus>('/stirling/status');
+      const res = await api.get<StirlingStatus>("/stirling/status");
       // L'intercepteur axios peut renvoyer { data: null } sur 403/429 (cf. api.ts)
       if (!res.data) {
         const status = (res as { status?: number }).status;
         setStatus({
           enabled: false,
-          url: '',
+          url: "",
           ok: false,
           message:
             status === 403
               ? "Accès refusé à Stirling — contactez un administrateur."
               : status === 429
-                ? 'Trop de requêtes — patientez quelques secondes.'
-                : 'Le backend a renvoyé une réponse vide pour /stirling/status.',
+                ? "Trop de requêtes — patientez quelques secondes."
+                : "Le backend a renvoyé une réponse vide pour /stirling/status.",
         });
         return;
       }
       if (!res.data.url) {
         setStatus({
           ...res.data,
-          url: '',
+          url: "",
           ok: false,
-          message: "URL Stirling non configurée côté backend (STIRLING_PDF_PUBLIC_URL manquant).",
+          message:
+            "URL Stirling non configurée côté backend (STIRLING_PDF_PUBLIC_URL manquant).",
         });
         return;
       }
       // Refuse le mixed content (page HTTPS + Stirling HTTP → iframe bloquée)
-      if (typeof window !== 'undefined' && window.location.protocol === 'https:' && res.data.url.startsWith('http:')) {
+      if (
+        typeof window !== "undefined" &&
+        window.location.protocol === "https:" &&
+        res.data.url.startsWith("http:")
+      ) {
         setStatus({
           ...res.data,
           ok: false,
@@ -135,12 +169,12 @@ export default function StirlingPdfPage() {
     } catch (err) {
       setStatus({
         enabled: false,
-        url: '',
+        url: "",
         ok: false,
         message:
           err instanceof Error
             ? err.message
-            : 'Impossible de contacter le service Stirling',
+            : "Impossible de contacter le service Stirling",
       });
     } finally {
       setLoading(false);
@@ -164,32 +198,37 @@ export default function StirlingPdfPage() {
 
         const response = await api.get(
           `/documents/${docId}/versions/${versionId}/download`,
-          { responseType: 'blob' },
+          { responseType: "blob" },
         );
         if (cancelled) return;
 
-        const blob = response.data instanceof Blob ? response.data : new Blob([response.data]);
+        const blob =
+          response.data instanceof Blob
+            ? response.data
+            : new Blob([response.data]);
         const objectUrl = window.URL.createObjectURL(blob);
-        const fileName = `${docData.reference || docData.title || 'document'}.pdf`;
+        const fileName = `${docData.reference || docData.title || "document"}.pdf`;
 
         setPreloaded({
           id: docId as string,
           versionId: versionId as string,
-          title: docData.title || 'Document',
+          title: docData.title || "Document",
           fileName,
           fileSize: blob.size,
           objectUrl,
           blob,
         });
 
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = objectUrl;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
 
-        toast.success(`PDF "${fileName}" téléchargé — glissez-le dans Stirling ci-dessous`);
+        toast.success(
+          `PDF "${fileName}" téléchargé — glissez-le dans Stirling ci-dessous`,
+        );
 
         // Auto-dismiss banner after 10s
         setShowPreloadBanner(true);
@@ -199,7 +238,7 @@ export default function StirlingPdfPage() {
         const msg =
           err?.response?.data?.message ||
           err?.message ||
-          'Impossible de charger le document';
+          "Impossible de charger le document";
         setPreloadError(msg);
         toast.error(msg);
       }
@@ -235,43 +274,48 @@ export default function StirlingPdfPage() {
     if (!preloaded) return;
     try {
       if (navigator.clipboard && window.ClipboardItem) {
-        const item = new window.ClipboardItem({ 'application/pdf': preloaded.blob });
+        const item = new window.ClipboardItem({
+          "application/pdf": preloaded.blob,
+        });
         await navigator.clipboard.write([item]);
-        toast.success('PDF copié dans le presse-papiers');
+        toast.success("PDF copié dans le presse-papiers");
       } else {
-        toast.info('Votre navigateur ne supporte pas la copie de fichiers');
+        toast.info("Votre navigateur ne supporte pas la copie de fichiers");
       }
     } catch {
-      toast.error('Copie non supportée par le navigateur');
+      toast.error("Copie non supportée par le navigateur");
     }
   };
 
   const redownload = () => {
     if (!preloaded) return;
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = preloaded.objectUrl;
     link.download = preloaded.fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('PDF téléchargé à nouveau');
+    toast.success("PDF téléchargé à nouveau");
   };
 
-  const navigateToTool = useCallback((toolPath: string) => {
-    if (!status?.url) return;
-    const newSrc = status.url.replace(/\/$/, '') + toolPath;
-    setIframeSrc(newSrc);
-    setIframeLoaded(false);
-  }, [status?.url]);
+  const navigateToTool = useCallback(
+    (toolPath: string) => {
+      if (!status?.url) return;
+      const newSrc = status.url.replace(/\/$/, "") + toolPath;
+      setIframeSrc(newSrc);
+      setIframeLoaded(false);
+    },
+    [status?.url],
+  );
 
   // Exit fullscreen on Escape
   useEffect(() => {
     if (!fullscreen) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setFullscreen(false);
+      if (e.key === "Escape") setFullscreen(false);
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, [fullscreen]);
 
   const renderHeader = () => (
@@ -283,7 +327,11 @@ export default function StirlingPdfPage() {
       actions={
         <>
           {status && (
-            <StatusPill status={status} loading={loading} onRefresh={fetchStatus} />
+            <StatusPill
+              status={status}
+              loading={loading}
+              onRefresh={fetchStatus}
+            />
           )}
           {status?.ok && (
             <>
@@ -291,10 +339,16 @@ export default function StirlingPdfPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setFullscreen((f) => !f)}
-                title={fullscreen ? 'Quitter le plein écran (Esc)' : 'Plein écran'}
+                title={
+                  fullscreen ? "Quitter le plein écran (Esc)" : "Plein écran"
+                }
               >
-                {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                {fullscreen ? 'Réduire' : 'Plein écran'}
+                {fullscreen ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+                {fullscreen ? "Réduire" : "Plein écran"}
               </Button>
               <a
                 href={status.url}
@@ -316,9 +370,11 @@ export default function StirlingPdfPage() {
     if (!status?.ok) return null;
     return (
       <div className="flex items-center gap-1.5 overflow-x-auto py-1">
-        <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex-shrink-0 mr-1">Accès rapide :</span>
-        {STIRLING_TOOLS.map((tool) => {
-          const Icon = tool.icon;
+        <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 flex-shrink-0 mr-1">
+          Accès rapide :
+        </span>
+        {stirlingTools.map((tool) => {
+          const Icon = STIRLING_ICON_REGISTRY[tool.iconKey];
           const isActive = iframeSrc?.includes(tool.path);
           return (
             <button
@@ -327,8 +383,8 @@ export default function StirlingPdfPage() {
               onClick={() => navigateToTool(tool.path)}
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex-shrink-0 ${
                 isActive
-                  ? 'bg-primary/10 text-primary border border-primary/20'
-                  : 'bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700 hover:text-seal-navy dark:hover:text-white border border-transparent'
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700 hover:text-seal-navy dark:hover:text-white border border-transparent"
               }`}
             >
               <Icon className="h-3 w-3" />
@@ -338,7 +394,10 @@ export default function StirlingPdfPage() {
         })}
         <button
           type="button"
-          onClick={() => { setIframeSrc(status.url); setIframeLoaded(false); }}
+          onClick={() => {
+            setIframeSrc(status.url);
+            setIframeLoaded(false);
+          }}
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-gray-100 dark:bg-slate-800 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700 hover:text-seal-navy dark:hover:text-white border border-transparent transition-colors flex-shrink-0"
         >
           Accueil Stirling
@@ -376,8 +435,8 @@ export default function StirlingPdfPage() {
                   Stirling PDF n&apos;est pas activé
                 </h3>
                 <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">
-                  Le module d&apos;outils PDF est désactivé. Contactez votre administrateur
-                  pour l&apos;activer.
+                  Le module d&apos;outils PDF est désactivé. Contactez votre
+                  administrateur pour l&apos;activer.
                 </p>
                 <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 text-xs font-mono text-seal-gray-500 dark:text-slate-400">
                   <p className="mb-2 font-semibold text-seal-navy dark:text-white not-italic">
@@ -386,13 +445,14 @@ export default function StirlingPdfPage() {
                   <p># 1. Démarrer Stirling PDF en Docker</p>
                   <p className="text-emerald-600 dark:text-emerald-400">
                     docker run -d --name stirling-pdf -p 8080:8080 \<br />
-                    {'  '}-e SECURITY_ENABLE_LOGIN=false \<br />
-                    {'  '}-e SYSTEM_DEFAULTLOCALE=fr_FR \<br />
-                    {'  '}--restart unless-stopped frooodle/s-pdf:latest
+                    {"  "}-e SECURITY_ENABLE_LOGIN=false \<br />
+                    {"  "}-e SYSTEM_DEFAULTLOCALE=fr_FR \<br />
+                    {"  "}--restart unless-stopped frooodle/s-pdf:latest
                   </p>
                   <p className="mt-3"># 2. Dans le fichier .env du backend</p>
                   <p className="text-emerald-600 dark:text-emerald-400">
-                    STIRLING_PDF_ENABLED=true<br />
+                    STIRLING_PDF_ENABLED=true
+                    <br />
                     STIRLING_PDF_URL=http://localhost:8080
                   </p>
                   <p className="mt-3"># 3. Redémarrer le backend</p>
@@ -423,9 +483,15 @@ export default function StirlingPdfPage() {
                   {status.message}
                 </p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-500">
-                  URL configurée : <code className="font-mono">{status.url}</code>
+                  URL configurée :{" "}
+                  <code className="font-mono">{status.url}</code>
                 </p>
-                <Button variant="outline" size="sm" onClick={fetchStatus} className="mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchStatus}
+                  className="mt-4"
+                >
                   <RefreshCw className="h-3.5 w-3.5" />
                   Réessayer
                 </Button>
@@ -448,22 +514,36 @@ export default function StirlingPdfPage() {
                 <p className="text-xs font-semibold text-seal-navy dark:text-white truncate">
                   PDF téléchargé : {preloaded.fileName}
                   <span className="font-normal text-seal-gray-500 dark:text-slate-400 ml-2">
-                    ({(preloaded.fileSize / 1024).toFixed(1)} Ko) — Glissez-le dans Stirling ci-dessous
+                    ({(preloaded.fileSize / 1024).toFixed(1)} Ko) — Glissez-le
+                    dans Stirling ci-dessous
                   </span>
                 </p>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <Button size="sm" variant="outline" onClick={redownload} className="h-7 text-[10px] px-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={redownload}
+                  className="h-7 text-[10px] px-2"
+                >
                   <Download className="h-3 w-3" />
                   Re-télécharger
                 </Button>
-                <Button size="sm" variant="outline" onClick={copyPdfInfo} className="h-7 text-[10px] px-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={copyPdfInfo}
+                  className="h-7 text-[10px] px-2"
+                >
                   <Copy className="h-3 w-3" />
                   Copier
                 </Button>
                 <button
                   type="button"
-                  onClick={() => { setShowPreloadBanner(false); setCountdownActive(false); }}
+                  onClick={() => {
+                    setShowPreloadBanner(false);
+                    setCountdownActive(false);
+                  }}
                   className="p-1 rounded text-seal-gray-500 hover:text-seal-navy dark:hover:text-white transition-colors"
                 >
                   <XCircle className="h-3.5 w-3.5" />
@@ -475,7 +555,7 @@ export default function StirlingPdfPage() {
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#F9964A]/20">
                 <div
                   className="h-full bg-[#F9964A]/60"
-                  style={{ animation: 'focus-countdown 10s linear forwards' }}
+                  style={{ animation: "focus-countdown 10s linear forwards" }}
                 />
               </div>
             )}
@@ -485,7 +565,9 @@ export default function StirlingPdfPage() {
           <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
             <XCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">Impossible de précharger le document</p>
+              <p className="font-semibold">
+                Impossible de précharger le document
+              </p>
               <p className="mt-0.5">{preloadError}</p>
             </div>
           </div>
@@ -510,7 +592,10 @@ export default function StirlingPdfPage() {
               src={iframeSrc || status.url}
               title="Stirling PDF"
               className="w-full border-0"
-              style={{ height: docId ? 'calc(100vh - 180px)' : 'calc(100vh - 120px)', minHeight: 600 }}
+              style={{
+                height: docId ? "calc(100vh - 180px)" : "calc(100vh - 120px)",
+                minHeight: 600,
+              }}
               onLoad={() => setIframeLoaded(true)}
               sandbox="allow-same-origin allow-scripts allow-forms allow-downloads allow-popups allow-popups-to-escape-sandbox allow-modals"
               referrerPolicy="no-referrer"
@@ -530,10 +615,14 @@ export default function StirlingPdfPage() {
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold text-seal-navy dark:text-white">
-              Stirling PDF {status.version ? `· ${status.version}` : ''}
+              Stirling PDF {status.version ? `· ${status.version}` : ""}
             </span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setFullscreen(false)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFullscreen(false)}
+          >
             <Minimize2 className="h-4 w-4" />
             Quitter (Esc)
           </Button>
@@ -591,7 +680,7 @@ function StatusPill({
       <div className="flex items-center gap-1.5">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="h-3 w-3" />
-          En ligne{status.version ? ` · ${status.version}` : ''}
+          En ligne{status.version ? ` · ${status.version}` : ""}
         </span>
         <button
           type="button"
