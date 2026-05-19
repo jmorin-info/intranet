@@ -188,6 +188,10 @@ function KioskInner() {
 
   return (
     <div className="fixed inset-0 bg-[#F68D2E] text-white overflow-hidden font-body">
+      {/* H1 sr-only — conformité WCAG 2.4.6 (Headings and Labels). Le mode
+          kiosque est principalement visuel mais doit avoir un titre de page
+          accessible pour lecteurs d'écran et outils d'audit a11y. */}
+      <h1 className="sr-only">Mode kiosque OMNITECH Security</h1>
       {/* Header : logo + horloge + météo */}
       <header className="absolute top-0 inset-x-0 flex items-center justify-between px-16 py-10 z-10">
         <div className="flex items-center gap-6">

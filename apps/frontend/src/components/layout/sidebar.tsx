@@ -187,7 +187,7 @@ const RailTooltip: React.FC<RailTooltipProps> = ({
         <span className="text-white/50 text-[10px] font-mono">{shortcut}</span>
       )}
       {badge !== undefined && badge > 0 && (
-        <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold">
+        <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-semibold text-white">
           {badge > 99 ? "99+" : badge}
         </span>
       )}
@@ -301,10 +301,10 @@ const PanelItem: React.FC<PanelItemProps> = ({
   const Icon = item.icon;
   const badgeTone =
     item.badgeTone === "amber"
-      ? "bg-amber-500 text-white"
+      ? "bg-amber-600 text-white"
       : item.badgeTone === "emerald"
-        ? "bg-emerald-500 text-white"
-        : "bg-red-500 text-white";
+        ? "bg-emerald-600 text-white"
+        : "bg-red-600 text-white";
 
   return (
     <div className="group/item relative">

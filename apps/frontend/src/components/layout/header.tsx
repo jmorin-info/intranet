@@ -731,7 +731,7 @@ export function Header() {
           >
             <Bell className="h-[18px] w-[18px]" />
             {unreadCount > 0 && (
-              <span className="absolute -right-0.5 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white ring-2 ring-white dark:ring-slate-900 animate-pulse">
+              <span className="absolute -right-0.5 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold text-white ring-2 ring-white dark:ring-slate-900 animate-pulse">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
