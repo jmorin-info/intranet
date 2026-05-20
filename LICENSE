@@ -1,0 +1,54 @@
+                    OMNITECH Intranet — Proprietary License
+                  ============================================
+
+Copyright (c) 2024-2026 Julien MORIN CHOUKROUN. All rights reserved.
+
+This software and associated documentation files (the "Software") were
+designed and developed by Julien MORIN CHOUKROUN for OMNITECH Security.
+The Software is protected by French and international copyright laws.
+The author retains exclusive ownership of all rights, title, and interest
+in and to the Software.
+
+NO LICENSE IS GRANTED. The Software is made available solely for internal
+use by OMNITECH Security under separate agreement with the author. Any
+other use requires prior written authorization from Julien MORIN CHOUKROUN.
+
+PERMITTED USE
+-------------
+The Software may be:
+  - Used internally within OMNITECH Security's infrastructure per the
+    agreement between the author and OMNITECH Security
+  - Maintained and modified by the author or contributors authorized
+    in writing by the author
+  - Deployed on infrastructure operated by or for OMNITECH Security
+
+PROHIBITED USE
+--------------
+Without prior written authorization from the author, the following are
+strictly prohibited:
+  - Redistribution, sub-licensing, or sale of the Software
+  - Public hosting, mirroring, or republication of the source code
+  - Use outside the scope authorized in the agreement above
+  - Reverse engineering for the purpose of creating a competing product
+  - Removal or alteration of copyright notices
+
+THIRD-PARTY COMPONENTS
+----------------------
+The Software incorporates open-source components, each governed by its own
+license. See package.json / pnpm-lock.yaml for the complete dependency list.
+Compliance with these licenses is required regardless of this notice.
+
+DISCLAIMER
+----------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM
+THE USE OF THIS SOFTWARE.
+
+CONTACT
+-------
+For licensing inquiries, collaboration requests, or compliance questions:
+  Julien MORIN CHOUKROUN — jmorin@omnitech-security.fr
+
+For security vulnerabilities, see SECURITY.md.

@@ -1,0 +1,36 @@
+# EditorConfig — convention de formatage partagée
+# https://editorconfig.org
+#
+# Prettier reste la source de vérité pour le code, mais .editorconfig
+# garantit que les éditeurs (VS Code, JetBrains, Vim, etc.) appliquent
+# déjà les bons réglages au moment de la frappe — évite les diffs de
+# whitespace en PR.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 100
+
+[*.md]
+# Markdown peut avoir des espaces en fin de ligne significatifs (saut de
+# ligne en `<br>`) — on ne les trim pas.
+trim_trailing_whitespace = false
+max_line_length = off
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[Makefile]
+# Tabs obligatoires en Makefile.
+indent_style = tab
+
+[*.{sh,bash}]
+# Indent 2 spaces pour les scripts shell — convention OMNITECH.
+indent_style = space
+indent_size = 2

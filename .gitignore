@@ -1,29 +1,94 @@
+# ─── Dépendances + builds ───────────────────────────────────────────────
 node_modules/
 dist/
 .next/
 .turbo/
+.swc/
 *.tsbuildinfo
+
+# ─── Variables d'environnement ──────────────────────────────────────────
+# Tous les .env sont ignorés SAUF *.example (templates non-secrets)
 .env
 .env.local
 .env.production
 .env.prod
-# VAPID keys (Web Push) — NEVER commit
+.env.development
+.env.test
+.env.*.local
+# Backups et anciennes versions d'env (NEVER commit — un backup .env
+# contient les VRAIS secrets, même s'il est nommé .bak/.old/.backup)
+.env.*backup*
+.env.*.bak
+.env.*.old
+.env.before-*
+.env.pre-*
+*-env.txt
+
+# ─── Secrets divers ──────────────────────────────────────────────────────
+# VAPID keys (Web Push)
 vapid-keys.txt
 vapid-keys.json
+# Docker secrets (générés par init-secrets.sh)
+secrets/*.txt
+# Clés cryptographiques
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+# Fichiers d'audit / scans qui peuvent contenir des credentials
+*-scan.json
+*-audit.json
+gitleaks-report.*
+trufflehog-report.*
+
+# ─── Données utilisateurs / uploads ─────────────────────────────────────
 uploads/
 storage/
+
+# ─── Logs ───────────────────────────────────────────────────────────────
 *.log
+logs/
+
+# ─── Tests + couverture ────────────────────────────────────────────────
 coverage/
 .nyc_output/
-# Playwright
+
+# ─── Playwright ─────────────────────────────────────────────────────────
 e2e/.auth/
 playwright-report/
 test-results/
-# Docker secrets (init-secrets.sh) — NEVER commit
-secrets/*.txt
-# Storybook build output
+
+# ─── Storybook + Chromatic ──────────────────────────────────────────────
 storybook-static/
-# Chromatic
 chromatic-report.json
 build-storybook.log
+
+# ─── Outils dev (transcripts, sessions IDE, IA) ────────────────────────
 .claude
+.cursor
+.aider*
+# Transcripts d'assistants IA copiés par mégarde (Claude Code, Copilot)
+# — souvent gros et contiennent du contexte sensible
+*-claude-*.txt
+*-claude-*.md
+# Format de date ISO en début de nom — exemple type qui a déjà leaké
+[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.txt
+
+# ─── OS / éditeurs ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.iml
+
+# ─── Divers ─────────────────────────────────────────────────────────────
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
