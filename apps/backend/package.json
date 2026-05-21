@@ -41,7 +41,7 @@
     "cookie-parser": "^1.4.7",
     "exceljs": "4.4.0",
     "helmet": "^8.1.0",
-    "html-to-text": "^9.0.5",
+    "html-to-text": "^10.0.0",
     "ioredis": "^5.10.1",
     "ldapts": "^8.1.7",
     "mammoth": "^1.12.0",
