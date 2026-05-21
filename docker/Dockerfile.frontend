@@ -6,7 +6,7 @@
 # ---------------------
 # Stage 1: Dependencies
 # ---------------------
-FROM node:20-alpine AS deps
+FROM node:26-alpine AS deps
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -21,7 +21,7 @@ RUN pnpm install --frozen-lockfile --filter frontend...
 # ---------------------
 # Stage 2: Build
 # ---------------------
-FROM node:20-alpine AS build
+FROM node:26-alpine AS build
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -49,7 +49,7 @@ RUN pnpm --filter frontend build
 # ---------------------
 # Stage 3: Production
 # ---------------------
-FROM node:20-alpine AS prod
+FROM node:26-alpine AS prod
 
 RUN apk add --no-cache curl dumb-init
 
