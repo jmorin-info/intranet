@@ -1,0 +1,54 @@
+name: ✨ Feature request
+description: Proposer une nouvelle fonctionnalité ou amélioration
+title: "[Feature] "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème / besoin
+      description: Quel problème cette feature résout-elle ? Pour quel rôle ?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution proposée
+      description: Comment imagines-tu la fonctionnalité ?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées
+      description: Autres approches considérées (et pourquoi écartées).
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Domaine
+      options:
+        - CMS / éditorial
+        - RBAC / sécurité
+        - GED documentaire
+        - Workflow / approbations
+        - UX / accessibilité
+        - Conformité (ISO/RGPD/NIS2)
+        - Performance
+        - Déploiement / infra
+        - Autre
+    validations:
+      required: true
+
+  - type: dropdown
+    id: compliance
+    attributes:
+      label: Impact conformité ?
+      options:
+        - "Non"
+        - "Oui — ISO 27001"
+        - "Oui — RGPD"
+        - "Oui — NIS2"
+        - "À évaluer"

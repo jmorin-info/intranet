@@ -14,6 +14,10 @@
 [![ISO 27001:2022](https://img.shields.io/badge/ISO%2027001%3A2022-93%20contr%C3%B4les-006233)](https://www.iso.org/standard/27001)
 [![Licence : Propriétaire](https://img.shields.io/badge/Licence-Propri%C3%A9taire-892034)](./LICENSE)
 
+[![CI](https://github.com/jmorin-info/intranet/actions/workflows/ci.yml/badge.svg)](https://github.com/jmorin-info/intranet/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/jmorin-info/intranet/actions/workflows/codeql.yml/badge.svg)](https://github.com/jmorin-info/intranet/actions/workflows/codeql.yml)
+[![Security](https://github.com/jmorin-info/intranet/actions/workflows/security.yml/badge.svg)](https://github.com/jmorin-info/intranet/actions/workflows/security.yml)
+
 </div>
 
 ---
@@ -128,6 +132,9 @@ L'objectif : industrialiser la conformité (ISO/RGPD/NIS2) pour une PME tech de 
 ---
 
 ## Architecture
+
+> 📊 **Diagrammes complets** (système, RBAC, cycle de vie GED, flux CMS, ERD) :
+> [`docs/architecture/DIAGRAMS.md`](./docs/architecture/DIAGRAMS.md)
 
 Monorepo **pnpm 9** + **Turborepo** :
 

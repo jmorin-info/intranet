@@ -1,0 +1,25 @@
+# CODEOWNERS — révision obligatoire par le propriétaire.
+# https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Le propriétaire (Julien MORIN CHOUKROUN) est requesté en review sur
+# toutes les PR par défaut, et explicitement sur les zones sensibles.
+
+# Défaut — tout le repo
+*                                   @jmorin-info
+
+# Sécurité / RBAC / auth — review obligatoire propriétaire
+/apps/backend/src/auth/             @jmorin-info
+/apps/backend/src/**/guards/        @jmorin-info
+/packages/shared/                   @jmorin-info
+
+# Base de données / migrations — changements de schéma critiques
+/packages/database/prisma/          @jmorin-info
+
+# CI / sécurité / déploiement
+/.github/                           @jmorin-info
+/docker/                            @jmorin-info
+
+# Conformité / documentation légale
+/docs/compliance/                   @jmorin-info
+/SECURITY.md                        @jmorin-info
+/LICENSE                            @jmorin-info

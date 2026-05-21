@@ -1,0 +1,78 @@
+name: 🐛 Bug report
+description: Signaler un dysfonctionnement (hors vulnérabilité de sécurité)
+title: "[Bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de signaler ce bug. ⚠️ Pour une **vulnérabilité de sécurité**,
+        n'utilise PAS ce formulaire — voir [SECURITY.md](../blob/main/SECURITY.md).
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Que s'est-il passé ? Qu'attendais-tu à la place ?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Étapes de reproduction
+      placeholder: |
+        1. Aller sur '...'
+        2. Cliquer sur '...'
+        3. Observer l'erreur
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module concerné
+      options:
+        - Documents / GED
+        - Tickets / Helpdesk
+        - Wiki
+        - Chartes / Signatures
+        - CMS / admin/content
+        - Authentification / MFA
+        - Notifications
+        - Dashboard
+        - Veille / Incidents
+        - Autre
+    validations:
+      required: true
+
+  - type: dropdown
+    id: role
+    attributes:
+      label: Rôle de l'utilisateur impacté
+      options:
+        - SUPER_ADMIN
+        - ADMIN
+        - DIRECTION
+        - MANAGER
+        - REVIEWER
+        - COLLABORATEUR
+        - AUDITEUR
+        - PRESTATAIRE
+        - Inconnu / plusieurs
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environnement
+      placeholder: |
+        - Navigateur : Chrome 120 / Firefox 121 / ...
+        - OS : Windows 11 / macOS 14 / ...
+        - Commit / version : (git rev-parse --short HEAD)
+        - Env : prod / preprod / dev
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / captures (optionnel)
+      description: Colle les logs pertinents ou des captures. ⚠️ Masque tout secret.

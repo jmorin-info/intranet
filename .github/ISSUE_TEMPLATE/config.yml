@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Vulnérabilité de sécurité
+    url: https://github.com/jmorin-info/intranet/blob/main/SECURITY.md
+    about: NE PAS ouvrir d'issue publique. Suivre la procédure de divulgation responsable (RSSI / DPO / propriétaire).
+  - name: 📖 Documentation
+    url: https://github.com/jmorin-info/intranet/tree/main/docs
+    about: Consulter la documentation (CMS, compliance, infrastructure, runbooks).
