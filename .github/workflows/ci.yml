@@ -77,7 +77,45 @@ jobs:
         run: pnpm -C packages/database exec prisma validate
 
   # ---------------------------------------------------------------------------
-  # 2. Build backend (NestJS)
+  # 2. Tests unitaires (Vitest frontend + Jest backend)
+  # ---------------------------------------------------------------------------
+  unit-tests:
+    name: Unit tests (Vitest + Jest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm -C packages/database exec prisma generate
+
+      - name: Frontend tests (Vitest)
+        run: pnpm --filter @omnitech/frontend test
+
+      - name: Backend tests (Jest)
+        # Les specs unitaires mockent PrismaService — pas de DB réelle requise.
+        # DATABASE_URL stub fourni au niveau workflow pour les imports Prisma.
+        run: pnpm --filter @omnitech/backend test
+
+  # ---------------------------------------------------------------------------
+  # 3. Build backend (NestJS)
   # ---------------------------------------------------------------------------
   build-backend:
     name: Build backend
