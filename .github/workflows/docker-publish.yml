@@ -1,0 +1,95 @@
+name: Docker Publish (GHCR)
+
+# Construit et publie les images Docker backend + frontend sur le
+# GitHub Container Registry (ghcr.io). Consommées par le repo de
+# déploiement `omnitech-intranet-deploy` (docker-compose.yml).
+#
+# Déclenchement :
+#   - push d'un tag `v*` (release) → tags d'image : la version + `latest`
+#   - workflow_dispatch (manuel)   → tag d'image : `manual-<sha court>`
+#
+# Images publiées :
+#   - ghcr.io/<owner>/omnitech-backend
+#   - ghcr.io/<owner>/omnitech-frontend
+#
+# Auth : GITHUB_TOKEN intrinsèque (permission packages: write). Aucun
+# secret à configurer manuellement.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag d'image custom (défaut : manual-<sha>)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            dockerfile: docker/Dockerfile.backend
+            image: omnitech-backend
+          - name: frontend
+            dockerfile: docker/Dockerfile.frontend
+            image: omnitech-frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Génère les tags d'image : sémantique sur tag git, latest sur main,
+      # `manual-<sha>` sur dispatch manuel.
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=raw,value=manual-{{sha}},enable=${{ github.event_name == 'workflow_dispatch' }}
+          labels: |
+            org.opencontainers.image.title=OMNITECH Intranet ${{ matrix.name }}
+            org.opencontainers.image.vendor=Julien MORIN CHOUKROUN
+            org.opencontainers.image.licenses=Proprietary
+
+      - name: Build and push ${{ matrix.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+          # Les NEXT_PUBLIC_* du frontend sont injectés à l'exécution via
+          # le conteneur (output standalone) — pas besoin de build args ici.
+          # Si tu veux figer NEXT_PUBLIC_API_URL au build, ajoute :
+          # build-args: |
+          #   NEXT_PUBLIC_API_URL=https://intranet.exemple.fr/api
