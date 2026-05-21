@@ -1,0 +1,41 @@
+# Configuration gitleaks — détection de secrets.
+# https://github.com/gitleaks/gitleaks
+#
+# Étend le jeu de règles par défaut + ajoute des règles spécifiques au
+# projet (DATABASE_URL avec credentials, JWT secrets, etc.) et une
+# allowlist pour les faux positifs connus (placeholders .env.example).
+
+[extend]
+useDefault = true
+
+# ─── Règles custom ────────────────────────────────────────────────────────
+[[rules]]
+id = "omnitech-database-url-with-creds"
+description = "DATABASE_URL avec credentials en clair"
+regex = '''postgres(ql)?:\/\/[^:]+:[^@\s]{8,}@'''
+tags = ["database", "credentials"]
+
+[[rules]]
+id = "omnitech-jwt-secret"
+description = "JWT secret en clair (>= 32 hex)"
+regex = '''(?i)(jwt_(access|refresh)_secret|session_secret)\s*[=:]\s*['"]?[a-f0-9]{32,}'''
+tags = ["jwt", "secret"]
+
+# ─── Allowlist (faux positifs) ──────────────────────────────────────────────
+[allowlist]
+description = "Placeholders et fichiers de template — pas de vrais secrets"
+paths = [
+  '''\.env\.example$''',
+  '''\.env\.prod\.example$''',
+  '''packages/database/prisma/seed.*\.ts$''',  # données de démo
+  '''docs/.*\.md$''',                            # exemples documentaires
+]
+regexes = [
+  '''changeme_.*''',
+  '''CHANGE_ME.*''',
+  '''__GENERATED.*__''',
+  '''__SET_MANUALLY__''',
+  '''PLACEHOLDER.*''',
+  '''xxx+''',
+  '''stub:stub''',          # DATABASE_URL stub de la CI
+]

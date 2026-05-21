@@ -1,0 +1,58 @@
+name: CodeQL
+
+# Analyse statique de sécurité GitHub CodeQL (SAST).
+# Détecte injections, XSS, désérialisation non sûre, path traversal, etc.
+# dans le code JavaScript/TypeScript.
+#
+# Déclenchement :
+#   - push sur main
+#   - pull_request vers main
+#   - hebdomadaire (catch des nouvelles règles CodeQL sur du code inchangé)
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    # Lundi 04:30 UTC
+    - cron: "30 4 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["javascript-typescript"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # Suite "security-and-quality" : plus de règles que le défaut.
+          queries: security-and-quality
+
+      # Pas de build custom : l'analyse extrait directement le TS/JS
+      # (mode autobuild non requis pour les langages interprétés).
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"

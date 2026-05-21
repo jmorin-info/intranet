@@ -1,2 +1,17 @@
 #!/usr/bin/env sh
+
+# 1. Scan secrets sur les fichiers stagés (gitleaks) — bloque le commit si
+#    un secret est détecté. Skip silencieux si gitleaks n'est pas installé
+#    localement (la CI `security.yml` fait le filet de sécurité côté serveur).
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --config .gitleaks.toml || {
+    echo "✗ gitleaks a détecté un secret dans les fichiers stagés." >&2
+    echo "  Retire le secret avant de committer (voir SECURITY.md)." >&2
+    exit 1
+  }
+else
+  echo "ℹ gitleaks non installé localement — scan secrets délégué à la CI."
+fi
+
+# 2. Lint-staged (Prettier + ESLint sur les fichiers stagés)
 pnpm exec lint-staged

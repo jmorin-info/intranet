@@ -1,0 +1,78 @@
+# Dependabot — mises à jour automatiques des dépendances.
+# https://docs.github.com/code-security/dependabot
+#
+# 3 écosystèmes surveillés : npm (monorepo), GitHub Actions, Docker.
+# Les PRs sont groupées pour limiter le bruit ; les mises à jour de
+# sécurité restent prioritaires et non groupées (ouvertes immédiatement).
+
+version: 2
+updates:
+  # ─── npm (racine du monorepo pnpm) ──────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "npm"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      # Groupe les mises à jour mineures/patch pour réduire le nombre de PR.
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+      # Groupe l'écosystème Next.js / React ensemble (souvent couplés).
+      react-ecosystem:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+      # Groupe NestJS ensemble.
+      nestjs:
+        patterns:
+          - "@nestjs/*"
+    ignore:
+      # Les majeures de Prisma / Next.js sont breaking → revue manuelle.
+      - dependency-name: "prisma"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@prisma/client"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+
+  # ─── GitHub Actions ─────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # ─── Docker (Dockerfiles backend + frontend) ────────────────────────────
+  - package-ecosystem: "docker"
+    directories:
+      - "/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "build(docker)"
