@@ -1353,8 +1353,16 @@ export class RagService {
           })),
         });
 
+        // Inférence Ollama en local sur CPU (~8 tok/s). Le défaut historique
+        // (500 tokens, timeout 30 s/modèle) ne pouvait JAMAIS aboutir sur le
+        // modèle principal : 500 tokens ≈ 60 s > 30 s → timeout → cascade
+        // primary→fallback→emergency (jusqu'à ~150 s) → réponse extractive ou
+        // perçue comme « le RAG ne répond pas ». On cale donc une réponse plus
+        // concise et un budget temps réaliste pour que le modèle principal
+        // termine en un seul passage (surchargeable par env pour le tuning).
         const result = await this.llmService.generate(prompt, {
-          maxTokens: 500,
+          maxTokens: parseInt(process.env.RAG_ANSWER_MAX_TOKENS || "384", 10),
+          timeoutMs: parseInt(process.env.RAG_ANSWER_TIMEOUT_MS || "90000", 10),
         });
         answer = result.text;
         answerSource = "llm";

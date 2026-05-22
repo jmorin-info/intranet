@@ -44,6 +44,16 @@ api.interceptors.request.use((config) => {
   ) {
     config.timeout = 600_000;
   }
+  // RAG / IA : l'inférence LLM tourne en local (Ollama, CPU). Une réponse
+  // complète dépasse fréquemment le timeout par défaut de 15 s, alors que le
+  // backend accorde ~30 s au LLM. Sans cet alignement, le client avorte avant
+  // la fin → le chatbot bascule à tort sur le fallback (ou échoue) et l'IA
+  // « ne répond pas ». On laisse une marge au-dessus du budget backend.
+  if (url.startsWith("/rag/ask") || url.startsWith("/ai/search")) {
+    // Doit rester au-dessus du budget backend (RAG_ANSWER_TIMEOUT_MS ~90 s)
+    // pour ne pas avorter une génération qui aboutit côté serveur.
+    config.timeout = 95_000;
+  }
   return config;
 });
 
