@@ -102,7 +102,7 @@ export function ClassificationBadge({
         backgroundColor: config.bg,
         borderColor: config.ring,
       }}
-      title={`Classification ISO 27001 A.5.12 : ${config.label}`}
+      title={`Classification ${config.label} (ISO 27001 A.5.12) — ${config.description}`}
     >
       {showIcon && <Icon className={iconSize[size]} />}
       {config.label}

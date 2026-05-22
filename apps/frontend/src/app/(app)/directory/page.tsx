@@ -68,19 +68,19 @@ const ROLE_LABELS: Record<string, string> = {
   PRESTATAIRE: "Prestataire",
 };
 
+// Palette harmonisée sur la charte SEAL / OMNITECH SECURITY (bleu, navy, vert,
+// bordeaux, orange profond, taupe). Toutes ces teintes offrent un contraste
+// suffisant avec le texte blanc des initiales. On évite les couleurs vives
+// hors-charte (fuchsia, lime, rose…) pour une grille d'avatars cohérente.
 const AVATAR_COLORS = [
-  "bg-blue-500",
-  "bg-emerald-500",
-  "bg-violet-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-cyan-500",
-  "bg-indigo-500",
-  "bg-teal-500",
-  "bg-orange-500",
-  "bg-pink-500",
-  "bg-lime-600",
-  "bg-fuchsia-500",
+  "bg-seal-blue",
+  "bg-seal-navy",
+  "bg-seal-green",
+  "bg-seal-bordeaux",
+  "bg-primary-700",
+  "bg-primary-800",
+  "bg-navy-700",
+  "bg-taupe",
 ];
 
 function getAvatarColor(name: string): string {
