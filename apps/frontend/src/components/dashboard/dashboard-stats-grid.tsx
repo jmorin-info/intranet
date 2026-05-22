@@ -14,8 +14,8 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, Skeleton } from '@omnitech/ui';
-import { ArrowRight, Minus, TrendingDown, TrendingUp } from 'lucide-react';
+import { Card, CardContent, Skeleton, Tooltip } from '@omnitech/ui';
+import { ArrowRight, Info, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import {
   buildActionCards,
@@ -91,7 +91,25 @@ function StatCard({ card }: { card: StatCardType }) {
           <div className={`h-8 w-8 rounded-lg ${card.bg} dark:bg-opacity-20 flex items-center justify-center`}>
             <Icon className={`h-4 w-4 ${card.color}`} />
           </div>
-          <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 truncate flex-1">{card.label}</p>
+          <div className="flex items-center gap-1 min-w-0 flex-1">
+            <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 truncate">{card.label}</p>
+            {card.help && (
+              <Tooltip
+                content={card.help}
+                side="top"
+                className="whitespace-normal w-56 text-left leading-snug font-normal"
+              >
+                <span
+                  tabIndex={0}
+                  aria-label={`À propos de l’indicateur « ${card.label} »`}
+                  className="shrink-0 cursor-help text-seal-gray-500/50 hover:text-seal-gray-500 dark:text-slate-500 dark:hover:text-slate-300 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy/40 transition-colors"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  <Info className="h-3 w-3" aria-hidden="true" />
+                </span>
+              </Tooltip>
+            )}
+          </div>
           {card.trend && card.trend.direction !== 'flat' && (
             <span
               className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${trendColor}`}
