@@ -508,6 +508,21 @@ export default function CalendarPage() {
     });
   }, [selectedDate, eventsByDate]);
 
+  // Prochains événements (dérivés des events déjà chargés pour le mois visible,
+  // sans appel API supplémentaire) : à partir d'aujourd'hui, triés, 5 max.
+  const upcomingEvents = useMemo(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const floor = startOfToday.getTime();
+    return [...events]
+      .filter((ev) => {
+        const t = new Date(ev.date).getTime();
+        return !Number.isNaN(t) && t >= floor;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(0, 5);
+  }, [events]);
+
   /* ---- Navigation ---- */
   const prevMonth = useCallback(() => {
     if (month === 0) { setMonth(11); setYear((y) => y - 1); }
@@ -830,6 +845,42 @@ export default function CalendarPage() {
                     </div>
                   )}
                 </>
+              ) : upcomingEvents.length > 0 ? (
+                <div className="animate-fade-in-up">
+                  <h3 className="text-sm font-medium text-seal-navy dark:text-white mb-3">
+                    {t('calendar.upcoming')}
+                  </h3>
+                  <div className="space-y-2">
+                    {upcomingEvents.map((ev) => {
+                      const config = EVENT_CONFIG[ev.type] || EVENT_CONFIG.news;
+                      const Icon = config!.icon;
+                      const iconColor = ev.type === 'news' ? 'text-blue-500' : ev.type === 'compliance' ? 'text-red-500' : ev.type === 'event' ? 'text-emerald-500' : 'text-amber-500';
+                      const d = new Date(ev.date);
+                      const dateLabel = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+                      const inner = (
+                        <div className={`flex items-start gap-2.5 rounded-lg p-2.5 min-h-[44px] transition hover:ring-1 hover:ring-primary/30 ${config!.bg}`}>
+                          <Icon className={`h-4 w-4 mt-0.5 flex-shrink-0 ${iconColor}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-semibold text-primary capitalize">{dateLabel}</p>
+                            <p className="text-sm font-medium text-seal-navy dark:text-white truncate">{ev.title}</p>
+                          </div>
+                        </div>
+                      );
+                      return ev.type === 'event' ? (
+                        <button
+                          key={ev.id}
+                          type="button"
+                          onClick={() => setSelectedDate(new Date(ev.date))}
+                          className="block w-full text-left"
+                        >
+                          {inner}
+                        </button>
+                      ) : (
+                        <Link key={ev.id} href={ev.href}>{inner}</Link>
+                      );
+                    })}
+                  </div>
+                </div>
               ) : (
                 <div className="py-8 text-center">
                   <CalendarIcon className="h-10 w-10 text-seal-gray-500/20 mx-auto mb-3" />
