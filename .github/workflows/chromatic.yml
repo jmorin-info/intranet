@@ -50,24 +50,24 @@ jobs:
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # Chromatic exploite l'historique git pour la baseline (TurboSnap)
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 9.15.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "pnpm"
 
       - name: Cache Storybook build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             packages/ui/storybook-static
@@ -83,7 +83,7 @@ jobs:
         run: pnpm --filter @omnitech/ui run build-storybook
 
       - name: Publish to Chromatic
-        uses: chromaui/action@v11
+        uses: chromaui/action@v17
         with:
           # Token via secret du repo (NE PAS hardcoder)
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
@@ -101,7 +101,7 @@ jobs:
 
       - name: Comment Storybook URL on PR
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { CHROMATIC_STORYBOOK_URL } = process.env;
