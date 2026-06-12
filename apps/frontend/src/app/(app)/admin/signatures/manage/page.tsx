@@ -240,7 +240,12 @@ function CampaignDetailView({
     }
   }
 
-  const signatures = detail?.signatures || [];
+  // Stabilise la reference : sans useMemo, `[]` est recree a chaque render
+  // quand detail.signatures est absent -> useMemo plus bas recompute pour rien.
+  const signatures = useMemo(
+    () => detail?.signatures || [],
+    [detail?.signatures],
+  );
   const filtered = useMemo(
     () =>
       filter === "ALL"

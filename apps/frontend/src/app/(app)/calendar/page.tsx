@@ -535,10 +535,14 @@ export default function CalendarPage() {
   }, [month]);
 
   const goToday = useCallback(() => {
-    setYear(today.getFullYear());
-    setMonth(today.getMonth());
-    setSelectedDate(today);
-  }, [today]);
+    // Nouveau Date() a l'invocation : callback stable (deps vides) ET reactif
+    // au passage minuit (si la page reste ouverte). `today` au scope superieur
+    // est OK pour l'initial useState seulement (lu une fois au mount).
+    const now = new Date();
+    setYear(now.getFullYear());
+    setMonth(now.getMonth());
+    setSelectedDate(now);
+  }, []);
 
   /* ---- Render ---- */
   return (
