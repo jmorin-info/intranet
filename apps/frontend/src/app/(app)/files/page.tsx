@@ -12,7 +12,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import {
   Folder, File, Download, Upload, ArrowLeft, HardDrive, Globe, Server,
   Briefcase, Calculator, ClipboardList, Users, Lightbulb, Handshake, ChevronRight,
-  FileText, Image, FileSpreadsheet, FileArchive, Trash2, FolderPlus, Cloud, Copy,
+  FileText, Image as ImageIcon, FileSpreadsheet, FileArchive, Trash2, FolderPlus, Cloud, Copy,
   Edit3, FileCode, FileVideo, FileAudio, Presentation,
 } from 'lucide-react';
 
@@ -37,7 +37,7 @@ function getFileIcon(name: string) {
   if (['doc', 'docx', 'odt'].includes(ext || '')) return <FileText className="h-4 w-4 text-blue-500" />;
   if (['xls', 'xlsx', 'ods', 'csv'].includes(ext || '')) return <FileSpreadsheet className="h-4 w-4 text-emerald-500" />;
   if (['ppt', 'pptx', 'odp'].includes(ext || '')) return <Presentation className="h-4 w-4 text-orange-500" />;
-  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext || '')) return <Image className="h-4 w-4 text-purple-500" />;
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext || '')) return <ImageIcon aria-hidden="true" className="h-4 w-4 text-purple-500" />;
   if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2'].includes(ext || '')) return <FileArchive className="h-4 w-4 text-amber-500" />;
   if (['mp4', 'avi', 'mkv', 'mov', 'wmv'].includes(ext || '')) return <FileVideo className="h-4 w-4 text-pink-500" />;
   if (['mp3', 'wav', 'ogg', 'flac', 'aac'].includes(ext || '')) return <FileAudio className="h-4 w-4 text-teal-500" />;

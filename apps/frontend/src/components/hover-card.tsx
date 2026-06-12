@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useId } from "react";
 import {
   FileText,
   User,
@@ -88,6 +88,12 @@ export function HoverCard({
     };
   }, []);
 
+  // a11y : `role=group` ne supporte ni aria-haspopup ni aria-expanded
+  // (jsx-a11y/role-supports-aria-props). On utilise le pattern correct
+  // pour une fiche-au-survol descriptive : aria-describedby sur le trigger
+  // pointant vers `role=tooltip` sur le contenu, quand il est ouvert.
+  const tooltipId = useId();
+
   return (
     <>
       <div
@@ -97,9 +103,7 @@ export function HoverCard({
         onFocus={handleMouseEnter}
         onBlur={handleMouseLeave}
         className={`inline-block ${className || ""}`}
-        role="group"
-        aria-haspopup="true"
-        aria-expanded={isOpen}
+        aria-describedby={isOpen ? tooltipId : undefined}
       >
         {children}
       </div>
@@ -107,6 +111,8 @@ export function HoverCard({
       {isOpen && (
         <div
           ref={cardRef}
+          id={tooltipId}
+          role="tooltip"
           onMouseEnter={() => {
             if (timerRef.current) clearTimeout(timerRef.current);
           }}

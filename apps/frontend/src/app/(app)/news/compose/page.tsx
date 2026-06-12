@@ -30,7 +30,7 @@ import {
   Save,
   Send,
   X,
-  Image,
+  Image as ImageIcon,
   FileText,
   RefreshCw,
   Eye,
@@ -493,7 +493,7 @@ export default function ComposeNewsPage() {
                         }}
                       />
                       <span className="flex items-center justify-center gap-1.5 w-full rounded-btn border border-dashed border-gray-300 dark:border-slate-600 px-3 py-2 text-xs text-seal-gray-500 hover:border-primary hover:text-primary transition cursor-pointer">
-                        <Image className="h-3.5 w-3.5" /> Choisir une image
+                        <ImageIcon aria-hidden="true" className="h-3.5 w-3.5" /> Choisir une image
                       </span>
                     </label>
                   </div>
@@ -634,7 +634,7 @@ export default function ComposeNewsPage() {
                     }}
                     className="px-2 py-1 text-xs font-semibold rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
                   >
-                    <Image className="h-3.5 w-3.5 inline" />
+                    <ImageIcon aria-hidden="true" className="h-3.5 w-3.5 inline" />
                   </button>
                 </div>
                 {/* Editable area — utilise .wiki-content pour un rendu cohérent
