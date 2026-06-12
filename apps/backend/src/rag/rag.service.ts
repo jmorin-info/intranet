@@ -266,9 +266,13 @@ export class RagService {
       });
 
     const chunks = this.chunkContent(content);
+    const semantic = this.embeddingService.isEnabled();
+    let embedded = 0;
+    let embedFailed = 0;
     for (let i = 0; i < chunks.length; i++) {
-      await ragChunk
-        .create({
+      let created: { id: string } | null = null;
+      try {
+        created = await ragChunk.create({
           data: {
             sourceType,
             sourceId,
@@ -280,16 +284,39 @@ export class RagService {
               | Prisma.InputJsonValue
               | undefined,
           },
-        })
-        .catch((err: Error) => {
-          this.logger.warn(
-            `Failed to create chunk ${i} for ${sourceType}/${sourceId}: ${err.message}`,
-          );
+          select: { id: true },
         });
+      } catch (err) {
+        this.logger.warn(
+          `Failed to create chunk ${i} for ${sourceType}/${sourceId}: ${(err as Error).message}`,
+        );
+        continue;
+      }
+
+      // P1.2 — Embedding semantique (pgvector). Best-effort : un echec n'empeche
+      // pas l'indexation, le chunk reste interrogeable en lexical. Historiquement
+      // indexSource creait les chunks SANS embedding (bug) : la recherche vectorielle
+      // ne pouvait rien retrouver. On embedde desormais comme ticket-indexer.
+      if (semantic && chunks[i].trim().length > 0) {
+        try {
+          const vec = await this.embeddingService.embed(chunks[i]);
+          await this.prisma.$executeRawUnsafe(
+            `UPDATE "RagChunk" SET embedding = $1::vector WHERE id = $2`,
+            `[${vec.join(",")}]`,
+            created.id,
+          );
+          embedded++;
+        } catch (embErr) {
+          embedFailed++;
+          this.logger.warn(
+            `Embedding failed for chunk ${i} of ${sourceType}/${sourceId}: ${(embErr as Error).message}`,
+          );
+        }
+      }
     }
 
     this.logger.log(
-      `Indexed ${chunks.length} chunks for ${sourceType}/${sourceId}`,
+      `Indexed ${chunks.length} chunks for ${sourceType}/${sourceId} (embedded=${embedded}, failed=${embedFailed})`,
     );
     return chunks.length;
   }
