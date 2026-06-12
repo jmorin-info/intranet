@@ -740,7 +740,13 @@ function ComplianceTimeline({ tasks, loading }: ComplianceTimelineProps) {
   const [yearOffset, setYearOffset] = useState(0);
   const baseYear = now.getFullYear() + yearOffset;
 
-  // Build 12 months starting from January of baseYear
+  // Build 12 months starting from January of baseYear. On extrait month/year
+  // de `now` en primitives pour que useMemo recompute QUAND le mois ou l'annee
+  // courante change (sinon `isCurrent` peut rester perime si la page reste
+  // ouverte au passage d'un mois). `now` lui-meme est un nouvel objet a chaque
+  // render et n'est pas une dep utile.
+  const nowMonth = now.getMonth();
+  const nowYear = now.getFullYear();
   const months = useMemo(() => {
     return Array.from({ length: 12 }, (_, i) => {
       const date = new Date(baseYear, i, 1);
@@ -749,10 +755,10 @@ function ComplianceTimeline({ tasks, loading }: ComplianceTimelineProps) {
         year: date.getFullYear(),
         label: MONTH_NAMES[date.getMonth()],
         fullLabel: date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
-        isCurrent: date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(),
+        isCurrent: date.getMonth() === nowMonth && date.getFullYear() === nowYear,
       };
     });
-  }, [baseYear]);
+  }, [baseYear, nowMonth, nowYear]);
 
   // Generate repeating occurrences for each task across the 12-month window
   const taskOccurrences = useMemo(() => {
