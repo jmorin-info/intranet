@@ -18,6 +18,8 @@ const IT: SuggestedQuestion[] = [
   { label: 'Politique MFA', question: 'Quelle est la politique MFA en vigueur chez OMNITECH ?' },
   { label: 'Sauvegardes', question: 'Comment vérifier qu\'une sauvegarde est bien passée ?' },
   { label: 'Procédure escalade', question: 'Quelle est la procédure d\'escalade d\'un incident majeur ?' },
+  { label: 'VPN accès', question: 'Comment configurer le VPN pour un nouvel utilisateur ?' },
+  { label: 'Patch management', question: 'Quel est le calendrier de patch management mensuel ?' },
 ];
 
 const RSSI: SuggestedQuestion[] = [
@@ -26,6 +28,8 @@ const RSSI: SuggestedQuestion[] = [
   { label: 'Revue des accès', question: 'Comment conduire une revue des accès trimestrielle ?' },
   { label: 'PCA / PRA', question: 'Où trouver le plan de continuité d\'activité à jour ?' },
   { label: 'Contrôle A.5.15', question: 'Comment documenter le contrôle A.5.15 (contrôle d\'accès) ?' },
+  { label: 'Vulnérabilité critique', question: 'Quelle est la procédure si une CVE critique est publiée sur un de nos systèmes ?' },
+  { label: 'Veille CERT-FR', question: 'Comment qualifier une alerte CERT-FR et la prioriser ?' },
 ];
 
 const RH: SuggestedQuestion[] = [
@@ -34,6 +38,8 @@ const RH: SuggestedQuestion[] = [
   { label: 'Note de frais', question: 'Comment soumettre une note de frais ?' },
   { label: 'Entretien annuel', question: 'Quelle est la procédure d\'entretien annuel d\'évaluation ?' },
   { label: 'Charte informatique', question: 'Où trouver la charte informatique signée ?' },
+  { label: 'Arrêt maladie', question: 'Que faire en cas d\'arrêt maladie : qui prévenir et sous quel délai ?' },
+  { label: 'Plan de formation', question: 'Où consulter le plan de formation annuel ?' },
 ];
 
 const COMMERCIAL: SuggestedQuestion[] = [
@@ -42,6 +48,8 @@ const COMMERCIAL: SuggestedQuestion[] = [
   { label: 'Tarifs SEAL', question: 'Quelle est la grille tarifaire SEAL System 2026 ?' },
   { label: 'Process devis', question: 'Quel est le process d\'approbation d\'un devis supérieur à 50k€ ?' },
   { label: 'Références clients', question: 'Quelles sont les principales références clients ?' },
+  { label: 'CRM — saisir un lead', question: 'Comment qualifier et saisir un nouveau lead dans le CRM ?' },
+  { label: 'NDA modèle', question: 'Où trouver le modèle de NDA validé par le juridique ?' },
 ];
 
 const PRODUCTION: SuggestedQuestion[] = [
@@ -49,6 +57,8 @@ const PRODUCTION: SuggestedQuestion[] = [
   { label: 'Maintenance préventive', question: 'Quelle est la fréquence de maintenance préventive recommandée ?' },
   { label: 'Checklist mise en service', question: 'Quelle est la checklist de mise en service d\'un site ?' },
   { label: 'Contact astreinte', question: 'Qui contacter en cas d\'astreinte technique week-end ?' },
+  { label: 'Non-conformité', question: 'Comment déclarer une non-conformité constatée sur un site client ?' },
+  { label: 'Outillage caisse SAV', question: 'Quel outillage standard dans la caisse SAV terrain ?' },
 ];
 
 const GENERIC: SuggestedQuestion[] = [
@@ -57,6 +67,8 @@ const GENERIC: SuggestedQuestion[] = [
   { label: 'Créer un ticket', question: 'Comment créer un ticket helpdesk ?' },
   { label: 'Charte informatique', question: 'Où consulter la charte informatique OMNITECH ?' },
   { label: 'Raccourcis clavier', question: 'Quels sont les raccourcis clavier de l\'intranet ?' },
+  { label: 'Signaler un incident', question: 'Comment signaler un incident de sécurité ?' },
+  { label: 'Activer la MFA', question: 'Comment activer la double authentification sur mon compte ?' },
 ];
 
 /**
