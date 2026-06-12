@@ -45,6 +45,12 @@ trufflehog-report.*
 # ─── Données utilisateurs / uploads ─────────────────────────────────────
 uploads/
 storage/
+# Le pattern `storage/` ci-dessus, trop large, excluait par erreur le module
+# source `apps/backend/src/storage/` (controller + service + module Nest) —
+# la prod tournait avec ce module présent localement mais ABSENT de git, donc
+# un clone neuf ne compilait pas le backend. On le réintègre explicitement.
+!apps/backend/src/storage/
+!apps/backend/src/storage/**
 
 # ─── Logs ───────────────────────────────────────────────────────────────
 *.log
