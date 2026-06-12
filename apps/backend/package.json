@@ -33,7 +33,7 @@
     "@simplewebauthn/server": "^13.3.0",
     "@types/web-push": "^3.6.4",
     "archiver": "^5.3.2",
-    "axios": "^1.15.0",
+    "axios": "^1.16.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.74.1",
     "class-transformer": "^0.5.1",
