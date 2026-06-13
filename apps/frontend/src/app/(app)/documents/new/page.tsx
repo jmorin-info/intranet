@@ -105,7 +105,11 @@ const ISO_TEMPLATES: DocumentTemplate[] = [
     id: 'guide',
     titlePrefix: 'Guide utilisateur',
     category: DocumentCategory.GUIDE,
-    classificationDefault: 'PUBLIC',
+    // POL_015 §5 : niveau par defaut = Niveau 3 - Restreint (INTERNE) ;
+    // un guide de sensibilisation cible les collaborateurs et n'est pas
+    // a diffusion libre (le passer en N4-PUBLIC est une decision explicite
+    // du proprietaire, pas un defaut).
+    classificationDefault: 'INTERNE',
     description: 'Sensibilisation et usage pour collaborateurs (ISO 27001 A.6.3)',
     icon: <BookOpen className="h-5 w-5 text-green-500" />,
   },
@@ -125,11 +129,13 @@ const CLASSIFICATION_COLORS: Record<string, string> = {
   SECRET: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
 };
 
+// Aide en ligne (popover) — alignee sur les criteres canoniques de POL_015 §5
+// (Politique de classification, marquage et transfert ISO 27001 A.5.12).
 const SLA_CLASSIFICATION_HELP: Record<string, string> = {
-  PUBLIC: 'Diffusion libre, aucune restriction',
-  INTERNE: 'Usage interne uniquement, non diffusable',
-  CONFIDENTIEL: 'Accès restreint, diffusion contrôlée',
-  SECRET: 'Accès strictement limité, chiffrement requis',
+  PUBLIC: 'Niveau 4 — Public : communicable sans risque (plaquettes, communiqués, site web).',
+  INTERNE: 'Niveau 3 — Restreint (défaut) : usage interne, sensibilité limitée (notes, comptes rendus, procédures internes).',
+  CONFIDENTIEL: 'Niveau 2 — Sensible : impact significatif sur l\'activité ou des tiers (contrats, données RH, configurations infra, analyses de risque). Chiffrement obligatoire en transit.',
+  SECRET: 'Niveau 1 — Très sensible : conséquences graves ou sûreté en jeu (code source SEAL, clés privées, données OIV). Validation RSSI requise, chiffrement obligatoire.',
 };
 
 const STEPPER_STEPS = [

@@ -20,6 +20,7 @@ import {
 import { formatDate } from '@/lib/utils';
 import { FileText, BookOpen, Download, LayoutGrid, List, Plus, BarChart3, ClipboardList } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
+import { ClassificationBadge } from '@/components/ui/classification-badge';
 
 interface Procedure {
   id: string;
@@ -35,12 +36,11 @@ interface Procedure {
   currentVersion?: { fileType: string; fileSizeBytes: number };
 }
 
-const CLASSIFICATION_COLORS: Record<string, { bg: string; text: string }> = {
-  CONFIDENTIEL: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400' },
-  INTERNE: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400' },
-  PUBLIC: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400' },
-  RESTREINT: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400' },
-};
+// Note 2026-06-13 : ancien CLASSIFICATION_COLORS supprime au profit de
+// ClassificationBadge (source unique de verite, conforme POL_015 §5).
+// L'ancien mapping incluait par erreur 'RESTREINT' (libelle registre
+// historique) avec une couleur rouge, alors que POL_015 §5.1 mappe
+// 'Restreint' (registre hérité) -> Niveau 3 (bleu).
 
 export default function ProceduresPage() {
   const { t } = useTranslation();
@@ -116,14 +116,12 @@ export default function ProceduresPage() {
     return 'DOC';
   };
 
+  // Delegue au composant partage ClassificationBadge qui rend le libelle
+  // canonique « Niveau X — Libelle » (POL_015 §5) au lieu du raw enum.
+  // Mode 'xs' = libelle court 'N3' pour rester compact dans la grille.
   const getClassificationBadge = (classification?: string | null) => {
     if (!classification) return null;
-    const colors = CLASSIFICATION_COLORS[classification] ?? CLASSIFICATION_COLORS.INTERNE ?? { bg: 'bg-gray-100 dark:bg-slate-800', text: 'text-gray-600 dark:text-slate-400' };
-    return (
-      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider ${colors.bg} ${colors.text}`}>
-        {classification}
-      </span>
-    );
+    return <ClassificationBadge level={classification} size="xs" />;
   };
 
   return (

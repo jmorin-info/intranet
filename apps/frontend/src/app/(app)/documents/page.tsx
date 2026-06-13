@@ -396,7 +396,11 @@ function DocumentsContent() {
   const handleBulkClassify = async () => {
     if (selectedDocs.length === 0) return;
     const choice = prompt(
-      "Nouvelle classification (PUBLIC / INTERNE / CONFIDENTIEL / SECRET) :",
+      "Nouvelle classification (POL_015 §5) :\n" +
+        "  PUBLIC       — Niveau 4 — Public\n" +
+        "  INTERNE      — Niveau 3 — Restreint (défaut)\n" +
+        "  CONFIDENTIEL — Niveau 2 — Sensible\n" +
+        "  SECRET       — Niveau 1 — Très sensible",
       "INTERNE",
     );
     if (!choice) return;

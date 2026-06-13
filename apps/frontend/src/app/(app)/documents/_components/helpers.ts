@@ -14,18 +14,34 @@ export const CLASS_COLORS: Record<string, string> = {
   SECRET: "border-l-[#892034] bg-[#892034]/5",
 };
 
+// Labels canoniques par niveau (POL_015 §5 — Echelle de classification).
+// Les valeurs techniques SECRET/CONFIDENTIEL/INTERNE/PUBLIC restent stables
+// cote DB (compat retrocompat) mais l'UI doit afficher le libelle officiel
+// « Niveau X — Libelle » plutot que la valeur brute du enum.
 export const CARD_CLASS_BADGE: Record<
   string,
   { bg: string; text: string; label: string }
 > = {
-  SECRET: { bg: "bg-[#892034]/10", text: "text-[#892034]", label: "Secret" },
+  SECRET: {
+    bg: "bg-[#892034]/10",
+    text: "text-[#892034]",
+    label: "Niveau 1 — Très sensible",
+  },
   CONFIDENTIEL: {
     bg: "bg-[#F9964A]/10",
     text: "text-[#F9964A]",
-    label: "Confidentiel",
+    label: "Niveau 2 — Sensible",
   },
-  INTERNE: { bg: "bg-[#296DC1]/10", text: "text-[#296DC1]", label: "Interne" },
-  PUBLIC: { bg: "bg-[#006233]/10", text: "text-[#006233]", label: "Public" },
+  INTERNE: {
+    bg: "bg-[#296DC1]/10",
+    text: "text-[#296DC1]",
+    label: "Niveau 3 — Restreint",
+  },
+  PUBLIC: {
+    bg: "bg-[#006233]/10",
+    text: "text-[#006233]",
+    label: "Niveau 4 — Public",
+  },
 };
 
 export function categoryBadgeVariant(

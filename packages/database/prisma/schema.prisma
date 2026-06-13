@@ -468,7 +468,13 @@ model Document {
   currentVersionId String?
   nextReviewDate   DateTime?
   isPublic         Boolean          @default(false)
-  classification   String           @default("INTERNE") // PUBLIC | INTERNE | CONFIDENTIEL | SECRET (A.5.12)
+  // POL_015 §5 (Politique de classification, marquage et transfert) — echelle canonique 4 niveaux.
+  //   SECRET       -> Niveau 1 — Tres sensible  (consequences graves / surete en jeu)
+  //   CONFIDENTIEL -> Niveau 2 — Sensible       (impact significatif sur l'activite ou des tiers)
+  //   INTERNE      -> Niveau 3 — Restreint      (defaut POL_015 §5, usage interne, sensibilite limitee)
+  //   PUBLIC       -> Niveau 4 — Public         (communicable sans risque)
+  // Notation C3/C4 heritee abandonnee (POL_015 §5.1). ISO 27001:2022 A.5.12.
+  classification   String           @default("INTERNE")
   scanStatus       String           @default("PENDING") // PENDING | CLEAN | INFECTED | ERROR
   content          String? // HTML content (inline editor) — null when document is uploaded
   isNative         Boolean          @default(false) // true = born-in-intranet, false = uploaded
