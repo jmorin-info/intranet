@@ -811,7 +811,7 @@ function GrantExemptionDialog({
           rows={3}
         />
         <div>
-          <label className="block text-[13px] font-semibold text-navy dark:text-white mb-1">
+          <label className="block text-[13px] font-semibold text-seal-navy dark:text-white mb-1">
             Date d'expiration (optionnel)
           </label>
           <input
