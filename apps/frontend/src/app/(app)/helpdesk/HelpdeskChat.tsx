@@ -823,8 +823,18 @@ export function HelpdeskChat() {
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="h-[500px] overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-slate-900">
+            {/* Messages
+                a11y : role=log + aria-live=polite + aria-relevant=additions
+                permet aux lecteurs d'ecran d'annoncer les nouveaux messages
+                (et leurs mises a jour progressives pendant le streaming RAG)
+                sans interrompre l'utilisateur. */}
+            <div
+              className="h-[500px] overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-slate-900"
+              role="log"
+              aria-live="polite"
+              aria-relevant="additions text"
+              aria-label="Conversation avec l’assistant"
+            >
               {messages.map((msg, i) => (
                 <div
                   key={i}

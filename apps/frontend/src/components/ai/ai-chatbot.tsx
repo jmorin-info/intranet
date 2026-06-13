@@ -1030,6 +1030,10 @@ export function AIChatbot({
           ref={scrollRef}
           onScroll={handleScroll}
           className="overflow-y-auto px-4 py-3 space-y-3 min-h-[260px] max-h-[440px]"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions text"
+          aria-label="Conversation avec l’assistant"
         >
           {messages.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center text-center py-6 px-2">
@@ -1385,6 +1389,10 @@ export function AIChatbot({
           ref={scrollRef}
           onScroll={handleScroll}
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 space-y-3 sm:space-y-4 lg:max-h-[400px] lg:min-h-[200px]"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions text"
+          aria-label="Conversation avec l’assistant"
         >
           {messages.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center text-center py-8 sm:py-6 px-2">
