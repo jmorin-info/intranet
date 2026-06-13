@@ -172,20 +172,14 @@ interface RailTooltipProps {
   badge?: number;
 }
 
-const RailTooltip: React.FC<RailTooltipProps> = ({
-  label,
-  shortcut,
-  badge,
-}) => (
+const RailTooltip: React.FC<RailTooltipProps> = ({ label, shortcut, badge }) => (
   <div
     role="tooltip"
     className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 z-[60] opacity-0 translate-x-[-4px] group-hover/rail:opacity-100 group-hover/rail:translate-x-0 transition-all duration-150 whitespace-nowrap"
   >
     <div className="relative bg-[#1a1d24]/95 backdrop-blur-sm text-white text-xs px-2.5 py-1.5 rounded-md shadow-lg border border-white/10 flex items-center gap-2">
       <span className="font-medium">{label}</span>
-      {shortcut && (
-        <span className="text-white/50 text-[10px] font-mono">{shortcut}</span>
-      )}
+      {shortcut && <span className="text-white/50 text-[10px] font-mono">{shortcut}</span>}
       {badge !== undefined && badge > 0 && (
         <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-semibold text-white">
           {badge > 99 ? "99+" : badge}
@@ -284,11 +278,7 @@ const PanelItem: React.FC<PanelItemProps> = ({
   const displayLabel = labelOverride ?? item.label;
   if (item.separator) {
     return (
-      <div
-        key={item.href}
-        role="presentation"
-        className="mt-3 mb-1 flex items-center gap-2 px-3"
-      >
+      <div key={item.href} role="presentation" className="mt-3 mb-1 flex items-center gap-2 px-3">
         <span className="h-px flex-1 bg-white/10" />
         <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40">
           {displayLabel}
@@ -325,9 +315,7 @@ const PanelItem: React.FC<PanelItemProps> = ({
           style={{ backgroundColor: active ? accent : "transparent" }}
         />
         <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-        <span className="flex-1 truncate">
-          {highlightMatch(displayLabel, filter)}
-        </span>
+        <span className="flex-1 truncate">{highlightMatch(displayLabel, filter)}</span>
         {item.statusDot && (
           <span
             className={cn(
@@ -347,15 +335,14 @@ const PanelItem: React.FC<PanelItemProps> = ({
             {item.badge > 99 ? "99+" : item.badge}
           </span>
         )}
-        {NEW_UNTIL[item.href] &&
-          new Date(NEW_UNTIL[item.href]!) > new Date() && (
-            <span
-              className="flex h-4 items-center justify-center rounded-full px-1.5 text-[9px] font-bold bg-[#F9964A] text-white tracking-wide uppercase"
-              title="Nouveau module"
-            >
-              New
-            </span>
-          )}
+        {NEW_UNTIL[item.href] && new Date(NEW_UNTIL[item.href]!) > new Date() && (
+          <span
+            className="flex h-4 items-center justify-center rounded-full px-1.5 text-[9px] font-bold bg-[#F9964A] text-white tracking-wide uppercase"
+            title="Nouveau module"
+          >
+            New
+          </span>
+        )}
       </Link>
       {/* Pin toggle visible on hover */}
       <button
@@ -417,11 +404,7 @@ export function Sidebar() {
     "fr",
   );
   const labelOverrides = React.useMemo<Record<string, string>>(() => {
-    const raw = getBlockData<unknown[]>(
-      navCmsBlocks,
-      "nav.sidebar.overrides",
-      [],
-    );
+    const raw = getBlockData<unknown[]>(navCmsBlocks, "nav.sidebar.overrides", []);
     if (!Array.isArray(raw)) return {};
     const map: Record<string, string> = {};
     for (const item of raw) {
@@ -447,11 +430,7 @@ export function Sidebar() {
    * crasher au render.
    */
   const customItemsByHub = React.useMemo<Record<string, NavItem[]>>(() => {
-    const raw = getBlockData<unknown[]>(
-      navCmsBlocks,
-      "nav.sidebar.custom_items",
-      [],
-    );
+    const raw = getBlockData<unknown[]>(navCmsBlocks, "nav.sidebar.custom_items", []);
     if (!Array.isArray(raw)) return {};
     const byHub: Record<string, NavItem[]> = {};
     for (const item of raw) {
@@ -474,8 +453,7 @@ export function Sidebar() {
   }, [navCmsBlocks]);
 
   // ---- Local UI state ----------------------------------------------------
-  const [allowedModules, setAllowedModules] =
-    React.useState<Set<string> | null>(null);
+  const [allowedModules, setAllowedModules] = React.useState<Set<string> | null>(null);
   /** Hub shown inside the panel. Can differ from the route's active hub. */
   const [selectedHubId, setSelectedHubId] = React.useState<string | null>(null);
   /**
@@ -486,8 +464,7 @@ export function Sidebar() {
   const panelHidden = !sidebarOpen;
   const setPanelHidden = React.useCallback(
     (updater: boolean | ((prev: boolean) => boolean)) => {
-      const next =
-        typeof updater === "function" ? updater(!sidebarOpen) : updater;
+      const next = typeof updater === "function" ? updater(!sidebarOpen) : updater;
       // setPanelHidden(true) → sidebarOpen=false, et inversement.
       if (next === !sidebarOpen) return;
       toggleSidebar();
@@ -500,9 +477,7 @@ export function Sidebar() {
   // Live counters / status from centralized stores (no local polling needed)
   const healthStatus = useHealthStore((s) => s.status);
   const ldapPendingCount = useAdminCountsStore((s) => s.ldapPendingCount);
-  const workflowPendingCount = useAdminCountsStore(
-    (s) => s.workflowPendingCount,
-  );
+  const workflowPendingCount = useAdminCountsStore((s) => s.workflowPendingCount);
 
   // ---- Allowed modules fetch --------------------------------------------
   React.useEffect(() => {
@@ -580,8 +555,7 @@ export function Sidebar() {
           label: t("nav.tickets"),
           href: "/tickets",
           icon: Ticket,
-          badge:
-            counters.myActiveTickets > 0 ? counters.myActiveTickets : undefined,
+          badge: counters.myActiveTickets > 0 ? counters.myActiveTickets : undefined,
           badgeTone: "amber",
         },
         { label: t("nav.mySignatures"), href: "/signatures", icon: PenLine },
@@ -658,10 +632,7 @@ export function Sidebar() {
           href: "/incidents",
           icon: ShieldAlert,
           minRole: UserRole.COLLABORATEUR,
-          badge:
-            counters.criticalIncidents > 0
-              ? counters.criticalIncidents
-              : undefined,
+          badge: counters.criticalIncidents > 0 ? counters.criticalIncidents : undefined,
           badgeTone: "red",
         },
         {
@@ -745,6 +716,12 @@ export function Sidebar() {
           label: "Registre documentaire",
           href: "/admin/registre",
           icon: ClipboardList,
+          minRole: UserRole.ADMIN,
+        },
+        {
+          label: "Pyramide ISO",
+          href: "/admin/iso-pyramid",
+          icon: Layers,
           minRole: UserRole.ADMIN,
         },
         {
@@ -949,8 +926,7 @@ export function Sidebar() {
     return allowedModules.has(moduleOf(item.href));
   };
 
-  const roleOk = (minRole?: UserRole) =>
-    !minRole || isRoleAtLeast(safeUserRole, minRole);
+  const roleOk = (minRole?: UserRole) => !minRole || isRoleAtLeast(safeUserRole, minRole);
 
   const prestataireItems: NavItem[] = [
     { label: t("nav.mySpace"), href: "/dashboard", icon: LayoutDashboard },
@@ -1006,17 +982,13 @@ export function Sidebar() {
           }))
           .filter(
             (hub) =>
-              hub.items.some((it) => !it.separator) ||
-              hub.id === "rssi" ||
-              hub.id === "monEspace",
+              hub.items.some((it) => !it.separator) || hub.id === "rssi" || hub.id === "monEspace",
           );
 
   // Active hub derived from the URL
   const activeHubId = React.useMemo(() => {
     for (const hub of filteredHubs) {
-      if (
-        hub.items.some((it) => !it.separator && isPathActive(pathname, it.href))
-      ) {
+      if (hub.items.some((it) => !it.separator && isPathActive(pathname, it.href))) {
         return hub.id;
       }
       if (isPathActive(pathname, hub.href)) return hub.id;
@@ -1042,8 +1014,7 @@ export function Sidebar() {
     const map = new Map<string, NavItem>();
     for (const hub of filteredHubs)
       for (const it of hub.items) if (!it.separator) map.set(it.href, it);
-    for (const it of prestataireItems)
-      if (!map.has(it.href)) map.set(it.href, it);
+    for (const it of prestataireItems) if (!map.has(it.href)) map.set(it.href, it);
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredHubs]);
@@ -1095,9 +1066,7 @@ export function Sidebar() {
   // custom doit être trouvable via la recherche).
   const panelItemsBase: NavItem[] = selectedHub
     ? [
-        ...selectedHub.items.filter(
-          (it) => it.separator || !hiddenHrefs.has(it.href),
-        ),
+        ...selectedHub.items.filter((it) => it.separator || !hiddenHrefs.has(it.href)),
         ...(customItemsByHub[selectedHub.id] ?? []),
       ]
     : [];
@@ -1134,8 +1103,7 @@ export function Sidebar() {
         ? "bg-amber-400"
         : "bg-red-500";
 
-  const getInitials = () =>
-    `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
+  const getInitials = () => `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
 
   // -------------------------------------------------------------------------
   // Prestataire simplified sidebar (single column, no rail)
@@ -1156,9 +1124,7 @@ export function Sidebar() {
             "transition-transform duration-200 ease-out",
             // lg:sticky cassait le layout — sticky + h-screen réserve 100vh dans le flow
             "lg:translate-x-0",
-            mobileSidebarOpen
-              ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0",
+            mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           )}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
@@ -1182,9 +1148,7 @@ export function Sidebar() {
                   href={it.href}
                   className={cn(
                     "flex items-center gap-2.5 px-4 py-2 text-sm transition-colors duration-150",
-                    active
-                      ? "bg-white/15 text-white"
-                      : "text-white/75 hover:bg-white/10",
+                    active ? "bg-white/15 text-white" : "text-white/75 hover:bg-white/10",
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -1199,18 +1163,12 @@ export function Sidebar() {
             })}
           </nav>
           <div className="border-t border-white/10 p-3 flex items-center gap-2">
-            <Avatar
-              src={getAvatarUrl(user.avatarUrl)}
-              initials={getInitials()}
-              size="sm"
-            />
+            <Avatar src={getAvatarUrl(user.avatarUrl)} initials={getInitials()} size="sm" />
             <div className="flex-1 min-w-0">
               <div className="text-xs font-medium truncate">
                 {user.firstName} {user.lastName}
               </div>
-              <div className="text-[10px] text-white/50 truncate">
-                {user.email}
-              </div>
+              <div className="text-[10px] text-white/50 truncate">{user.email}</div>
             </div>
             <NoaBadge />
             <button
@@ -1250,9 +1208,7 @@ export function Sidebar() {
           // NE PAS utiliser lg:sticky — sticky + h-screen réserve 100vh
           // dans le flow et pousse le contenu d'une page complète.
           "lg:translate-x-0",
-          mobileSidebarOpen
-            ? "translate-x-0"
-            : "-translate-x-full lg:translate-x-0",
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
         {/* =========================================================== */}
@@ -1294,8 +1250,7 @@ export function Sidebar() {
               const isSelected = selectedHub?.id === hub.id && !panelHidden;
               // Compute an indicative badge per hub (sum of known counters)
               let badge: number | undefined;
-              if (hub.id === "monEspace" && unreadCount > 0)
-                badge = unreadCount;
+              if (hub.id === "monEspace" && unreadCount > 0) badge = unreadCount;
               if (hub.id === "admin") {
                 const total = ldapPendingCount + workflowPendingCount;
                 if (total > 0) badge = total;
@@ -1354,9 +1309,7 @@ export function Sidebar() {
             <button
               type="button"
               onClick={() => setPanelHidden((v) => !v)}
-              aria-label={
-                panelHidden ? "Afficher le panneau" : "Masquer le panneau"
-              }
+              aria-label={panelHidden ? "Afficher le panneau" : "Masquer le panneau"}
               className="flex h-8 w-8 items-center justify-center rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-all duration-150"
             >
               {panelHidden ? (
@@ -1375,16 +1328,9 @@ export function Sidebar() {
                 aria-label={`${user.firstName} ${user.lastName}`}
                 className="block rounded-full overflow-hidden ring-2 ring-transparent hover:ring-[#F9964A] transition-all duration-200"
               >
-                <Avatar
-                  src={getAvatarUrl(user.avatarUrl)}
-                  initials={getInitials()}
-                  size="sm"
-                />
+                <Avatar src={getAvatarUrl(user.avatarUrl)} initials={getInitials()} size="sm" />
               </button>
-              <RailTooltip
-                label={`${user.firstName} ${user.lastName}`}
-                shortcut={user.email}
-              />
+              <RailTooltip label={`${user.firstName} ${user.lastName}`} shortcut={user.email} />
             </div>
           </div>
         </div>
@@ -1498,9 +1444,7 @@ export function Sidebar() {
                     <PanelItem
                       key={item.href + (item.separator ? "-sep" : "")}
                       item={item}
-                      active={
-                        !item.separator && isPathActive(pathname, item.href)
-                      }
+                      active={!item.separator && isPathActive(pathname, item.href)}
                       accent={selectedHub.accent}
                       filter={filter}
                       pinned={sidebarPinned.includes(item.href)}

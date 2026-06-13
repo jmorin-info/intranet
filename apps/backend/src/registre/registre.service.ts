@@ -1,13 +1,17 @@
 import { Injectable } from "@nestjs/common";
-import {
-  DocumentCategory,
-  DocumentLevel,
-  DocumentPriority,
-  DocumentStatus,
-} from "@prisma/client";
+import { DocumentCategory, DocumentLevel, DocumentPriority, DocumentStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { rowsToCsv, CsvColumn } from "../common/utils/csv-export";
-import { RegistreFilter, RegistreRow, RegistreStats } from "./types";
+import {
+  RegistreFilter,
+  RegistrePage,
+  RegistreRow,
+  RegistreSortBy,
+  RegistreStats,
+  REGISTRE_DEFAULT_PAGE_SIZE,
+  REGISTRE_MAX_PAGE_SIZE,
+  REGISTRE_SORT_BY_VALUES,
+} from "./types";
 
 /**
  * Mapping DocumentCategory -> code PRO_040 §7.4.
@@ -130,20 +134,9 @@ function formatFromFileType(fileType: string | null | undefined): string {
   if (!fileType) return "";
   const ft = fileType.toLowerCase();
   if (ft.includes("pdf")) return "PDF";
-  if (ft.includes("word") || ft.endsWith(".docx") || ft.endsWith(".doc"))
-    return "DOCX";
-  if (
-    ft.includes("spreadsheet") ||
-    ft.endsWith(".xlsx") ||
-    ft.endsWith(".xls")
-  )
-    return "XLSX";
-  if (
-    ft.includes("presentation") ||
-    ft.endsWith(".pptx") ||
-    ft.endsWith(".ppt")
-  )
-    return "PPTX";
+  if (ft.includes("word") || ft.endsWith(".docx") || ft.endsWith(".doc")) return "DOCX";
+  if (ft.includes("spreadsheet") || ft.endsWith(".xlsx") || ft.endsWith(".xls")) return "XLSX";
+  if (ft.includes("presentation") || ft.endsWith(".pptx") || ft.endsWith(".ppt")) return "PPTX";
   if (ft.includes("markdown") || ft.endsWith(".md")) return "MD";
   if (ft.startsWith("image/")) return ft.split("/")[1]?.toUpperCase() || "IMG";
   if (ft.startsWith("text/")) return "TXT";
@@ -196,7 +189,62 @@ export class RegistreService {
       where.classification = filter.classification;
     }
 
+    // Recherche full-text simple — OR sur reference / parentReference / title.
+    // `title` est expose comme "name" cote API (cf. RegistreSortBy) car c'est
+    // ainsi que l'UI nomme la colonne (REG_016 col. E "Titre").
+    // `mode: 'insensitive'` -> ILIKE Postgres (case-insensitive).
+    const search = filter.search?.trim();
+    if (search) {
+      where.OR = [
+        { reference: { contains: search, mode: "insensitive" } },
+        { parentReference: { contains: search, mode: "insensitive" } },
+        { title: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
     return where;
+  }
+
+  /**
+   * Mappe le champ de tri logique (whitelist) vers la colonne Prisma.
+   * Garde la traduction "name" -> "title" centralisee ici.
+   */
+  private mapSortField(sortBy: RegistreSortBy): string {
+    return sortBy === "name" ? "title" : sortBy;
+  }
+
+  /**
+   * Normalise les parametres de pagination/tri en valeurs sures.
+   * - sortBy hors whitelist -> 'reference'
+   * - sortDir != 'desc'    -> 'asc'
+   * - page < 1             -> 1
+   * - pageSize hors [1,200] -> REGISTRE_DEFAULT_PAGE_SIZE (50)
+   *
+   * Le controller fait la meme validation cote query string, mais cette
+   * methode reste defensive si le service est appele directement (tests,
+   * autre module).
+   */
+  private normalizePaging(filter: RegistreFilter): {
+    sortBy: RegistreSortBy;
+    sortDir: "asc" | "desc";
+    page: number;
+    pageSize: number;
+  } {
+    const sortBy: RegistreSortBy =
+      filter.sortBy && REGISTRE_SORT_BY_VALUES.includes(filter.sortBy)
+        ? filter.sortBy
+        : "reference";
+    const sortDir: "asc" | "desc" = filter.sortDir === "desc" ? "desc" : "asc";
+    const page =
+      Number.isFinite(filter.page) && (filter.page ?? 0) >= 1
+        ? Math.floor(filter.page as number)
+        : 1;
+    const rawPageSize =
+      Number.isFinite(filter.pageSize) && (filter.pageSize ?? 0) >= 1
+        ? Math.floor(filter.pageSize as number)
+        : REGISTRE_DEFAULT_PAGE_SIZE;
+    const pageSize = Math.min(rawPageSize, REGISTRE_MAX_PAGE_SIZE);
+    return { sortBy, sortDir, page, pageSize };
   }
 
   /**
@@ -215,13 +263,9 @@ export class RegistreService {
   private mapDocumentToRow(doc: any): RegistreRow {
     const category = doc.category as DocumentCategory;
     const documentLevel: DocumentLevel | null =
-      (doc.documentLevel as DocumentLevel | null) ??
-      DOCUMENT_CATEGORY_LEVEL[category] ??
-      null;
+      (doc.documentLevel as DocumentLevel | null) ?? DOCUMENT_CATEGORY_LEVEL[category] ?? null;
 
-    const isoControls: Array<{ code: string; title: string }> = Array.isArray(
-      doc.isoControls,
-    )
+    const isoControls: Array<{ code: string; title: string }> = Array.isArray(doc.isoControls)
       ? doc.isoControls
           .map((link: any) => ({
             code: link.isoControl?.code ?? "",
@@ -234,26 +278,17 @@ export class RegistreService {
     // versions. Si la derniere version a un fichier, on le considere comme
     // "disponible".
     const formats = Array.from(
-      new Set(
-        (doc.versions ?? [])
-          .map((v: any) => formatFromFileType(v.fileType))
-          .filter(Boolean),
-      ),
+      new Set((doc.versions ?? []).map((v: any) => formatFromFileType(v.fileType)).filter(Boolean)),
     ) as string[];
 
     const currentVersion =
-      doc.versions?.find((v: any) => v.id === doc.currentVersionId) ??
-      doc.versions?.[0] ??
-      null;
+      doc.versions?.find((v: any) => v.id === doc.currentVersionId) ?? doc.versions?.[0] ?? null;
 
     const owner = doc.owner
       ? {
           id: doc.owner.id,
           name:
-            [doc.owner.firstName, doc.owner.lastName]
-              .filter(Boolean)
-              .join(" ")
-              .trim() ||
+            [doc.owner.firstName, doc.owner.lastName].filter(Boolean).join(" ").trim() ||
             doc.owner.email ||
             doc.owner.id,
         }
@@ -267,10 +302,7 @@ export class RegistreService {
       ? {
           id: doc.approver.id,
           name:
-            [doc.approver.firstName, doc.approver.lastName]
-              .filter(Boolean)
-              .join(" ")
-              .trim() ||
+            [doc.approver.firstName, doc.approver.lastName].filter(Boolean).join(" ").trim() ||
             doc.approver.email ||
             doc.approver.id,
         }
@@ -294,9 +326,7 @@ export class RegistreService {
       owner,
       expectedApprover,
       isoControls,
-      currentVersion: currentVersion
-        ? { version: currentVersion.versionNumber }
-        : null,
+      currentVersion: currentVersion ? { version: currentVersion.versionNumber } : null,
       reviewPeriodicity: doc.reviewPeriodicity ?? null,
       nextReviewDate: doc.nextReviewDate ?? null,
       hasFile: Boolean(currentVersion?.fileUrl),
@@ -307,13 +337,89 @@ export class RegistreService {
   }
 
   /**
-   * Charge la liste des documents pour la vue REG_016 avec toutes les
-   * relations utiles. Renvoie une RegistreRow[] prete a etre serialisee.
+   * Charge la liste paginee des documents pour la vue REG_016.
    *
-   * Pas de pagination explicite (le registre SMSI est lu en bloc — typiquement
-   * quelques centaines d'entrees max). L'export CSV utilise la meme source.
+   * BREAKING CHANGE (2026-06-13) : renvoie maintenant `{ items, total, page,
+   * pageSize }` au lieu d'un simple `RegistreRow[]`. Le `total` correspond
+   * au cardinal avant pagination (utile pour calculer le nombre de pages
+   * cote UI).
+   *
+   * Pour l'export CSV (qui ne doit PAS etre pagine), utiliser `listForExport`.
    */
-  async listForRegistre(filter: RegistreFilter): Promise<RegistreRow[]> {
+  async listForRegistre(filter: RegistreFilter): Promise<RegistrePage<RegistreRow>> {
+    const where = this.buildWhere(filter);
+    const { sortBy, sortDir, page, pageSize } = this.normalizePaging(filter);
+
+    // 2 requetes en parallele : total (count) + page courante.
+    // `count` est volontairement separe pour pouvoir afficher "X documents
+    // trouves" cote UI sans avoir a charger toutes les pages.
+    const [total, docs] = await Promise.all([
+      this.prisma.document.count({ where }),
+      this.prisma.document.findMany({
+        where,
+        include: {
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          approver: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          isoControls: {
+            include: {
+              isoControl: {
+                select: {
+                  code: true,
+                  title: true,
+                  titleFr: true,
+                },
+              },
+            },
+          },
+          versions: {
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              versionNumber: true,
+              fileUrl: true,
+              fileType: true,
+              createdAt: true,
+            },
+          },
+        },
+        // Tri primaire dynamique (whitelist) + tri secondaire stable sur
+        // `reference` pour eviter l'ordre indefini entre lignes egales.
+        orderBy: [{ [this.mapSortField(sortBy)]: sortDir }, { reference: "asc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    return {
+      items: docs.map((d) => this.mapDocumentToRow(d)),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
+  /**
+   * Variante NON paginee de `listForRegistre`, utilisee uniquement par
+   * l'export CSV. Applique les memes filtres metier (categorie, niveau,
+   * priorite, classification, bloquant, recherche) mais charge l'ensemble
+   * du perimetre — sans skip/take, sans personnalisation du tri (ordre
+   * canonique categorie puis reference).
+   */
+  async listForExport(filter: RegistreFilter): Promise<RegistreRow[]> {
     const where = this.buildWhere(filter);
 
     const docs = await this.prisma.document.findMany({
@@ -367,9 +473,12 @@ export class RegistreService {
    * Export CSV RFC 4180 compatible Excel FR (BOM UTF-8, separateur `;`).
    * Reprend les memes colonnes que listForRegistre + libelles plus parlants
    * pour les filtres Excel.
+   *
+   * S'appuie sur `listForExport` (non paginee) — l'export embarque toujours
+   * la totalite du perimetre filtre, jamais une page partielle.
    */
   async exportCsv(filter: RegistreFilter): Promise<string> {
-    const rows = await this.listForRegistre(filter);
+    const rows = await this.listForExport(filter);
 
     const columns: CsvColumn<RegistreRow>[] = [
       { header: "Reference", accessor: (r) => r.reference },
@@ -377,32 +486,25 @@ export class RegistreService {
       { header: "Code categorie", accessor: (r) => r.categoryCode },
       {
         header: "Categorie",
-        accessor: (r) =>
-          DOCUMENT_CATEGORY_LABELS[r.category as DocumentCategory] ||
-          r.category,
+        accessor: (r) => DOCUMENT_CATEGORY_LABELS[r.category as DocumentCategory] || r.category,
       },
       {
         header: "Niveau pyramide",
         accessor: (r) =>
           r.documentLevel
-            ? DOCUMENT_LEVEL_LABELS[r.documentLevel as DocumentLevel] ||
-              r.documentLevel
+            ? DOCUMENT_LEVEL_LABELS[r.documentLevel as DocumentLevel] || r.documentLevel
             : "",
       },
       { header: "Titre", accessor: (r) => r.title },
       {
         header: "Statut",
-        accessor: (r) =>
-          DOCUMENT_STATUS_LABELS[r.status as DocumentStatus] || r.status,
+        accessor: (r) => DOCUMENT_STATUS_LABELS[r.status as DocumentStatus] || r.status,
       },
       { header: "Classification", accessor: (r) => r.classification.label },
       {
         header: "Priorite",
         accessor: (r) =>
-          r.priority
-            ? DOCUMENT_PRIORITY_LABELS[r.priority as DocumentPriority] ||
-              r.priority
-            : "",
+          r.priority ? DOCUMENT_PRIORITY_LABELS[r.priority as DocumentPriority] || r.priority : "",
       },
       { header: "Bloquant", accessor: (r) => r.blocking },
       { header: "Proprietaire", accessor: (r) => r.owner?.name ?? "" },

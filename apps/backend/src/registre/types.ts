@@ -65,8 +65,38 @@ export interface RegistreRow {
 }
 
 /**
+ * Champs autorises pour le tri serveur de `/admin/registre`.
+ *
+ * Whitelist STRICTE — toute valeur hors de cette liste doit etre traitee
+ * comme invalide cote controller (fallback sur 'reference'). Empeche
+ * l'injection d'orderBy arbitraire dans Prisma.
+ *
+ * NB: `name` est un alias logique pour la colonne `title` du modele Document
+ * (cf. RegistreRow.title), exposee pour homogeneite avec l'UI.
+ */
+export type RegistreSortBy = "reference" | "name" | "priority" | "documentLevel" | "updatedAt";
+
+export const REGISTRE_SORT_BY_VALUES: readonly RegistreSortBy[] = [
+  "reference",
+  "name",
+  "priority",
+  "documentLevel",
+  "updatedAt",
+] as const;
+
+export type RegistreSortDir = "asc" | "desc";
+
+/** Borne haute du pageSize accepte par le controller (defense en profondeur). */
+export const REGISTRE_MAX_PAGE_SIZE = 200;
+/** pageSize par defaut quand le client n'en fournit pas. */
+export const REGISTRE_DEFAULT_PAGE_SIZE = 50;
+
+/**
  * Filtres acceptes en query string sur `/admin/registre` et
  * `/admin/registre/export`.
+ *
+ * NB: les params de pagination/tri/recherche ne s'appliquent qu'a `/admin/registre`
+ * (vue UI). L'export CSV ignore ces champs et exporte le perimetre filtre complet.
  */
 export interface RegistreFilter {
   level?: string;
@@ -74,6 +104,37 @@ export interface RegistreFilter {
   priority?: string;
   blocking?: boolean;
   classification?: string;
+
+  /**
+   * Recherche full-text case-insensitive — applique en OR sur les champs
+   * `reference`, `parentReference` et `title` (alias "name" pour l'UI).
+   * Espace de gauche/droite trim cote controller.
+   */
+  search?: string;
+
+  /** Champ de tri (whitelist stricte, cf. RegistreSortBy). Defaut: 'reference'. */
+  sortBy?: RegistreSortBy;
+  /** Direction de tri. Defaut: 'asc'. */
+  sortDir?: RegistreSortDir;
+  /** Page 1-indexee. Defaut: 1. */
+  page?: number;
+  /** Taille de page (1..REGISTRE_MAX_PAGE_SIZE). Defaut: REGISTRE_DEFAULT_PAGE_SIZE. */
+  pageSize?: number;
+}
+
+/**
+ * Reponse paginee retournee par `GET /admin/registre`.
+ *
+ * BREAKING CHANGE (2026-06-13) : auparavant l'endpoint renvoyait
+ * `{ items, total }` sans pagination. Le frontend admin doit maintenant
+ * lire `data.items` au lieu de `data` directement, et peut s'appuyer sur
+ * `page`/`pageSize` pour la navigation.
+ */
+export interface RegistrePage<TRow> {
+  items: TRow[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 /**
