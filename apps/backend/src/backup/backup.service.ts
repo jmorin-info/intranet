@@ -171,7 +171,12 @@ export class BackupService {
         metadata: { filename, error: err.message },
       });
 
-      throw new BadRequestException(`Restore failed: ${err.message}`);
+      // Pas de err.message dans la reponse HTTP : la cause est loggee + auditee
+      // ci-dessus. Eviter de fuir des chemins / noms de table / details internes
+      // au client (best practice, surtout si un jour ce endpoint sort de l'admin).
+      throw new BadRequestException(
+        'La restauration a échoué. Consultez les logs serveur pour le détail.',
+      );
     }
   }
 
@@ -276,7 +281,10 @@ export class BackupService {
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Download archive creation failed: ${err.message}`);
-      throw new BadRequestException(`Impossible de créer l'archive : ${err.message}`);
+      // Cf. note ci-dessus : pas de details internes dans la reponse HTTP.
+      throw new BadRequestException(
+        "Impossible de créer l'archive. Consultez les logs serveur pour le détail.",
+      );
     }
   }
 

@@ -196,10 +196,10 @@ export class AuthService {
       severity: 'INFO',
     }).catch(err => this.logger.error(`Audit log failed (LOGIN_SUCCESS): ${err.message}`));
 
-    // TODO(ANSSI): Migrer le refresh token vers un cookie httpOnly + Secure + SameSite=Strict
-    // au lieu du stockage localStorage côté frontend (vulnérable XSS).
-    // Breaking change frontend — à planifier dans un sprint dédié.
-    // Ref: ANSSI R16 — Protection des jetons de session.
+    // ANSSI R16 ✓ — le refresh token est désormais pose en cookie httpOnly +
+    // Secure + SameSite=Strict par auth.controller via cookies.util.setRefresh
+    // CookieOnResponse(). Le payload renvoyé ici est conservé pour les clients
+    // qui ne peuvent pas lire les cookies (mobile, CLI, intégration externe).
     return {
       accessToken,
       refreshToken,
