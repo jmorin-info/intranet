@@ -122,4 +122,12 @@ export const TUTORIAL_TIPS: ReadonlyArray<{ title: string; detail: string }> = [
     title: 'Feedback',
     detail: 'Vos pouces 👍/👎 améliorent la qualité du RAG — n\'hésitez pas à préciser la raison d\'un retour négatif.',
   },
+  {
+    title: 'Réponse en streaming',
+    detail: 'Les mots apparaissent au fur et à mesure que le modèle génère la réponse — pas d\'attente sur écran blanc. Vous pouvez commencer à lire dès la première phrase.',
+  },
+  {
+    title: 'Si je ne sais pas',
+    detail: 'Quand l\'information n\'est pas dans la base, je vous le dis explicitement plutôt que d\'inventer (« halluciner »). Mieux vaut créer un ticket dans ce cas.',
+  },
 ];
