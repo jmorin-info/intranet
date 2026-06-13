@@ -38,16 +38,42 @@ enum DocumentStatus {
   ARCHIVED
 }
 
+/// Categories documentaires alignees sur PRO_040 §7.4 (nomenclature des
+/// abreviations : POL/PRO/PLA/ORG/INS/STD/GUI/REG/FOR/RAP/CHA/COM).
+/// Les valeurs ajoutees le 2026-06-13 ne brisent pas la compat (additif).
 enum DocumentCategory {
   POLICY
   PROCEDURE
   PLAN
-  RECORD
-  FORM
+  ORGANIZATION
+  INSTRUCTION
+  STANDARD
   GUIDE
+  REGISTRY
+  FORM
+  RECORD
   REPORT
+  CHARTER
+  COMMUNICATION
   CONTRACT
   OTHER
+}
+
+/// Niveau dans la pyramide documentaire (PRO_040 §7.1).
+/// Determine l'autorite d'approbation attendue et la portee.
+enum DocumentLevel {
+  GOVERNANCE     // Politique, Plan, Organisation -> Direction / RSSI
+  OPERATIONAL    // Procedure, Instruction, Standard, Guide -> RSSI / Resp. processus
+  EVIDENCE       // Registre, Formulaire, Compte rendu, Journal, Rapport -> Qualite / Proprietaire
+  COMMUNICATION  // Charte, Communication -> Direction / RH / RSSI
+}
+
+/// Priorite metier du document (REG_016 colonne H).
+enum DocumentPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
 }
 
 enum NotificationType {
@@ -480,6 +506,59 @@ model Document {
   isNative         Boolean          @default(false) // true = born-in-intranet, false = uploaded
   // === Wave D — Templates de documents === 2026-04-28
   fromTemplateId   String? // si rempli, document instancié depuis ce template
+
+  // === REG_016 / PRO_040 alignment === 2026-06-13
+  // Champs ajoutes pour aligner la GED intranet sur le Registre Documentaire
+  // SMSI (REG_016 - Registre Documentaire OMNITECH) et la procedure
+  // PRO_040 §7.1 (Pyramide documentaire).
+
+  /// Reference parent au sens PRO_040 §7.3 (codification imbriquee).
+  /// Ex. POL_015_POL_013 -> parentReference = "POL_013" (la PSSI).
+  /// Permet de modeliser l'arborescence documentaire REG_016 colonne B.
+  parentReference  String?
+
+  /// Niveau de la pyramide documentaire (PRO_040 §7.1 / REG_016 col. D).
+  /// Si null, derive automatiquement de `category` via DOCUMENT_CATEGORY_LEVEL.
+  documentLevel    DocumentLevel?
+
+  /// Priorite metier (REG_016 col. H). Conditionne le SLA de revue.
+  priority         DocumentPriority?
+
+  /// Bloquant pour la conformite/certification (REG_016 col. I).
+  blocking         Boolean          @default(false)
+
+  /// Periodicite de revue exprimee en texte libre (REG_016 col. N), ex.
+  /// "24 mois", "À chaque changement majeur". `nextReviewDate` reste la date
+  /// effective, ce champ documente la regle.
+  reviewPeriodicity String?
+
+  // === Synchronisation GED externe (SharePoint / OneDrive / etc.) ===
+  // Permet d'utiliser SharePoint comme source des fichiers tout en gardant
+  // les metadonnees + workflow dans l'intranet (cf. docs/operations/
+  // ged-sharepoint.md). Tous nullable : pas de breaking change.
+
+  /// Fournisseur de stockage externe : "sharepoint" | "onedrive" | null (local).
+  externalStorageProvider String?
+
+  /// URL canonique du fichier dans le stockage externe (ex. webUrl Graph).
+  externalStorageUrl      String?
+
+  /// Identifiant Graph du driveItem (driveId + itemId combines ou JSON).
+  /// Utilise pour pull periodique sans avoir a re-resoudre par path.
+  externalStorageItemId   String?
+
+  /// Dossier logique aligne sur REG_016 col. Q (ex. "03 - Chartes",
+  /// "07 - Formulaires/00 - Modèles vierges"). Sert au mapping
+  /// SharePoint library -> categorie/dossier intranet.
+  externalStoragePath     String?
+
+  /// Derniere synchronisation reussie depuis la source externe.
+  externalLastSyncAt      DateTime?
+
+  /// Hash/etag du contenu externe au dernier sync — sert a detecter les
+  /// changements entre deux pulls Graph.
+  externalEtag            String?
+
   deletedAt        DateTime?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt

@@ -20,16 +20,41 @@ export const DOCUMENT_STATUS_COLORS: Record<DocumentStatus, string> = {
   [DocumentStatus.ARCHIVED]: 'gray',
 };
 
+/** Libelles d'affichage des categories documentaires (PRO_040 §7.4). */
 export const DOCUMENT_CATEGORY_LABELS: Record<DocumentCategory, string> = {
   [DocumentCategory.POLICY]: 'Politique',
   [DocumentCategory.PROCEDURE]: 'Procédure',
   [DocumentCategory.PLAN]: 'Plan',
-  [DocumentCategory.RECORD]: 'Enregistrement',
-  [DocumentCategory.FORM]: 'Formulaire',
+  [DocumentCategory.ORGANIZATION]: 'Organisation',
+  [DocumentCategory.INSTRUCTION]: 'Instruction',
+  [DocumentCategory.STANDARD]: 'Standard',
   [DocumentCategory.GUIDE]: 'Guide',
+  [DocumentCategory.REGISTRY]: 'Registre',
+  [DocumentCategory.FORM]: 'Formulaire',
+  [DocumentCategory.RECORD]: 'Enregistrement',
   [DocumentCategory.REPORT]: 'Rapport',
+  [DocumentCategory.CHARTER]: 'Charte',
+  [DocumentCategory.COMMUNICATION]: 'Communication',
   [DocumentCategory.CONTRACT]: 'Contrat',
   [DocumentCategory.OTHER]: 'Autre',
+};
+
+/** Libelles d'affichage des niveaux documentaires (PRO_040 §7.1 pyramide). */
+import { DocumentLevel, DocumentPriority } from './enums';
+
+export const DOCUMENT_LEVEL_LABELS: Record<DocumentLevel, string> = {
+  [DocumentLevel.GOVERNANCE]: 'Gouvernance',
+  [DocumentLevel.OPERATIONAL]: 'Opérationnel / maîtrise',
+  [DocumentLevel.EVIDENCE]: 'Preuve / enregistrement',
+  [DocumentLevel.COMMUNICATION]: 'Communication / engagement',
+};
+
+/** Libelles des priorites (REG_016 colonne H). */
+export const DOCUMENT_PRIORITY_LABELS: Record<DocumentPriority, string> = {
+  [DocumentPriority.CRITICAL]: 'Critique',
+  [DocumentPriority.HIGH]: 'Haute',
+  [DocumentPriority.MEDIUM]: 'Moyenne',
+  [DocumentPriority.LOW]: 'Basse',
 };
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
@@ -83,14 +108,29 @@ export const SIGNED_URL_EXPIRY_SECONDS = 3600;
 
 export const DOCUMENT_REFERENCE_PREFIX = 'OMS';
 
+/**
+ * Codes courts utilises dans la generation des references documentaires
+ * (ex. OMS-PRC-001). Historiquement diffèrent légèrement des codes officiels
+ * PRO_040 §7.4 (PRC vs PRO, PLN vs PLA…) — on conserve les codes existants
+ * pour ne pas casser les références déjà émises. Pour les nouvelles
+ * categories ajoutees 2026-06-13 (REG_016 alignment), on adopte directement
+ * les codes officiels PRO_040.
+ * Voir aussi `DOCUMENT_CATEGORY_CODE` dans enums.ts (codes officiels purs).
+ */
 export const REFERENCE_CATEGORY_CODES: Record<DocumentCategory, string> = {
   [DocumentCategory.POLICY]: 'POL',
-  [DocumentCategory.PROCEDURE]: 'PRC',
-  [DocumentCategory.PLAN]: 'PLN',
-  [DocumentCategory.RECORD]: 'REC',
-  [DocumentCategory.FORM]: 'FRM',
-  [DocumentCategory.GUIDE]: 'GDE',
-  [DocumentCategory.REPORT]: 'RPT',
+  [DocumentCategory.PROCEDURE]: 'PRC',         // legacy ; PRO_040 official = PRO
+  [DocumentCategory.PLAN]: 'PLN',              // legacy ; PRO_040 official = PLA
+  [DocumentCategory.ORGANIZATION]: 'ORG',
+  [DocumentCategory.INSTRUCTION]: 'INS',
+  [DocumentCategory.STANDARD]: 'STD',
+  [DocumentCategory.GUIDE]: 'GDE',             // legacy ; PRO_040 official = GUI
+  [DocumentCategory.REGISTRY]: 'REG',
+  [DocumentCategory.FORM]: 'FRM',              // legacy ; PRO_040 official = FOR
+  [DocumentCategory.RECORD]: 'REC',            // legacy ; PRO_040 official = CR / RAP
+  [DocumentCategory.REPORT]: 'RPT',            // legacy ; PRO_040 official = RAP
+  [DocumentCategory.CHARTER]: 'CHA',
+  [DocumentCategory.COMMUNICATION]: 'COM',
   [DocumentCategory.CONTRACT]: 'CTR',
   [DocumentCategory.OTHER]: 'OTH',
 };
