@@ -24,10 +24,7 @@ import { UserRole, ROLE_HIERARCHY } from "../common/enums";
 import { ISO_CONTROLS_FR } from "../iso-controls/iso-controls-fr.map";
 import { sanitizePlainText } from "../common/sanitize";
 import { safeParseInt } from "../common/validation-helpers";
-import {
-  MeilisearchService,
-  MeiliDocument,
-} from "../search/meilisearch.service";
+import { MeilisearchService, MeiliDocument } from "../search/meilisearch.service";
 import { RagService } from "../rag/rag.service";
 import { WorkflowRulesService } from "../workflow-rules/workflow-rules.service";
 
@@ -128,11 +125,7 @@ const MAGIC_BYTES: Array<{ mime: string; bytes: number[] }> = [
 ];
 
 // Formats sans magic bytes fiable (texte plat) — accepter tel quel
-const TEXT_MIMES_SKIP_MAGIC = new Set([
-  "text/markdown",
-  "text/x-markdown",
-  "text/plain",
-]);
+const TEXT_MIMES_SKIP_MAGIC = new Set(["text/markdown", "text/x-markdown", "text/plain"]);
 
 /**
  * Certains OS / navigateurs n'ont pas de mapping pour .md et envoient
@@ -142,9 +135,7 @@ const TEXT_MIMES_SKIP_MAGIC = new Set([
 function normalizeMimeType(file: Express.Multer.File): void {
   const current = (file.mimetype || "").toLowerCase();
   const ambiguous =
-    !current ||
-    current === "application/octet-stream" ||
-    current === "application/x-unknown";
+    !current || current === "application/octet-stream" || current === "application/x-unknown";
   if (!ambiguous) return;
   const name = (file.originalname || "").toLowerCase();
   if (name.endsWith(".md") || name.endsWith(".markdown")) {
@@ -164,6 +155,34 @@ function validateMagicBytes(file: Express.Multer.File): boolean {
   if (!entry) return false;
   return entry.bytes.every((b, i) => buffer[i] === b);
 }
+
+/**
+ * Codes officiels PRO_040 §7.4 utilises pour generer les references
+ * documentaires (ex. OMS-PRO-IT-0002). Avant 2026-06-13 on prenait
+ * `category.substring(0, 3)` ce qui produisait des codes faux pour
+ * RECORD/REPORT (REC/REP au lieu de RAP), STANDARD (STA au lieu de STD),
+ * CONTRACT (CON au lieu de CTR), OTHER (OTH au lieu de AUT).
+ *
+ * Duplique de packages/shared/src/enums.ts (DOCUMENT_CATEGORY_CODE) — le
+ * backend ne depend pas de @omnitech/shared (cf. common/enums.ts).
+ */
+const CATEGORY_CODE_PRO_040: Record<string, string> = {
+  POLICY: "POL",
+  PROCEDURE: "PRO",
+  PLAN: "PLA",
+  ORGANIZATION: "ORG",
+  INSTRUCTION: "INS",
+  STANDARD: "STD",
+  GUIDE: "GUI",
+  REGISTRY: "REG",
+  FORM: "FOR",
+  RECORD: "RAP",
+  REPORT: "RAP",
+  CHARTER: "CHA",
+  COMMUNICATION: "COM",
+  CONTRACT: "CTR",
+  OTHER: "AUT",
+};
 
 @Injectable()
 export class DocumentsService {
@@ -311,10 +330,7 @@ export class DocumentsService {
   async findAll(filters: DocumentFiltersDto, currentUser: RequestUser) {
     const page = safeParseInt(filters.page, 1);
     const rawLimit = safeParseInt(filters.limit, 20);
-    const limit = Math.min(
-      Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20,
-      100,
-    );
+    const limit = Math.min(Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20, 100);
     const where: any = { deletedAt: null, AND: [] };
 
     // Role-based filtering (ISO 27001 A.5.15 — Access control)
@@ -432,9 +448,7 @@ export class DocumentsService {
       delete where.AND;
     }
 
-    this.logger.debug(
-      `findAll where: ${JSON.stringify(where).substring(0, 500)}`,
-    );
+    this.logger.debug(`findAll where: ${JSON.stringify(where).substring(0, 500)}`);
 
     let data: any[];
     let total: number;
@@ -447,9 +461,7 @@ export class DocumentsService {
         "status",
         "nextReviewDate",
       ];
-      const sortBy = validSortFields.includes(filters.sortBy || "")
-        ? filters.sortBy!
-        : "updatedAt";
+      const sortBy = validSortFields.includes(filters.sortBy || "") ? filters.sortBy! : "updatedAt";
       const sortOrder = filters.sortOrder === "asc" ? "asc" : "desc";
 
       // Repository pattern : l'include partage (owner + isoControls + counts)
@@ -461,9 +473,7 @@ export class DocumentsService {
         limit,
       );
     } catch (err) {
-      this.logger.error(
-        `findAll Prisma error: ${err instanceof Error ? err.message : err}`,
-      );
+      this.logger.error(`findAll Prisma error: ${err instanceof Error ? err.message : err}`);
       this.logger.error(`where was: ${JSON.stringify(where)}`);
       throw err;
     }
@@ -512,24 +522,21 @@ export class DocumentsService {
       // Prestataires: only CONTRACT + APPROVED or public + APPROVED
       if (
         !isOwner &&
-        (document.status !== "APPROVED" ||
-          (document.category !== "CONTRACT" && !document.isPublic))
+        (document.status !== "APPROVED" || (document.category !== "CONTRACT" && !document.isPublic))
       ) {
         throw new ForbiddenException("Accès refusé");
       }
     } else if (userRole === UserRole.COLLABORATEUR) {
       // Collaborateurs: PUBLIC + INTERNE approved only, or own documents
       if (!isOwner) {
-        if (document.status !== "APPROVED")
-          throw new ForbiddenException("Accès refusé");
+        if (document.status !== "APPROVED") throw new ForbiddenException("Accès refusé");
         if (!["PUBLIC", "INTERNE"].includes(classification)) {
           throw new ForbiddenException("Niveau de classification insuffisant");
         }
       }
     } else if (userRole === UserRole.AUDITEUR) {
       // Auditeurs: PUBLIC + INTERNE + CONFIDENTIEL approved only (not SECRET)
-      if (document.status !== "APPROVED")
-        throw new ForbiddenException("Accès refusé");
+      if (document.status !== "APPROVED") throw new ForbiddenException("Accès refusé");
       if (classification === "SECRET")
         throw new ForbiddenException("Niveau de classification insuffisant");
     } else if (userRole === UserRole.REVIEWER) {
@@ -548,8 +555,7 @@ export class DocumentsService {
       where: { id },
       include: { isoControls: { select: { isoControlId: true } } },
     });
-    if (!doc || doc.deletedAt)
-      throw new NotFoundException("Document introuvable");
+    if (!doc || doc.deletedAt) throw new NotFoundException("Document introuvable");
 
     // Classification-based access check before exposing related documents
     if (currentUser) {
@@ -598,25 +604,18 @@ export class DocumentsService {
   }
 
   async create(dto: CreateDocumentDto, userId: string) {
-    const reference = await this.generateReference(
-      dto.category,
-      dto.domain || "GEN",
-    );
+    const reference = await this.generateReference(dto.category, dto.domain || "GEN");
 
     const document = await this.prisma.document.create({
       data: {
         title: sanitizePlainText(dto.title),
-        description: dto.description
-          ? sanitizePlainText(dto.description)
-          : undefined,
+        description: dto.description ? sanitizePlainText(dto.description) : undefined,
         category: dto.category,
         reference,
         ownerId: userId,
         reviewerId: dto.reviewerId,
         approverId: dto.approverId,
-        nextReviewDate: dto.nextReviewDate
-          ? new Date(dto.nextReviewDate)
-          : null,
+        nextReviewDate: dto.nextReviewDate ? new Date(dto.nextReviewDate) : null,
         isPublic: dto.isPublic ?? false,
         classification: dto.classification || "INTERNE",
         isoControls: dto.isoControlIds?.length
@@ -746,9 +745,7 @@ export class DocumentsService {
     }
 
     // Role check (double-guard ; le controller a déjà @Roles(ADMIN+))
-    if (
-      ROLE_HIERARCHY[user.role as UserRole] < ROLE_HIERARCHY[UserRole.ADMIN]
-    ) {
+    if (ROLE_HIERARCHY[user.role as UserRole] < ROLE_HIERARCHY[UserRole.ADMIN]) {
       throw new ForbiddenException(
         "Seul un administrateur peut forcer l'approbation d'un document.",
       );
@@ -841,8 +838,7 @@ export class DocumentsService {
       throw new NotFoundException("Document introuvable");
     }
 
-    const isAdmin =
-      ROLE_HIERARCHY[user.role as UserRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
+    const isAdmin = ROLE_HIERARCHY[user.role as UserRole] >= ROLE_HIERARCHY[UserRole.ADMIN];
     const isOwner = doc.ownerId === user.id;
     if (!isAdmin && !isOwner) {
       throw new ForbiddenException(
@@ -919,25 +915,18 @@ export class DocumentsService {
   }
 
   async createInline(dto: CreateDocumentDto, userId: string) {
-    const reference = await this.generateReference(
-      dto.category,
-      dto.domain || "GEN",
-    );
+    const reference = await this.generateReference(dto.category, dto.domain || "GEN");
 
     const document = await this.prisma.document.create({
       data: {
         title: sanitizePlainText(dto.title),
-        description: dto.description
-          ? sanitizePlainText(dto.description)
-          : undefined,
+        description: dto.description ? sanitizePlainText(dto.description) : undefined,
         category: dto.category,
         reference,
         ownerId: userId,
         reviewerId: dto.reviewerId,
         approverId: dto.approverId,
-        nextReviewDate: dto.nextReviewDate
-          ? new Date(dto.nextReviewDate)
-          : null,
+        nextReviewDate: dto.nextReviewDate ? new Date(dto.nextReviewDate) : null,
         isPublic: dto.isPublic ?? false,
         classification: dto.classification || "INTERNE",
         content: dto.content ?? "",
@@ -984,20 +973,14 @@ export class DocumentsService {
    *  - only the owner OR an assigned reviewer OR ADMIN+ may edit
    *  - status must be DRAFT or IN_REVIEW (once approved, content is frozen)
    */
-  async updateInlineContent(
-    id: string,
-    content: string,
-    currentUser: RequestUser,
-  ) {
+  async updateInlineContent(id: string, content: string, currentUser: RequestUser) {
     const document = await this.prisma.document.findUnique({ where: { id } });
     if (!document || document.deletedAt) {
       throw new NotFoundException("Document introuvable");
     }
 
     if (!document.isNative) {
-      throw new BadRequestException(
-        "Ce document n'est pas éditable en ligne (document uploadé)",
-      );
+      throw new BadRequestException("Ce document n'est pas éditable en ligne (document uploadé)");
     }
 
     const userRole = (currentUser.role || "").toUpperCase() as UserRole;
@@ -1012,9 +995,7 @@ export class DocumentsService {
     }
 
     if (document.status !== "DRAFT" && document.status !== "IN_REVIEW") {
-      throw new ForbiddenException(
-        "Le contenu ne peut être édité qu'en statut DRAFT ou IN_REVIEW",
-      );
+      throw new ForbiddenException("Le contenu ne peut être édité qu'en statut DRAFT ou IN_REVIEW");
     }
 
     const updated = await this.prisma.document.update({
@@ -1063,12 +1044,9 @@ export class DocumentsService {
     if (dto.reviewerId !== undefined) updateData.reviewerId = dto.reviewerId;
     if (dto.approverId !== undefined) updateData.approverId = dto.approverId;
     if (dto.nextReviewDate !== undefined)
-      updateData.nextReviewDate = dto.nextReviewDate
-        ? new Date(dto.nextReviewDate)
-        : null;
+      updateData.nextReviewDate = dto.nextReviewDate ? new Date(dto.nextReviewDate) : null;
     if (dto.isPublic !== undefined) updateData.isPublic = dto.isPublic;
-    if (dto.classification !== undefined)
-      updateData.classification = dto.classification;
+    if (dto.classification !== undefined) updateData.classification = dto.classification;
     if (dto.status !== undefined) updateData.status = dto.status;
 
     // Handle ISO controls update — wrapped in a transaction to avoid
@@ -1190,9 +1168,7 @@ export class DocumentsService {
     // Désindexation complète : Meilisearch (recherche globale) + RAG
     // (chatbot ne doit plus ressortir le contenu).
     void this.meili?.deleteDocument("document", id);
-    void this.rag
-      ?.removeFromIndex("DOCUMENT" as never, id)
-      .catch(() => undefined);
+    void this.rag?.removeFromIndex("DOCUMENT" as never, id).catch(() => undefined);
 
     await this.auditService.log({
       userId: currentUser.id,
@@ -1252,9 +1228,7 @@ export class DocumentsService {
       });
     }
 
-    this.logger.log(
-      `Bulk soft-delete: ${result.count} documents by user ${currentUser.id}`,
-    );
+    this.logger.log(`Bulk soft-delete: ${result.count} documents by user ${currentUser.id}`);
 
     return { deleted: result.count };
   }
@@ -1301,9 +1275,7 @@ export class DocumentsService {
       });
     }
 
-    this.logger.log(
-      `Bulk archive: ${result.count} documents by user ${currentUser.id}`,
-    );
+    this.logger.log(`Bulk archive: ${result.count} documents by user ${currentUser.id}`);
 
     return { updated: result.count };
   }
@@ -1312,11 +1284,7 @@ export class DocumentsService {
    * Bulk reclassify. ADMIN/SUPER_ADMIN only.
    * ISO 27001 A.5.12 — information classification change with audit trail.
    */
-  async bulkClassify(
-    ids: string[],
-    classification: string,
-    currentUser: RequestUser,
-  ) {
+  async bulkClassify(ids: string[], classification: string, currentUser: RequestUser) {
     if (!Array.isArray(ids) || ids.length === 0) {
       throw new BadRequestException("Aucun identifiant fourni");
     }
@@ -1325,9 +1293,7 @@ export class DocumentsService {
     }
     const ALLOWED = ["PUBLIC", "INTERNE", "CONFIDENTIEL", "SECRET"];
     if (!ALLOWED.includes(classification)) {
-      throw new BadRequestException(
-        `Classification invalide: ${classification}`,
-      );
+      throw new BadRequestException(`Classification invalide: ${classification}`);
     }
 
     const existing = await this.prisma.document.findMany({
@@ -1388,9 +1354,7 @@ export class DocumentsService {
     normalizeMimeType(file);
     // Validate MIME type
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      throw new BadRequestException(
-        `Type de fichier non autorisé: ${file.mimetype}`,
-      );
+      throw new BadRequestException(`Type de fichier non autorisé: ${file.mimetype}`);
     }
 
     // Validate magic bytes — ISO 27001 A.8.28 (prevents MIME spoofing)
@@ -1414,10 +1378,7 @@ export class DocumentsService {
     }
 
     // Upload file
-    const { fileUrl } = await this.storageService.upload(
-      file,
-      `documents/${documentId}`,
-    );
+    const { fileUrl } = await this.storageService.upload(file, `documents/${documentId}`);
 
     // Règle versionning OMNITECH :
     //   - Pas de version précédente : crée v1.0
@@ -1427,8 +1388,7 @@ export class DocumentsService {
     //   - Toute autre transition (APPROVED, etc.) : bump majeur (1.0 → 2.0)
     const lastVersion = document.versions[0];
     const isDraftOverwrite =
-      !!lastVersion &&
-      (document.status === "DRAFT" || document.status === "IN_REVIEW");
+      !!lastVersion && (document.status === "DRAFT" || document.status === "IN_REVIEW");
 
     let version;
     let nextVersionNumber: string;
@@ -1501,11 +1461,9 @@ export class DocumentsService {
 
     // Scan file with ClamAV (async, non-blocking)
     const filePath = this.storageService.getFilePath(fileUrl);
-    this.scannerService
-      .scanDocumentVersion(documentId, version.id, filePath)
-      .catch((err) => {
-        this.logger.warn(`Scan failed for ${fileUrl}: ${err}`);
-      });
+    this.scannerService.scanDocumentVersion(documentId, version.id, filePath).catch((err) => {
+      this.logger.warn(`Scan failed for ${fileUrl}: ${err}`);
+    });
 
     // If this version was uploaded on an already APPROVED document,
     // notify all concerned users that an update is available.
@@ -1566,8 +1524,7 @@ export class DocumentsService {
     if (!user) throw new NotFoundException("Utilisateur introuvable");
     const userRole = (user.role as UserRole) || UserRole.COLLABORATEUR;
     const isOwner = document.ownerId === userId;
-    const isAdmin =
-      (ROLE_HIERARCHY[userRole] ?? 0) >= ROLE_HIERARCHY[UserRole.ADMIN];
+    const isAdmin = (ROLE_HIERARCHY[userRole] ?? 0) >= ROLE_HIERARCHY[UserRole.ADMIN];
     if (!isOwner && !isAdmin) {
       throw new ForbiddenException(
         "Seul le propriétaire ou un administrateur peut réimporter ce document",
@@ -1578,9 +1535,7 @@ export class DocumentsService {
     normalizeMimeType(file);
     // MIME validation — same rules as uploadVersion
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      throw new BadRequestException(
-        `Type de fichier non autorisé: ${file.mimetype}`,
-      );
+      throw new BadRequestException(`Type de fichier non autorisé: ${file.mimetype}`);
     }
 
     // Validate magic bytes — ISO 27001 A.8.28 (prevents MIME spoofing)
@@ -1591,10 +1546,7 @@ export class DocumentsService {
     }
 
     // SHA-256 checksum (explicit per spec)
-    const newHash = crypto
-      .createHash("sha256")
-      .update(file.buffer)
-      .digest("hex");
+    const newHash = crypto.createHash("sha256").update(file.buffer).digest("hex");
 
     // Prevent re-uploading a file that is byte-identical to an existing version
     const existingVersion = await this.prisma.documentVersion.findFirst({
@@ -1607,10 +1559,7 @@ export class DocumentsService {
     }
 
     // Upload file (previous versions are preserved)
-    const { fileUrl } = await this.storageService.upload(
-      file,
-      `documents/${docId}`,
-    );
+    const { fileUrl } = await this.storageService.upload(file, `documents/${docId}`);
 
     // Increment version number (major bump)
     const lastVersion = document.versions[0];
@@ -1665,11 +1614,9 @@ export class DocumentsService {
 
     // Trigger async scan
     const filePath = this.storageService.getFilePath(fileUrl);
-    this.scannerService
-      .scanDocumentVersion(docId, version.id, filePath)
-      .catch((err) => {
-        this.logger.warn(`Scan failed for ${fileUrl}: ${err}`);
-      });
+    this.scannerService.scanDocumentVersion(docId, version.id, filePath).catch((err) => {
+      this.logger.warn(`Scan failed for ${fileUrl}: ${err}`);
+    });
 
     this.logger.log(
       `Document ${document.reference} reimported (v${oldVersion ?? "-"} → v${nextVersionNumber}) by user ${userId}`,
@@ -1721,12 +1668,7 @@ export class DocumentsService {
         ];
         break;
       case "CONFIDENTIEL":
-        roleFilter = [
-          UserRole.SUPER_ADMIN,
-          UserRole.ADMIN,
-          UserRole.DIRECTION,
-          UserRole.REVIEWER,
-        ];
+        roleFilter = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DIRECTION, UserRole.REVIEWER];
         break;
       case "SECRET":
         roleFilter = [UserRole.SUPER_ADMIN];
@@ -1751,9 +1693,7 @@ export class DocumentsService {
       select: { id: true },
     });
 
-    const title = isUpdate
-      ? "Mise à jour disponible"
-      : "Nouveau document disponible";
+    const title = isUpdate ? "Mise à jour disponible" : "Nouveau document disponible";
     const body = isUpdate
       ? `"${document.title}" (${document.reference}) a été mis à jour. Catégorie : ${document.category}. Cliquez pour consulter la nouvelle version.`
       : `"${document.title}" (${document.reference}) vient d'être publié. Catégorie : ${document.category}. Cliquez pour consulter.`;
@@ -1813,11 +1753,7 @@ export class DocumentsService {
     });
   }
 
-  async getDownloadUrl(
-    documentId: string,
-    versionId: string,
-    currentUser: RequestUser,
-  ) {
+  async getDownloadUrl(documentId: string, versionId: string, currentUser: RequestUser) {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
     });
@@ -1834,22 +1770,19 @@ export class DocumentsService {
     if (userRole === UserRole.PRESTATAIRE) {
       if (
         !isOwner &&
-        (document.status !== "APPROVED" ||
-          (document.category !== "CONTRACT" && !document.isPublic))
+        (document.status !== "APPROVED" || (document.category !== "CONTRACT" && !document.isPublic))
       ) {
         throw new ForbiddenException("Accès refusé");
       }
     } else if (userRole === UserRole.COLLABORATEUR) {
       if (!isOwner) {
-        if (document.status !== "APPROVED")
-          throw new ForbiddenException("Accès refusé");
+        if (document.status !== "APPROVED") throw new ForbiddenException("Accès refusé");
         if (!["PUBLIC", "INTERNE"].includes(classification)) {
           throw new ForbiddenException("Niveau de classification insuffisant");
         }
       }
     } else if (userRole === UserRole.AUDITEUR) {
-      if (document.status !== "APPROVED")
-        throw new ForbiddenException("Accès refusé");
+      if (document.status !== "APPROVED") throw new ForbiddenException("Accès refusé");
       if (classification === "SECRET")
         throw new ForbiddenException("Niveau de classification insuffisant");
     } else if (userRole === UserRole.REVIEWER) {
@@ -1866,10 +1799,7 @@ export class DocumentsService {
       throw new NotFoundException("Version introuvable");
     }
 
-    const signedUrl = await this.storageService.generateSignedUrl(
-      version.fileUrl,
-      3600,
-    );
+    const signedUrl = await this.storageService.generateSignedUrl(version.fileUrl, 3600);
 
     await this.auditService.log({
       userId: currentUser.id,
@@ -2004,8 +1934,7 @@ export class DocumentsService {
           return sum + (doc.updatedAt.getTime() - doc.createdAt.getTime());
         }, 0);
         avgDraftToApprovedDays =
-          Math.round((totalMs / approvedDocs.length / (24 * 3600000)) * 10) /
-          10;
+          Math.round((totalMs / approvedDocs.length / (24 * 3600000)) * 10) / 10;
       }
 
       // Enrich top contributors with user info
@@ -2058,7 +1987,7 @@ export class DocumentsService {
   }
 
   async generateReference(category: string, domain: string): Promise<string> {
-    const catCode = category.substring(0, 3).toUpperCase();
+    const catCode = CATEGORY_CODE_PRO_040[category] ?? category.substring(0, 3).toUpperCase();
     const domCode = domain.substring(0, 3).toUpperCase();
     const prefix = `OMS-${catCode}-${domCode}`;
 
