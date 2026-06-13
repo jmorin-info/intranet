@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { Card, CardContent, CardHeader, Button } from "@omnitech/ui";
+import { Card, CardContent, CardHeader, Button, Skeleton } from "@omnitech/ui";
 import { Archive, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
@@ -55,10 +55,7 @@ export function ConfigRetentionSection() {
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-16 animate-pulse rounded-xl bg-gray-100 dark:bg-slate-800"
-              />
+              <Skeleton key={i} className="h-16 rounded-xl" />
             ))}
           </div>
         ) : stats ? (

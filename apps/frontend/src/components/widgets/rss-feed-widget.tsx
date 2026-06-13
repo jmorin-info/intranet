@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Rss, ExternalLink, Shield, AlertTriangle, AlertOctagon, Info, ArrowRight } from 'lucide-react';
+import { Skeleton } from '@omnitech/ui';
 import { logger } from '@/lib/logger';
 
 interface FeedItem {
@@ -67,11 +68,19 @@ export function RSSFeedWidget() {
       </div>
 
       {loading ? (
-        <div className="space-y-2">
-          {[1,2,3,4].map(i => <div key={i} className="h-12 rounded-lg bg-gray-100 dark:bg-slate-800 animate-pulse" />)}
+        <div className="space-y-2" role="status" aria-label="Chargement des alertes de sécurité">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}
         </div>
       ) : items.length === 0 ? (
-        <p className="text-xs text-seal-gray-500 dark:text-slate-400 py-4 text-center">Aucune alerte de sécurité disponible</p>
+        <div className="py-4 text-center">
+          <Shield className="h-5 w-5 text-seal-gray-500/40 dark:text-slate-500 mx-auto mb-1.5" aria-hidden="true" />
+          <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+            Aucune alerte de sécurité publiée à l'instant.
+          </p>
+          <p className="text-[10px] text-seal-gray-500/70 dark:text-slate-500 mt-1">
+            Le flux CERT-FR / CVE est consulté en arrière-plan.
+          </p>
+        </div>
       ) : (
         <div className="space-y-1">
           {items.map((item, i) => (
