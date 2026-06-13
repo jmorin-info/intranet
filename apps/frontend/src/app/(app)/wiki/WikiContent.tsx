@@ -481,7 +481,11 @@ export function WikiContent({
       } catch {}
       return next;
     });
-  }, [viewingPage?.id]);
+    // On depend des champs reellement utilises (id pour dedup + title/slug
+    // ecrits en localStorage) plutot que de l'objet entier — si le parent
+    // recree viewingPage a chaque render sans changer ses champs, on n'ecrit
+    // qu'une fois. Avant on ne tenait pas compte de l'evolution de title/slug.
+  }, [viewingPage?.id, viewingPage?.title, (viewingPage as any)?.slug]);
 
   // Editor enhanced toolbar state
   const [isEditorFullscreen, setIsEditorFullscreen] = useState(false);
