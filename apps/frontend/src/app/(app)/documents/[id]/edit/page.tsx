@@ -7,7 +7,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import { DocumentCategory, DOCUMENT_CATEGORY_LABELS, isRoleAtLeast, UserRole } from '@omnitech/shared';
+import {
+  DocumentCategory,
+  DOCUMENT_CATEGORY_LABELS,
+  DocumentLevel,
+  DocumentPriority,
+  isRoleAtLeast,
+  UserRole,
+} from '@omnitech/shared';
+import { Reg016Fields, type Reg016Values } from '../../_components/reg016-fields';
 import { useAuthStore } from '@/stores/auth-store';
 import {
   Card,
@@ -26,6 +34,28 @@ import {
 import { ArrowLeft, Save, X, Upload, Info, FileEdit } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { useTranslation } from '@/lib/i18n';
+
+/**
+ * Construit la portion REG_016 du payload PATCH /documents/:id.
+ * Convention : on envoie systematiquement les 5 champs (avec null pour les
+ * valeurs vides) afin de permettre a l'utilisateur de DESASSIGNER une donnee
+ * deja stockee — ce que ferait sinon impossible un `if (value) ...`.
+ */
+function buildReg016PatchPayload(values: Reg016Values): Record<string, unknown> {
+  return {
+    parentReference:
+      values.parentReference && values.parentReference.trim() !== ''
+        ? values.parentReference.trim()
+        : null,
+    documentLevel: values.documentLevel || null,
+    priority: values.priority || null,
+    blocking: !!values.blocking,
+    reviewPeriodicity:
+      values.reviewPeriodicity && values.reviewPeriodicity.trim() !== ''
+        ? values.reviewPeriodicity.trim()
+        : null,
+  };
+}
 
 const CLASSIFICATIONS = [
   { value: 'PUBLIC', label: 'Public', desc: 'Aucune restriction', color: 'text-emerald-600' },
@@ -87,6 +117,16 @@ export default function EditDocumentPage() {
   const [doc, setDoc] = useState<{ currentVersion?: { versionNumber?: string }; status?: string; reference?: string; owner?: { firstName?: string; lastName?: string }; classification?: string; domain?: string } | null>(null);
   const [users, setUsers] = useState<UserLite[]>([]);
 
+  // Etat REG_016 : controle par useState (et non RHF) — la section est pliable
+  // et le payload PATCH est assemble a la soumission.
+  const [reg016, setReg016] = useState<Reg016Values>({
+    parentReference: '',
+    documentLevel: '',
+    priority: '',
+    blocking: false,
+    reviewPeriodicity: '',
+  });
+
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasChanges) { e.preventDefault(); e.returnValue = ''; }
@@ -141,6 +181,13 @@ export default function EditDocumentPage() {
           reviewerId: docData.reviewerId || '',
           approverId: docData.approverId || '',
         });
+        setReg016({
+          parentReference: docData.parentReference || '',
+          documentLevel: (docData.documentLevel as DocumentLevel) || '',
+          priority: (docData.priority as DocumentPriority) || '',
+          blocking: !!docData.blocking,
+          reviewPeriodicity: docData.reviewPeriodicity || '',
+        });
       } catch {
         toast.error('Document introuvable');
         router.push('/documents');
@@ -175,6 +222,7 @@ export default function EditDocumentPage() {
       const payload: Record<string, unknown> = {
         ...rest,
         isoControlIds: selectedControls,
+        ...buildReg016PatchPayload(reg016),
       };
       if (reviewerId) payload.reviewerId = reviewerId;
       if (approverId) payload.approverId = approverId;
@@ -383,6 +431,18 @@ export default function EditDocumentPage() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Metadonnees REG_016 — section pliable, tous champs optionnels */}
+            <div className="border-t border-gray-100 dark:border-slate-700 pt-4">
+              <Reg016Fields
+                values={reg016}
+                onChange={(patch) => {
+                  setReg016((prev) => ({ ...prev, ...patch }));
+                  setHasChanges(true);
+                }}
+                category={watch('category')}
+              />
             </div>
 
             {/* New version upload */}

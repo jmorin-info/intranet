@@ -10,7 +10,15 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { logger } from '@/lib/logger';
 import { useTranslation } from '@/lib/i18n';
-import { DocumentCategory, DOCUMENT_CATEGORY_LABELS, formatFileSize, isRoleAtLeast, UserRole } from '@omnitech/shared';
+import {
+  DocumentCategory,
+  DOCUMENT_CATEGORY_LABELS,
+  DOCUMENT_CATEGORY_LEVEL,
+  formatFileSize,
+  isRoleAtLeast,
+  UserRole,
+} from '@omnitech/shared';
+import { Reg016Fields, defaultPriorityForCategory, type Reg016Values } from '../_components/reg016-fields';
 import { useAuthStore } from '@/stores/auth-store';
 import {
   Card,
@@ -138,6 +146,25 @@ const SLA_CLASSIFICATION_HELP: Record<string, string> = {
   SECRET: 'Niveau 1 — Très sensible : conséquences graves ou sûreté en jeu (code source SEAL, clés privées, données OIV). Validation RSSI requise, chiffrement obligatoire.',
 };
 
+/**
+ * Filtre les valeurs vides ("", false, undefined) des champs REG_016 avant
+ * envoi au backend : on n'envoie un champ que si l'user l'a explicitement
+ * renseigne, sinon le DTO @IsOptional() le laisse intact cote DB.
+ */
+function buildReg016Payload(values: Reg016Values): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (values.parentReference && values.parentReference.trim() !== '') {
+    out.parentReference = values.parentReference.trim();
+  }
+  if (values.documentLevel) out.documentLevel = values.documentLevel;
+  if (values.priority) out.priority = values.priority;
+  if (values.blocking) out.blocking = true;
+  if (values.reviewPeriodicity && values.reviewPeriodicity.trim() !== '') {
+    out.reviewPeriodicity = values.reviewPeriodicity.trim();
+  }
+  return out;
+}
+
 const STEPPER_STEPS = [
   { number: 1, label: 'Informations', description: 'Titre, domaine et description du document' },
   { number: 2, label: 'Classification', description: 'Categorie, niveau de confidentialite et controles ISO' },
@@ -223,6 +250,28 @@ export default function NewDocumentPage() {
   const [duplicates, setDuplicates] = useState<Array<{ id: string; title: string; reference: string; status: string }>>([]);
   const duplicateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // --- Métadonnées REG_016 (optionnelles, alignement Registre Documentaire SMSI) ---
+  // Section pliable, defaults auto-derivees depuis la categorie (l'user peut
+  // override). Le backend accepte ces 5 champs grace au schema Phase 1.
+  const [reg016, setReg016] = useState<Reg016Values>({
+    parentReference: '',
+    documentLevel: '',
+    priority: '',
+    blocking: false,
+    reviewPeriodicity: '',
+  });
+  // Memoise si l'user a deja modifie manuellement l'un des champs derives
+  // pour eviter qu'un changement de categorie n'ecrase ses choix.
+  const reg016Touched = useRef<{ level: boolean; priority: boolean }>({
+    level: false,
+    priority: false,
+  });
+  const updateReg016 = (patch: Partial<Reg016Values>) => {
+    if ('documentLevel' in patch) reg016Touched.current.level = true;
+    if ('priority' in patch) reg016Touched.current.priority = true;
+    setReg016((prev) => ({ ...prev, ...patch }));
+  };
+
   // Auto-save brouillon localStorage : protège l'utilisateur contre la perte
   // d'un formulaire long (10 min de saisie) en cas d'expiration de session,
   // crash navigateur ou fermeture d'onglet par erreur. Restoration au mount,
@@ -263,6 +312,12 @@ export default function NewDocumentPage() {
           if (parsed.selectedReviewerId) setSelectedReviewerId(parsed.selectedReviewerId);
           if (typeof parsed.isPermanent === 'boolean') setIsPermanent(parsed.isPermanent);
           if (typeof parsed.directPublish === 'boolean') setDirectPublish(parsed.directPublish);
+          if (parsed.reg016 && typeof parsed.reg016 === 'object') {
+            // On considere une restauration comme "touched" pour preserver
+            // les choix utilisateur d'une session a l'autre.
+            setReg016(parsed.reg016 as Reg016Values);
+            reg016Touched.current = { level: true, priority: true };
+          }
           setDraftRestored(true);
           // Auto-dismiss l'indicateur après 6s
           setTimeout(() => setDraftRestored(false), 6000);
@@ -289,6 +344,7 @@ export default function NewDocumentPage() {
             selectedReviewerId,
             isPermanent,
             directPublish,
+            reg016,
           }),
         );
       } catch {
@@ -298,7 +354,7 @@ export default function NewDocumentPage() {
     return () => {
       if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
     };
-  }, [watchedAll, selectedControls, selectedReviewerId, isPermanent, directPublish, isDirty]);
+  }, [watchedAll, selectedControls, selectedReviewerId, isPermanent, directPublish, reg016, isDirty]);
 
   useEffect(() => {
     api.get('/iso-controls', { params: { limit: 100 } }).then(({ data }) => {
@@ -391,6 +447,24 @@ export default function NewDocumentPage() {
 
   // Compute the current wizard step based on form completion
   const watchedCategory = watch('category');
+
+  // Defaults REG_016 derives de la categorie : niveau (pyramide PRO_040 §7.1)
+  // + priorite metier. On respecte le choix manuel de l'utilisateur via le
+  // ref reg016Touched (pas d'ecrasement apres modification explicite).
+  useEffect(() => {
+    if (!watchedCategory) return;
+    setReg016((prev) => {
+      const next = { ...prev };
+      if (!reg016Touched.current.level) {
+        const lvl = DOCUMENT_CATEGORY_LEVEL[watchedCategory as DocumentCategory];
+        if (lvl) next.documentLevel = lvl;
+      }
+      if (!reg016Touched.current.priority) {
+        next.priority = defaultPriorityForCategory(watchedCategory);
+      }
+      return next;
+    });
+  }, [watchedCategory]);
   const watchedClassification = watch('classification');
   const watchedDomain = watch('domain');
   const currentStep: number = (() => {
@@ -435,6 +509,7 @@ export default function NewDocumentPage() {
         ...formData,
         isoControlIds: selectedControls,
         ...(selectedReviewerId && { reviewerId: selectedReviewerId }),
+        ...buildReg016Payload(reg016),
       });
       if (file) {
         const fd = new FormData();
@@ -466,6 +541,7 @@ export default function NewDocumentPage() {
         isoControlIds: selectedControls,
         ...(selectedReviewerId && { reviewerId: selectedReviewerId }),
         ...(isPermanent ? { nextReviewDate: undefined } : {}),
+        ...buildReg016Payload(reg016),
       };
 
       // Direct-publish : endpoint dédié qui crée + met APPROVED en une
@@ -891,6 +967,15 @@ export default function NewDocumentPage() {
                   </label>
                 </div>
               )}
+            </div>
+
+            {/* Metadonnees REG_016 — section pliable, tous les champs optionnels */}
+            <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
+              <Reg016Fields
+                values={reg016}
+                onChange={updateReg016}
+                category={watchedCategory}
+              />
             </div>
 
             {/* ISO Controls - full width section */}

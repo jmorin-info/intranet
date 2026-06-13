@@ -742,6 +742,12 @@ export function Sidebar() {
           minRole: UserRole.REVIEWER,
         },
         {
+          label: "Registre documentaire",
+          href: "/admin/registre",
+          icon: ClipboardList,
+          minRole: UserRole.ADMIN,
+        },
+        {
           label: "Workflows d'approbation",
           href: "/admin/workflows",
           icon: Workflow,

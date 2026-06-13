@@ -28,6 +28,9 @@ import { IsoAnalyzerModule } from "./iso-analyzer/iso-analyzer.module";
 import { LdapModule } from "./ldap/ldap.module";
 import { TicketsModule } from "./tickets/tickets.module";
 import { VeilleModule } from "./veille/veille.module";
+// REG_016 / PRO_040 / SharePoint alignment — Phase 2 (2026-06-13)
+import { RegistreModule } from "./registre/registre.module";
+import { SharePointModule } from "./sharepoint/sharepoint.module";
 import { SatisfactionModule } from "./satisfaction/satisfaction.module";
 import { PublicModule } from "./public/public.module";
 import { MfaModule } from "./mfa/mfa.module";
@@ -140,6 +143,11 @@ import { MaintenanceModule } from "./maintenance/maintenance.module";
     LdapModule,
     TicketsModule,
     VeilleModule,
+    // REG_016 / PRO_040 / SharePoint alignment — Phase 2 (2026-06-13).
+    // SharePointModule est feature-flagged (GED_SHAREPOINT_SYNC_ENABLED)
+    // et se charge meme si non configure (status endpoint reste joignable).
+    RegistreModule,
+    SharePointModule,
     SatisfactionModule,
     PublicModule,
     MfaModule,
