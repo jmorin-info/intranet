@@ -19,6 +19,9 @@ dist/
 # contient les VRAIS secrets, même s'il est nommé .bak/.old/.backup)
 .env.*backup*
 .env.*.bak
+# Variante où .bak est au milieu du nom, pas en suffixe (ex: .env.bak.cutover.<timestamp>)
+.env.bak.*
+.env*.bak.*
 .env.*.old
 .env.before-*
 .env.pre-*
@@ -98,3 +101,6 @@ Thumbs.db
 *.temp
 .cache/
 .parcel-cache/
+
+# Registre SMSI en clair — ne pas versionner sur le remote
+packages/database/prisma/reg016/registre.tsv

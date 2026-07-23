@@ -1,11 +1,20 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import { execSync } from 'child_process';
-import * as crypto from 'crypto';
-import * as path from 'path';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  InternalServerErrorException,
+} from "@nestjs/common";
+import { execFileSync } from "child_process";
+import * as crypto from "crypto";
+import * as path from "path";
+import * as fs from "fs";
+import * as os from "os";
 
 interface FileItem {
   name: string;
-  type: 'file' | 'directory';
+  type: "file" | "directory";
   size: number;
   modified: string;
 }
@@ -18,15 +27,60 @@ interface ShareConfig {
 }
 
 const SHARES: ShareConfig[] = [
-  { name: 'Public', label: 'Public', icon: 'globe', allowedRoles: ['COLLABORATEUR', 'REVIEWER', 'ADMIN', 'SUPER_ADMIN', 'DIRECTION', 'AUDITEUR'] },
-  { name: 'Informatique', label: 'Informatique', icon: 'server', allowedRoles: ['ADMIN', 'SUPER_ADMIN'] },
-  { name: 'Commercial', label: 'Commercial', icon: 'briefcase', allowedRoles: ['COLLABORATEUR', 'REVIEWER', 'ADMIN', 'SUPER_ADMIN', 'DIRECTION'] },
-  { name: 'Comptabilite', label: 'Comptabilité', icon: 'calculator', allowedRoles: ['ADMIN', 'SUPER_ADMIN', 'DIRECTION'] },
-  { name: 'Gestion', label: 'Gestion', icon: 'clipboard', allowedRoles: ['ADMIN', 'SUPER_ADMIN', 'DIRECTION'] },
-  { name: 'Projets', label: 'Projets', icon: 'folder', allowedRoles: ['COLLABORATEUR', 'REVIEWER', 'ADMIN', 'SUPER_ADMIN', 'DIRECTION'] },
-  { name: 'RH Recrutement', label: 'RH / Recrutement', icon: 'users', allowedRoles: ['ADMIN', 'SUPER_ADMIN', 'DIRECTION'] },
-  { name: 'RetD', label: 'R&D', icon: 'lightbulb', allowedRoles: ['REVIEWER', 'ADMIN', 'SUPER_ADMIN'] },
-  { name: 'ThirdParty', label: 'Partenaires', icon: 'handshake', allowedRoles: ['ADMIN', 'SUPER_ADMIN', 'PRESTATAIRE'] },
+  {
+    name: "Public",
+    label: "Public",
+    icon: "globe",
+    allowedRoles: ["COLLABORATEUR", "REVIEWER", "ADMIN", "SUPER_ADMIN", "DIRECTION", "AUDITEUR"],
+  },
+  {
+    name: "Informatique",
+    label: "Informatique",
+    icon: "server",
+    allowedRoles: ["ADMIN", "SUPER_ADMIN"],
+  },
+  {
+    name: "Commercial",
+    label: "Commercial",
+    icon: "briefcase",
+    allowedRoles: ["COLLABORATEUR", "REVIEWER", "ADMIN", "SUPER_ADMIN", "DIRECTION"],
+  },
+  {
+    name: "Comptabilite",
+    label: "Comptabilité",
+    icon: "calculator",
+    allowedRoles: ["ADMIN", "SUPER_ADMIN", "DIRECTION"],
+  },
+  {
+    name: "Gestion",
+    label: "Gestion",
+    icon: "clipboard",
+    allowedRoles: ["ADMIN", "SUPER_ADMIN", "DIRECTION"],
+  },
+  {
+    name: "Projets",
+    label: "Projets",
+    icon: "folder",
+    allowedRoles: ["COLLABORATEUR", "REVIEWER", "ADMIN", "SUPER_ADMIN", "DIRECTION"],
+  },
+  {
+    name: "RH Recrutement",
+    label: "RH / Recrutement",
+    icon: "users",
+    allowedRoles: ["ADMIN", "SUPER_ADMIN", "DIRECTION"],
+  },
+  {
+    name: "RetD",
+    label: "R&D",
+    icon: "lightbulb",
+    allowedRoles: ["REVIEWER", "ADMIN", "SUPER_ADMIN"],
+  },
+  {
+    name: "ThirdParty",
+    label: "Partenaires",
+    icon: "handshake",
+    allowedRoles: ["ADMIN", "SUPER_ADMIN", "PRESTATAIRE"],
+  },
 ];
 
 // Encrypted credential store (in-memory, per user session)
@@ -35,23 +89,26 @@ const CRED_TTL = 8 * 3600000; // 8 hours
 // Reserved for future at-rest encryption of cached credentials. Currently
 // kept here so the SHA-256 derivation stays adjacent to the credential store
 // definition above for review purposes.
-const _ENCRYPTION_KEY = crypto.createHash('sha256').update(process.env.JWT_ACCESS_SECRET || 'fallback').digest();
+const _ENCRYPTION_KEY = crypto
+  .createHash("sha256")
+  .update(process.env.JWT_ACCESS_SECRET || "fallback")
+  .digest();
 
 @Injectable()
 export class FileserverService {
   private readonly logger = new Logger(FileserverService.name);
-  private readonly host = process.env.FILESERVER_HOST || '10.33.50.5';
+  private readonly host = process.env.FILESERVER_HOST || "10.33.50.5";
   // Fallback service account for shares that allow it — credentials must be provided via env.
-  private readonly serviceUser = process.env.FILESERVER_USER || 'svc_intranet@omnitech.security';
+  private readonly serviceUser = process.env.FILESERVER_USER || "svc_intranet@omnitech.security";
   private readonly servicePassword = (() => {
     const pwd = process.env.FILESERVER_SERVICE_PASSWORD || process.env.FILESERVER_PASSWORD;
     if (!pwd) {
       // Fail fast: no hardcoded fallback allowed. Service account features will be unavailable.
       Logger.prototype.warn.call(
         new Logger(FileserverService.name),
-        'FILESERVER_SERVICE_PASSWORD (or FILESERVER_PASSWORD) is not set — SMB service account is disabled.',
+        "FILESERVER_SERVICE_PASSWORD (or FILESERVER_PASSWORD) is not set — SMB service account is disabled.",
       );
-      return '';
+      return "";
     }
     return pwd;
   })();
@@ -62,27 +119,34 @@ export class FileserverService {
    * Throws BadRequestException if the path is suspicious.
    */
   static validateSafePath(p: string | undefined | null): string {
-    if (p === undefined || p === null || p === '') return '';
-    if (typeof p !== 'string') {
-      throw new BadRequestException('Invalid path');
+    if (p === undefined || p === null || p === "") return "";
+    if (typeof p !== "string") {
+      throw new BadRequestException("Invalid path");
     }
     // Reject control chars, traversal markers, backslashes, absolute roots
     // eslint-disable-next-line no-control-regex
-    if (/[\u0000-\u001f]/.test(p)) throw new BadRequestException('Invalid path');
-    if (p.includes('..')) throw new BadRequestException('Invalid path');
-    if (p.includes('\\')) throw new BadRequestException('Invalid path');
-    if (p.startsWith('/')) throw new BadRequestException('Invalid path');
+    if (/[\u0000-\u001f]/.test(p)) throw new BadRequestException("Invalid path");
+    if (p.includes("..")) throw new BadRequestException("Invalid path");
+    if (p.includes("\\")) throw new BadRequestException("Invalid path");
+    if (p.startsWith("/")) throw new BadRequestException("Invalid path");
+    // Rejeter les métacaractères du mini-langage de commandes de smbclient (-c) :
+    // '"' casse le quoting de `cd "..."`, ';' sépare les commandes, '!' lance un
+    // shell LOCAL, backtick/$ pour toute expansion. execFileSync neutralise le
+    // shell OS mais PAS l'interpréteur interne de smbclient — sans ce filtre, un
+    // chemin contrôlé (ex. `x"; !id; "`) reste une injection de commande (RCE).
+    // '" | < >' sont de toute façon illégaux dans les noms de fichiers Windows.
+    if (/["`$;!|<>\r\n]/.test(p)) throw new BadRequestException("Invalid path");
 
     const normalized = path.posix.normalize(p);
     if (
-      normalized.startsWith('..') ||
-      normalized.startsWith('/') ||
-      normalized === '.' ||
-      normalized.includes('..')
+      normalized.startsWith("..") ||
+      normalized.startsWith("/") ||
+      normalized === "." ||
+      normalized.includes("..")
     ) {
       // "." is fine as "empty" but we return '' for consistency
-      if (normalized === '.') return '';
-      throw new BadRequestException('Invalid path');
+      if (normalized === ".") return "";
+      throw new BadRequestException("Invalid path");
     }
     return normalized;
   }
@@ -92,11 +156,11 @@ export class FileserverService {
    * (alphanumeric, space, underscore, dash only).
    */
   static validateShareName(share: string | undefined | null): string {
-    if (!share || typeof share !== 'string') {
-      throw new BadRequestException('Invalid share name');
+    if (!share || typeof share !== "string") {
+      throw new BadRequestException("Invalid share name");
     }
     if (!/^[A-Za-z0-9 _-]{1,64}$/.test(share)) {
-      throw new BadRequestException('Invalid share name');
+      throw new BadRequestException("Invalid share name");
     }
     return share;
   }
@@ -138,14 +202,53 @@ export class FileserverService {
   }
 
   /**
+   * Exécute une commande smbclient en passant les identifiants via un FICHIER
+   * d'authentification temporaire (`-A`, mode 0600) plutôt que `-U user%pass`
+   * en ligne de commande — sinon le mot de passe est visible via `ps` /
+   * `/proc/<pid>/cmdline` par tout process co-localisé (findings sécu [14]).
+   * Le fichier est supprimé systématiquement (finally).
+   */
+  private smbExec(
+    target: string,
+    creds: { user: string; password: string },
+    command: string,
+    execOpts: Record<string, unknown> = {},
+  ): string {
+    const authFile = path.join(os.tmpdir(), `smbauth_${crypto.randomBytes(9).toString("hex")}`);
+    const at = creds.user.indexOf("@");
+    const username = at >= 0 ? creds.user.slice(0, at) : creds.user;
+    const domain = at >= 0 ? creds.user.slice(at + 1) : "";
+    fs.writeFileSync(
+      authFile,
+      `username = ${username}\npassword = ${creds.password}\n${domain ? `domain = ${domain}\n` : ""}`,
+      { mode: 0o600 },
+    );
+    try {
+      const out = execFileSync("smbclient", [target, "-A", authFile, "-c", command], {
+        encoding: "utf-8",
+        ...execOpts,
+      });
+      return typeof out === "string" ? out : String(out ?? "");
+    } finally {
+      try {
+        fs.unlinkSync(authFile);
+      } catch {
+        /* best-effort */
+      }
+    }
+  }
+
+  /**
    * Verify SMB credentials by attempting a connection
    */
   async verifyCredentials(smbUser: string, smbPassword: string): Promise<boolean> {
     try {
-      execSync(
-        `smbclient "//${this.host}/Public" -U "${smbUser}%${smbPassword}" -c "ls" 2>/dev/null`,
-        { timeout: 10000, encoding: 'utf-8' },
-      );
+      // execFileSync : aucun shell OS invoqué, chaque argument est littéral —
+      // smbUser/smbPassword (saisis par l'utilisateur) ne peuvent plus injecter
+      // de commande, contrairement à l'ancien execSync + string concaténée.
+      this.smbExec(`//${this.host}/Public`, { user: smbUser, password: smbPassword }, "ls", {
+        timeout: 10000,
+      });
       return true;
     } catch {
       return false;
@@ -153,40 +256,45 @@ export class FileserverService {
   }
 
   getShares(userRole: string): ShareConfig[] {
-    return SHARES.filter(s => s.allowedRoles.includes(userRole));
+    return SHARES.filter((s) => s.allowedRoles.includes(userRole));
   }
 
   listFiles(shareName: string, dirPath: string, userRole: string, userId: string): FileItem[] {
-    const share = SHARES.find(s => s.name === shareName);
-    if (!share) throw new NotFoundException('Partage introuvable');
-    if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException('Accès non autorisé à ce partage');
+    const share = SHARES.find((s) => s.name === shareName);
+    if (!share) throw new NotFoundException("Partage introuvable");
+    if (!share.allowedRoles.includes(userRole))
+      throw new ForbiddenException("Accès non autorisé à ce partage");
 
     // Sanitize path : pas de traversal `..`, pas de leading `/`, conversion
     // des séparateurs `/` → `\` (smbclient attend du Windows-style sur les
     // sous-dossiers profonds — les `/` peuvent casser silencieusement la
     // navigation au-delà de 2-3 niveaux selon la version smbclient).
-    const safePath = dirPath
-      .replace(/\.\./g, '')
-      .replace(/^\/+/, '')
-      .replace(/\//g, '\\');
+    const safePath = dirPath.replace(/\.\./g, "").replace(/^\/+/, "").replace(/\//g, "\\");
     const creds = this.getCredentials(userId);
 
     try {
       // Timeout 30s (au lieu de 10s) pour les dossiers profonds avec beaucoup
       // d'entrées : un large `ls` peut être lent sur SMB derrière le LAN.
-      const smbPath = safePath ? `cd "${safePath}"; ls` : 'ls';
-      const cmd = `smbclient "//${this.host}/${shareName}" -U "${creds.user}%${creds.password}" -c "${smbPath}" 2>&1`;
-      const output = execSync(cmd, {
+      // execFileSync : aucun shell OS invoqué. Le "cd ...; ls" reste un seul
+      // argument passé à smbclient — c'est son propre mini-langage de
+      // commandes internes (pas le shell OS), il est interprété tel quel
+      // comme avant.
+      const smbPath = safePath ? `cd "${safePath}"; ls` : "ls";
+      const output = this.smbExec(`//${this.host}/${shareName}`, creds, smbPath, {
         timeout: 30000,
-        encoding: 'utf-8',
         maxBuffer: 10 * 1024 * 1024, // 10 MB — gros dossiers OK
       });
 
-      if (output.includes('NT_STATUS_ACCESS_DENIED')) {
-        throw new ForbiddenException('Accès refusé — vos droits ne permettent pas d\'accéder à ce partage');
+      if (output.includes("NT_STATUS_ACCESS_DENIED")) {
+        throw new ForbiddenException(
+          "Accès refusé — vos droits ne permettent pas d'accéder à ce partage",
+        );
       }
-      if (output.includes('NT_STATUS_OBJECT_PATH_NOT_FOUND') || output.includes('NT_STATUS_OBJECT_NAME_NOT_FOUND')) {
-        throw new NotFoundException('Dossier introuvable');
+      if (
+        output.includes("NT_STATUS_OBJECT_PATH_NOT_FOUND") ||
+        output.includes("NT_STATUS_OBJECT_NAME_NOT_FOUND")
+      ) {
+        throw new NotFoundException("Dossier introuvable");
       }
 
       const items: FileItem[] = [];
@@ -194,19 +302,20 @@ export class FileserverService {
       // peuvent être vides (fichiers sans flag), et les noms longs avec
       // espaces (group capture non greedy + lookahead sur 2+ espaces).
       // Format attendu : `  <name>  <attrs?>  <size>  <day>  <date+time+year>`
-      const lineRe = /^\s{2}(.+?)\s{2,}([DAHRSN]*)\s+(\d+)\s+(\w{3}\s+\w{3}\s+[\d:]+\s+\d{4}|\w{3}\s+\d+\s+[\d:]+\s+\d{4})/;
+      const lineRe =
+        /^\s{2}(.+?)\s{2,}([DAHRSN]*)\s+(\d+)\s+(\w{3}\s+\w{3}\s+[\d:]+\s+\d{4}|\w{3}\s+\d+\s+[\d:]+\s+\d{4})/;
       let parsedAny = false;
-      for (const line of output.split('\n')) {
+      for (const line of output.split("\n")) {
         const match = line.match(lineRe);
         if (match) {
           parsedAny = true;
           const name = match[1]!.trim();
-          if (name === '.' || name === '..') continue;
+          if (name === "." || name === "..") continue;
           items.push({
             name,
-            type: (match[2] || '').includes('D') ? 'directory' : 'file',
-            size: parseInt(match[3] || '0'),
-            modified: match[4] || '',
+            type: (match[2] || "").includes("D") ? "directory" : "file",
+            size: parseInt(match[3] || "0"),
+            modified: match[4] || "",
           });
         }
       }
@@ -215,23 +324,23 @@ export class FileserverService {
       // notre regex, on log un sample pour diagnostiquer le format inattendu
       // (locale différente, version smbclient récente, etc.) au lieu de
       // retourner silencieusement [].
-      if (!parsedAny && output.trim().length > 0 && !output.includes('NT_STATUS_')) {
+      if (!parsedAny && output.trim().length > 0 && !output.includes("NT_STATUS_")) {
         this.logger.warn(
-          `SMB list parse miss (${shareName}/${safePath}) — sample: ${output.split('\n').slice(0, 3).join(' | ').slice(0, 300)}`,
+          `SMB list parse miss (${shareName}/${safePath}) — sample: ${output.split("\n").slice(0, 3).join(" | ").slice(0, 300)}`,
         );
       }
 
       return items.sort((a, b) => {
-        if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+        if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
         return a.name.localeCompare(b.name);
       });
     } catch (err) {
       if (err instanceof ForbiddenException || err instanceof NotFoundException) throw err;
-      const errMsg = (err as { message?: string; code?: string })?.message ?? '';
+      const errMsg = (err as { message?: string; code?: string })?.message ?? "";
       this.logger.warn(`SMB list failed: ${shareName}/${safePath} — ${errMsg.slice(0, 200)}`);
       // En cas de timeout, signaler à l'utilisateur plutôt que de retourner
       // silencieusement un dossier vide (UX très perturbant — bug observé).
-      if (errMsg.includes('ETIMEDOUT') || errMsg.includes('timed out')) {
+      if (errMsg.includes("ETIMEDOUT") || errMsg.includes("timed out")) {
         throw new InternalServerErrorException(
           `Le partage ${shareName} ne répond pas (timeout 30s). Réseau ou serveur SMB lent — réessayez ou contactez l'IT.`,
         );
@@ -241,96 +350,121 @@ export class FileserverService {
   }
 
   downloadFile(shareName: string, filePath: string, userRole: string, userId: string): Buffer {
-    const share = SHARES.find(s => s.name === shareName);
-    if (!share) throw new NotFoundException('Partage introuvable');
-    if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException('Accès non autorisé');
+    const share = SHARES.find((s) => s.name === shareName);
+    if (!share) throw new NotFoundException("Partage introuvable");
+    if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException("Accès non autorisé");
 
-    const safePath = filePath.replace(/\.\./g, '');
+    const safePath = filePath.replace(/\.\./g, "");
     const creds = this.getCredentials(userId);
 
     try {
-      const tmpFile = `/tmp/smb_dl_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      execSync(
-        `smbclient "//${this.host}/${shareName}" -U "${creds.user}%${creds.password}" -c "get \\"${safePath}\\" ${tmpFile}" 2>/dev/null`,
-        { timeout: 30000 },
-      );
-      const fs = require('fs');
+      const tmpFile = path.join(os.tmpdir(), `smb_dl_${crypto.randomBytes(9).toString("hex")}`);
+      // execFileSync : aucun shell OS invoqué. La sous-commande smbclient
+      // garde ses guillemets internes (mini-langage smbclient, pas le shell).
+      const smbCmd = `get "${safePath}" ${tmpFile}`;
+      this.smbExec(`//${this.host}/${shareName}`, creds, smbCmd, { timeout: 30000 });
       const data = fs.readFileSync(tmpFile);
       fs.unlinkSync(tmpFile);
       return data;
     } catch {
-      throw new NotFoundException('Fichier introuvable ou inaccessible');
+      throw new NotFoundException("Fichier introuvable ou inaccessible");
     }
   }
 
-  uploadFile(shareName: string, dirPath: string, fileName: string, buffer: Buffer, userRole: string, userId: string): void {
-    const share = SHARES.find(s => s.name === shareName);
-    if (!share) throw new NotFoundException('Partage introuvable');
-    if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException('Accès non autorisé');
+  uploadFile(
+    shareName: string,
+    dirPath: string,
+    fileName: string,
+    buffer: Buffer,
+    userRole: string,
+    userId: string,
+  ): void {
+    const share = SHARES.find((s) => s.name === shareName);
+    if (!share) throw new NotFoundException("Partage introuvable");
+    if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException("Accès non autorisé");
 
-    const safePath = dirPath.replace(/\.\./g, '');
-    const safeFileName = fileName.replace(/[\\/]/g, '_');
+    const safePath = dirPath.replace(/\.\./g, "");
+    // Nom de fichier : rejeter séparateurs ET métacaractères smbclient — sinon
+    // un nom d'upload piégé (`x"; !cmd; "`) s'injecte dans `put ... "${target}"`
+    // (même classe d'injection que createFolder ; le chemin est validé au
+    // controller mais PAS le nom du fichier uploadé).
+    if (!fileName || fileName.includes("..") || /[\\/:"`$;!|<>]/.test(fileName)) {
+      throw new BadRequestException("Nom de fichier invalide");
+    }
+    const safeFileName = fileName;
     const creds = this.getCredentials(userId);
 
-    const fs = require('fs');
-    const tmpFile = `/tmp/smb_ul_${Date.now()}`;
+    const tmpFile = path.join(os.tmpdir(), `smb_ul_${crypto.randomBytes(9).toString("hex")}`);
     fs.writeFileSync(tmpFile, buffer);
 
     try {
       const targetPath = safePath ? `${safePath}\\${safeFileName}` : safeFileName;
-      execSync(
-        `smbclient "//${this.host}/${shareName}" -U "${creds.user}%${creds.password}" -c "put ${tmpFile} \\"${targetPath}\\"" 2>/dev/null`,
-        { timeout: 30000 },
-      );
+      // execFileSync : aucun shell OS invoqué.
+      const smbCmd = `put ${tmpFile} "${targetPath}"`;
+      this.smbExec(`//${this.host}/${shareName}`, creds, smbCmd, { timeout: 30000 });
     } catch {
-      throw new Error('Échec de l\'upload');
+      throw new Error("Échec de l'upload");
     } finally {
       if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
     }
   }
 
-  deleteFile(shareName: string, filePath: string, userRole: string, userId: string): { message: string } {
-    const share = SHARES.find(s => s.name === shareName);
-    if (!share) throw new NotFoundException('Partage introuvable');
-    if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException('Accès non autorisé');
+  deleteFile(
+    shareName: string,
+    filePath: string,
+    userRole: string,
+    userId: string,
+  ): { message: string } {
+    const share = SHARES.find((s) => s.name === shareName);
+    if (!share) throw new NotFoundException("Partage introuvable");
+    if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException("Accès non autorisé");
 
-    const safePath = filePath.replace(/\.\./g, '');
+    const safePath = filePath.replace(/\.\./g, "");
     const creds = this.getCredentials(userId);
 
     try {
-      const output = execSync(
-        `smbclient "//${this.host}/${shareName}" -U "${creds.user}%${creds.password}" -c "del \\"${safePath}\\"" 2>&1`,
-        { timeout: 10000, encoding: 'utf-8' },
-      );
-      if (output.includes('NT_STATUS')) {
-        execSync(
-          `smbclient "//${this.host}/${shareName}" -U "${creds.user}%${creds.password}" -c "rmdir \\"${safePath}\\"" 2>&1`,
-          { timeout: 10000 },
-        );
+      // execFileSync : aucun shell OS invoqué.
+      const delCmd = `del "${safePath}"`;
+      const output = this.smbExec(`//${this.host}/${shareName}`, creds, delCmd, { timeout: 10000 });
+      if (output.includes("NT_STATUS")) {
+        const rmdirCmd = `rmdir "${safePath}"`;
+        this.smbExec(`//${this.host}/${shareName}`, creds, rmdirCmd, { timeout: 10000 });
       }
-      return { message: 'Élément supprimé' };
+      return { message: "Élément supprimé" };
     } catch {
-      throw new NotFoundException('Impossible de supprimer cet élément');
+      throw new NotFoundException("Impossible de supprimer cet élément");
     }
   }
 
-  createFolder(shareName: string, dirPath: string, name: string, userRole: string, userId: string): { message: string } {
-    const share = SHARES.find(s => s.name === shareName);
-    if (!share) throw new NotFoundException('Partage introuvable');
-    if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException('Accès non autorisé');
+  createFolder(
+    shareName: string,
+    dirPath: string,
+    name: string,
+    userRole: string,
+    userId: string,
+  ): { message: string } {
+    const share = SHARES.find((s) => s.name === shareName);
+    if (!share) throw new NotFoundException("Partage introuvable");
+    if (!share.allowedRoles.includes(userRole)) throw new ForbiddenException("Accès non autorisé");
 
-    const safeName = name.replace(/[\\/.:]/g, '_');
-    const fullPath = dirPath ? `${dirPath.replace(/\.\./g, '')}\\${safeName}` : safeName;
+    // Valider le dossier parent avec le même filtre que les autres opérations
+    // (traversal + métacaractères smbclient), puis valider strictement le nom :
+    // sans ça, `mkdir "${fullPath}"` (ligne suivante) est injectable dans le
+    // mini-langage smbclient (RCE via '"; !cmd; "'). Cf. audit sécurité.
+    const safeDir = FileserverService.validateSafePath(dirPath);
+    if (!name || name.includes("..") || /[\\/:"`$;!|<>]/.test(name)) {
+      throw new BadRequestException("Nom de dossier invalide");
+    }
+    const fullPath = safeDir ? `${safeDir.replace(/\//g, "\\")}\\${name}` : name;
     const creds = this.getCredentials(userId);
 
     try {
-      execSync(
-        `smbclient "//${this.host}/${shareName}" -U "${creds.user}%${creds.password}" -c "mkdir \\"${fullPath}\\"" 2>/dev/null`,
-        { timeout: 10000 },
-      );
-      return { message: `Dossier "${safeName}" créé` };
+      // execFileSync : aucun shell OS invoqué.
+      const smbCmd = `mkdir "${fullPath}"`;
+      this.smbExec(`//${this.host}/${shareName}`, creds, smbCmd, { timeout: 10000 });
+      return { message: `Dossier "${name}" créé` };
     } catch {
-      throw new BadRequestException('Impossible de créer le dossier');
+      throw new BadRequestException("Impossible de créer le dossier");
     }
   }
 }
