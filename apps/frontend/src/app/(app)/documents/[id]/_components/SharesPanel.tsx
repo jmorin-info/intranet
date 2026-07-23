@@ -12,17 +12,9 @@ import {
   Badge,
   EmptyState,
   Skeleton,
+  ConfirmDialog,
 } from "@omnitech/ui";
-import {
-  Link2,
-  Plus,
-  Copy,
-  Check,
-  Trash2,
-  Lock,
-  Globe,
-  Calendar,
-} from "lucide-react";
+import { Link2, Plus, Copy, Check, Trash2, Lock, Globe, Calendar } from "lucide-react";
 
 interface ShareItem {
   id: string;
@@ -68,6 +60,7 @@ export function SharesPanel({ documentId, canAdmin }: SharesPanelProps) {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [createdShare, setCreatedShare] = useState<CreatedShare | null>(null);
+  const [revokeId, setRevokeId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,8 +83,14 @@ export function SharesPanel({ documentId, canAdmin }: SharesPanelProps) {
     else setLoading(false);
   }, [canAdmin, load]);
 
-  const handleRevoke = async (id: string) => {
-    if (!confirm("Révoquer ce lien de partage ?")) return;
+  const handleRevoke = (id: string) => {
+    setRevokeId(id);
+  };
+
+  const confirmRevoke = async () => {
+    if (!revokeId) return;
+    const id = revokeId;
+    setRevokeId(null);
     try {
       await api.delete(`/documents/${documentId}/shares/${id}`);
       toast.success("Partage révoqué");
@@ -123,11 +122,7 @@ export function SharesPanel({ documentId, canAdmin }: SharesPanelProps) {
               <Link2 className="h-5 w-5 text-seal-navy" />
               <h3 className="font-semibold text-seal-navy">Liens de partage</h3>
             </div>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setShowCreate(true)}
-            >
+            <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
               <Plus className="h-3.5 w-3.5" />
               Créer un lien
             </Button>
@@ -146,11 +141,7 @@ export function SharesPanel({ documentId, canAdmin }: SharesPanelProps) {
           ) : (
             <ul className="space-y-2">
               {shares.map((s) => (
-                <ShareRow
-                  key={s.id}
-                  share={s}
-                  onRevoke={() => handleRevoke(s.id)}
-                />
+                <ShareRow key={s.id} share={s} onRevoke={() => handleRevoke(s.id)} />
               ))}
             </ul>
           )}
@@ -169,26 +160,24 @@ export function SharesPanel({ documentId, canAdmin }: SharesPanelProps) {
       />
 
       {createdShare && (
-        <CreatedShareDialog
-          share={createdShare}
-          onClose={() => setCreatedShare(null)}
-        />
+        <CreatedShareDialog share={createdShare} onClose={() => setCreatedShare(null)} />
       )}
+
+      <ConfirmDialog
+        open={!!revokeId}
+        onClose={() => setRevokeId(null)}
+        onConfirm={confirmRevoke}
+        title="Révoquer le lien"
+        description="Révoquer ce lien de partage ? Il ne sera plus accessible."
+        variant="danger"
+      />
     </>
   );
 }
 
-function ShareRow({
-  share,
-  onRevoke,
-}: {
-  share: ShareItem;
-  onRevoke: () => void;
-}) {
-  const expired =
-    share.expiresAt && new Date(share.expiresAt).getTime() < Date.now();
-  const exhausted =
-    share.maxDownloads !== null && share.downloadCount >= share.maxDownloads;
+function ShareRow({ share, onRevoke }: { share: ShareItem; onRevoke: () => void }) {
+  const expired = share.expiresAt && new Date(share.expiresAt).getTime() < Date.now();
+  const exhausted = share.maxDownloads !== null && share.downloadCount >= share.maxDownloads;
   const status = share.revokedAt
     ? "Révoqué"
     : expired
@@ -246,8 +235,7 @@ function ShareRow({
           )}
           {share.lastAccessedAt && (
             <span>
-              Dernier accès&nbsp;:{" "}
-              {new Date(share.lastAccessedAt).toLocaleString("fr-FR")}
+              Dernier accès&nbsp;: {new Date(share.lastAccessedAt).toLocaleString("fr-FR")}
             </span>
           )}
         </div>
@@ -303,10 +291,7 @@ function CreateShareDialog({
 
     setSubmitting(true);
     try {
-      const res = await api.post<CreatedShare>(
-        `/documents/${documentId}/shares`,
-        body,
-      );
+      const res = await api.post<CreatedShare>(`/documents/${documentId}/shares`, body);
       reset();
       onCreated(res.data);
     } catch (e: any) {
@@ -344,8 +329,7 @@ function CreateShareDialog({
               className="rounded"
             />
             <span>
-              Exiger une authentification (le destinataire doit être connecté à
-              l'intranet)
+              Exiger une authentification (le destinataire doit être connecté à l'intranet)
             </span>
           </label>
         </div>
@@ -375,10 +359,9 @@ function CreateShareDialog({
         />
 
         <div className="rounded-card bg-amber-50 dark:bg-amber-950/20 p-3 text-xs text-amber-900 dark:text-amber-200">
-          Pour des raisons de conformité (ISO 27001 A.5.14), tous les accès au
-          lien sont audités&nbsp;: création, succès, échecs et expiration. Après
-          5 mauvais mots de passe consécutifs, le lien est automatiquement
-          révoqué.
+          Pour des raisons de conformité (ISO 27001 A.5.14), tous les accès au lien sont
+          audités&nbsp;: création, succès, échecs et expiration. Après 5 mauvais mots de passe
+          consécutifs, le lien est automatiquement révoqué.
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
@@ -401,13 +384,7 @@ function CreateShareDialog({
   );
 }
 
-function CreatedShareDialog({
-  share,
-  onClose,
-}: {
-  share: CreatedShare;
-  onClose: () => void;
-}) {
+function CreatedShareDialog({ share, onClose }: { share: CreatedShare; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const url = buildShareUrl(share.token);
 

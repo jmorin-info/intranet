@@ -45,6 +45,8 @@ export interface RegistreRow {
   version: string | null;
   reviewPeriodicity: string | null;
   format: string | null;
+  /** Contrôle de cohérence PGID §15.1 calculé côté backend. */
+  coherence?: string | null;
 }
 
 /**
@@ -126,6 +128,7 @@ const COLUMNS: ColumnDef[] = [
   { key: null, label: "Version", className: "min-w-[80px]" },
   { key: null, label: "Periodicite revue", className: "min-w-[140px]" },
   { key: null, label: "Format", className: "min-w-[80px]" },
+  { key: null, label: "Coherence", className: "min-w-[120px]" },
 ];
 
 export function RegistreTable({
@@ -320,6 +323,20 @@ export function RegistreTable({
                       </span>
                     ) : (
                       <span className="text-seal-gray-500 dark:text-slate-500">—</span>
+                    )}
+                  </td>
+                  <td className="py-2 px-3 whitespace-nowrap">
+                    {row.coherence && row.coherence !== "Conforme" ? (
+                      <span
+                        title={row.coherence}
+                        className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300"
+                      >
+                        Anomalie
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                        Conforme
+                      </span>
                     )}
                   </td>
                 </tr>

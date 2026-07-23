@@ -330,6 +330,16 @@ export class RegistreService {
       reviewPeriodicity: doc.reviewPeriodicity ?? null,
       nextReviewDate: doc.nextReviewDate ?? null,
       hasFile: Boolean(currentVersion?.fileUrl),
+      // Contrôle de cohérence PGID §15.1 automatisé : un document en état
+      // avancé (à approuver / approuvé) sans aucun fichier localisé (ni
+      // version, ni stockage externe) est une anomalie — remplace le contrôle
+      // manuel de la colonne « Cohérence » du classeur REG_016.
+      coherence:
+        ["PENDING_APPROVAL", "APPROVED", "REVIEW_APPROVED"].includes(doc.status) &&
+        !currentVersion?.fileUrl &&
+        !doc.externalStoragePath
+          ? "Fichier non localisé alors que état avancé"
+          : "Conforme",
       formats,
       externalStorageProvider: doc.externalStorageProvider ?? null,
       externalStoragePath: doc.externalStoragePath ?? null,
@@ -526,6 +536,7 @@ export class RegistreService {
       },
       { header: "Prochaine revue", accessor: (r) => r.nextReviewDate },
       { header: "Fichier disponible", accessor: (r) => r.hasFile },
+      { header: "Coherence (PGID 15.1)", accessor: (r) => r.coherence },
       { header: "Formats", accessor: (r) => r.formats.join(", ") },
       {
         header: "Stockage externe",
@@ -597,6 +608,9 @@ export class RegistreService {
       byClassification,
       byStatus,
       blocking,
+      // Exposé explicitement pour la carte « Critiques » du frontend
+      // (RegistreStatsData.critical) — sinon la carte lit undefined.
+      critical: byPriority["CRITICAL"] ?? 0,
     };
   }
 }

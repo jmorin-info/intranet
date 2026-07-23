@@ -141,6 +141,22 @@ export default function AdminRegistrePage() {
         ownerName: d.owner?.name ?? d.ownerName ?? null,
         version: d.currentVersion?.version ?? d.version ?? null,
         format: Array.isArray(d.formats) ? (d.formats[0] ?? null) : (d.format ?? null),
+        // Le backend renvoie classification={value,label} (objet) et
+        // isoControls=[{code,title}] (objets). On aplatit ici — sinon
+        // <ClassificationBadge> reçoit un objet (classification toujours
+        // fausse) et le tableau rend des objets comme enfants React (crash
+        // « Objects are not valid as a React child »).
+        classification:
+          d.classification && typeof d.classification === "object"
+            ? (d.classification.value ?? null)
+            : (d.classification ?? null),
+        isoControls: Array.isArray(d.isoControls)
+          ? d.isoControls
+              .map((c: unknown) =>
+                typeof c === "string" ? c : ((c as { code?: string })?.code ?? ""),
+              )
+              .filter(Boolean)
+          : [],
       }));
       setRows(items);
       setTotal(typeof payload.total === "number" ? payload.total : items.length);
@@ -225,7 +241,7 @@ export default function AdminRegistrePage() {
           }
         />
 
-        <RegistreStats stats={stats} loading={loadingStats} />
+        <RegistreStats stats={stats} loading={loadingStats} onRetry={loadStats} />
 
         <RegistreFilters
           value={filters}

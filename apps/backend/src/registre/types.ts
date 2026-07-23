@@ -59,6 +59,8 @@ export interface RegistreRow {
   reviewPeriodicity: string | null;
   nextReviewDate: Date | null;
   hasFile: boolean;
+  /** Contrôle de cohérence PGID §15.1 automatisé (« Conforme » ou anomalie). */
+  coherence: string;
   formats: string[];
   externalStorageProvider: string | null;
   externalStoragePath: string | null;
@@ -149,4 +151,6 @@ export interface RegistreStats {
   byClassification: Record<string, number>;
   byStatus: Record<string, number>;
   blocking: number;
+  /** Nombre de documents priorité CRITICAL (carte « Critiques » du registre). */
+  critical: number;
 }

@@ -22,7 +22,7 @@ import { RequestUser } from "../common/interfaces";
 import type { UserRole as PrismaUserRole } from "@prisma/client";
 import { UserRole, ROLE_HIERARCHY } from "../common/enums";
 import { ISO_CONTROLS_FR } from "../iso-controls/iso-controls-fr.map";
-import { sanitizePlainText } from "../common/sanitize";
+import { sanitizePlainText, sanitizeRichText } from "../common/sanitize";
 import { safeParseInt } from "../common/validation-helpers";
 import { MeilisearchService, MeiliDocument } from "../search/meilisearch.service";
 import { RagService } from "../rag/rag.service";
@@ -418,6 +418,15 @@ export class DocumentsService {
     if (filters.classification) {
       where.AND.push({ classification: filters.classification });
     }
+    if (filters.documentLevel) {
+      where.AND.push({ documentLevel: filters.documentLevel });
+    }
+    if (filters.priority) {
+      where.AND.push({ priority: filters.priority });
+    }
+    if (filters.blocking !== undefined) {
+      where.AND.push({ blocking: filters.blocking === "true" });
+    }
     if (filters.ownerId) {
       where.AND.push({ ownerId: filters.ownerId });
     }
@@ -618,6 +627,12 @@ export class DocumentsService {
         nextReviewDate: dto.nextReviewDate ? new Date(dto.nextReviewDate) : null,
         isPublic: dto.isPublic ?? false,
         classification: dto.classification || "INTERNE",
+        // Champs REG_016 (désormais acceptés par le DTO)
+        parentReference: dto.parentReference || null,
+        documentLevel: dto.documentLevel ?? null,
+        priority: dto.priority ?? null,
+        blocking: dto.blocking ?? false,
+        reviewPeriodicity: dto.reviewPeriodicity || null,
         isoControls: dto.isoControlIds?.length
           ? {
               create: dto.isoControlIds.map((isoControlId) => ({
@@ -929,7 +944,17 @@ export class DocumentsService {
         nextReviewDate: dto.nextReviewDate ? new Date(dto.nextReviewDate) : null,
         isPublic: dto.isPublic ?? false,
         classification: dto.classification || "INTERNE",
-        content: dto.content ?? "",
+        // Champs REG_016 — persistés comme dans create() (sinon silencieusement
+        // perdus alors que CreateDocumentDto les valide).
+        parentReference: dto.parentReference || null,
+        documentLevel: dto.documentLevel ?? null,
+        priority: dto.priority ?? null,
+        blocking: dto.blocking ?? false,
+        reviewPeriodicity: dto.reviewPeriodicity || null,
+        // XSS stockée : le HTML riche des documents natifs doit être assaini
+        // avant stockage (même pattern que wiki/news/content). Sinon il est
+        // servi tel quel via l'éditeur inline ET le lien de partage public.
+        content: sanitizeRichText(dto.content ?? ""),
         isNative: true,
         scanStatus: "CLEAN", // inline content bypasses AV
         isoControls: dto.isoControlIds?.length
@@ -1000,7 +1025,8 @@ export class DocumentsService {
 
     const updated = await this.prisma.document.update({
       where: { id },
-      data: { content },
+      // XSS stockée : assainir le HTML avant persistance (cf. createInline).
+      data: { content: sanitizeRichText(content) },
       include: {
         owner: {
           select: { id: true, firstName: true, lastName: true, email: true },
@@ -1038,8 +1064,13 @@ export class DocumentsService {
     }
 
     const updateData: any = {};
-    if (dto.title !== undefined) updateData.title = dto.title;
-    if (dto.description !== undefined) updateData.description = dto.description;
+    // sanitizePlainText sur title/description pour cohérence avec create()
+    // (P1 — évite une XSS stockée si ces champs sont un jour rendus en HTML).
+    if (dto.title !== undefined) updateData.title = sanitizePlainText(dto.title);
+    if (dto.description !== undefined)
+      updateData.description = dto.description
+        ? sanitizePlainText(dto.description)
+        : dto.description;
     if (dto.category !== undefined) updateData.category = dto.category;
     if (dto.reviewerId !== undefined) updateData.reviewerId = dto.reviewerId;
     if (dto.approverId !== undefined) updateData.approverId = dto.approverId;
@@ -1048,6 +1079,13 @@ export class DocumentsService {
     if (dto.isPublic !== undefined) updateData.isPublic = dto.isPublic;
     if (dto.classification !== undefined) updateData.classification = dto.classification;
     if (dto.status !== undefined) updateData.status = dto.status;
+    // Champs REG_016 (désormais acceptés par UpdateDocumentDto)
+    if (dto.parentReference !== undefined) updateData.parentReference = dto.parentReference || null;
+    if (dto.documentLevel !== undefined) updateData.documentLevel = dto.documentLevel;
+    if (dto.priority !== undefined) updateData.priority = dto.priority;
+    if (dto.blocking !== undefined) updateData.blocking = dto.blocking;
+    if (dto.reviewPeriodicity !== undefined)
+      updateData.reviewPeriodicity = dto.reviewPeriodicity || null;
 
     // Handle ISO controls update — wrapped in a transaction to avoid
     // leaving the document with no ISO controls if the createMany fails.
@@ -1806,7 +1844,13 @@ export class DocumentsService {
       action: "DOCUMENT_DOWNLOADED",
       resourceType: "DocumentVersion",
       resourceId: versionId,
-      metadata: { documentId, versionNumber: version.versionNumber },
+      // classification + sévérité : permet au SIEM/Graylog de prioriser/alerter
+      // sur les téléchargements sensibles. On plafonne à WARN (jamais CRITICAL) :
+      // un téléchargement autorisé n'est pas un événement « critique » et ne doit
+      // pas polluer AuditLog.getStats().criticalEvents (rapport ISO trimestriel,
+      // réservé aux anomalies). Graylog peut alerter sur metadata.classification.
+      metadata: { documentId, versionNumber: version.versionNumber, classification },
+      severity: classification === "SECRET" ? "WARN" : "INFO",
     });
 
     return {

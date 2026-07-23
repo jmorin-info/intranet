@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useState, useCallback } from "react";
+import React, { Suspense, useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
@@ -99,11 +99,7 @@ import {
   getValidityInfo,
   categoryBadgeVariant,
 } from "./_components/helpers";
-import type {
-  Document,
-  PaginatedDocs,
-  StatusTabKey,
-} from "./_components/types";
+import type { Document, PaginatedDocs, StatusTabKey } from "./_components/types";
 import { useDocumentsColumns } from "./_components/use-documents-columns";
 
 function DocumentsContent() {
@@ -137,9 +133,7 @@ function DocumentsContent() {
       api
         .get("/documents/statistics")
         .then((r) => setDocStats(r.data))
-        .catch((err) =>
-          logger.error(err, { page: "documents", context: "load statistics" }),
-        );
+        .catch((err) => logger.error(err, { page: "documents", context: "load statistics" }));
     }
   }, [isAdmin]);
 
@@ -153,9 +147,7 @@ function DocumentsContent() {
         (d) => d.status === "IN_REVIEW" || d.status === "PENDING_APPROVAL",
       ).length;
       const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-      const recentlyUpdated = docList.filter(
-        (d) => d.updatedAt >= sevenDaysAgo,
-      ).length;
+      const recentlyUpdated = docList.filter((d) => d.updatedAt >= sevenDaysAgo).length;
       setQuickStats({ total, mine, pendingReview, recentlyUpdated });
     }
   }, [docs, user]);
@@ -184,10 +176,8 @@ function DocumentsContent() {
       };
       if (filters.status) params.status = filters.status;
       if (filters.category) params.category = filters.category;
-      if (filters.classification)
-        params.classification = filters.classification;
-      if (filters.isoControlCode)
-        params.isoControlCode = filters.isoControlCode;
+      if (filters.classification) params.classification = filters.classification;
+      if (filters.isoControlCode) params.isoControlCode = filters.isoControlCode;
       if (debouncedSearch) params.search = debouncedSearch;
       if (filters.dateFrom) params.dateFrom = filters.dateFrom;
       if (filters.dateTo) params.dateTo = filters.dateTo;
@@ -215,18 +205,12 @@ function DocumentsContent() {
   // Event bus: auto-refresh when document mutations happen elsewhere
   useEntityEvents("DOCUMENT", (event) => {
     if (event.metadata?.optimistic) return;
-    if (
-      ["CREATED", "APPROVED", "REJECTED", "STATUS_CHANGED", "DELETED"].includes(
-        event.type,
-      )
-    ) {
+    if (["CREATED", "APPROVED", "REJECTED", "STATUS_CHANGED", "DELETED"].includes(event.type)) {
       fetchDocuments();
     }
   });
 
-  const [viewMode, setViewMode] = useState<"table" | "cards" | "kanban">(
-    "table",
-  );
+  const [viewMode, setViewMode] = useState<"table" | "cards" | "kanban">("table");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [statusTab, setStatusTab] = useState<StatusTabKey>("all");
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
@@ -250,12 +234,7 @@ function DocumentsContent() {
     const isEditableTarget = (el: EventTarget | null): boolean => {
       if (!(el instanceof HTMLElement)) return false;
       const tag = el.tagName;
-      return (
-        tag === "INPUT" ||
-        tag === "TEXTAREA" ||
-        tag === "SELECT" ||
-        el.isContentEditable
-      );
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
     };
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -291,9 +270,7 @@ function DocumentsContent() {
       }
       if (key === "f") {
         e.preventDefault();
-        const input = document.querySelector<HTMLInputElement>(
-          'input[placeholder*="Rechercher"]',
-        );
+        const input = document.querySelector<HTMLInputElement>('input[placeholder*="Rechercher"]');
         input?.focus();
         return;
       }
@@ -370,22 +347,13 @@ function DocumentsContent() {
 
   const handleBulkArchive = async () => {
     if (selectedDocs.length === 0) return;
-    if (
-      !confirm(
-        `Archiver ${selectedDocs.length} document${selectedDocs.length > 1 ? "s" : ""} ?`,
-      )
-    )
+    if (!confirm(`Archiver ${selectedDocs.length} document${selectedDocs.length > 1 ? "s" : ""} ?`))
       return;
     try {
-      const { data } = await api.post<{ updated: number }>(
-        "/documents/bulk/archive",
-        {
-          ids: selectedDocs.map((d) => d.id),
-        },
-      );
-      toast.success(
-        `${data.updated} document${data.updated > 1 ? "s archivés" : " archivé"}`,
-      );
+      const { data } = await api.post<{ updated: number }>("/documents/bulk/archive", {
+        ids: selectedDocs.map((d) => d.id),
+      });
+      toast.success(`${data.updated} document${data.updated > 1 ? "s archivés" : " archivé"}`);
       setSelectedIds(new Set());
       fetchDocuments();
     } catch {
@@ -410,13 +378,10 @@ function DocumentsContent() {
       return;
     }
     try {
-      const { data } = await api.post<{ updated: number }>(
-        "/documents/bulk/classify",
-        {
-          ids: selectedDocs.map((d) => d.id),
-          classification: value,
-        },
-      );
+      const { data } = await api.post<{ updated: number }>("/documents/bulk/classify", {
+        ids: selectedDocs.map((d) => d.id),
+        classification: value,
+      });
       toast.success(
         `Classification mise à jour sur ${data.updated} document${data.updated > 1 ? "s" : ""}`,
       );
@@ -432,21 +397,15 @@ function DocumentsContent() {
       const params: Record<string, unknown> = {};
       if (filters.status) params.status = filters.status;
       if (filters.category) params.category = filters.category;
-      if (filters.classification)
-        params.classification = filters.classification;
-      if (filters.isoControlCode)
-        params.isoControlCode = filters.isoControlCode;
+      if (filters.classification) params.classification = filters.classification;
+      if (filters.isoControlCode) params.isoControlCode = filters.isoControlCode;
       if (debouncedSearch) params.search = debouncedSearch;
       if (filters.dateFrom) params.dateFrom = filters.dateFrom;
       if (filters.dateTo) params.dateTo = filters.dateTo;
       if (myDocsOnly && user?.id) params.ownerId = user.id;
 
       const stamp = new Date().toISOString().slice(0, 10);
-      await downloadFromApi(
-        "/documents/export/csv",
-        `documents-${stamp}.csv`,
-        params,
-      );
+      await downloadFromApi("/documents/export/csv", `documents-${stamp}.csv`, params);
       toast.success("Export en cours");
     } catch (err) {
       toast.error("Erreur d'export");
@@ -468,8 +427,7 @@ function DocumentsContent() {
     const rows = selectedDocs.map((doc) => [
       doc.reference,
       doc.title,
-      DOCUMENT_CATEGORY_LABELS[doc.category as DocumentCategory] ||
-        doc.category,
+      DOCUMENT_CATEGORY_LABELS[doc.category as DocumentCategory] || doc.category,
       doc.classification || "",
       DOCUMENT_STATUS_LABELS[doc.status as DocumentStatus] || doc.status,
       `${doc.owner.firstName} ${doc.owner.lastName}`,
@@ -478,9 +436,7 @@ function DocumentsContent() {
     ]);
     const csv = [
       headers.join(";"),
-      ...rows.map((r) =>
-        r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"),
-      ),
+      ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")),
     ].join("\n");
     const blob = new Blob(["﻿" + csv], {
       type: "text/csv;charset=utf-8;",
@@ -488,10 +444,7 @@ function DocumentsContent() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute(
-      "download",
-      `documents-export-${new Date().toISOString().slice(0, 10)}.csv`,
-    );
+    link.setAttribute("download", `documents-export-${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -504,12 +457,10 @@ function DocumentsContent() {
     .filter(([value]) => canSeeAllStatuses || value === "APPROVED")
     .map(([value, label]) => ({ value, label }));
 
-  const categoryOptions = Object.entries(DOCUMENT_CATEGORY_LABELS).map(
-    ([value, label]) => ({
-      value,
-      label,
-    }),
-  );
+  const categoryOptions = Object.entries(DOCUMENT_CATEGORY_LABELS).map(([value, label]) => ({
+    value,
+    label,
+  }));
 
   const allClassifications = [
     { value: "PUBLIC", label: "Public", minRole: null },
@@ -525,8 +476,7 @@ function DocumentsContent() {
     (c) => !c.minRole || (user && isRoleAtLeast(user.role, c.minRole)),
   );
 
-  const allSelected =
-    docs?.data && docs.data.length > 0 && selectedIds.size === docs.data.length;
+  const allSelected = docs?.data && docs.data.length > 0 && selectedIds.size === docs.data.length;
   const someSelected = selectedIds.size > 0 && !allSelected;
 
   const columns = useDocumentsColumns({
@@ -584,11 +534,7 @@ function DocumentsContent() {
               )}
               <ExportButton
                 filename="documents"
-                rows={
-                  (docs?.data || []) as unknown as Array<
-                    Record<string, unknown>
-                  >
-                }
+                rows={(docs?.data || []) as unknown as Array<Record<string, unknown>>}
                 columns={[
                   { header: "Référence", accessor: "reference" },
                   { header: "Titre", accessor: "title" },
@@ -601,9 +547,7 @@ function DocumentsContent() {
                   {
                     header: "Propriétaire",
                     accessor: (r: any) =>
-                      r?.owner
-                        ? `${r.owner.firstName} ${r.owner.lastName}`
-                        : "",
+                      r?.owner ? `${r.owner.firstName} ${r.owner.lastName}` : "",
                   },
                   {
                     header: "Créé le",
@@ -635,13 +579,9 @@ function DocumentsContent() {
         {/* Quick stats bar */}
         {quickStats && (
           <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              variant="navy"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5"
-            >
+            <Badge variant="navy" className="inline-flex items-center gap-1.5 px-3 py-1.5">
               <FileText className="h-3.5 w-3.5" />
-              <span className="font-semibold">{quickStats.total}</span>{" "}
-              documents
+              <span className="font-semibold">{quickStats.total}</span> documents
             </Badge>
             <Badge
               variant="primary"
@@ -652,34 +592,22 @@ function DocumentsContent() {
               }}
             >
               <User className="h-3.5 w-3.5" />
-              <span className="font-semibold">{quickStats.mine}</span> mes
-              documents
+              <span className="font-semibold">{quickStats.mine}</span> mes documents
             </Badge>
             {canReview && quickStats.pendingReview > 0 && (
               <Badge
                 variant="warning"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 cursor-pointer"
-                onClick={() =>
-                  setFilters({ status: "IN_REVIEW" as DocumentStatus, page: 1 })
-                }
+                onClick={() => setFilters({ status: "IN_REVIEW" as DocumentStatus, page: 1 })}
               >
                 <Eye className="h-3.5 w-3.5" />
-                <span className="font-semibold">
-                  {quickStats.pendingReview}
-                </span>{" "}
-                en revue
+                <span className="font-semibold">{quickStats.pendingReview}</span> en revue
               </Badge>
             )}
             {quickStats.recentlyUpdated > 0 && (
-              <Badge
-                variant="success"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5"
-              >
+              <Badge variant="success" className="inline-flex items-center gap-1.5 px-3 py-1.5">
                 <Clock className="h-3.5 w-3.5" />
-                <span className="font-semibold">
-                  {quickStats.recentlyUpdated}
-                </span>{" "}
-                mis à jour (7j)
+                <span className="font-semibold">{quickStats.recentlyUpdated}</span> mis à jour (7j)
               </Badge>
             )}
           </div>
@@ -695,10 +623,7 @@ function DocumentsContent() {
                 </p>
                 <div className="space-y-1">
                   {docStats.byCategory?.slice(0, 5).map((c: any) => (
-                    <div
-                      key={c.category}
-                      className="flex items-center gap-2 text-xs"
-                    >
+                    <div key={c.category} className="flex items-center gap-2 text-xs">
                       <span className="w-20 text-seal-gray-500 dark:text-slate-400 truncate">
                         {c.category}
                       </span>
@@ -725,10 +650,7 @@ function DocumentsContent() {
                 </p>
                 <div className="space-y-1">
                   {docStats.byStatus?.map((s: any) => (
-                    <div
-                      key={s.status}
-                      className="flex items-center gap-2 text-xs"
-                    >
+                    <div key={s.status} className="flex items-center gap-2 text-xs">
                       <span className="w-20 text-seal-gray-500 dark:text-slate-400 truncate">
                         {s.status}
                       </span>
@@ -755,17 +677,15 @@ function DocumentsContent() {
                 </p>
                 <div className="space-y-1">
                   {docStats.byClassification?.map((c: any) => {
+                    // Couleurs SEAL/POL_015 — alignées sur le mapping de la vue cartes (cf. classColors plus bas).
                     const colors: Record<string, string> = {
-                      SECRET: "bg-red-500",
-                      CONFIDENTIEL: "bg-amber-500",
-                      INTERNE: "bg-blue-500",
-                      PUBLIC: "bg-emerald-500",
+                      PUBLIC: "bg-[#006233]",
+                      INTERNE: "bg-[#296DC1]",
+                      CONFIDENTIEL: "bg-[#F9964A]",
+                      SECRET: "bg-[#892034]",
                     };
                     return (
-                      <div
-                        key={c.classification}
-                        className="flex items-center gap-2 text-xs"
-                      >
+                      <div key={c.classification} className="flex items-center gap-2 text-xs">
                         <span className="w-20 text-seal-gray-500 dark:text-slate-400 truncate">
                           {c.classification}
                         </span>
@@ -850,8 +770,7 @@ function DocumentsContent() {
                   value={filters.category || ""}
                   onChange={(e) =>
                     setFilters({
-                      category:
-                        (e.target.value as DocumentCategory) || undefined,
+                      category: (e.target.value as DocumentCategory) || undefined,
                       page: 1,
                     })
                   }
@@ -945,8 +864,7 @@ function DocumentsContent() {
             ] as const
           )
             .filter((c) => {
-              if (c.value === "SECRET")
-                return user && isRoleAtLeast(user.role, UserRole.ADMIN);
+              if (c.value === "SECRET") return user && isRoleAtLeast(user.role, UserRole.ADMIN);
               if (c.value === "CONFIDENTIEL")
                 return user && isRoleAtLeast(user.role, UserRole.REVIEWER);
               return true;
@@ -956,8 +874,7 @@ function DocumentsContent() {
                 key={c.value}
                 onClick={() =>
                   setFilters({
-                    classification:
-                      filters.classification === c.value ? undefined : c.value,
+                    classification: filters.classification === c.value ? undefined : c.value,
                     page: 1,
                   })
                 }
@@ -1013,18 +930,13 @@ function DocumentsContent() {
               key={cat}
               onClick={() =>
                 setFilters({
-                  category:
-                    filters.category === cat
-                      ? undefined
-                      : (cat as DocumentCategory),
+                  category: filters.category === cat ? undefined : (cat as DocumentCategory),
                   page: 1,
                 })
               }
               className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${filters.category === cat ? "bg-primary text-white" : "bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200"}`}
             >
-              {DOCUMENT_CATEGORY_LABELS[
-                cat as keyof typeof DOCUMENT_CATEGORY_LABELS
-              ] || cat}
+              {DOCUMENT_CATEGORY_LABELS[cat as keyof typeof DOCUMENT_CATEGORY_LABELS] || cat}
             </button>
           ))}
         </div>
@@ -1066,16 +978,14 @@ function DocumentsContent() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-slate-700 pb-2">
           <div className="flex flex-wrap items-center gap-1">
             {STATUS_TAB_DEFS.filter(
-              (t) =>
-                canSeeAllStatuses || t.key === "all" || t.key === "published",
+              (t) => canSeeAllStatuses || t.key === "all" || t.key === "published",
             ).map((tab) => {
               const active = statusTab === tab.key;
               const count =
                 tab.statuses === null
                   ? (docs?.meta?.total ?? 0)
-                  : (docs?.data?.filter((d) =>
-                      tab.statuses!.includes(d.status as DocumentStatus),
-                    ).length ?? 0);
+                  : (docs?.data?.filter((d) => tab.statuses!.includes(d.status as DocumentStatus))
+                      .length ?? 0);
               return (
                 <button
                   key={tab.key}
@@ -1259,11 +1169,7 @@ function DocumentsContent() {
               <p className="text-sm text-seal-gray-500 dark:text-slate-400">
                 Impossible de charger les documents.
               </p>
-              <Button
-                variant="outline"
-                className="mt-3"
-                onClick={fetchDocuments}
-              >
+              <Button variant="outline" className="mt-3" onClick={fetchDocuments}>
                 Réessayer
               </Button>
             </CardContent>
@@ -1302,11 +1208,7 @@ function DocumentsContent() {
               {/* Mobile: cards layout (< md) — table view sur mobile = cards par défaut */}
               <div className="md:hidden space-y-2">
                 {loading ? (
-                  <div
-                    className="space-y-2"
-                    aria-label="Chargement des documents"
-                    aria-busy="true"
-                  >
+                  <div className="space-y-2" aria-label="Chargement des documents" aria-busy="true">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div
                         key={i}
@@ -1331,16 +1233,14 @@ function DocumentsContent() {
                   </div>
                 ) : (
                   (docs?.data || []).map((doc) => {
-                    const classBadge = (CARD_CLASS_BADGE[
-                      doc.classification || "INTERNE"
-                    ] || CARD_CLASS_BADGE.INTERNE) as {
+                    const classBadge = (CARD_CLASS_BADGE[doc.classification || "INTERNE"] ||
+                      CARD_CLASS_BADGE.INTERNE) as {
                       bg: string;
                       text: string;
                       label: string;
                     };
                     const cardOverdue =
-                      doc.nextReviewDate &&
-                      new Date(doc.nextReviewDate).getTime() < Date.now();
+                      doc.nextReviewDate && new Date(doc.nextReviewDate).getTime() < Date.now();
                     return (
                       <button
                         key={doc.id}
@@ -1352,10 +1252,7 @@ function DocumentsContent() {
                           <span className="text-[11px] font-mono text-seal-gray-500 dark:text-slate-500 truncate">
                             {doc.reference}
                           </span>
-                          <StatusBadge
-                            status={doc.status as never}
-                            className="text-[10px]"
-                          />
+                          <StatusBadge status={doc.status as never} className="text-[10px]" />
                         </div>
                         <p className="mt-1 text-sm font-semibold text-seal-navy dark:text-white line-clamp-2">
                           {doc.title}
@@ -1427,9 +1324,7 @@ function DocumentsContent() {
                       ) : (
                         <Square className="h-3.5 w-3.5 text-seal-gray-500/40 dark:text-slate-500" />
                       )}
-                      {allSelected
-                        ? "Tout désélectionner"
-                        : "Tout sélectionner"}
+                      {allSelected ? "Tout désélectionner" : "Tout sélectionner"}
                     </button>
                     {selectedIds.size > 0 && (
                       <span className="text-xs text-primary font-semibold">
@@ -1452,9 +1347,7 @@ function DocumentsContent() {
                   sortOrder={(filters.sortOrder as "asc" | "desc") || "desc"}
                   onSort={(field) => {
                     const newOrder =
-                      filters.sortBy === field && filters.sortOrder === "asc"
-                        ? "desc"
-                        : "asc";
+                      filters.sortBy === field && filters.sortOrder === "asc" ? "desc" : "asc";
                     setFilters({ sortBy: field, sortOrder: newOrder, page: 1 });
                   }}
                   emptyMessage={
@@ -1471,134 +1364,118 @@ function DocumentsContent() {
           )}
 
         {/* Vue cartes */}
-        {viewMode === "cards" &&
-          !loading &&
-          docs?.data &&
-          docs.data.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {docs.data.map((doc) => {
-                const classColors: Record<string, string> = {
-                  PUBLIC: "border-l-[#006233] bg-[#006233]/5",
-                  INTERNE: "border-l-[#296DC1] bg-[#296DC1]/5",
-                  CONFIDENTIEL: "border-l-[#F9964A] bg-[#F9964A]/5",
-                  SECRET: "border-l-[#892034] bg-[#892034]/5",
-                };
-                const classStyle =
-                  classColors[doc.classification || "INTERNE"] ||
-                  classColors.INTERNE;
-                const cardOverdue =
-                  doc.nextReviewDate &&
-                  new Date(doc.nextReviewDate).getTime() < Date.now();
-                return (
-                  <Card
-                    key={doc.id}
-                    hoverable
-                    className={`stagger-item border-l-4 ${classStyle} cursor-pointer ${cardOverdue ? "ring-2 ring-[#892034]/40 dark:ring-red-500/40" : ""}`}
-                    onClick={() => router.push(`/documents/${doc.id}`)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <StatusBadge
-                            status={doc.status as never}
-                            className="text-[10px]"
-                          />
-                          {cardOverdue && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#892034]/10 dark:bg-red-900/30 px-2 py-0.5 text-[10px] font-bold text-[#892034] dark:text-red-400">
-                              <AlertTriangle className="h-2.5 w-2.5" />A revoir
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 whitespace-nowrap">
-                          {formatRelativeTime(doc.updatedAt)}
-                        </span>
-                      </div>
-                      <p className="text-xs font-mono text-seal-gray-500 dark:text-slate-500 mb-0.5">
-                        {doc.reference}
-                      </p>
-                      <h3 className="text-sm font-medium text-seal-navy dark:text-white line-clamp-2 mb-2">
-                        {doc.title}
-                      </h3>
-                      {(() => {
-                        const info = getValidityInfo(doc.nextReviewDate);
-                        return (
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold mb-2 ${info.className}`}
-                          >
-                            {info.label}
+        {viewMode === "cards" && !loading && docs?.data && docs.data.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {docs.data.map((doc) => {
+              const classColors: Record<string, string> = {
+                PUBLIC: "border-l-[#006233] bg-[#006233]/5",
+                INTERNE: "border-l-[#296DC1] bg-[#296DC1]/5",
+                CONFIDENTIEL: "border-l-[#F9964A] bg-[#F9964A]/5",
+                SECRET: "border-l-[#892034] bg-[#892034]/5",
+              };
+              const classStyle =
+                classColors[doc.classification || "INTERNE"] || classColors.INTERNE;
+              const cardOverdue =
+                doc.nextReviewDate && new Date(doc.nextReviewDate).getTime() < Date.now();
+              return (
+                <Card
+                  key={doc.id}
+                  hoverable
+                  className={`stagger-item border-l-4 ${classStyle} cursor-pointer ${cardOverdue ? "ring-2 ring-[#892034]/40 dark:ring-red-500/40" : ""}`}
+                  onClick={() => router.push(`/documents/${doc.id}`)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge status={doc.status as never} className="text-[10px]" />
+                        {cardOverdue && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#892034]/10 dark:bg-red-900/30 px-2 py-0.5 text-[10px] font-bold text-[#892034] dark:text-red-400">
+                            <AlertTriangle className="h-2.5 w-2.5" />A revoir
                           </span>
-                        );
-                      })()}
-                      {doc.description && (
-                        <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mb-3">
-                          {doc.description}
-                        </p>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          {doc.owner && (
-                            <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">
-                              {doc.owner.firstName} {doc.owner.lastName}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {doc.isoControls && doc.isoControls.length > 0 && (
-                            <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                              {doc.isoControls.length} ISO
-                            </span>
-                          )}
-                          {doc._count?.versions && doc._count.versions > 1 && (
-                            <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                              v{doc._count.versions}
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 whitespace-nowrap">
+                        {formatRelativeTime(doc.updatedAt)}
+                      </span>
+                    </div>
+                    <p className="text-xs font-mono text-seal-gray-500 dark:text-slate-500 mb-0.5">
+                      {doc.reference}
+                    </p>
+                    <h3 className="text-sm font-medium text-seal-navy dark:text-white line-clamp-2 mb-2">
+                      {doc.title}
+                    </h3>
+                    {(() => {
+                      const info = getValidityInfo(doc.nextReviewDate);
+                      return (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold mb-2 ${info.className}`}
+                        >
+                          {info.label}
+                        </span>
+                      );
+                    })()}
+                    {doc.description && (
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mb-3">
+                        {doc.description}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        {doc.owner && (
+                          <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">
+                            {doc.owner.firstName} {doc.owner.lastName}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {doc.isoControls && doc.isoControls.length > 0 && (
+                          <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                            {doc.isoControls.length} ISO
+                          </span>
+                        )}
+                        {doc._count?.versions && doc._count.versions > 1 && (
+                          <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                            v{doc._count.versions}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
-        {viewMode === "cards" &&
-          !loading &&
-          (!docs?.data || docs.data.length === 0) && (
-            <EmptyState
-              type="documents"
-              title={t("documents.empty")}
-              description="Aucun document ne correspond aux filtres sélectionnés. Réinitialisez vos critères ou créez un nouveau document."
-              action={
-                <div className="flex flex-wrap items-center gap-2 justify-center">
-                  {(hasFilters ||
-                    !!debouncedSearch ||
-                    myDocsOnly ||
-                    statusTab !== "all") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        resetFilters();
-                        setStatusTab("all");
-                        setMyDocsOnly(false);
-                      }}
-                    >
-                      <X className="h-4 w-4" /> Reinitialiser les filtres
-                    </Button>
-                  )}
-                  {canCreate && (
-                    <Button
-                      size="sm"
-                      onClick={() => router.push("/documents/new")}
-                    >
-                      <Plus className="h-4 w-4" /> Créer un document
-                    </Button>
-                  )}
-                </div>
-              }
-            />
-          )}
+        {viewMode === "cards" && !loading && (!docs?.data || docs.data.length === 0) && (
+          <EmptyState
+            type="documents"
+            title={t("documents.empty")}
+            description="Aucun document ne correspond aux filtres sélectionnés. Réinitialisez vos critères ou créez un nouveau document."
+            action={
+              <div className="flex flex-wrap items-center gap-2 justify-center">
+                {(hasFilters || !!debouncedSearch || myDocsOnly || statusTab !== "all") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      resetFilters();
+                      setStatusTab("all");
+                      setMyDocsOnly(false);
+                    }}
+                  >
+                    <X className="h-4 w-4" /> Reinitialiser les filtres
+                  </Button>
+                )}
+                {canCreate && (
+                  <Button size="sm" onClick={() => router.push("/documents/new")}>
+                    <Plus className="h-4 w-4" /> Créer un document
+                  </Button>
+                )}
+              </div>
+            }
+          />
+        )}
 
         {viewMode === "cards" && loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1619,8 +1496,7 @@ function DocumentsContent() {
         {viewMode === "cards" && docs?.meta && docs.meta.totalPages > 1 && (
           <div className="flex items-center justify-between">
             <span className="text-xs text-seal-gray-500 dark:text-slate-400">
-              Page {docs.meta.page} / {docs.meta.totalPages} — {docs.meta.total}{" "}
-              documents
+              Page {docs.meta.page} / {docs.meta.totalPages} — {docs.meta.total} documents
             </span>
             <div className="flex gap-2">
               <Button
@@ -1812,6 +1688,14 @@ function DocumentKanbanBoard({
     setDraggedId(null);
   };
 
+  // Regroupement en un seul passage O(n) au lieu d'un .filter() par colonne
+  // (chaque changement de dropTarget pendant un drag re-render ce composant).
+  const docsByStatus = useMemo(() => {
+    const map = new Map<string, Document[]>();
+    for (const d of documents) map.set(d.status, [...(map.get(d.status) ?? []), d]);
+    return map;
+  }, [documents]);
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -1845,11 +1729,9 @@ function DocumentKanbanBoard({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
       {DOC_KANBAN_COLUMNS.map((col) => {
-        const colDocs = documents.filter((d) => d.status === col.status);
+        const colDocs = docsByStatus.get(col.status) ?? [];
         const isOver = dropTarget === col.status && draggedId !== null;
-        const draggedDoc = draggedId
-          ? documents.find((d) => d.id === draggedId)
-          : null;
+        const draggedDoc = draggedId ? documents.find((d) => d.id === draggedId) : null;
         const isDraggedFromHere = draggedDoc?.status === col.status;
 
         return (
@@ -1865,17 +1747,13 @@ function DocumentKanbanBoard({
             }`}
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
-                {col.label}
-              </h3>
+              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">{col.label}</h3>
               <Badge variant="navy">{colDocs.length}</Badge>
             </div>
 
             {isOver && !isDraggedFromHere && (
               <div className="border-2 border-dashed border-primary/40 rounded-lg p-3 mb-2 text-center">
-                <p className="text-xs text-primary font-semibold">
-                  Déposer ici → {col.label}
-                </p>
+                <p className="text-xs text-primary font-semibold">Déposer ici → {col.label}</p>
               </div>
             )}
 
@@ -1893,9 +1771,7 @@ function DocumentKanbanBoard({
                       if (!isDragged) onCardClick(doc.id);
                     }}
                     className={`bg-white dark:bg-slate-900 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-slate-700 group ${
-                      isDragged
-                        ? "opacity-40 scale-95"
-                        : "card-hover cursor-pointer"
+                      isDragged ? "opacity-40 scale-95" : "card-hover cursor-pointer"
                     } ${isBeingMoved ? "animate-pulse" : ""} ${isAdmin ? "cursor-grab active:cursor-grabbing" : ""}`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
@@ -1903,13 +1779,9 @@ function DocumentKanbanBoard({
                         {isAdmin && (
                           <GripVertical className="h-3 w-3 text-seal-gray-500/30 group-hover:text-seal-gray-500/60 flex-shrink-0" />
                         )}
-                        <Badge
-                          variant={categoryBadgeVariant(doc.category)}
-                          className="text-[9px]"
-                        >
-                          {DOCUMENT_CATEGORY_LABELS[
-                            doc.category as DocumentCategory
-                          ] || doc.category}
+                        <Badge variant={categoryBadgeVariant(doc.category)} className="text-[9px]">
+                          {DOCUMENT_CATEGORY_LABELS[doc.category as DocumentCategory] ||
+                            doc.category}
                         </Badge>
                       </div>
                       <span className="text-[10px] text-seal-gray-500 font-mono">
