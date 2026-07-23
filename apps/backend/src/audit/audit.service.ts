@@ -2,6 +2,8 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditSeverity } from "../common/enums";
+import { sendSiemEvent } from "../common/siem/gelf.client";
+import { auditToGelf, shouldForwardToSiem } from "../common/siem/siem.mapper";
 
 export interface AuditLogParams {
   userId?: string;
@@ -86,12 +88,23 @@ export class AuditService {
           severity: params.severity || "INFO",
         },
       });
+
+      // Forwarding SIEM best-effort (fire-and-forget) — ne doit jamais
+      // ralentir ni faire échouer l'écriture de l'audit log en base. Enveloppé
+      // dans son PROPRE try/catch : auditToGelf() (JSON.stringify de metadata)
+      // pourrait throw et serait alors attribué à tort à un échec d'audit DB
+      // (le create() ci-dessus a déjà réussi à ce stade).
+      try {
+        const severity = params.severity || "INFO";
+        if (shouldForwardToSiem(severity)) {
+          sendSiemEvent(auditToGelf(params));
+        }
+      } catch {
+        /* jamais bloquant */
+      }
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(
-        `Failed to create audit log: ${err.message}`,
-        err.stack,
-      );
+      this.logger.error(`Failed to create audit log: ${err.message}`, err.stack);
     }
   }
 
@@ -109,8 +122,7 @@ export class AuditService {
     const where: any = {};
 
     if (filters?.userId) where.userId = filters.userId;
-    if (filters?.action)
-      where.action = { contains: filters.action, mode: "insensitive" };
+    if (filters?.action) where.action = { contains: filters.action, mode: "insensitive" };
     if (filters?.resourceType) where.resourceType = filters.resourceType;
     if (filters?.severity) {
       const validSeverities = Object.values(AuditSeverity) as string[];
@@ -179,66 +191,57 @@ export class AuditService {
       createdAt: { gte: from, lte: to },
     };
 
-    const [
-      total,
-      severityGroups,
-      actionGroups,
-      criticalEvents,
-      failedLogins,
-      failedLoginLogs,
-    ] = await Promise.all([
-      this.prisma.auditLog.count({ where }),
-      this.prisma.auditLog.groupBy({
-        by: ["severity"],
-        where,
-        _count: { _all: true },
-      }),
-      this.prisma.auditLog.groupBy({
-        by: ["action"],
-        where,
-        _count: { _all: true },
-        orderBy: { _count: { action: "desc" } },
-        take: 5,
-      }),
-      this.prisma.auditLog.findMany({
-        where: { ...where, severity: AuditSeverity.CRITICAL },
-        include: {
-          user: {
-            select: { id: true, email: true, firstName: true, lastName: true },
+    const [total, severityGroups, actionGroups, criticalEvents, failedLogins, failedLoginLogs] =
+      await Promise.all([
+        this.prisma.auditLog.count({ where }),
+        this.prisma.auditLog.groupBy({
+          by: ["severity"],
+          where,
+          _count: { _all: true },
+        }),
+        this.prisma.auditLog.groupBy({
+          by: ["action"],
+          where,
+          _count: { _all: true },
+          orderBy: { _count: { action: "desc" } },
+          take: 5,
+        }),
+        this.prisma.auditLog.findMany({
+          where: { ...where, severity: AuditSeverity.CRITICAL },
+          include: {
+            user: {
+              select: { id: true, email: true, firstName: true, lastName: true },
+            },
           },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 100,
-      }),
-      this.prisma.auditLog.count({
-        where: {
-          ...where,
-          action: { contains: "LOGIN_FAILED", mode: "insensitive" },
-        },
-      }),
-      this.prisma.auditLog.findMany({
-        where: {
-          ...where,
-          action: { contains: "LOGIN_FAILED", mode: "insensitive" },
-        },
-        select: { ipAddress: true, metadata: true },
-        take: 1000,
-      }),
-    ]);
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        }),
+        this.prisma.auditLog.count({
+          where: {
+            ...where,
+            action: { contains: "LOGIN_FAILED", mode: "insensitive" },
+          },
+        }),
+        this.prisma.auditLog.findMany({
+          where: {
+            ...where,
+            action: { contains: "LOGIN_FAILED", mode: "insensitive" },
+          },
+          select: { ipAddress: true, metadata: true },
+          take: 1000,
+        }),
+      ]);
 
     // Agrégat top 10 IPs sur les échecs de login (ipAddress ou metadata.ip)
     const ipCounts = new Map<string, number>();
     for (const row of failedLoginLogs) {
       // Prisma.JsonValue dynamique — extraction défensive de l'IP éventuelle.
       const meta =
-        row.metadata &&
-        typeof row.metadata === "object" &&
-        !Array.isArray(row.metadata)
+        row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
           ? (row.metadata as Record<string, unknown>)
           : null;
       const metaIp =
-        meta &&
-        (typeof meta.ip === "string" || typeof meta.ipAddress === "string")
+        meta && (typeof meta.ip === "string" || typeof meta.ipAddress === "string")
           ? (meta.ip as string) || (meta.ipAddress as string)
           : null;
       const ip = row.ipAddress || metaIp || "inconnue";
@@ -249,10 +252,7 @@ export class AuditService {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    const bySeverity = { INFO: 0, WARN: 0, CRITICAL: 0 } as Record<
-      string,
-      number
-    >;
+    const bySeverity = { INFO: 0, WARN: 0, CRITICAL: 0 } as Record<string, number>;
     for (const g of severityGroups) {
       bySeverity[g.severity as string] = g._count._all;
     }
@@ -284,6 +284,10 @@ export class AuditService {
         },
       },
       orderBy: { createdAt: "desc" },
+      // Garde-fou : une ressource très consultée/modifiée peut accumuler des
+      // milliers d'entrées. orderBy desc garantit que ce sont les plus
+      // récentes qui sont conservées.
+      take: 200,
     });
   }
 }
