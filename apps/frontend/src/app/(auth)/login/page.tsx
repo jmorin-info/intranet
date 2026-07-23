@@ -27,11 +27,7 @@ const FALLBACK_AUTH_TAGLINE =
 function AuthTagline() {
   const blocks = useCmsBlocks(["auth.tagline"], "fr");
   const text = getBlockText(blocks, "auth.tagline", FALLBACK_AUTH_TAGLINE);
-  return (
-    <p className="text-white/50 text-sm text-center max-w-xs leading-relaxed">
-      {text}
-    </p>
-  );
+  return <p className="text-white/50 text-sm text-center max-w-xs leading-relaxed">{text}</p>;
 }
 
 function LoginPageInner() {
@@ -110,11 +106,7 @@ function LoginPageInner() {
     }
     setLoading(true);
     try {
-      await login(
-        pendingCredentials.email,
-        pendingCredentials.password,
-        mfaCode,
-      );
+      await login(pendingCredentials.email, pendingCredentials.password, mfaCode);
       localStorage.setItem("had_session", "1");
       toast.success(t("loginSuccess"));
       // Hard navigation to ensure SW cache is bypassed after login
@@ -192,9 +184,7 @@ function LoginPageInner() {
             height={140}
             className="mb-8 drop-shadow-2xl transition-transform duration-300 hover:scale-105"
           />
-          <h1 className="text-5xl xl:text-6xl font-light text-white tracking-tight">
-            OMNITECH
-          </h1>
+          <h1 className="text-5xl xl:text-6xl font-light text-white tracking-tight">OMNITECH</h1>
           <p className="text-[#F68D2E] text-base font-medium tracking-[0.4em] uppercase mt-3">
             Security
           </p>
@@ -208,21 +198,15 @@ function LoginPageInner() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 rounded-lg bg-white/[0.08] backdrop-blur-sm border border-white/[0.06] px-3 py-2">
                 <Shield className="h-4 w-4 text-[#F68D2E]" />
-                <span className="text-xs text-white/70 font-medium">
-                  ISO 27001
-                </span>
+                <span className="text-xs text-white/70 font-medium">ISO 27001</span>
               </div>
               <div className="flex items-center gap-2 rounded-lg bg-white/[0.08] backdrop-blur-sm border border-white/[0.06] px-3 py-2">
                 <Lock className="h-4 w-4 text-[#F68D2E]" />
-                <span className="text-xs text-white/70 font-medium">
-                  SEAL System
-                </span>
+                <span className="text-xs text-white/70 font-medium">SEAL System</span>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] text-white/30 uppercase tracking-wider">
-                Groupe
-              </p>
+              <p className="text-[10px] text-white/30 uppercase tracking-wider">Groupe</p>
               <p className="text-sm text-white/60 font-semibold">SFPI</p>
             </div>
           </div>
@@ -234,13 +218,7 @@ function LoginPageInner() {
         <div className="w-full max-w-md animate-[fadeIn_0.6s_ease-out]">
           {/* Mobile logo */}
           <div className="lg:hidden flex flex-col items-center mb-8">
-            <Image
-              src="/logo-icon.png"
-              alt="OMNITECH"
-              width={72}
-              height={72}
-              className="mb-4"
-            />
+            <Image src="/logo-icon.png" alt="OMNITECH" width={72} height={72} className="mb-4" />
             <p className="text-2xl font-light text-seal-navy dark:text-white tracking-tight">
               OMNITECH
             </p>
@@ -269,9 +247,7 @@ function LoginPageInner() {
                   <input
                     type="text"
                     value={mfaCode}
-                    onChange={(e) =>
-                      setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                    }
+                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     placeholder="000000"
                     className="w-full rounded-btn border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-navy dark:text-white py-3 text-center text-2xl font-mono tracking-[0.5em] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                     autoFocus
@@ -318,12 +294,16 @@ function LoginPageInner() {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                   <div className="space-y-1">
-                    <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
+                    <label
+                      htmlFor="login-email"
+                      className="block text-[13px] font-semibold text-seal-navy dark:text-white"
+                    >
                       {t("email")}
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-seal-gray-500 dark:text-slate-400" />
                       <input
+                        id="login-email"
                         {...register("email")}
                         type="email"
                         placeholder={t("emailPlaceholder")}
@@ -340,12 +320,16 @@ function LoginPageInner() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
+                    <label
+                      htmlFor="login-password"
+                      className="block text-[13px] font-semibold text-seal-navy dark:text-white"
+                    >
                       {t("password")}
                     </label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-seal-gray-500 dark:text-slate-400" />
                       <input
+                        id="login-password"
                         {...register("password")}
                         type="password"
                         placeholder={t("passwordPlaceholder")}
@@ -370,10 +354,7 @@ function LoginPageInner() {
                   </Button>
 
                   <div className="text-right mt-2">
-                    <Link
-                      href="/forgot-password"
-                      className="text-sm text-primary hover:underline"
-                    >
+                    <Link href="/forgot-password" className="text-sm text-primary hover:underline">
                       {t("forgotPassword")}
                     </Link>
                   </div>
@@ -404,9 +385,7 @@ function LoginPageInner() {
                     onClick={() => setIsPrestataire((v) => !v)}
                     className="text-xs text-seal-gray-500/60 dark:text-slate-500 hover:text-[#296DC1] dark:hover:text-blue-400 transition-colors"
                   >
-                    {isPrestataire
-                      ? t("contractorBack")
-                      : t("contractorQuestion")}
+                    {isPrestataire ? t("contractorBack") : t("contractorQuestion")}
                   </button>
                 </div>
               </div>
@@ -414,10 +393,7 @@ function LoginPageInner() {
           </div>
 
           {/* Trust bullets — présents en plus du panneau gauche pour rester visibles en mobile */}
-          <div
-            className="mt-5 grid grid-cols-3 gap-2 text-center"
-            aria-label={tTrust("hostingFr")}
-          >
+          <div className="mt-5 grid grid-cols-3 gap-2 text-center" aria-label={tTrust("hostingFr")}>
             <div className="flex flex-col items-center gap-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 px-2 py-2">
               <span className="text-base" aria-hidden>
                 🇫🇷
@@ -450,14 +426,10 @@ function LoginPageInner() {
           </div>
 
           <p className="mt-4 text-center text-[11px] text-seal-gray-500/70 dark:text-slate-500">
-            OMNITECH Security &copy; {new Date().getFullYear()} —{" "}
-            {t("rightsReserved")}
+            OMNITECH Security &copy; {new Date().getFullYear()} — {t("rightsReserved")}
           </p>
           <p className="mt-1 text-center text-[10px] text-seal-gray-500/40 dark:text-slate-600 flex items-center justify-center gap-2">
-            <Link
-              href="/trust"
-              className="hover:text-[#F68D2E] transition-colors"
-            >
+            <Link href="/trust" className="hover:text-[#F68D2E] transition-colors">
               {t("trustCenter")}
             </Link>
             <span aria-hidden>·</span>

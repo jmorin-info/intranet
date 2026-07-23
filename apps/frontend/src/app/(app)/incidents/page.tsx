@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -104,10 +104,7 @@ const CATEGORY_OPTIONS = [
 ];
 
 // SEAL palette severity colors
-const SEVERITY_STYLE: Record<
-  string,
-  { bg: string; text: string; label: string }
-> = {
+const SEVERITY_STYLE: Record<string, { bg: string; text: string; label: string }> = {
   CRITICAL: {
     bg: "bg-[#cc0000]/10",
     text: "text-[#cc0000]",
@@ -213,10 +210,7 @@ function IncidentStatsCards({ kpis }: { kpis: DashboardKpis | null }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {cards.map((c) => (
-        <Card
-          key={c.label}
-          className={`shadow-sm rounded-xl ring-1 cursor-default ${c.ring}`}
-        >
+        <Card key={c.label} className={`shadow-sm rounded-xl ring-1 cursor-default ${c.ring}`}>
           <CardContent className="p-4 flex items-center gap-3">
             <div
               className={`h-10 w-10 rounded-xl ${c.bg} flex items-center justify-center flex-shrink-0`}
@@ -224,9 +218,7 @@ function IncidentStatsCards({ kpis }: { kpis: DashboardKpis | null }) {
               {c.icon}
             </div>
             <div>
-              <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
-                {c.label}
-              </p>
+              <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">{c.label}</p>
               <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">
                 {c.value !== null ? `${c.value}${c.suffix}` : "—"}
               </p>
@@ -243,6 +235,7 @@ function IncidentStatsCards({ kpis }: { kpis: DashboardKpis | null }) {
 export default function IncidentsPage() {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const aiSuggestions = useAISuggestions("incidents");
   const orchestration = useAIOrchestrator("INCIDENTS");
@@ -265,6 +258,13 @@ export default function IncidentsPage() {
 
   // Create modal
   const [createOpen, setCreateOpen] = useState(false);
+  // Ouverture auto de la modale de création quand ?create=true est dans l'URL
+  // (lien depuis le header, la command palette) — même pattern que tickets/page.tsx.
+  useEffect(() => {
+    if (searchParams.get("create") === "true") {
+      setCreateOpen(true);
+    }
+  }, [searchParams]);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
     title: "",
@@ -323,14 +323,7 @@ export default function IncidentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [
-    page,
-    debouncedSearch,
-    statusFilter,
-    severityFilter,
-    categoryFilter,
-    dateFrom,
-  ]);
+  }, [page, debouncedSearch, statusFilter, severityFilter, categoryFilter, dateFrom]);
 
   useEffect(() => {
     fetchData();
@@ -369,10 +362,7 @@ export default function IncidentsPage() {
         impactSummary: form.impactSummary.trim() || undefined,
         gdprNotifiable: form.gdprNotifiable,
       };
-      const res = await api.post<{ id: string; reference: string }>(
-        "/incidents",
-        payload,
-      );
+      const res = await api.post<{ id: string; reference: string }>("/incidents", payload);
       toast.success("Incident signale");
       setCreateOpen(false);
       setForm({
@@ -388,8 +378,8 @@ export default function IncidentsPage() {
       router.push(`/incidents/${res.data.id}`);
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Erreur lors du signalement";
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Erreur lors du signalement";
       toast.error(String(message));
     } finally {
       setCreating(false);
@@ -402,9 +392,7 @@ export default function IncidentsPage() {
         key: "reference",
         header: "Référence",
         render: (i) => (
-          <span className="font-mono text-xs text-seal-navy dark:text-white">
-            {i.reference}
-          </span>
+          <span className="font-mono text-xs text-seal-navy dark:text-white">{i.reference}</span>
         ),
       },
       {
@@ -412,12 +400,9 @@ export default function IncidentsPage() {
         header: "Titre",
         render: (i) => (
           <div className="max-w-md">
-            <p className="text-sm font-medium text-seal-navy dark:text-white truncate">
-              {i.title}
-            </p>
+            <p className="text-sm font-medium text-seal-navy dark:text-white truncate">{i.title}</p>
             <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
-              {CATEGORY_OPTIONS.find((c) => c.value === i.category)?.label ||
-                i.category}
+              {CATEGORY_OPTIONS.find((c) => c.value === i.category)?.label || i.category}
             </p>
           </div>
         ),
@@ -535,9 +520,7 @@ export default function IncidentsPage() {
                       heading: "Détail des incidents",
                       paragraphs:
                         (incidents?.data || []).length === 0
-                          ? [
-                              "Aucun incident enregistré dans le périmètre actuel.",
-                            ]
+                          ? ["Aucun incident enregistré dans le périmètre actuel."]
                           : (incidents?.data || []).map(
                               (i: IncidentRow) =>
                                 `[${i.reference || i.id}] ${i.title} — ${i.severity || "N/A"} — statut ${i.status} — détecté ${(i.detectedAt || "").slice(0, 10)}${i.assignedTo ? ` — assigné à ${i.assignedTo.firstName} ${i.assignedTo.lastName}` : ""}`,
@@ -743,8 +726,8 @@ export default function IncidentsPage() {
           {incidents && incidents.meta.totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-4 border-t border-gray-200 dark:border-slate-700">
               <span className="text-xs text-seal-gray-500 dark:text-slate-400">
-                Page {incidents.meta.page} / {incidents.meta.totalPages} —{" "}
-                {incidents.meta.total} incidents
+                Page {incidents.meta.page} / {incidents.meta.totalPages} — {incidents.meta.total}{" "}
+                incidents
               </span>
               <div className="flex gap-2">
                 <Button
@@ -782,8 +765,7 @@ export default function IncidentsPage() {
                     key={c.category}
                     className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-seal-navy dark:text-sky-300 px-2 py-1 text-[11px] font-semibold"
                   >
-                    {CATEGORY_OPTIONS.find((o) => o.value === c.category)
-                      ?.label || c.category}
+                    {CATEGORY_OPTIONS.find((o) => o.value === c.category)?.label || c.category}
                     <span className="ml-1 rounded-full bg-white dark:bg-slate-800 px-1.5 text-[10px]">
                       {c.count}
                     </span>
@@ -829,9 +811,7 @@ export default function IncidentsPage() {
               rows={5}
               placeholder="Chronologie, éléments observés, systèmes impactés..."
               value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
               onKeyDown={(e: React.KeyboardEvent) => {
                 if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
                   e.preventDefault();
@@ -857,9 +837,7 @@ export default function IncidentsPage() {
               label="Systèmes impactés (séparés par des virgules)"
               placeholder="AD, Exchange, Fileserver"
               value={form.affectedSystems}
-              onChange={(e) =>
-                setForm({ ...form, affectedSystems: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, affectedSystems: e.target.value })}
             />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
@@ -878,9 +856,7 @@ export default function IncidentsPage() {
                   <input
                     type="checkbox"
                     checked={form.gdprNotifiable}
-                    onChange={(e) =>
-                      setForm({ ...form, gdprNotifiable: e.target.checked })
-                    }
+                    onChange={(e) => setForm({ ...form, gdprNotifiable: e.target.checked })}
                     aria-label="Notification RGPD/CNIL requise"
                     className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary"
                   />
@@ -893,9 +869,7 @@ export default function IncidentsPage() {
               rows={2}
               placeholder="Impact métier, financier, RGPD, réputationnel..."
               value={form.impactSummary}
-              onChange={(e) =>
-                setForm({ ...form, impactSummary: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, impactSummary: e.target.value })}
               onKeyDown={(e: React.KeyboardEvent) => {
                 if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
                   e.preventDefault();

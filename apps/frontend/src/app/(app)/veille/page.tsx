@@ -42,6 +42,8 @@ import {
 import { PageHeader } from "@/components/layout/page-header";
 import { ExportCsvButton } from "@/components/ui/export-csv-button";
 import { useTranslation } from "@/lib/i18n";
+import Link from "next/link";
+import { isFeatureEnabled } from "@/lib/features";
 
 interface VeilleItem {
   id: string;
@@ -107,12 +109,7 @@ function detectTheme(item: VeilleItem): string {
     t.includes("office")
   )
     return "Microsoft";
-  if (
-    t.includes("linux") ||
-    t.includes("kernel") ||
-    t.includes("debian") ||
-    t.includes("ubuntu")
-  )
+  if (t.includes("linux") || t.includes("kernel") || t.includes("debian") || t.includes("ubuntu"))
     return "Linux";
   if (
     t.includes("cisco") ||
@@ -154,7 +151,40 @@ function detectTheme(item: VeilleItem): string {
   return "Autre";
 }
 
+/**
+ * Wrapper de garde : si le module « Veille cyber » est désactivé
+ * (features.veille === false), on n'exécute jamais les hooks/data-fetch de
+ * VeilleModule et on affiche un état « module désactivé » propre. Le wrapper
+ * respecte les règles des hooks (aucun hook avant le return conditionnel).
+ */
 export default function VeillePage() {
+  if (!isFeatureEnabled("veille")) {
+    return (
+      <div className="p-6 space-y-6 bg-gray-50 dark:bg-slate-950 min-h-screen">
+        <PageHeader title="Veille cyber" subtitle="Module actuellement désactivé." icon={Rss} />
+        <Card>
+          <CardContent className="py-12">
+            <EmptyState
+              type="documents"
+              title="Module désactivé"
+              description="La veille cyber a été désactivée par l'administration. Contactez le RSSI si vous pensez qu'elle devrait être active."
+            />
+            <div className="mt-6 flex justify-center">
+              <Link href="/dashboard">
+                <Button variant="outline" size="md">
+                  Retour au tableau de bord
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  return <VeilleModule />;
+}
+
+function VeilleModule() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const [items, setItems] = useState<VeilleItem[]>([]);
@@ -175,8 +205,7 @@ export default function VeillePage() {
   const [activeTab, setActiveTab] = useState<"alerts" | "bulletins">("alerts");
   const [bulletins, setBulletins] = useState<VeilleBulletin[]>([]);
   const [bulletinsLoading, setBulletinsLoading] = useState(false);
-  const [selectedBulletin, setSelectedBulletin] =
-    useState<VeilleBulletin | null>(null);
+  const [selectedBulletin, setSelectedBulletin] = useState<VeilleBulletin | null>(null);
   const [generating, setGenerating] = useState(false);
   const PRODUCTS = [
     "FortiGate",
@@ -205,12 +234,9 @@ export default function VeillePage() {
 
   const isAdmin = user && isRoleAtLeast(user.role, UserRole.ADMIN);
   const canAck = user && isRoleAtLeast(user.role, UserRole.REVIEWER);
-  const canSeeWeeklySummary =
-    user && isRoleAtLeast(user.role, UserRole.REVIEWER);
+  const canSeeWeeklySummary = user && isRoleAtLeast(user.role, UserRole.REVIEWER);
 
-  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(
-    null,
-  );
+  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
   const [weeklySummaryLoading, setWeeklySummaryLoading] = useState(false);
 
   const fetchWeeklySummary = useCallback(async () => {
@@ -239,8 +265,7 @@ export default function VeillePage() {
     try {
       const params: Record<string, string> = { limit: "50" };
       // Time period filter
-      if (period === "week")
-        params.dateFrom = new Date(Date.now() - 7 * 86400000).toISOString();
+      if (period === "week") params.dateFrom = new Date(Date.now() - 7 * 86400000).toISOString();
       else if (period === "month")
         params.dateFrom = new Date(Date.now() - 30 * 86400000).toISOString();
       if (filter) params.isProcessed = filter;
@@ -253,8 +278,7 @@ export default function VeillePage() {
         api.get("/veille", { params }),
         isAdmin ? api.get("/veille/stats") : Promise.resolve({ data: null }),
       ]);
-      if (itemsRes.status === "fulfilled")
-        setItems(itemsRes.value.data?.data || []);
+      if (itemsRes.status === "fulfilled") setItems(itemsRes.value.data?.data || []);
       else {
         const msg =
           (itemsRes.reason as any)?.response?.data?.message ||
@@ -262,8 +286,7 @@ export default function VeillePage() {
           "Impossible de charger les alertes de veille";
         toast.error(msg);
       }
-      if (statsRes.status === "fulfilled" && statsRes.value.data)
-        setStats(statsRes.value.data);
+      if (statsRes.status === "fulfilled" && statsRes.value.data) setStats(statsRes.value.data);
     } catch (err) {
       const msg =
         (err as any)?.response?.data?.message ||
@@ -287,9 +310,7 @@ export default function VeillePage() {
       fetchItems();
     } catch (err) {
       toast.error(
-        (err as any)?.response?.data?.message ||
-          (err as any)?.message ||
-          "Erreur de récupération",
+        (err as any)?.response?.data?.message || (err as any)?.message || "Erreur de récupération",
       );
     } finally {
       setFetching(false);
@@ -379,8 +400,8 @@ export default function VeillePage() {
       fetchSources();
     } catch (err) {
       const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Erreur lors de l'ajout";
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Erreur lors de l'ajout";
       toast.error(msg);
     } finally {
       setAddingSource(false);
@@ -464,9 +485,7 @@ export default function VeillePage() {
       fetchBulletins();
     } catch (err) {
       toast.error(
-        (err as any)?.response?.data?.message ||
-          (err as any)?.message ||
-          "Erreur de génération",
+        (err as any)?.response?.data?.message || (err as any)?.message || "Erreur de génération",
       );
     } finally {
       setGenerating(false);
@@ -512,25 +531,17 @@ export default function VeillePage() {
       LOW: 3,
     };
     let result = items;
-    if (themeFilter)
-      result = result.filter((item) => detectTheme(item) === themeFilter);
+    if (themeFilter) result = result.filter((item) => detectTheme(item) === themeFilter);
     if (productFilter)
       result = result.filter((item) => {
-        const text = (
-          item.title +
-          " " +
-          (item.description || "")
-        ).toLowerCase();
+        const text = (item.title + " " + (item.description || "")).toLowerCase();
         return text.includes(productFilter.toLowerCase());
       });
     if (severityFilter)
-      result = result.filter(
-        (item) => (item.severity || "LOW") === severityFilter,
-      );
+      result = result.filter((item) => (item.severity || "LOW") === severityFilter);
     return [...result].sort(
       (a, b) =>
-        (severityOrder[a.severity || "LOW"] ?? 3) -
-        (severityOrder[b.severity || "LOW"] ?? 3),
+        (severityOrder[a.severity || "LOW"] ?? 3) - (severityOrder[b.severity || "LOW"] ?? 3),
     );
   }, [items, themeFilter, productFilter, severityFilter]);
 
@@ -592,16 +603,12 @@ export default function VeillePage() {
                 ...(search ? { search } : {}),
                 ...(period === "week"
                   ? {
-                      dateFrom: new Date(
-                        Date.now() - 7 * 86400000,
-                      ).toISOString(),
+                      dateFrom: new Date(Date.now() - 7 * 86400000).toISOString(),
                     }
                   : {}),
                 ...(period === "month"
                   ? {
-                      dateFrom: new Date(
-                        Date.now() - 30 * 86400000,
-                      ).toISOString(),
+                      dateFrom: new Date(Date.now() - 30 * 86400000).toISOString(),
                     }
                   : {}),
               }}
@@ -617,11 +624,7 @@ export default function VeillePage() {
                 >
                   <CheckCircle2 className="h-4 w-4" /> Tout traiter
                 </Button>
-                <Button
-                  onClick={handleFetch}
-                  loading={fetching}
-                  variant="secondary"
-                >
+                <Button onClick={handleFetch} loading={fetching} variant="secondary">
                   <RefreshCw className="h-4 w-4" /> {t("veille.refresh")}
                 </Button>
               </>
@@ -641,10 +644,7 @@ export default function VeillePage() {
               </h2>
               {weeklySummary && (
                 <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 ml-auto">
-                  {new Date(weeklySummary.weekStart).toLocaleDateString(
-                    "fr-FR",
-                  )}{" "}
-                  —{" "}
+                  {new Date(weeklySummary.weekStart).toLocaleDateString("fr-FR")} —{" "}
                   {new Date(weeklySummary.weekEnd).toLocaleDateString("fr-FR")}
                 </span>
               )}
@@ -669,36 +669,34 @@ export default function VeillePage() {
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    {(["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const).map(
-                      (sev) => {
-                        const count = weeklySummary.bySeverity[sev] || 0;
-                        if (count === 0) return null;
-                        const cls =
-                          sev === "CRITICAL"
-                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                            : sev === "HIGH"
-                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                              : sev === "MEDIUM"
-                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                : "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400";
-                        const label =
-                          sev === "CRITICAL"
-                            ? "Critique"
-                            : sev === "HIGH"
-                              ? "Haute"
-                              : sev === "MEDIUM"
-                                ? "Moyenne"
-                                : "Basse";
-                        return (
-                          <span
-                            key={sev}
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${cls}`}
-                          >
-                            {label}: {count}
-                          </span>
-                        );
-                      },
-                    )}
+                    {(["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const).map((sev) => {
+                      const count = weeklySummary.bySeverity[sev] || 0;
+                      if (count === 0) return null;
+                      const cls =
+                        sev === "CRITICAL"
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          : sev === "HIGH"
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            : sev === "MEDIUM"
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                              : "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400";
+                      const label =
+                        sev === "CRITICAL"
+                          ? "Critique"
+                          : sev === "HIGH"
+                            ? "Haute"
+                            : sev === "MEDIUM"
+                              ? "Moyenne"
+                              : "Basse";
+                      return (
+                        <span
+                          key={sev}
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${cls}`}
+                        >
+                          {label}: {count}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -765,8 +763,8 @@ export default function VeillePage() {
 
                 {weeklySummary.total === 0 && (
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-2">
-                    Aucune alerte recensée cette semaine. La prochaine collecte
-                    mettra à jour ce résumé.
+                    Aucune alerte recensée cette semaine. La prochaine collecte mettra à jour ce
+                    résumé.
                   </p>
                 )}
               </div>
@@ -786,12 +784,8 @@ export default function VeillePage() {
             <CardContent className="py-3 px-4 flex items-center gap-3">
               <Rss className="h-5 w-5 text-seal-navy dark:text-blue-400" />
               <div>
-                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
-                  Total
-                </p>
-                <p className="text-xl font-medium text-seal-navy dark:text-white">
-                  {stats.total}
-                </p>
+                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Total</p>
+                <p className="text-xl font-medium text-seal-navy dark:text-white">{stats.total}</p>
               </div>
             </CardContent>
           </Card>
@@ -799,9 +793,7 @@ export default function VeillePage() {
             <CardContent className="py-3 px-4 flex items-center gap-3">
               <AlertOctagon className="h-5 w-5 text-red-500" />
               <div>
-                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
-                  Critiques
-                </p>
+                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Critiques</p>
                 <p className="text-xl font-medium text-red-600">
                   {stats.bySeverity?.CRITICAL || 0}
                 </p>
@@ -812,12 +804,8 @@ export default function VeillePage() {
             <CardContent className="py-3 px-4 flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
               <div>
-                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
-                  Non traites
-                </p>
-                <p className="text-xl font-medium text-amber-600">
-                  {stats.unprocessed}
-                </p>
+                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Non traites</p>
+                <p className="text-xl font-medium text-amber-600">{stats.unprocessed}</p>
               </div>
             </CardContent>
           </Card>
@@ -829,9 +817,7 @@ export default function VeillePage() {
                   Derniere collecte
                 </p>
                 <p className="text-sm font-medium text-seal-blue">
-                  {stats.lastCollect
-                    ? formatRelativeTime(stats.lastCollect)
-                    : "Jamais"}
+                  {stats.lastCollect ? formatRelativeTime(stats.lastCollect) : "Jamais"}
                 </p>
               </div>
             </CardContent>
@@ -849,8 +835,7 @@ export default function VeillePage() {
             <div className="flex gap-1 h-6 rounded-full overflow-hidden">
               {["CRITICAL", "HIGH", "MEDIUM", "LOW"].map((sev) => {
                 const count = stats.bySeverity![sev] || 0;
-                const pct =
-                  stats.unprocessed > 0 ? (count / stats.unprocessed) * 100 : 0;
+                const pct = stats.unprocessed > 0 ? (count / stats.unprocessed) * 100 : 0;
                 const colors: Record<string, string> = {
                   CRITICAL: "bg-red-500",
                   HIGH: "bg-amber-500",
@@ -892,11 +877,7 @@ export default function VeillePage() {
             Toutes ({items.length})
           </button>
           <button
-            onClick={() =>
-              setSeverityFilter(
-                severityFilter === "CRITICAL" ? null : "CRITICAL",
-              )
-            }
+            onClick={() => setSeverityFilter(severityFilter === "CRITICAL" ? null : "CRITICAL")}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
               severityFilter === "CRITICAL"
                 ? "bg-red-500 text-white"
@@ -907,9 +888,7 @@ export default function VeillePage() {
             Critique ({severityCounts.CRITICAL})
           </button>
           <button
-            onClick={() =>
-              setSeverityFilter(severityFilter === "HIGH" ? null : "HIGH")
-            }
+            onClick={() => setSeverityFilter(severityFilter === "HIGH" ? null : "HIGH")}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
               severityFilter === "HIGH"
                 ? "bg-amber-500 text-white"
@@ -920,9 +899,7 @@ export default function VeillePage() {
             Haute ({severityCounts.HIGH})
           </button>
           <button
-            onClick={() =>
-              setSeverityFilter(severityFilter === "MEDIUM" ? null : "MEDIUM")
-            }
+            onClick={() => setSeverityFilter(severityFilter === "MEDIUM" ? null : "MEDIUM")}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
               severityFilter === "MEDIUM"
                 ? "bg-blue-500 text-white"
@@ -933,9 +910,7 @@ export default function VeillePage() {
             Moyenne ({severityCounts.MEDIUM})
           </button>
           <button
-            onClick={() =>
-              setSeverityFilter(severityFilter === "LOW" ? null : "LOW")
-            }
+            onClick={() => setSeverityFilter(severityFilter === "LOW" ? null : "LOW")}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
               severityFilter === "LOW"
                 ? "bg-gray-500 text-white"
@@ -973,13 +948,8 @@ export default function VeillePage() {
               <div className="mt-4 space-y-4">
                 {/* Seed button */}
                 <div className="flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSeedSources}
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Charger les sources par
-                    défaut
+                  <Button variant="outline" size="sm" onClick={handleSeedSources}>
+                    <Plus className="h-3.5 w-3.5" /> Charger les sources par défaut
                   </Button>
                 </div>
 
@@ -995,8 +965,8 @@ export default function VeillePage() {
                   </div>
                 ) : sources.length === 0 ? (
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400 text-center py-4">
-                    Aucune source configurée. Cliquez sur &laquo;&nbsp;Charger
-                    les sources par défaut&nbsp;&raquo; pour commencer.
+                    Aucune source configurée. Cliquez sur &laquo;&nbsp;Charger les sources par
+                    défaut&nbsp;&raquo; pour commencer.
                   </p>
                 ) : (
                   <div className="divide-y divide-gray-100 dark:divide-slate-700 border border-gray-100 dark:border-slate-700 rounded-lg overflow-hidden">
@@ -1018,9 +988,7 @@ export default function VeillePage() {
                           className="flex-shrink-0 text-seal-gray-500 hover:text-primary dark:text-slate-400 dark:hover:text-blue-400 transition"
                           title={source.isActive ? "Désactiver" : "Activer"}
                           aria-label={
-                            source.isActive
-                              ? "Désactiver la source"
-                              : "Activer la source"
+                            source.isActive ? "Désactiver la source" : "Activer la source"
                           }
                         >
                           {source.isActive ? (
@@ -1081,9 +1049,7 @@ export default function VeillePage() {
             { id: "bulletins", label: "Bulletins hebdo" },
           ]}
           activeTab={activeTab}
-          onChange={(tab: string) =>
-            setActiveTab(tab as "alerts" | "bulletins")
-          }
+          onChange={(tab: string) => setActiveTab(tab as "alerts" | "bulletins")}
         />
       </Card>
 
@@ -1092,11 +1058,7 @@ export default function VeillePage() {
         <>
           {isAdmin && (
             <div className="flex justify-end">
-              <Button
-                onClick={handleGenerate}
-                loading={generating}
-                variant="secondary"
-              >
+              <Button onClick={handleGenerate} loading={generating} variant="secondary">
                 <Sparkles className="h-4 w-4" /> Générer un bulletin
               </Button>
             </div>
@@ -1105,10 +1067,7 @@ export default function VeillePage() {
           {bulletinsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-40 rounded-card bg-gray-100 dark:bg-slate-800 shimmer"
-                />
+                <div key={i} className="h-40 rounded-card bg-gray-100 dark:bg-slate-800 shimmer" />
               ))}
             </div>
           ) : bulletins.length === 0 ? (
@@ -1143,8 +1102,7 @@ export default function VeillePage() {
                         <div className="flex items-center gap-1.5 mt-2">
                           <Calendar className="h-3 w-3 text-seal-gray-500 dark:text-slate-400" />
                           <span className="text-[11px] text-seal-gray-500 dark:text-slate-400">
-                            {formatDate(bulletin.weekStart)} —{" "}
-                            {formatDate(bulletin.weekEnd)}
+                            {formatDate(bulletin.weekStart)} — {formatDate(bulletin.weekEnd)}
                           </span>
                         </div>
                       </div>
@@ -1179,10 +1137,7 @@ export default function VeillePage() {
               className="fixed inset-0 z-50 flex items-start justify-center pt-10 pb-10 overflow-y-auto bg-black/50"
               onClick={() => setSelectedBulletin(null)}
             >
-              <div
-                className="w-full max-w-4xl mx-4"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="w-full max-w-4xl mx-4" onClick={(e) => e.stopPropagation()}>
                 <Card>
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
@@ -1206,11 +1161,7 @@ export default function VeillePage() {
                           )}
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedBulletin(null)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedBulletin(null)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
@@ -1249,14 +1200,10 @@ export default function VeillePage() {
                                   {item.title}
                                 </span>
                                 {severityBadge(item.severity)}
-                                {item.cveId && (
-                                  <Badge variant="error">{item.cveId}</Badge>
-                                )}
+                                {item.cveId && <Badge variant="error">{item.cveId}</Badge>}
                               </summary>
                               <div className="px-3 pb-3 text-xs text-seal-gray-500 dark:text-slate-400">
-                                {item.description && (
-                                  <p className="mb-1">{item.description}</p>
-                                )}
+                                {item.description && <p className="mb-1">{item.description}</p>}
                                 <div className="flex items-center gap-3 mt-1">
                                   <span>{formatDate(item.publishedAt)}</span>
                                   <a
@@ -1300,8 +1247,7 @@ export default function VeillePage() {
                 <div className="flex items-center gap-2 mb-3">
                   <AlertOctagon className="h-5 w-5 text-red-500" />
                   <h2 className="text-sm font-semibold text-red-700 dark:text-red-400">
-                    Alertes critiques non traitées ({criticalUnprocessed.length}
-                    )
+                    Alertes critiques non traitées ({criticalUnprocessed.length})
                   </h2>
                 </div>
                 <div className="space-y-2">
@@ -1315,9 +1261,7 @@ export default function VeillePage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                             <Badge variant="error">Critique</Badge>
-                            {item.cveId && (
-                              <Badge variant="error">{item.cveId}</Badge>
-                            )}
+                            {item.cveId && <Badge variant="error">{item.cveId}</Badge>}
                             <Badge variant="navy">{item.sourceName}</Badge>
                           </div>
                           <h3 className="text-sm font-semibold text-seal-navy dark:text-white line-clamp-1">
@@ -1431,9 +1375,7 @@ export default function VeillePage() {
                   {themes.map(([theme, count]) => (
                     <button
                       key={theme}
-                      onClick={() =>
-                        setThemeFilter(themeFilter === theme ? "" : theme)
-                      }
+                      onClick={() => setThemeFilter(themeFilter === theme ? "" : theme)}
                       className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${themeFilter === theme ? "bg-primary text-white" : "bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200"}`}
                     >
                       {theme} ({count})
@@ -1452,20 +1394,14 @@ export default function VeillePage() {
                 </button>
                 {PRODUCTS.map((prod) => {
                   const count = items.filter((item) => {
-                    const text = (
-                      item.title +
-                      " " +
-                      (item.description || "")
-                    ).toLowerCase();
+                    const text = (item.title + " " + (item.description || "")).toLowerCase();
                     return text.includes(prod.toLowerCase());
                   }).length;
                   if (count === 0 && productFilter !== prod) return null;
                   return (
                     <button
                       key={prod}
-                      onClick={() =>
-                        setProductFilter(productFilter === prod ? "" : prod)
-                      }
+                      onClick={() => setProductFilter(productFilter === prod ? "" : prod)}
                       className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${productFilter === prod ? "bg-seal-navy text-white" : "bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200"}`}
                     >
                       {prod} ({count})
@@ -1480,10 +1416,7 @@ export default function VeillePage() {
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-20 rounded-card bg-gray-100 dark:bg-slate-800 shimmer"
-                />
+                <div key={i} className="h-20 rounded-card bg-gray-100 dark:bg-slate-800 shimmer" />
               ))}
             </div>
           ) : filteredItems.length === 0 ? (
@@ -1498,11 +1431,7 @@ export default function VeillePage() {
                 }
                 action={
                   isAdmin ? (
-                    <Button
-                      onClick={handleFetch}
-                      loading={fetching}
-                      className="animate-fade-in-up"
-                    >
+                    <Button onClick={handleFetch} loading={fetching} className="animate-fade-in-up">
                       <Rss className="h-4 w-4" /> Lancer une collecte
                     </Button>
                   ) : undefined
@@ -1541,9 +1470,7 @@ export default function VeillePage() {
                   >
                     <CardContent className="py-2.5 px-3">
                       <div className="flex items-start gap-2.5">
-                        <div className="mt-0.5 flex-shrink-0">
-                          {severityIcon(item.severity)}
-                        </div>
+                        <div className="mt-0.5 flex-shrink-0">{severityIcon(item.severity)}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                             <span
@@ -1552,11 +1479,8 @@ export default function VeillePage() {
                               {item.sourceName}
                             </span>
                             {severityBadge(item.severity)}
-                            {item.cveId && (
-                              <Badge variant="error">{item.cveId}</Badge>
-                            )}
-                            {Date.now() - new Date(item.publishedAt).getTime() <
-                              86400000 && (
+                            {item.cveId && <Badge variant="error">{item.cveId}</Badge>}
+                            {Date.now() - new Date(item.publishedAt).getTime() < 86400000 && (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                                 Nouveau
                               </span>
@@ -1581,8 +1505,7 @@ export default function VeillePage() {
                                   key={ack.user.id}
                                   className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400"
                                 >
-                                  <CheckCircle2 className="h-2.5 w-2.5" />{" "}
-                                  {ack.user.firstName}
+                                  <CheckCircle2 className="h-2.5 w-2.5" /> {ack.user.firstName}
                                 </span>
                               ))}
                           </div>
@@ -1602,9 +1525,7 @@ export default function VeillePage() {
                               <CheckCircle2 className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() =>
-                                handleAck(item.id, "NOT_APPLICABLE")
-                              }
+                              onClick={() => handleAck(item.id, "NOT_APPLICABLE")}
                               className="h-9 w-9 sm:h-8 sm:w-8 flex items-center justify-center rounded-lg text-seal-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                               title="Non applicable"
                               aria-label="Marquer cette alerte comme non applicable"
@@ -1612,9 +1533,7 @@ export default function VeillePage() {
                               <X className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() =>
-                                handleAck(item.id, "RISK_ACCEPTED")
-                              }
+                              onClick={() => handleAck(item.id, "RISK_ACCEPTED")}
                               className="h-9 w-9 sm:h-8 sm:w-8 flex items-center justify-center rounded-lg text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                               title="Risque accepté"
                               aria-label="Accepter le risque pour cette alerte"

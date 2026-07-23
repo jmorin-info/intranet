@@ -39,7 +39,7 @@ export function ConfigRetentionSection() {
               Rétention documentaire
             </h2>
           </div>
-          <Link href="/admin/data-retention">
+          <Link href="/admin/audit/retention">
             <Button variant="outline" size="sm">
               <ExternalLink className="h-3.5 w-3.5" />
               Gérer la rétention
@@ -47,8 +47,7 @@ export function ConfigRetentionSection() {
           </Link>
         </div>
         <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-          Politique d&apos;archivage / suppression automatisée (ISO 27001
-          A.5.33)
+          Politique d&apos;archivage / suppression automatisée (ISO 27001 A.5.33)
         </p>
       </CardHeader>
       <CardContent>
@@ -81,9 +80,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
       <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">
         {label}
       </p>
-      <p className="text-lg font-bold text-seal-navy dark:text-white">
-        {value}
-      </p>
+      <p className="text-lg font-bold text-seal-navy dark:text-white">{value}</p>
     </div>
   );
 }

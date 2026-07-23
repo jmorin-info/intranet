@@ -19,13 +19,7 @@
  * clavier passe par la palette + table de nodes.
  */
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -45,7 +39,7 @@ import {
   StopCircle,
   UserCheck,
 } from "lucide-react";
-import { Button, Card, CardContent, Badge } from "@omnitech/ui";
+import { Button, Card, CardContent, Badge, ConfirmDialog } from "@omnitech/ui";
 
 type NodeType =
   | "START"
@@ -96,10 +90,7 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
   END: "Fin",
 };
 
-const NODE_TYPE_COLORS: Record<
-  NodeType,
-  { bg: string; border: string; icon: typeof Workflow }
-> = {
+const NODE_TYPE_COLORS: Record<NodeType, { bg: string; border: string; icon: typeof Workflow }> = {
   START: { bg: "#006233", border: "#003c1f", icon: PlayCircle },
   APPROVAL: { bg: "#296DC1", border: "#1a4f8f", icon: UserCheck },
   BRANCH: { bg: "#F9964A", border: "#d27433", icon: GitBranch },
@@ -149,6 +140,7 @@ export default function WorkflowGraphEditorPage() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [pendingEdgeFrom, setPendingEdgeFrom] = useState<string | null>(null);
+  const [confirmEdgeId, setConfirmEdgeId] = useState<string | null>(null);
   const [dragNode, setDragNode] = useState<{
     id: string;
     offsetX: number;
@@ -218,8 +210,7 @@ export default function WorkflowGraphEditorPage() {
     const starts = g.nodes.filter((n) => n.type === "START");
     const ends = g.nodes.filter((n) => n.type === "END");
     if (starts.length === 0) errors.push("Aucun nœud START.");
-    if (starts.length > 1)
-      errors.push(`${starts.length} nœuds START — un seul autorisé.`);
+    if (starts.length > 1) errors.push(`${starts.length} nœuds START — un seul autorisé.`);
     if (ends.length === 0) errors.push("Aucun nœud END.");
 
     // BRANCH ≥ 2 sortants
@@ -227,9 +218,7 @@ export default function WorkflowGraphEditorPage() {
       if (node.type === "BRANCH") {
         const out = g.edges.filter((e) => e.source === node.id);
         if (out.length < 2) {
-          errors.push(
-            `BRANCH "${node.label}" : ${out.length} sortie(s) (au moins 2 requises).`,
-          );
+          errors.push(`BRANCH "${node.label}" : ${out.length} sortie(s) (au moins 2 requises).`);
         }
       }
       if (node.type === "END") {
@@ -282,9 +271,7 @@ export default function WorkflowGraphEditorPage() {
       }
       const orphans = g.nodes.filter((n) => !visited.has(n.id));
       if (orphans.length > 0) {
-        errors.push(
-          `Orphelins (inaccessibles) : ${orphans.map((o) => o.label).join(", ")}.`,
-        );
+        errors.push(`Orphelins (inaccessibles) : ${orphans.map((o) => o.label).join(", ")}.`);
       }
     }
 
@@ -339,8 +326,8 @@ export default function WorkflowGraphEditorPage() {
               edges: g.edges,
             });
           } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })
-              ?.response?.data?.message;
+            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data
+              ?.message;
             toast.error(msg ?? "Erreur de sauvegarde");
           } finally {
             setSaving(false);
@@ -386,9 +373,7 @@ export default function WorkflowGraphEditorPage() {
     const y = e.clientY - rect.top - dragNode.offsetY;
     updateGraph((g) => ({
       ...g,
-      nodes: g.nodes.map((n) =>
-        n.id === dragNode.id ? { ...n, position: { x, y } } : n,
-      ),
+      nodes: g.nodes.map((n) => (n.id === dragNode.id ? { ...n, position: { x, y } } : n)),
     }));
   };
 
@@ -432,10 +417,7 @@ export default function WorkflowGraphEditorPage() {
     }));
   };
 
-  const updateNodeData = (
-    nodeId: string,
-    dataPatch: Partial<GraphNode["data"]>,
-  ) => {
+  const updateNodeData = (nodeId: string, dataPatch: Partial<GraphNode["data"]>) => {
     updateGraph((g) => ({
       ...g,
       nodes: g.nodes.map((n) =>
@@ -455,9 +437,7 @@ export default function WorkflowGraphEditorPage() {
     }
     updateGraph((g) => {
       // anti-doublon
-      if (
-        g.edges.some((e) => e.source === pendingEdgeFrom && e.target === toId)
-      ) {
+      if (g.edges.some((e) => e.source === pendingEdgeFrom && e.target === toId)) {
         return g;
       }
       return {
@@ -492,9 +472,7 @@ export default function WorkflowGraphEditorPage() {
   );
 
   if (loading || !graph) {
-    return (
-      <div className="p-6 text-gray-500 dark:text-slate-400">Chargement…</div>
-    );
+    return <div className="p-6 text-gray-500 dark:text-slate-400">Chargement…</div>;
   }
 
   return (
@@ -527,13 +505,9 @@ export default function WorkflowGraphEditorPage() {
             </Badge>
           )}
           {saving ? (
-            <span className="text-xs text-gray-500 dark:text-slate-400">
-              Sauvegarde…
-            </span>
+            <span className="text-xs text-gray-500 dark:text-slate-400">Sauvegarde…</span>
           ) : (
-            <span className="text-xs text-gray-400 dark:text-slate-500">
-              Enregistré
-            </span>
+            <span className="text-xs text-gray-400 dark:text-slate-500">Enregistré</span>
           )}
         </div>
       </header>
@@ -548,14 +522,7 @@ export default function WorkflowGraphEditorPage() {
             Ajouter un nœud
           </h2>
           {(
-            [
-              "APPROVAL",
-              "BRANCH",
-              "PARALLEL_ALL",
-              "PARALLEL_ANY",
-              "DELEGATE",
-              "END",
-            ] as NodeType[]
+            ["APPROVAL", "BRANCH", "PARALLEL_ALL", "PARALLEL_ANY", "DELEGATE", "END"] as NodeType[]
           ).map((type) => {
             const { bg, icon: Icon } = NODE_TYPE_COLORS[type];
             return (
@@ -566,14 +533,8 @@ export default function WorkflowGraphEditorPage() {
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm transition-colors"
                 aria-label={`Ajouter un nœud ${NODE_TYPE_LABELS[type]}`}
               >
-                <span
-                  className="w-3 h-3 rounded-full"
-                  style={{ background: bg }}
-                />
-                <Icon
-                  className="w-4 h-4 text-gray-500 dark:text-slate-400"
-                  aria-hidden="true"
-                />
+                <span className="w-3 h-3 rounded-full" style={{ background: bg }} />
+                <Icon className="w-4 h-4 text-gray-500 dark:text-slate-400" aria-hidden="true" />
                 {NODE_TYPE_LABELS[type]}
               </button>
             );
@@ -584,8 +545,7 @@ export default function WorkflowGraphEditorPage() {
               Légende
             </h2>
             <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
-              • Cliquer sur "Lier" sur un nœud puis sur un autre pour créer une
-              transition.
+              • Cliquer sur "Lier" sur un nœud puis sur un autre pour créer une transition.
               <br />• Glisser un nœud pour le repositionner.
               <br />• Sauvegarde auto toutes les 500&nbsp;ms.
             </p>
@@ -616,18 +576,8 @@ export default function WorkflowGraphEditorPage() {
               >
                 <path d="M 0 0 L 10 5 L 0 10 z" fill="#296DC1" />
               </marker>
-              <pattern
-                id="grid"
-                width="40"
-                height="40"
-                patternUnits="userSpaceOnUse"
-              >
-                <path
-                  d="M 40 0 L 0 0 0 40"
-                  fill="none"
-                  stroke="#e5e7eb"
-                  strokeWidth="0.5"
-                />
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e5e7eb" strokeWidth="0.5" />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
@@ -658,10 +608,7 @@ export default function WorkflowGraphEditorPage() {
                     strokeWidth="14"
                     fill="none"
                     style={{ cursor: "pointer" }}
-                    onClick={() => {
-                      if (confirm("Supprimer cette transition ?"))
-                        removeEdge(e.id);
-                    }}
+                    onClick={() => setConfirmEdgeId(e.id)}
                   />
                 </g>
               );
@@ -692,21 +639,10 @@ export default function WorkflowGraphEditorPage() {
                     height={NODE_HEIGHT}
                     rx="8"
                     fill={bg}
-                    stroke={
-                      isSelected
-                        ? "#F9964A"
-                        : isPendingFrom
-                          ? "#006233"
-                          : border
-                    }
+                    stroke={isSelected ? "#F9964A" : isPendingFrom ? "#006233" : border}
                     strokeWidth={isSelected || isPendingFrom ? 3 : 1}
                   />
-                  <foreignObject
-                    x="0"
-                    y="0"
-                    width={NODE_WIDTH}
-                    height={NODE_HEIGHT}
-                  >
+                  <foreignObject x="0" y="0" width={NODE_WIDTH} height={NODE_HEIGHT}>
                     <div
                       className="w-full h-full flex flex-col justify-center px-3 text-white pointer-events-none"
                       // eslint-disable-next-line react/no-unknown-property
@@ -717,9 +653,7 @@ export default function WorkflowGraphEditorPage() {
                         <Icon className="w-3.5 h-3.5" aria-hidden="true" />
                         {NODE_TYPE_LABELS[n.type]}
                       </div>
-                      <div className="text-sm font-semibold truncate mt-0.5">
-                        {n.label}
-                      </div>
+                      <div className="text-sm font-semibold truncate mt-0.5">{n.label}</div>
                     </div>
                   </foreignObject>
                 </g>
@@ -754,10 +688,7 @@ export default function WorkflowGraphEditorPage() {
       {validationErrors.length > 0 && (
         <div className="border-t border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 text-xs space-y-1">
           {validationErrors.map((err, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-2 text-amber-800 dark:text-amber-200"
-            >
+            <div key={i} className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
               <AlertTriangle className="w-3.5 h-3.5" />
               {err}
             </div>
@@ -766,11 +697,7 @@ export default function WorkflowGraphEditorPage() {
       )}
 
       {/* A11y : alternative liste (cachée visuellement, lue par les SR) */}
-      <div
-        className="sr-only"
-        role="region"
-        aria-label="Liste des nœuds (alternative au canvas)"
-      >
+      <div className="sr-only" role="region" aria-label="Liste des nœuds (alternative au canvas)">
         <h2>Nœuds du workflow</h2>
         <ul>
           {graph.nodes.map((n) => (
@@ -782,10 +709,7 @@ export default function WorkflowGraphEditorPage() {
                   → vers{" "}
                   {graph.edges
                     .filter((e) => e.source === n.id)
-                    .map(
-                      (e) =>
-                        graph.nodes.find((nn) => nn.id === e.target)?.label,
-                    )
+                    .map((e) => graph.nodes.find((nn) => nn.id === e.target)?.label)
                     .join(", ")}
                 </span>
               )}
@@ -793,6 +717,18 @@ export default function WorkflowGraphEditorPage() {
           ))}
         </ul>
       </div>
+
+      <ConfirmDialog
+        open={!!confirmEdgeId}
+        onClose={() => setConfirmEdgeId(null)}
+        onConfirm={() => {
+          if (confirmEdgeId) removeEdge(confirmEdgeId);
+          setConfirmEdgeId(null);
+        }}
+        title="Supprimer la transition"
+        description="Supprimer cette transition ?"
+        variant="danger"
+      />
     </div>
   );
 }
@@ -819,10 +755,9 @@ function NodeProperties({
   onDelete,
 }: NodePropertiesProps) {
   const showApproverFields =
-    node.type === "APPROVAL" ||
-    node.type === "PARALLEL_ALL" ||
-    node.type === "PARALLEL_ANY";
+    node.type === "APPROVAL" || node.type === "PARALLEL_ALL" || node.type === "PARALLEL_ANY";
   const showCondition = node.type === "BRANCH";
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -830,15 +765,11 @@ function NodeProperties({
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
           Propriétés du nœud
         </h2>
-        <p className="text-xs text-gray-500 dark:text-slate-400">
-          {NODE_TYPE_LABELS[node.type]}
-        </p>
+        <p className="text-xs text-gray-500 dark:text-slate-400">{NODE_TYPE_LABELS[node.type]}</p>
       </div>
 
       <label className="block">
-        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-          Libellé
-        </span>
+        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Libellé</span>
         <input
           type="text"
           value={node.label}
@@ -856,9 +787,7 @@ function NodeProperties({
             </span>
             <select
               value={node.data.approverRole ?? ""}
-              onChange={(e) =>
-                onDataChange({ approverRole: e.target.value || null })
-              }
+              onChange={(e) => onDataChange({ approverRole: e.target.value || null })}
               className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-sm"
             >
               <option value="">— Aucun —</option>
@@ -880,9 +809,7 @@ function NodeProperties({
               value={node.data.slaHours ?? ""}
               onChange={(e) =>
                 onDataChange({
-                  slaHours: e.target.value
-                    ? parseInt(e.target.value, 10)
-                    : null,
+                  slaHours: e.target.value ? parseInt(e.target.value, 10) : null,
                 })
               }
               className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-sm"
@@ -906,8 +833,7 @@ function NodeProperties({
                 className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-sm"
               />
               <span className="text-xs text-gray-500 dark:text-slate-400 mt-1 block">
-                Nombre d'approbations distinctes nécessaires pour valider
-                l'étape (multi-niveaux).
+                Nombre d'approbations distinctes nécessaires pour valider l'étape (multi-niveaux).
               </span>
             </label>
           )}
@@ -922,11 +848,7 @@ function NodeProperties({
           <textarea
             rows={6}
             placeholder='{"field": "category", "op": "eq", "value": "POLICY"}'
-            value={
-              node.data.condition
-                ? JSON.stringify(node.data.condition, null, 2)
-                : ""
-            }
+            value={node.data.condition ? JSON.stringify(node.data.condition, null, 2) : ""}
             onChange={(e) => {
               const v = e.target.value.trim();
               if (!v) {
@@ -963,15 +885,25 @@ function NodeProperties({
             variant="outline"
             className="w-full gap-1 text-seal-bordeaux"
             size="sm"
-            onClick={() => {
-              if (confirm("Supprimer ce nœud ?")) onDelete();
-            }}
+            onClick={() => setConfirmDelete(true)}
           >
             <Trash2 className="w-3.5 h-3.5" />
             Supprimer le nœud
           </Button>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          setConfirmDelete(false);
+          onDelete();
+        }}
+        title="Supprimer le nœud"
+        description="Supprimer ce nœud ?"
+        variant="danger"
+      />
     </div>
   );
 }

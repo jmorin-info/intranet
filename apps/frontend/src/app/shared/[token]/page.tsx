@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Card, CardContent, Button, Input, Skeleton } from "@omnitech/ui";
 import { Lock, FileText, AlertTriangle } from "lucide-react";
+import DOMPurify from "dompurify";
 
 interface ShareAccessResponse {
   requiresPassword: boolean;
@@ -90,9 +91,7 @@ export default function SharedDocumentPage() {
         | ShareAccessResponse
         | { message?: string; statusCode?: number };
       if (!res.ok) {
-        setError(
-          (json as { message?: string }).message || "Mot de passe invalide",
-        );
+        setError((json as { message?: string }).message || "Mot de passe invalide");
         setSubmitting(false);
         return;
       }
@@ -124,9 +123,7 @@ export default function SharedDocumentPage() {
         <Card className="w-full max-w-md">
           <CardContent className="space-y-3 p-6 text-center">
             <AlertTriangle className="mx-auto h-10 w-10 text-rose-500" />
-            <h1 className="text-lg font-semibold text-seal-navy">
-              Accès impossible
-            </h1>
+            <h1 className="text-lg font-semibold text-seal-navy">Accès impossible</h1>
             <p className="text-sm text-seal-gray-500">{error}</p>
           </CardContent>
         </Card>
@@ -141,13 +138,10 @@ export default function SharedDocumentPage() {
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-seal-navy" />
-              <h1 className="text-lg font-semibold text-seal-navy">
-                Document protégé
-              </h1>
+              <h1 className="text-lg font-semibold text-seal-navy">Document protégé</h1>
             </div>
             <p className="text-sm text-seal-gray-500">
-              Ce document est protégé par un mot de passe. Veuillez le saisir
-              pour y accéder.
+              Ce document est protégé par un mot de passe. Veuillez le saisir pour y accéder.
             </p>
             <form onSubmit={submitPassword} className="space-y-3">
               <Input
@@ -163,18 +157,12 @@ export default function SharedDocumentPage() {
                   {error}
                 </div>
               )}
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full"
-                loading={submitting}
-              >
+              <Button type="submit" variant="primary" className="w-full" loading={submitting}>
                 Accéder au document
               </Button>
             </form>
             <div className="text-xs text-seal-gray-500 pt-2">
-              Après 5 tentatives infructueuses, le lien sera automatiquement
-              révoqué.
+              Après 5 tentatives infructueuses, le lien sera automatiquement révoqué.
             </div>
           </CardContent>
         </Card>
@@ -201,15 +189,17 @@ export default function SharedDocumentPage() {
             )}
             {data.classification && (
               <div className="text-sm">
-                Classification&nbsp;:{" "}
-                <span className="font-semibold">{data.classification}</span>
+                Classification&nbsp;: <span className="font-semibold">{data.classification}</span>
               </div>
             )}
 
             {data.isNative && data.content ? (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none mt-4"
-                dangerouslySetInnerHTML={{ __html: data.content }}
+                // Sanitize au RENDU : le contenu stocké avant l'ajout du
+                // sanitize backend (ou par tout autre chemin) peut être non
+                // assaini. Page publique non authentifiée → défense en profondeur.
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(data.content) }}
               />
             ) : (
               <Button
@@ -224,8 +214,8 @@ export default function SharedDocumentPage() {
             )}
 
             <div className="text-xs text-seal-gray-500 pt-3 border-t border-gray-100 dark:border-slate-700">
-              Tous les accès à ce lien sont enregistrés à des fins de
-              traçabilité (ISO 27001 A.5.14).
+              Tous les accès à ce lien sont enregistrés à des fins de traçabilité (ISO 27001
+              A.5.14).
             </div>
           </CardContent>
         </Card>

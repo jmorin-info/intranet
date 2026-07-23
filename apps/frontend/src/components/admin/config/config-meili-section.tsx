@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { showToast } from "@/lib/toast-utils";
 import { Card, CardContent, CardHeader, Button, Badge } from "@omnitech/ui";
 import { RefreshCw, Search, Database } from "lucide-react";
 
@@ -27,9 +28,7 @@ export function ConfigMeiliSection() {
   const [stats, setStats] = useState<MeiliStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [reindexing, setReindexing] = useState(false);
-  const [reindexResult, setReindexResult] = useState<ReindexResult | null>(
-    null,
-  );
+  const [reindexResult, setReindexResult] = useState<ReindexResult | null>(null);
 
   const fetchStats = () => {
     setLoading(true);
@@ -57,7 +56,7 @@ export function ConfigMeiliSection() {
         toast.error("Erreur de reindexation");
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Erreur de reindexation");
+      showToast("error", null, err?.response?.data?.message || "Erreur de reindexation");
     } finally {
       setReindexing(false);
     }
@@ -68,9 +67,7 @@ export function ConfigMeiliSection() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Search className="h-5 w-5 text-seal-navy dark:text-blue-400" />
-          <h2 className="text-sm font-semibold text-seal-navy dark:text-white">
-            Meilisearch
-          </h2>
+          <h2 className="text-sm font-semibold text-seal-navy dark:text-white">Meilisearch</h2>
           {stats && (
             <Badge variant={stats.available ? "success" : "error"}>
               {stats.available ? "Connecté" : "Hors ligne"}
@@ -80,8 +77,8 @@ export function ConfigMeiliSection() {
       </CardHeader>
       <CardContent>
         <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-4">
-          Moteur de recherche federee pour l&apos;intranet. Indexe les
-          documents, tickets, wiki et actualites.
+          Moteur de recherche federee pour l&apos;intranet. Indexe les documents, tickets, wiki et
+          actualites.
         </p>
 
         {/* Stats */}
@@ -149,17 +146,10 @@ export function ConfigMeiliSection() {
             loading={reindexing}
             disabled={reindexing}
           >
-            <RefreshCw
-              className={`h-4 w-4${reindexing ? " animate-spin" : ""}`}
-            />
+            <RefreshCw className={`h-4 w-4${reindexing ? " animate-spin" : ""}`} />
             Reindexer tout
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchStats}
-            disabled={loading}
-          >
+          <Button variant="outline" size="sm" onClick={fetchStats} disabled={loading}>
             <RefreshCw className={`h-4 w-4${loading ? " animate-spin" : ""}`} />
             Rafraichir les stats
           </Button>

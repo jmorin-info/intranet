@@ -16,17 +16,10 @@ import { RequestUser } from "../common/interfaces";
 import { slugify, generateUniqueSlug } from "../common/utils/slugify";
 import { MentionsService } from "../mentions/mentions.service";
 import { RagService } from "../rag/rag.service";
-import {
-  MeilisearchService,
-  MeiliDocument,
-} from "../search/meilisearch.service";
+import { MeilisearchService, MeiliDocument } from "../search/meilisearch.service";
 import { CacheService } from "../common/cache/cache.service";
 import { BacklinkService } from "./backlink.service";
-import {
-  CreateWikiPageDto,
-  UpdateWikiPageDto,
-  WikiVisibility,
-} from "./dto/create-wiki-page.dto";
+import { CreateWikiPageDto, UpdateWikiPageDto, WikiVisibility } from "./dto/create-wiki-page.dto";
 import { ShareWikiPageDto } from "./dto/share-wiki-page.dto";
 
 const EDIT_LOCK_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -55,9 +48,7 @@ export class WikiService {
   private rebuildBacklinks(pageId: string): void {
     if (!this.backlinks) return;
     void this.backlinks.rebuildBacklinks(pageId).catch((err) => {
-      this.logger.warn(
-        `Backlink rebuild failed for ${pageId}: ${err?.message || err}`,
-      );
+      this.logger.warn(`Backlink rebuild failed for ${pageId}: ${err?.message || err}`);
     });
   }
 
@@ -119,27 +110,18 @@ export class WikiService {
    * searchable by the AI assistant. Runs asynchronously and never blocks
    * the caller.
    */
-  private indexForRag(page: {
-    id: string;
-    title: string;
-    content: string;
-  }): void {
+  private indexForRag(page: { id: string; title: string; content: string }): void {
     if (!this.rag) return;
     const plainText = `${page.title}\n\n${this.stripHtml(page.content)}`;
     void this.rag
       .indexSource("WIKI", page.id, plainText, { title: page.title })
       .catch((err) =>
-        this.logger.warn(
-          `RAG indexation failed for wiki ${page.id}: ${err?.message || err}`,
-        ),
+        this.logger.warn(`RAG indexation failed for wiki ${page.id}: ${err?.message || err}`),
       );
   }
 
   private resolveAuthorName(
-    author:
-      | { firstName?: string | null; lastName?: string | null }
-      | null
-      | undefined,
+    author: { firstName?: string | null; lastName?: string | null } | null | undefined,
     fallbackEmail?: string | null,
   ): string {
     if (author) {
@@ -194,10 +176,7 @@ export class WikiService {
     ) {
       return true;
     }
-    if (
-      Array.isArray(page.collaborators) &&
-      page.collaborators.includes(user.id)
-    ) {
+    if (Array.isArray(page.collaborators) && page.collaborators.includes(user.id)) {
       return true;
     }
     return false;
@@ -206,9 +185,7 @@ export class WikiService {
   private canEdit(page: any, user: RequestUser): boolean {
     if (isPrivilegedRole(user.role)) return true;
     if (page.authorId === user.id) return true;
-    return (
-      Array.isArray(page.collaborators) && page.collaborators.includes(user.id)
-    );
+    return Array.isArray(page.collaborators) && page.collaborators.includes(user.id);
   }
 
   async findAll(
@@ -255,10 +232,7 @@ export class WikiService {
       // at the same level, so we wrap both in an AND.
       const existingOr = where.OR;
       delete where.OR;
-      where.AND = [
-        ...(existingOr ? [{ OR: existingOr }] : []),
-        { OR: searchOr },
-      ];
+      where.AND = [...(existingOr ? [{ OR: existingOr }] : []), { OR: searchOr }];
     }
 
     const needsScoring = !!filters?.search;
@@ -285,6 +259,12 @@ export class WikiService {
         },
       },
       orderBy: needsScoring ? undefined : { updatedAt: "desc" },
+      // Garde-fou pire-cas : `findAll` n'a pas de pagination (liste/recherche
+      // wiki), et le scoring ci-dessous (regex + scan de contenu par page)
+      // est synchrone et non borné. Ce `take` plafonne le coût CPU/mémoire
+      // sans changer le comportement tant que le nombre de pages reste sous
+      // ce seuil — pas de requête de comptage supplémentaire ici.
+      take: 1000,
     });
 
     if (!needsScoring) {
@@ -308,10 +288,7 @@ export class WikiService {
         // Category matches worth 3 pts each
         if (catLower.includes(term)) score += 3;
         // Content occurrence count, 1 pt each (capped at 10)
-        const re = new RegExp(
-          term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-          "gi",
-        );
+        const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
         const hits = (row.content ?? "").match(re);
         score += Math.min(hits?.length ?? 0, 10);
       }
@@ -349,8 +326,7 @@ export class WikiService {
 
     scored.sort(
       (a, b) =>
-        b.score - a.score ||
-        (b.updatedAt as Date).getTime() - (a.updatedAt as Date).getTime(),
+        b.score - a.score || (b.updatedAt as Date).getTime() - (a.updatedAt as Date).getTime(),
     );
     return scored;
   }
@@ -362,9 +338,7 @@ export class WikiService {
     user: RequestUser,
     q: string,
     limit = 5,
-  ): Promise<
-    Array<{ id: string; title: string; slug: string; category: string | null }>
-  > {
+  ): Promise<Array<{ id: string; title: string; slug: string; category: string | null }>> {
     const where: Prisma.WikiPageWhereInput = {
       ...this.buildVisibilityFilter(user),
       isPublished: true,
@@ -390,9 +364,7 @@ export class WikiService {
   /**
    * Return all categories with their article count.
    */
-  async getCategories(
-    user: RequestUser,
-  ): Promise<Array<{ category: string; count: number }>> {
+  async getCategories(user: RequestUser): Promise<Array<{ category: string; count: number }>> {
     const visFilter = this.buildVisibilityFilter(user);
 
     const rows = await this.prisma.wikiPage.findMany({
@@ -412,9 +384,7 @@ export class WikiService {
 
     return Array.from(counts.entries())
       .map(([category, count]) => ({ category, count }))
-      .sort(
-        (a, b) => b.count - a.count || a.category.localeCompare(b.category),
-      );
+      .sort((a, b) => b.count - a.count || a.category.localeCompare(b.category));
   }
 
   async findBySlug(slug: string, user: RequestUser) {
@@ -437,8 +407,7 @@ export class WikiService {
     // Auto-génère le slug depuis le titre si non fourni (ou normalise si fourni)
     const rawSlug = typeof data.slug === "string" ? data.slug.trim() : "";
     const slug = rawSlug
-      ? slugify(rawSlug, { maxLength: 200 }) ||
-        (await this.autoSlug(data.title))
+      ? slugify(rawSlug, { maxLength: 200 }) || (await this.autoSlug(data.title))
       : await this.autoSlug(data.title);
 
     const page = await this.prisma.wikiPage.create({
@@ -474,9 +443,7 @@ export class WikiService {
           sourceTitle: page.title,
           link: `/wiki/${page.slug}`,
         })
-        .catch((err) =>
-          this.logger.warn(`mention parsing failed: ${err?.message || err}`),
-        );
+        .catch((err) => this.logger.warn(`mention parsing failed: ${err?.message || err}`));
     }
 
     // Index the new page for RAG-powered AI search (non-blocking).
@@ -565,11 +532,7 @@ export class WikiService {
     });
 
     // Parse @mentions on content update and notify cited users (non-blocking).
-    if (
-      this.mentions &&
-      data.content !== undefined &&
-      data.content !== existing.content
-    ) {
+    if (this.mentions && data.content !== undefined && data.content !== existing.content) {
       const mentionsSvc = this.mentions;
       void (async () => {
         try {
@@ -615,9 +578,7 @@ export class WikiService {
     if (!existing) throw new NotFoundException("Page wiki introuvable");
 
     if (!isPrivilegedRole(user.role) && existing.authorId !== user.id) {
-      throw new ForbiddenException(
-        "Vous ne pouvez pas supprimer cette page wiki.",
-      );
+      throw new ForbiddenException("Vous ne pouvez pas supprimer cette page wiki.");
     }
 
     const deleted = await this.prisma.wikiPage.delete({ where: { id } });
@@ -716,9 +677,7 @@ export class WikiService {
 
     const now = Date.now();
     const lockHeld =
-      page.editLockUserId &&
-      page.editLockExpiresAt &&
-      page.editLockExpiresAt.getTime() > now;
+      page.editLockUserId && page.editLockExpiresAt && page.editLockExpiresAt.getTime() > now;
 
     if (lockHeld && page.editLockUserId !== user.id) {
       const holder = await this.prisma.user.findUnique({
@@ -749,11 +708,7 @@ export class WikiService {
     if (!page) throw new NotFoundException("Wiki page not found");
 
     // Only the lock holder or an admin can release the lock.
-    if (
-      page.editLockUserId &&
-      page.editLockUserId !== user.id &&
-      !isPrivilegedRole(user.role)
-    ) {
+    if (page.editLockUserId && page.editLockUserId !== user.id && !isPrivilegedRole(user.role)) {
       throw new ForbiddenException("Lock held by another user");
     }
 
@@ -798,12 +753,18 @@ export class WikiService {
       : [];
     const authorMap = new Map(authors.map((a) => [a.id, a]));
 
+    const limit = Math.min(Math.max(take, 1), 100);
     return {
-      items: items.map((v) => ({
+      data: items.map((v) => ({
         ...v,
         author: authorMap.get(v.authorId) ?? null,
       })),
-      total,
+      meta: {
+        total,
+        page: Math.floor(Math.max(skip, 0) / limit) + 1,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -1001,15 +962,10 @@ export class WikiService {
       }, -1);
       const snippet =
         idx >= 0
-          ? plain.slice(
-              Math.max(0, idx - 80),
-              Math.min(plain.length, idx + 160),
-            )
+          ? plain.slice(Math.max(0, idx - 80), Math.min(plain.length, idx + 160))
           : plain.slice(0, 200);
       const excerpt =
-        (idx > 80 ? "…" : "") +
-        snippet +
-        (plain.length > (idx >= 0 ? idx + 160 : 200) ? "…" : "");
+        (idx > 80 ? "…" : "") + snippet + (plain.length > (idx >= 0 ? idx + 160 : 200) ? "…" : "");
 
       matches.push({
         id: r.id,
@@ -1108,11 +1064,7 @@ export class WikiService {
     return this.parseAttachments(page.attachments);
   }
 
-  async addAttachment(
-    pageId: string,
-    user: RequestUser,
-    file: Express.Multer.File,
-  ) {
+  async addAttachment(pageId: string, user: RequestUser, file: Express.Multer.File) {
     const page = await this.prisma.wikiPage.findUnique({
       where: { id: pageId },
     });
@@ -1159,16 +1111,13 @@ export class WikiService {
     try {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     } catch (err: any) {
-      this.logger.warn(
-        `Failed to delete attachment file ${filePath}: ${err?.message || err}`,
-      );
+      this.logger.warn(`Failed to delete attachment file ${filePath}: ${err?.message || err}`);
     }
 
     await this.prisma.wikiPage.update({
       where: { id: pageId },
       data: {
-        attachments:
-          attachments.length > 0 ? JSON.stringify(attachments) : null,
+        attachments: attachments.length > 0 ? JSON.stringify(attachments) : null,
       },
     });
 

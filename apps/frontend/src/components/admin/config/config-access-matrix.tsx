@@ -4,15 +4,8 @@ import React, { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, Button, Badge } from "@omnitech/ui";
-import {
-  Save,
-  RefreshCw,
-  Shield,
-  ShieldCheck,
-  Check,
-  X,
-  Info,
-} from "lucide-react";
+import { USER_ROLE_LABELS, UserRole } from "@omnitech/shared";
+import { Save, RefreshCw, Shield, ShieldCheck, Check, X, Info } from "lucide-react";
 
 const ACCESS_MODULES = [
   "Documents",
@@ -49,21 +42,17 @@ const ACCESS_MODULE_DESCRIPTIONS: Record<string, string> = {
   Documents:
     "GED ISO 27001 : création, revue, approbation et archivage des documents réglementaires",
   Procédures: "Procédures opérationnelles et modes opératoires",
-  Tickets:
-    "Système de tickets pour le support interne et la gestion des demandes",
+  Tickets: "Système de tickets pour le support interne et la gestion des demandes",
   News: "Actualités et communications internes de l'entreprise",
   Wiki: "Base de connaissances collaborative et documentation interne",
-  Veille:
-    "Veille cyber : CVE, alertes ANSSI, bulletins CERT, threat intelligence",
-  Incidents:
-    "Déclaration et suivi des incidents de sécurité (ISO 27001 A.5.24)",
+  Veille: "Veille cyber : CVE, alertes ANSSI, bulletins CERT, threat intelligence",
+  Incidents: "Déclaration et suivi des incidents de sécurité (ISO 27001 A.5.24)",
   Quiz: "Quiz de sensibilisation à la sécurité avec gamification et certificats",
   Satisfaction: "Enquêtes de satisfaction interne et suivi NPS",
   Helpdesk: "Support IT / Chatbot IA avec base de connaissances et RAG",
   Files: "Stockage et partage de fichiers sécurisé (SMB)",
   Signatures: "Signature électronique de documents via DocuSeal",
-  Certificats:
-    "Gestion des certifications de formation (internes, externes, KnowBe4)",
+  Certificats: "Gestion des certifications de formation (internes, externes, KnowBe4)",
   Annuaire: "Annuaire des collaborateurs et organigramme",
   Calendrier: "Calendrier événements : réunions, formations, audits",
   Timeline: "Vue chronologique unifiée news + notifications + documents",
@@ -77,12 +66,10 @@ const ACCESS_MODULE_DESCRIPTIONS: Record<string, string> = {
   Workflows: "Workflows d'approbation configurables (ISO 27001 A.5.1)",
   Médiathèque:
     "Galerie photos & vidéos gérée par l'équipe Marketing (canManageMedia requis pour upload)",
-  "Avis & satisfaction":
-    "Modération des témoignages collaborateurs + enquêtes de satisfaction",
+  "Avis & satisfaction": "Modération des témoignages collaborateurs + enquêtes de satisfaction",
   Monitoring:
     "Monitoring système (CPU/RAM/disque) + utilisation intranet + stockage par utilisateur",
-  Admin:
-    "Administration système : configuration, utilisateurs, rôles et paramètres",
+  Admin: "Administration système : configuration, utilisateurs, rôles et paramètres",
 };
 
 const ACCESS_ROLES = [
@@ -96,31 +83,16 @@ const ACCESS_ROLES = [
   "PRESTATAIRE",
 ] as const;
 
-const ACCESS_ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: "Super Admin",
-  ADMIN: "Administrateur",
-  DIRECTION: "Direction",
-  MANAGER: "Manager",
-  REVIEWER: "Réviseur",
-  AUDITEUR: "Auditeur",
-  COLLABORATEUR: "Collaborateur",
-  PRESTATAIRE: "Prestataire",
-};
-
 const ACCESS_ROLE_DESCRIPTIONS: Record<string, string> = {
-  SUPER_ADMIN:
-    "Accès total au système, gestion de tous les paramètres et utilisateurs",
-  ADMIN:
-    "Administration courante, gestion des utilisateurs et de la configuration",
-  DIRECTION:
-    "Supervision stratégique, accès à tous les modules sauf administration",
+  SUPER_ADMIN: "Accès total au système, gestion de tous les paramètres et utilisateurs",
+  ADMIN: "Administration courante, gestion des utilisateurs et de la configuration",
+  DIRECTION: "Supervision stratégique, accès à tous les modules sauf administration",
   MANAGER:
     "Encadrement intermédiaire : gestion d'espaces ticketing, publication runbooks, validation 1er niveau",
   REVIEWER: "Revue et validation des documents, accès étendu en lecture",
   AUDITEUR: "Accès en lecture pour audit et conformité, sans modification",
   COLLABORATEUR: "Accès standard aux outils collaboratifs du quotidien",
-  PRESTATAIRE:
-    "Accès restreint aux modules nécessaires pour les intervenants externes",
+  PRESTATAIRE: "Accès restreint aux modules nécessaires pour les intervenants externes",
 };
 
 const ADMIN_LEVEL_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "DIRECTION"]);
@@ -244,23 +216,14 @@ const ACCESS_MATRIX: Record<string, Set<string>> = {
     "Outils PDF",
     "Médiathèque",
   ]),
-  PRESTATAIRE: new Set([
-    "Documents",
-    "Tickets",
-    "Files",
-    "Signatures",
-    "Certificats",
-    "Helpdesk",
-  ]),
+  PRESTATAIRE: new Set(["Documents", "Tickets", "Files", "Signatures", "Certificats", "Helpdesk"]),
 };
 
 const DEFAULT_ACCESS_MATRIX_OBJ: Record<string, string[]> = Object.fromEntries(
   Object.entries(ACCESS_MATRIX).map(([role, mods]) => [role, [...mods]]),
 );
 
-function matrixObjToSets(
-  obj: Record<string, string[]>,
-): Record<string, Set<string>> {
+function matrixObjToSets(obj: Record<string, string[]>): Record<string, Set<string>> {
   const result: Record<string, Set<string>> = {};
   for (const [role, mods] of Object.entries(obj)) {
     result[role] = new Set(mods);
@@ -268,9 +231,7 @@ function matrixObjToSets(
   return result;
 }
 
-function matrixSetsToObj(
-  sets: Record<string, Set<string>>,
-): Record<string, string[]> {
+function matrixSetsToObj(sets: Record<string, Set<string>>): Record<string, string[]> {
   const result: Record<string, string[]> = {};
   for (const [role, modSet] of Object.entries(sets)) {
     result[role] = [...modSet];
@@ -283,9 +244,9 @@ function matrixSetsToObj(
  * Le RBAC modules effectif se configure dans /admin/access (Option B).
  */
 export function ConfigAccessMatrix() {
-  const [editableMatrix, setEditableMatrix] = useState<
-    Record<string, Set<string>>
-  >(matrixObjToSets(DEFAULT_ACCESS_MATRIX_OBJ));
+  const [editableMatrix, setEditableMatrix] = useState<Record<string, Set<string>>>(
+    matrixObjToSets(DEFAULT_ACCESS_MATRIX_OBJ),
+  );
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -353,13 +314,9 @@ export function ConfigAccessMatrix() {
         <div className="mb-3 flex items-start gap-2 rounded-lg border border-blue-100 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/10 p-3">
           <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
           <div className="text-[11px] text-seal-gray-500 dark:text-slate-300">
-            <strong>Matrice documentaire (audit ISO 27001 A.5.15).</strong> Pour
-            configurer le RBAC modules effectif (rôle, département,
-            utilisateur), rendez-vous sur{" "}
-            <a
-              href="/admin/access"
-              className="text-primary underline font-medium"
-            >
+            <strong>Matrice documentaire (audit ISO 27001 A.5.15).</strong> Pour configurer le RBAC
+            modules effectif (rôle, département, utilisateur), rendez-vous sur{" "}
+            <a href="/admin/access" className="text-primary underline font-medium">
               /admin/access
             </a>
             .
@@ -374,8 +331,7 @@ export function ConfigAccessMatrix() {
               </h2>
             </div>
             <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-              Cliquez sur une cellule pour modifier les permissions par role et
-              module
+              Cliquez sur une cellule pour modifier les permissions par role et module
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -414,9 +370,7 @@ export function ConfigAccessMatrix() {
                     <div className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block w-52 pointer-events-none">
                       <div className="bg-seal-navy dark:bg-slate-900 text-white text-[10px] font-normal leading-snug rounded-lg px-3 py-2 shadow-lg text-left whitespace-normal">
                         <p className="font-semibold mb-0.5">{mod}</p>
-                        <p className="opacity-80">
-                          {ACCESS_MODULE_DESCRIPTIONS[mod] || mod}
-                        </p>
+                        <p className="opacity-80">{ACCESS_MODULE_DESCRIPTIONS[mod] || mod}</p>
                         <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-seal-navy dark:bg-slate-900" />
                       </div>
                     </div>
@@ -428,8 +382,7 @@ export function ConfigAccessMatrix() {
               {ACCESS_ROLES.map((role, roleIdx) => {
                 const isAdminLevel = ADMIN_LEVEL_ROLES.has(role);
                 const isLastAdmin =
-                  isAdminLevel &&
-                  !ADMIN_LEVEL_ROLES.has(ACCESS_ROLES[roleIdx + 1] || "");
+                  isAdminLevel && !ADMIN_LEVEL_ROLES.has(ACCESS_ROLES[roleIdx + 1] || "");
                 return (
                   <tr
                     key={role}
@@ -459,7 +412,7 @@ export function ConfigAccessMatrix() {
                                       : "navy"
                           }
                         >
-                          {ACCESS_ROLE_LABELS[role]}
+                          {USER_ROLE_LABELS[role as UserRole] || role}
                         </Badge>
                       </div>
                     </td>
@@ -476,13 +429,13 @@ export function ConfigAccessMatrix() {
                             className="focus:outline-none focus:ring-2 focus:ring-primary/40 rounded-full transition-transform hover:scale-110"
                             title={
                               hasAccess
-                                ? `Retirer l'acces ${mod} pour ${ACCESS_ROLE_LABELS[role]}`
-                                : `Autoriser l'acces ${mod} pour ${ACCESS_ROLE_LABELS[role]}`
+                                ? `Retirer l'acces ${mod} pour ${USER_ROLE_LABELS[role as UserRole] || role}`
+                                : `Autoriser l'acces ${mod} pour ${USER_ROLE_LABELS[role as UserRole] || role}`
                             }
                             aria-label={
                               hasAccess
-                                ? `Retirer l'accès ${mod} pour ${ACCESS_ROLE_LABELS[role]}`
-                                : `Autoriser l'accès ${mod} pour ${ACCESS_ROLE_LABELS[role]}`
+                                ? `Retirer l'accès ${mod} pour ${USER_ROLE_LABELS[role as UserRole] || role}`
+                                : `Autoriser l'accès ${mod} pour ${USER_ROLE_LABELS[role as UserRole] || role}`
                             }
                             aria-pressed={hasAccess}
                           >

@@ -20,7 +20,15 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Brain, Download, Trash2, AlertTriangle } from "lucide-react";
-import { Button, Badge, Card, CardContent, EmptyState, Skeleton } from "@omnitech/ui";
+import {
+  Button,
+  Badge,
+  Card,
+  CardContent,
+  EmptyState,
+  Skeleton,
+  ConfirmDialog,
+} from "@omnitech/ui";
 import { PageHeader } from "@/components/layout/page-header";
 import { useAuthStore } from "@/stores/auth-store";
 import { api } from "@/lib/api";
@@ -50,6 +58,7 @@ export default function NoaMemoryPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [savingToggle, setSavingToggle] = useState(false);
+  const [forgetAllConfirm, setForgetAllConfirm] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -100,13 +109,12 @@ export default function NoaMemoryPage() {
     [load],
   );
 
-  const forgetAll = useCallback(async () => {
-    if (
-      !window.confirm(
-        "Tout oublier ? Cette action est irréversible : Noa redémarre à zéro pour vous.",
-      )
-    )
-      return;
+  const forgetAll = useCallback(() => {
+    setForgetAllConfirm(true);
+  }, []);
+
+  const confirmForgetAll = useCallback(async () => {
+    setForgetAllConfirm(false);
     try {
       const res = await api.delete<{ deleted: number }>("/noa/memory/all");
       toast.success(`${res.data.deleted} mémoire(s) supprimée(s)`);
@@ -186,9 +194,9 @@ export default function NoaMemoryPage() {
           <CardContent className="p-4 flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
             <div className="text-sm text-yellow-900 dark:text-yellow-200">
-              La mémoire est désactivée — aucune nouvelle information ne sera
-              extraite de vos prochaines conversations. Pour effacer
-              définitivement, utilisez « Tout oublier » ci-dessus.
+              La mémoire est désactivée — aucune nouvelle information ne sera extraite de vos
+              prochaines conversations. Pour effacer définitivement, utilisez « Tout oublier »
+              ci-dessus.
             </div>
           </CardContent>
         </Card>
@@ -216,16 +224,12 @@ export default function NoaMemoryPage() {
                   <div className="flex justify-between items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-mono text-gray-500">
-                          {item.key}
-                        </span>
+                        <span className="text-xs font-mono text-gray-500">{item.key}</span>
                         <Badge variant="navy">
                           Importance {(item.importanceScore * 100).toFixed(0)}%
                         </Badge>
                         {item.recallCount > 0 && (
-                          <Badge variant="navy">
-                            Rappelée {item.recallCount}×
-                          </Badge>
+                          <Badge variant="navy">Rappelée {item.recallCount}×</Badge>
                         )}
                       </div>
                       <p className="text-sm">{item.value}</p>
@@ -255,6 +259,15 @@ export default function NoaMemoryPage() {
           {items.length} sur {total} mémoires affichées.
         </p>
       )}
+
+      <ConfirmDialog
+        open={forgetAllConfirm}
+        onClose={() => setForgetAllConfirm(false)}
+        onConfirm={confirmForgetAll}
+        title="Tout oublier"
+        description="Tout oublier ? Cette action est irréversible : Noa redémarre à zéro pour vous."
+        variant="danger"
+      />
     </div>
   );
 }

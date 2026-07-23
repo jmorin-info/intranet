@@ -1,5 +1,6 @@
 // Helpers extraits du monolithe page.tsx
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 import type { DocumentComment } from "./types";
 
 // --- Comments (localStorage-based, ready for backend migration) ---
@@ -12,18 +13,13 @@ export function getDocComments(documentId: string): DocumentComment[] {
     const all: DocumentComment[] = raw ? JSON.parse(raw) : [];
     return all
       .filter((c) => c.documentId === documentId)
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch {
     return [];
   }
 }
 
-export function addDocComment(
-  comment: Omit<DocumentComment, "id" | "createdAt">,
-): DocumentComment {
+export function addDocComment(comment: Omit<DocumentComment, "id" | "createdAt">): DocumentComment {
   const all: DocumentComment[] = (() => {
     try {
       const raw = localStorage.getItem(COMMENTS_STORAGE_KEY);
@@ -49,27 +45,23 @@ export async function authenticatedDownload(
   inline = false,
 ): Promise<void> {
   try {
-    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(
-      /\/api\/?$/,
-      "/api/v1",
-    );
-    // ANSSI A.5.34 — JWT en cookie httpOnly, `credentials: 'include'` suffit.
-    const response = await fetch(`${apiBase}${url}`, {
-      credentials: "include",
-    });
-    if (!response.ok) throw new Error("Download failed");
-    const blob = await response.blob();
+    // Via le client axios `api` → bénéficie de l'intercepteur de refresh 401
+    // (un token expiré est rafraîchi et la requête rejouée), contrairement à
+    // l'ancien fetch() brut qui échouait sèchement.
+    const response = await api.get(url, { responseType: "blob" });
+    const blob = response.data instanceof Blob ? response.data : new Blob([response.data]);
+    const blobUrl = URL.createObjectURL(blob);
     if (inline) {
-      const blobUrl = URL.createObjectURL(blob);
       window.open(blobUrl, "_blank");
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     } else {
-      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
       a.download = filename;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(blobUrl);
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     }
   } catch {
     toast.error("Erreur de téléchargement");
@@ -77,14 +69,18 @@ export async function authenticatedDownload(
 }
 
 // --- Status bar color mapping ---
+// Alignée sur la sémantique statusSemantic de lib/ui/tokens.ts (draft/active/
+// pending/success/danger/neutral/info) pour éviter les couleurs incohérentes
+// entre écrans. OBSOLETE (danger) doit rester visuellement distinct et
+// alertant par rapport à ARCHIVED (neutre).
 export const STATUS_BAR_COLOR: Record<string, string> = {
-  DRAFT: "bg-blue-500",
-  IN_REVIEW: "bg-amber-500",
-  REVIEW_APPROVED: "bg-[#296DC1]",
-  PENDING_APPROVAL: "bg-purple-500",
-  APPROVED: "bg-emerald-500",
-  OBSOLETE: "bg-gray-400",
-  ARCHIVED: "bg-gray-300",
+  DRAFT: "bg-slate-400", // draft
+  IN_REVIEW: "bg-blue-500", // active
+  REVIEW_APPROVED: "bg-violet-500", // info
+  PENDING_APPROVAL: "bg-amber-500", // pending
+  APPROVED: "bg-emerald-500", // success
+  OBSOLETE: "bg-red-500", // danger
+  ARCHIVED: "bg-gray-300", // neutral
 };
 
 // --- Review deadline color coding ---
@@ -95,9 +91,7 @@ export interface ReviewDeadlineInfo {
   dot: string;
 }
 
-export function getReviewDeadlineInfo(
-  nextReviewDate: string | null,
-): ReviewDeadlineInfo | null {
+export function getReviewDeadlineInfo(nextReviewDate: string | null): ReviewDeadlineInfo | null {
   if (!nextReviewDate) return null;
   const diffMs = new Date(nextReviewDate).getTime() - Date.now();
   const days = Math.floor(diffMs / 86400000);

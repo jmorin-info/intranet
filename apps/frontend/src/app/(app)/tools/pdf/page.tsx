@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useEffect,
-  useLayoutEffect,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useEffect, useLayoutEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -100,9 +94,7 @@ export default function StirlingPdfPage() {
   const stirlingTools = useMemo<StirlingShortcut[]>(() => {
     const raw = getBlockData<unknown[]>(cmsBlocks, "tools.pdf.shortcuts", []);
     const fromCms = Array.isArray(raw)
-      ? raw
-          .map(normalizeStirlingShortcut)
-          .filter((s): s is StirlingShortcut => s !== null)
+      ? raw.map(normalizeStirlingShortcut).filter((s): s is StirlingShortcut => s !== null)
       : [];
     return fromCms.length > 0 ? fromCms : FALLBACK_STIRLING_TOOLS;
   }, [cmsBlocks]);
@@ -145,8 +137,7 @@ export default function StirlingPdfPage() {
           ...res.data,
           url: "",
           ok: false,
-          message:
-            "URL Stirling non configurée côté backend (STIRLING_PDF_PUBLIC_URL manquant).",
+          message: "URL Stirling non configurée côté backend (STIRLING_PDF_PUBLIC_URL manquant).",
         });
         return;
       }
@@ -171,10 +162,7 @@ export default function StirlingPdfPage() {
         enabled: false,
         url: "",
         ok: false,
-        message:
-          err instanceof Error
-            ? err.message
-            : "Impossible de contacter le service Stirling",
+        message: err instanceof Error ? err.message : "Impossible de contacter le service Stirling",
       });
     } finally {
       setLoading(false);
@@ -193,19 +181,15 @@ export default function StirlingPdfPage() {
 
     async function preloadPdf() {
       try {
-        const { data: docData } = await api.get(`/documents/${docId}`);
+        const [{ data: docData }, response] = await Promise.all([
+          api.get(`/documents/${docId}`),
+          api.get(`/documents/${docId}/versions/${versionId}/download`, {
+            responseType: "blob",
+          }),
+        ]);
         if (cancelled) return;
 
-        const response = await api.get(
-          `/documents/${docId}/versions/${versionId}/download`,
-          { responseType: "blob" },
-        );
-        if (cancelled) return;
-
-        const blob =
-          response.data instanceof Blob
-            ? response.data
-            : new Blob([response.data]);
+        const blob = response.data instanceof Blob ? response.data : new Blob([response.data]);
         const objectUrl = window.URL.createObjectURL(blob);
         const fileName = `${docData.reference || docData.title || "document"}.pdf`;
 
@@ -226,9 +210,7 @@ export default function StirlingPdfPage() {
         link.click();
         document.body.removeChild(link);
 
-        toast.success(
-          `PDF "${fileName}" téléchargé — glissez-le dans Stirling ci-dessous`,
-        );
+        toast.success(`PDF "${fileName}" téléchargé — glissez-le dans Stirling ci-dessous`);
 
         // Auto-dismiss banner after 10s
         setShowPreloadBanner(true);
@@ -236,9 +218,7 @@ export default function StirlingPdfPage() {
       } catch (err: any) {
         if (cancelled) return;
         const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          "Impossible de charger le document";
+          err?.response?.data?.message || err?.message || "Impossible de charger le document";
         setPreloadError(msg);
         toast.error(msg);
       }
@@ -326,28 +306,16 @@ export default function StirlingPdfPage() {
       hub="work"
       actions={
         <>
-          {status && (
-            <StatusPill
-              status={status}
-              loading={loading}
-              onRefresh={fetchStatus}
-            />
-          )}
+          {status && <StatusPill status={status} loading={loading} onRefresh={fetchStatus} />}
           {status?.ok && (
             <>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setFullscreen((f) => !f)}
-                title={
-                  fullscreen ? "Quitter le plein écran (Esc)" : "Plein écran"
-                }
+                title={fullscreen ? "Quitter le plein écran (Esc)" : "Plein écran"}
               >
-                {fullscreen ? (
-                  <Minimize2 className="h-4 w-4" />
-                ) : (
-                  <Maximize2 className="h-4 w-4" />
-                )}
+                {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 {fullscreen ? "Réduire" : "Plein écran"}
               </Button>
               <a
@@ -435,8 +403,8 @@ export default function StirlingPdfPage() {
                   Stirling PDF n&apos;est pas activé
                 </h3>
                 <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-4">
-                  Le module d&apos;outils PDF est désactivé. Contactez votre
-                  administrateur pour l&apos;activer.
+                  Le module d&apos;outils PDF est désactivé. Contactez votre administrateur pour
+                  l&apos;activer.
                 </p>
                 <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 text-xs font-mono text-seal-gray-500 dark:text-slate-400">
                   <p className="mb-2 font-semibold text-seal-navy dark:text-white not-italic">
@@ -483,15 +451,9 @@ export default function StirlingPdfPage() {
                   {status.message}
                 </p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-500">
-                  URL configurée :{" "}
-                  <code className="font-mono">{status.url}</code>
+                  URL configurée : <code className="font-mono">{status.url}</code>
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchStatus}
-                  className="mt-4"
-                >
+                <Button variant="outline" size="sm" onClick={fetchStatus} className="mt-4">
                   <RefreshCw className="h-3.5 w-3.5" />
                   Réessayer
                 </Button>
@@ -514,8 +476,8 @@ export default function StirlingPdfPage() {
                 <p className="text-xs font-semibold text-seal-navy dark:text-white truncate">
                   PDF téléchargé : {preloaded.fileName}
                   <span className="font-normal text-seal-gray-500 dark:text-slate-400 ml-2">
-                    ({(preloaded.fileSize / 1024).toFixed(1)} Ko) — Glissez-le
-                    dans Stirling ci-dessous
+                    ({(preloaded.fileSize / 1024).toFixed(1)} Ko) — Glissez-le dans Stirling
+                    ci-dessous
                   </span>
                 </p>
               </div>
@@ -565,9 +527,7 @@ export default function StirlingPdfPage() {
           <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
             <XCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">
-                Impossible de précharger le document
-              </p>
+              <p className="font-semibold">Impossible de précharger le document</p>
               <p className="mt-0.5">{preloadError}</p>
             </div>
           </div>
@@ -618,11 +578,7 @@ export default function StirlingPdfPage() {
               Stirling PDF {status.version ? `· ${status.version}` : ""}
             </span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setFullscreen(false)}
-          >
+          <Button variant="outline" size="sm" onClick={() => setFullscreen(false)}>
             <Minimize2 className="h-4 w-4" />
             Quitter (Esc)
           </Button>

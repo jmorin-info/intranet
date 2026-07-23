@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Page détail d'un run PCA — /admin/pca/runs/[id]
@@ -8,18 +8,19 @@
  * rapport JSON).
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import { toast } from 'sonner';
-import { ArrowLeft, Download, Loader2, Play, ShieldCheck, Terminal } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { RoleGuard } from '@/components/role-guard';
-import { UserRole } from '@omnitech/shared';
-import { Badge, Button, Card, CardContent, EmptyState } from '@omnitech/ui';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { formatDate as formatDateUtil } from "@/lib/utils";
+import { toast } from "sonner";
+import { ArrowLeft, Download, Loader2, Play, ShieldCheck, Terminal } from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
+import { RoleGuard } from "@/components/role-guard";
+import { UserRole } from "@omnitech/shared";
+import { Badge, Button, Card, CardContent, EmptyState } from "@omnitech/ui";
 
-type RunStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
+type RunStatus = "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "CANCELLED";
 
 interface PcaRunDetail {
   id: string;
@@ -43,23 +44,23 @@ interface PcaRunDetail {
 }
 
 const STATUS_CLASSES: Record<RunStatus, string> = {
-  PENDING: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
-  RUNNING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
-  SUCCESS: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-  FAILED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-  CANCELLED: 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300',
+  PENDING: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+  RUNNING: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  SUCCESS: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  FAILED: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  CANCELLED: "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300",
 };
 
 const STATUS_LABELS: Record<RunStatus, string> = {
-  PENDING: 'En attente',
-  RUNNING: 'En cours',
-  SUCCESS: 'Succès',
-  FAILED: 'Échec',
-  CANCELLED: 'Annulé',
+  PENDING: "En attente",
+  RUNNING: "En cours",
+  SUCCESS: "Succès",
+  FAILED: "Échec",
+  CANCELLED: "Annulé",
 };
 
 function formatDuration(ms: number | null): string {
-  if (ms === null || ms === undefined) return '—';
+  if (ms === null || ms === undefined) return "—";
   if (ms < 1000) return `${ms} ms`;
   const sec = ms / 1000;
   if (sec < 60) return `${sec.toFixed(1)} s`;
@@ -69,14 +70,14 @@ function formatDuration(ms: number | null): string {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  if (!iso) return "—";
+  return formatDateUtil(iso, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 }
 
@@ -103,7 +104,7 @@ function PcaRunDetailInner() {
       const { data } = await api.get<PcaRunDetail>(`/pca/runs/${id}`);
       setRun(data);
     } catch {
-      toast.error('Impossible de charger le run');
+      toast.error("Impossible de charger le run");
     } finally {
       setLoading(false);
     }
@@ -116,7 +117,7 @@ function PcaRunDetailInner() {
   // Polling 2 s tant que le run est en cours
   useEffect(() => {
     if (!run) return;
-    if (run.status !== 'RUNNING' && run.status !== 'PENDING') return;
+    if (run.status !== "RUNNING" && run.status !== "PENDING") return;
     const t = setInterval(() => {
       loadRun();
     }, 2000);
@@ -126,7 +127,7 @@ function PcaRunDetailInner() {
   // Autoscroll logs vers le bas à chaque refresh pendant un run actif
   useEffect(() => {
     if (!logsRef.current) return;
-    if (run?.status === 'RUNNING' || run?.status === 'PENDING') {
+    if (run?.status === "RUNNING" || run?.status === "PENDING") {
       logsRef.current.scrollTop = logsRef.current.scrollHeight;
     }
   }, [run?.logs, run?.status]);
@@ -135,17 +136,17 @@ function PcaRunDetailInner() {
     if (!run) return;
     setRerunning(true);
     try {
-      const { data } = await api.post<{ runId: string }>('/pca/runs', {
+      const { data } = await api.post<{ runId: string }>("/pca/runs", {
         scenarioId: run.scenarioId,
       });
-      toast.success('Nouveau run démarré');
+      toast.success("Nouveau run démarré");
       router.push(`/admin/pca/runs/${data.runId}`);
     } catch (err: unknown) {
       const msg =
-        err && typeof err === 'object' && 'response' in err
+        err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined;
-      toast.error(msg || 'Impossible de relancer le scénario');
+      toast.error(msg || "Impossible de relancer le scénario");
     } finally {
       setRerunning(false);
     }
@@ -169,10 +170,10 @@ function PcaRunDetailInner() {
       logs: run.logs,
     };
     const blob = new Blob([JSON.stringify(report, null, 2)], {
-      type: 'application/json',
+      type: "application/json",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `pca-run-${run.id}.json`;
     a.click();
@@ -208,13 +209,13 @@ function PcaRunDetailInner() {
     );
   }
 
-  const isActive = run.status === 'RUNNING' || run.status === 'PENDING';
+  const isActive = run.status === "RUNNING" || run.status === "PENDING";
 
   return (
     <div className="animate-fade-in-up space-y-6 p-6">
       <PageHeader
         title={run.scenarioName}
-        subtitle={run.scenarioDescription || 'Détail du run PCA'}
+        subtitle={run.scenarioDescription || "Détail du run PCA"}
         icon={ShieldCheck}
         hub="admin"
         actions={
@@ -225,12 +226,7 @@ function PcaRunDetailInner() {
                 Retour
               </Button>
             </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadReport}
-              disabled={isActive}
-            >
+            <Button variant="outline" size="sm" onClick={handleDownloadReport} disabled={isActive}>
               <Download className="mr-2 h-4 w-4" />
               Télécharger rapport
             </Button>
@@ -290,7 +286,7 @@ function PcaRunDetailInner() {
         <CardContent className="p-6">
           <div className="mb-3 flex items-center gap-2">
             <Badge variant="info" className="text-xs">
-              {run.scenarioIso || 'ISO 27001'}
+              {run.scenarioIso || "ISO 27001"}
             </Badge>
             {run.triggeredByUser && (
               <span className="text-xs text-seal-gray-500 dark:text-slate-400">
@@ -301,15 +297,12 @@ function PcaRunDetailInner() {
           {run.result ? (
             <dl className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
               {Object.entries(run.result).map(([key, value]) => (
-                <div
-                  key={key}
-                  className="rounded-lg bg-gray-50 p-3 dark:bg-slate-800/50"
-                >
+                <div key={key} className="rounded-lg bg-gray-50 p-3 dark:bg-slate-800/50">
                   <dt className="text-xs uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
                     {key}
                   </dt>
                   <dd className="mt-1 break-words font-mono text-xs text-seal-navy dark:text-white">
-                    {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
+                    {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
                   </dd>
                 </div>
               ))}

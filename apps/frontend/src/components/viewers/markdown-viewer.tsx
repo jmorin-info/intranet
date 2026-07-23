@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { marked } from 'marked';
+import React, { useEffect, useState } from "react";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 
 interface MarkdownViewerProps {
   url: string;
@@ -13,12 +14,13 @@ interface MarkdownViewerProps {
  * rend en HTML stylé (typographie prose, code blocks). Format texte pur —
  * pas de pagination ni de zoom.
  *
- * Sécurité : le backend a déjà validé le MIME type (text/markdown) à l'upload
- * et sert le fichier depuis son stockage authentifié. marked v15+ sanitise par
- * défaut les scripts XSS (no dangerouslySetInnerHTML de tags <script>).
+ * Sécurité : marked ne sanitise PAS son HTML de sortie (l'option `sanitize`
+ * a été retirée depuis longtemps, cf. doc officielle « use DOMPurify »). Le
+ * HTML rendu passe donc systématiquement par DOMPurify.sanitize() avant
+ * injection DOM, comme dans docx-viewer.tsx.
  */
-export function MarkdownViewer({ url, className = '' }: MarkdownViewerProps) {
-  const [html, setHtml] = useState<string>('');
+export function MarkdownViewer({ url, className = "" }: MarkdownViewerProps) {
+  const [html, setHtml] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +29,7 @@ export function MarkdownViewer({ url, className = '' }: MarkdownViewerProps) {
     setLoading(true);
     setError(null);
 
-    fetch(url, { credentials: 'include' })
+    fetch(url, { credentials: "include" })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.text();
@@ -36,16 +38,18 @@ export function MarkdownViewer({ url, className = '' }: MarkdownViewerProps) {
         if (cancelled) return;
         const rendered = marked.parse(text, { async: false, breaks: true, gfm: true });
         // marked.parse renvoie string quand async: false
-        setHtml(typeof rendered === 'string' ? rendered : '');
+        setHtml(typeof rendered === "string" ? DOMPurify.sanitize(rendered) : "");
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message || 'Impossible de charger le fichier');
+        if (!cancelled) setError(err?.message || "Impossible de charger le fichier");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [url]);
 
   if (loading) {
@@ -57,9 +61,7 @@ export function MarkdownViewer({ url, className = '' }: MarkdownViewerProps) {
   }
   if (error) {
     return (
-      <div className={`py-12 text-center text-sm text-red-500 ${className}`}>
-        Erreur : {error}
-      </div>
+      <div className={`py-12 text-center text-sm text-red-500 ${className}`}>Erreur : {error}</div>
     );
   }
 

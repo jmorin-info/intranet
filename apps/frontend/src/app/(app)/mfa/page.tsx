@@ -8,6 +8,7 @@ import { logger } from "@/lib/logger";
 import { useAuthStore } from "@/stores/auth-store";
 import { UserRole } from "@omnitech/shared";
 import { toast } from "sonner";
+import { showToast } from "@/lib/toast-utils";
 import {
   Card,
   CardContent,
@@ -18,23 +19,14 @@ import {
   Badge,
   Dialog,
 } from "@omnitech/ui";
-import {
-  Shield,
-  Smartphone,
-  CheckCircle2,
-  QrCode,
-  Key,
-  AlertTriangle,
-} from "lucide-react";
+import { Shield, Smartphone, CheckCircle2, QrCode, Key, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { mfaCodeSchema, type MfaCodeFormData } from "@/lib/validation/schemas";
 
 export default function MfaPage() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const [step, setStep] = useState<"intro" | "setup" | "verify" | "done">(
-    "intro",
-  );
+  const [step, setStep] = useState<"intro" | "setup" | "verify" | "done">("intro");
   const [qrCode, setQrCode] = useState("");
   const [secret, setSecret] = useState("");
   const [loading, setLoading] = useState(false);
@@ -58,9 +50,7 @@ export default function MfaPage() {
   const [statusLoading, setStatusLoading] = useState(true);
   const [showManualSecret, setShowManualSecret] = useState(false);
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
-  const [disableMethod, setDisableMethod] = useState<"password" | "code">(
-    "password",
-  );
+  const [disableMethod, setDisableMethod] = useState<"password" | "code">("password");
   const [disablePassword, setDisablePassword] = useState("");
   const [disableCode, setDisableCode] = useState("");
   const [regenerating, setRegenerating] = useState(false);
@@ -83,9 +73,7 @@ export default function MfaPage() {
           localStorage.removeItem("mfaSetupRequired");
         }
       })
-      .catch((err) =>
-        logger.error(err, { page: "mfa", context: "load status" }),
-      )
+      .catch((err) => logger.error(err, { page: "mfa", context: "load status" }))
       .finally(() => setStatusLoading(false));
   }, []);
 
@@ -141,9 +129,7 @@ export default function MfaPage() {
   const handleDisable = async () => {
     if (!user?.id) return;
     const body =
-      disableMethod === "password"
-        ? { password: disablePassword }
-        : { code: disableCode };
+      disableMethod === "password" ? { password: disablePassword } : { code: disableCode };
     if (disableMethod === "password" && !disablePassword) {
       toast.error("Saisissez votre mot de passe");
       return;
@@ -168,7 +154,7 @@ export default function MfaPage() {
       if (status === 401) {
         toast.error("Mot de passe ou code MFA invalide");
       } else if (status === 400) {
-        toast.error(err?.response?.data?.message || "Requête invalide");
+        showToast("error", null, err?.response?.data?.message || "Requête invalide");
       } else {
         toast.error("Erreur lors de la désactivation du MFA");
       }
@@ -281,9 +267,7 @@ export default function MfaPage() {
                 <div className="h-7 w-7 rounded-full bg-primary text-white font-semibold flex items-center justify-center text-xs">
                   1
                 </div>
-                <span className="text-xs font-semibold text-primary">
-                  Scanner QR
-                </span>
+                <span className="text-xs font-semibold text-primary">Scanner QR</span>
               </div>
               <div className="h-px w-8 bg-primary mx-2" />
               <div className="flex items-center gap-1.5">
@@ -375,9 +359,7 @@ export default function MfaPage() {
                 autoComplete="one-time-code"
                 {...registerCode("code", {
                   onChange: (e) => {
-                    const cleaned = e.target.value
-                      .replace(/\D/g, "")
-                      .slice(0, 6);
+                    const cleaned = e.target.value.replace(/\D/g, "").slice(0, 6);
                     setCodeValue("code", cleaned, { shouldValidate: true });
                   },
                 })}
@@ -385,9 +367,7 @@ export default function MfaPage() {
                 aria-invalid={!!codeErrors.code}
               />
               {codeErrors.code && (
-                <p className="text-red-500 text-xs mt-1">
-                  {codeErrors.code.message}
-                </p>
+                <p className="text-red-500 text-xs mt-1">{codeErrors.code.message}</p>
               )}
             </form>
           </CardContent>
@@ -421,9 +401,7 @@ export default function MfaPage() {
         <Card>
           <CardContent className="text-center py-8">
             <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
-            <h2 className="text-lg font-medium text-seal-navy dark:text-white mb-2">
-              MFA actif
-            </h2>
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white mb-2">MFA actif</h2>
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-2">
               Votre compte est protégé par la double authentification.
             </p>
@@ -431,8 +409,7 @@ export default function MfaPage() {
               <Badge variant="success">Activé</Badge>
               {lastLoginAt && (
                 <span className="text-xs text-seal-gray-500 dark:text-slate-400">
-                  Dernière connexion :{" "}
-                  {new Date(lastLoginAt).toLocaleDateString("fr-FR")}
+                  Dernière connexion : {new Date(lastLoginAt).toLocaleDateString("fr-FR")}
                 </span>
               )}
             </div>
@@ -467,10 +444,9 @@ export default function MfaPage() {
                   Codes de secours
                 </h3>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">
-                  Les codes de secours vous permettent de vous connecter si vous
-                  perdez l&apos;accès à votre application TOTP. Conservez-les
-                  dans un endroit sûr (gestionnaire de mots de passe,
-                  coffre-fort).
+                  Les codes de secours vous permettent de vous connecter si vous perdez l&apos;accès
+                  à votre application TOTP. Conservez-les dans un endroit sûr (gestionnaire de mots
+                  de passe, coffre-fort).
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -495,9 +471,7 @@ export default function MfaPage() {
       {backupCodes.length > 0 && (
         <Card className="border-2 border-amber-400">
           <CardHeader>
-            <h3 className="font-semibold text-seal-navy dark:text-white">
-              Codes de secours
-            </h3>
+            <h3 className="font-semibold text-seal-navy dark:text-white">Codes de secours</h3>
             <p className="text-xs text-amber-600">
               Conservez ces codes en lieu sûr. Ils ne seront plus affichés.
             </p>
@@ -609,11 +583,7 @@ export default function MfaPage() {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button
-              variant="outline"
-              onClick={closeDisableDialog}
-              disabled={loading}
-            >
+            <Button variant="outline" onClick={closeDisableDialog} disabled={loading}>
               Annuler
             </Button>
             <Button variant="danger" onClick={handleDisable} loading={loading}>

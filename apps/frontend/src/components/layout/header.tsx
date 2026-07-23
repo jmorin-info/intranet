@@ -4,10 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
-import {
-  useNotificationStore,
-  type Notification,
-} from "@/stores/notification-store";
+import { useNotificationStore, type Notification } from "@/stores/notification-store";
 import { api } from "@/lib/api";
 import { isRoleAtLeast, UserRole } from "@omnitech/shared";
 import { Avatar } from "@omnitech/ui";
@@ -155,11 +152,7 @@ export function Header() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const {
-    notifications: storeNotifications,
-    unreadCount,
-    markAsRead,
-  } = useNotificationStore();
+  const { notifications: storeNotifications, unreadCount, markAsRead } = useNotificationStore();
   const { toggleMobileSidebar, activeSpaceId, setActiveSpace } = useUIStore();
   const pathname = usePathname();
   const router = useRouter();
@@ -176,10 +169,7 @@ export function Header() {
   const spaceRef = useRef<HTMLDivElement>(null);
 
   // Derive the 5 most recent notifications from the centralized store (no extra API call)
-  const recentNotifs = useMemo(
-    () => storeNotifications.slice(0, 5),
-    [storeNotifications],
-  );
+  const recentNotifs = useMemo(() => storeNotifications.slice(0, 5), [storeNotifications]);
 
   const BREADCRUMB_LABELS: Record<string, string> = {
     dashboard: "Tableau de bord",
@@ -279,11 +269,7 @@ export function Header() {
       };
   const breadcrumbs: BreadcrumbItem[] =
     allBreadcrumbs.length > 4
-      ? [
-          allBreadcrumbs[0]!,
-          { ellipsis: true } as const,
-          ...allBreadcrumbs.slice(-2),
-        ]
+      ? [allBreadcrumbs[0]!, { ellipsis: true } as const, ...allBreadcrumbs.slice(-2)]
       : allBreadcrumbs;
 
   // Accent color per current hub for the last breadcrumb crumb.
@@ -416,9 +402,7 @@ export function Header() {
   };
 
   const openQuickSearch = () => {
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "k", ctrlKey: true }),
-    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
   };
 
   const createActions: Array<{
@@ -441,7 +425,7 @@ export function Header() {
     },
     {
       label: "Signaler un incident",
-      href: "/incidents/new",
+      href: "/incidents?create=true",
       icon: ShieldAlert,
       visible: true,
     },
@@ -488,11 +472,7 @@ export function Header() {
             <span>Accueil</span>
           </Link>
           {breadcrumbs.map((crumb, idx) => (
-            <React.Fragment
-              key={
-                "ellipsis" in crumb ? `ellipsis-${idx}` : `${idx}-${crumb.href}`
-              }
-            >
+            <React.Fragment key={"ellipsis" in crumb ? `ellipsis-${idx}` : `${idx}-${crumb.href}`}>
               <ChevronRight className="h-3.5 w-3.5 text-seal-gray-500/40 dark:text-slate-600 flex-shrink-0" />
               {"ellipsis" in crumb ? (
                 <span
@@ -503,9 +483,7 @@ export function Header() {
                   ...
                 </span>
               ) : crumb.isLast ? (
-                <span
-                  className={`font-semibold truncate max-w-[200px] ${lastAccentClass}`}
-                >
+                <span className={`font-semibold truncate max-w-[200px] ${lastAccentClass}`}>
                   {crumb.label}
                 </span>
               ) : (
@@ -567,16 +545,12 @@ export function Header() {
                     className="h-2 w-2 rounded-full flex-shrink-0"
                     style={{ backgroundColor: activeSpace.color || "#6b7280" }}
                   />
-                  <span className="max-w-[100px] truncate font-medium">
-                    {activeSpace.name}
-                  </span>
+                  <span className="max-w-[100px] truncate font-medium">{activeSpace.name}</span>
                 </>
               ) : (
                 <>
                   <Layers className="h-3.5 w-3.5" />
-                  <span className="hidden lg:inline font-medium">
-                    Tous les espaces
-                  </span>
+                  <span className="hidden lg:inline font-medium">Tous les espaces</span>
                 </>
               )}
               <ChevronDown
@@ -836,9 +810,7 @@ export function Header() {
                   isOnline ? "bg-emerald-500" : "bg-red-500"
                 }`}
                 title={isOnline ? t("header.connected") : t("header.offline")}
-                aria-label={
-                  isOnline ? t("header.connected") : t("header.offline")
-                }
+                aria-label={isOnline ? t("header.connected") : t("header.offline")}
               />
             </span>
             <span className="hidden sm:flex flex-col items-start leading-tight">
@@ -961,16 +933,10 @@ function DarkModeToggle() {
         "focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
       }
       title={darkMode ? t("header.lightMode") : t("header.darkMode")}
-      aria-label={
-        darkMode ? t("header.activateLight") : t("header.activateDark")
-      }
+      aria-label={darkMode ? t("header.activateLight") : t("header.activateDark")}
       aria-pressed={darkMode}
     >
-      {darkMode ? (
-        <Sun className="h-[18px] w-[18px]" />
-      ) : (
-        <Moon className="h-[18px] w-[18px]" />
-      )}
+      {darkMode ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
     </button>
   );
 }
@@ -984,8 +950,7 @@ function LanguageToggle() {
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -1015,9 +980,7 @@ function LanguageToggle() {
           "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary " +
           "focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
         }
-        title={
-          locale === "fr" ? t("header.switchToEn") : t("header.switchToFr")
-        }
+        title={locale === "fr" ? t("header.switchToEn") : t("header.switchToFr")}
         aria-label={`${t("header.language") || "Language"}: ${current.label}`}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -1057,9 +1020,7 @@ function LanguageToggle() {
                 </span>
                 <span className="flex-1 text-left">{lang.label}</span>
                 {active && (
-                  <span className="text-[11px] uppercase tracking-wide">
-                    {lang.value}
-                  </span>
+                  <span className="text-[11px] uppercase tracking-wide">{lang.value}</span>
                 )}
               </button>
             );

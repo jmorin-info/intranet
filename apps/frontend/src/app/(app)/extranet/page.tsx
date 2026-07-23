@@ -13,17 +13,10 @@ import {
   SearchInput,
   Button,
   EmptyState,
+  ConfirmDialog,
 } from "@omnitech/ui";
 import { PageHeader } from "@/components/layout/page-header";
-import {
-  ExternalLink,
-  Search,
-  Shield,
-  Clock,
-  UserX,
-  Users,
-  AlertTriangle,
-} from "lucide-react";
+import { ExternalLink, Search, Shield, Clock, UserX, Users, AlertTriangle } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 
@@ -45,15 +38,13 @@ function getExpiryStatus(
   if (!isActive) {
     return {
       label: "Révoqué",
-      className:
-        "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+      className: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
     };
   }
   if (!expiresAt) {
     return {
       label: "Accès actif",
-      className:
-        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+      className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
     };
   }
   const now = new Date();
@@ -64,20 +55,16 @@ function getExpiryStatus(
       className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
     };
   }
-  const daysLeft = Math.ceil(
-    (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   if (daysLeft <= 7) {
     return {
       label: `Expire dans ${daysLeft}j`,
-      className:
-        "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+      className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     };
   }
   return {
     label: "Accès actif",
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
   };
 }
 
@@ -89,6 +76,7 @@ export default function ExtranetPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [revokeId, setRevokeId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchAccesses() {
@@ -121,12 +109,10 @@ export default function ExtranetPage() {
 
   const now = new Date();
   const activeCount = accesses.filter(
-    (a) =>
-      a.isActive && (!a.accessExpiresAt || new Date(a.accessExpiresAt) > now),
+    (a) => a.isActive && (!a.accessExpiresAt || new Date(a.accessExpiresAt) > now),
   ).length;
   const expiredCount = accesses.filter(
-    (a) =>
-      !a.isActive || (a.accessExpiresAt && new Date(a.accessExpiresAt) <= now),
+    (a) => !a.isActive || (a.accessExpiresAt && new Date(a.accessExpiresAt) <= now),
   ).length;
   const expiringSoonCount = accesses.filter((a) => {
     if (!a.isActive || !a.accessExpiresAt) return false;
@@ -135,14 +121,18 @@ export default function ExtranetPage() {
     return daysLeft > 0 && daysLeft <= 30;
   }).length;
 
-  const handleRevoke = async (accessId: string) => {
-    if (!confirm("Voulez-vous vraiment révoquer cet accès ?")) return;
+  const handleRevoke = (accessId: string) => {
+    setRevokeId(accessId);
+  };
+
+  const confirmRevoke = async () => {
+    if (!revokeId) return;
+    const accessId = revokeId;
+    setRevokeId(null);
     setRevoking(accessId);
     try {
       await api.post(`/extranet/accesses/${accessId}/revoke`);
-      setAccesses((prev) =>
-        prev.map((a) => (a.id === accessId ? { ...a, isActive: false } : a)),
-      );
+      setAccesses((prev) => prev.map((a) => (a.id === accessId ? { ...a, isActive: false } : a)));
     } catch (err) {
       logger.error(err, { page: "extranet", context: "revoke access" });
     } finally {
@@ -167,9 +157,7 @@ export default function ExtranetPage() {
             <CardContent className="py-3 px-4 flex items-center gap-3">
               <Users className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                  Total
-                </p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Total</p>
                 <p className="text-xl font-medium text-seal-navy dark:text-white">
                   {accesses.length}
                 </p>
@@ -180,12 +168,8 @@ export default function ExtranetPage() {
             <CardContent className="py-3 px-4 flex items-center gap-3">
               <Shield className="h-5 w-5 text-emerald-500" />
               <div>
-                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                  Actifs
-                </p>
-                <p className="text-xl font-medium text-emerald-600">
-                  {activeCount}
-                </p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Actifs</p>
+                <p className="text-xl font-medium text-emerald-600">{activeCount}</p>
               </div>
             </CardContent>
           </Card>
@@ -193,12 +177,8 @@ export default function ExtranetPage() {
             <CardContent className="py-3 px-4 flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
               <div>
-                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                  Expirent bientôt
-                </p>
-                <p className="text-xl font-medium text-amber-600">
-                  {expiringSoonCount}
-                </p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Expirent bientôt</p>
+                <p className="text-xl font-medium text-amber-600">{expiringSoonCount}</p>
               </div>
             </CardContent>
           </Card>
@@ -206,12 +186,8 @@ export default function ExtranetPage() {
             <CardContent className="py-3 px-4 flex items-center gap-3">
               <UserX className="h-5 w-5 text-red-500" />
               <div>
-                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                  Expirés / Révoqués
-                </p>
-                <p className="text-xl font-medium text-red-600">
-                  {expiredCount}
-                </p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">Expirés / Révoqués</p>
+                <p className="text-xl font-medium text-red-600">{expiredCount}</p>
               </div>
             </CardContent>
           </Card>
@@ -263,14 +239,10 @@ export default function ExtranetPage() {
       {!loading && filteredAccesses.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAccesses.map((access, idx) => {
-            const status = getExpiryStatus(
-              access.accessExpiresAt,
-              access.isActive,
-            );
+            const status = getExpiryStatus(access.accessExpiresAt, access.isActive);
             const isExpiredOrRevoked =
               !access.isActive ||
-              (access.accessExpiresAt &&
-                new Date(access.accessExpiresAt) <= new Date());
+              (access.accessExpiresAt && new Date(access.accessExpiresAt) <= new Date());
             return (
               <Card
                 key={access.id}
@@ -282,9 +254,7 @@ export default function ExtranetPage() {
                     <div className="flex items-center gap-3">
                       <div
                         className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          isExpiredOrRevoked
-                            ? "bg-gray-100 dark:bg-gray-800"
-                            : "bg-primary/10"
+                          isExpiredOrRevoked ? "bg-gray-100 dark:bg-gray-800" : "bg-primary/10"
                         }`}
                       >
                         <Users
@@ -300,9 +270,7 @@ export default function ExtranetPage() {
                         </p>
                       </div>
                     </div>
-                    <Badge
-                      className={`text-[10px] font-medium flex-shrink-0 ${status.className}`}
-                    >
+                    <Badge className={`text-[10px] font-medium flex-shrink-0 ${status.className}`}>
                       {status.label}
                     </Badge>
                   </div>
@@ -328,8 +296,7 @@ export default function ExtranetPage() {
                     {isAdmin &&
                       access.isActive &&
                       !(
-                        access.accessExpiresAt &&
-                        new Date(access.accessExpiresAt) <= new Date()
+                        access.accessExpiresAt && new Date(access.accessExpiresAt) <= new Date()
                       ) && (
                         <Button
                           variant="outline"
@@ -349,6 +316,15 @@ export default function ExtranetPage() {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!revokeId}
+        onClose={() => setRevokeId(null)}
+        onConfirm={confirmRevoke}
+        title="Révoquer l'accès"
+        description="Voulez-vous vraiment révoquer cet accès ?"
+        variant="danger"
+      />
     </div>
   );
 }

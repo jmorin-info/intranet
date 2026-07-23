@@ -4,27 +4,21 @@ import {
   ForbiddenException,
   Logger,
   NotFoundException,
-} from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
-import { spawn } from 'child_process';
-import sharp from 'sharp';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../audit/audit.service';
-import { NotificationType } from '@prisma/client';
-import { CreateCertificateDto } from './dto/create-certificate.dto';
-import { UpdateCertificateDto } from './dto/update-certificate.dto';
-import { RequestUser } from '../common/interfaces';
+} from "@nestjs/common";
+import * as fs from "fs";
+import * as path from "path";
+import { spawn } from "child_process";
+import sharp from "sharp";
+import { PrismaService } from "../prisma/prisma.service";
+import { AuditService } from "../audit/audit.service";
+import { NotificationType } from "@prisma/client";
+import { CreateCertificateDto } from "./dto/create-certificate.dto";
+import { UpdateCertificateDto } from "./dto/update-certificate.dto";
+import { RequestUser } from "../common/interfaces";
 
-const THUMBS_DIR = path.join(process.cwd(), 'uploads', 'certificates', 'thumbs');
+const THUMBS_DIR = path.join(process.cwd(), "uploads", "certificates", "thumbs");
 const THUMB_SIZE = 256;
-const IMAGE_MIMES = new Set([
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-]);
+const IMAGE_MIMES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"]);
 
 @Injectable()
 export class CertificatesService {
@@ -44,10 +38,7 @@ export class CertificatesService {
    * Retourne le path public-relatif (ex: /uploads/certificates/thumbs/xxx.webp)
    * ou null si non générable.
    */
-  async generateThumbnail(
-    filePath: string,
-    mimeType: string,
-  ): Promise<string | null> {
+  async generateThumbnail(filePath: string, mimeType: string): Promise<string | null> {
     try {
       if (!fs.existsSync(THUMBS_DIR)) {
         fs.mkdirSync(THUMBS_DIR, { recursive: true });
@@ -57,7 +48,7 @@ export class CertificatesService {
       return null;
     }
 
-    const mime = (mimeType || '').toLowerCase();
+    const mime = (mimeType || "").toLowerCase();
     const baseName = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const outPath = path.join(THUMBS_DIR, `${baseName}.webp`);
     const publicUrl = `/uploads/certificates/thumbs/${baseName}.webp`;
@@ -65,49 +56,43 @@ export class CertificatesService {
     if (IMAGE_MIMES.has(mime)) {
       try {
         await sharp(filePath)
-          .resize(THUMB_SIZE, THUMB_SIZE, { fit: 'cover', position: 'attention' })
+          .resize(THUMB_SIZE, THUMB_SIZE, { fit: "cover", position: "attention" })
           .webp({ quality: 82 })
           .toFile(outPath);
         return publicUrl;
       } catch (err) {
-        this.logger.warn(
-          `Thumbnail certificat (image) échoué pour ${filePath} : ${err}`,
-        );
+        this.logger.warn(`Thumbnail certificat (image) échoué pour ${filePath} : ${err}`);
         return null;
       }
     }
 
-    if (mime === 'application/pdf') {
+    if (mime === "application/pdf") {
       // pdftoppm produit "<outBase>-1.jpg" pour la première page.
       const tmpBase = path.join(THUMBS_DIR, `${baseName}.pdf-tmp`);
       const ok = await new Promise<boolean>((resolve) => {
         const proc = spawn(
-          'pdftoppm',
-          ['-r', '72', '-f', '1', '-l', '1', '-jpeg', filePath, tmpBase],
-          { stdio: ['ignore', 'ignore', 'pipe'] },
+          "pdftoppm",
+          ["-r", "72", "-f", "1", "-l", "1", "-jpeg", filePath, tmpBase],
+          { stdio: ["ignore", "ignore", "pipe"] },
         );
-        let stderr = '';
-        proc.stderr?.on('data', (d: Buffer) => {
+        let stderr = "";
+        proc.stderr?.on("data", (d: Buffer) => {
           stderr += d.toString();
         });
-        proc.on('error', (err) => {
-          this.logger.warn(
-            `pdftoppm indisponible (poppler-utils non installé ?) : ${err.message}`,
-          );
+        proc.on("error", (err) => {
+          this.logger.warn(`pdftoppm indisponible (poppler-utils non installé ?) : ${err.message}`);
           resolve(false);
         });
-        proc.on('close', (code) => {
+        proc.on("close", (code) => {
           if (code !== 0) {
-            this.logger.warn(
-              `pdftoppm exit=${code} stderr=${stderr.slice(-200)}`,
-            );
+            this.logger.warn(`pdftoppm exit=${code} stderr=${stderr.slice(-200)}`);
             resolve(false);
           } else {
             resolve(true);
           }
         });
         setTimeout(() => {
-          proc.kill('SIGKILL');
+          proc.kill("SIGKILL");
           resolve(false);
         }, 15_000);
       });
@@ -125,14 +110,12 @@ export class CertificatesService {
 
       try {
         await sharp(tmpJpg)
-          .resize(THUMB_SIZE, THUMB_SIZE, { fit: 'cover', position: 'attention' })
+          .resize(THUMB_SIZE, THUMB_SIZE, { fit: "cover", position: "attention" })
           .webp({ quality: 82 })
           .toFile(outPath);
         return publicUrl;
       } catch (err) {
-        this.logger.warn(
-          `sharp resize PDF preview échoué pour ${filePath} : ${err}`,
-        );
+        this.logger.warn(`sharp resize PDF preview échoué pour ${filePath} : ${err}`);
         return null;
       } finally {
         try {
@@ -158,18 +141,18 @@ export class CertificatesService {
   ): Promise<void> {
     try {
       if (!fileUrl) return;
-      const absPath = path.join(process.cwd(), fileUrl.replace(/^\//, ''));
+      const absPath = path.join(process.cwd(), fileUrl.replace(/^\//, ""));
       if (!fs.existsSync(absPath)) return;
 
       // Déduit le mime depuis l'extension si absent
-      let mime = (mimeOrExt || '').toLowerCase();
-      if (!mime || !mime.includes('/')) {
+      let mime = (mimeOrExt || "").toLowerCase();
+      if (!mime || !mime.includes("/")) {
         const ext = path.extname(absPath).toLowerCase();
-        if (ext === '.pdf') mime = 'application/pdf';
-        else if (ext === '.jpg' || ext === '.jpeg') mime = 'image/jpeg';
-        else if (ext === '.png') mime = 'image/png';
-        else if (ext === '.webp') mime = 'image/webp';
-        else if (ext === '.gif') mime = 'image/gif';
+        if (ext === ".pdf") mime = "application/pdf";
+        else if (ext === ".jpg" || ext === ".jpeg") mime = "image/jpeg";
+        else if (ext === ".png") mime = "image/png";
+        else if (ext === ".webp") mime = "image/webp";
+        else if (ext === ".gif") mime = "image/gif";
       }
 
       const thumbnailUrl = await this.generateThumbnail(absPath, mime);
@@ -180,25 +163,22 @@ export class CertificatesService {
         });
       }
     } catch (err) {
-      this.logger.warn(
-        `regenerateThumbnailForCert échoué pour ${certId} : ${err}`,
-      );
+      this.logger.warn(`regenerateThumbnailForCert échoué pour ${certId} : ${err}`);
     }
   }
 
   private addStatus<T extends { expiresAt: Date | null }>(
     cert: T,
-  ): T & { status: 'valid' | 'expired' } {
+  ): T & { status: "valid" | "expired" } {
     const now = new Date();
-    const status =
-      cert.expiresAt && cert.expiresAt < now ? 'expired' : 'valid';
+    const status = cert.expiresAt && cert.expiresAt < now ? "expired" : "valid";
     return { ...cert, status };
   }
 
   async findMy(userId: string) {
     const certs = await this.prisma.certificate.findMany({
       where: { userId },
-      orderBy: { obtainedAt: 'desc' },
+      orderBy: { obtainedAt: "desc" },
     });
     return certs.map((c) => this.addStatus(c));
   }
@@ -207,7 +187,7 @@ export class CertificatesService {
     userId?: string;
     externalPersonId?: string;
     certType?: string;
-    status?: 'valid' | 'expired' | 'all';
+    status?: "valid" | "expired" | "all";
     search?: string;
     page?: number;
     limit?: number;
@@ -215,27 +195,26 @@ export class CertificatesService {
     const where: any = {};
 
     if (filters.userId) where.userId = filters.userId;
-    if (filters.externalPersonId)
-      where.externalPersonId = filters.externalPersonId;
+    if (filters.externalPersonId) where.externalPersonId = filters.externalPersonId;
     if (filters.certType) where.certType = filters.certType;
 
     if (filters.search) {
       where.OR = [
-        { name: { contains: filters.search, mode: 'insensitive' } },
-        { certType: { contains: filters.search, mode: 'insensitive' } },
+        { name: { contains: filters.search, mode: "insensitive" } },
+        { certType: { contains: filters.search, mode: "insensitive" } },
         {
           user: {
             OR: [
               {
                 firstName: {
                   contains: filters.search,
-                  mode: 'insensitive',
+                  mode: "insensitive",
                 },
               },
               {
                 lastName: {
                   contains: filters.search,
-                  mode: 'insensitive',
+                  mode: "insensitive",
                 },
               },
             ],
@@ -247,13 +226,13 @@ export class CertificatesService {
               {
                 firstName: {
                   contains: filters.search,
-                  mode: 'insensitive',
+                  mode: "insensitive",
                 },
               },
               {
                 lastName: {
                   contains: filters.search,
-                  mode: 'insensitive',
+                  mode: "insensitive",
                 },
               },
             ],
@@ -263,12 +242,8 @@ export class CertificatesService {
     }
 
     const now = new Date();
-    if (filters.status === 'valid') {
-      where.OR = [
-        ...(where.OR || []),
-        { expiresAt: null },
-        { expiresAt: { gte: now } },
-      ];
+    if (filters.status === "valid") {
+      where.OR = [...(where.OR || []), { expiresAt: null }, { expiresAt: { gte: now } }];
       // If we already had an OR from search, we need AND logic
       if (filters.search) {
         const searchOr = where.OR.slice(0, -2);
@@ -276,7 +251,7 @@ export class CertificatesService {
         delete where.OR;
         where.AND = [{ OR: searchOr }, { OR: statusOr }];
       }
-    } else if (filters.status === 'expired') {
+    } else if (filters.status === "expired") {
       where.expiresAt = { lt: now };
     }
 
@@ -305,7 +280,7 @@ export class CertificatesService {
             },
           },
         },
-        orderBy: { obtainedAt: 'desc' },
+        orderBy: { obtainedAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -332,7 +307,7 @@ export class CertificatesService {
         where: { expiresAt: { gte: now, lte: in30Days } },
       }),
       this.prisma.certificate.groupBy({
-        by: ['certType'],
+        by: ["certType"],
         _count: { _all: true },
       }),
     ]);
@@ -366,7 +341,7 @@ export class CertificatesService {
         },
         externalPerson: true,
       },
-      orderBy: { expiresAt: 'asc' },
+      orderBy: { expiresAt: "asc" },
     });
 
     return certs.map((c) => this.addStatus(c));
@@ -395,20 +370,16 @@ export class CertificatesService {
         },
       },
     });
-    if (!cert) throw new NotFoundException('Certificate not found');
+    if (!cert) throw new NotFoundException("Certificate not found");
     return this.addStatus(cert);
   }
 
   async create(dto: CreateCertificateDto, createdById: string) {
     if (!dto.userId && !dto.externalPersonId) {
-      throw new BadRequestException(
-        'userId or externalPersonId must be provided',
-      );
+      throw new BadRequestException("userId or externalPersonId must be provided");
     }
     if (dto.userId && dto.externalPersonId) {
-      throw new BadRequestException(
-        'Provide either userId or externalPersonId, not both',
-      );
+      throw new BadRequestException("Provide either userId or externalPersonId, not both");
     }
 
     const cert = await this.prisma.certificate.create({
@@ -429,8 +400,8 @@ export class CertificatesService {
 
     await this.audit.log({
       userId: createdById,
-      action: 'CERTIFICATE_CREATED',
-      resourceType: 'Certificate',
+      action: "CERTIFICATE_CREATED",
+      resourceType: "Certificate",
       resourceId: cert.id,
       metadata: { name: cert.name, certType: cert.certType },
     });
@@ -443,10 +414,8 @@ export class CertificatesService {
     dto.userId = user.id;
     dto.externalPersonId = undefined;
 
-    const pendingNote = 'En attente de validation';
-    const notes = dto.notes
-      ? `[${pendingNote}] ${dto.notes}`
-      : pendingNote;
+    const pendingNote = "En attente de validation";
+    const notes = dto.notes ? `[${pendingNote}] ${dto.notes}` : pendingNote;
 
     const cert = await this.prisma.certificate.create({
       data: {
@@ -466,34 +435,36 @@ export class CertificatesService {
 
     await this.audit.log({
       userId: user.id,
-      action: 'CERTIFICATE_CREATED',
-      resourceType: 'Certificate',
+      action: "CERTIFICATE_CREATED",
+      resourceType: "Certificate",
       resourceId: cert.id,
       metadata: { name: cert.name, certType: cert.certType, selfService: true },
     });
 
     // Notify all admins
-    const admins = await this.prisma.user.findMany({
-      where: { role: { in: ['SUPER_ADMIN', 'ADMIN'] }, isActive: true },
-      select: { id: true },
-    });
-    const adminUser = await this.prisma.user.findUnique({
-      where: { id: user.id },
-      select: { firstName: true, lastName: true },
-    });
-    const fullName = adminUser
-      ? `${adminUser.firstName} ${adminUser.lastName}`.trim()
-      : user.email;
-    for (const admin of admins) {
-      await this.prisma.notification.create({
-        data: {
+    const [admins, adminUser] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
+        select: { id: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: user.id },
+        select: { firstName: true, lastName: true },
+      }),
+    ]);
+    const fullName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}`.trim() : user.email;
+    if (admins.length > 0) {
+      // createMany : pas de valeur de retour par ligne exploitée ci-dessus,
+      // évite le N+1 en écriture (une requête au lieu d'une par admin).
+      await this.prisma.notification.createMany({
+        data: admins.map((admin) => ({
           userId: admin.id,
-          type: 'TICKET_CREATED' as NotificationType,
-          title: 'Nouveau certificat a valider',
+          type: "TICKET_CREATED" as NotificationType,
+          title: "Nouveau certificat a valider",
           body: `${fullName} a ajoute le certificat "${cert.name}" (${cert.certType}). Validation requise.`,
-          resourceType: 'Certificate',
+          resourceType: "Certificate",
           resourceId: cert.id,
-        },
+        })),
       });
     }
 
@@ -502,9 +473,9 @@ export class CertificatesService {
 
   async updateMy(id: string, dto: UpdateCertificateDto, user: RequestUser) {
     const cert = await this.prisma.certificate.findUnique({ where: { id } });
-    if (!cert) throw new NotFoundException('Certificate not found');
+    if (!cert) throw new NotFoundException("Certificate not found");
     if (cert.userId !== user.id) {
-      throw new ForbiddenException('You can only edit your own certificates');
+      throw new ForbiddenException("You can only edit your own certificates");
     }
 
     // Prevent changing ownership
@@ -529,8 +500,8 @@ export class CertificatesService {
 
     await this.audit.log({
       userId: user.id,
-      action: 'CERTIFICATE_UPDATED',
-      resourceType: 'Certificate',
+      action: "CERTIFICATE_UPDATED",
+      resourceType: "Certificate",
       resourceId: updated.id,
       metadata: { updatedFields: Object.keys(data), selfService: true },
     });
@@ -559,8 +530,8 @@ export class CertificatesService {
 
     await this.audit.log({
       userId: updatedById,
-      action: 'CERTIFICATE_UPDATED',
-      resourceType: 'Certificate',
+      action: "CERTIFICATE_UPDATED",
+      resourceType: "Certificate",
       resourceId: cert.id,
       metadata: { updatedFields: Object.keys(data) },
     });
@@ -575,8 +546,8 @@ export class CertificatesService {
 
     await this.audit.log({
       userId: deletedById,
-      action: 'CERTIFICATE_DELETED',
-      resourceType: 'Certificate',
+      action: "CERTIFICATE_DELETED",
+      resourceType: "Certificate",
       resourceId: id,
       metadata: { name: cert.name, certType: cert.certType },
     });
@@ -600,10 +571,10 @@ export class CertificatesService {
 
     await this.audit.log({
       userId: updatedById,
-      action: 'CERTIFICATE_UPDATED',
-      resourceType: 'Certificate',
+      action: "CERTIFICATE_UPDATED",
+      resourceType: "Certificate",
       resourceId: cert.id,
-      metadata: { updatedFields: ['fileUrl', 'fileName', 'fileSizeBytes'] },
+      metadata: { updatedFields: ["fileUrl", "fileName", "fileSizeBytes"] },
     });
 
     return this.addStatus(cert);

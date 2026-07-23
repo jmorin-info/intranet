@@ -16,6 +16,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { isRouteEnabled } from "@/lib/features";
 import { Card, CardContent, Skeleton, Button } from "@omnitech/ui";
 import { SystemHealthCompact } from "@/components/widgets/system-health-compact";
 import { LdapPendingWidget } from "@/components/widgets/ldap-pending-widget";
@@ -77,10 +78,7 @@ interface KpiCard {
 }
 
 /** Classes Tailwind par tonalité (cohérentes avec la charte SEAL) */
-const toneStyles: Record<
-  KpiCard["tone"],
-  { bg: string; icon: string; ring: string }
-> = {
+const toneStyles: Record<KpiCard["tone"], { bg: string; icon: string; ring: string }> = {
   navy: {
     bg: "bg-seal-navy/5 dark:bg-slate-800/60",
     icon: "text-seal-navy dark:text-blue-300",
@@ -248,8 +246,7 @@ export function RssiDashboardSummary() {
             Vue RSSI consolidée
           </p>
           <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
-            Snapshot généré{" "}
-            {new Date(data.generatedAt).toLocaleTimeString("fr-FR")}
+            Snapshot généré {new Date(data.generatedAt).toLocaleTimeString("fr-FR")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -266,51 +263,53 @@ export function RssiDashboardSummary() {
 
       {/* Grille KPI */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-        {cards.map((c) => {
-          const Icon = c.icon;
-          const s = toneStyles[c.tone];
-          return (
-            <Link key={c.label} href={c.href}>
-              <Card
-                hoverable
-                className={`h-full ${s.bg} ring-1 ${s.ring} hover:scale-[1.02] transition-all duration-200`}
-              >
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="h-8 w-8 rounded-lg bg-white/70 dark:bg-slate-900/50 flex items-center justify-center">
-                      <Icon className={`h-4 w-4 ${s.icon}`} />
+        {cards
+          .filter((c) => isRouteEnabled(c.href))
+          .map((c) => {
+            const Icon = c.icon;
+            const s = toneStyles[c.tone];
+            return (
+              <Link key={c.label} href={c.href}>
+                <Card
+                  hoverable
+                  className={`h-full ${s.bg} ring-1 ${s.ring} hover:scale-[1.02] transition-all duration-200`}
+                >
+                  <CardContent className="py-4">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="h-8 w-8 rounded-lg bg-white/70 dark:bg-slate-900/50 flex items-center justify-center">
+                        <Icon className={`h-4 w-4 ${s.icon}`} />
+                      </div>
+                      <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 truncate">
+                        {c.label}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 truncate">
-                      {c.label}
+                    <p
+                      className={`text-2xl font-medium tabular-nums ${
+                        c.barPct != null
+                          ? thresholdColor(c.barPct)
+                          : "text-seal-navy dark:text-white"
+                      } ${c.urgent ? "badge-pulse" : ""}`}
+                    >
+                      {c.value}
                     </p>
-                  </div>
-                  <p
-                    className={`text-2xl font-medium tabular-nums ${
-                      c.barPct != null
-                        ? thresholdColor(c.barPct)
-                        : "text-seal-navy dark:text-white"
-                    } ${c.urgent ? "badge-pulse" : ""}`}
-                  >
-                    {c.value}
-                  </p>
-                  {c.barPct != null && (
-                    <div className="h-1 rounded-full bg-gray-200 dark:bg-slate-700 mt-1.5 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${thresholdBarBg(c.barPct)}`}
-                        style={{ width: `${c.barPct}%` }}
-                      />
-                    </div>
-                  )}
-                  {c.sub && (
-                    <p className="text-[10px] text-seal-gray-500/80 dark:text-slate-500 mt-0.5">
-                      {c.sub}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
+                    {c.barPct != null && (
+                      <div className="h-1 rounded-full bg-gray-200 dark:bg-slate-700 mt-1.5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${thresholdBarBg(c.barPct)}`}
+                          style={{ width: `${c.barPct}%` }}
+                        />
+                      </div>
+                    )}
+                    {c.sub && (
+                      <p className="text-[10px] text-seal-gray-500/80 dark:text-slate-500 mt-0.5">
+                        {c.sub}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
       </div>
 
       {/* Widgets existants — réutilisés tels quels */}

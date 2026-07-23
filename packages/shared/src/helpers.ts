@@ -1,61 +1,11 @@
-import { DocumentCategory, DocumentStatus, UserRole } from './enums';
-import {
-  DOCUMENT_REFERENCE_PREFIX,
-  REFERENCE_CATEGORY_CODES,
-  ROLE_HIERARCHY,
-} from './constants';
-import { DocumentReference } from './types';
-
-/**
- * Generates a document reference in the format "OMS-POL-SMSI-001".
- */
-export function generateDocumentReference(
-  category: DocumentCategory,
-  domain: string,
-  sequence: number,
-): string {
-  const categoryCode = REFERENCE_CATEGORY_CODES[category];
-  const domainCode = domain.toUpperCase();
-  const sequenceStr = String(sequence).padStart(3, '0');
-  return `${DOCUMENT_REFERENCE_PREFIX}-${categoryCode}-${domainCode}-${sequenceStr}`;
-}
-
-/**
- * Parses a document reference string into its components.
- * Returns null if the reference does not match the expected format.
- */
-export function parseDocumentReference(ref: string): DocumentReference | null {
-  const parts = ref.split('-');
-  if (parts.length !== 4) {
-    return null;
-  }
-
-  const prefix = parts[0]!;
-  const categoryCode = parts[1]!;
-  const domainCode = parts[2]!;
-  const sequenceStr = parts[3]!;
-  const sequenceNumber = parseInt(sequenceStr, 10);
-
-  if (prefix !== DOCUMENT_REFERENCE_PREFIX || isNaN(sequenceNumber)) {
-    return null;
-  }
-
-  return {
-    prefix,
-    categoryCode,
-    domainCode,
-    sequenceNumber,
-  };
-}
+import { DocumentStatus, UserRole } from "./enums";
+import { ROLE_HIERARCHY } from "./constants";
 
 /**
  * Checks whether a user with the given role can perform an action
  * that requires the specified role, based on the role hierarchy.
  */
-export function canUserPerformAction(
-  userRole: UserRole,
-  requiredRole: UserRole,
-): boolean {
+export function canUserPerformAction(userRole: UserRole, requiredRole: UserRole): boolean {
   return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole];
 }
 
@@ -131,9 +81,9 @@ export function getStatusTransitions(
  * Formats a file size in bytes to a human-readable string.
  */
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
 
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const units = ["B", "KB", "MB", "GB", "TB"];
   const k = 1024;
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   const size = bytes / Math.pow(k, i);
@@ -147,21 +97,18 @@ export function formatFileSize(bytes: number): string {
 export function slugify(text: string): string {
   return text
     .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric with hyphens
+    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
 }
 
 /**
  * Checks whether a role meets or exceeds the minimum required role
  * in the hierarchy.
  */
-export function isRoleAtLeast(
-  role: UserRole,
-  minimumRole: UserRole,
-): boolean {
+export function isRoleAtLeast(role: UserRole, minimumRole: UserRole): boolean {
   return ROLE_HIERARCHY[role] >= ROLE_HIERARCHY[minimumRole];
 }

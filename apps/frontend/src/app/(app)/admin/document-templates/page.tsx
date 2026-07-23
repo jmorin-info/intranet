@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Wave D — Admin / Document Templates.
@@ -18,11 +18,13 @@
  *  des types UI (Column key+render, Button primary, Dialog onClose).
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth-store';
-import { toast } from 'sonner';
-import { isRoleAtLeast, UserRole, DOCUMENT_CATEGORY_LABELS } from '@omnitech/shared';
+import React, { useEffect, useState, useCallback } from "react";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth-store";
+import { useDebounce } from "@/hooks/use-debounce";
+import { toast } from "sonner";
+import { showToast } from "@/lib/toast-utils";
+import { isRoleAtLeast, UserRole, DOCUMENT_CATEGORY_LABELS } from "@omnitech/shared";
 import {
   Card,
   CardContent,
@@ -37,9 +39,9 @@ import {
   Textarea,
   Select,
   Tooltip,
-} from '@omnitech/ui';
-import type { Column } from '@omnitech/ui';
-import { formatDate } from '@/lib/utils';
+} from "@omnitech/ui";
+import type { Column } from "@omnitech/ui";
+import { formatDate } from "@/lib/utils";
 import {
   FileText,
   Plus,
@@ -50,11 +52,11 @@ import {
   AlertTriangle,
   Variable,
   ShieldAlert,
-} from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { logger } from '@/lib/logger';
+} from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
+import { logger } from "@/lib/logger";
 
-type VariableType = 'TEXT' | 'DATE' | 'NUMBER' | 'SELECT';
+type VariableType = "TEXT" | "DATE" | "NUMBER" | "SELECT";
 
 interface TemplateVariable {
   key: string;
@@ -82,46 +84,48 @@ interface DocumentTemplateFull extends DocumentTemplateRow {
   variables: TemplateVariable[];
 }
 
-const CATEGORY_OPTIONS = Object.entries(DOCUMENT_CATEGORY_LABELS).map(
-  ([value, label]) => ({ value, label }),
-);
+const CATEGORY_OPTIONS = Object.entries(DOCUMENT_CATEGORY_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}));
 
 const CLASSIFICATION_OPTIONS = [
-  { value: 'PUBLIC', label: 'Public' },
-  { value: 'INTERNE', label: 'Interne' },
-  { value: 'CONFIDENTIEL', label: 'Confidentiel' },
-  { value: 'SECRET', label: 'Secret' },
+  { value: "PUBLIC", label: "Public" },
+  { value: "INTERNE", label: "Interne" },
+  { value: "CONFIDENTIEL", label: "Confidentiel" },
+  { value: "SECRET", label: "Secret" },
 ];
 
 const VAR_TYPE_OPTIONS: { value: VariableType; label: string }[] = [
-  { value: 'TEXT', label: 'Texte' },
-  { value: 'DATE', label: 'Date' },
-  { value: 'NUMBER', label: 'Nombre' },
-  { value: 'SELECT', label: 'Liste' },
+  { value: "TEXT", label: "Texte" },
+  { value: "DATE", label: "Date" },
+  { value: "NUMBER", label: "Nombre" },
+  { value: "SELECT", label: "Liste" },
 ];
 
 export default function AdminDocumentTemplatesPage() {
   const user = useAuthStore((s) => s.user);
   const [rows, setRows] = useState<DocumentTemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
 
   // Create / edit modal
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<string>('POLICY');
-  const [classification, setClassification] = useState<string>('INTERNE');
-  const [content, setContent] = useState('');
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<string>("POLICY");
+  const [classification, setClassification] = useState<string>("INTERNE");
+  const [content, setContent] = useState("");
   const [variables, setVariables] = useState<TemplateVariable[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   // Delete dialog
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleteName, setDeleteName] = useState('');
+  const [deleteName, setDeleteName] = useState("");
 
   const isAdmin = user && isRoleAtLeast(user.role, UserRole.ADMIN);
 
@@ -129,17 +133,17 @@ export default function AdminDocumentTemplatesPage() {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (categoryFilter) params.category = categoryFilter;
-      const { data } = await api.get('/document-templates', { params });
+      const { data } = await api.get("/document-templates", { params });
       setRows(data);
     } catch (err) {
-      logger.error(err, { page: 'admin/document-templates', context: 'list' });
-      toast.error('Impossible de charger les templates');
+      logger.error(err, { page: "admin/document-templates", context: "list" });
+      toast.error("Impossible de charger les templates");
     } finally {
       setLoading(false);
     }
-  }, [search, categoryFilter]);
+  }, [debouncedSearch, categoryFilter]);
 
   useEffect(() => {
     fetchTemplates();
@@ -162,12 +166,12 @@ export default function AdminDocumentTemplatesPage() {
 
   const resetForm = () => {
     setEditingId(null);
-    setName('');
-    setSlug('');
-    setDescription('');
-    setCategory('POLICY');
-    setClassification('INTERNE');
-    setContent('');
+    setName("");
+    setSlug("");
+    setDescription("");
+    setCategory("POLICY");
+    setClassification("INTERNE");
+    setContent("");
     setVariables([]);
   };
 
@@ -178,29 +182,24 @@ export default function AdminDocumentTemplatesPage() {
 
   const openEdit = async (id: string) => {
     try {
-      const { data } = await api.get<DocumentTemplateFull>(
-        `/document-templates/${id}`,
-      );
+      const { data } = await api.get<DocumentTemplateFull>(`/document-templates/${id}`);
       setEditingId(id);
       setName(data.name);
       setSlug(data.slug);
-      setDescription(data.description || '');
+      setDescription(data.description || "");
       setCategory(data.category);
       setClassification(data.classification);
       setContent(data.content);
       setVariables(Array.isArray(data.variables) ? data.variables : []);
       setDialogOpen(true);
     } catch (err) {
-      logger.error(err, { page: 'admin/document-templates', context: 'load' });
-      toast.error('Impossible de charger le template');
+      logger.error(err, { page: "admin/document-templates", context: "load" });
+      toast.error("Impossible de charger le template");
     }
   };
 
   const addVariable = () => {
-    setVariables([
-      ...variables,
-      { key: '', label: '', type: 'TEXT', required: false },
-    ]);
+    setVariables([...variables, { key: "", label: "", type: "TEXT", required: false }]);
   };
 
   const updateVariable = (idx: number, patch: Partial<TemplateVariable>) => {
@@ -213,25 +212,25 @@ export default function AdminDocumentTemplatesPage() {
 
   const handleSubmit = async () => {
     if (!name.trim() || !slug.trim() || !content.trim()) {
-      toast.error('Nom, slug et contenu sont requis');
+      toast.error("Nom, slug et contenu sont requis");
       return;
     }
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
-      toast.error('Slug doit être en kebab-case (a-z, 0-9, -)');
+      toast.error("Slug doit être en kebab-case (a-z, 0-9, -)");
       return;
     }
     // Front-side validation : keys uniques + non vides + match \w+
     const keys = variables.map((v) => v.key);
     if (keys.some((k) => !k || !/^\w+$/.test(k))) {
-      toast.error('Toutes les variables doivent avoir une clé valide (a-z, 0-9, _)');
+      toast.error("Toutes les variables doivent avoir une clé valide (a-z, 0-9, _)");
       return;
     }
     if (new Set(keys).size !== keys.length) {
-      toast.error('Les clés de variables doivent être uniques');
+      toast.error("Les clés de variables doivent être uniques");
       return;
     }
     for (const v of variables) {
-      if (v.type === 'SELECT' && (!v.options || v.options.length === 0)) {
+      if (v.type === "SELECT" && (!v.options || v.options.length === 0)) {
         toast.error(`Variable SELECT "${v.key}" doit avoir au moins une option`);
         return;
       }
@@ -249,20 +248,18 @@ export default function AdminDocumentTemplatesPage() {
       };
       if (editingId) {
         await api.patch(`/document-templates/${editingId}`, payload);
-        toast.success('Template mis à jour');
+        toast.success("Template mis à jour");
       } else {
         payload.slug = slug;
-        await api.post('/document-templates', payload);
-        toast.success('Template créé');
+        await api.post("/document-templates", payload);
+        toast.success("Template créé");
       }
       setDialogOpen(false);
       resetForm();
       fetchTemplates();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      toast.error(
-        e?.response?.data?.message || e?.message || "Erreur lors de l'enregistrement",
-      );
+      toast.error(e?.response?.data?.message || e?.message || "Erreur lors de l'enregistrement");
     } finally {
       setSubmitting(false);
     }
@@ -272,12 +269,12 @@ export default function AdminDocumentTemplatesPage() {
     if (!deleteId) return;
     try {
       await api.delete(`/document-templates/${deleteId}`);
-      toast.success('Template supprimé');
+      toast.success("Template supprimé");
       setDeleteId(null);
       fetchTemplates();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
-      toast.error(e?.response?.data?.message || 'Suppression impossible');
+      showToast("error", null, e?.response?.data?.message || "Suppression impossible");
     }
   };
 
@@ -295,8 +292,8 @@ export default function AdminDocumentTemplatesPage() {
             <div>
               <p className="text-sm font-medium text-amber-900">Accès réservé</p>
               <p className="text-xs text-amber-700 mt-1">
-                Cette page est réservée aux administrateurs. Vous pouvez
-                instancier un template depuis la page Documents.
+                Cette page est réservée aux administrateurs. Vous pouvez instancier un template
+                depuis la page Documents.
               </p>
             </div>
           </CardContent>
@@ -307,31 +304,25 @@ export default function AdminDocumentTemplatesPage() {
 
   const columns: Column<DocumentTemplateRow>[] = [
     {
-      key: 'name',
-      header: 'Nom',
+      key: "name",
+      header: "Nom",
       render: (r) => (
         <div className="flex flex-col gap-0.5">
           <span className="font-medium text-sm">{r.name}</span>
           {r.description && (
-            <span className="text-xs text-slate-500 line-clamp-1">
-              {r.description}
-            </span>
+            <span className="text-xs text-slate-500 line-clamp-1">{r.description}</span>
           )}
         </div>
       ),
     },
     {
-      key: 'slug',
-      header: 'Slug',
-      render: (r) => (
-        <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">
-          {r.slug}
-        </code>
-      ),
+      key: "slug",
+      header: "Slug",
+      render: (r) => <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{r.slug}</code>,
     },
     {
-      key: 'category',
-      header: 'Catégorie',
+      key: "category",
+      header: "Catégorie",
       render: (r) => (
         <Badge variant="navy">
           {(DOCUMENT_CATEGORY_LABELS as Record<string, string>)[r.category] || r.category}
@@ -339,8 +330,8 @@ export default function AdminDocumentTemplatesPage() {
       ),
     },
     {
-      key: 'variableCount',
-      header: 'Variables',
+      key: "variableCount",
+      header: "Variables",
       render: (r) => (
         <div className="flex items-center gap-1 text-xs text-slate-600">
           <Variable className="h-3 w-3" />
@@ -349,31 +340,22 @@ export default function AdminDocumentTemplatesPage() {
       ),
     },
     {
-      key: 'classification',
-      header: 'Classification',
+      key: "classification",
+      header: "Classification",
       render: (r) => <Badge variant="navy">{r.classification}</Badge>,
     },
     {
-      key: 'updatedAt',
-      header: 'Mis à jour',
-      render: (r) => (
-        <span className="text-xs text-slate-500">
-          {formatDate(r.updatedAt)}
-        </span>
-      ),
+      key: "updatedAt",
+      header: "Mis à jour",
+      render: (r) => <span className="text-xs text-slate-500">{formatDate(r.updatedAt)}</span>,
     },
     {
-      key: 'actions',
-      header: '',
+      key: "actions",
+      header: "",
       render: (r) => (
         <div className="flex items-center justify-end gap-2">
           <Tooltip content="Éditer">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => openEdit(r.id)}
-              aria-label="Éditer"
-            >
+            <Button size="sm" variant="ghost" onClick={() => openEdit(r.id)} aria-label="Éditer">
               <Edit2 className="h-4 w-4" />
             </Button>
           </Tooltip>
@@ -461,7 +443,7 @@ export default function AdminDocumentTemplatesPage() {
           resetForm();
           setDialogOpen(false);
         }}
-        title={editingId ? 'Éditer le template' : 'Nouveau template'}
+        title={editingId ? "Éditer le template" : "Nouveau template"}
         size="xl"
       >
         <div className="space-y-4">
@@ -475,9 +457,7 @@ export default function AdminDocumentTemplatesPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-700">
-                Slug (URL stable) *
-              </label>
+              <label className="text-xs font-medium text-slate-700">Slug (URL stable) *</label>
               <Input
                 value={slug}
                 onChange={(e) => setSlug(e.target.value.toLowerCase())}
@@ -493,9 +473,7 @@ export default function AdminDocumentTemplatesPage() {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-slate-700">
-              Description
-            </label>
+            <label className="text-xs font-medium text-slate-700">Description</label>
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -505,9 +483,7 @@ export default function AdminDocumentTemplatesPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-slate-700">
-                Catégorie *
-              </label>
+              <label className="text-xs font-medium text-slate-700">Catégorie *</label>
               <Select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -515,9 +491,7 @@ export default function AdminDocumentTemplatesPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-700">
-                Classification *
-              </label>
+              <label className="text-xs font-medium text-slate-700">Classification *</label>
               <Select
                 value={classification}
                 onChange={(e) => setClassification(e.target.value)}
@@ -530,13 +504,13 @@ export default function AdminDocumentTemplatesPage() {
             <label className="text-xs font-medium text-slate-700 flex items-center gap-1">
               Contenu Markdown * <Hash className="h-3 w-3 text-slate-400" />
               <span className="text-[11px] text-slate-500 font-normal">
-                — variables : {'{{nom_variable}}'}
+                — variables : {"{{nom_variable}}"}
               </span>
             </label>
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder={'# Politique\n\nDate : {{date_publication}}\nAuteur : {{auteur}}\n\n…'}
+              placeholder={"# Politique\n\nDate : {{date_publication}}\nAuteur : {{auteur}}\n\n…"}
               rows={10}
               className="font-mono text-xs"
             />
@@ -544,8 +518,8 @@ export default function AdminDocumentTemplatesPage() {
               <div className="mt-2 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 p-2 rounded">
                 <AlertTriangle className="h-3.5 w-3.5 mt-0.5" />
                 <span>
-                  Variables référencées mais non déclarées :{' '}
-                  <code>{undeclaredVars.join(', ')}</code>
+                  Variables référencées mais non déclarées :{" "}
+                  <code>{undeclaredVars.join(", ")}</code>
                 </span>
               </div>
             )}
@@ -563,31 +537,24 @@ export default function AdminDocumentTemplatesPage() {
             </div>
             {variables.length === 0 ? (
               <p className="text-xs text-slate-500 italic">
-                Aucune variable. Ajoutez-en pour définir les champs à remplir
-                lors de l&apos;instanciation.
+                Aucune variable. Ajoutez-en pour définir les champs à remplir lors de
+                l&apos;instanciation.
               </p>
             ) : (
               <div className="space-y-2">
                 {variables.map((v, idx) => (
-                  <div
-                    key={idx}
-                    className="border rounded-lg p-2 bg-slate-50 space-y-2"
-                  >
+                  <div key={idx} className="border rounded-lg p-2 bg-slate-50 space-y-2">
                     <div className="grid grid-cols-12 gap-2">
                       <Input
                         placeholder="key"
                         value={v.key}
-                        onChange={(e) =>
-                          updateVariable(idx, { key: e.target.value })
-                        }
+                        onChange={(e) => updateVariable(idx, { key: e.target.value })}
                         className="col-span-3"
                       />
                       <Input
                         placeholder="Label"
                         value={v.label}
-                        onChange={(e) =>
-                          updateVariable(idx, { label: e.target.value })
-                        }
+                        onChange={(e) => updateVariable(idx, { label: e.target.value })}
                         className="col-span-4"
                       />
                       <Select
@@ -604,9 +571,7 @@ export default function AdminDocumentTemplatesPage() {
                         <input
                           type="checkbox"
                           checked={Boolean(v.required)}
-                          onChange={(e) =>
-                            updateVariable(idx, { required: e.target.checked })
-                          }
+                          onChange={(e) => updateVariable(idx, { required: e.target.checked })}
                         />
                         Requis
                       </label>
@@ -619,14 +584,14 @@ export default function AdminDocumentTemplatesPage() {
                         <Trash2 className="h-3.5 w-3.5 text-rose-600" />
                       </Button>
                     </div>
-                    {v.type === 'SELECT' && (
+                    {v.type === "SELECT" && (
                       <Input
                         placeholder="Options (séparées par virgules)"
-                        value={(v.options || []).join(',')}
+                        value={(v.options || []).join(",")}
                         onChange={(e) =>
                           updateVariable(idx, {
                             options: e.target.value
-                              .split(',')
+                              .split(",")
                               .map((o) => o.trim())
                               .filter(Boolean),
                           })
@@ -635,10 +600,8 @@ export default function AdminDocumentTemplatesPage() {
                     )}
                     <Input
                       placeholder="Valeur par défaut (optionnel)"
-                      value={v.defaultValue || ''}
-                      onChange={(e) =>
-                        updateVariable(idx, { defaultValue: e.target.value })
-                      }
+                      value={v.defaultValue || ""}
+                      onChange={(e) => updateVariable(idx, { defaultValue: e.target.value })}
                     />
                   </div>
                 ))}
@@ -657,16 +620,8 @@ export default function AdminDocumentTemplatesPage() {
             >
               Annuler
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={submitting}
-              variant="primary"
-            >
-              {submitting
-                ? 'Enregistrement…'
-                : editingId
-                  ? 'Mettre à jour'
-                  : 'Créer'}
+            <Button onClick={handleSubmit} disabled={submitting} variant="primary">
+              {submitting ? "Enregistrement…" : editingId ? "Mettre à jour" : "Créer"}
             </Button>
           </div>
         </div>

@@ -17,7 +17,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn, getInitials as getUserInitials } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { features } from "@/lib/features";
 import { useAuthStore } from "@/stores/auth-store";
@@ -621,12 +621,17 @@ export function Sidebar() {
       shortcut: "⌥⌘3",
       shortcutKey: "3",
       items: [
-        {
-          label: t("nav.veille"),
-          href: "/veille",
-          icon: Rss,
-          minRole: UserRole.REVIEWER,
-        },
+        // Entrée « Veille cyber » gardée par le feature flag (module désactivable).
+        ...(features.veille
+          ? [
+              {
+                label: t("nav.veille"),
+                href: "/veille",
+                icon: Rss,
+                minRole: UserRole.REVIEWER,
+              },
+            ]
+          : []),
         {
           label: "Incidents",
           href: "/incidents",
@@ -966,24 +971,25 @@ export function Sidebar() {
     return result;
   };
 
-  const filteredHubs: NavHub[] =
-    !user || safeUserRole === UserRole.PRESTATAIRE
-      ? []
-      : hubs
-          .filter((hub) => roleOk(hub.minRole))
-          .map((hub) => ({
-            ...hub,
-            items: stripOrphanSeparators(
-              hub.items
-                .filter((it) => !it.hidden)
-                .filter((it) => roleOk(it.minRole))
-                .filter(isModuleAllowed),
-            ),
-          }))
-          .filter(
-            (hub) =>
-              hub.items.some((it) => !it.separator) || hub.id === "rssi" || hub.id === "monEspace",
-          );
+  const filteredHubs: NavHub[] = React.useMemo(() => {
+    if (!user || safeUserRole === UserRole.PRESTATAIRE) return [];
+    return hubs
+      .filter((hub) => roleOk(hub.minRole))
+      .map((hub) => ({
+        ...hub,
+        items: stripOrphanSeparators(
+          hub.items
+            .filter((it) => !it.hidden)
+            .filter((it) => roleOk(it.minRole))
+            .filter(isModuleAllowed),
+        ),
+      }))
+      .filter(
+        (hub) =>
+          hub.items.some((it) => !it.separator) || hub.id === "rssi" || hub.id === "monEspace",
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, safeUserRole, hubs, allowedModules]);
 
   // Active hub derived from the URL
   const activeHubId = React.useMemo(() => {
@@ -1103,7 +1109,7 @@ export function Sidebar() {
         ? "bg-amber-400"
         : "bg-red-500";
 
-  const getInitials = () => `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
+  const getInitials = () => getUserInitials(user.firstName, user.lastName);
 
   // -------------------------------------------------------------------------
   // Prestataire simplified sidebar (single column, no rail)

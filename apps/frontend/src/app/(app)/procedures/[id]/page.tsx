@@ -7,11 +7,7 @@ import { api } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
-import {
-  DOCUMENT_CATEGORY_LABELS,
-  formatFileSize,
-  UserRole,
-} from "@omnitech/shared";
+import { DOCUMENT_CATEGORY_LABELS, formatFileSize, UserRole } from "@omnitech/shared";
 import {
   Card,
   CardContent,
@@ -95,13 +91,9 @@ export default function ProcedureViewerPage() {
   const [hasAcked, setHasAcked] = useState(false);
   const [acking, setAcking] = useState(false);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [relatedProcedures, setRelatedProcedures] = useState<
-    RelatedProcedure[]
-  >([]);
+  const [relatedProcedures, setRelatedProcedures] = useState<RelatedProcedure[]>([]);
   const [activeTab, setActiveTab] = useState("document");
-  const [allVersions, setAllVersions] = useState<ProcedureDetail["versions"]>(
-    [],
-  );
+  const [allVersions, setAllVersions] = useState<ProcedureDetail["versions"]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
 
   useEffect(() => {
@@ -111,9 +103,7 @@ export default function ProcedureViewerPage() {
         setDoc(data);
         if (user) {
           setHasAcked(
-            data.acknowledgments?.some(
-              (a: { userId: string }) => a.userId === user.id,
-            ) || false,
+            data.acknowledgments?.some((a: { userId: string }) => a.userId === user.id) || false,
           );
         }
         // Fetch related procedures in the same category
@@ -128,9 +118,7 @@ export default function ProcedureViewerPage() {
               },
             })
             .then(({ data: relData }) => {
-              const items = (relData?.data || []).filter(
-                (d: RelatedProcedure) => d.id !== id,
-              );
+              const items = (relData?.data || []).filter((d: RelatedProcedure) => d.id !== id);
               setRelatedProcedures(items.slice(0, 4));
             })
             .catch(() => {});
@@ -150,9 +138,7 @@ export default function ProcedureViewerPage() {
       setLoadingVersions(true);
       api
         .get(`/documents/${doc.id}/versions`)
-        .then(({ data }) =>
-          setAllVersions(Array.isArray(data) ? data : doc.versions || []),
-        )
+        .then(({ data }) => setAllVersions(Array.isArray(data) ? data : doc.versions || []))
         .catch(() => setAllVersions(doc.versions || []))
         .finally(() => setLoadingVersions(false));
     }
@@ -176,36 +162,26 @@ export default function ProcedureViewerPage() {
   const currentVersion = doc?.versions?.[0] ?? null;
   const isPdf = currentVersion?.fileType?.includes("pdf");
   const isDocx =
-    currentVersion?.fileType?.includes("word") ||
-    currentVersion?.fileType?.includes("docx");
+    currentVersion?.fileType?.includes("word") || currentVersion?.fileType?.includes("docx");
 
-  const handleDownload = async (
-    url: string,
-    filename: string,
-    inline = false,
-  ) => {
+  const handleDownload = async (url: string, filename: string, inline = false) => {
     try {
-      const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(
-        /\/api\/?$/,
-        "/api/v1",
-      );
-      // ANSSI A.5.34 — JWT en cookie httpOnly, `credentials: 'include'` suffit.
-      const response = await fetch(`${apiBase}${url}`, {
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Download failed");
-      const blob = await response.blob();
+      // Via axios `api` → refresh 401 automatique (l'ancien fetch brut échouait
+      // sur token expiré).
+      const response = await api.get(url, { responseType: "blob" });
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data]);
+      const blobUrl = URL.createObjectURL(blob);
       if (inline) {
-        const blobUrl = URL.createObjectURL(blob);
         window.open(blobUrl, "_blank");
         setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       } else {
-        const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = blobUrl;
         a.download = filename;
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(blobUrl);
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
       }
     } catch {
       toast.error(t("procedureDetail.downloadError"));
@@ -213,30 +189,18 @@ export default function ProcedureViewerPage() {
   };
 
   const downloadPath =
-    doc && currentVersion
-      ? `/documents/${doc.id}/versions/${currentVersion.id}/download`
-      : null;
+    doc && currentVersion ? `/documents/${doc.id}/versions/${currentVersion.id}/download` : null;
 
   useEffect(() => {
     if (!downloadPath) return;
-    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(
-      /\/api\/?$/,
-      "/api/v1",
-    );
-    // ANSSI A.5.34 — JWT en cookie httpOnly, `credentials: 'include'` suffit.
-    fetch(`${apiBase}${downloadPath}`, {
-      credentials: "include",
-    })
+    // Via axios `api` → refresh 401 automatique (aperçu du fichier).
+    api
+      .get(downloadPath, { responseType: "blob" })
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to load");
-        return res.blob();
-      })
-      .then((blob) => {
+        const blob = res.data instanceof Blob ? res.data : new Blob([res.data]);
         setFileUrl(URL.createObjectURL(blob));
       })
-      .catch((err) =>
-        logger.error(err, { page: "procedures/[id]", context: "download" }),
-      );
+      .catch((err) => logger.error(err, { page: "procedures/[id]", context: "download" }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [downloadPath]);
 
@@ -297,11 +261,7 @@ export default function ProcedureViewerPage() {
                 {doc.reference}
               </span>
               <Badge variant="navy">
-                {
-                  DOCUMENT_CATEGORY_LABELS[
-                    doc.category as keyof typeof DOCUMENT_CATEGORY_LABELS
-                  ]
-                }
+                {DOCUMENT_CATEGORY_LABELS[doc.category as keyof typeof DOCUMENT_CATEGORY_LABELS]}
               </Badge>
               <StatusBadge status={doc.status as "APPROVED"} />
             </div>
@@ -386,9 +346,7 @@ export default function ProcedureViewerPage() {
         <CardContent>
           <div className="flex flex-wrap items-center gap-6 text-sm">
             <div>
-              <span className="text-seal-gray-500">
-                {t("procedureDetail.author")} :{" "}
-              </span>
+              <span className="text-seal-gray-500">{t("procedureDetail.author")} : </span>
               <span className="font-semibold text-seal-navy">
                 {doc.owner.firstName} {doc.owner.lastName}
               </span>
@@ -396,17 +354,13 @@ export default function ProcedureViewerPage() {
             {currentVersion && (
               <>
                 <div>
-                  <span className="text-seal-gray-500">
-                    {t("procedureDetail.version")} :{" "}
-                  </span>
+                  <span className="text-seal-gray-500">{t("procedureDetail.version")} : </span>
                   <span className="font-semibold text-seal-navy">
                     v{currentVersion.versionNumber}
                   </span>
                 </div>
                 <div>
-                  <span className="text-seal-gray-500">
-                    {t("procedureDetail.size")} :{" "}
-                  </span>
+                  <span className="text-seal-gray-500">{t("procedureDetail.size")} : </span>
                   <span className="text-seal-navy">
                     {formatFileSize(currentVersion.fileSizeBytes)}
                   </span>
@@ -414,12 +368,8 @@ export default function ProcedureViewerPage() {
               </>
             )}
             <div>
-              <span className="text-seal-gray-500">
-                {t("procedureDetail.updatedAt")} :{" "}
-              </span>
-              <span className="text-seal-navy">
-                {formatDate(doc.updatedAt)}
-              </span>
+              <span className="text-seal-gray-500">{t("procedureDetail.updatedAt")} : </span>
+              <span className="text-seal-navy">{formatDate(doc.updatedAt)}</span>
             </div>
           </div>
           {doc.isoControls.length > 0 && (
@@ -462,9 +412,7 @@ export default function ProcedureViewerPage() {
       {activeTab === "document" && fileUrl && (
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-medium text-seal-navy">
-              {t("procedureDetail.preview")}
-            </h2>
+            <h2 className="text-lg font-medium text-seal-navy">{t("procedureDetail.preview")}</h2>
           </CardHeader>
           <CardContent>
             {isPdf && <PdfViewer url={fileUrl} />}
@@ -478,10 +426,7 @@ export default function ProcedureViewerPage() {
                 const isOffice =
                   /excel|spreadsheet|sheet|xlsx?|xls|powerpoint|presentation|pptx?|ppt|odt|ods|odp/.test(
                     ext,
-                  ) ||
-                  /\.(xlsx?|pptx?|odt|ods|odp|rtf)$/i.test(
-                    currentVersion?.fileUrl || "",
-                  );
+                  ) || /\.(xlsx?|pptx?|odt|ods|odp|rtf)$/i.test(currentVersion?.fileUrl || "");
                 return (
                   <div className="flex flex-col items-center py-12 text-seal-gray-500">
                     <FileText className="h-12 w-12 mb-3" />
@@ -494,9 +439,7 @@ export default function ProcedureViewerPage() {
                       {isOffice && doc && (
                         <Button
                           variant="primary"
-                          onClick={() =>
-                            router.push(`/documents/${doc.id}/editor`)
-                          }
+                          onClick={() => router.push(`/documents/${doc.id}/editor`)}
                         >
                           Ouvrir avec OnlyOffice
                         </Button>
@@ -548,17 +491,13 @@ export default function ProcedureViewerPage() {
                   />
                 ))}
               </div>
-            ) : (allVersions.length > 0 ? allVersions : doc.versions || [])
-                .length === 0 ? (
+            ) : (allVersions.length > 0 ? allVersions : doc.versions || []).length === 0 ? (
               <div className="p-6 text-center text-sm text-seal-gray-500">
                 Aucun historique de version disponible
               </div>
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-slate-700">
-                {(allVersions.length > 0
-                  ? allVersions
-                  : doc.versions || []
-                ).map((ver, idx) => (
+                {(allVersions.length > 0 ? allVersions : doc.versions || []).map((ver, idx) => (
                   <div
                     key={ver.id}
                     className={`flex items-center gap-4 px-6 py-4 ${idx === 0 ? "bg-primary/5" : ""}`}
@@ -575,9 +514,7 @@ export default function ProcedureViewerPage() {
                         <span className="text-sm font-semibold text-seal-navy dark:text-white">
                           v{ver.versionNumber}
                         </span>
-                        {idx === 0 && (
-                          <Badge variant="approved">Actuelle</Badge>
-                        )}
+                        {idx === 0 && <Badge variant="approved">Actuelle</Badge>}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5 text-xs text-seal-gray-500 dark:text-slate-400">
                         <span>{formatDateTime(ver.createdAt)}</span>
@@ -618,10 +555,7 @@ export default function ProcedureViewerPage() {
           <CardContent className="p-0">
             <div className="divide-y divide-gray-100 dark:divide-slate-700">
               {doc.isoControls.map(({ isoControl }) => (
-                <div
-                  key={isoControl.code}
-                  className="flex items-center gap-4 px-6 py-3.5"
-                >
+                <div key={isoControl.code} className="flex items-center gap-4 px-6 py-3.5">
                   <div className="h-8 w-8 rounded-lg bg-[#F68D2E]/10 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
                     <ShieldCheck className="h-4 w-4 text-slate-900 dark:text-blue-400" />
                   </div>

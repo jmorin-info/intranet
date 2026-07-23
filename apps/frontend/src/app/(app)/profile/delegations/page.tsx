@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Page utilisateur — Gestion des délégations d'approbation (item #27).
@@ -13,11 +13,12 @@
  * explicites, error states).
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { api } from '@/lib/api';
-import { logger } from '@/lib/logger';
-import { toast } from 'sonner';
+import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
+import { formatDate as formatDateUtil } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   Button,
   Card,
@@ -27,16 +28,9 @@ import {
   EmptyState,
   Skeleton,
   Dialog,
-} from '@omnitech/ui';
-import {
-  ArrowLeft,
-  CalendarRange,
-  Plus,
-  Trash2,
-  UserCheck,
-  UserPlus,
-  Users,
-} from 'lucide-react';
+  ConfirmDialog,
+} from "@omnitech/ui";
+import { ArrowLeft, CalendarRange, Plus, Trash2, UserCheck, UserPlus, Users } from "lucide-react";
 
 interface UserMini {
   id: string;
@@ -53,7 +47,7 @@ interface Delegation {
   startDate: string;
   endDate: string;
   reason: string | null;
-  scope: 'GLOBAL' | 'SCOPED';
+  scope: "GLOBAL" | "SCOPED";
   categories: string[];
   auto: boolean;
   isActive: boolean;
@@ -64,37 +58,34 @@ interface Delegation {
 }
 
 const DOC_CATEGORIES = [
-  'POLICY',
-  'PROCEDURE',
-  'PLAN',
-  'RECORD',
-  'FORM',
-  'GUIDE',
-  'REPORT',
-  'CONTRACT',
-  'OTHER',
+  "POLICY",
+  "PROCEDURE",
+  "PLAN",
+  "RECORD",
+  "FORM",
+  "GUIDE",
+  "REPORT",
+  "CONTRACT",
+  "OTHER",
 ];
 
+// Format court (jour + mois abrégé), délègue au helper partagé pour la logique commune.
 function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatDateUtil(d, { month: "short" });
 }
 
 function getStatus(d: Delegation): {
   label: string;
-  variant: 'success' | 'warning' | 'error' | 'info';
+  variant: "success" | "warning" | "error" | "info";
 } {
-  if (d.revokedAt) return { label: 'Révoquée', variant: 'error' };
-  if (!d.isActive) return { label: 'Expirée', variant: 'info' };
+  if (d.revokedAt) return { label: "Révoquée", variant: "error" };
+  if (!d.isActive) return { label: "Expirée", variant: "info" };
   const now = new Date();
   const start = new Date(d.startDate);
   const end = new Date(d.endDate);
-  if (now < start) return { label: 'Programmée', variant: 'warning' };
-  if (now > end) return { label: 'Expirée', variant: 'info' };
-  return { label: 'Active', variant: 'success' };
+  if (now < start) return { label: "Programmée", variant: "warning" };
+  if (now > end) return { label: "Expirée", variant: "info" };
+  return { label: "Active", variant: "success" };
 }
 
 export default function DelegationsPage() {
@@ -104,27 +95,28 @@ export default function DelegationsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [users, setUsers] = useState<UserMini[]>([]);
   const [form, setForm] = useState({
-    toUserId: '',
+    toUserId: "",
     startDate: new Date().toISOString().slice(0, 10),
     endDate: new Date(Date.now() + 7 * 24 * 3600_000).toISOString().slice(0, 10),
-    reason: '',
-    scope: 'GLOBAL' as 'GLOBAL' | 'SCOPED',
+    reason: "",
+    scope: "GLOBAL" as "GLOBAL" | "SCOPED",
     categories: [] as string[],
   });
   const [submitting, setSubmitting] = useState(false);
+  const [revokeId, setRevokeId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [g, r] = await Promise.all([
-        api.get<Delegation[]>('/users/me/delegations'),
-        api.get<Delegation[]>('/users/me/delegations/received'),
+        api.get<Delegation[]>("/users/me/delegations"),
+        api.get<Delegation[]>("/users/me/delegations/received"),
       ]);
       setGiven(g.data);
       setReceived(r.data);
     } catch (err: unknown) {
-      toast.error('Impossible de charger les délégations');
-      logger.error(err, { page: 'profile/delegations', context: 'load' });
+      toast.error("Impossible de charger les délégations");
+      logger.error(err, { page: "profile/delegations", context: "load" });
     } finally {
       setLoading(false);
     }
@@ -132,7 +124,7 @@ export default function DelegationsPage() {
 
   const loadUsers = useCallback(async () => {
     try {
-      const { data } = await api.get<{ items: UserMini[] }>('/users/directory');
+      const { data } = await api.get<{ items: UserMini[] }>("/users/directory");
       setUsers(data.items ?? []);
     } catch {
       // best effort — l'utilisateur peut quand même saisir un id
@@ -146,53 +138,57 @@ export default function DelegationsPage() {
 
   const handleCreate = async () => {
     if (!form.toUserId) {
-      toast.error('Sélectionnez un délégataire');
+      toast.error("Sélectionnez un délégataire");
       return;
     }
     if (!form.startDate || !form.endDate) {
-      toast.error('Renseignez les dates de début et de fin');
+      toast.error("Renseignez les dates de début et de fin");
       return;
     }
     setSubmitting(true);
     try {
-      await api.post('/users/me/delegations', {
+      await api.post("/users/me/delegations", {
         toUserId: form.toUserId,
         startDate: form.startDate,
         endDate: form.endDate,
         reason: form.reason.trim() || undefined,
         scope: form.scope,
-        categories: form.scope === 'SCOPED' ? form.categories : [],
+        categories: form.scope === "SCOPED" ? form.categories : [],
       });
-      toast.success('Délégation créée');
+      toast.success("Délégation créée");
       setCreateOpen(false);
       setForm({
-        toUserId: '',
+        toUserId: "",
         startDate: new Date().toISOString().slice(0, 10),
         endDate: new Date(Date.now() + 7 * 24 * 3600_000).toISOString().slice(0, 10),
-        reason: '',
-        scope: 'GLOBAL',
+        reason: "",
+        scope: "GLOBAL",
         categories: [],
       });
       await load();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })
-        ?.response?.data?.message;
-      toast.error(msg ?? 'Erreur de création');
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? "Erreur de création");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleRevoke = async (id: string) => {
-    if (!confirm('Révoquer cette délégation ?')) return;
+  const handleRevoke = (id: string) => {
+    setRevokeId(id);
+  };
+
+  const confirmRevoke = async () => {
+    if (!revokeId) return;
+    const id = revokeId;
+    setRevokeId(null);
     try {
       await api.delete(`/users/me/delegations/${id}`);
-      toast.success('Délégation révoquée');
+      toast.success("Délégation révoquée");
       await load();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })
-        ?.response?.data?.message;
-      toast.error(msg ?? 'Erreur de révocation');
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? "Erreur de révocation");
     }
   };
 
@@ -213,15 +209,11 @@ export default function DelegationsPage() {
             Mes délégations d'approbation
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Confiez vos approbations à un collègue pendant vos absences (vacances,
-            mission, congés). Les délégations sont auditées (ISO 27001 A.5.1).
+            Confiez vos approbations à un collègue pendant vos absences (vacances, mission, congés).
+            Les délégations sont auditées (ISO 27001 A.5.1).
           </p>
         </div>
-        <Button
-          variant="primary"
-          onClick={() => setCreateOpen(true)}
-          className="gap-1"
-        >
+        <Button variant="primary" onClick={() => setCreateOpen(true)} className="gap-1">
           <Plus className="w-4 h-4" />
           Nouvelle délégation
         </Button>
@@ -286,7 +278,7 @@ export default function DelegationsPage() {
             <CalendarRange className="w-4 h-4 text-seal-orange dark:text-orange-300" />
             Délégations que vous émettez
             <span className="text-xs text-gray-500 dark:text-slate-400 font-normal">
-              ({given.filter((d) => getStatus(d).variant === 'success').length} active(s) /
+              ({given.filter((d) => getStatus(d).variant === "success").length} active(s) /
               {given.length} au total)
             </span>
           </h2>
@@ -304,7 +296,7 @@ export default function DelegationsPage() {
             <ul className="space-y-2">
               {given.map((d) => {
                 const status = getStatus(d);
-                const canRevoke = status.variant === 'success' || status.variant === 'warning';
+                const canRevoke = status.variant === "success" || status.variant === "warning";
                 return (
                   <li
                     key={d.id}
@@ -312,7 +304,7 @@ export default function DelegationsPage() {
                   >
                     <div className="flex-1">
                       <div className="font-medium">
-                        → {d.toUser?.firstName} {d.toUser?.lastName}{' '}
+                        → {d.toUser?.firstName} {d.toUser?.lastName}{" "}
                         <span className="text-xs text-gray-500 dark:text-slate-400 font-normal">
                           ({d.toUser?.email})
                         </span>
@@ -320,10 +312,8 @@ export default function DelegationsPage() {
                       <div className="text-xs text-gray-500 dark:text-slate-400">
                         {formatDate(d.startDate)} → {formatDate(d.endDate)}
                         {d.reason && ` · ${d.reason}`}
-                        {d.scope === 'SCOPED' && d.categories.length > 0 && (
-                          <span className="ml-2">
-                            · Catégories : {d.categories.join(', ')}
-                          </span>
+                        {d.scope === "SCOPED" && d.categories.length > 0 && (
+                          <span className="ml-2">· Catégories : {d.categories.join(", ")}</span>
                         )}
                         {d.auto && (
                           <Badge variant="warning" className="ml-2 text-xs">
@@ -354,11 +344,7 @@ export default function DelegationsPage() {
       </Card>
 
       {/* Create dialog */}
-      <Dialog
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title="Nouvelle délégation"
-      >
+      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} title="Nouvelle délégation">
         <div className="space-y-4">
           <label className="block">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -428,8 +414,8 @@ export default function DelegationsPage() {
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="radio"
-                  checked={form.scope === 'GLOBAL'}
-                  onChange={() => setForm({ ...form, scope: 'GLOBAL', categories: [] })}
+                  checked={form.scope === "GLOBAL"}
+                  onChange={() => setForm({ ...form, scope: "GLOBAL", categories: [] })}
                 />
                 <span>
                   <strong>Globale</strong> — toutes mes approbations sont déléguées
@@ -438,8 +424,8 @@ export default function DelegationsPage() {
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="radio"
-                  checked={form.scope === 'SCOPED'}
-                  onChange={() => setForm({ ...form, scope: 'SCOPED' })}
+                  checked={form.scope === "SCOPED"}
+                  onChange={() => setForm({ ...form, scope: "SCOPED" })}
                 />
                 <span>
                   <strong>Limitée</strong> — uniquement certaines catégories de documents
@@ -447,7 +433,7 @@ export default function DelegationsPage() {
               </label>
             </div>
 
-            {form.scope === 'SCOPED' && (
+            {form.scope === "SCOPED" && (
               <div className="mt-2 grid grid-cols-3 gap-1 pl-6">
                 {DOC_CATEGORIES.map((cat) => (
                   <label key={cat} className="text-xs flex items-center gap-1">
@@ -471,19 +457,24 @@ export default function DelegationsPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              variant="outline"
-              onClick={() => setCreateOpen(false)}
-              disabled={submitting}
-            >
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={submitting}>
               Annuler
             </Button>
             <Button variant="primary" onClick={handleCreate} disabled={submitting}>
-              {submitting ? 'Création…' : 'Créer la délégation'}
+              {submitting ? "Création…" : "Créer la délégation"}
             </Button>
           </div>
         </div>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!revokeId}
+        onClose={() => setRevokeId(null)}
+        onConfirm={confirmRevoke}
+        title="Révoquer la délégation"
+        description="Révoquer cette délégation ? Le délégataire perdra immédiatement le droit d'approuver en votre nom."
+        variant="danger"
+      />
     </div>
   );
 }

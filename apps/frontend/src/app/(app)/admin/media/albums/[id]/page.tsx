@@ -14,6 +14,7 @@ import {
   EmptyState,
   Skeleton,
   Badge,
+  ConfirmDialog,
 } from "@omnitech/ui";
 import {
   ArrowLeft,
@@ -60,8 +61,7 @@ interface Album {
 function humanSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
-  if (bytes < 1024 * 1024 * 1024)
-    return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} Go`;
 }
 
@@ -78,6 +78,8 @@ export default function AdminAlbumPage() {
   const [editTags, setEditTags] = useState("");
   const [coverDragOver, setCoverDragOver] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [deleteItem, setDeleteItem] = useState<Item | null>(null);
+  const [removeCoverConfirm, setRemoveCoverConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -87,8 +89,7 @@ export default function AdminAlbumPage() {
     setLoading(true);
     try {
       // Obtenir le slug depuis la liste
-      const { data: list } =
-        await api.get<Array<{ id: string; slug: string }>>("/media/albums");
+      const { data: list } = await api.get<Array<{ id: string; slug: string }>>("/media/albums");
       const match = list.find((a) => a.id === albumId);
       if (!match) {
         toast.error("Album introuvable");
@@ -134,8 +135,7 @@ export default function AdminAlbumPage() {
       } catch (err: unknown) {
         const msg =
           err && typeof err === "object" && "response" in err
-            ? (err as { response?: { data?: { message?: string } } }).response
-                ?.data?.message
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
             : null;
         toast.error(`${file.name} : ${msg || "échec upload"}`);
       } finally {
@@ -155,8 +155,14 @@ export default function AdminAlbumPage() {
     if (e.dataTransfer.files?.length) uploadFiles(e.dataTransfer.files);
   };
 
-  const handleDelete = async (item: Item) => {
-    if (!confirm("Supprimer ce média définitivement ?")) return;
+  const handleDelete = (item: Item) => {
+    setDeleteItem(item);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteItem) return;
+    const item = deleteItem;
+    setDeleteItem(null);
     try {
       await api.delete(`/media/items/${item.id}`);
       toast.success("Média supprimé");
@@ -164,8 +170,7 @@ export default function AdminAlbumPage() {
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { message?: string } } }).response
-              ?.data?.message
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : null;
       toast.error(msg || "Erreur");
     }
@@ -190,8 +195,7 @@ export default function AdminAlbumPage() {
       });
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { message?: string } } }).response
-              ?.data?.message
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : null;
       toast.error(msg || "Échec de l'upload de la couverture");
     } finally {
@@ -206,8 +210,12 @@ export default function AdminAlbumPage() {
     if (file) uploadCoverImage(file);
   };
 
-  const handleRemoveCover = async () => {
-    if (!confirm("Retirer l'image de couverture dédiée ?")) return;
+  const handleRemoveCover = () => {
+    setRemoveCoverConfirm(true);
+  };
+
+  const confirmRemoveCover = async () => {
+    setRemoveCoverConfirm(false);
     try {
       await api.delete(`/media/albums/${albumId}/cover-image`);
       toast.success("Image de couverture retirée");
@@ -281,17 +289,15 @@ export default function AdminAlbumPage() {
 
       <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold text-seal-navy dark:text-white">
-            {album.title}
-          </h1>
+          <h1 className="text-2xl font-semibold text-seal-navy dark:text-white">{album.title}</h1>
           {album.description && (
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1 max-w-2xl">
               {album.description}
             </p>
           )}
           <p className="text-[11px] text-seal-gray-500 mt-2">
-            {album._count.items} média{album._count.items !== 1 ? "s" : ""} ·
-            Visibilité {album.visibility}
+            {album._count.items} média{album._count.items !== 1 ? "s" : ""} · Visibilité{" "}
+            {album.visibility}
           </p>
         </div>
         <Link href={`/media/albums/${album.slug}`}>
@@ -308,8 +314,8 @@ export default function AdminAlbumPage() {
                 Image de couverture dédiée
               </h2>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
-                Affichée en bannière de l&apos;album. Si définie, elle prime sur
-                la cover choisie parmi les médias.
+                Affichée en bannière de l&apos;album. Si définie, elle prime sur la cover choisie
+                parmi les médias.
               </p>
             </div>
             {album.coverImageUrl && (
@@ -415,8 +421,7 @@ export default function AdminAlbumPage() {
           Déposez vos photos ou vidéos ici
         </p>
         <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">
-          JPEG, PNG, WebP, GIF, MP4, WebM · Max 10 Go par fichier ·
-          Multi-fichiers supportés
+          JPEG, PNG, WebP, GIF, MP4, WebM · Max 10 Go par fichier · Multi-fichiers supportés
         </p>
         <input
           ref={fileInputRef}
@@ -426,10 +431,7 @@ export default function AdminAlbumPage() {
           accept="image/*,video/*"
           onChange={(e) => e.target.files && uploadFiles(e.target.files)}
         />
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          className="gap-1.5"
-        >
+        <Button onClick={() => fileInputRef.current?.click()} className="gap-1.5">
           <Upload className="h-4 w-4" /> Choisir des fichiers
         </Button>
       </div>
@@ -504,8 +506,7 @@ export default function AdminAlbumPage() {
                       {item.title ?? "Sans titre"}
                     </p>
                     <p className="text-[9px] text-white/60">
-                      {humanSize(parseInt(item.fileSizeBytes))} ·{" "}
-                      {item._count?.downloads ?? 0} DL
+                      {humanSize(parseInt(item.fileSizeBytes))} · {item._count?.downloads ?? 0} DL
                     </p>
                     <div className="flex gap-1 mt-1">
                       <button
@@ -574,11 +575,7 @@ export default function AdminAlbumPage() {
                 <label className="text-xs font-semibold text-seal-navy dark:text-white mb-1 block">
                   Description
                 </label>
-                <Textarea
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  rows={3}
-                />
+                <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={3} />
               </div>
               <div>
                 <label className="text-xs font-semibold text-seal-navy dark:text-white mb-1 block">
@@ -602,6 +599,24 @@ export default function AdminAlbumPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteItem}
+        onClose={() => setDeleteItem(null)}
+        onConfirm={confirmDelete}
+        title="Supprimer le média"
+        description="Supprimer ce média définitivement ?"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        open={removeCoverConfirm}
+        onClose={() => setRemoveCoverConfirm(false)}
+        onConfirm={confirmRemoveCover}
+        title="Retirer la couverture"
+        description="Retirer l'image de couverture dédiée ?"
+        variant="danger"
+      />
     </div>
   );
 }

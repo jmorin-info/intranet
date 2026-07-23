@@ -6,20 +6,12 @@ import { useAuthStore } from "@/stores/auth-store";
 import { isRoleAtLeast, UserRole } from "@omnitech/shared";
 import { formatDate, formatRelativeTime } from "@/lib/utils";
 import { toast } from "sonner";
+import { showToast } from "@/lib/toast-utils";
 import { ExportButton } from "@/components/ui/export-button";
 import { PdfExportButton } from "@/components/ui/pdf-export-button";
 import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
 import { PageHeader } from "@/components/layout/page-header";
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  Dialog,
-  EmptyState,
-  Skeleton,
-  Tabs,
-} from "@omnitech/ui";
+import { Badge, Button, Card, CardContent, Dialog, EmptyState, Skeleton, Tabs } from "@omnitech/ui";
 import {
   ShieldCheck,
   CalendarDays,
@@ -176,9 +168,7 @@ function fullName(user?: ReviewUser | null): string {
   return `${user.firstName} ${user.lastName}`;
 }
 
-function getCampaignType(
-  c: Campaign | CampaignDetail | null | undefined,
-): CampaignType {
+function getCampaignType(c: Campaign | CampaignDetail | null | undefined): CampaignType {
   return (c?.type as CampaignType) || "ACCESS_RIGHTS";
 }
 
@@ -292,9 +282,7 @@ export default function AccessReviewsPage() {
         }
       } catch (err) {
         const e = err as { response?: { data?: { message?: string } } };
-        toast.error(
-          e.response?.data?.message || "Erreur lors de la soumission",
-        );
+        toast.error(e.response?.data?.message || "Erreur lors de la soumission");
       }
     },
     [loadMyReviews, loadCampaigns, openCampaign, handleViewCampaign],
@@ -322,8 +310,7 @@ export default function AccessReviewsPage() {
     [campaigns],
   );
 
-  const openCreate = (type: CampaignType) =>
-    setShowCreate({ open: true, type });
+  const openCreate = (type: CampaignType) => setShowCreate({ open: true, type });
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -337,9 +324,7 @@ export default function AccessReviewsPage() {
           <>
             <ExportButton
               filename="revues-acces"
-              rows={
-                (campaigns || []) as unknown as Array<Record<string, unknown>>
-              }
+              rows={(campaigns || []) as unknown as Array<Record<string, unknown>>}
               columns={[
                 { header: "ID", accessor: "id" },
                 { header: "Nom", accessor: "name" },
@@ -355,8 +340,7 @@ export default function AccessReviewsPage() {
             <PdfExportButton
               payload={() => ({
                 title: "Revue périodique des accès",
-                subtitle:
-                  "ISO 27001 A.5.18 — Accès, mots de passe, comptes inactifs",
+                subtitle: "ISO 27001 A.5.18 — Accès, mots de passe, comptes inactifs",
                 reference: `REVIEW-${new Date().toISOString().slice(0, 10)}`,
                 context: "Extrait du portail OMNITECH Intranet",
                 sections: [
@@ -400,14 +384,13 @@ export default function AccessReviewsPage() {
           <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
           <div className="text-sm text-seal-navy dark:text-slate-200">
             <p className="font-medium">
-              Cette section permet de réviser périodiquement les accès, mots de
-              passe et comptes inactifs conformément à ISO 27001 A.5.18.
+              Cette section permet de réviser périodiquement les accès, mots de passe et comptes
+              inactifs conformément à ISO 27001 A.5.18.
             </p>
             <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-              Chaque campagne génère automatiquement une revue par utilisateur
-              concerné, que les managers et le RSSI instruisent (maintien,
-              révocation, modification de rôle / service). Les décisions sont
-              tracées dans l&apos;AuditLog à fin d&apos;audit.
+              Chaque campagne génère automatiquement une revue par utilisateur concerné, que les
+              managers et le RSSI instruisent (maintien, révocation, modification de rôle /
+              service). Les décisions sont tracées dans l&apos;AuditLog à fin d&apos;audit.
             </p>
           </div>
         </CardContent>
@@ -419,12 +402,8 @@ export default function AccessReviewsPage() {
           <CardContent className="py-3 px-4 flex items-center gap-3">
             <CalendarDays className="h-5 w-5 text-primary" />
             <div>
-              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                Campagnes actives
-              </p>
-              <p className="text-xl text-seal-navy dark:text-white">
-                {activeCount}
-              </p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Campagnes actives</p>
+              <p className="text-xl text-seal-navy dark:text-white">{activeCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -432,12 +411,8 @@ export default function AccessReviewsPage() {
           <CardContent className="py-3 px-4 flex items-center gap-3">
             <Clock className="h-5 w-5 text-amber-500" />
             <div>
-              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                Revues à traiter
-              </p>
-              <p className="text-xl text-seal-navy dark:text-white">
-                {pendingCount}
-              </p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Revues à traiter</p>
+              <p className="text-xl text-seal-navy dark:text-white">{pendingCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -445,9 +420,7 @@ export default function AccessReviewsPage() {
           <CardContent className="py-3 px-4 flex items-center gap-3">
             <KeyRound className="h-5 w-5 text-indigo-500" />
             <div>
-              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                Revues MDP
-              </p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Revues MDP</p>
               <p className="text-xl text-seal-navy dark:text-white">
                 {campaignsByType.PASSWORDS.length}
               </p>
@@ -458,9 +431,7 @@ export default function AccessReviewsPage() {
           <CardContent className="py-3 px-4 flex items-center gap-3">
             <UserMinus className="h-5 w-5 text-rose-500" />
             <div>
-              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                Revues inactifs
-              </p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">Revues inactifs</p>
               <p className="text-xl text-seal-navy dark:text-white">
                 {campaignsByType.INACTIVE_USERS.length}
               </p>
@@ -562,10 +533,7 @@ export default function AccessReviewsPage() {
             <Button variant="outline" onClick={() => setConfirmCloseId(null)}>
               Annuler
             </Button>
-            <Button
-              variant="danger"
-              onClick={() => void performCloseCampaign(confirmCloseId)}
-            >
+            <Button variant="danger" onClick={() => void performCloseCampaign(confirmCloseId)}>
               <X className="h-3.5 w-3.5" />
               Clôturer définitivement
             </Button>
@@ -656,31 +624,20 @@ function CampaignsList({
           MODIFIED: 0,
           EXPIRED: 0,
         };
-        const overdue =
-          c.status === "ACTIVE" && new Date(c.dueDate).getTime() < Date.now();
+        const overdue = c.status === "ACTIVE" && new Date(c.dueDate).getTime() < Date.now();
         const statusBadgeClass: Record<CampaignStatus, string> = {
-          ACTIVE:
-            "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-          COMPLETED:
-            "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-          DRAFT:
-            "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300",
-          CANCELLED:
-            "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+          ACTIVE: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+          COMPLETED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+          DRAFT: "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300",
+          CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
         };
         const overdueClass = overdue
           ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
           : "";
-        const effectiveStatusClass = overdue
-          ? overdueClass
-          : statusBadgeClass[c.status];
+        const effectiveStatusClass = overdue ? overdueClass : statusBadgeClass[c.status];
         const type = getCampaignType(c);
         const TypeIcon =
-          type === "PASSWORDS"
-            ? KeyRound
-            : type === "INACTIVE_USERS"
-              ? UserMinus
-              : ShieldCheck;
+          type === "PASSWORDS" ? KeyRound : type === "INACTIVE_USERS" ? UserMinus : ShieldCheck;
         return (
           <Card
             key={c.id}
@@ -752,9 +709,7 @@ function CampaignsList({
                         </span>
                       )}
                       {stats.MODIFIED > 0 && (
-                        <span className="text-[10px] text-primary">
-                          {stats.MODIFIED} modifiés
-                        </span>
+                        <span className="text-[10px] text-primary">{stats.MODIFIED} modifiés</span>
                       )}
                       {stats.EXPIRED > 0 && (
                         <span className="text-[10px] text-seal-gray-500">
@@ -770,11 +725,7 @@ function CampaignsList({
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onView(c.id)}
-                  >
+                  <Button size="sm" variant="outline" onClick={() => onView(c.id)}>
                     <Eye className="h-3 w-3" />
                     Voir
                   </Button>
@@ -808,11 +759,7 @@ function MyReviewsList({
   onDecision,
 }: {
   reviews: Review[];
-  onDecision: (
-    id: string,
-    decision: ReviewDecision,
-    comments?: string,
-  ) => Promise<void>;
+  onDecision: (id: string, decision: ReviewDecision, comments?: string) => Promise<void>;
 }) {
   if (reviews.length === 0) {
     return (
@@ -826,11 +773,7 @@ function MyReviewsList({
   return (
     <div className="space-y-3">
       {reviews.map((r, idx) => (
-        <div
-          key={r.id}
-          className="stagger-item"
-          style={{ animationDelay: `${idx * 40}ms` }}
-        >
+        <div key={r.id} className="stagger-item" style={{ animationDelay: `${idx * 40}ms` }}>
           <ReviewCard review={r} onDecision={onDecision} />
         </div>
       ))}
@@ -843,11 +786,7 @@ function ReviewCard({
   onDecision,
 }: {
   review: Review;
-  onDecision: (
-    id: string,
-    decision: ReviewDecision,
-    comments?: string,
-  ) => Promise<void>;
+  onDecision: (id: string, decision: ReviewDecision, comments?: string) => Promise<void>;
 }) {
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState<ReviewDecision | null>(null);
@@ -863,17 +802,14 @@ function ReviewCard({
   };
 
   const u = review.user;
-  const campaignType =
-    (review.campaign?.type as CampaignType) || "ACCESS_RIGHTS";
+  const campaignType = (review.campaign?.type as CampaignType) || "ACCESS_RIGHTS";
   return (
     <Card>
       <CardContent className="py-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-seal-navy dark:text-white">
-                {fullName(u)}
-              </span>
+              <span className="text-seal-navy dark:text-white">{fullName(u)}</span>
               {u && <Badge variant="navy">{u.role}</Badge>}
               {u?.department && (
                 <Badge variant="info">
@@ -1049,7 +985,7 @@ function CreateCampaignDialog({
       onCreated();
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
-      toast.error(e.response?.data?.message || "Erreur lors de la création");
+      showToast("error", null, e.response?.data?.message || "Erreur lors de la création");
     } finally {
       setSubmitting(false);
     }
@@ -1145,11 +1081,7 @@ function CampaignDetailDrawer({
   loading: boolean;
   isAdmin: boolean;
   onClose: () => void;
-  onDecision: (
-    id: string,
-    decision: ReviewDecision,
-    comments?: string,
-  ) => Promise<void>;
+  onDecision: (id: string, decision: ReviewDecision, comments?: string) => Promise<void>;
   onCloseCampaign: (id: string) => void;
 }) {
   const campaignType = getCampaignType(campaign);
@@ -1159,17 +1091,13 @@ function CampaignDetailDrawer({
       <div className="relative ml-auto h-full w-full max-w-3xl bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto">
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900">
           <div>
-            <h2 className="text-seal-navy dark:text-white">
-              {campaign?.name || "Campagne"}
-            </h2>
+            <h2 className="text-seal-navy dark:text-white">{campaign?.name || "Campagne"}</h2>
             {campaign && (
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <Badge variant={CAMPAIGN_STATUS_VARIANT[campaign.status]}>
                   {CAMPAIGN_STATUS_LABEL[campaign.status]}
                 </Badge>
-                <Badge variant="info">
-                  {CAMPAIGN_TYPE_LABEL[campaignType]}
-                </Badge>
+                <Badge variant="info">{CAMPAIGN_TYPE_LABEL[campaignType]}</Badge>
                 <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                   Échéance : {formatDate(campaign.dueDate)}
                 </span>
@@ -1239,11 +1167,7 @@ function ReviewsTable({
   reviews: Review[];
   canDecide: boolean;
   campaignType: CampaignType;
-  onDecision: (
-    id: string,
-    decision: ReviewDecision,
-    comments?: string,
-  ) => Promise<void>;
+  onDecision: (id: string, decision: ReviewDecision, comments?: string) => Promise<void>;
 }) {
   return (
     <div className="space-y-2">
@@ -1269,11 +1193,7 @@ function InlineReviewRow({
   review: Review;
   canDecide: boolean;
   campaignType: CampaignType;
-  onDecision: (
-    id: string,
-    decision: ReviewDecision,
-    comments?: string,
-  ) => Promise<void>;
+  onDecision: (id: string, decision: ReviewDecision, comments?: string) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [comments, setComments] = useState("");
@@ -1309,13 +1229,9 @@ function InlineReviewRow({
           <span>
             MFA :{" "}
             {u.mfaEnabled ? (
-              <span className="text-emerald-600 dark:text-emerald-400">
-                activée
-              </span>
+              <span className="text-emerald-600 dark:text-emerald-400">activée</span>
             ) : (
-              <span className="text-amber-600 dark:text-amber-400">
-                désactivée
-              </span>
+              <span className="text-amber-600 dark:text-amber-400">désactivée</span>
             )}
           </span>
         </>
@@ -1338,8 +1254,7 @@ function InlineReviewRow({
       <>
         <span>Embauché {formatDate(u.createdAt)}</span>
         <span>
-          Dernière connexion :{" "}
-          {u.lastLoginAt ? formatRelativeTime(u.lastLoginAt) : "Jamais"}
+          Dernière connexion : {u.lastLoginAt ? formatRelativeTime(u.lastLoginAt) : "Jamais"}
         </span>
       </>
     );
@@ -1367,9 +1282,7 @@ function InlineReviewRow({
         }
       >
         <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
-          <span className="text-sm text-seal-navy dark:text-white truncate">
-            {fullName(u)}
-          </span>
+          <span className="text-sm text-seal-navy dark:text-white truncate">{fullName(u)}</span>
           {u && (
             <span className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">
               {u.email}

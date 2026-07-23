@@ -19,14 +19,9 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { logger } from "@/lib/logger";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  Badge,
-  Button,
-  Skeleton,
-} from "@omnitech/ui";
+import { toast } from "sonner";
+import { formatDate as formatDateUtil } from "@/lib/utils";
+import { Card, CardContent, CardHeader, Badge, Button, Skeleton } from "@omnitech/ui";
 import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
 import { PageHeader } from "@/components/layout/page-header";
 import {
@@ -126,14 +121,11 @@ function deltaColorClass(delta: number | null): string {
   return "text-seal-gray-500 dark:text-slate-400";
 }
 
+// Format court numérique, délègue au helper partagé pour la logique commune.
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    return formatDateUtil(iso, { month: "2-digit" });
   } catch {
     return "—";
   }
@@ -260,9 +252,7 @@ function CyberRing({ score }: CyberRingProps) {
         <span className="text-3xl font-medium text-seal-navy dark:text-white leading-none tabular-nums">
           {score}
         </span>
-        <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 mt-0.5">
-          / 100
-        </span>
+        <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 mt-0.5">/ 100</span>
       </div>
     </div>
   );
@@ -277,9 +267,7 @@ export default function RSSIDashboardPage() {
   const [smsi, setSmsi] = useState<SmsiState | null>(null);
   const [trend, setTrend] = useState<IncidentTrend | null>(null);
   const [compliance, setCompliance] = useState<ComplianceProgress | null>(null);
-  const [indicators, setIndicators] = useState<OperationalIndicators | null>(
-    null,
-  );
+  const [indicators, setIndicators] = useState<OperationalIndicators | null>(null);
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -334,11 +322,9 @@ export default function RSSIDashboardPage() {
         page: "admin/rssi-dashboard",
         context: "smsi pdf download",
       });
-      if (typeof window !== "undefined") {
-        window.alert(
-          "Impossible de générer le rapport SMSI. Vérifiez vos droits (ADMIN / SUPER_ADMIN).",
-        );
-      }
+      toast.error(
+        "Impossible de générer le rapport SMSI. Vérifiez vos droits (ADMIN / SUPER_ADMIN).",
+      );
     } finally {
       setPdfLoading(false);
     }
@@ -384,12 +370,7 @@ export default function RSSIDashboardPage() {
           hub="rssi"
           actions={
             <div className="flex gap-2 print:hidden">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={loadAll}
-                title="Actualiser"
-              >
+              <Button variant="secondary" size="sm" onClick={loadAll} title="Actualiser">
                 <RefreshCw className="h-4 w-4" />
               </Button>
               <Button
@@ -446,10 +427,7 @@ export default function RSSIDashboardPage() {
               {cyber.domains && cyber.domains.length > 0 && (
                 <div className="flex-1 min-w-[240px] space-y-1">
                   {cyber.domains.slice(0, 4).map((d) => (
-                    <div
-                      key={d.key}
-                      className="flex items-center gap-2 text-xs"
-                    >
+                    <div key={d.key} className="flex items-center gap-2 text-xs">
                       <span className="w-32 truncate text-seal-gray-500 dark:text-slate-400">
                         {d.name}
                       </span>
@@ -472,8 +450,7 @@ export default function RSSIDashboardPage() {
             </div>
           ) : (
             <div className="text-sm text-seal-gray-500 dark:text-slate-400 py-3">
-              Cyber-score indisponible (droits SUPER_ADMIN requis pour cet
-              endpoint).
+              Cyber-score indisponible (droits SUPER_ADMIN requis pour cet endpoint).
             </div>
           )}
         </CardContent>
@@ -508,11 +485,7 @@ export default function RSSIDashboardPage() {
               icon={Flame}
               tone={smsi && smsi.openRisks > 0 ? "red" : "green"}
             />
-            <SmsiKpiRow
-              label="Frameworks actifs"
-              value={smsi?.activeFrameworks}
-              icon={Layers}
-            />
+            <SmsiKpiRow label="Frameworks actifs" value={smsi?.activeFrameworks} icon={Layers} />
             <div className="pt-3 border-t border-gray-100 dark:border-slate-700 space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-seal-gray-500 dark:text-slate-400">
@@ -528,9 +501,7 @@ export default function RSSIDashboardPage() {
                 </p>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-seal-gray-500 dark:text-slate-400">
-                  Prochaine revue
-                </span>
+                <span className="text-seal-gray-500 dark:text-slate-400">Prochaine revue</span>
                 <span className="text-seal-navy dark:text-white font-medium">
                   {formatDate(smsi?.nextReview?.date)}
                 </span>
@@ -551,10 +522,7 @@ export default function RSSIDashboardPage() {
               <h2 className="font-medium text-seal-navy dark:text-white flex items-center gap-2">
                 <Flame className="h-5 w-5 text-red-500" /> Incidents 30 jours
               </h2>
-              <Link
-                href="/incidents"
-                className="text-xs text-primary hover:underline"
-              >
+              <Link href="/incidents" className="text-xs text-primary hover:underline">
                 Voir tous →
               </Link>
             </div>
@@ -565,9 +533,7 @@ export default function RSSIDashboardPage() {
                 <p className="text-3xl font-medium text-seal-navy dark:text-white tabular-nums">
                   {trend?.total ?? 0}
                 </p>
-                <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                  incidents détectés
-                </p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-400">incidents détectés</p>
               </div>
               <div className="flex-1 min-w-[260px]">
                 <Sparkline values={trend?.buckets ?? []} />
@@ -588,14 +554,9 @@ export default function RSSIDashboardPage() {
               ) : (
                 <div className="space-y-2">
                   {trend.top.map((inc) => {
-                    const sev =
-                      SEVERITY_BADGE[inc.severity] ?? SEVERITY_BADGE.LOW!;
+                    const sev = SEVERITY_BADGE[inc.severity] ?? SEVERITY_BADGE.LOW!;
                     return (
-                      <Link
-                        key={inc.id}
-                        href={`/incidents/${inc.id}`}
-                        className="block"
-                      >
+                      <Link key={inc.id} href={`/incidents/${inc.id}`} className="block">
                         <div className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors border border-gray-100 dark:border-slate-700">
                           <span
                             className="h-2 w-2 rounded-full flex-shrink-0"
@@ -609,10 +570,7 @@ export default function RSSIDashboardPage() {
                               {inc.reference} • {inc.status}
                             </p>
                           </div>
-                          <Badge
-                            variant={sev.variant}
-                            className="text-[10px] flex-shrink-0"
-                          >
+                          <Badge variant={sev.variant} className="text-[10px] flex-shrink-0">
                             {sev.label}
                           </Badge>
                           <span className="text-[10px] text-seal-gray-500 dark:text-slate-400 whitespace-nowrap">
@@ -635,10 +593,7 @@ export default function RSSIDashboardPage() {
               <h2 className="font-medium text-seal-navy dark:text-white flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" /> Conformité ISO 27001
               </h2>
-              <Link
-                href="/admin/compliance"
-                className="text-xs text-primary hover:underline"
-              >
+              <Link href="/admin/compliance" className="text-xs text-primary hover:underline">
                 Détail →
               </Link>
             </div>
@@ -652,8 +607,7 @@ export default function RSSIDashboardPage() {
                       {compliance.controls.pct}%
                     </p>
                     <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
-                      {compliance.controls.covered}/{compliance.controls.total}{" "}
-                      contrôles
+                      {compliance.controls.covered}/{compliance.controls.total} contrôles
                     </p>
                   </div>
                   <div className="text-center">
@@ -670,9 +624,7 @@ export default function RSSIDashboardPage() {
                     >
                       {compliance.tasks.overdue}
                     </p>
-                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
-                      en retard
-                    </p>
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">en retard</p>
                   </div>
                   <div className="flex-1" />
                 </div>
@@ -718,17 +670,13 @@ export default function RSSIDashboardPage() {
             <IndicatorRow
               label="MTTR"
               hint="Mean Time To Resolve (30j)"
-              value={
-                indicators?.mttrHours != null ? `${indicators.mttrHours}h` : "—"
-              }
+              value={indicators?.mttrHours != null ? `${indicators.mttrHours}h` : "—"}
               icon={Clock}
             />
             <IndicatorRow
               label="MTTD"
               hint="Mean Time To Detect (30j)"
-              value={
-                indicators?.mttdHours != null ? `${indicators.mttdHours}h` : "—"
-              }
+              value={indicators?.mttdHours != null ? `${indicators.mttdHours}h` : "—"}
               icon={AlertTriangle}
             />
             <IndicatorRow
@@ -780,9 +728,7 @@ export default function RSSIDashboardPage() {
             <Card hoverable>
               <CardContent className="text-center py-5">
                 <it.icon className="h-7 w-7 text-primary mx-auto mb-2" />
-                <p className="text-sm font-medium text-seal-navy dark:text-white">
-                  {it.label}
-                </p>
+                <p className="text-sm font-medium text-seal-navy dark:text-white">{it.label}</p>
               </CardContent>
             </Card>
           </Link>
@@ -827,13 +773,9 @@ function SmsiKpiRow({
         <Icon className={`h-4 w-4 ${colorMap[tone] ?? colorMap.default}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-          {label}
-        </p>
+        <p className="text-xs text-seal-gray-500 dark:text-slate-400">{label}</p>
       </div>
-      <p
-        className={`text-lg font-medium tabular-nums ${colorMap[tone] ?? colorMap.default}`}
-      >
+      <p className={`text-lg font-medium tabular-nums ${colorMap[tone] ?? colorMap.default}`}>
         {value ?? "—"}
       </p>
     </div>
@@ -863,16 +805,10 @@ function IndicatorRow({
     <div className="flex items-center gap-3">
       <Icon className="h-4 w-4 text-primary flex-shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-seal-navy dark:text-white">
-          {label}
-        </p>
-        <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">
-          {hint}
-        </p>
+        <p className="text-sm font-medium text-seal-navy dark:text-white">{label}</p>
+        <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate">{hint}</p>
       </div>
-      <p
-        className={`text-lg font-medium tabular-nums ${colorMap[tone] ?? colorMap.default}`}
-      >
+      <p className={`text-lg font-medium tabular-nums ${colorMap[tone] ?? colorMap.default}`}>
         {value}
       </p>
     </div>

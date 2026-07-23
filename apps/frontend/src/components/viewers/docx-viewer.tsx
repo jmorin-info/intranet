@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import DOMPurify from 'dompurify';
+import React, { useEffect, useState } from "react";
+import DOMPurify from "dompurify";
 
 interface DocxViewerProps {
   url: string;
@@ -9,15 +9,14 @@ interface DocxViewerProps {
 }
 
 export function DocxViewer({ url, className }: DocxViewerProps) {
-  const [html, setHtml] = useState<string>('');
+  const [html, setHtml] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     async function loadDocx() {
       try {
-        const mammoth = await import('mammoth');
-        const response = await fetch(url);
+        const [mammoth, response] = await Promise.all([import("mammoth"), fetch(url)]);
         const arrayBuffer = await response.arrayBuffer();
         const result = await mammoth.convertToHtml({ arrayBuffer });
         setHtml(DOMPurify.sanitize(result.value));
@@ -48,7 +47,7 @@ export function DocxViewer({ url, className }: DocxViewerProps) {
 
   return (
     <div
-      className={`prose prose-sm dark:prose-invert max-w-none rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 max-h-[600px] overflow-y-auto ${className || ''}`}
+      className={`prose prose-sm dark:prose-invert max-w-none rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 max-h-[600px] overflow-y-auto ${className || ""}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

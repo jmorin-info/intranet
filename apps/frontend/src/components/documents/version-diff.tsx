@@ -1,15 +1,8 @@
 "use client";
 
 import React, { useMemo } from "react";
-import {
-  Minus,
-  Plus,
-  Equal,
-  FileText,
-  Hash,
-  Calendar,
-  HardDrive,
-} from "lucide-react";
+import { formatDate as formatDateUtil } from "@/lib/utils";
+import { Minus, Plus, Equal, FileText, Hash, Calendar, HardDrive } from "lucide-react";
 
 export interface DiffVersion {
   id: string;
@@ -45,9 +38,7 @@ function computeLcsDiff(a: string, b: string): DiffLine[] {
   const m = bLines.length;
 
   // Matrice de longueurs LCS
-  const dp: number[][] = Array.from({ length: n + 1 }, () =>
-    new Array<number>(m + 1).fill(0),
-  );
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
 
   for (let i = n - 1; i >= 0; i--) {
     for (let j = m - 1; j >= 0; j--) {
@@ -93,7 +84,14 @@ function formatSize(bytes: number): string {
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleString("fr-FR");
+    return formatDateUtil(iso, {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+    });
   } catch {
     return iso;
   }
@@ -101,9 +99,7 @@ function formatDate(iso: string): string {
 
 export function VersionDiff({ left, right }: VersionDiffProps) {
   const canTextDiff = Boolean(
-    left.content &&
-    right.content &&
-    left.content.length + right.content.length < 200_000,
+    left.content && right.content && left.content.length + right.content.length < 200_000,
   );
 
   const diff = useMemo<DiffLine[] | null>(() => {
@@ -169,49 +165,34 @@ export function VersionDiff({ left, right }: VersionDiffProps) {
       {/* En-tête */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg border border-[#892034]/30 bg-[#892034]/5 p-3">
-          <p className="text-[10px] uppercase tracking-wide text-[#837274]">
-            Version A
-          </p>
+          <p className="text-[10px] uppercase tracking-wide text-[#837274]">Version A</p>
           <p className="text-sm font-semibold text-slate-900 dark:text-white">
             v{left.versionNumber}
           </p>
-          <p className="text-[10px] text-[#837274]">
-            {formatDate(left.createdAt)}
-          </p>
+          <p className="text-[10px] text-[#837274]">{formatDate(left.createdAt)}</p>
         </div>
         <div className="rounded-lg border border-[#006233]/30 bg-[#006233]/5 p-3">
-          <p className="text-[10px] uppercase tracking-wide text-[#837274]">
-            Version B
-          </p>
+          <p className="text-[10px] uppercase tracking-wide text-[#837274]">Version B</p>
           <p className="text-sm font-semibold text-slate-900 dark:text-white">
             v{right.versionNumber}
           </p>
-          <p className="text-[10px] text-[#837274]">
-            {formatDate(right.createdAt)}
-          </p>
+          <p className="text-[10px] text-[#837274]">{formatDate(right.createdAt)}</p>
         </div>
       </div>
 
       {/* Métadonnées */}
       <div className="rounded-lg border border-gray-200 dark:border-slate-700">
         <div className="border-b border-gray-200 dark:border-slate-700 px-3 py-2">
-          <p className="text-xs font-semibold text-slate-900 dark:text-white">
-            Métadonnées
-          </p>
+          <p className="text-xs font-semibold text-slate-900 dark:text-white">Métadonnées</p>
         </div>
         <ul className="divide-y divide-gray-100 dark:divide-slate-800">
           {metaChanges.map((row) => {
             const Icon = row.icon;
             return (
-              <li
-                key={row.label}
-                className="flex items-start gap-2 px-3 py-2 text-xs"
-              >
+              <li key={row.label} className="flex items-start gap-2 px-3 py-2 text-xs">
                 <Icon className="mt-0.5 h-3.5 w-3.5 text-[#837274]" />
                 <div className="flex-1">
-                  <p className="text-[10px] uppercase text-[#837274]">
-                    {row.label}
-                  </p>
+                  <p className="text-[10px] uppercase text-[#837274]">{row.label}</p>
                   <div className="grid grid-cols-2 gap-2 mt-0.5">
                     <span
                       className={`font-mono break-all ${row.changed ? "text-[#892034]" : "text-slate-900 dark:text-slate-200"}`}
@@ -258,13 +239,9 @@ export function VersionDiff({ left, right }: VersionDiffProps) {
                   : line.type === "del"
                     ? "bg-[#892034]/10 text-[#892034]"
                     : "text-[#837274]";
-              const prefix =
-                line.type === "add" ? "+ " : line.type === "del" ? "- " : "  ";
+              const prefix = line.type === "add" ? "+ " : line.type === "del" ? "- " : "  ";
               return (
-                <div
-                  key={idx}
-                  className={`whitespace-pre-wrap px-3 py-0.5 font-mono ${cls}`}
-                >
+                <div key={idx} className={`whitespace-pre-wrap px-3 py-0.5 font-mono ${cls}`}>
                   {prefix}
                   {line.value || " "}
                 </div>
@@ -276,8 +253,8 @@ export function VersionDiff({ left, right }: VersionDiffProps) {
         <div className="rounded-lg border border-dashed border-gray-300 dark:border-slate-700 p-4 text-center">
           <FileText className="mx-auto mb-2 h-5 w-5 text-[#837274]" />
           <p className="text-xs text-[#837274]">
-            Diff textuel indisponible pour ces versions (contenu non extractible
-            ou trop volumineux). Seules les métadonnées sont comparées.
+            Diff textuel indisponible pour ces versions (contenu non extractible ou trop
+            volumineux). Seules les métadonnées sont comparées.
           </p>
         </div>
       )}

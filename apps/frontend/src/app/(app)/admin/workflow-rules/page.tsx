@@ -23,16 +23,9 @@ import {
   Skeleton,
   EmptyState,
   Badge,
+  ConfirmDialog,
 } from "@omnitech/ui";
-import {
-  Plus,
-  GitBranch,
-  RefreshCw,
-  Trash2,
-  Beaker,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+import { Plus, GitBranch, RefreshCw, Trash2, Beaker, CheckCircle2, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 
 interface WorkflowRule {
@@ -94,6 +87,7 @@ export default function WorkflowRulesAdminPage() {
   const [evalOpen, setEvalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [evalResult, setEvalResult] = useState<unknown>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -102,9 +96,7 @@ export default function WorkflowRulesAdminPage() {
     category: "",
     departmentId: "",
     minAmount: 0,
-    steps: [
-      { level: 1, approverRole: "REVIEWER", deadlineHours: 72 },
-    ] as RuleStepForm[],
+    steps: [{ level: 1, approverRole: "REVIEWER", deadlineHours: 72 }] as RuleStepForm[],
   });
 
   const [evalForm, setEvalForm] = useState({
@@ -124,11 +116,7 @@ export default function WorkflowRulesAdminPage() {
         response?: { data?: { message?: string } };
         message?: string;
       };
-      toast.error(
-        e?.response?.data?.message ??
-          e?.message ??
-          "Impossible de charger les règles",
-      );
+      toast.error(e?.response?.data?.message ?? e?.message ?? "Impossible de charger les règles");
       logger.error(err as Error, {
         page: "admin/workflow-rules",
         context: "load",
@@ -212,9 +200,7 @@ export default function WorkflowRulesAdminPage() {
         response?: { data?: { message?: string } };
         message?: string;
       };
-      toast.error(
-        e?.response?.data?.message ?? e?.message ?? "Erreur création",
-      );
+      toast.error(e?.response?.data?.message ?? e?.message ?? "Erreur création");
     } finally {
       setSaving(false);
     }
@@ -233,8 +219,14 @@ export default function WorkflowRulesAdminPage() {
     }
   };
 
-  const remove = async (id: string) => {
-    if (!confirm("Supprimer définitivement cette règle ?")) return;
+  const remove = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const confirmRemove = async () => {
+    if (!deleteId) return;
+    const id = deleteId;
+    setDeleteId(null);
     try {
       await api.delete(`/workflow-rules/${id}`);
       toast.success("Règle supprimée");
@@ -280,15 +272,8 @@ export default function WorkflowRulesAdminPage() {
               <Beaker className="h-4 w-4 mr-2" />
               Tester
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void load()}
-              disabled={loading}
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-              />
+            <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -348,10 +333,7 @@ export default function WorkflowRulesAdminPage() {
                       {Object.keys(rule.condition).length === 0
                         ? "— toutes —"
                         : Object.entries(rule.condition)
-                            .map(
-                              ([k, v]) =>
-                                `${k}=${Array.isArray(v) ? v.join("|") : String(v)}`,
-                            )
+                            .map(([k, v]) => `${k}=${Array.isArray(v) ? v.join("|") : String(v)}`)
                             .join(", ")}
                     </td>
                     <td className="p-3">
@@ -369,18 +351,10 @@ export default function WorkflowRulesAdminPage() {
                       )}
                     </td>
                     <td className="p-3 text-right space-x-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => void toggleActive(rule)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => void toggleActive(rule)}>
                         {rule.isActive ? "Désactiver" : "Activer"}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => void remove(rule.id)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => void remove(rule.id)}>
                         <Trash2 className="h-4 w-4 text-red-600" />
                       </Button>
                     </td>
@@ -413,18 +387,14 @@ export default function WorkflowRulesAdminPage() {
             type="number"
             label="Priorité (plus petit = prioritaire)"
             value={form.priority}
-            onChange={(e) =>
-              setForm({ ...form, priority: Number(e.target.value) || 100 })
-            }
+            onChange={(e) => setForm({ ...form, priority: Number(e.target.value) || 100 })}
           />
           <div className="grid grid-cols-2 gap-3">
             <Select
               label="Classification"
               options={CLASSIFICATION_OPTIONS}
               value={form.classification}
-              onChange={(e) =>
-                setForm({ ...form, classification: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, classification: e.target.value })}
             />
             <Select
               label="Catégorie"
@@ -443,9 +413,7 @@ export default function WorkflowRulesAdminPage() {
             type="number"
             label="Montant minimum (optionnel)"
             value={form.minAmount}
-            onChange={(e) =>
-              setForm({ ...form, minAmount: Number(e.target.value) || 0 })
-            }
+            onChange={(e) => setForm({ ...form, minAmount: Number(e.target.value) || 0 })}
           />
 
           <div className="space-y-2">
@@ -541,32 +509,24 @@ export default function WorkflowRulesAdminPage() {
             label="Classification"
             options={CLASSIFICATION_OPTIONS}
             value={evalForm.classification}
-            onChange={(e) =>
-              setEvalForm({ ...evalForm, classification: e.target.value })
-            }
+            onChange={(e) => setEvalForm({ ...evalForm, classification: e.target.value })}
           />
           <Select
             label="Catégorie"
             options={CATEGORY_OPTIONS}
             value={evalForm.category}
-            onChange={(e) =>
-              setEvalForm({ ...evalForm, category: e.target.value })
-            }
+            onChange={(e) => setEvalForm({ ...evalForm, category: e.target.value })}
           />
           <Input
             label="Département (UUID)"
             value={evalForm.departmentId}
-            onChange={(e) =>
-              setEvalForm({ ...evalForm, departmentId: e.target.value })
-            }
+            onChange={(e) => setEvalForm({ ...evalForm, departmentId: e.target.value })}
           />
           <Input
             type="number"
             label="Montant"
             value={evalForm.amount}
-            onChange={(e) =>
-              setEvalForm({ ...evalForm, amount: Number(e.target.value) || 0 })
-            }
+            onChange={(e) => setEvalForm({ ...evalForm, amount: Number(e.target.value) || 0 })}
           />
           <div className="flex justify-end">
             <Button onClick={() => void runEvaluate()}>Évaluer</Button>
@@ -578,6 +538,15 @@ export default function WorkflowRulesAdminPage() {
           ) : null}
         </div>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={confirmRemove}
+        title="Supprimer la règle"
+        description="Supprimer définitivement cette règle ?"
+        variant="danger"
+      />
     </div>
   );
 }

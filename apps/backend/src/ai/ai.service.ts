@@ -1,51 +1,209 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { UserRole, ROLE_HIERARCHY } from '../common/enums';
+import { Injectable, Logger } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { UserRole, ROLE_HIERARCHY } from "../common/enums";
 
 // ---------------------------------------------------------------------------
 // French stop-words used by tokenizer
 // ---------------------------------------------------------------------------
 const FR_STOP_WORDS = new Set([
-  'le', 'la', 'les', 'de', 'du', 'des', 'un', 'une', 'et', 'en', 'au', 'aux',
-  'ce', 'ces', 'ou', 'par', 'pour', 'pas', 'que', 'qui', 'sur', 'son', 'sa',
-  'ses', 'se', 'ne', 'ni', 'il', 'elle', 'nous', 'vous', 'ils', 'elles',
-  'est', 'sont', 'dans', 'avec', 'plus', 'mais', 'tout', 'tous', 'comme',
-  'cette', 'leur', 'leurs', 'bien', 'fait', 'peut', 'ont', 'dit', 'aussi',
-  'car', 'entre', 'vers', 'chez', 'sans', 'sous', 'donc', 'lors', 'si',
-  'nos', 'vos', 'mes', 'tes', 'mon', 'ton', 'peu', 'trop', 'tre', 'ici',
+  "le",
+  "la",
+  "les",
+  "de",
+  "du",
+  "des",
+  "un",
+  "une",
+  "et",
+  "en",
+  "au",
+  "aux",
+  "ce",
+  "ces",
+  "ou",
+  "par",
+  "pour",
+  "pas",
+  "que",
+  "qui",
+  "sur",
+  "son",
+  "sa",
+  "ses",
+  "se",
+  "ne",
+  "ni",
+  "il",
+  "elle",
+  "nous",
+  "vous",
+  "ils",
+  "elles",
+  "est",
+  "sont",
+  "dans",
+  "avec",
+  "plus",
+  "mais",
+  "tout",
+  "tous",
+  "comme",
+  "cette",
+  "leur",
+  "leurs",
+  "bien",
+  "fait",
+  "peut",
+  "ont",
+  "dit",
+  "aussi",
+  "car",
+  "entre",
+  "vers",
+  "chez",
+  "sans",
+  "sous",
+  "donc",
+  "lors",
+  "si",
+  "nos",
+  "vos",
+  "mes",
+  "tes",
+  "mon",
+  "ton",
+  "peu",
+  "trop",
+  "tre",
+  "ici",
 ]);
 
 // ---------------------------------------------------------------------------
 // Keyword maps for analyzeTicket
 // ---------------------------------------------------------------------------
 const HIGH_PRIORITY_KEYWORDS = [
-  'urgent', 'critique', 'bloquant', 'production', 'panne', 'indisponible',
-  'hors service', 'crash', 'down', 'security', 'fuite', 'breach', 'ransomware',
-  'compromis', 'intrusion', 'malware', 'ddos', 'phishing',
+  "urgent",
+  "critique",
+  "bloquant",
+  "production",
+  "panne",
+  "indisponible",
+  "hors service",
+  "crash",
+  "down",
+  "security",
+  "fuite",
+  "breach",
+  "ransomware",
+  "compromis",
+  "intrusion",
+  "malware",
+  "ddos",
+  "phishing",
 ];
 
 const MEDIUM_PRIORITY_KEYWORDS = [
-  'lent', 'erreur', 'bug', 'dysfonctionnement', 'probleme', 'defaillance',
-  'intermittent', 'performance', 'timeout', 'echec', 'impossible',
+  "lent",
+  "erreur",
+  "bug",
+  "dysfonctionnement",
+  "probleme",
+  "defaillance",
+  "intermittent",
+  "performance",
+  "timeout",
+  "echec",
+  "impossible",
 ];
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  SECURITE: ['virus', 'malware', 'phishing', 'firewall', 'vpn', 'mot de passe', 'password', 'ransomware', 'intrusion', 'fuite', 'compromis'],
-  RESEAU: ['reseau', 'network', 'wifi', 'dns', 'dhcp', 'ip', 'switch', 'routeur', 'latence', 'debit', 'connexion'],
-  MATERIEL: ['ecran', 'clavier', 'souris', 'imprimante', 'pc', 'laptop', 'portable', 'batterie', 'chargeur', 'casque'],
-  LOGICIEL: ['logiciel', 'application', 'mise a jour', 'update', 'licence', 'installation', 'office', 'teams', 'outlook'],
-  ACCES: ['acces', 'permission', 'droit', 'compte', 'login', 'authentification', 'badge', 'session'],
+  SECURITE: [
+    "virus",
+    "malware",
+    "phishing",
+    "firewall",
+    "vpn",
+    "mot de passe",
+    "password",
+    "ransomware",
+    "intrusion",
+    "fuite",
+    "compromis",
+  ],
+  RESEAU: [
+    "reseau",
+    "network",
+    "wifi",
+    "dns",
+    "dhcp",
+    "ip",
+    "switch",
+    "routeur",
+    "latence",
+    "debit",
+    "connexion",
+  ],
+  MATERIEL: [
+    "ecran",
+    "clavier",
+    "souris",
+    "imprimante",
+    "pc",
+    "laptop",
+    "portable",
+    "batterie",
+    "chargeur",
+    "casque",
+  ],
+  LOGICIEL: [
+    "logiciel",
+    "application",
+    "mise a jour",
+    "update",
+    "licence",
+    "installation",
+    "office",
+    "teams",
+    "outlook",
+  ],
+  ACCES: [
+    "acces",
+    "permission",
+    "droit",
+    "compte",
+    "login",
+    "authentification",
+    "badge",
+    "session",
+  ],
 };
 
 const CONTENT_CATEGORIES: Record<string, string[]> = {
-  POLICY: ['politique', 'policy', 'directive', 'reglement', 'gouvernance', 'charte', 'cadre', 'norme'],
-  PROCEDURE: ['procedure', 'processus', 'workflow', 'etape', 'instructions', 'mode operatoire', 'methode'],
-  GUIDE: ['guide', 'tutoriel', 'howto', 'comment', 'bonnes pratiques', 'recommandation', 'conseil'],
-  REPORT: ['rapport', 'report', 'bilan', 'analyse', 'synthese', 'audit', 'revue', 'resultat'],
-  PLAN: ['plan', 'planification', 'roadmap', 'strategie', 'objectif', 'programme', 'planning'],
-  RECORD: ['enregistrement', 'trace', 'evidence', 'preuve', 'log', 'journal', 'historique'],
-  FORM: ['formulaire', 'form', 'template', 'modele', 'fiche', 'demande', 'requete'],
-  CONTRACT: ['contrat', 'contract', 'accord', 'convention', 'engagement', 'sla', 'nda'],
+  POLICY: [
+    "politique",
+    "policy",
+    "directive",
+    "reglement",
+    "gouvernance",
+    "charte",
+    "cadre",
+    "norme",
+  ],
+  PROCEDURE: [
+    "procedure",
+    "processus",
+    "workflow",
+    "etape",
+    "instructions",
+    "mode operatoire",
+    "methode",
+  ],
+  GUIDE: ["guide", "tutoriel", "howto", "comment", "bonnes pratiques", "recommandation", "conseil"],
+  REPORT: ["rapport", "report", "bilan", "analyse", "synthese", "audit", "revue", "resultat"],
+  PLAN: ["plan", "planification", "roadmap", "strategie", "objectif", "programme", "planning"],
+  RECORD: ["enregistrement", "trace", "evidence", "preuve", "log", "journal", "historique"],
+  FORM: ["formulaire", "form", "template", "modele", "fiche", "demande", "requete"],
+  CONTRACT: ["contrat", "contract", "accord", "convention", "engagement", "sla", "nda"],
 };
 
 @Injectable()
@@ -65,7 +223,16 @@ export class AiService {
   async smartSearch(query: string, userId: string, userRole?: UserRole) {
     const tokens = this.tokenize(query);
     if (tokens.length === 0) {
-      return { documents: [], wiki: [], tickets: [], news: [], runbooks: [], veille: [], kb: [], suggestions: [] };
+      return {
+        documents: [],
+        wiki: [],
+        tickets: [],
+        news: [],
+        runbooks: [],
+        veille: [],
+        kb: [],
+        suggestions: [],
+      };
     }
 
     const [documents, wiki, tickets, news, runbooks, veille, kb] = await Promise.all([
@@ -98,24 +265,24 @@ export class AiService {
     const text = `${title} ${description} ${category}`.toLowerCase();
 
     // Priority detection
-    let suggestedPriority = 'MEDIUM';
+    let suggestedPriority = "MEDIUM";
     const highMatch = HIGH_PRIORITY_KEYWORDS.find((kw) => text.includes(kw));
     if (highMatch) {
-      suggestedPriority = 'HIGH';
+      suggestedPriority = "HIGH";
     }
     const criticalSignals = HIGH_PRIORITY_KEYWORDS.filter((kw) => text.includes(kw));
     if (criticalSignals.length >= 3) {
-      suggestedPriority = 'CRITICAL';
+      suggestedPriority = "CRITICAL";
     }
     if (!highMatch) {
       const medMatch = MEDIUM_PRIORITY_KEYWORDS.find((kw) => text.includes(kw));
       if (!medMatch) {
-        suggestedPriority = 'LOW';
+        suggestedPriority = "LOW";
       }
     }
 
     // Category suggestion
-    let suggestedCategory = category || 'OTHER';
+    let suggestedCategory = category || "OTHER";
     let bestCategoryScore = 0;
     for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
       const score = keywords.filter((kw) => text.includes(kw)).length;
@@ -127,11 +294,12 @@ export class AiService {
 
     // Risk flags
     const riskFlags: string[] = [];
-    if (text.includes('production')) riskFlags.push('Impact production');
-    if (text.includes('securite') || text.includes('security')) riskFlags.push('Risque securite');
-    if (text.includes('donnees') || text.includes('data')) riskFlags.push('Donnees sensibles');
-    if (text.includes('fuite') || text.includes('breach')) riskFlags.push('Fuite potentielle');
-    if (text.includes('rgpd') || text.includes('gdpr') || text.includes('cnil')) riskFlags.push('Impact RGPD');
+    if (text.includes("production")) riskFlags.push("Impact production");
+    if (text.includes("securite") || text.includes("security")) riskFlags.push("Risque securite");
+    if (text.includes("donnees") || text.includes("data")) riskFlags.push("Donnees sensibles");
+    if (text.includes("fuite") || text.includes("breach")) riskFlags.push("Fuite potentielle");
+    if (text.includes("rgpd") || text.includes("gdpr") || text.includes("cnil"))
+      riskFlags.push("Impact RGPD");
 
     return {
       suggestedPriority,
@@ -151,64 +319,86 @@ export class AiService {
       select: { departmentId: true, role: true, firstName: true },
     });
 
-    if (!user) return { greeting: '', documents: [], wiki: [], actions: [] };
+    if (!user) return { greeting: "", documents: [], wiki: [], actions: [] };
 
     const greeting = this.getSmartGreeting(user.firstName);
-
-    // Department-specific recent documents
-    const documents = await this.prisma.document.findMany({
-      where: {
-        deletedAt: null,
-        status: 'APPROVED',
-        ...(user.departmentId ? { owner: { departmentId: user.departmentId } } : {}),
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: 5,
-      select: { id: true, title: true, reference: true, category: true, updatedAt: true },
-    }).catch((err) => {
-      this.logger.warn(`getRecommendations documents: ${err?.message}`);
-      return [];
-    });
-
-    // Recent wiki pages
-    const wiki = await this.prisma.wikiPage.findMany({
-      where: { isPublished: true },
-      orderBy: { updatedAt: 'desc' },
-      take: 5,
-      select: { id: true, title: true, slug: true, category: true, updatedAt: true },
-    }).catch((err) => {
-      this.logger.warn(`getRecommendations wiki: ${err?.message}`);
-      return [];
-    });
 
     // Actionable items
     const actions: Array<{ type: string; label: string; link?: string }> = [];
 
-    // Unsigned chartes
-    const unsignedChartes = await this.prisma.charte.findMany({
-      where: {
-        isActive: true,
-        isMandatory: true,
-        signatures: { none: { userId } },
-      },
-      select: { id: true, title: true },
-    }).catch((err) => {
-      this.logger.warn(`getRecommendations unsignedChartes: ${err?.message}`);
-      return [];
-    });
+    // Les 4 requêtes suivantes sont indépendantes entre elles (dépendent
+    // uniquement du `user` résolu ci-dessus) → exécutées en parallèle.
+    const [documents, wiki, unsignedChartes, unreadCount] = await Promise.all([
+      // Department-specific recent documents
+      this.prisma.document
+        .findMany({
+          where: {
+            deletedAt: null,
+            status: "APPROVED",
+            ...(user.departmentId ? { owner: { departmentId: user.departmentId } } : {}),
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 5,
+          select: { id: true, title: true, reference: true, category: true, updatedAt: true },
+        })
+        .catch((err) => {
+          this.logger.warn(`getRecommendations documents: ${err?.message}`);
+          return [];
+        }),
+
+      // Recent wiki pages
+      this.prisma.wikiPage
+        .findMany({
+          where: { isPublished: true },
+          orderBy: { updatedAt: "desc" },
+          take: 5,
+          select: { id: true, title: true, slug: true, category: true, updatedAt: true },
+        })
+        .catch((err) => {
+          this.logger.warn(`getRecommendations wiki: ${err?.message}`);
+          return [];
+        }),
+
+      // Unsigned chartes
+      this.prisma.charte
+        .findMany({
+          where: {
+            isActive: true,
+            isMandatory: true,
+            signatures: { none: { userId } },
+          },
+          select: { id: true, title: true },
+        })
+        .catch((err) => {
+          this.logger.warn(`getRecommendations unsignedChartes: ${err?.message}`);
+          return [];
+        }),
+
+      // Unread notifications count
+      this.prisma.notification
+        .count({
+          where: { userId, isRead: false },
+        })
+        .catch((err) => {
+          this.logger.warn(`getRecommendations unreadCount: ${err?.message}`);
+          return 0;
+        }),
+    ]);
+
     for (const c of unsignedChartes) {
-      actions.push({ type: 'CHARTE', label: `Signer la charte : ${c.title}`, link: `/chartes/${c.id}` });
+      actions.push({
+        type: "CHARTE",
+        label: `Signer la charte : ${c.title}`,
+        link: `/chartes/${c.id}`,
+      });
     }
 
-    // Unread notifications count
-    const unreadCount = await this.prisma.notification.count({
-      where: { userId, isRead: false },
-    }).catch((err) => {
-      this.logger.warn(`getRecommendations unreadCount: ${err?.message}`);
-      return 0;
-    });
     if (unreadCount > 0) {
-      actions.push({ type: 'NOTIFICATION', label: `${unreadCount} notification(s) non lue(s)`, link: '/notifications' });
+      actions.push({
+        type: "NOTIFICATION",
+        label: `${unreadCount} notification(s) non lue(s)`,
+        link: "/notifications",
+      });
     }
 
     return { greeting, documents, wiki, actions };
@@ -232,7 +422,7 @@ export class AiService {
     const best = scores[0];
 
     return {
-      suggestedCategory: best?.category || 'OTHER',
+      suggestedCategory: best?.category || "OTHER",
       confidence: best ? Math.min(best.score / 3, 1) : 0,
       matchedKeywords: best?.keywords || [],
       alternatives: scores.slice(1, 4).map((s) => ({ category: s.category, score: s.score })),
@@ -272,24 +462,31 @@ export class AiService {
     // 1. Profile completeness score
     // -----------------------------------------------------------------------
     const profileFields = [
-      user.firstName, user.lastName, user.email, user.avatarUrl,
-      user.phone, user.jobTitle, user.location, user.skills, user.languages,
+      user.firstName,
+      user.lastName,
+      user.email,
+      user.avatarUrl,
+      user.phone,
+      user.jobTitle,
+      user.location,
+      user.skills,
+      user.languages,
     ];
     const filledCount = profileFields.filter(Boolean).length;
     const profileScore = Math.round((filledCount / profileFields.length) * 100);
 
     if (profileScore < 100) {
       const missing: string[] = [];
-      if (!user.avatarUrl) missing.push('photo de profil');
-      if (!user.phone) missing.push('telephone');
-      if (!user.jobTitle) missing.push('poste');
-      if (!user.location) missing.push('localisation');
-      if (!user.skills) missing.push('competences');
-      if (!user.languages) missing.push('langues');
+      if (!user.avatarUrl) missing.push("photo de profil");
+      if (!user.phone) missing.push("telephone");
+      if (!user.jobTitle) missing.push("poste");
+      if (!user.location) missing.push("localisation");
+      if (!user.skills) missing.push("competences");
+      if (!user.languages) missing.push("langues");
       tips.push({
-        type: 'PROFILE',
-        message: `Completez votre profil (${profileScore}%) : ajoutez ${missing.slice(0, 3).join(', ')}`,
-        link: '/profile',
+        type: "PROFILE",
+        message: `Completez votre profil (${profileScore}%) : ajoutez ${missing.slice(0, 3).join(", ")}`,
+        link: "/profile",
         priority: 1,
       });
     }
@@ -297,22 +494,24 @@ export class AiService {
     // -----------------------------------------------------------------------
     // 2. Unsigned chartes
     // -----------------------------------------------------------------------
-    const unsignedChartes = await this.prisma.charte.count({
-      where: {
-        isActive: true,
-        isMandatory: true,
-        signatures: { none: { userId } },
-      },
-    }).catch((err) => {
-      this.logger.warn(`generateUxInsights unsignedChartes: ${err?.message}`);
-      return 0;
-    });
+    const unsignedChartes = await this.prisma.charte
+      .count({
+        where: {
+          isActive: true,
+          isMandatory: true,
+          signatures: { none: { userId } },
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`generateUxInsights unsignedChartes: ${err?.message}`);
+        return 0;
+      });
 
     if (unsignedChartes > 0) {
       tips.push({
-        type: 'COMPLIANCE',
+        type: "COMPLIANCE",
         message: `${unsignedChartes} charte(s) obligatoire(s) en attente de signature`,
-        link: '/chartes',
+        link: "/chartes",
         priority: 0,
       });
     }
@@ -320,18 +519,20 @@ export class AiService {
     // -----------------------------------------------------------------------
     // 3. Unread notifications
     // -----------------------------------------------------------------------
-    const unreadNotifs = await this.prisma.notification.count({
-      where: { userId, isRead: false },
-    }).catch((err) => {
-      this.logger.warn(`generateUxInsights unreadNotifs: ${err?.message}`);
-      return 0;
-    });
+    const unreadNotifs = await this.prisma.notification
+      .count({
+        where: { userId, isRead: false },
+      })
+      .catch((err) => {
+        this.logger.warn(`generateUxInsights unreadNotifs: ${err?.message}`);
+        return 0;
+      });
 
     if (unreadNotifs > 5) {
       tips.push({
-        type: 'NOTIFICATION',
+        type: "NOTIFICATION",
         message: `Vous avez ${unreadNotifs} notifications non lues`,
-        link: '/notifications',
+        link: "/notifications",
         priority: 2,
       });
     }
@@ -344,74 +545,102 @@ export class AiService {
 
     if (isNewUser) {
       tips.push(
-        { type: 'ONBOARDING', message: 'Decouvrez le wiki interne pour les guides et procedures', link: '/wiki', priority: 3 },
-        { type: 'ONBOARDING', message: 'Consultez les actualites de l\'entreprise', link: '/news', priority: 3 },
-        { type: 'ONBOARDING', message: 'Familiarisez-vous avec le systeme de tickets IT', link: '/tickets', priority: 3 },
+        {
+          type: "ONBOARDING",
+          message: "Decouvrez le wiki interne pour les guides et procedures",
+          link: "/wiki",
+          priority: 3,
+        },
+        {
+          type: "ONBOARDING",
+          message: "Consultez les actualites de l'entreprise",
+          link: "/news",
+          priority: 3,
+        },
+        {
+          type: "ONBOARDING",
+          message: "Familiarisez-vous avec le systeme de tickets IT",
+          link: "/tickets",
+          priority: 3,
+        },
       );
     }
 
     // -----------------------------------------------------------------------
     // 5. Achievements
     // -----------------------------------------------------------------------
-    const docsOwned = await this.prisma.document.count({
-      where: { ownerId: userId, deletedAt: null },
-    }).catch((err) => {
-      this.logger.warn(`generateUxInsights docsOwned: ${err?.message}`);
-      return 0;
-    });
-    if (docsOwned >= 10) achievements.push({ icon: 'file-text', label: 'Auteur prolifique (10+ documents)' });
-    if (docsOwned >= 1) achievements.push({ icon: 'file-plus', label: 'Premier document cree' });
+    const docsOwned = await this.prisma.document
+      .count({
+        where: { ownerId: userId, deletedAt: null },
+      })
+      .catch((err) => {
+        this.logger.warn(`generateUxInsights docsOwned: ${err?.message}`);
+        return 0;
+      });
+    if (docsOwned >= 10)
+      achievements.push({ icon: "file-text", label: "Auteur prolifique (10+ documents)" });
+    if (docsOwned >= 1) achievements.push({ icon: "file-plus", label: "Premier document cree" });
 
-    const wikiPages = await this.prisma.wikiPage.count({
-      where: { authorId: userId },
-    }).catch((err) => {
-      this.logger.warn(`generateUxInsights wikiPages: ${err?.message}`);
-      return 0;
-    });
-    if (wikiPages >= 5) achievements.push({ icon: 'book-open', label: 'Contributeur wiki (5+ pages)' });
-    if (wikiPages >= 1) achievements.push({ icon: 'book', label: 'Premiere page wiki' });
+    const wikiPages = await this.prisma.wikiPage
+      .count({
+        where: { authorId: userId },
+      })
+      .catch((err) => {
+        this.logger.warn(`generateUxInsights wikiPages: ${err?.message}`);
+        return 0;
+      });
+    if (wikiPages >= 5)
+      achievements.push({ icon: "book-open", label: "Contributeur wiki (5+ pages)" });
+    if (wikiPages >= 1) achievements.push({ icon: "book", label: "Premiere page wiki" });
 
-    const ticketsResolved = await this.prisma.ticket.count({
-      where: { assigneeId: userId, status: 'RESOLVED' },
-    }).catch((err) => {
-      this.logger.warn(`generateUxInsights ticketsResolved: ${err?.message}`);
-      return 0;
-    });
-    if (ticketsResolved >= 20) achievements.push({ icon: 'check-circle', label: 'Expert support (20+ tickets resolus)' });
+    const ticketsResolved = await this.prisma.ticket
+      .count({
+        where: { assigneeId: userId, status: "RESOLVED" },
+      })
+      .catch((err) => {
+        this.logger.warn(`generateUxInsights ticketsResolved: ${err?.message}`);
+        return 0;
+      });
+    if (ticketsResolved >= 20)
+      achievements.push({ icon: "check-circle", label: "Expert support (20+ tickets resolus)" });
 
     // -----------------------------------------------------------------------
     // 6. Admin-specific insights
     // -----------------------------------------------------------------------
     const role = userRole || (user.role as UserRole);
     if (ROLE_HIERARCHY[role] >= ROLE_HIERARCHY[UserRole.ADMIN]) {
-      const pendingApproval = await this.prisma.document.count({
-        where: { status: 'PENDING_APPROVAL', deletedAt: null },
-      }).catch((err) => {
-        this.logger.warn(`generateUxInsights pendingApproval: ${err?.message}`);
-        return 0;
-      });
+      const pendingApproval = await this.prisma.document
+        .count({
+          where: { status: "PENDING_APPROVAL", deletedAt: null },
+        })
+        .catch((err) => {
+          this.logger.warn(`generateUxInsights pendingApproval: ${err?.message}`);
+          return 0;
+        });
 
       if (pendingApproval > 0) {
         tips.push({
-          type: 'ADMIN',
+          type: "ADMIN",
           message: `${pendingApproval} document(s) en attente d'approbation`,
-          link: '/documents?status=PENDING_APPROVAL',
+          link: "/documents?status=PENDING_APPROVAL",
           priority: 1,
         });
       }
 
-      const overdueCompliance = await this.prisma.complianceTask.count({
-        where: { status: 'OVERDUE' },
-      }).catch((err) => {
-        this.logger.warn(`generateUxInsights overdueCompliance: ${err?.message}`);
-        return 0;
-      });
+      const overdueCompliance = await this.prisma.complianceTask
+        .count({
+          where: { status: "OVERDUE" },
+        })
+        .catch((err) => {
+          this.logger.warn(`generateUxInsights overdueCompliance: ${err?.message}`);
+          return 0;
+        });
 
       if (overdueCompliance > 0) {
         tips.push({
-          type: 'ADMIN',
+          type: "ADMIN",
           message: `${overdueCompliance} tache(s) de conformite en retard`,
-          link: '/compliance',
+          link: "/compliance",
           priority: 0,
         });
       }
@@ -431,33 +660,35 @@ export class AiService {
    * Search documents with ISO 27001 A.5.12 classification-based filtering.
    */
   private async searchDocuments(tokens: string[], userId: string, userRole?: UserRole) {
-    const docs = await this.prisma.document.findMany({
-      where: {
-        deletedAt: null,
-        status: { in: ['APPROVED', 'IN_REVIEW', 'PENDING_APPROVAL'] },
-        OR: tokens.flatMap((t) => [
-          { title: { contains: t, mode: 'insensitive' as const } },
-          { description: { contains: t, mode: 'insensitive' as const } },
-          { reference: { contains: t, mode: 'insensitive' as const } },
-          { content: { contains: t, mode: 'insensitive' as const } },
-        ]),
-      },
-      take: 20,
-      select: {
-        id: true,
-        title: true,
-        reference: true,
-        description: true,
-        category: true,
-        status: true,
-        classification: true,
-        updatedAt: true,
-        owner: { select: { id: true, firstName: true, lastName: true } },
-      },
-    }).catch((err) => {
-      this.logger.warn(`searchDocuments: ${err?.message}`);
-      return [];
-    });
+    const docs = await this.prisma.document
+      .findMany({
+        where: {
+          deletedAt: null,
+          status: { in: ["APPROVED", "IN_REVIEW", "PENDING_APPROVAL"] },
+          OR: tokens.flatMap((t) => [
+            { title: { contains: t, mode: "insensitive" as const } },
+            { description: { contains: t, mode: "insensitive" as const } },
+            { reference: { contains: t, mode: "insensitive" as const } },
+            { content: { contains: t, mode: "insensitive" as const } },
+          ]),
+        },
+        take: 20,
+        select: {
+          id: true,
+          title: true,
+          reference: true,
+          description: true,
+          category: true,
+          status: true,
+          classification: true,
+          updatedAt: true,
+          owner: { select: { id: true, firstName: true, lastName: true } },
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`searchDocuments: ${err?.message}`);
+        return [];
+      });
 
     // ISO 27001 A.5.12: filter by classification level
     const roleLevel = userRole ? ROLE_HIERARCHY[userRole] : ROLE_HIERARCHY[UserRole.COLLABORATEUR];
@@ -477,145 +708,155 @@ export class AiService {
   }
 
   private async searchWiki(tokens: string[]) {
-    const pages = await this.prisma.wikiPage.findMany({
-      where: {
-        isPublished: true,
-        OR: tokens.flatMap((t) => [
-          { title: { contains: t, mode: 'insensitive' as const } },
-          { content: { contains: t, mode: 'insensitive' as const } },
-          { category: { contains: t, mode: 'insensitive' as const } },
-        ]),
-      },
-      take: 15,
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        category: true,
-        updatedAt: true,
-        author: { select: { id: true, firstName: true, lastName: true } },
-      },
-    }).catch((err) => {
-      this.logger.warn(`searchWiki: ${err?.message}`);
-      return [];
-    });
+    const pages = await this.prisma.wikiPage
+      .findMany({
+        where: {
+          isPublished: true,
+          OR: tokens.flatMap((t) => [
+            { title: { contains: t, mode: "insensitive" as const } },
+            { content: { contains: t, mode: "insensitive" as const } },
+            { category: { contains: t, mode: "insensitive" as const } },
+          ]),
+        },
+        take: 15,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          category: true,
+          updatedAt: true,
+          author: { select: { id: true, firstName: true, lastName: true } },
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`searchWiki: ${err?.message}`);
+        return [];
+      });
 
     return this.scoreResults(pages, tokens);
   }
 
   private async searchTickets(tokens: string[]) {
-    const tickets = await this.prisma.ticket.findMany({
-      where: {
-        OR: tokens.flatMap((t) => [
-          { title: { contains: t, mode: 'insensitive' as const } },
-          { description: { contains: t, mode: 'insensitive' as const } },
-          { reference: { contains: t, mode: 'insensitive' as const } },
-        ]),
-      },
-      take: 10,
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        reference: true,
-        status: true,
-        priority: true,
-        category: true,
-        updatedAt: true,
-        creator: { select: { id: true, firstName: true, lastName: true } },
-      },
-    }).catch((err) => {
-      this.logger.warn(`searchTickets: ${err?.message}`);
-      return [];
-    });
+    const tickets = await this.prisma.ticket
+      .findMany({
+        where: {
+          OR: tokens.flatMap((t) => [
+            { title: { contains: t, mode: "insensitive" as const } },
+            { description: { contains: t, mode: "insensitive" as const } },
+            { reference: { contains: t, mode: "insensitive" as const } },
+          ]),
+        },
+        take: 10,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          reference: true,
+          status: true,
+          priority: true,
+          category: true,
+          updatedAt: true,
+          creator: { select: { id: true, firstName: true, lastName: true } },
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`searchTickets: ${err?.message}`);
+        return [];
+      });
 
     return this.scoreResults(tickets, tokens);
   }
 
   private async searchNews(tokens: string[]) {
-    const posts = await this.prisma.newsPost.findMany({
-      where: {
-        isPublished: true,
-        deletedAt: null,
-        OR: tokens.flatMap((t) => [
-          { title: { contains: t, mode: 'insensitive' as const } },
-          { content: { contains: t, mode: 'insensitive' as const } },
-          { excerpt: { contains: t, mode: 'insensitive' as const } },
-        ]),
-      },
-      take: 10,
-      orderBy: { publishedAt: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        excerpt: true,
-        category: true,
-        publishedAt: true,
-        updatedAt: true,
-        author: { select: { id: true, firstName: true, lastName: true } },
-      },
-    }).catch((err) => {
-      this.logger.warn(`searchNews: ${err?.message}`);
-      return [];
-    });
+    const posts = await this.prisma.newsPost
+      .findMany({
+        where: {
+          isPublished: true,
+          deletedAt: null,
+          OR: tokens.flatMap((t) => [
+            { title: { contains: t, mode: "insensitive" as const } },
+            { content: { contains: t, mode: "insensitive" as const } },
+            { excerpt: { contains: t, mode: "insensitive" as const } },
+          ]),
+        },
+        take: 10,
+        orderBy: { publishedAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          excerpt: true,
+          category: true,
+          publishedAt: true,
+          updatedAt: true,
+          author: { select: { id: true, firstName: true, lastName: true } },
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`searchNews: ${err?.message}`);
+        return [];
+      });
 
     return this.scoreResults(posts, tokens);
   }
 
   private async searchRunbooks(tokens: string[]) {
-    const runbooks = await this.prisma.runbook.findMany({
-      where: {
-        isPublished: true,
-        OR: tokens.flatMap((t) => [
-          { title: { contains: t, mode: 'insensitive' as const } },
-          { description: { contains: t, mode: 'insensitive' as const } },
-          { category: { contains: t, mode: 'insensitive' as const } },
-        ]),
-      },
-      take: 10,
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        description: true,
-        category: true,
-        updatedAt: true,
-      },
-    }).catch((err) => {
-      this.logger.warn(`searchRunbooks: ${err?.message}`);
-      return [];
-    });
+    const runbooks = await this.prisma.runbook
+      .findMany({
+        where: {
+          isPublished: true,
+          OR: tokens.flatMap((t) => [
+            { title: { contains: t, mode: "insensitive" as const } },
+            { description: { contains: t, mode: "insensitive" as const } },
+            { category: { contains: t, mode: "insensitive" as const } },
+          ]),
+        },
+        take: 10,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          category: true,
+          updatedAt: true,
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`searchRunbooks: ${err?.message}`);
+        return [];
+      });
 
     return this.scoreResults(runbooks, tokens);
   }
 
   private async searchVeille(tokens: string[]) {
-    const items = await this.prisma.veilleItem.findMany({
-      where: {
-        OR: tokens.flatMap((t) => [
-          { title: { contains: t, mode: 'insensitive' as const } },
-          { description: { contains: t, mode: 'insensitive' as const } },
-          { sourceName: { contains: t, mode: 'insensitive' as const } },
-          { cveId: { contains: t, mode: 'insensitive' as const } },
-        ]),
-      },
-      take: 10,
-      orderBy: { publishedAt: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        sourceUrl: true,
-        sourceName: true,
-        severity: true,
-        cveId: true,
-        publishedAt: true,
-      },
-    }).catch((err) => {
-      this.logger.warn(`searchVeille: ${err?.message}`);
-      return [];
-    });
+    const items = await this.prisma.veilleItem
+      .findMany({
+        where: {
+          OR: tokens.flatMap((t) => [
+            { title: { contains: t, mode: "insensitive" as const } },
+            { description: { contains: t, mode: "insensitive" as const } },
+            { sourceName: { contains: t, mode: "insensitive" as const } },
+            { cveId: { contains: t, mode: "insensitive" as const } },
+          ]),
+        },
+        take: 10,
+        orderBy: { publishedAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          sourceUrl: true,
+          sourceName: true,
+          severity: true,
+          cveId: true,
+          publishedAt: true,
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`searchVeille: ${err?.message}`);
+        return [];
+      });
 
     return this.scoreResults(items, tokens);
   }
@@ -625,39 +866,41 @@ export class AiService {
     // Note: searchWiki already returns all published pages (including PUBLIC).
     // Here we return only PUBLIC pages that also have a 'kb' or 'faq' category
     // to avoid duplicating generic wiki results.
-    const pages = await this.prisma.wikiPage.findMany({
-      where: {
-        isPublished: true,
-        visibility: 'PUBLIC',
-        AND: [
-          {
-            OR: [
-              { category: { contains: 'support', mode: 'insensitive' as const } },
-              { category: { contains: 'faq', mode: 'insensitive' as const } },
-              { category: { contains: 'kb', mode: 'insensitive' as const } },
-              { category: { contains: 'helpdesk', mode: 'insensitive' as const } },
-            ],
-          },
-          {
-            OR: tokens.flatMap((t) => [
-              { title: { contains: t, mode: 'insensitive' as const } },
-              { content: { contains: t, mode: 'insensitive' as const } },
-            ]),
-          },
-        ],
-      },
-      take: 10,
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        category: true,
-        updatedAt: true,
-      },
-    }).catch((err) => {
-      this.logger.warn(`searchKB: ${err?.message}`);
-      return [];
-    });
+    const pages = await this.prisma.wikiPage
+      .findMany({
+        where: {
+          isPublished: true,
+          visibility: "PUBLIC",
+          AND: [
+            {
+              OR: [
+                { category: { contains: "support", mode: "insensitive" as const } },
+                { category: { contains: "faq", mode: "insensitive" as const } },
+                { category: { contains: "kb", mode: "insensitive" as const } },
+                { category: { contains: "helpdesk", mode: "insensitive" as const } },
+              ],
+            },
+            {
+              OR: tokens.flatMap((t) => [
+                { title: { contains: t, mode: "insensitive" as const } },
+                { content: { contains: t, mode: "insensitive" as const } },
+              ]),
+            },
+          ],
+        },
+        take: 10,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          category: true,
+          updatedAt: true,
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`searchKB: ${err?.message}`);
+        return [];
+      });
 
     return this.scoreResults(pages, tokens);
   }
@@ -672,13 +915,11 @@ export class AiService {
   private tokenize(text: string): string[] {
     const normalized = text
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s]/g, ' ');
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ");
 
-    return normalized
-      .split(/\s+/)
-      .filter((t) => t.length > 2 && !FR_STOP_WORDS.has(t));
+    return normalized.split(/\s+/).filter((t) => t.length > 2 && !FR_STOP_WORDS.has(t));
   }
 
   /**
@@ -688,14 +929,17 @@ export class AiService {
    * - recency bonus: +20%
    * - popularity bonus: +15%
    */
-  private scoreResults<T extends Record<string, any>>(items: T[], tokens: string[]): (T & { _score: number })[] {
+  private scoreResults<T extends Record<string, any>>(
+    items: T[],
+    tokens: string[],
+  ): (T & { _score: number })[] {
     const now = Date.now();
 
     const scored = items.map((item) => {
       let score = 0;
 
-      const title = (item.title || '').toLowerCase();
-      const body = (item.description || item.content || item.excerpt || '').toLowerCase();
+      const title = (item.title || "").toLowerCase();
+      const body = (item.description || item.content || item.excerpt || "").toLowerCase();
 
       for (const token of tokens) {
         // Title match: 3x weight
@@ -743,11 +987,7 @@ export class AiService {
     for (let i = 1; i <= m; i++) {
       for (let j = 1; j <= n; j++) {
         const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        dp[i][j] = Math.min(
-          dp[i - 1][j] + 1,
-          dp[i][j - 1] + 1,
-          dp[i - 1][j - 1] + cost,
-        );
+        dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
       }
     }
 

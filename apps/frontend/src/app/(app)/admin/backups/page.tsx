@@ -2,16 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { formatDate as formatDateUtil } from "@/lib/utils";
 import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
 import { PageHeader } from "@/components/layout/page-header";
-import {
-  Database,
-  Download,
-  Trash2,
-  Upload,
-  Loader2,
-  AlertTriangle,
-} from "lucide-react";
+import { Database, Download, Trash2, Upload, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n";
 import { EmptyState } from "@omnitech/ui";
@@ -32,7 +26,7 @@ function formatBytes(bytes: number): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString("fr-FR", {
+  return formatDateUtil(iso, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -79,9 +73,7 @@ export default function BackupsPage() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const { data } = await api.post<{ success: boolean; message: string }>(
-        "/backup/export",
-      );
+      const { data } = await api.post<{ success: boolean; message: string }>("/backup/export");
       if (data.success) {
         toast.success("Sauvegarde terminée avec succès");
         await loadBackups();
@@ -97,12 +89,9 @@ export default function BackupsPage() {
 
   const handleDownload = async (filename: string) => {
     try {
-      const response = await api.get(
-        `/backup/download/${encodeURIComponent(filename)}`,
-        {
-          responseType: "blob",
-        },
-      );
+      const response = await api.get(`/backup/download/${encodeURIComponent(filename)}`, {
+        responseType: "blob",
+      });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement("a");
       a.href = url;
@@ -129,9 +118,7 @@ export default function BackupsPage() {
 
   const handleFileSelect = (file: File) => {
     const valid =
-      file.name.endsWith(".sql.gz") ||
-      file.name.endsWith(".tar.gz") ||
-      file.name.endsWith(".tgz");
+      file.name.endsWith(".sql.gz") || file.name.endsWith(".tar.gz") || file.name.endsWith(".tgz");
     if (!valid) {
       toast.error("Format non supporté. Utilisez .sql.gz ou .tar.gz");
       return;
@@ -198,9 +185,7 @@ export default function BackupsPage() {
               onClick={async () => {
                 setExportingFull(true);
                 try {
-                  const { data } = await api.post(
-                    "/backup/export-full-network",
-                  );
+                  const { data } = await api.post("/backup/export-full-network");
                   if (data.success) toast.success(data.message);
                   else toast.error(data.message);
                   loadBackups();
@@ -358,8 +343,7 @@ export default function BackupsPage() {
             Restaurer une sauvegarde
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-            Uploadez un fichier .sql.gz (base de données) ou .tar.gz (fichiers)
-            pour restaurer
+            Uploadez un fichier .sql.gz (base de données) ou .tar.gz (fichiers) pour restaurer
           </p>
         </div>
         <div className="p-6">
@@ -429,8 +413,8 @@ export default function BackupsPage() {
               {confirmRestore.name} ({formatBytes(confirmRestore.size)})
             </p>
             <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
-              <strong>Cette action est irréversible.</strong> Les données
-              actuelles seront écrasées par le contenu de la sauvegarde.
+              <strong>Cette action est irréversible.</strong> Les données actuelles seront écrasées
+              par le contenu de la sauvegarde.
             </div>
             <div className="flex justify-end gap-3">
               <button
