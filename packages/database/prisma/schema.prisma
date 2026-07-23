@@ -93,6 +93,10 @@ enum NotificationType {
   MENTION
   SIGNATURE_REQUEST
   SIGNATURE_REMINDER
+  // === Veille cyber (2026-07-23) — types dédiés pour opt-out ciblé et
+  // affichage correct (avant : réutilisation trompeuse de DOC_PUBLISHED).
+  VEILLE_CRITICAL
+  VEILLE_BULLETIN
 }
 
 // Fréquence du digest email de notifications non-lues (Vague A v1.1).
@@ -125,6 +129,9 @@ enum ContentStatus {
 }
 
 enum ValidationStepType {
+  // Cycle qualité PRO_040 : VERIFICATION (vérificateur, contrôle technique)
+  // → REVIEW (relecteur) → APPROVAL (approbateur/décideur).
+  VERIFICATION
   REVIEW
   APPROVAL
 }
@@ -278,12 +285,15 @@ model User {
   securityAlertReads         SecurityAlertRead[]
   refreshTokens              RefreshToken[]
   ownedDocuments             Document[]                  @relation("DocumentOwner")
+  verifiedDocuments          Document[]                  @relation("DocumentVerifier")
   reviewedDocuments          Document[]                  @relation("DocumentReviewer")
   approvedDocuments          Document[]                  @relation("DocumentApprover")
   uploadedVersions           DocumentVersion[]           @relation("VersionUploader")
   acknowledgments            DocumentAcknowledgment[]
   validationRequests         ValidationRequest[]         @relation("ValidationRequester")
   validationSteps            ValidationStep[]            @relation("ValidationAssignee")
+  validationDecisions        ValidationStep[]            @relation("ValidationDecider")
+  chartesDirectionValidated  Charte[]                    @relation("CharteDirectionValidator")
   signatureRequestsMade      SignatureRequest[]          @relation("SignatureRequester")
   signatureRequestsSigned    SignatureRequest[]          @relation("SignatureSigner")
   newsPosts                  NewsPost[]                  @relation("NewsAuthor")
@@ -489,6 +499,10 @@ model Document {
   category         DocumentCategory
   status           DocumentStatus   @default(DRAFT)
   ownerId          String
+  /// Vérificateur (cycle qualité PRO_040) — contrôle technique AVANT la
+  /// relecture. Distinct du relecteur (reviewerId). Optionnel : si null,
+  /// le cycle démarre directement à la relecture.
+  verifierId       String?
   reviewerId       String?
   approverId       String?
   currentVersionId String?
@@ -565,6 +579,7 @@ model Document {
 
   // Relations
   owner              User                     @relation("DocumentOwner", fields: [ownerId], references: [id])
+  verifier           User?                    @relation("DocumentVerifier", fields: [verifierId], references: [id])
   reviewer           User?                    @relation("DocumentReviewer", fields: [reviewerId], references: [id])
   approver           User?                    @relation("DocumentApprover", fields: [approverId], references: [id])
   versions           DocumentVersion[]
@@ -582,6 +597,7 @@ model Document {
   @@index([status, nextReviewDate])
   @@index([category])
   @@index([ownerId])
+  @@index([verifierId])
   @@index([reviewerId])
   @@index([approverId])
   @@index([status, classification])
@@ -709,11 +725,15 @@ model ValidationStep {
   action       ValidationAction?
   comment      String?
   actionAt     DateTime?
+  /// Décideur RÉEL de l'étape (peut différer de assignedToId en cas de
+  /// dérogation ADMIN ou délégation). C'est lui qu'affiche la timeline.
+  decidedById  String?
   createdAt    DateTime           @default(now())
 
   // Relations
   request    ValidationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   assignedTo User              @relation("ValidationAssignee", fields: [assignedToId], references: [id])
+  decidedBy  User?             @relation("ValidationDecider", fields: [decidedById], references: [id])
 
   @@index([requestId])
   @@index([assignedToId])
@@ -729,6 +749,9 @@ model SignatureRequest {
   signedAt             DateTime?
   signedFileUrl        String?
   webhookPayload       Json?
+  /// Campagne d'origine (2026-07-23) — une campagne est un générateur de
+  /// SignatureRequest individuelles (une par cible). Null = demande isolée.
+  campaignId           String?
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 
@@ -737,10 +760,12 @@ model SignatureRequest {
   requestedBy     User               @relation("SignatureRequester", fields: [requestedById], references: [id])
   signer          User               @relation("SignatureSigner", fields: [signerId], references: [id])
   evidence        SignatureEvidence?
+  campaign        SignatureCampaign? @relation("CampaignSignatureRequests", fields: [campaignId], references: [id])
 
   @@index([documentVersionId])
   @@index([signerId])
   @@index([status])
+  @@index([campaignId])
 }
 
 // Wave D item 26 — SignatureEvidence eIDAS-AES.
@@ -1224,10 +1249,21 @@ model Charte {
   slug              String   @unique
   isMandatory       Boolean  @default(true)
   isActive          Boolean  @default(true)
+  /// @deprecated Conservé pour compat lecture. La validation direction tracée
+  /// est portée par directionValidatedById/At/VersionId ci-dessous (étape de
+  /// workflow qualité, PAS une signature). Maintenu en double-écriture.
   signedByDirection Boolean  @default(false)
   classification    String   @default("INTERNE")
+  // === Validation hiérarchique tracée (2026-07-23) ===
+  directionValidatedById      String?
+  directionValidatedAt        DateTime?
+  /// Version de charte sur laquelle porte la validation — une nouvelle
+  /// version active invalide la validation (à re-valider).
+  directionValidatedVersionId String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  directionValidatedBy User? @relation("CharteDirectionValidator", fields: [directionValidatedById], references: [id])
 
   versions   CharteVersion[]
   signatures CharteSignature[]
@@ -1288,6 +1324,12 @@ model CharteSignature {
   signedAt        DateTime @default(now())
   ipAddress       String?
   userAgent       String?
+  // Snapshot identité (ISO 27001 A.5.28 — preuve conservée après
+  // suppression du compte, même contrat que DocumentAcknowledgment).
+  userEmail       String?
+  userFirstName   String?
+  userLastName    String?
+  userRole        String?
 
   charte        Charte        @relation(fields: [charteId], references: [id], onDelete: Cascade)
   charteVersion CharteVersion @relation(fields: [charteVersionId], references: [id], onDelete: Cascade)
@@ -2240,8 +2282,9 @@ model SignatureCampaign {
   createdAt                 DateTime                    @default(now())
   updatedAt                 DateTime                    @updatedAt
 
-  createdBy  User                @relation("CampaignCreator", fields: [createdById], references: [id])
-  signatures CampaignSignature[]
+  createdBy         User                @relation("CampaignCreator", fields: [createdById], references: [id])
+  signatures        CampaignSignature[]
+  signatureRequests SignatureRequest[]  @relation("CampaignSignatureRequests")
 
   @@index([status, dueAt])
   @@index([sourceType, sourceId])
