@@ -24,16 +24,7 @@ import { OfficeService } from "../office/office.service";
 import { EphemeralSessionService } from "./ephemeral-session.service";
 import { RequestUser } from "../common/interfaces";
 
-const EDITABLE_EXT = [
-  "docx",
-  "xlsx",
-  "pptx",
-  "odt",
-  "ods",
-  "odp",
-  "txt",
-  "csv",
-];
+const EDITABLE_EXT = ["docx", "xlsx", "pptx", "odt", "ods", "odp", "txt", "csv"];
 const VIEWABLE_EXT = ["doc", "xls", "ppt", "pdf", "rtf", "epub", "fb2"];
 
 /**
@@ -76,9 +67,7 @@ export class SmbOfficeController {
     const isEditableFormat = EDITABLE_EXT.includes(extension);
     const isViewableFormat = VIEWABLE_EXT.includes(extension);
     if (!isEditableFormat && !isViewableFormat) {
-      throw new BadRequestException(
-        `Extension .${extension || "?"} non supportée par OnlyOffice`,
-      );
+      throw new BadRequestException(`Extension .${extension || "?"} non supportée par OnlyOffice`);
     }
 
     // Tous les utilisateurs ayant accès au partage peuvent éditer (l'autorisation
@@ -108,10 +97,12 @@ export class SmbOfficeController {
 
     const documentType = this.officeService.getDocumentType(extension);
 
-    // Key OnlyOffice : sessionId + bucket de 60s pour autoriser la co-édition
-    // et purger naturellement les sessions fantômes.
-    const minuteBucket = Math.floor(Date.now() / 60000);
-    const key = `smb-${session.sessionId}-${minuteBucket}`;
+    // Key OnlyOffice STABLE par session : le sessionId est unique par
+    // ouverture, la clé ne doit pas dériver dans le temps (le minuteBucket
+    // isolait chaque rechargement dans une session Docs Server distincte).
+    // La session Docs Server est purgée explicitement via dropSession() au
+    // callback final (status 2).
+    const key = `smb-${session.sessionId}`;
 
     const config: any = {
       document: {
@@ -185,9 +176,7 @@ export class SmbOfficeController {
     }
 
     const { buffer, fileName } = this.sessions.getFileBuffer(sessionId);
-    this.logger.log(
-      `[smb-office/file] streaming sessionId=${sessionId} bytes=${buffer.length}`,
-    );
+    this.logger.log(`[smb-office/file] streaming sessionId=${sessionId} bytes=${buffer.length}`);
     res.set({
       "Content-Type": "application/octet-stream",
       "Content-Disposition": `attachment; filename="${encodeURIComponent(fileName)}"`,
@@ -210,38 +199,54 @@ export class SmbOfficeController {
     @Param("sessionId") sessionId: string,
     @Query("token") token: string,
     @Body() body: any,
-    @Req() _req: Request,
+    @Req() req: Request,
   ): Promise<{ error: number }> {
     if (!token) {
-      this.logger.warn(
-        `[smb-office/callback] token manquant sessionId=${sessionId}`,
-      );
+      this.logger.warn(`[smb-office/callback] token manquant sessionId=${sessionId}`);
       return { error: 1 };
     }
     const tokenSessionId = this.sessions.verifyToken(token);
     if (!tokenSessionId || tokenSessionId !== sessionId) {
-      this.logger.warn(
-        `[smb-office/callback] token invalide sessionId=${sessionId}`,
-      );
+      this.logger.warn(`[smb-office/callback] token invalide sessionId=${sessionId}`);
       return { error: 1 };
     }
 
-    const status = body?.status;
+    // Vérification du JWT ENTRANT signé par le Docs Server (body.token ou
+    // header Authorization) — le payload vérifié fait autorité sur le body.
+    const verified = this.officeService.verifyIncomingCallbackJwt(
+      body,
+      req.headers.authorization as string | undefined,
+    );
+    if (!verified.ok) {
+      this.logger.warn(
+        `[smb-office/callback] JWT Docs Server rejeté sessionId=${sessionId} : ${verified.reason}`,
+      );
+      return { error: 1 };
+    }
+    const callbackData = verified.data;
+
+    const status = callbackData?.status;
     // 1 = editing, 4 = closed no changes : pas d'action
     if (status !== 2 && status !== 6) {
       // 3 / 7 = save error
       if (status === 3 || status === 7) {
         this.logger.warn(
-          `[smb-office/callback] OnlyOffice save error status=${status} session=${sessionId} body=${JSON.stringify(body).slice(0, 400)}`,
+          `[smb-office/callback] OnlyOffice save error status=${status} session=${sessionId} body=${JSON.stringify(callbackData).slice(0, 400)}`,
         );
       }
       return { error: 0 };
     }
 
-    const downloadUrl = body?.url;
+    const downloadUrl = callbackData?.url;
     if (!downloadUrl) {
+      this.logger.warn(`[smb-office/callback] pas d'URL de téléchargement sessionId=${sessionId}`);
+      return { error: 1 };
+    }
+
+    // Anti-SSRF : le backend ne télécharge que depuis le Docs Server
+    if (!this.officeService.isAllowedDownloadUrl(downloadUrl)) {
       this.logger.warn(
-        `[smb-office/callback] pas d'URL de téléchargement sessionId=${sessionId}`,
+        `[smb-office/callback] URL de téléchargement hors liste blanche sessionId=${sessionId} url=${String(downloadUrl).slice(0, 200)}`,
       );
       return { error: 1 };
     }
@@ -262,6 +267,17 @@ export class SmbOfficeController {
       this.logger.log(
         `[smb-office/callback] fichier sauvegardé sessionId=${sessionId} bytes=${buffer.length}`,
       );
+
+      // Fin de session (status 2 = tous les éditeurs ont fermé) : purge du
+      // cache Docs Server pour que la prochaine ouverture (nouveau sessionId,
+      // nouvelle clé) reparte proprement.
+      if (status === 2) {
+        const sessionKey =
+          typeof callbackData?.key === "string" && callbackData.key
+            ? callbackData.key
+            : `smb-${sessionId}`;
+        void this.officeService.dropSession(sessionKey).catch(() => undefined);
+      }
       return { error: 0 };
     } catch (err: any) {
       this.logger.error(

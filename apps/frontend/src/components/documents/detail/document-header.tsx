@@ -23,13 +23,10 @@ import {
   Sparkles,
   Send,
 } from "lucide-react";
-import {
-  isRoleAtLeast,
-  UserRole,
-  DOCUMENT_CATEGORY_LABELS,
-} from "@omnitech/shared";
+import { isRoleAtLeast, UserRole, DOCUMENT_CATEGORY_LABELS } from "@omnitech/shared";
 import type { AuthUser } from "@/stores/auth-store";
 import { BookmarkButton } from "@/components/bookmark-button";
+import { useOfficeAvailability, OFFICE_MAINTENANCE_MESSAGE } from "@/hooks/use-office-availability";
 import { formatDate } from "@/lib/utils";
 import { buildDocumentFilename } from "@/lib/download";
 import {
@@ -100,13 +97,13 @@ export function DocumentHeader({
   const router = useRouter();
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
+  // Disponibilité dynamique de l'éditeur OnlyOffice (bouton désactivé si le
+  // Docs Server est en maintenance, au lieu d'envoyer vers un éditeur cassé)
+  const { officeDown } = useOfficeAvailability();
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (
-        statusDropdownRef.current &&
-        !statusDropdownRef.current.contains(e.target as Node)
-      ) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) {
         setStatusDropdownOpen(false);
       }
     };
@@ -140,9 +137,7 @@ export function DocumentHeader({
             <div ref={statusDropdownRef} className="relative">
               <button
                 type="button"
-                onClick={() =>
-                  transitions.length > 0 && setStatusDropdownOpen((o) => !o)
-                }
+                onClick={() => transitions.length > 0 && setStatusDropdownOpen((o) => !o)}
                 className={`inline-flex items-center gap-1 transition ${transitions.length > 0 ? "cursor-pointer hover:ring-2 hover:ring-primary/30 rounded-full" : "cursor-default"}`}
               >
                 <StatusBadge
@@ -165,22 +160,19 @@ export function DocumentHeader({
               </button>
               {statusDropdownOpen && (
                 <div className="absolute left-0 top-full mt-1 z-50 w-64 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1 animate-fade-in-up">
-                  {doc.status === "DRAFT" &&
-                    transitions.includes("IN_REVIEW") && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStatusDropdownOpen(false);
-                          onAction("submit-review");
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition"
-                      >
-                        <Eye className="h-3.5 w-3.5 text-blue-500" />
-                        <span className="text-seal-navy dark:text-white">
-                          Soumettre en revue
-                        </span>
-                      </button>
-                    )}
+                  {doc.status === "DRAFT" && transitions.includes("IN_REVIEW") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusDropdownOpen(false);
+                        onAction("submit-review");
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition"
+                    >
+                      <Eye className="h-3.5 w-3.5 text-blue-500" />
+                      <span className="text-seal-navy dark:text-white">Soumettre en revue</span>
+                    </button>
+                  )}
                   {/* ADMIN+ shortcut */}
                   {isRoleAtLeast(user.role, UserRole.ADMIN) &&
                     doc.status !== "APPROVED" &&
@@ -232,33 +224,30 @@ export function DocumentHeader({
                         <div className="my-1 border-t border-gray-100 dark:border-slate-800" />
                       </>
                     )}
-                  {doc.status === "IN_REVIEW" &&
-                    transitions.includes("REVIEW_APPROVED") && (
-                      <button
-                        type="button"
-                        disabled={!doc.approver}
-                        onClick={() => {
-                          setStatusDropdownOpen(false);
-                          onAction("approve-review");
-                        }}
-                        title={
-                          !doc.approver
-                            ? "Assignez d'abord un approbateur final (bouton 'Modifier')"
-                            : undefined
-                        }
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <UserCheck className="h-3.5 w-3.5 text-emerald-500" />
-                        <span className="text-seal-navy dark:text-white">
-                          Valider la revue
+                  {doc.status === "IN_REVIEW" && transitions.includes("REVIEW_APPROVED") && (
+                    <button
+                      type="button"
+                      disabled={!doc.approver}
+                      onClick={() => {
+                        setStatusDropdownOpen(false);
+                        onAction("approve-review");
+                      }}
+                      title={
+                        !doc.approver
+                          ? "Assignez d'abord un approbateur final (bouton 'Modifier')"
+                          : undefined
+                      }
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <UserCheck className="h-3.5 w-3.5 text-emerald-500" />
+                      <span className="text-seal-navy dark:text-white">Valider la revue</span>
+                      {!doc.approver && (
+                        <span className="ml-auto text-[10px] text-seal-gray-500 dark:text-slate-400">
+                          (approbateur requis)
                         </span>
-                        {!doc.approver && (
-                          <span className="ml-auto text-[10px] text-seal-gray-500 dark:text-slate-400">
-                            (approbateur requis)
-                          </span>
-                        )}
-                      </button>
-                    )}
+                      )}
+                    </button>
+                  )}
                   {doc.status === "IN_REVIEW" && (
                     <button
                       type="button"
@@ -269,43 +258,35 @@ export function DocumentHeader({
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition"
                     >
                       <XCircle className="h-3.5 w-3.5 text-red-500" />
-                      <span className="text-seal-navy dark:text-white">
-                        Rejeter la revue
-                      </span>
+                      <span className="text-seal-navy dark:text-white">Rejeter la revue</span>
                     </button>
                   )}
-                  {doc.status === "REVIEW_APPROVED" &&
-                    user.id === doc.owner.id && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStatusDropdownOpen(false);
-                          onAction("request-approval");
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        <span className="text-seal-navy dark:text-white">
-                          Demander approbation
-                        </span>
-                      </button>
-                    )}
-                  {doc.status === "PENDING_APPROVAL" &&
-                    transitions.includes("APPROVED") && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStatusDropdownOpen(false);
-                          onAction("approve-direction");
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        <span className="text-seal-navy dark:text-white">
-                          Approuver (Direction)
-                        </span>
-                      </button>
-                    )}
+                  {doc.status === "REVIEW_APPROVED" && user.id === doc.owner.id && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusDropdownOpen(false);
+                        onAction("request-approval");
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      <span className="text-seal-navy dark:text-white">Demander approbation</span>
+                    </button>
+                  )}
+                  {doc.status === "PENDING_APPROVAL" && transitions.includes("APPROVED") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusDropdownOpen(false);
+                        onAction("approve-direction");
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      <span className="text-seal-navy dark:text-white">Approuver (Direction)</span>
+                    </button>
+                  )}
                   {doc.status === "PENDING_APPROVAL" && (
                     <button
                       type="button"
@@ -316,27 +297,22 @@ export function DocumentHeader({
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition"
                     >
                       <XCircle className="h-3.5 w-3.5 text-red-500" />
-                      <span className="text-seal-navy dark:text-white">
-                        Refuser
-                      </span>
+                      <span className="text-seal-navy dark:text-white">Refuser</span>
                     </button>
                   )}
-                  {doc.status === "APPROVED" &&
-                    transitions.includes("OBSOLETE") && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStatusDropdownOpen(false);
-                          onOpenObsoleteDialog();
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition"
-                      >
-                        <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                        <span className="text-seal-navy dark:text-white">
-                          Marquer obsolete
-                        </span>
-                      </button>
-                    )}
+                  {doc.status === "APPROVED" && transitions.includes("OBSOLETE") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusDropdownOpen(false);
+                        onOpenObsoleteDialog();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition"
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                      <span className="text-seal-navy dark:text-white">Marquer obsolete</span>
+                    </button>
+                  )}
                   {transitions.includes("ARCHIVED") && (
                     <button
                       type="button"
@@ -347,9 +323,7 @@ export function DocumentHeader({
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition"
                     >
                       <ArrowLeftRight className="h-3.5 w-3.5 text-gray-400 dark:text-slate-500" />
-                      <span className="text-seal-navy dark:text-white">
-                        Archiver
-                      </span>
+                      <span className="text-seal-navy dark:text-white">Archiver</span>
                     </button>
                   )}
                 </div>
@@ -413,9 +387,7 @@ export function DocumentHeader({
               title="Générer un résumé intelligent du document via l'IA OMNITECH"
               className="gap-2"
             >
-              <Sparkles
-                className={`h-4 w-4 ${aiSummaryLoading ? "animate-spin" : ""}`}
-              />
+              <Sparkles className={`h-4 w-4 ${aiSummaryLoading ? "animate-spin" : ""}`} />
               {aiSummaryLoading ? "Analyse en cours…" : "Résumé IA"}
             </Button>
             {/* Stirling PDF / OnlyOffice */}
@@ -425,12 +397,9 @@ export function DocumentHeader({
                 const fileType = (currentVersion.fileType || "").toLowerCase();
                 const extMatch = fileUrl.match(/\.([a-z0-9]+)(\?|$|\/)/);
                 const extension = extMatch && extMatch[1] ? extMatch[1] : "";
-                const isPdfFile =
-                  extension === "pdf" || fileType.includes("pdf");
+                const isPdfFile = extension === "pdf" || fileType.includes("pdf");
                 const isOfficeDoc =
-                  /^(docx?|xlsx?|pptx?|odt|ods|odp|txt|csv|rtf)$/.test(
-                    extension,
-                  ) ||
+                  /^(docx?|xlsx?|pptx?|odt|ods|odp|txt|csv|rtf)$/.test(extension) ||
                   [
                     "word",
                     "excel",
@@ -451,9 +420,7 @@ export function DocumentHeader({
                           variant="secondary"
                           size="sm"
                           onClick={() =>
-                            router.push(
-                              `/tools/pdf?doc=${doc.id}&version=${currentVersion.id}`,
-                            )
+                            router.push(`/tools/pdf?doc=${doc.id}&version=${currentVersion.id}`)
                           }
                           title="Outils PDF avancés (merge, split, OCR, compression, filigrane)"
                           className="rounded-r-none"
@@ -501,9 +468,7 @@ export function DocumentHeader({
                             type="button"
                             className="w-full text-left px-3 py-2 text-xs text-seal-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-seal-navy dark:hover:text-white first:rounded-t-lg last:rounded-b-lg transition-colors duration-200"
                             onClick={() =>
-                              router.push(
-                                `/tools/pdf?doc=${doc.id}&version=${currentVersion.id}`,
-                              )
+                              router.push(`/tools/pdf?doc=${doc.id}&version=${currentVersion.id}`)
                             }
                           >
                             {tool.label}
@@ -531,12 +496,17 @@ export function DocumentHeader({
                     <Button
                       variant="secondary"
                       size="sm"
+                      disabled={officeDown}
                       onClick={() => router.push(`/documents/${doc.id}/editor`)}
-                      title={`Ouvrir dans l'editeur ${formatLabel}`}
+                      title={
+                        officeDown
+                          ? OFFICE_MAINTENANCE_MESSAGE
+                          : `Ouvrir dans l'editeur ${formatLabel}`
+                      }
                     >
                       <Edit className="h-3.5 w-3.5" />
                       <span className={`text-[10px] ${formatColor}`}>
-                        {formatLabel}
+                        {officeDown ? OFFICE_MAINTENANCE_MESSAGE : formatLabel}
                       </span>
                     </Button>
                   );
@@ -576,12 +546,7 @@ export function DocumentHeader({
               <Link2 className="h-3 w-3" /> Partager
             </Button>
             {canAnalyze && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onIsoAnalysis}
-                loading={analyzing}
-              >
+              <Button variant="outline" size="sm" onClick={onIsoAnalysis} loading={analyzing}>
                 <Shield className="h-3.5 w-3.5" />
                 ISO
               </Button>
@@ -596,8 +561,7 @@ export function DocumentHeader({
                 {doc.isPublic ? "Public" : "Public"}
               </Button>
             )}
-            {(isRoleAtLeast(user.role, UserRole.ADMIN) ||
-              doc.owner.id === user.id) && (
+            {(isRoleAtLeast(user.role, UserRole.ADMIN) || doc.owner.id === user.id) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -612,9 +576,7 @@ export function DocumentHeader({
 
         {/* Line 2: Title + Ask AI */}
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-xl font-medium text-seal-navy dark:text-white">
-            {doc.title}
-          </h1>
+          <h1 className="text-xl font-medium text-seal-navy dark:text-white">{doc.title}</h1>
           <Button
             variant="outline"
             size="sm"
@@ -699,22 +661,14 @@ export function DocumentHeader({
               {doc.owner.firstName} {doc.owner.lastName}
             </span>
           </span>
-          <span className="hidden sm:inline text-gray-300 dark:text-slate-600">
-            |
-          </span>
+          <span className="hidden sm:inline text-gray-300 dark:text-slate-600">|</span>
           <span>
             Categorie :{" "}
             <Badge variant="navy" className="text-[10px] ml-0.5">
-              {
-                DOCUMENT_CATEGORY_LABELS[
-                  doc.category as keyof typeof DOCUMENT_CATEGORY_LABELS
-                ]
-              }
+              {DOCUMENT_CATEGORY_LABELS[doc.category as keyof typeof DOCUMENT_CATEGORY_LABELS]}
             </Badge>
           </span>
-          <span className="hidden sm:inline text-gray-300 dark:text-slate-600">
-            |
-          </span>
+          <span className="hidden sm:inline text-gray-300 dark:text-slate-600">|</span>
           <span>
             Mis à jour :{" "}
             <span className="text-seal-navy dark:text-white font-medium">
@@ -723,31 +677,24 @@ export function DocumentHeader({
           </span>
           {reviewInfo && (
             <>
-              <span className="hidden sm:inline text-gray-300 dark:text-slate-600">
-                |
-              </span>
+              <span className="hidden sm:inline text-gray-300 dark:text-slate-600">|</span>
               <span
                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${reviewInfo.bg} ${reviewInfo.color}`}
               >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${reviewInfo.dot}`}
-                />
+                <span className={`h-1.5 w-1.5 rounded-full ${reviewInfo.dot}`} />
                 Revision {reviewInfo.text}
               </span>
             </>
           )}
-          {doc.nextReviewDate &&
-            new Date(doc.nextReviewDate).getTime() < Date.now() && (
-              <>
-                <span className="hidden sm:inline text-gray-300 dark:text-slate-600">
-                  |
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#892034]/15 dark:bg-red-900/30 px-3 py-1 text-[11px] font-bold text-[#892034] dark:text-red-400 animate-pulse">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Revision en retard
-                </span>
-              </>
-            )}
+          {doc.nextReviewDate && new Date(doc.nextReviewDate).getTime() < Date.now() && (
+            <>
+              <span className="hidden sm:inline text-gray-300 dark:text-slate-600">|</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#892034]/15 dark:bg-red-900/30 px-3 py-1 text-[11px] font-bold text-[#892034] dark:text-red-400 animate-pulse">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Revision en retard
+              </span>
+            </>
+          )}
         </div>
       </div>
     </Card>
