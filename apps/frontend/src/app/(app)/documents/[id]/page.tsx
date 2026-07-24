@@ -3,11 +3,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
-import {
-  isRoleAtLeast,
-  UserRole,
-  getStatusTransitions,
-} from "@omnitech/shared";
+import { isRoleAtLeast, UserRole, getStatusTransitions } from "@omnitech/shared";
 import { Button } from "@omnitech/ui";
 import { PenLine } from "lucide-react";
 import { EntityBreadcrumb } from "@/components/ui/entity-breadcrumb";
@@ -17,10 +13,7 @@ import { buildWorkflowSteps } from "@/components/documents/detail/build-workflow
 import { DocumentHeader } from "@/components/documents/detail/document-header";
 import { DocumentSidebar } from "@/components/documents/detail/document-sidebar";
 import { DocumentWorkflowTimeline } from "@/components/documents/detail/document-workflow-timeline";
-import {
-  DocumentTabs,
-  buildDocumentTabs,
-} from "@/components/documents/detail/document-tabs";
+import { DocumentTabs, buildDocumentTabs } from "@/components/documents/detail/document-tabs";
 import { DocumentTabContent } from "@/components/documents/detail/document-tab-content";
 import { DocumentSignatureRequestModal } from "@/components/documents/detail/document-signature-request-modal";
 import { DocumentRejectionDialog } from "@/components/documents/detail/document-rejection-dialog";
@@ -36,8 +29,7 @@ import { DocumentDetailNotFound } from "./_components/document-detail-not-found"
 import { DocumentDetailDialogs } from "./_components/document-detail-dialogs";
 
 const ReadingMode = dynamic(
-  () =>
-    import("@/components/documents/reading-mode").then((m) => m.ReadingMode),
+  () => import("@/components/documents/reading-mode").then((m) => m.ReadingMode),
   { ssr: false },
 );
 
@@ -56,26 +48,23 @@ export default function DocumentDetailPage() {
   const sigs = doc.signatureRequests || [];
   const acks = doc.acknowledgments || [];
   const currentVersion = versions[0];
-  const canEdit =
-    isRoleAtLeast(user.role, UserRole.ADMIN) || doc.owner.id === user.id;
+  const canEdit = isRoleAtLeast(user.role, UserRole.ADMIN) || doc.owner.id === user.id;
   const transitions = getStatusTransitions(
     doc.status as never,
     user.role,
   ) as unknown as readonly string[];
   const showAckBanner = doc.status === "APPROVED" && !ctx.hasAcknowledged;
-  const canAnalyze = isRoleAtLeast(user.role, UserRole.REVIEWER);
+  // Analyse ISO ouverte à tous les rôles authentifiés (fix 2026-07) : le
+  // contrôle d'accès par classification est appliqué côté backend
+  // (IsoAnalyzerService, ISO 27001 A.5.15).
+  const canAnalyze = true;
   const reviewInfo = getReviewDeadlineInfo(doc.nextReviewDate);
   const workflowSteps = buildWorkflowSteps(doc);
 
   const canPreview =
     !!currentVersion &&
-    /\.(pdf|docx?|md|txt|png|jpe?g|webp|gif)$/i.test(
-      currentVersion.fileType || "",
-    );
-  const apiV1Base = (process.env.NEXT_PUBLIC_API_URL || "").replace(
-    /\/api\/?$/,
-    "/api/v1",
-  );
+    /\.(pdf|docx?|md|txt|png|jpe?g|webp|gif)$/i.test(currentVersion.fileType || "");
+  const apiV1Base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "/api/v1");
   const previewUrl = currentVersion?.fileUrl
     ? currentVersion.fileUrl.startsWith("http")
       ? currentVersion.fileUrl
@@ -109,11 +98,7 @@ export default function DocumentDetailPage() {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      <EntityBreadcrumb
-        module="Documents"
-        href="/documents"
-        current={doc.reference}
-      />
+      <EntityBreadcrumb module="Documents" href="/documents" current={doc.reference} />
 
       <MissingApproverBanner doc={doc} currentUserId={user.id} />
 
@@ -148,11 +133,7 @@ export default function DocumentDetailPage() {
 
       {canAnalyze && currentVersion && doc.status === "APPROVED" && (
         <div className="flex justify-end -mt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={ctx.openSignatureRequest}
-          >
+          <Button variant="outline" size="sm" onClick={ctx.openSignatureRequest}>
             <PenLine className="h-3.5 w-3.5" />
             Demander signature
           </Button>
@@ -326,9 +307,7 @@ export default function DocumentDetailPage() {
         }}
         onCommentChange={ctx.setRejectComment}
         onSuggestionsChange={ctx.setRejectSuggestions}
-        onConfirm={() =>
-          ctx.showRejectDialog && ctx.handleAction(ctx.showRejectDialog)
-        }
+        onConfirm={() => ctx.showRejectDialog && ctx.handleAction(ctx.showRejectDialog)}
       />
     </div>
   );

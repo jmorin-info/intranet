@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { aiErrorMessage } from "@/lib/ai-errors";
 import { logger } from "@/lib/logger";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDocumentStore } from "@/stores/document-store";
@@ -29,9 +30,7 @@ export function useDocumentDetail(id: string | undefined) {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { maybePrompt: maybePromptTestimonial } = useTestimonialTrigger();
-  const decrementPendingCount = useDocumentStore(
-    (s) => s.decrementPendingCount,
-  );
+  const decrementPendingCount = useDocumentStore((s) => s.decrementPendingCount);
 
   // --- Core state ---
   const [doc, setDoc] = useState<DocumentDetail | null>(null);
@@ -58,11 +57,10 @@ export function useDocumentDetail(id: string | undefined) {
     "reject-review" | "reject-direction" | null
   >(null);
   const [rejectComment, setRejectComment] = useState("");
-  const [rejectSuggestions, setRejectSuggestions] = useState<Set<string>>(
-    new Set(),
+  const [rejectSuggestions, setRejectSuggestions] = useState<Set<string>>(new Set());
+  const [suggestionsCatalog, setSuggestionsCatalog] = useState<RejectionSuggestionsCatalog | null>(
+    null,
   );
-  const [suggestionsCatalog, setSuggestionsCatalog] =
-    useState<RejectionSuggestionsCatalog | null>(null);
 
   // --- History tab ---
   const [history, setHistory] = useState<{
@@ -71,9 +69,7 @@ export function useDocumentDetail(id: string | undefined) {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   // --- ISO analysis ---
-  const [isoAnalysis, setIsoAnalysis] = useState<IsoAnalysisItem[] | null>(
-    null,
-  );
+  const [isoAnalysis, setIsoAnalysis] = useState<IsoAnalysisItem[] | null>(null);
 
   // --- Related ---
   const [relatedDocs, setRelatedDocs] = useState<RelatedDoc[]>([]);
@@ -97,9 +93,7 @@ export function useDocumentDetail(id: string | undefined) {
   const [aiAnswerLoading, setAiAnswerLoading] = useState(false);
 
   // --- Signature modal ---
-  const [docusealTemplates, setDocusealTemplates] = useState<
-    DocuSealTemplate[]
-  >([]);
+  const [docusealTemplates, setDocusealTemplates] = useState<DocuSealTemplate[]>([]);
   const [signatureModal, setSignatureModal] = useState(false);
   const [signerList, setSignerList] = useState<
     Array<{ id: string; firstName: string; lastName: string; role: string }>
@@ -115,8 +109,7 @@ export function useDocumentDetail(id: string | undefined) {
     try {
       const { data } = await api.get(`/documents/${id}`);
       const allSignatures = (data.versions || []).flatMap(
-        (v: { signatureRequests?: SignatureData[] }) =>
-          v.signatureRequests || [],
+        (v: { signatureRequests?: SignatureData[] }) => v.signatureRequests || [],
       );
       data.signatureRequests = allSignatures;
       setDoc(data);
@@ -126,9 +119,8 @@ export function useDocumentDetail(id: string | undefined) {
       }
       if (user) {
         setHasAcknowledged(
-          data.acknowledgments?.some(
-            (a: { user?: { id?: string } }) => a.user?.id === user.id,
-          ) || false,
+          data.acknowledgments?.some((a: { user?: { id?: string } }) => a.user?.id === user.id) ||
+            false,
         );
       }
     } catch {
@@ -156,8 +148,7 @@ export function useDocumentDetail(id: string | undefined) {
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { message?: string } } }).response
-              ?.data?.message
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : null;
       toast.error(msg || "Erreur upload");
     } finally {
@@ -181,8 +172,7 @@ export function useDocumentDetail(id: string | undefined) {
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { message?: string } } }).response
-              ?.data?.message
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : null;
       toast.error(msg || "Erreur réouverture");
     } finally {
@@ -208,12 +198,15 @@ export function useDocumentDetail(id: string | undefined) {
     if (!doc) return;
     setAiSummaryLoading(true);
     try {
+      // 240 s : aligné sur le budget serveur OLLAMA_TIMEOUT_MS (inférence CPU,
+      // map-reduce possible sur les gros documents).
       const { data } = await api.get(`/rag/documents/${doc.id}/ai-summary`, {
-        timeout: 120_000,
+        timeout: 240_000,
       });
       setAiSummary(data.summary);
-    } catch {
-      setAiSummary("IA non disponible actuellement.");
+    } catch (err) {
+      // Erreurs différenciées : 403 accès restreint / 429 throttle / 503 surcharge.
+      setAiSummary(aiErrorMessage(err));
     } finally {
       setAiSummaryLoading(false);
     }
@@ -225,15 +218,16 @@ export function useDocumentDetail(id: string | undefined) {
     setAiAnswer(null);
     setAiAnswerSources([]);
     try {
+      // 200 s : budget serveur RAG_ANSWER_TIMEOUT_MS (180 s) + marge réseau.
       const { data } = await api.post(
         "/rag/ask",
         { question: `Concernant ${doc.title}: ${aiQuestion}` },
-        { timeout: 120_000 },
+        { timeout: 200_000 },
       );
       setAiAnswer(data.answer || "Pas de réponse disponible.");
       setAiAnswerSources(data.sources || []);
-    } catch {
-      setAiAnswer("IA non disponible actuellement.");
+    } catch (err) {
+      setAiAnswer(aiErrorMessage(err));
     } finally {
       setAiAnswerLoading(false);
     }
@@ -245,8 +239,7 @@ export function useDocumentDetail(id: string | undefined) {
       try {
         const { data } = await api.get(`/documents/${id}`);
         const allSignatures = (data.versions || []).flatMap(
-          (v: { signatureRequests?: SignatureData[] }) =>
-            v.signatureRequests || [],
+          (v: { signatureRequests?: SignatureData[] }) => v.signatureRequests || [],
         );
         data.signatureRequests = allSignatures;
         setDoc(data);
@@ -256,9 +249,8 @@ export function useDocumentDetail(id: string | undefined) {
         }
         if (user) {
           setHasAcknowledged(
-            data.acknowledgments?.some(
-              (a: { user?: { id?: string } }) => a.user?.id === user.id,
-            ) || false,
+            data.acknowledgments?.some((a: { user?: { id?: string } }) => a.user?.id === user.id) ||
+              false,
           );
         }
         api
@@ -425,9 +417,7 @@ export function useDocumentDetail(id: string | undefined) {
           await api.post(`/documents/${doc.id}/force-approve`, {
             makePermanent: false,
           });
-          toast.success(
-            "Document publie directement (workflow court-circuite)",
-          );
+          toast.success("Document publie directement (workflow court-circuite)");
           break;
         case "force-approve-permanent":
           await api.post(`/documents/${doc.id}/force-approve`, {
@@ -460,8 +450,8 @@ export function useDocumentDetail(id: string | undefined) {
       );
     } catch (error: unknown) {
       const msg =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Erreur";
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Erreur";
       toast.error(msg);
     } finally {
       setActionLoading(false);
@@ -476,8 +466,8 @@ export function useDocumentDetail(id: string | undefined) {
       setIsoAnalysis(data.results || []);
       setActiveTab("iso-analysis");
       toast.success("Analyse ISO terminée");
-    } catch {
-      toast.error("Erreur analyse ISO");
+    } catch (err) {
+      toast.error(aiErrorMessage(err, "Erreur analyse ISO"));
     } finally {
       setAnalyzing(false);
     }
@@ -547,8 +537,8 @@ export function useDocumentDetail(id: string | undefined) {
       setInlineDirty(false);
     } catch (error: unknown) {
       const msg =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Erreur lors de l'enregistrement";
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Erreur lors de l'enregistrement";
       toast.error(msg);
     } finally {
       setInlineSaving(false);
@@ -563,8 +553,7 @@ export function useDocumentDetail(id: string | undefined) {
     const users = usersRes.data?.data || usersRes.data || [];
     const eligible = users.filter(
       (u: { role: string; isActive?: boolean }) =>
-        ["DIRECTION", "SUPER_ADMIN", "ADMIN", "REVIEWER"].includes(u.role) &&
-        u.isActive !== false,
+        ["DIRECTION", "SUPER_ADMIN", "ADMIN", "REVIEWER"].includes(u.role) && u.isActive !== false,
     );
     setSignerList(eligible.length > 0 ? eligible : users.slice(0, 30));
     setTemplates(tplRes.data?.data || []);
