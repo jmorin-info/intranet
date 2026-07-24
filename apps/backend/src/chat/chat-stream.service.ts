@@ -1,11 +1,11 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
-import { ChatSession } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
-import { RagService, RagSearchContext } from '../rag/rag.service';
-import { RequestUser } from '../common/interfaces';
-import { SessionService } from './session.service';
-import { AskStreamDto } from './dto/ask-stream.dto';
-import { NoaMemoryService } from '../noa-memory/noa-memory.service';
+import { Injectable, Logger, Optional } from "@nestjs/common";
+import { ChatSession } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import { RagService, RagSearchContext } from "../rag/rag.service";
+import { RequestUser } from "../common/interfaces";
+import { SessionService } from "./session.service";
+import { AskStreamDto } from "./dto/ask-stream.dto";
+import { NoaMemoryService } from "../noa-memory/noa-memory.service";
 
 export interface StreamEmitter {
   writeToken: (token: string) => void;
@@ -40,26 +40,22 @@ export class ChatStreamService {
    * - Log le message ASSISTANT à la fin
    * - Touche session.lastMessageAt
    */
-  async run(
-    user: RequestUser,
-    dto: AskStreamDto,
-    emitter: StreamEmitter,
-  ): Promise<void> {
+  async run(user: RequestUser, dto: AskStreamDto, emitter: StreamEmitter): Promise<void> {
     const start = Date.now();
     const session = await this.ensureSession(user.id, dto);
-    emitter.writeEvent('session', { id: session.id });
+    emitter.writeEvent("session", { id: session.id });
 
     // Log USER message
     const userMessage = await this.prisma.chatMessage.create({
       data: {
         sessionId: session.id,
-        role: 'USER',
+        role: "USER",
         content: dto.query.trim(),
       },
     });
-    emitter.writeEvent('user_message', { id: userMessage.id });
+    emitter.writeEvent("user_message", { id: userMessage.id });
 
-    let fullAnswer = '';
+    let fullAnswer = "";
     let firstTokenAt: number | null = null;
     let citations: unknown = [];
     let retrievalConfidence: number | null = null;
@@ -73,14 +69,14 @@ export class ChatStreamService {
       try {
         const memories = await this.noaMemory.recall(user.id, dto.query.trim(), { k: 5 });
         if (memories.length > 0) {
-          emitter.writeEvent('memory_recall', {
+          emitter.writeEvent("memory_recall", {
             count: memories.length,
             keys: memories.map((m) => m.key),
           });
         }
       } catch (err) {
         this.logger.warn({
-          msg: 'chat.memory.recall_failed',
+          msg: "chat.memory.recall_failed",
           userId: user.id,
           error: (err as Error).message,
         });
@@ -106,21 +102,24 @@ export class ChatStreamService {
           citations = meta.sources;
           retrievalConfidence = meta.retrievalConfidence;
           retrievedChunkIds = meta.sources.map((s) => `${s.sourceType}:${s.sourceId}`);
-          emitter.writeEvent('sources', {
+          emitter.writeEvent("sources", {
             sources: meta.sources,
             retrievalConfidence: meta.retrievalConfidence,
           });
         },
         ctx,
+        // Progression (retrieving / generating / model_fallback) : relayée en
+        // SSE pour que le frontend affiche l'étape pendant le prompt-eval CPU.
+        (status) => emitter.writeEvent("status", { ...status }),
       );
     } catch (err) {
       this.logger.error({
-        msg: 'chat.stream.error',
+        msg: "chat.stream.error",
         sessionId: session.id,
         userId: user.id,
         error: (err as Error).message,
       });
-      emitter.writeEvent('error', { message: 'Une erreur est survenue côté serveur.' });
+      emitter.writeEvent("error", { message: "Une erreur est survenue côté serveur." });
       // Persist la réponse partielle pour trace
     }
 
@@ -131,9 +130,11 @@ export class ChatStreamService {
     const assistantMessage = await this.prisma.chatMessage.create({
       data: {
         sessionId: session.id,
-        role: 'ASSISTANT',
+        role: "ASSISTANT",
         content: fullAnswer,
-        citations: citations as Parameters<typeof this.prisma.chatMessage.create>[0]['data']['citations'],
+        citations: citations as Parameters<
+          typeof this.prisma.chatMessage.create
+        >[0]["data"]["citations"],
         retrievalConfidence: retrievalConfidence ?? undefined,
         retrievedChunkIds,
         // Nom du modèle LLM actif (via env). Laisse null si non configuré.
@@ -145,7 +146,7 @@ export class ChatStreamService {
 
     await this.sessionService.touch(session.id);
 
-    emitter.writeEvent('done', {
+    emitter.writeEvent("done", {
       messageId: assistantMessage.id,
       sessionId: session.id,
       totalLatencyMs,
@@ -167,7 +168,7 @@ export class ChatStreamService {
           }
         } catch (err) {
           this.logger.warn({
-            msg: 'chat.memory.extract_failed',
+            msg: "chat.memory.extract_failed",
             userId: user.id,
             error: (err as Error).message,
           });
@@ -189,13 +190,13 @@ export class ChatStreamService {
       where: { id: assistantMessageId },
       include: { session: true },
     });
-    if (!assistant || assistant.role !== 'ASSISTANT') {
-      emitter.writeEvent('error', { message: 'Message introuvable ou non régénérable.' });
+    if (!assistant || assistant.role !== "ASSISTANT") {
+      emitter.writeEvent("error", { message: "Message introuvable ou non régénérable." });
       emitter.close();
       return;
     }
     if (assistant.session.userId !== user.id) {
-      emitter.writeEvent('error', { message: 'Accès refusé.' });
+      emitter.writeEvent("error", { message: "Accès refusé." });
       emitter.close();
       return;
     }
@@ -204,14 +205,14 @@ export class ChatStreamService {
     const previousUser = await this.prisma.chatMessage.findFirst({
       where: {
         sessionId: assistant.sessionId,
-        role: 'USER',
+        role: "USER",
         createdAt: { lt: assistant.createdAt },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     if (!previousUser) {
-      emitter.writeEvent('error', { message: 'Question originale introuvable.' });
+      emitter.writeEvent("error", { message: "Question originale introuvable." });
       emitter.close();
       return;
     }

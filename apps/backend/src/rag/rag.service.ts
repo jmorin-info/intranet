@@ -1,13 +1,15 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+import { createHash } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
+import { canAccessDocumentByClassification } from "../common/document-access";
 import { TextExtractorService } from "./text-extractor.service";
 import { EmbeddingService } from "./embedding/embedding.service";
 import { HybridSearchService, HybridChunk } from "./embedding/hybrid-search.service";
 import { RerankerService } from "./embedding/reranker.service";
 import { QueryExpansionService } from "./embedding/query-expansion.service";
 import { SemanticChunkerService } from "./ingestion/semantic-chunker.service";
-import { LlmService } from "./llm/llm.service";
+import { LlmService, getOllamaTimeoutMs } from "./llm/llm.service";
 import { getPromptTemplates } from "./prompts/templates";
 
 // ---------------------------------------------------------------------------
@@ -18,16 +20,30 @@ const CHUNK_SIZE_CHARS = 2000;
 const CHUNK_OVERLAP_CHARS = 200;
 const CONFIDENCE_THRESHOLD = 0.3;
 
+// Budgets IA réalistes pour l'inférence CPU (~5 tok/s génération, ~16 tok/s
+// prompt-eval mesurés). Les valeurs sont surchargées par l'env :
+//   RAG_ANSWER_TIMEOUT_MS (180 s), RAG_ANSWER_MAX_TOKENS (256).
+const DEFAULT_ANSWER_TIMEOUT_MS = 180_000;
+const DEFAULT_ANSWER_MAX_TOKENS = 256;
+
+// Résumé IA : entrée ≤ 2000 chars (≈ 550 tokens de prompt-eval, ~35 s CPU),
+// map-reduce en 2 passes au-delà (max 3 segments = 6000 chars couverts).
+const SUMMARY_INPUT_CHARS = 2000;
+const SUMMARY_MAX_SEGMENTS = 3;
+const SUMMARY_MAX_TOKENS = 220;
+const SUMMARY_SEGMENT_MAX_TOKENS = 120;
+const SUMMARY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 h — invalidé par checksum de version
+
+/** Étapes de progression exposées en SSE (chatbot / recherche IA). */
+export interface RagStreamStatus {
+  stage: "retrieving" | "generating" | "model_fallback";
+  model?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-type SourceType =
-  | "DOCUMENT"
-  | "WIKI"
-  | "PROCEDURE"
-  | "RUNBOOK"
-  | "FAQ"
-  | "TICKET";
+type SourceType = "DOCUMENT" | "WIKI" | "PROCEDURE" | "RUNBOOK" | "FAQ" | "TICKET";
 
 /**
  * Contexte RBAC pour le filtrage pré-retrieval (ISO 27001 Annex A.5.15, A.8.3).
@@ -183,17 +199,12 @@ export class RagService {
 
   /** Check whether the RAG pipeline is enabled via env var. */
   isEnabled(): boolean {
-    return (
-      process.env.RAG_ENABLED === "true" || process.env.RAG_ENABLED === "1"
-    );
+    return process.env.RAG_ENABLED === "true" || process.env.RAG_ENABLED === "1";
   }
 
   /** Check whether Ollama LLM is enabled via env var. */
   isOllamaEnabled(): boolean {
-    return (
-      process.env.OLLAMA_ENABLED === "true" ||
-      process.env.OLLAMA_ENABLED === "1"
-    );
+    return process.env.OLLAMA_ENABLED === "true" || process.env.OLLAMA_ENABLED === "1";
   }
 
   /** Check whether semantic RAG (P1 pgvector) is enabled. */
@@ -206,6 +217,18 @@ export class RagService {
     const mode = process.env.RAG_HYBRID_MODE || "lexical";
     if (mode === "vector" || mode === "hybrid") return mode;
     return "lexical";
+  }
+
+  /** Budget temps de génération d'une réponse RAG (env RAG_ANSWER_TIMEOUT_MS). */
+  private getAnswerTimeoutMs(): number {
+    const raw = parseInt(process.env.RAG_ANSWER_TIMEOUT_MS || "", 10);
+    return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_ANSWER_TIMEOUT_MS;
+  }
+
+  /** Longueur max (tokens) d'une réponse RAG (env RAG_ANSWER_MAX_TOKENS). */
+  private getAnswerMaxTokens(): number {
+    const raw = parseInt(process.env.RAG_ANSWER_MAX_TOKENS || "", 10);
+    return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_ANSWER_MAX_TOKENS;
   }
 
   // =========================================================================
@@ -232,11 +255,7 @@ export class RagService {
         overlapChars: CHUNK_OVERLAP_CHARS,
       });
     }
-    return this.semanticChunker.fixedSizeChunks(
-      content,
-      CHUNK_SIZE_CHARS,
-      CHUNK_OVERLAP_CHARS,
-    );
+    return this.semanticChunker.fixedSizeChunks(content, CHUNK_SIZE_CHARS, CHUNK_OVERLAP_CHARS);
   }
 
   // =========================================================================
@@ -280,9 +299,7 @@ export class RagService {
             content: chunks[i],
             tokenCount: Math.ceil(chunks[i].length / 4),
             // Prisma.InputJsonValue : metadata est un Record<string, unknown>.
-            metadata: (metadata ?? undefined) as
-              | Prisma.InputJsonValue
-              | undefined,
+            metadata: (metadata ?? undefined) as Prisma.InputJsonValue | undefined,
           },
           select: { id: true },
         });
@@ -327,26 +344,19 @@ export class RagService {
    * or soft-deleted so it disappears from AI search results.
    * Safe to call on a source that's not indexed (no-op).
    */
-  async removeFromIndex(
-    sourceType: SourceType,
-    sourceId: string,
-  ): Promise<number> {
+  async removeFromIndex(sourceType: SourceType, sourceId: string): Promise<number> {
     const ragChunk = this.prisma.ragChunk;
     const result = await ragChunk
       .deleteMany({
         where: { sourceType, sourceId },
       })
       .catch((err: Error) => {
-        this.logger.warn(
-          `rag.deindex.failed ${sourceType}/${sourceId}: ${err.message}`,
-        );
+        this.logger.warn(`rag.deindex.failed ${sourceType}/${sourceId}: ${err.message}`);
         return { count: 0 };
       });
     const count = result?.count ?? 0;
     if (count > 0) {
-      this.logger.log(
-        `rag.deindex ${sourceType}/${sourceId} — ${count} chunks removed`,
-      );
+      this.logger.log(`rag.deindex ${sourceType}/${sourceId} — ${count} chunks removed`);
     }
     return count;
   }
@@ -489,9 +499,7 @@ export class RagService {
     // Procedures and FAQs don't have dedicated Prisma models yet.
     // They can be indexed via `indexSource()` from external callers.
 
-    this.logger.log(
-      `Reindex complete: ${JSON.stringify(indexed)}, errors: ${errors.length}`,
-    );
+    this.logger.log(`Reindex complete: ${JSON.stringify(indexed)}, errors: ${errors.length}`);
     return { indexed, errors };
   }
 
@@ -506,9 +514,7 @@ export class RagService {
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
     const words = normalized.split(/\W+/).filter(Boolean);
-    return words
-      .filter((w) => w.length >= 3 && !FR_STOP_WORDS.has(w))
-      .slice(0, 8);
+    return words.filter((w) => w.length >= 3 && !FR_STOP_WORDS.has(w)).slice(0, 8);
   }
 
   /** Build a ~300-char snippet window centered on the first matching term. */
@@ -543,12 +549,8 @@ export class RagService {
    * en se basant sur la classification (PUBLIC < INTERNE < CONFIDENTIEL < SECRET).
    * Filtrage AVANT retrieval pour conformité ISO 27001.
    */
-  private async getAccessibleDocumentIds(
-    ctx: RagSearchContext,
-  ): Promise<string[] | "ALL"> {
-    const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(
-      ctx.role,
-    );
+  private async getAccessibleDocumentIds(ctx: RagSearchContext): Promise<string[] | "ALL"> {
+    const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(ctx.role);
     if (isPrivileged) return "ALL";
 
     try {
@@ -560,11 +562,7 @@ export class RagService {
             // CONFIDENTIEL : accessible si owner, reviewer, ou approver
             {
               classification: "CONFIDENTIEL",
-              OR: [
-                { ownerId: ctx.userId },
-                { reviewerId: ctx.userId },
-                { approverId: ctx.userId },
-              ],
+              OR: [{ ownerId: ctx.userId }, { reviewerId: ctx.userId }, { approverId: ctx.userId }],
             },
             // SECRET : uniquement owner
             { classification: "SECRET", ownerId: ctx.userId },
@@ -589,20 +587,13 @@ export class RagService {
    * - Wiki / Runbook : accessible si publié (déjà filtré à l'indexation)
    * - Procédure / FAQ : accessible à tous les authentifiés
    */
-  private async applyRbacFilter(
-    candidates: any[],
-    ctx: RagSearchContext,
-  ): Promise<any[]> {
+  private async applyRbacFilter(candidates: any[], ctx: RagSearchContext): Promise<any[]> {
     if (!ctx || process.env.RBAC_RAG_ENABLED === "false") {
       return candidates; // Feature flag désactivé → pas de filtrage
     }
 
-    const docChunks = candidates.filter(
-      (c: any) => c.sourceType === "DOCUMENT",
-    );
-    const otherChunks = candidates.filter(
-      (c: any) => c.sourceType !== "DOCUMENT",
-    );
+    const docChunks = candidates.filter((c: any) => c.sourceType === "DOCUMENT");
+    const otherChunks = candidates.filter((c: any) => c.sourceType !== "DOCUMENT");
 
     if (docChunks.length === 0) return candidates;
 
@@ -612,9 +603,7 @@ export class RagService {
     if (accessibleIds === "ALL") {
       filteredDocChunks = docChunks;
     } else {
-      filteredDocChunks = docChunks.filter((c: any) =>
-        accessibleIds.includes(c.sourceId),
-      );
+      filteredDocChunks = docChunks.filter((c: any) => accessibleIds.includes(c.sourceId));
     }
 
     const filteredOut = docChunks.length - filteredDocChunks.length;
@@ -638,11 +627,7 @@ export class RagService {
    * then scores with TF heuristics.
    * Applique le filtrage RBAC AVANT le scoring (ISO 27001 A.5.15).
    */
-  async searchSimilar(
-    query: string,
-    limit = 10,
-    ctx?: RagSearchContext,
-  ): Promise<RagSource[]> {
+  async searchSimilar(query: string, limit = 10, ctx?: RagSearchContext): Promise<RagSource[]> {
     const terms = this.tokenizeQuery(query);
     if (terms.length === 0) return [];
 
@@ -717,9 +702,7 @@ export class RagService {
     return top.map(({ chunk, score }) => {
       // Prisma.JsonValue dynamique — extraction défensive du metadata
       const meta =
-        chunk.metadata &&
-        typeof chunk.metadata === "object" &&
-        !Array.isArray(chunk.metadata)
+        chunk.metadata && typeof chunk.metadata === "object" && !Array.isArray(chunk.metadata)
           ? (chunk.metadata as Record<string, unknown>)
           : {};
       return {
@@ -741,11 +724,7 @@ export class RagService {
    * Recherche par similarité cosine via pgvector.
    * Nécessite RAG_SEMANTIC_ENABLED=true et des embeddings non-null.
    */
-  async vectorSearch(
-    query: string,
-    limit = 10,
-    ctx?: RagSearchContext,
-  ): Promise<RagSource[]> {
+  async vectorSearch(query: string, limit = 10, ctx?: RagSearchContext): Promise<RagSource[]> {
     if (!this.isSemanticEnabled()) return [];
 
     let queryEmbedding: number[];
@@ -759,16 +738,12 @@ export class RagService {
       return [];
     }
 
-    const threshold = parseFloat(
-      process.env.VECTOR_SIMILARITY_THRESHOLD || "0.5",
-    );
+    const threshold = parseFloat(process.env.VECTOR_SIMILARITY_THRESHOLD || "0.5");
 
     // Build accessible IDs filter for RBAC
     let accessFilter = "";
     if (ctx && process.env.RBAC_RAG_ENABLED !== "false") {
-      const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(
-        ctx.role,
-      );
+      const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(ctx.role);
       if (!isPrivileged) {
         const accessibleIds = await this.getAccessibleDocumentIds(ctx);
         if (accessibleIds !== "ALL" && accessibleIds.length === 0) {
@@ -829,8 +804,7 @@ export class RagService {
   ): RagSource[] {
     const scores = new Map<string, { score: number; source: RagSource }>();
 
-    const makeKey = (s: RagSource) =>
-      `${s.sourceType}:${s.sourceId}:${s.snippet.slice(0, 50)}`;
+    const makeKey = (s: RagSource) => `${s.sourceType}:${s.sourceId}:${s.snippet.slice(0, 50)}`;
 
     lexicalResults.forEach((r, idx) => {
       const key = makeKey(r);
@@ -874,11 +848,7 @@ export class RagService {
    *
    * Tous les flags sont independants. Quand tous off, comportement = legacy.
    */
-  async search(
-    query: string,
-    limit = 10,
-    ctx?: RagSearchContext,
-  ): Promise<RagSource[]> {
+  async search(query: string, limit = 10, ctx?: RagSearchContext): Promise<RagSource[]> {
     if (!query || !query.trim()) return [];
 
     // Etape 1 : query expansion (no-op si flag off — retourne [query]).
@@ -984,10 +954,7 @@ export class RagService {
    * apres query expansion). Cle = sourceType:sourceId pour deduper les chunks
    * issus de variants differents.
    */
-  private reciprocalRankFusionMulti(
-    lists: RagSource[][],
-    k = 60,
-  ): RagSource[] {
+  private reciprocalRankFusionMulti(lists: RagSource[][], k = 60): RagSource[] {
     const scores = new Map<string, { score: number; source: RagSource }>();
     const makeKey = (s: RagSource) => `${s.sourceType}:${s.sourceId}`;
 
@@ -1014,14 +981,10 @@ export class RagService {
    * Retourne `undefined` si pas de contexte (filtrage applique post-retrieval),
    * ou si user privileged (acces total).
    */
-  private async buildAccessFilter(
-    ctx?: RagSearchContext,
-  ): Promise<string | undefined> {
+  private async buildAccessFilter(ctx?: RagSearchContext): Promise<string | undefined> {
     if (!ctx || process.env.RBAC_RAG_ENABLED === "false") return undefined;
 
-    const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(
-      ctx.role,
-    );
+    const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(ctx.role);
     if (isPrivileged) return undefined;
 
     const accessibleIds = await this.getAccessibleDocumentIds(ctx);
@@ -1035,8 +998,7 @@ export class RagService {
     // (cache, mock test, futur refactor). N'importe quel id non-UUID est
     // silencieusement filtré — l'effet est qu'il ne sera pas accessible,
     // pas qu'on injecte du SQL.
-    const UUID_RE =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const safeIds = accessibleIds.filter((id) => UUID_RE.test(id));
     if (safeIds.length === 0) {
       return `AND ("sourceType" != 'DOCUMENT')`;
@@ -1075,7 +1037,10 @@ export class RagService {
   async callLlm(prompt: string, maxTokens = 500): Promise<string> {
     const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
     const model = process.env.OLLAMA_MODEL || "mistral";
-    const timeoutMs = parseInt(process.env.OLLAMA_TIMEOUT_MS || "60000", 10);
+    // Budget global (env OLLAMA_TIMEOUT_MS, défaut 240 s) : l'ancien défaut de
+    // 60 s était mathématiquement intenable sur CPU (prompt-eval ~16 tok/s +
+    // génération ~5 tok/s → un résumé réaliste demande ~125 s).
+    const timeoutMs = getOllamaTimeoutMs();
 
     // Ajout timeout : sans signal d'abort, fetch peut pendre indéfiniment si
     // Ollama ne répond pas (CPU thrashing, deadlock, etc.) → bloque la requête HTTP appelante.
@@ -1092,9 +1057,7 @@ export class RagService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Ollama returned ${response.status}: ${response.statusText}`,
-      );
+      throw new Error(`Ollama returned ${response.status}: ${response.statusText}`);
     }
 
     const data = (await response.json()) as { response?: string };
@@ -1105,16 +1068,10 @@ export class RagService {
    * Stream tokens from Ollama. Yields each token string as it arrives.
    * Uses Ollama's native `stream: true` which emits newline-delimited JSON.
    */
-  async *callLlmStream(
-    prompt: string,
-    maxTokens = 500,
-  ): AsyncGenerator<string> {
+  async *callLlmStream(prompt: string, maxTokens = 500): AsyncGenerator<string> {
     const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
     const model = process.env.OLLAMA_MODEL || "mistral";
-    const timeoutMs = parseInt(
-      process.env.OLLAMA_STREAM_TIMEOUT_MS || "120000",
-      10,
-    );
+    const timeoutMs = parseInt(process.env.OLLAMA_STREAM_TIMEOUT_MS || "120000", 10);
 
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: "POST",
@@ -1131,9 +1088,7 @@ export class RagService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Ollama returned ${response.status}: ${response.statusText}`,
-      );
+      throw new Error(`Ollama returned ${response.status}: ${response.statusText}`);
     }
 
     const reader = response.body as AsyncIterable<Uint8Array>;
@@ -1178,9 +1133,11 @@ export class RagService {
       queryId?: string;
     }) => void,
     ctx?: RagSearchContext,
+    onStatus?: (status: RagStreamStatus) => void,
   ): Promise<void> {
     const start = Date.now();
 
+    onStatus?.({ stage: "retrieving" });
     const sources = await this.search(question, 10, ctx);
     const retrievalConfidence = sources.length > 0 ? sources[0].score : 0;
 
@@ -1228,20 +1185,31 @@ export class RagService {
     // Emit sources immediately so the frontend can display them while LLM streams
     onMeta({ sources, retrievalConfidence, durationMs: 0, queryId });
 
-    // P1.8.1.3 : prompt template adapté au modèle actif
+    // P1.8.1.3 : prompt template adapté au modèle actif.
+    // Contexte réduit à 3 chunks × 250 chars (fix 2026-07) : le prompt-eval
+    // domine la latence CPU (~16 tok/s) — passer de 5×300 à 3×250 retire
+    // ~40 % des tokens de contexte sans dégrader visiblement la pertinence.
     const templates = getPromptTemplates(this.llmService.getActiveModel());
     const prompt = templates.rag({
       query: question,
-      chunks: sources.slice(0, 5).map((s) => ({
+      chunks: sources.slice(0, 3).map((s) => ({
         sourceType: s.sourceType,
         title: s.title,
-        snippet: s.snippet,
+        snippet: s.snippet.slice(0, 250),
       })),
     });
 
     if (this.isOllamaEnabled()) {
       try {
-        for await (const token of this.llmService.generateStream(prompt)) {
+        onStatus?.({
+          stage: "generating",
+          model: this.llmService.getActiveModel(),
+        });
+        for await (const token of this.llmService.generateStream(prompt, {
+          maxTokens: this.getAnswerMaxTokens(),
+          timeoutMs: this.getAnswerTimeoutMs(),
+          onModelFallback: (model) => onStatus?.({ stage: "model_fallback", model }),
+        })) {
           onToken(token);
         }
       } catch (err) {
@@ -1280,18 +1248,13 @@ export class RagService {
    * Full RAG pipeline: search -> confidence gate -> context assembly -> LLM or extractive fallback.
    * Applique le filtrage RBAC si un contexte est fourni (P-1.1).
    */
-  async answer(
-    question: string,
-    userId: string,
-    ctx?: RagSearchContext,
-  ): Promise<RagAnswer> {
+  async answer(question: string, userId: string, ctx?: RagSearchContext): Promise<RagAnswer> {
     const start = Date.now();
 
     if (!this.isEnabled()) {
       this.logger.warn({ msg: "rag.pipeline.disabled", userId });
       return {
-        answer:
-          "Le moteur RAG est désactivé. Contactez un administrateur pour l'activer.",
+        answer: "Le moteur RAG est désactivé. Contactez un administrateur pour l'activer.",
         sources: [],
         retrievalConfidence: 0,
         source: "none",
@@ -1335,9 +1298,7 @@ export class RagService {
             data: { durationMs: earlyDurationMs },
           })
           .catch((err) => {
-            this.logger.warn(
-              `Failed to update RAG query duration: ${(err as Error).message}`,
-            );
+            this.logger.warn(`Failed to update RAG query duration: ${(err as Error).message}`);
           });
       }
       return {
@@ -1355,10 +1316,7 @@ export class RagService {
     // 3. Assemble context from top sources
     const contextParts = sources
       .slice(0, 5)
-      .map(
-        (s, i) =>
-          `[Source ${i + 1} — ${s.sourceType}] ${s.title}\n${s.snippet}`,
-      );
+      .map((s, i) => `[Source ${i + 1} — ${s.sourceType}] ${s.title}\n${s.snippet}`);
     // contextParts assemble plus bas par le LLM dans buildPrompt — on conserve
     // les chunks tries pour traceabilite de citation.
     const _context = contextParts.join("\n\n");
@@ -1388,8 +1346,8 @@ export class RagService {
         // concise et un budget temps réaliste pour que le modèle principal
         // termine en un seul passage (surchargeable par env pour le tuning).
         const result = await this.llmService.generate(prompt, {
-          maxTokens: parseInt(process.env.RAG_ANSWER_MAX_TOKENS || "384", 10),
-          timeoutMs: parseInt(process.env.RAG_ANSWER_TIMEOUT_MS || "90000", 10),
+          maxTokens: this.getAnswerMaxTokens(),
+          timeoutMs: this.getAnswerTimeoutMs(),
         });
         answer = result.text;
         answerSource = "llm";
@@ -1445,25 +1403,65 @@ export class RagService {
   // Document summary
   // =========================================================================
 
-  /** Generate an LLM summary of a document. Results are cached. */
-  async summarizeDocument(documentId: string): Promise<{ summary: string }> {
-    const cacheKey = `doc-summary:${documentId}`;
-    const cached = getCached<{ summary: string }>(cacheKey);
-    if (cached) return cached;
-
+  /**
+   * Generate an LLM summary of a document.
+   *
+   * Fix 2026-07 :
+   *  - RBAC par classification DANS le service (ISO A.5.15) : la route est
+   *    désormais ouverte à tous les rôles authentifiés, un utilisateur ne
+   *    peut résumer que ce qu'il a le droit de lire.
+   *  - Passe par LlmService.generate (chaîne de fallback + template [INST]
+   *    par modèle) au lieu de callLlm brut.
+   *  - Entrée ≤ 2000 chars, map-reduce en 2 passes au-delà.
+   *  - Cache mémoire keyé par checksum de la version courante, TTL 24 h
+   *    (invalidation automatique quand une nouvelle version est uploadée).
+   *  - Les erreurs LLM REMONTENT à l'appelant (le contrôleur renvoie 503) au
+   *    lieu d'un 200 { summary: "Erreur…" } qui polluait cache et monitoring.
+   */
+  async summarizeDocument(
+    documentId: string,
+    ctx?: RagSearchContext,
+  ): Promise<{ summary: string }> {
     const doc = await this.prisma.document.findUniqueOrThrow({
       where: { id: documentId },
       include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
     });
 
+    // RBAC par classification — fail closed sur classification inconnue.
+    if (
+      ctx &&
+      process.env.RBAC_RAG_ENABLED !== "false" &&
+      !canAccessDocumentByClassification(doc, { id: ctx.userId, role: ctx.role })
+    ) {
+      this.logger.warn({
+        msg: "rag.summary.rbac_denied",
+        documentId,
+        userId: ctx.userId,
+        role: ctx.role,
+        classification: doc.classification,
+      });
+      throw new ForbiddenException(
+        "Accès restreint : la classification de ce document ne permet pas d'en générer un résumé avec vos habilitations.",
+      );
+    }
+
+    // Clé de cache liée au contenu : checksum de la version courante, ou hash
+    // du contenu natif. Une nouvelle version/édition invalide donc le cache.
+    const versionKey =
+      doc.versions[0]?.checksum ??
+      `native:${createHash("sha256")
+        .update(doc.content ?? "")
+        .digest("hex")
+        .slice(0, 16)}`;
+    const cacheKey = `doc-summary:${documentId}:${versionKey}`;
+    const cached = getCached<{ summary: string }>(cacheKey);
+    if (cached) return cached;
+
     let text = doc.content ?? "";
 
     if (!text && doc.versions.length > 0) {
       const latest = doc.versions[0];
-      const extracted = await this.textExtractor.extractText(
-        latest.fileUrl,
-        latest.fileType,
-      );
+      const extracted = await this.textExtractor.extractText(latest.fileUrl, latest.fileType);
       if (extracted) text = extracted;
     }
 
@@ -1473,24 +1471,57 @@ export class RagService {
 
     if (!this.isOllamaEnabled()) {
       // Extractive fallback: first 500 chars
-      const summary =
-        text.slice(0, 500).trim() + (text.length > 500 ? "…" : "");
+      const summary = text.slice(0, 500).trim() + (text.length > 500 ? "…" : "");
       const result = { summary };
-      setCache(cacheKey, result);
+      setCache(cacheKey, result, SUMMARY_CACHE_TTL_MS);
       return result;
     }
 
-    const prompt = `Tu es un assistant documentaire pour OMNITECH SECURITY. Résume le document suivant en français, en 3 à 5 phrases concises.
+    const templates = getPromptTemplates(this.llmService.getActiveModel());
+    const timeoutMs = getOllamaTimeoutMs();
+    let summary: string;
 
-Document : ${doc.title}
-Contenu :
-${text.slice(0, 4000)}
+    if (text.length <= SUMMARY_INPUT_CHARS) {
+      const result = await this.llmService.generate(templates.summary(text), {
+        maxTokens: SUMMARY_MAX_TOKENS,
+        timeoutMs,
+      });
+      summary = result.text;
+    } else {
+      // Map-reduce en 2 passes : résumés partiels de segments de 2000 chars
+      // (max 3 segments), puis résumé final de la concaténation.
+      const segments: string[] = [];
+      for (
+        let i = 0;
+        i < text.length && segments.length < SUMMARY_MAX_SEGMENTS;
+        i += SUMMARY_INPUT_CHARS
+      ) {
+        const seg = text.slice(i, i + SUMMARY_INPUT_CHARS).trim();
+        if (seg) segments.push(seg);
+      }
 
-Résumé :`;
+      const partials: string[] = [];
+      for (const seg of segments) {
+        const partial = await this.llmService.generate(templates.summary(seg), {
+          maxTokens: SUMMARY_SEGMENT_MAX_TOKENS,
+          timeoutMs,
+        });
+        if (partial.text.trim()) partials.push(partial.text.trim());
+      }
 
-    const summary = await this.callLlm(prompt, 300);
+      // Si la passe map n'a rien produit (réponses vides), on retombe sur le
+      // début du texte plutôt que d'envoyer un prompt vide à la passe reduce.
+      const combined =
+        partials.join("\n\n").slice(0, SUMMARY_INPUT_CHARS) || text.slice(0, SUMMARY_INPUT_CHARS);
+      const final = await this.llmService.generate(templates.summary(combined), {
+        maxTokens: SUMMARY_MAX_TOKENS,
+        timeoutMs,
+      });
+      summary = final.text;
+    }
+
     const result = { summary };
-    setCache(cacheKey, result);
+    setCache(cacheKey, result, SUMMARY_CACHE_TTL_MS);
     return result;
   }
 
@@ -1499,9 +1530,7 @@ Résumé :`;
   // =========================================================================
 
   /** Suggest a response for a support ticket using RAG context. */
-  async suggestTicketResponse(
-    ticketId: string,
-  ): Promise<{ suggestion: string }> {
+  async suggestTicketResponse(ticketId: string): Promise<{ suggestion: string }> {
     const ticket = await this.prisma.ticket.findUniqueOrThrow({
       where: { id: ticketId },
       include: { comments: { orderBy: { createdAt: "asc" } } },
@@ -1553,10 +1582,7 @@ Réponse suggérée :`;
   // =========================================================================
 
   /** Answer a question about a specific wiki article. */
-  async askAboutArticle(
-    articleId: string,
-    question: string,
-  ): Promise<{ answer: string }> {
+  async askAboutArticle(articleId: string, question: string): Promise<{ answer: string }> {
     const page = await this.prisma.wikiPage.findUniqueOrThrow({
       where: { id: articleId },
     });
@@ -1594,8 +1620,7 @@ Réponse :`;
   async getStats(): Promise<Record<string, unknown>> {
     const ragChunk = this.prisma.ragChunk;
 
-    let chunksByType: Array<{ sourceType: string; _count: { id: number } }> =
-      [];
+    let chunksByType: Array<{ sourceType: string; _count: { id: number } }> = [];
     try {
       // Prisma's groupBy a une signature `T extends RagChunkGroupByArgs &
       // any[]` qui force l'argument à être déclaré comme tuple sinon TS rejette
