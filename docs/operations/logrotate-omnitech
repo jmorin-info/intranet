@@ -1,0 +1,25 @@
+# Rotation des logs applicatifs OMNITECH intranet.
+#
+# Contexte : /var/log/omnitech/backend.log atteignait 1,3 Go sans rotation
+# (le disque de la VM est un sujet connu). Cette config rotationne chaque
+# semaine et conserve 8 semaines compressees.
+#
+# INSTALLATION (manuelle, en root — NE PAS automatiser depuis le repo) :
+#   cp docs/operations/logrotate-omnitech /etc/logrotate.d/omnitech
+#   logrotate -d /etc/logrotate.d/omnitech   # dry-run de validation
+#
+# copytruncate : les services systemd omnitech-backend/frontend gardent leur
+# descripteur de fichier ouvert (redirection stdout) — on tronque en place
+# plutot que de deplacer, aucun restart necessaire. Perte possible de
+# quelques lignes pendant la troncature : acceptable pour des logs applicatifs.
+
+/var/log/omnitech/*.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    dateext
+}
