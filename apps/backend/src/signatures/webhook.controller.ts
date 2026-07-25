@@ -12,9 +12,16 @@ import {
 import { createHmac, timingSafeEqual } from 'crypto';
 import { SignaturesService } from './signatures.service';
 import { AuditService } from '../audit/audit.service';
+import { CampaignsService } from '../signature-campaigns/campaigns.service';
 
 /**
- * Webhook DocuSeal — réception des événements de signature.
+ * Webhook DocuSeal — POINT D'ENTRÉE UNIQUE des événements de signature.
+ *
+ * Chaîne de responsabilité (2026-07-24) : l'événement est routé par
+ * submissionId vers SignaturesService.handleWebhook (SignatureRequest,
+ * y compris celles générées par une campagne) PUIS, s'il n'a pas été
+ * traité, vers CampaignsService.handleWebhook (CampaignSignature legacy).
+ * L'ancien endpoint /signature-campaigns/webhook/docuseal répond 410 Gone.
  *
  * Sécurité (ISO 27001 A.8.26 — Application security requirements) :
  *  - Le header `X-DocuSeal-Signature` contient un HMAC-SHA256 du body brut
@@ -38,6 +45,7 @@ export class WebhookController {
   constructor(
     private readonly signaturesService: SignaturesService,
     private readonly auditService: AuditService,
+    private readonly campaignsService: CampaignsService,
   ) {
     this.webhookSecret = process.env.DOCUSEAL_WEBHOOK_SECRET || '';
     // Par défaut HMAC activé ; passer HMAC_MODE=false pour conserver l'ancien
@@ -114,12 +122,26 @@ export class WebhookController {
 
     // IP/UA captures here are forwarded to EvidenceService.captureEvidence
     // (via SignaturesService.handleWebhook) for eIDAS-AES proof.
-    await this.signaturesService.handleWebhook(payload, {
+    const { handled } = await this.signaturesService.handleWebhook(payload, {
       ipAddress,
       userAgent,
     });
 
-    return { received: true };
+    // Chaîne de responsabilité : le handler campagnes (CampaignSignature
+    // legacy, rattachement STRICT par submissionId) traite ce que le
+    // handler SignatureRequest n'a pas consommé — et met aussi à jour les
+    // stats CampaignSignature pour les submissions issues de campagnes.
+    try {
+      await this.campaignsService.handleWebhook(payload);
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      this.logger.error(
+        `Campaign webhook handler failed (non-blocking): ${e.message}`,
+        e.stack,
+      );
+    }
+
+    return { received: true, handled };
   }
 
   /**

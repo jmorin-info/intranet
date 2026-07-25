@@ -60,7 +60,6 @@ interface DocumentTabContentProps {
   inlineContent: string;
   inlineSaving: boolean;
   inlineDirty: boolean;
-  onSetConfirmSignId: (id: string) => void;
   onUploadVersion: (file: File) => void;
   onOpenReadingMode: () => void;
   onCommentTextChange: (v: string) => void;
@@ -101,7 +100,6 @@ export function DocumentTabContent(props: DocumentTabContentProps) {
     inlineContent,
     inlineSaving,
     inlineDirty,
-    onSetConfirmSignId,
     onUploadVersion,
     onOpenReadingMode,
     onCommentTextChange,
@@ -152,7 +150,6 @@ export function DocumentTabContent(props: DocumentTabContentProps) {
         signatures={signatures}
         templates={docusealTemplates}
         currentUserId={currentUserId}
-        onConfirmSign={onSetConfirmSignId}
       />
     );
   }

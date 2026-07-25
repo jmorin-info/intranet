@@ -46,7 +46,6 @@ export function useDocumentDetail(id: string | undefined) {
   const [uploadingVersion, setUploadingVersion] = useState(false);
   const [reopening, setReopening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [confirmSignId, setConfirmSignId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [hasAcknowledged, setHasAcknowledged] = useState(false);
@@ -594,8 +593,6 @@ export function useDocumentDetail(id: string | undefined) {
     uploadingVersion,
     reopening,
     fileInputRef,
-    confirmSignId,
-    setConfirmSignId,
     actionLoading,
     analyzing,
     hasAcknowledged,

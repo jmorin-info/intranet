@@ -109,7 +109,20 @@ function getNotificationAction(n: { type: string; resourceType?: string; resourc
     return { label: "Voir le ticket", href: `/tickets/${n.resourceId}` };
   }
   if (n.type === "SIGNATURE_NEEDED") {
-    return { label: "Signer la charte", href: "/chartes" };
+    return { label: "Attester la lecture de la charte", href: "/chartes" };
+  }
+  // Campagne de signature : la SignatureRequest générée pour l'utilisateur
+  // est listée sur /signatures (badge campagne).
+  if (
+    n.resourceType === "SIGNATURE_CAMPAIGN" ||
+    n.resourceType === "SignatureCampaign"
+  ) {
+    return { label: "Signer sur DocuSeal", href: "/signatures" };
+  }
+  if (n.resourceType === "Charte") {
+    return n.type === "DOC_APPROVAL_NEEDED"
+      ? { label: "Valider la charte", href: "/admin/chartes" }
+      : { label: "Attester la lecture", href: "/chartes" };
   }
   if (n.type === "ACK_REQUIRED" && n.resourceType === "Document" && n.resourceId) {
     return { label: "Accuser réception", href: `/documents/${n.resourceId}` };
@@ -247,6 +260,9 @@ export default function NotificationsPage() {
       router.push(`/news/${notif.resourceId}`);
     } else if (notif.resourceType === "Ticket" && notif.resourceId) {
       router.push(`/tickets/${notif.resourceId}`);
+    } else {
+      const action = getNotificationAction(notif as any);
+      if (action?.href) router.push(action.href);
     }
   };
 

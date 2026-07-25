@@ -19,6 +19,8 @@
     "import-notion": "tsx prisma/import-notion.ts",
     "import-csv": "tsx prisma/import-csv.ts",
     "import-redmine": "tsx prisma/import-redmine.ts",
+    "backfill-ack-identity": "tsx prisma/maintenance/backfill-ack-identity.ts",
+    "backfill-ack-identity:apply": "tsx prisma/maintenance/backfill-ack-identity.ts --apply",
     "studio": "prisma studio"
   },
   "dependencies": {

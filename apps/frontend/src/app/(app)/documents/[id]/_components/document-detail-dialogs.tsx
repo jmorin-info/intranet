@@ -2,22 +2,18 @@
 
 import React from "react";
 import { ConfirmDialog } from "@omnitech/ui";
-import { toast } from "sonner";
-import { api } from "@/lib/api";
 
 /**
  * Regroupement des ConfirmDialog destructifs / d'action de la page Document
- * Detail : signature, marquer obsolète, archiver, supprimer.
+ * Detail : marquer obsolète, archiver, supprimer.
+ *
+ * La confirmation de « signature au clic » a été retirée (refonte signatures
+ * 2026-07) : une signature engageante passe uniquement par DocuSeal.
  *
  * Centralisé ici pour alléger la page principale et grouper la logique de
  * confirmation utilisateur (toutes basées sur le même primitive ConfirmDialog).
  */
 export interface DocumentDetailDialogsProps {
-  // Signature
-  confirmSignId: string | null;
-  setConfirmSignId: (v: string | null) => void;
-  refreshDocument: () => Promise<void> | void;
-
   // Marquer obsolète
   showObsoleteDialog: boolean;
   setShowObsoleteDialog: (v: boolean) => void;
@@ -39,9 +35,6 @@ export interface DocumentDetailDialogsProps {
 }
 
 export const DocumentDetailDialogs = React.memo(function DocumentDetailDialogs({
-  confirmSignId,
-  setConfirmSignId,
-  refreshDocument,
   showObsoleteDialog,
   setShowObsoleteDialog,
   showArchiveDialog,
@@ -56,25 +49,6 @@ export const DocumentDetailDialogs = React.memo(function DocumentDetailDialogs({
 }: DocumentDetailDialogsProps) {
   return (
     <>
-      <ConfirmDialog
-        open={!!confirmSignId}
-        onClose={() => setConfirmSignId(null)}
-        onConfirm={async () => {
-          const sigId = confirmSignId;
-          setConfirmSignId(null);
-          try {
-            await api.patch(`/signatures/${sigId}/sign`);
-            toast.success("Document signé");
-            await refreshDocument();
-          } catch {
-            toast.error("Erreur signature");
-          }
-        }}
-        title="Confirmer la signature"
-        description="Confirmez-vous la signature de ce document ?"
-        confirmLabel="Signer"
-        variant="primary"
-      />
       <ConfirmDialog
         open={showObsoleteDialog}
         onClose={() => setShowObsoleteDialog(false)}

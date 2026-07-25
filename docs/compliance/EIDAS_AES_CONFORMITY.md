@@ -52,7 +52,7 @@ OMNITECH Intranet vise **B-LT** :
 
 ```
 DocuSeal (PSCo non qualifié)
-    ↓ POST /signatures/webhook (HMAC-SHA256 verifié)
+    ↓ POST /signatures/webhook (HMAC-SHA256 verifié) — POINT D'ENTRÉE UNIQUE
 WebhookController.handleWebhook(payload, { ip, ua })
     ↓
 SignaturesService.handleWebhook
@@ -63,7 +63,27 @@ SignaturesService.handleWebhook
         ├─ Si TSA_URL configuré : POST RFC 3161 → TimeStampToken base64
         ├─ Si payload.signature.certificate présent : chaîne PEM (QES)
         └─ INSERT SignatureEvidence avec snapshot complet du payload
+    ↓ (chaîne de responsabilité)
+CampaignsService.handleWebhook — met à jour la CampaignSignature legacy,
+    rattachement STRICT par submissionId (jamais par email)
 ```
+
+L'ancien endpoint `POST /signature-campaigns/webhook/docuseal` (vérification
+plus faible : secret en clair toujours accepté) répond désormais **410 Gone**
+et journalise l'appel : reconfigurer DocuSeal sur `/signatures/webhook`.
+
+### 4.1 Garanties amont — aucune signature sans preuve possible
+
+- `POST /signatures/request` **échoue en 503** si DocuSeal ne renvoie pas de
+  `submission_id` : plus aucune `SignatureRequest` fantôme
+  (`docusealSubmissionId = null`) que le webhook ne pourrait jamais compléter.
+- La signature « au clic » sans DocuSeal (`PATCH /signatures/:id/sign`) est
+  **désactivée par défaut** (`SIGNATURES_ALLOW_DIRECT=false`) et retirée de
+  l'UI : elle ne produit aucune `SignatureEvidence`.
+- Un **cron de réconciliation** (toutes les 6 h,
+  `signatures/evidence-reconciliation.cron.ts`) reprend les
+  `SignatureRequest` `SIGNED` sans `SignatureEvidence`, re-interroge l'API
+  DocuSeal et capture la preuve a posteriori.
 
 ## 5. Variables d'environnement
 
@@ -71,6 +91,7 @@ SignaturesService.handleWebhook
 |----------|---------|-------------|
 | `DOCUSEAL_WEBHOOK_SECRET` | (vide) | Secret HMAC-SHA256 de vérification webhook DocuSeal |
 | `DOCUSEAL_WEBHOOK_SECRET_HMAC_MODE` | `true` | Si `false`, comparaison clear-text legacy DEPRECATED |
+| `SIGNATURES_ALLOW_DIRECT` | `false` | Autorise la signature au clic sans DocuSeal ni preuve. Rollback d'urgence uniquement — les signatures produites n'ont aucune valeur probante |
 | `TSA_URL` | (vide) | Endpoint RFC 3161 (ex: `http://timestamp.digicert.com`). Sans cela, `tsa` est null (preuve toujours valide AES) |
 
 ## 6. Endpoints exposés

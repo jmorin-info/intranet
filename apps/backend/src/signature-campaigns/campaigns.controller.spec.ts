@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException } from '@nestjs/common';
+import { GoneException } from '@nestjs/common';
 import { CampaignsController } from './campaigns.controller';
 import { CampaignsService } from './campaigns.service';
 import { Reflector } from '@nestjs/core';
@@ -10,8 +10,7 @@ import { ROLES_KEY } from '../auth/decorators/roles.decorator';
  * Tests signature campaigns controller :
  *  (a) list/detail (RBAC SUPER_ADMIN/ADMIN/DIRECTION)
  *  (b) launch/remind (RBAC SUPER_ADMIN/ADMIN strict)
- *  (c) webhook : signature invalide → 401 UnauthorizedException
- *  (d) webhook : signature valide → délégation au handler
+ *  (c) webhook DocuSeal historique : retiré → 410 Gone, aucun traitement
  */
 describe('CampaignsController', () => {
   let controller: CampaignsController;
@@ -32,7 +31,6 @@ describe('CampaignsController', () => {
       findOne: jest.fn().mockResolvedValue({ id: 'camp-1' }),
       launch: jest.fn().mockResolvedValue({ launched: true }),
       sendReminders: jest.fn().mockResolvedValue({ sent: 10 }),
-      verifyWebhookSignature: jest.fn().mockReturnValue(true),
       handleWebhook: jest.fn().mockResolvedValue({ ok: true }),
       findMyPending: jest.fn().mockResolvedValue([]),
     };
@@ -88,38 +86,31 @@ describe('CampaignsController', () => {
     });
   });
 
-  describe('webhook (autorisation refusée → input invalide signature)', () => {
-    it('throws UnauthorizedException on invalid signature', async () => {
-      campaigns.verifyWebhookSignature.mockReturnValueOnce(false);
+  describe('webhook DocuSeal historique (retiré)', () => {
+    it('répond 410 Gone quel que soit le payload', async () => {
       const req = {
-        headers: { 'x-docuseal-signature': 'bad-signature' },
-        rawBody: Buffer.from('{}'),
+        ip: '10.0.0.1',
+        headers: { 'x-docuseal-signature': 'peu-importe' },
+        rawBody: Buffer.from('{"event_type":"form.completed"}'),
       };
-      await expect(controller.webhook(req, {})).rejects.toThrow(
-        UnauthorizedException,
+      await expect(controller.deprecatedWebhook(req)).rejects.toThrow(
+        GoneException,
+      );
+    });
+
+    it('ne traite JAMAIS le payload (aucune délégation au service)', async () => {
+      const req = { ip: '10.0.0.1', headers: {} };
+      await expect(controller.deprecatedWebhook(req)).rejects.toThrow(
+        GoneException,
       );
       expect(campaigns.handleWebhook).not.toHaveBeenCalled();
     });
 
-    it('forwards payload to handleWebhook on valid signature', async () => {
-      campaigns.verifyWebhookSignature.mockReturnValueOnce(true);
-      const req = {
-        headers: { 'x-docuseal-signature': 'valid-sig' },
-        rawBody: Buffer.from('{"event":"submission.completed"}'),
-      };
-      const result = await controller.webhook(req, { event: 'submission.completed' });
-      expect(campaigns.handleWebhook).toHaveBeenCalled();
-      expect(result).toEqual({ ok: true });
-    });
-
-    it('falls back to JSON.stringify when no rawBody available', async () => {
-      campaigns.verifyWebhookSignature.mockReturnValueOnce(true);
-      const req = {
-        headers: { 'x-docuseal-signature': 'valid-sig' },
-      };
-      await controller.webhook(req, { event: 'test' });
-      // Verify handler was reached (signature check passed)
-      expect(campaigns.verifyWebhookSignature).toHaveBeenCalled();
+    it("le message d'erreur pointe vers le point d'entrée unique", async () => {
+      const req = { ip: '10.0.0.1', headers: {} };
+      await expect(controller.deprecatedWebhook(req)).rejects.toThrow(
+        /\/signatures\/webhook/,
+      );
     });
   });
 

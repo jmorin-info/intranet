@@ -57,7 +57,6 @@ export default function ChartesWallPage() {
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [signing, setSigning] = useState(false);
-  const [signingAll, setSigningAll] = useState(false);
   const [allDone, setAllDone] = useState(false);
 
   // PDF tracking
@@ -127,38 +126,16 @@ export default function ChartesWallPage() {
         }
       }, 2000);
     } catch {
-      toast.error("Erreur de signature");
+      toast.error("Erreur lors de l'enregistrement de l'attestation");
     } finally {
       setSigning(false);
     }
   };
 
-  const handleSignAll = async () => {
-    setSigningAll(true);
-    try {
-      for (let i = current; i < chartes.length; i++) {
-        const c = chartes[i];
-        if (!c) continue;
-        await api.post(`/chartes/${c.id}/sign`);
-        // Advance the progress bar as each signature succeeds so the user
-        // sees real feedback and we keep consistent state on partial failure
-        setCurrent(i + 1);
-      }
-      setAllDone(true);
-      setTimeout(() => {
-        const redirectTo =
-          sessionStorage.getItem("postChartesRedirect") || "/dashboard";
-        sessionStorage.removeItem("postChartesRedirect");
-        router.push(redirectTo);
-      }, 3500);
-    } catch {
-      toast.error("Erreur de signature — progression conservée");
-      // Reset PDF state so the user can read the next unsigned charte
-      resetPdfState();
-    } finally {
-      setSigningAll(false);
-    }
-  };
+  // NOTE (refonte 2026-07-24) : le « Tout signer » a été supprimé.
+  // Une attestation de lecture n'a de valeur (ISO 27001 A.6.2) que si
+  // l'utilisateur a réellement ouvert la version courante de CHAQUE
+  // charte — d'où le gating page à page ci-dessus, charte par charte.
 
   // Memoize file prop to prevent react-pdf re-renders (MUST be before any early return)
   const currentCharte = chartes[current];
@@ -201,10 +178,10 @@ export default function ChartesWallPage() {
             </div>
           </div>
           <h2 className="text-3xl font-semibold text-white mb-3">
-            Toutes les chartes sont signées !
+            Toutes les chartes sont attestées !
           </h2>
           <p className="text-white/60 text-sm mb-2">
-            {totalCount} / {totalCount} chartes approuvées
+            {totalCount} / {totalCount} lectures attestées
           </p>
           <div className="w-64 mx-auto h-2 bg-white/10 rounded-full overflow-hidden mb-4">
             <div className="h-full bg-emerald-400 rounded-full w-full transition-all duration-1000" />
@@ -227,7 +204,7 @@ export default function ChartesWallPage() {
             Chartes obligatoires
           </h1>
           <p className="text-white/50 text-sm mt-1">
-            Vous devez lire et approuver les documents suivants avant
+            Vous devez lire et attester les documents suivants avant
             d&apos;accéder à l&apos;intranet
           </p>
 
@@ -235,7 +212,7 @@ export default function ChartesWallPage() {
           <div className="mt-4 max-w-xs mx-auto">
             <div className="flex items-center justify-between text-xs text-white/60 mb-1.5">
               <span>
-                {signedCount} / {totalCount} chartes signees
+                {signedCount} / {totalCount} chartes attestées
               </span>
               <span>{Math.round((signedCount / totalCount) * 100)}%</span>
             </div>
@@ -382,13 +359,13 @@ export default function ChartesWallPage() {
                   </div>
                 </div>
                 <h3 className="text-lg font-semibold text-seal-navy dark:text-white">
-                  Charte signee
+                  Lecture attestée
                 </h3>
                 <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
                   {charte.title}
                 </p>
                 <p className="text-xs text-emerald-600 mt-2">
-                  Signe le{" "}
+                  Attesté le{" "}
                   {new Date().toLocaleDateString("fr-FR", {
                     day: "numeric",
                     month: "long",
@@ -408,7 +385,7 @@ export default function ChartesWallPage() {
               <div className="flex items-center gap-2 mb-3 animate-fade-in-up">
                 <Badge variant="approved" className="text-xs">
                   <CheckCircle2 className="h-3 w-3" />
-                  Signe le{" "}
+                  Attesté le{" "}
                   {new Date(
                     signedDates[charte.id] as string,
                   ).toLocaleDateString("fr-FR", {
@@ -430,29 +407,18 @@ export default function ChartesWallPage() {
               className="w-full"
               onClick={handleSign}
               loading={signing}
-              disabled={
-                !hasSeenAllPages || signingAll || !!signedDates[charte.id]
-              }
+              disabled={!hasSeenAllPages || !!signedDates[charte.id]}
             >
               <CheckCircle2 className="h-4 w-4" />
               {signedDates[charte.id]
-                ? "Charte signee"
-                : `J'ai lu et j'approuve cette charte — ${charte.title} (v${version.versionNumber})`}
+                ? "Lecture attestée"
+                : `J'atteste avoir lu et accepté cette charte — ${charte.title} (v${version.versionNumber})`}
             </Button>
-            {hasSeenAllPages &&
-              chartes.length > 1 &&
-              current < chartes.length - 1 && (
-                <Button
-                  variant="ghost"
-                  className="w-full mt-2 text-primary"
-                  onClick={handleSignAll}
-                  loading={signingAll}
-                  disabled={signing}
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Tout signer ({chartes.length - current} restantes)
-                </Button>
-              )}
+            <p className="text-[10px] text-center text-seal-gray-500 dark:text-slate-400 mt-2">
+              Cette attestation de lecture est horodatée et conservée comme
+              preuve de conformité. Ce n&apos;est pas une signature
+              électronique.
+            </p>
             {version.changeLog && (
               <p className="text-[10px] text-center text-seal-gray-500 dark:text-slate-400 mt-2">
                 Modifications : {version.changeLog}

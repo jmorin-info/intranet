@@ -242,7 +242,6 @@ export default function DocumentDetailPage() {
               inlineContent={ctx.inlineContent}
               inlineSaving={ctx.inlineSaving}
               inlineDirty={ctx.inlineDirty}
-              onSetConfirmSignId={ctx.setConfirmSignId}
               onUploadVersion={ctx.handleUploadVersion}
               onOpenReadingMode={() => ctx.setReadingModeOpen(true)}
               onCommentTextChange={ctx.setCommentText}
@@ -280,9 +279,6 @@ export default function DocumentDetailPage() {
       </div>
 
       <DocumentDetailDialogs
-        confirmSignId={ctx.confirmSignId}
-        setConfirmSignId={ctx.setConfirmSignId}
-        refreshDocument={ctx.refreshDocument}
         showObsoleteDialog={ctx.showObsoleteDialog}
         setShowObsoleteDialog={ctx.setShowObsoleteDialog}
         showArchiveDialog={ctx.showArchiveDialog}

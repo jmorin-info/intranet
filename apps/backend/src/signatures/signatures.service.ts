@@ -4,6 +4,7 @@ import {
   Logger,
   ForbiddenException,
   BadRequestException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -26,6 +27,19 @@ export class SignaturesService {
     this.docusealApiUrl =
       process.env.DOCUSEAL_API_URL || 'http://localhost:7000/api';
     this.docusealApiKey = process.env.DOCUSEAL_API_KEY || '';
+  }
+
+  /**
+   * signDirectly (signature sans DocuSeal ni evidence) est désactivé par
+   * défaut : une signature engageante passe TOUJOURS par DocuSeal.
+   * SIGNATURES_ALLOW_DIRECT=true ne sert qu'au rollback d'urgence.
+   * Lu à chaque appel (et non en constructeur) pour être testable et
+   * réagir sans redémarrage à un changement d'env en dev.
+   */
+  private isDirectSignAllowed(): boolean {
+    return (
+      (process.env.SIGNATURES_ALLOW_DIRECT || 'false').toLowerCase() === 'true'
+    );
   }
 
   async createSignatureRequest(
@@ -56,7 +70,9 @@ export class SignaturesService {
     // (on n'utilise que submission_id pour les callbacks).
     let _docusealSlug: string | null = null;
 
-    // Call DocuSeal API to create submission
+    // Appel DocuSeal OBLIGATOIRE : si l'API échoue, on THROW au lieu de
+    // créer une demande fantôme (docusealSubmissionId=null) que le webhook
+    // ne pourra jamais compléter et qui n'aurait aucune valeur probante.
     try {
       const response = await fetch(`${this.docusealApiUrl}/submissions`, {
         method: 'POST',
@@ -90,14 +106,19 @@ export class SignaturesService {
           null;
         _docusealSlug = data[0]?.slug || null;
       } else {
-        this.logger.warn(
+        this.logger.error(
           `DocuSeal API returned ${response.status}: ${await response.text()}`,
         );
       }
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`DocuSeal API error: ${err.message}`, err.stack);
-      // Continue without DocuSeal if API is unavailable
+    }
+
+    if (!docusealSubmissionId) {
+      throw new ServiceUnavailableException(
+        'Le service de signature électronique (DocuSeal) est indisponible ou a refusé la demande. Aucune demande de signature n\'a été créée — réessayez plus tard.',
+      );
     }
 
     const signatureRequest = await this.prisma.signatureRequest.create({
@@ -172,9 +193,17 @@ export class SignaturesService {
   }
 
   /**
-   * Sign a document directly (without DocuSeal) — for internal signatures
+   * @deprecated Signature "au clic" sans DocuSeal ni evidence — ne produit
+   * AUCUNE preuve eIDAS. Désactivé par défaut (SIGNATURES_ALLOW_DIRECT=false),
+   * conservé uniquement comme issue de secours de rollback. L'UI ne
+   * l'expose plus.
    */
   async signDirectly(id: string, userId: string) {
+    if (!this.isDirectSignAllowed()) {
+      throw new ForbiddenException(
+        'La signature directe (sans DocuSeal) est désactivée : utilisez le lien de signature électronique DocuSeal.',
+      );
+    }
     const request = await this.prisma.signatureRequest.findUnique({ where: { id } });
     if (!request) throw new NotFoundException('Signature request not found');
     // Sécurité critique : impossible de signer à la place d'un autre user
@@ -231,6 +260,8 @@ export class SignaturesService {
         documentVersion: {
           include: { document: { select: { id: true, title: true, reference: true } } },
         },
+        // Demandes issues d'une campagne : affichées avec un badge dédié.
+        campaign: { select: { id: true, title: true, dueAt: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -363,21 +394,30 @@ export class SignaturesService {
             },
           },
         },
+        campaign: { select: { id: true, title: true, dueAt: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
   }
 
+  /**
+   * Traite un événement webhook DocuSeal pour les SignatureRequest.
+   *
+   * Retourne `{ handled }` pour permettre la chaîne de responsabilité du
+   * WebhookController : si aucune SignatureRequest ne correspond au
+   * submissionId, le handler campagnes (legacy CampaignSignature) prend
+   * le relais.
+   */
   async handleWebhook(
     payload: any,
     extra?: { ipAddress?: string; userAgent?: string },
-  ) {
+  ): Promise<{ handled: boolean }> {
     const eventType = payload.event_type || payload.type;
     const submissionId = payload.data?.submission_id?.toString() || payload.data?.id?.toString();
 
     if (!submissionId) {
       this.logger.warn('Webhook payload missing submission ID');
-      return;
+      return { handled: false };
     }
 
     const signatureRequest = await this.prisma.signatureRequest.findFirst({
@@ -391,7 +431,7 @@ export class SignaturesService {
 
     if (!signatureRequest) {
       this.logger.warn(`No signature request found for submission ${submissionId}`);
-      return;
+      return { handled: false };
     }
 
     if (eventType === 'form.completed' || eventType === 'submission.completed') {
@@ -431,6 +471,7 @@ export class SignaturesService {
       }
 
       this.logger.log(`Signature completed for request ${signatureRequest.id}`);
+      return { handled: true };
     } else if (eventType === 'form.declined' || eventType === 'submission.declined') {
       await this.prisma.signatureRequest.update({
         where: { id: signatureRequest.id },
@@ -447,6 +488,12 @@ export class SignaturesService {
         resourceId: signatureRequest.id,
         metadata: { submissionId },
       });
+      return { handled: true };
     }
+
+    // Événement non géré (form.viewed…) mais la demande correspond bien à
+    // ce submissionId : on laisse le handler campagnes traiter l'ouverture
+    // (openedAt sur CampaignSignature) — considéré non-terminal ici.
+    return { handled: false };
   }
 }

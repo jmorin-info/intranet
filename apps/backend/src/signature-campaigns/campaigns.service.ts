@@ -4,7 +4,6 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
-import { createHmac, timingSafeEqual } from "crypto";
 import { NotificationType, SignatureCampaignStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -13,8 +12,16 @@ import { NotificationsService } from "../notifications/notifications.service";
  * Service de gestion des campagnes de signature DocuSeal.
  * ISO 27001 A.5.1 (politiques) + A.6.2 (acceptation responsabilites).
  *
- * Scaffold 2026-04-13 — appels DocuSeal encapsules dans fetch natif,
- * tous annotes `// TODO: tester` car l'API reelle n'a pas ete eprouvee ici.
+ * Refonte 2026-07-24 : une campagne est un GÉNÉRATEUR de SignatureRequest
+ * individuelles (une par cible, submission DocuSeal individuelle,
+ * campaignId renseigné). Les CampaignSignature sont conservées en compat
+ * lecture/stats (page admin manage, KPIs) mais la source de vérité de la
+ * signature est SignatureRequest + SignatureEvidence.
+ *
+ * Le webhook DocuSeal passe UNIQUEMENT par /signatures/webhook (HMAC
+ * strict) qui chaîne SignaturesService.handleWebhook puis handleWebhook
+ * ci-dessous — l'ancien endpoint /signature-campaigns/webhook/docuseal
+ * répond 410 Gone.
  */
 
 export interface CreateCampaignOptions {
@@ -43,8 +50,9 @@ export class CampaignsService {
   private readonly logger = new Logger(CampaignsService.name);
   private readonly docusealApiUrl: string;
   private readonly docusealApiKey: string;
-  private readonly docusealWebhookSecret: string;
   private readonly fetchTimeoutMs = 5000;
+  /** Taille de lot pour la création des submissions DocuSeal individuelles. */
+  private static readonly DISPATCH_BATCH_SIZE = 5;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -53,7 +61,6 @@ export class CampaignsService {
     this.docusealApiUrl =
       process.env.DOCUSEAL_API_URL || "http://localhost:7000/api";
     this.docusealApiKey = process.env.DOCUSEAL_API_KEY || "";
-    this.docusealWebhookSecret = process.env.DOCUSEAL_WEBHOOK_SECRET || "";
   }
 
   // ------------------------------------------------------------------
@@ -174,6 +181,16 @@ export class CampaignsService {
   // Lancement de la campagne
   // ------------------------------------------------------------------
 
+  /**
+   * Lance la campagne : crée une CampaignSignature par cible (compat
+   * lecture/stats + suivi des relances), puis délègue à
+   * dispatchPendingSubmissions() la création des submissions DocuSeal
+   * INDIVIDUELLES et des SignatureRequest associées (campaignId renseigné).
+   *
+   * Une cible en échec DocuSeal reste PENDING sans submission : elle est
+   * re-tentée à chaque dispatch (cron quotidien / relance admin) — aucune
+   * SignatureRequest fantôme n'est créée.
+   */
   async launch(campaignId: string) {
     const campaign = await this.prisma.signatureCampaign.findUnique({
       where: { id: campaignId },
@@ -194,50 +211,15 @@ export class CampaignsService {
       );
     }
 
-    // Creation de la submission groupee DocuSeal
-    // TODO: tester — structure du payload a verifier contre l'API reelle.
-    let submissionGroupId: string | null = null;
-    let docusealSubmitters: DocusealSubmissionResponse["submitters"] = [];
-    if (campaign.docusealTemplateId) {
-      try {
-        const body = {
-          template_id: Number(campaign.docusealTemplateId),
-          send_email: true,
-          submitters: users.map((u) => ({
-            email: u.email,
-            name: `${u.firstName} ${u.lastName}`,
-            role: "Signataire",
-          })),
-        };
-        const resp = await this.docusealFetch("/submissions", {
-          method: "POST",
-          body: JSON.stringify(body),
-        });
-        if (resp && typeof resp === "object") {
-          const typedResp = resp as DocusealSubmissionResponse & {
-            submission_id?: number | string;
-          };
-          submissionGroupId =
-            String(typedResp.id || typedResp.submission_id || "") || null;
-          docusealSubmitters = typedResp.submitters || [];
-        }
-      } catch (err: any) {
-        this.logger.error(
-          `Echec creation submission DocuSeal pour ${campaignId}: ${err?.message || err}`,
-        );
-      }
-    } else {
+    if (!campaign.docusealTemplateId) {
       this.logger.warn(
-        `Campagne ${campaignId} lancee sans docusealTemplateId — signatures en mode manuel`,
+        `Campagne ${campaignId} lancee sans docusealTemplateId — aucune submission DocuSeal ne sera creee tant qu'un template n'est pas renseigne`,
       );
     }
 
     // Insertion des CampaignSignature + notifications
     const now = new Date();
     for (const u of users) {
-      const submitter = (docusealSubmitters || []).find(
-        (s: any) => s?.email === u.email,
-      );
       try {
         await this.prisma.campaignSignature.upsert({
           where: {
@@ -249,8 +231,6 @@ export class CampaignsService {
             userId: u.id,
             status: "PENDING",
             sentAt: now,
-            docusealSubmissionId: submitter?.id ? String(submitter.id) : null,
-            docusealSlug: submitter?.slug ?? null,
           },
         });
 
@@ -282,61 +262,57 @@ export class CampaignsService {
       data: {
         status: "SENT",
         sentAt: now,
-        docusealSubmissionGroupId: submissionGroupId,
       },
     });
 
+    // Submissions DocuSeal individuelles + SignatureRequest par cible.
+    const dispatch = await this.dispatchPendingSubmissions(campaignId);
+
     this.logger.log(
-      `Campagne ${campaignId} lancee — ${users.length} destinataires`,
+      `Campagne ${campaignId} lancee — ${users.length} destinataires, dispatch DocuSeal: ${dispatch.dispatched} ok / ${dispatch.failed} echecs / ${dispatch.skipped} ignores`,
     );
-    return updated;
+    return { ...updated, dispatch };
   }
 
   // ------------------------------------------------------------------
   // Webhook DocuSeal
   // ------------------------------------------------------------------
 
+  /**
+   * Handler webhook (appelé par le WebhookController unifié de
+   * /signatures/webhook, APRÈS vérification HMAC stricte).
+   *
+   * Rattachement STRICT par submissionId : le fallback historique par
+   * email seul est supprimé — il pouvait attribuer une signature à la
+   * mauvaise campagne (même personne ciblée par plusieurs campagnes).
+   */
   async handleWebhook(payload: any) {
     const eventType: string = payload?.event_type || payload?.type || "unknown";
     const data = payload?.data || payload;
 
-    this.logger.log(`Webhook campagne signature : ${eventType}`);
-
     const submissionId =
       data?.submission?.id || data?.submission_id || data?.id || null;
-    const email = data?.email || data?.submitter?.email;
 
-    if (!submissionId && !email) {
-      this.logger.warn("Webhook sans identifiant exploitable");
-      return { ignored: true };
-    }
-
-    const whereSig: any = submissionId
-      ? { docusealSubmissionId: String(submissionId) }
-      : undefined;
-
-    let signature: any = null;
-    if (whereSig) {
-      signature = await this.prisma.campaignSignature.findFirst({
-        where: whereSig,
-      });
-    }
-    if (!signature && email) {
-      const user = await this.prisma.user.findUnique({ where: { email } });
-      if (user) {
-        signature = await this.prisma.campaignSignature.findFirst({
-          where: { userId: user.id, status: { in: ["PENDING", "OPENED"] } },
-          orderBy: { sentAt: "desc" },
-        });
-      }
-    }
-
-    if (!signature) {
+    if (!submissionId) {
       this.logger.warn(
-        `Aucune CampaignSignature trouvee pour webhook ${eventType}`,
+        `Webhook campagne ${eventType} sans submission_id — rattachement par email refusé (risque de mauvaise attribution)`,
       );
       return { ignored: true };
     }
+
+    const signature = await this.prisma.campaignSignature.findFirst({
+      where: { docusealSubmissionId: String(submissionId) },
+    });
+
+    if (!signature) {
+      // Cas nominal pour les submissions hors campagne (SignatureRequest
+      // individuelles) — déjà traitées par SignaturesService.handleWebhook.
+      return { ignored: true };
+    }
+
+    this.logger.log(
+      `Webhook campagne signature : ${eventType} (submission ${submissionId})`,
+    );
 
     const now = new Date();
     const patch: any = {};
@@ -371,35 +347,9 @@ export class CampaignsService {
     return { updated: true, campaignSignatureId: signature.id };
   }
 
-  verifyWebhookSignature(rawBody: string, headerSignature?: string): boolean {
-    if (!this.docusealWebhookSecret) {
-      // Pas de secret configure : on laisse passer mais on log
-      this.logger.warn(
-        "DOCUSEAL_WEBHOOK_SECRET non configure — verification desactivee",
-      );
-      return true;
-    }
-    if (!headerSignature) return false;
-
-    try {
-      // Fallback simple : comparaison secret brut (pattern existant dans WebhookController)
-      if (headerSignature === this.docusealWebhookSecret) return true;
-
-      // HMAC-SHA256
-      const computed = createHmac("sha256", this.docusealWebhookSecret)
-        .update(rawBody)
-        .digest("hex");
-      const a = Buffer.from(computed);
-      const b = Buffer.from(headerSignature);
-      if (a.length !== b.length) return false;
-      return timingSafeEqual(a, b);
-    } catch (err: any) {
-      this.logger.error(
-        `Erreur verification signature webhook: ${err?.message || err}`,
-      );
-      return false;
-    }
-  }
+  // NOTE : l'ancienne verifyWebhookSignature (fallback secret en clair
+  // toujours actif) a été supprimée — la vérification HMAC stricte est
+  // désormais centralisée dans signatures/webhook.controller.ts.
 
   // ------------------------------------------------------------------
   // Rappels
@@ -590,7 +540,8 @@ export class CampaignsService {
     path: string,
     init: RequestInit = {},
   ): Promise<unknown> {
-    // TODO: tester — wrapper fetch natif avec timeout 5s
+    // Wrapper fetch natif : timeout 5 s + throw sur statut non-2xx (l'appelant
+    // decide quoi faire de l'echec — jamais de best-effort silencieux).
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.fetchTimeoutMs);
     try {
@@ -728,6 +679,11 @@ export class CampaignsService {
    * Préserve la signature précédente dans l'audit log — utile quand la
    * charte a été mise à jour ou pour une demande légale ponctuelle.
    * Si une submission DocuSeal existait, on l'invalide (clear submissionId).
+   *
+   * L'éventuelle SignatureRequest signée (et son SignatureEvidence) issue
+   * de la campagne N'EST PAS supprimée : c'est une preuve historique. Le
+   * prochain dispatch créera une NOUVELLE SignatureRequest avec une
+   * nouvelle submission DocuSeal.
    */
   async resetSignerStatus(
     campaignId: string,
@@ -838,18 +794,215 @@ export class CampaignsService {
   }
 
   /**
-   * Dispatcher minimal — appelle le flow DocuSeal pour créer les submissions
-   * manquantes après un addSigners() sur campagne active. Le détail réel
-   * est dans launch(), on s'appuie dessus en filtrant les signatures sans
-   * docusealSubmissionId.
+   * Crée les submissions DocuSeal INDIVIDUELLES manquantes pour une
+   * campagne, par lots de DISPATCH_BATCH_SIZE, avec gestion d'erreur par
+   * cible (un échec n'interrompt pas le lot).
    *
-   * Implémentation minimale : on flag les nouveaux comme prêts à être
-   * dispatchés à la prochaine relance cron. Le développement complet du
-   * dispatch DocuSeal individuel est hors scope de ce patch.
+   * Pour chaque cible dispatchée avec succès :
+   *  - CampaignSignature.docusealSubmissionId/docusealSlug/sentAt renseignés ;
+   *  - une SignatureRequest (campaignId renseigné, même submissionId) est
+   *    créée si la campagne porte sur un document — c'est elle qui apparaît
+   *    sur /signatures et qui portera la SignatureEvidence au retour du
+   *    webhook. Les campagnes CHARTE (pas de DocumentVersion en schéma)
+   *    restent suivies via CampaignSignature uniquement.
+   *
+   * Appelé par launch(), addSigners() sur campagne active, et le cron
+   * quotidien (retry automatique des cibles en échec).
    */
-  private async dispatchPendingSubmissions(campaignId: string): Promise<void> {
+  async dispatchPendingSubmissions(
+    campaignId: string,
+  ): Promise<{ dispatched: number; failed: number; skipped: number }> {
+    const campaign = await this.prisma.signatureCampaign.findUnique({
+      where: { id: campaignId },
+    });
+    if (!campaign) {
+      throw new NotFoundException(`Campagne ${campaignId} introuvable`);
+    }
+
+    const pending = await this.prisma.campaignSignature.findMany({
+      where: {
+        campaignId,
+        status: "PENDING",
+        docusealSubmissionId: null,
+      },
+      include: {
+        user: {
+          select: { id: true, email: true, firstName: true, lastName: true },
+        },
+      },
+    });
+
+    if (pending.length === 0) {
+      return { dispatched: 0, failed: 0, skipped: 0 };
+    }
+
+    if (!campaign.docusealTemplateId) {
+      this.logger.warn(
+        `Campagne ${campaignId} sans docusealTemplateId — ${pending.length} cible(s) non dispatchee(s)`,
+      );
+      return { dispatched: 0, failed: 0, skipped: pending.length };
+    }
+
+    const documentVersionId = await this.resolveDocumentVersionId(campaign);
+
+    let dispatched = 0;
+    let failed = 0;
+
+    for (
+      let i = 0;
+      i < pending.length;
+      i += CampaignsService.DISPATCH_BATCH_SIZE
+    ) {
+      const batch = pending.slice(i, i + CampaignsService.DISPATCH_BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map((sig) =>
+          this.dispatchOne(campaign, sig, documentVersionId),
+        ),
+      );
+      for (let j = 0; j < results.length; j++) {
+        const r = results[j]!;
+        if (r.status === "fulfilled") {
+          dispatched++;
+        } else {
+          failed++;
+          const target = batch[j]!;
+          this.logger.error(
+            `Dispatch DocuSeal echoue pour ${target.user.email} (campagne ${campaignId}): ${r.reason?.message || r.reason} — retentee au prochain dispatch`,
+          );
+        }
+      }
+    }
+
     this.logger.log(
-      `Campaign ${campaignId} : new signers waiting for DocuSeal dispatch (handled by next cron run)`,
+      `Dispatch campagne ${campaignId}: ${dispatched} submission(s) creee(s), ${failed} echec(s)`,
     );
+    return { dispatched, failed, skipped: 0 };
+  }
+
+  /**
+   * Crée la submission DocuSeal individuelle d'une cible et matérialise la
+   * SignatureRequest associée. Throw en cas d'échec DocuSeal (géré par
+   * l'appelant) — AUCUNE écriture n'a lieu si la submission n'existe pas.
+   */
+  private async dispatchOne(
+    campaign: {
+      id: string;
+      title: string;
+      createdById: string;
+      docusealTemplateId: string | null;
+    },
+    sig: {
+      id: string;
+      userId: string;
+      user: { email: string; firstName: string; lastName: string };
+    },
+    documentVersionId: string | null,
+  ): Promise<void> {
+    const resp = await this.docusealFetch("/submissions", {
+      method: "POST",
+      body: JSON.stringify({
+        template_id: Number(campaign.docusealTemplateId),
+        send_email: true,
+        submitters: [
+          {
+            email: sig.user.email,
+            name: `${sig.user.firstName} ${sig.user.lastName}`,
+            role: "Signataire",
+          },
+        ],
+      }),
+    });
+
+    const { submissionId, slug } = this.extractSubmissionInfo(resp);
+    if (!submissionId) {
+      throw new Error(
+        `Reponse DocuSeal sans submission_id pour ${sig.user.email}`,
+      );
+    }
+
+    const now = new Date();
+    await this.prisma.campaignSignature.update({
+      where: { id: sig.id },
+      data: {
+        docusealSubmissionId: submissionId,
+        docusealSlug: slug,
+        sentAt: now,
+      },
+    });
+
+    // SignatureRequest jumelle (source de vérité signature + evidence).
+    // Créée UNIQUEMENT avec un submissionId valide — jamais de fantôme.
+    if (documentVersionId) {
+      await this.prisma.signatureRequest.create({
+        data: {
+          documentVersionId,
+          requestedById: campaign.createdById,
+          signerId: sig.userId,
+          campaignId: campaign.id,
+          docusealSubmissionId: submissionId,
+          status: "PENDING",
+        },
+      });
+    }
+  }
+
+  /**
+   * Résout la DocumentVersion à faire signer pour les campagnes
+   * DOCUMENT_POLICY (dernière version du document source). Les campagnes
+   * CHARTE n'ont pas de DocumentVersion : retourne null (suivi
+   * CampaignSignature uniquement).
+   */
+  private async resolveDocumentVersionId(campaign: {
+    id: string;
+    sourceType: string;
+    sourceId: string;
+  }): Promise<string | null> {
+    if (campaign.sourceType !== "DOCUMENT_POLICY") {
+      return null;
+    }
+    const version = await this.prisma.documentVersion.findFirst({
+      where: { documentId: campaign.sourceId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+    if (!version) {
+      this.logger.warn(
+        `Campagne ${campaign.id}: document source ${campaign.sourceId} sans version — pas de SignatureRequest generee`,
+      );
+      return null;
+    }
+    return version.id;
+  }
+
+  /**
+   * Normalise la réponse DocuSeal POST /submissions : selon les versions,
+   * l'API renvoie un tableau de submitters ou un objet submission.
+   */
+  private extractSubmissionInfo(resp: unknown): {
+    submissionId: string | null;
+    slug: string | null;
+  } {
+    if (Array.isArray(resp)) {
+      const first = resp[0] as
+        | { submission_id?: number | string; id?: number | string; slug?: string }
+        | undefined;
+      const submissionId = first?.submission_id ?? first?.id ?? null;
+      return {
+        submissionId: submissionId != null ? String(submissionId) : null,
+        slug: first?.slug ?? null,
+      };
+    }
+    if (resp && typeof resp === "object") {
+      const obj = resp as DocusealSubmissionResponse & {
+        submission_id?: number | string;
+      };
+      const submissionId = obj.id ?? obj.submission_id ?? null;
+      const slug = obj.slug ?? obj.submitters?.[0]?.slug ?? null;
+      return {
+        submissionId: submissionId != null ? String(submissionId) : null,
+        slug,
+      };
+    }
+    return { submissionId: null, slug: null };
   }
 }
