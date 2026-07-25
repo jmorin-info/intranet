@@ -25,10 +25,14 @@ export interface DocumentVersion {
 export interface ValidationStepData {
   id: string;
   stepType: string;
-  assignedTo: { firstName: string; lastName: string };
+  assignedTo: { id?: string; firstName: string; lastName: string };
+  // Décideur réel (≠ assigné en cas de dérogation ADMIN). Peut être absent
+  // pour les étapes historiques antérieures au champ decidedById.
+  decidedBy?: { id?: string; firstName: string; lastName: string } | null;
   action: string | null;
   comment: string | null;
   actionAt: string | null;
+  createdAt?: string;
 }
 
 export interface SignatureData {
@@ -68,6 +72,7 @@ export interface DocumentDetail {
   createdAt: string;
   updatedAt: string;
   owner: { id: string; firstName: string; lastName: string };
+  verifier: { id: string; firstName: string; lastName: string } | null;
   reviewer: { id: string; firstName: string; lastName: string } | null;
   approver: { id: string; firstName: string; lastName: string } | null;
   isoControls: Array<{

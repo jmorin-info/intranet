@@ -12,6 +12,12 @@ export function canUserPerformAction(userRole: UserRole, requiredRole: UserRole)
 /**
  * Returns the list of valid next document statuses given the current status
  * and the user's role.
+ *
+ * SOURCE DE VÉRITÉ de la matrice de transitions du cycle de vie documentaire.
+ * Le backend en tient un miroir strict dans
+ * apps/backend/src/common/document-workflow.ts (il ne peut pas importer ce
+ * package — dépendance circulaire au build). Toute évolution ici DOIT y être
+ * répercutée.
  */
 export function getStatusTransitions(
   currentStatus: DocumentStatus,

@@ -35,10 +35,8 @@ export const REJECTION_SUGGESTIONS: Record<string, string> = {
   "add-metrics": "Ajouter des indicateurs mesurables / KPIs",
   // Conformité
   "add-iso-references": "Référencer les contrôles ISO 27001 applicables",
-  "add-legal-references":
-    "Ajouter les références légales et réglementaires (NIS2, RGPD, ANSSI)",
-  "check-classification":
-    "Vérifier la classification (PUBLIC/INTERNE/CONFIDENTIEL/SECRET)",
+  "add-legal-references": "Ajouter les références légales et réglementaires (NIS2, RGPD, ANSSI)",
+  "check-classification": "Vérifier la classification (PUBLIC/INTERNE/CONFIDENTIEL/SECRET)",
   "add-retention": "Préciser la politique de rétention (A.5.33)",
   "add-review-date": "Définir la date de prochaine revue",
   // Sécurité
@@ -104,11 +102,71 @@ export class WorkflowService {
     })();
   }
 
+  /**
+   * Vérifie que `userId` a le droit de décider d'une étape assignée à
+   * `assignedId`. Renvoie { isDerogation: true } si l'acteur n'est pas
+   * l'assigné mais agit via une dérogation ADMIN/SUPER_ADMIN (à tracer en
+   * audit + ValidationStep.decidedById). Lève une ForbiddenException sinon.
+   */
+  private resolveDecisionActor(
+    assignedId: string | null | undefined,
+    userId: string,
+    userRole: UserRole,
+    roleLabel: string,
+  ): { isDerogation: boolean } {
+    if (assignedId && assignedId === userId) return { isDerogation: false };
+    if (ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[UserRole.ADMIN]) {
+      return { isDerogation: true };
+    }
+    if (!assignedId) {
+      throw new ForbiddenException(
+        `Aucun ${roleLabel} n'est assigné à ce document. Désignez-en un (via « Modifier ») avant cette action.`,
+      );
+    }
+    throw new ForbiddenException(
+      `Seul le ${roleLabel} assigné peut effectuer cette action. Une dérogation nécessite un rôle ADMIN.`,
+    );
+  }
+
+  /**
+   * Notifie le relecteur avec des liens d'action email (HMAC, validité 72h).
+   * Utilisé au démarrage direct à REVIEW (pas de vérificateur) OU au passage
+   * VERIFICATION → REVIEW.
+   */
+  private async notifyReviewerWithEmailLinks(document: {
+    id: string;
+    title: string;
+    reference: string;
+    reviewerId: string;
+  }): Promise<void> {
+    const crypto = await import("crypto");
+    const secret = process.env.JWT_ACCESS_SECRET || "fallback";
+    const reviewerId = document.reviewerId;
+    const ts = Date.now().toString();
+    const approveToken = crypto
+      .createHmac("sha256", secret)
+      .update(`approve:${document.id}:${reviewerId}:${ts}`)
+      .digest("hex");
+    const rejectToken = crypto
+      .createHmac("sha256", secret)
+      .update(`reject:${document.id}:${reviewerId}:${ts}`)
+      .digest("hex");
+    const baseUrl = process.env.APP_URL || "http://localhost:3001";
+
+    await this.notificationsService.create({
+      userId: reviewerId,
+      type: "DOC_REVIEW_NEEDED",
+      title: `Revue requise : ${document.title}`,
+      body: `Le document "${document.title}" (${document.reference}) nécessite votre revue.\n\nApprouver : ${baseUrl}/api/workflow/email-action?action=approve&docId=${document.id}&userId=${reviewerId}&token=${approveToken}&ts=${ts}\n\nRejeter : ${baseUrl}/api/workflow/email-action?action=reject&docId=${document.id}&userId=${reviewerId}&token=${rejectToken}&ts=${ts}`,
+      resourceType: "Document",
+      resourceId: document.id,
+    });
+  }
+
   async submitForReview(docId: string, userId: string) {
     const document = await this.prisma.document.findUnique({
       where: { id: docId },
-      include: { reviewer: true },
-      // isNative, content, currentVersionId are scalar fields — always returned
+      // isNative, content, currentVersionId, verifierId are scalar fields
     });
 
     if (!document || document.deletedAt) {
@@ -116,9 +174,7 @@ export class WorkflowService {
     }
 
     if (document.ownerId !== userId) {
-      throw new ForbiddenException(
-        "Seul l'auteur du document peut le soumettre en revue.",
-      );
+      throw new ForbiddenException("Seul l'auteur du document peut le soumettre en revue.");
     }
 
     if (document.status !== "DRAFT") {
@@ -149,14 +205,16 @@ export class WorkflowService {
         "Le document doit avoir au moins une version uploadée avant soumission en revue.",
       );
     }
-    if (
-      document.isNative &&
-      (!document.content || document.content.trim().length === 0)
-    ) {
-      throw new BadRequestException(
-        "Le document natif doit avoir du contenu avant soumission",
-      );
+    if (document.isNative && (!document.content || document.content.trim().length === 0)) {
+      throw new BadRequestException("Le document natif doit avoir du contenu avant soumission");
     }
+
+    // Cycle qualité 5 rôles : si un vérificateur est désigné, le workflow
+    // démarre par l'étape VERIFICATION (contrôle technique) ; sinon il démarre
+    // directement à REVIEW. Le statut Document reste IN_REVIEW dans les deux cas
+    // (aucun nouveau statut = zéro migration).
+    const startStep: "VERIFICATION" | "REVIEW" = document.verifierId ? "VERIFICATION" : "REVIEW";
+    const firstAssigneeId = document.verifierId ?? document.reviewerId;
 
     // Atomic: update status + create validation request + validation step
     await this.prisma.$transaction(async (tx) => {
@@ -197,7 +255,7 @@ export class WorkflowService {
           documentId: docId,
           documentVersionId: versionId!,
           requestedById: userId,
-          currentStep: "REVIEW",
+          currentStep: startStep,
           status: "PENDING",
         },
       });
@@ -205,46 +263,272 @@ export class WorkflowService {
       await tx.validationStep.create({
         data: {
           requestId: validationRequest.id,
-          stepType: "REVIEW",
-          assignedToId: document.reviewerId!,
+          stepType: startStep,
+          assignedToId: firstAssigneeId!,
         },
       });
     });
 
-    // Notify reviewer with email approval links (time-limited HMAC)
-    const crypto = await import("crypto");
-    const secret = process.env.JWT_ACCESS_SECRET || "fallback";
-    const reviewerId = document.reviewerId!;
-    const ts = Date.now().toString();
-    const approveToken = crypto
-      .createHmac("sha256", secret)
-      .update(`approve:${docId}:${reviewerId}:${ts}`)
-      .digest("hex");
-    const rejectToken = crypto
-      .createHmac("sha256", secret)
-      .update(`reject:${docId}:${reviewerId}:${ts}`)
-      .digest("hex");
-    const baseUrl = process.env.APP_URL || "http://localhost:3001";
-
-    await this.notificationsService.create({
-      userId: reviewerId,
-      type: "DOC_REVIEW_NEEDED",
-      title: `Revue requise : ${document.title}`,
-      body: `Le document "${document.title}" (${document.reference}) nécessite votre revue.\n\nApprouver : ${baseUrl}/api/workflow/email-action?action=approve&docId=${docId}&userId=${reviewerId}&token=${approveToken}&ts=${ts}\n\nRejeter : ${baseUrl}/api/workflow/email-action?action=reject&docId=${docId}&userId=${reviewerId}&token=${rejectToken}&ts=${ts}`,
-      resourceType: "Document",
-      resourceId: docId,
-    });
+    // Notifier le premier acteur du cycle.
+    if (document.verifierId) {
+      await this.notificationsService.create({
+        userId: document.verifierId,
+        type: "DOC_REVIEW_NEEDED",
+        title: `Vérification requise : ${document.title}`,
+        body: `Le document "${document.title}" (${document.reference}) nécessite votre vérification technique — 1re étape du cycle qualité (Vérification → Revue → Approbation).`,
+        resourceType: "Document",
+        resourceId: docId,
+      });
+    } else {
+      await this.notifyReviewerWithEmailLinks({
+        id: docId,
+        title: document.title,
+        reference: document.reference,
+        reviewerId: document.reviewerId,
+      });
+    }
 
     await this.auditService.log({
       userId,
       action: "DOCUMENT_SUBMITTED_FOR_REVIEW",
       resourceType: "Document",
       resourceId: docId,
-      metadata: { reviewerId: document.reviewerId },
+      metadata: {
+        verifierId: document.verifierId,
+        reviewerId: document.reviewerId,
+        startStep,
+      },
     });
 
-    this.logger.log(`Document ${document.reference} submitted for review`);
+    this.logger.log(`Document ${document.reference} submitted for review (start: ${startStep})`);
     return { message: "Document submitted for review" };
+  }
+
+  /**
+   * Étape 1 bis (cycle 5 rôles) : le VÉRIFICATEUR valide le contrôle technique.
+   * Enchaîne automatiquement sur l'étape REVIEW (relecteur). Le statut Document
+   * reste IN_REVIEW. L'acteur réel est enregistré dans decidedById.
+   */
+  async approveVerification(docId: string, userId: string, comment?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    const userRole = user.role as UserRole;
+
+    const document = await this.prisma.document.findUnique({
+      where: { id: docId },
+      include: {
+        validationRequests: {
+          where: { status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: { steps: { where: { action: null } } },
+        },
+      },
+    });
+
+    if (!document || document.deletedAt) {
+      throw new NotFoundException("Document introuvable");
+    }
+    if (document.status !== "IN_REVIEW") {
+      throw new BadRequestException(
+        `La vérification ne peut être validée que si le document est « En revue » (statut actuel : ${document.status}).`,
+      );
+    }
+    const request = document.validationRequests[0];
+    if (!request || request.currentStep !== "VERIFICATION") {
+      throw new BadRequestException("Ce document n'est pas à l'étape de vérification.");
+    }
+    if (!document.reviewerId) {
+      throw new BadRequestException(
+        "Aucun relecteur n'est assigné : impossible d'enchaîner sur la revue. Désignez-en un avant de valider la vérification.",
+      );
+    }
+    // Capture en const local : le narrowing de propriété est perdu dans les
+    // closures (transaction, helper) — un const local le conserve.
+    const reviewerId = document.reviewerId;
+    const { isDerogation } = this.resolveDecisionActor(
+      document.verifierId,
+      userId,
+      userRole,
+      "vérificateur",
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      const pendingStep = request.steps.find((s) => s.stepType === "VERIFICATION");
+      if (pendingStep) {
+        await tx.validationStep.update({
+          where: { id: pendingStep.id },
+          data: {
+            action: "APPROVED",
+            decidedById: userId,
+            comment,
+            actionAt: new Date(),
+          },
+        });
+      } else {
+        await tx.validationStep.create({
+          data: {
+            requestId: request.id,
+            stepType: "VERIFICATION",
+            assignedToId: document.verifierId ?? userId,
+            action: "APPROVED",
+            decidedById: userId,
+            comment,
+            actionAt: new Date(),
+          },
+        });
+      }
+
+      // Enchaînement automatique sur l'étape REVIEW (relecteur).
+      await tx.validationRequest.update({
+        where: { id: request.id },
+        data: { currentStep: "REVIEW" },
+      });
+      await tx.validationStep.create({
+        data: {
+          requestId: request.id,
+          stepType: "REVIEW",
+          assignedToId: reviewerId,
+        },
+      });
+    });
+
+    await this.notifyReviewerWithEmailLinks({
+      id: docId,
+      title: document.title,
+      reference: document.reference,
+      reviewerId,
+    });
+
+    await this.auditService.log({
+      userId,
+      action: "DOCUMENT_VERIFICATION_APPROVED",
+      resourceType: "Document",
+      resourceId: docId,
+      severity: isDerogation ? "WARN" : "INFO",
+      metadata: {
+        comment,
+        assignedVerifierId: document.verifierId,
+        derogation: isDerogation,
+        nextStep: "REVIEW",
+      },
+    });
+
+    this.notifyMentionsForDocComment({
+      comment,
+      authorId: userId,
+      document: {
+        id: document.id,
+        title: document.title,
+        reference: document.reference,
+      },
+    });
+
+    return {
+      message: "Vérification validée. Le document passe en revue technique.",
+    };
+  }
+
+  /**
+   * Refus à l'étape VERIFICATION : retour DRAFT (comme un refus de revue).
+   */
+  async rejectVerification(docId: string, userId: string, comment: string, suggestions?: string[]) {
+    if (!comment || comment.trim().length < 10) {
+      throw new BadRequestException(
+        "Un commentaire détaillé (10+ caractères) est requis pour un refus",
+      );
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    const userRole = user.role as UserRole;
+
+    const document = await this.prisma.document.findUnique({
+      where: { id: docId },
+      include: {
+        validationRequests: {
+          where: { status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: { steps: { where: { action: null } } },
+        },
+      },
+    });
+
+    if (!document || document.deletedAt) {
+      throw new NotFoundException("Document introuvable");
+    }
+    if (document.status !== "IN_REVIEW") {
+      throw new BadRequestException(
+        "Le document doit être en statut 'En revue' pour rejeter la vérification.",
+      );
+    }
+    const request = document.validationRequests[0];
+    if (!request || request.currentStep !== "VERIFICATION") {
+      throw new BadRequestException("Ce document n'est pas à l'étape de vérification.");
+    }
+    const { isDerogation } = this.resolveDecisionActor(
+      document.verifierId,
+      userId,
+      userRole,
+      "vérificateur",
+    );
+
+    const enrichedComment = this.buildRejectionComment(comment, suggestions);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.document.update({
+        where: { id: docId },
+        data: { status: "DRAFT" },
+      });
+      const pendingStep = request.steps.find((s) => s.stepType === "VERIFICATION");
+      if (pendingStep) {
+        await tx.validationStep.update({
+          where: { id: pendingStep.id },
+          data: {
+            action: "REJECTED",
+            decidedById: userId,
+            comment: enrichedComment,
+            actionAt: new Date(),
+          },
+        });
+      }
+      await tx.validationRequest.update({
+        where: { id: request.id },
+        data: { status: "REJECTED" },
+      });
+    });
+
+    await this.notificationsService.create({
+      userId: document.ownerId,
+      type: "DOC_REJECTED",
+      title: "Vérification rejetée — modifications demandées",
+      body: `Document "${document.title}" (${document.reference}) rejeté à l'étape de vérification.\n\n${enrichedComment}`,
+      resourceType: "Document",
+      resourceId: docId,
+    });
+
+    await this.auditService.log({
+      userId,
+      action: "DOCUMENT_VERIFICATION_REJECTED",
+      resourceType: "Document",
+      resourceId: docId,
+      severity: isDerogation ? "WARN" : "INFO",
+      metadata: { comment, suggestions: suggestions || [], derogation: isDerogation },
+    });
+
+    this.notifyMentionsForDocComment({
+      comment,
+      authorId: userId,
+      document: {
+        id: document.id,
+        title: document.title,
+        reference: document.reference,
+      },
+    });
+
+    return {
+      message: "Vérification rejetée — le document repasse en brouillon.",
+    };
   }
 
   /**
@@ -255,6 +539,10 @@ export class WorkflowService {
    * commentaires du reviewer avant l'étape approbation.
    */
   async approveReview(docId: string, userId: string, comment?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    const userRole = user.role as UserRole;
+
     const document = await this.prisma.document.findUnique({
       where: { id: docId },
       include: {
@@ -262,6 +550,7 @@ export class WorkflowService {
           where: { status: "PENDING" },
           orderBy: { createdAt: "desc" },
           take: 1,
+          include: { steps: { where: { action: null } } },
         },
       },
     });
@@ -276,11 +565,21 @@ export class WorkflowService {
       );
     }
 
-    if (document.reviewerId !== userId) {
-      throw new ForbiddenException(
-        "Seul le reviewer assigné peut approuver la revue de ce document.",
+    const request = document.validationRequests[0];
+    // Si un vérificateur est en cours (currentStep VERIFICATION), la revue
+    // n'est pas encore ouverte : on refuse pour éviter de sauter l'étape.
+    if (request && request.currentStep === "VERIFICATION") {
+      throw new BadRequestException(
+        "La vérification technique doit d'abord être validée avant la revue.",
       );
     }
+
+    const { isDerogation } = this.resolveDecisionActor(
+      document.reviewerId,
+      userId,
+      userRole,
+      "relecteur",
+    );
 
     if (!document.approverId) {
       throw new BadRequestException(
@@ -288,29 +587,54 @@ export class WorkflowService {
       );
     }
 
-    // Atomic: status → REVIEW_APPROVED + validation request + reviewer step
+    // Atomic: status → REVIEW_APPROVED + close reviewer step (real decider)
     await this.prisma.$transaction(async (tx) => {
       await tx.document.update({
         where: { id: docId },
         data: { status: "REVIEW_APPROVED" },
       });
 
-      const request = document.validationRequests[0];
       if (request) {
         // Ne change PAS currentStep : on reste à REVIEW jusqu'à ce que
-        // le rédacteur appelle requestApproval()
-        await tx.validationStep.create({
-          data: {
-            requestId: request.id,
-            stepType: "REVIEW",
-            assignedToId: userId,
-            action: "APPROVED",
-            comment,
-            actionAt: new Date(),
-          },
-        });
+        // le rédacteur appelle requestApproval(). On CLÔTURE la step REVIEW
+        // pendante (acteur réel dans decidedById) au lieu d'en créer une 2e.
+        const pendingStep = request.steps.find((s) => s.stepType === "REVIEW");
+        if (pendingStep) {
+          await tx.validationStep.update({
+            where: { id: pendingStep.id },
+            data: {
+              action: "APPROVED",
+              decidedById: userId,
+              comment,
+              actionAt: new Date(),
+            },
+          });
+        } else {
+          await tx.validationStep.create({
+            data: {
+              requestId: request.id,
+              stepType: "REVIEW",
+              assignedToId: document.reviewerId ?? userId,
+              action: "APPROVED",
+              decidedById: userId,
+              comment,
+              actionAt: new Date(),
+            },
+          });
+        }
       }
     });
+
+    if (isDerogation) {
+      await this.auditService.log({
+        userId,
+        action: "DOCUMENT_REVIEW_APPROVED_DEROGATION",
+        resourceType: "Document",
+        resourceId: docId,
+        severity: "WARN",
+        metadata: { assignedReviewerId: document.reviewerId, actualDeciderId: userId },
+      });
+    }
 
     // Notifier le rédacteur (owner) : il doit maintenant confirmer
     // et lancer la demande d'approbation. L'approbateur n'est pas
@@ -345,8 +669,7 @@ export class WorkflowService {
     });
 
     return {
-      message:
-        "Revue validée. Le rédacteur doit confirmer pour lancer l'approbation finale.",
+      message: "Revue validée. Le rédacteur doit confirmer pour lancer l'approbation finale.",
     };
   }
 
@@ -387,9 +710,7 @@ export class WorkflowService {
     }
 
     if (!document.approverId) {
-      throw new BadRequestException(
-        "Aucun approbateur n'est assigné au document",
-      );
+      throw new BadRequestException("Aucun approbateur n'est assigné au document");
     }
 
     // Atomic: status → PENDING_APPROVAL + validation step
@@ -406,21 +727,9 @@ export class WorkflowService {
           data: { currentStep: "APPROVAL" },
         });
 
-        // Step "owner confirmed" pour traçabilité
-        await tx.validationStep.create({
-          data: {
-            requestId: request.id,
-            stepType: "REVIEW",
-            assignedToId: userId,
-            action: "APPROVED",
-            comment:
-              comment ||
-              "Rédacteur confirme la prise en compte des retours reviewer",
-            actionAt: new Date(),
-          },
-        });
-
-        // Step "approval pending" pour l'approbateur
+        // Step "approval pending" pour l'approbateur. La confirmation du
+        // rédacteur est tracée par l'audit DOCUMENT_APPROVAL_REQUESTED (on ne
+        // crée plus de 2e step REVIEW synthétique qui polluait l'historique).
         await tx.validationStep.create({
           data: {
             requestId: request.id,
@@ -459,9 +768,7 @@ export class WorkflowService {
       },
     });
 
-    this.logger.log(
-      `Document ${document.reference} : rédacteur a lancé la demande d'approbation`,
-    );
+    this.logger.log(`Document ${document.reference} : rédacteur a lancé la demande d'approbation`);
     return { message: "Demande d'approbation envoyée à l'approbateur." };
   }
 
@@ -472,17 +779,16 @@ export class WorkflowService {
    *                      prédéfinis qui guident le rédacteur sur ce qu'il faut corriger.
    *                      Ex: ["clarify-scope", "add-iso-references", "fix-typos"]
    */
-  async rejectReview(
-    docId: string,
-    userId: string,
-    comment: string,
-    suggestions?: string[],
-  ) {
+  async rejectReview(docId: string, userId: string, comment: string, suggestions?: string[]) {
     if (!comment || comment.trim().length < 10) {
       throw new BadRequestException(
         "Un commentaire détaillé (10+ caractères) est requis pour un refus",
       );
     }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    const userRole = user.role as UserRole;
 
     const document = await this.prisma.document.findUnique({
       where: { id: docId },
@@ -491,6 +797,7 @@ export class WorkflowService {
           where: { status: "PENDING" },
           orderBy: { createdAt: "desc" },
           take: 1,
+          include: { steps: { where: { action: null } } },
         },
       },
     });
@@ -505,11 +812,19 @@ export class WorkflowService {
       );
     }
 
-    if (document.reviewerId !== userId) {
-      throw new ForbiddenException(
-        "Seul le reviewer assigné peut rejeter la revue de ce document.",
+    const pendingRequest = document.validationRequests[0];
+    if (pendingRequest && pendingRequest.currentStep === "VERIFICATION") {
+      throw new BadRequestException(
+        "Ce document est à l'étape de vérification : utilisez le refus de vérification.",
       );
     }
+
+    const { isDerogation } = this.resolveDecisionActor(
+      document.reviewerId,
+      userId,
+      userRole,
+      "relecteur",
+    );
 
     const enrichedComment = this.buildRejectionComment(comment, suggestions);
 
@@ -559,25 +874,49 @@ export class WorkflowService {
         });
       }
 
-      const request = document.validationRequests[0];
-      if (request) {
+      if (pendingRequest) {
         await tx.validationRequest.update({
-          where: { id: request.id },
+          where: { id: pendingRequest.id },
           data: { status: "REJECTED" },
         });
 
-        await tx.validationStep.create({
-          data: {
-            requestId: request.id,
-            stepType: "REVIEW",
-            assignedToId: userId,
-            action: "REJECTED",
-            comment: enrichedComment,
-            actionAt: new Date(),
-          },
-        });
+        const pendingStep = pendingRequest.steps.find((s) => s.stepType === "REVIEW");
+        if (pendingStep) {
+          await tx.validationStep.update({
+            where: { id: pendingStep.id },
+            data: {
+              action: "REJECTED",
+              decidedById: userId,
+              comment: enrichedComment,
+              actionAt: new Date(),
+            },
+          });
+        } else {
+          await tx.validationStep.create({
+            data: {
+              requestId: pendingRequest.id,
+              stepType: "REVIEW",
+              assignedToId: document.reviewerId ?? userId,
+              action: "REJECTED",
+              decidedById: userId,
+              comment: enrichedComment,
+              actionAt: new Date(),
+            },
+          });
+        }
       }
     });
+
+    if (isDerogation) {
+      await this.auditService.log({
+        userId,
+        action: "DOCUMENT_REVIEW_REJECTED_DEROGATION",
+        resourceType: "Document",
+        resourceId: docId,
+        severity: "WARN",
+        metadata: { assignedReviewerId: document.reviewerId, actualDeciderId: userId },
+      });
+    }
 
     // Notify owner with actionable suggestions
     await this.notificationsService.create({
@@ -608,8 +947,7 @@ export class WorkflowService {
     });
 
     return {
-      message:
-        "Revue rejetée — le document repasse en brouillon avec suggestions",
+      message: "Revue rejetée — le document repasse en brouillon avec suggestions",
     };
   }
 
@@ -617,10 +955,7 @@ export class WorkflowService {
    * Construit un commentaire enrichi en combinant le texte libre
    * et les suggestions prédéfinies sélectionnées par le reviewer.
    */
-  private buildRejectionComment(
-    comment: string,
-    suggestions?: string[],
-  ): string {
+  private buildRejectionComment(comment: string, suggestions?: string[]): string {
     if (!suggestions || suggestions.length === 0) return comment;
 
     const suggestionLabels = suggestions
@@ -649,6 +984,7 @@ export class WorkflowService {
           where: { status: "PENDING" },
           orderBy: { createdAt: "desc" },
           take: 1,
+          include: { steps: { where: { action: null } } },
         },
       },
     });
@@ -662,6 +998,16 @@ export class WorkflowService {
         "Le document doit être en statut 'En attente d'approbation' pour cette action.",
       );
     }
+
+    // Contrôle approbateur (ISO 27001 A.5.1) : seul l'approbateur ASSIGNÉ peut
+    // approuver ; une dérogation ADMIN/SUPER_ADMIN est autorisée mais tracée
+    // (audit WARN + decidedById ≠ approverId assigné).
+    const { isDerogation } = this.resolveDecisionActor(
+      document.approverId,
+      userId,
+      userRole,
+      "approbateur",
+    );
 
     // Atomic: approve status + complete validation request + approval step
     await this.prisma.$transaction(async (tx) => {
@@ -677,16 +1023,30 @@ export class WorkflowService {
           data: { status: "COMPLETED" },
         });
 
-        await tx.validationStep.create({
-          data: {
-            requestId: request.id,
-            stepType: "APPROVAL",
-            assignedToId: userId,
-            action: "APPROVED",
-            comment,
-            actionAt: new Date(),
-          },
-        });
+        const pendingStep = request.steps.find((s) => s.stepType === "APPROVAL");
+        if (pendingStep) {
+          await tx.validationStep.update({
+            where: { id: pendingStep.id },
+            data: {
+              action: "APPROVED",
+              decidedById: userId,
+              comment,
+              actionAt: new Date(),
+            },
+          });
+        } else {
+          await tx.validationStep.create({
+            data: {
+              requestId: request.id,
+              stepType: "APPROVAL",
+              assignedToId: document.approverId ?? userId,
+              action: "APPROVED",
+              decidedById: userId,
+              comment,
+              actionAt: new Date(),
+            },
+          });
+        }
       }
     });
 
@@ -705,8 +1065,13 @@ export class WorkflowService {
       action: "DOCUMENT_APPROVED",
       resourceType: "Document",
       resourceId: docId,
-      severity: "INFO",
-      metadata: { comment },
+      severity: isDerogation ? "WARN" : "INFO",
+      metadata: {
+        comment,
+        assignedApproverId: document.approverId,
+        actualDeciderId: userId,
+        derogation: isDerogation,
+      },
     });
 
     try {
@@ -748,10 +1113,7 @@ export class WorkflowService {
 
     // Auto-scan for ISO 27001 control mapping on approval
     try {
-      const isoResult = await this.isoAnalyzerService.autoAssignControls(
-        docId,
-        35,
-      );
+      const isoResult = await this.isoAnalyzerService.autoAssignControls(docId, 35);
       if (isoResult.assigned > 0) {
         this.logger.log(
           `ISO auto-assign on approval: ${document.reference} → ${isoResult.assigned} controls (${isoResult.controls.join(", ")})`,
@@ -767,12 +1129,7 @@ export class WorkflowService {
     return { message: "Document approved" };
   }
 
-  async rejectDocument(
-    docId: string,
-    userId: string,
-    comment: string,
-    suggestions?: string[],
-  ) {
+  async rejectDocument(docId: string, userId: string, comment: string, suggestions?: string[]) {
     if (!comment || comment.trim().length < 10) {
       throw new BadRequestException(
         "Un commentaire détaillé (10+ caractères) est requis pour un refus",
@@ -796,6 +1153,7 @@ export class WorkflowService {
           where: { status: "PENDING" },
           orderBy: { createdAt: "desc" },
           take: 1,
+          include: { steps: { where: { action: null } } },
         },
       },
     });
@@ -809,6 +1167,14 @@ export class WorkflowService {
         "Le document doit être en statut 'En attente d'approbation' pour cette action.",
       );
     }
+
+    // Contrôle approbateur (dérogation ADMIN tracée) — cf. approveDocument.
+    const { isDerogation } = this.resolveDecisionActor(
+      document.approverId,
+      userId,
+      userRole,
+      "approbateur",
+    );
 
     const enrichedComment = this.buildRejectionComment(comment, suggestions);
 
@@ -826,16 +1192,30 @@ export class WorkflowService {
           data: { status: "REJECTED" },
         });
 
-        await tx.validationStep.create({
-          data: {
-            requestId: request.id,
-            stepType: "APPROVAL",
-            assignedToId: userId,
-            action: "REJECTED",
-            comment: enrichedComment,
-            actionAt: new Date(),
-          },
-        });
+        const pendingStep = request.steps.find((s) => s.stepType === "APPROVAL");
+        if (pendingStep) {
+          await tx.validationStep.update({
+            where: { id: pendingStep.id },
+            data: {
+              action: "REJECTED",
+              decidedById: userId,
+              comment: enrichedComment,
+              actionAt: new Date(),
+            },
+          });
+        } else {
+          await tx.validationStep.create({
+            data: {
+              requestId: request.id,
+              stepType: "APPROVAL",
+              assignedToId: document.approverId ?? userId,
+              action: "REJECTED",
+              decidedById: userId,
+              comment: enrichedComment,
+              actionAt: new Date(),
+            },
+          });
+        }
       }
     });
 
@@ -853,7 +1233,14 @@ export class WorkflowService {
       action: "DOCUMENT_REJECTED",
       resourceType: "Document",
       resourceId: docId,
-      metadata: { comment, suggestions: suggestions || [] },
+      severity: isDerogation ? "WARN" : "INFO",
+      metadata: {
+        comment,
+        suggestions: suggestions || [],
+        assignedApproverId: document.approverId,
+        actualDeciderId: userId,
+        derogation: isDerogation,
+      },
     });
 
     this.notifyMentionsForDocComment({
@@ -908,46 +1295,35 @@ export class WorkflowService {
   }
 
   /**
-   * Retourne les documents en attente d'action pour l'utilisateur :
-   * - Rédacteur (owner) : documents REVIEW_APPROVED dont il est owner
-   *   (doit lancer la demande d'approbation)
-   * - Reviewer : documents IN_REVIEW dont il est reviewer
-   * - Approbateur (DIRECTION+) : documents PENDING_APPROVAL
-   * - Admin+ : voit tout (IN_REVIEW où il est reviewer, REVIEW_APPROVED, PENDING_APPROVAL)
+   * Retourne les documents en attente d'action POUR l'utilisateur, sans
+   * condition de rôle minimum — l'assignation fait foi (un collaborateur
+   * désigné vérificateur/relecteur/approbateur a donc bien sa file). La vérité
+   * terrain est l'étape PENDING (action null) qui lui est assignée :
+   *  - IN_REVIEW  : étape courante VERIFICATION (vérificateur) ou REVIEW (relecteur)
+   *  - PENDING_APPROVAL : étape APPROVAL (approbateur)
+   *  - REVIEW_APPROVED : ses propres docs à confirmer (rédacteur) → onglet « À confirmer »
    */
-  async getPendingForUser(userId: string, role: UserRole) {
-    const roleLevel = ROLE_HIERARCHY[role] ?? 0;
+  async getPendingForUser(userId: string, _role: UserRole) {
+    // Un document est « pour moi » si sa demande de validation PENDING porte une
+    // étape non encore décidée qui m'est assignée. Cela suit automatiquement les
+    // réassignations (documents.service.update) et l'enchaînement des étapes.
+    const pendingStepAssignedToMe = {
+      validationRequests: {
+        some: {
+          status: "PENDING",
+          steps: { some: { action: null, assignedToId: userId } },
+        },
+      },
+    } as const;
 
-    // Conditions possibles selon le rôle
-    const conditions: any[] = [];
-
-    // TOUS les users avec rôle ≥ COLLABORATEUR voient les docs qu'ils possèdent
-    // en REVIEW_APPROVED (ils doivent lancer l'approbation)
-    conditions.push({ status: "REVIEW_APPROVED", ownerId: userId });
-
-    if (
-      role === UserRole.REVIEWER ||
-      roleLevel >= ROLE_HIERARCHY[UserRole.REVIEWER]
-    ) {
-      conditions.push({ status: "IN_REVIEW", reviewerId: userId });
-    }
-
-    if (roleLevel >= ROLE_HIERARCHY[UserRole.DIRECTION]) {
-      // Approbateurs : voient les docs en attente d'approbation
-      conditions.push({ status: "PENDING_APPROVAL", approverId: userId });
-      conditions.push({ status: "PENDING_APPROVAL", approverId: null });
-    }
-
-    if (roleLevel >= ROLE_HIERARCHY[UserRole.ADMIN]) {
-      // Admin+ : voit tous les documents en workflow actif
-      conditions.push({ status: "IN_REVIEW" });
-      conditions.push({ status: "REVIEW_APPROVED" });
-      conditions.push({ status: "PENDING_APPROVAL" });
-    }
-
-    if (conditions.length === 0) {
-      return [];
-    }
+    const conditions: any[] = [
+      // Rédacteur : revue validée, à confirmer pour lancer l'approbation.
+      { status: "REVIEW_APPROVED", ownerId: userId },
+      // Vérificateur / relecteur : l'étape courante leur est assignée.
+      { status: "IN_REVIEW", ...pendingStepAssignedToMe },
+      // Approbateur : l'étape d'approbation leur est assignée.
+      { status: "PENDING_APPROVAL", ...pendingStepAssignedToMe },
+    ];
 
     return this.prisma.document.findMany({
       where: {
@@ -958,11 +1334,28 @@ export class WorkflowService {
         owner: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
+        verifier: {
+          select: { id: true, firstName: true, lastName: true },
+        },
         reviewer: {
           select: { id: true, firstName: true, lastName: true },
         },
         approver: {
           select: { id: true, firstName: true, lastName: true },
+        },
+        // Étape courante (type + assigné) pour l'affichage « à vous d'agir ».
+        validationRequests: {
+          where: { status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            currentStep: true,
+            steps: {
+              where: { action: null },
+              select: { stepType: true, assignedToId: true },
+            },
+          },
         },
         _count: { select: { versions: true } },
       },

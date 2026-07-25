@@ -8,6 +8,7 @@ import {
   IsDateString,
   MaxLength,
 } from "class-validator";
+import { Transform } from "class-transformer";
 import { DocumentCategory, DocumentLevel, DocumentPriority } from "@prisma/client";
 
 export class CreateDocumentDto {
@@ -33,11 +34,19 @@ export class CreateDocumentDto {
   @IsUUID("4", { each: true })
   isoControlIds?: string[];
 
+  // Vérificateur (contrôle technique, étape VERIFICATION) — cycle qualité 5 rôles.
   @IsOptional()
+  @Transform(({ value }) => (value === "" ? undefined : value))
+  @IsUUID()
+  verifierId?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => (value === "" ? undefined : value))
   @IsUUID()
   reviewerId?: string;
 
   @IsOptional()
+  @Transform(({ value }) => (value === "" ? undefined : value))
   @IsUUID()
   approverId?: string;
 
