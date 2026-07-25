@@ -12,6 +12,7 @@ import { formatRelativeTime, getInitials } from "@/lib/utils";
 import { useUIStore } from "@/stores/ui-store";
 import { getAvatarUrl } from "@/lib/avatar";
 import { StatusBar } from "./status-bar";
+import { isRouteEnabled } from "@/lib/features";
 import { FocusModeToggle } from "@/components/ui/focus-mode-toggle";
 import { useTranslation } from "@/lib/i18n";
 import {
@@ -381,6 +382,15 @@ export function Header() {
   };
 
   const getNotifHref = (n: Notification): string | null => {
+    // Veille cyber : pas de page de détail par item — lien vers le module
+    // /veille, gardé par le feature flag. Si le module est masqué, fallback
+    // vers la page notifications (jamais de lien mort).
+    if (
+      n.resourceType === "VeilleItem" ||
+      n.resourceType === "VeilleBulletin"
+    ) {
+      return isRouteEnabled("/veille") ? "/veille" : "/notifications";
+    }
     if (!n.resourceType || !n.resourceId) return null;
     const typeToPath: Record<string, string> = {
       Document: "documents",

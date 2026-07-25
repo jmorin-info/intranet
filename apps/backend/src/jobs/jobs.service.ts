@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -65,6 +66,60 @@ export class JobsService {
     this.logger.log(
       `Found ${documentsNeedingReview.length} documents needing review`,
     );
+  }
+
+  /**
+   * Rétention des notifications (2026-07-24 — remédiation spam veille) :
+   *  - notifications VEILLE (types VEILLE_* ou resourceType VeilleItem/
+   *    VeilleBulletin, y compris les legacy DOC_PUBLISHED) : purge à 30 jours
+   *    quel que soit l'état lu/non-lu (contenu périssable) ;
+   *  - notifications LUES (tous types) : purge à 90 jours ;
+   *  - notifications NON LUES (tous types) : purge à 180 jours.
+   * Avant ce job, la table Notification n'était jamais purgée (2 108 lignes
+   * dont 62 % de veille, badge « 99+ » permanent chez les admins).
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  async purgeOldNotifications() {
+    this.logger.log('Purging old notifications...');
+    const now = Date.now();
+    const veilleCutoff = new Date(now - 30 * 86400000);
+    const readCutoff = new Date(now - 90 * 86400000);
+    const unreadCutoff = new Date(now - 180 * 86400000);
+
+    try {
+      const veille = await this.prisma.notification.deleteMany({
+        where: {
+          createdAt: { lt: veilleCutoff },
+          OR: [
+            {
+              type: {
+                in: [
+                  NotificationType.VEILLE_CRITICAL,
+                  NotificationType.VEILLE_BULLETIN,
+                ],
+              },
+            },
+            { resourceType: { in: ['VeilleItem', 'VeilleBulletin'] } },
+          ],
+        },
+      });
+
+      const read = await this.prisma.notification.deleteMany({
+        where: { isRead: true, createdAt: { lt: readCutoff } },
+      });
+
+      const unread = await this.prisma.notification.deleteMany({
+        where: { isRead: false, createdAt: { lt: unreadCutoff } },
+      });
+
+      this.logger.log(
+        `Notifications purgées: ${veille.count} veille (>30j), ${read.count} lues (>90j), ${unread.count} non lues (>180j)`,
+      );
+    } catch (err) {
+      this.logger.error(
+        `Notification purge failed: ${err instanceof Error ? err.message : err}`,
+      );
+    }
   }
 
   @Cron(CronExpression.EVERY_WEEK)

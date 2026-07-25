@@ -10,7 +10,8 @@ export type NotificationCategory =
   | "tickets"
   | "documents"
   | "incidents"
-  | "mentions";
+  | "mentions"
+  | "veille";
 
 /**
  * Représentation legacy (JSON) de la fréquence de digest.
@@ -52,6 +53,8 @@ export interface EmailChannelPrefs {
   documents: boolean;
   incidents: boolean;
   mentions: boolean;
+  /** Veille cyber — OFF par défaut (anti-spam si SMTP réactivé). */
+  veille: boolean;
   digest: DigestFrequency;
 }
 
@@ -60,8 +63,10 @@ export interface InAppChannelPrefs {
   documents: boolean;
   incidents: boolean;
   mentions: boolean;
+  veille: boolean;
 }
 
+// La veille (comme les documents) n'est jamais éligible au push navigateur.
 export interface PushChannelPrefs {
   tickets: boolean;
   incidents: boolean;
@@ -76,7 +81,9 @@ export interface NotificationPreferences {
 
 /**
  * Default preferences applied when a user has never customised them.
- * - In-app + email: all categories ON
+ * - In-app + email: all categories ON — SAUF la veille (email OFF par
+ *   défaut : ~28 notifs/semaine/admin, on ne veut pas d'emails immédiats
+ *   le jour où SMTP est réactivé).
  * - Push: mentions + incidents only (conservative, less noisy)
  * - Digest email: daily
  */
@@ -86,6 +93,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
     documents: true,
     incidents: true,
     mentions: true,
+    veille: false,
     digest: "daily",
   },
   inApp: {
@@ -93,6 +101,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
     documents: true,
     incidents: true,
     mentions: true,
+    veille: true,
   },
   push: {
     tickets: false,
@@ -111,6 +120,7 @@ export function categoryFromType(
 ): NotificationCategory | null {
   if (!type) return null;
   const t = String(type).toUpperCase();
+  if (t.startsWith("VEILLE_")) return "veille";
   if (t.startsWith("TICKET_")) return "tickets";
   if (
     t.startsWith("DOC_") ||
@@ -223,14 +233,20 @@ export class NotificationPreferencesService {
         select: { notificationPreferences: true },
       });
       const raw = user?.notificationPreferences;
-      if (!raw) return true; // no prefs yet → default-allow (backward compat)
+      if (!raw) {
+        // No prefs yet → default-allow (backward compat), SAUF la veille :
+        // son défaut documenté est email=OFF / push=OFF, seul l'in-app passe.
+        if (category === "veille") return channel === "inApp";
+        return true;
+      }
 
       const prefs = this.mergeWithDefaults(raw);
       if (channel === "push") {
-        if (category === "documents") return false; // documents never in push matrix
-        // PushChannelPrefs has all keys except 'documents' — typed indexing.
+        // documents et veille ne sont jamais dans la matrice push.
+        if (category === "documents" || category === "veille") return false;
+        // PushChannelPrefs has all keys except 'documents'/'veille' — typed indexing.
         return Boolean(
-          (prefs.push as Record<NotificationCategory, boolean>)[category],
+          (prefs.push as unknown as Record<string, boolean>)[category],
         );
       }
       return Boolean(

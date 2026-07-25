@@ -28,6 +28,7 @@ export type DigestModule =
   | "incidents"
   | "signatures"
   | "mentions"
+  | "veille"
   | "other";
 
 /** Charte graphique SEAL — couleurs PANTONE officielles */
@@ -51,6 +52,7 @@ const MODULE_COLORS: Record<DigestModule, string> = {
   incidents: COLORS.bordeaux,
   signatures: COLORS.blue,
   mentions: COLORS.orange,
+  veille: COLORS.bordeaux,
   other: "#6b7280",
 };
 
@@ -62,12 +64,14 @@ const MODULE_LABELS: Record<DigestModule, string> = {
   incidents: "Incidents",
   signatures: "Signatures",
   mentions: "Mentions",
+  veille: "Veille cyber",
   other: "Autres",
 };
 
 /** Ordre d'affichage des sections dans le digest. */
 const MODULE_ORDER: DigestModule[] = [
   "incidents",
+  "veille",
   "signatures",
   "documents",
   "tickets",
@@ -89,8 +93,12 @@ export function moduleFromNotification(notif: {
   const rt = (notif.resourceType || "").toUpperCase();
   if (rt === "WIKI" || rt === "WIKIPAGE") return "wiki";
   if (rt === "NEWS" || rt === "NEWSPOST") return "news";
+  // Veille cyber : via le resourceType (couvre aussi les notifs legacy
+  // DOC_PUBLISHED émises avant les types VEILLE_*) ou le type dédié.
+  if (rt === "VEILLEITEM" || rt === "VEILLEBULLETIN") return "veille";
 
   const t = String(notif.type).toUpperCase();
+  if (t.startsWith("VEILLE_")) return "veille";
   if (t.startsWith("INCIDENT_")) return "incidents";
   if (t.startsWith("SIGNATURE_")) return "signatures";
   if (t === "MENTION" || t.endsWith("_MENTION")) return "mentions";
@@ -110,6 +118,7 @@ export function groupByModule(
 ): Record<DigestModule, Notification[]> {
   const groups: Record<DigestModule, Notification[]> = {
     incidents: [],
+    veille: [],
     signatures: [],
     documents: [],
     tickets: [],
@@ -428,8 +437,13 @@ export class DigestService {
     const rows = notifs
       .slice(0, 10)
       .map((n) => {
-        const link =
-          n.resourceType && n.resourceId
+        // Les ressources veille n'ont pas de page de détail dédiée : lien
+        // vers le module /veille (le pattern générique donnerait /veilleitems/…).
+        const isVeille =
+          n.resourceType === "VeilleItem" || n.resourceType === "VeilleBulletin";
+        const link = isVeille
+          ? `${appUrl}/veille`
+          : n.resourceType && n.resourceId
             ? `${appUrl}/${n.resourceType.toLowerCase()}s/${n.resourceId}`
             : `${appUrl}/notifications`;
         const time = new Date(n.createdAt).toLocaleString("fr-FR", {
