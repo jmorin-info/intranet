@@ -223,8 +223,17 @@ function normalizeTitle(title: string): string {
  * « CVSS:3.1/... 9.1 », « score CVSS de 9,8 »…). Renvoie null si absent
  * ou invraisemblable (> 10).
  */
+// Numéro de version / vecteur CVSS (« cvss:3.1/av:n/... », « cvss v3.1 »,
+// « cvssv3 »…). Neutralisé AVANT le match du score, sinon la regex du score
+// s'arrête sur le premier chiffre venu — le « 3.1 » de la version — et classe
+// une CVE 9.8 en HIGH. La liste des versions est fermée (2.0/3.0/3.1/4.0) pour
+// ne PAS avaler « cvss: 9.8 » (le 9.8 n'est pas une version connue).
+const CVSS_VERSION_OR_VECTOR =
+  /cvss(?:\s*:\s*|\s*v\s*|v)(?:2(?:\.0)?|3(?:\.[01])?|4(?:\.0)?)\b(?:\/[a-z:/]*)?/g;
+
 function extractCvssScore(lowerText: string): number | null {
-  const m = /cvss[^0-9]{0,20}(\d{1,2}(?:[.,]\d)?)/.exec(lowerText);
+  const t = lowerText.replace(CVSS_VERSION_OR_VECTOR, "cvss");
+  const m = /cvss[^0-9]{0,20}(\d{1,2}(?:[.,]\d)?)/.exec(t);
   if (!m || !m[1]) return null;
   const score = parseFloat(m[1].replace(",", "."));
   if (!Number.isFinite(score) || score > 10) return null;
