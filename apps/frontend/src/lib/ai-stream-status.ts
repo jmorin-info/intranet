@@ -5,16 +5,24 @@
  * l'attente lisible au lieu d'un spinner muet.
  */
 
-export type AiStreamStage = "retrieving" | "generating" | "model_fallback";
+export type AiStreamStage = "retrieving" | "generating" | "model_fallback" | "queued";
 
 export const AI_STREAM_STAGE_LABELS: Record<AiStreamStage, string> = {
   retrieving: "Recherche documentaire…",
   generating: "Rédaction de la réponse…",
   model_fallback: "Bascule sur un modèle de secours…",
+  queued: "En file d'attente…",
 };
 
 export function aiStreamStageLabel(stage: string | null | undefined): string | null {
   if (!stage) return null;
+  // "queued:N" → position d'attente (N requêtes IA devant celle-ci).
+  if (stage.startsWith("queued:")) {
+    const pos = parseInt(stage.slice(7), 10);
+    return Number.isFinite(pos) && pos > 0
+      ? `En file d'attente (position ${pos})…`
+      : AI_STREAM_STAGE_LABELS.queued;
+  }
   return AI_STREAM_STAGE_LABELS[stage as AiStreamStage] ?? null;
 }
 
@@ -83,8 +91,20 @@ export async function consumeAiSse(
             handlers.onStatus?.(null);
             handlers.onToken(String(payload.token ?? ""));
             break;
-          case "status":
-            handlers.onStatus?.((payload.stage as string) ?? null);
+          case "status": {
+            // Le stage "queued" porte une position → on l'encode `queued:N`
+            // pour que aiStreamStageLabel affiche le rang sans changer la
+            // signature (string) du callback onStatus.
+            const stage = (payload.stage as string) ?? null;
+            const withPos =
+              stage === "queued" && typeof payload.position === "number"
+                ? `queued:${payload.position}`
+                : stage;
+            handlers.onStatus?.(withPos);
+            break;
+          }
+          // "ping" = heartbeat anti-timeout passerelle → ignoré
+          case "ping":
             break;
           case "meta":
             handlers.onMeta?.(payload);
