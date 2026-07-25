@@ -8,10 +8,17 @@ import { EvidenceService } from './evidence.service';
  * Réconciliation des preuves de signature (eIDAS-AES) — toutes les 6 h.
  *
  * Une SignatureRequest SIGNED doit TOUJOURS avoir une SignatureEvidence.
- * Ce cron rattrape les cas où la capture a échoué ou n'a jamais eu lieu :
+ * Ce cron rattrape les cas où la capture d'evidence a échoué ou n'a jamais
+ * eu lieu POUR UNE DEMANDE DÉJÀ MARQUÉE SIGNED :
  *  - webhook reçu mais captureEvidence en erreur (best-effort historique) ;
- *  - signatures historiques passées par signDirectly (sans webhook) ;
- *  - webhook jamais reçu (DocuSeal down au moment de l'événement).
+ *  - signatures historiques passées par signDirectly (sans webhook).
+ *
+ * PÉRIMÈTRE : ce cron ne balaie QUE les SignatureRequest `status = SIGNED`.
+ * Il NE détecte PAS une signature complétée dans DocuSeal dont le webhook
+ * n'a jamais été reçu (la demande reste PENDING et n'est donc pas examinée
+ * ici) — cette garantie est assurée par la bonne configuration du webhook
+ * DocuSeal (POST /signatures/webhook), pas par ce cron. Cf.
+ * docs/compliance/EIDAS_AES_CONFORMITY.md.
  *
  * Stratégie par demande :
  *  1. Si docusealSubmissionId existe et webhookPayload manquant :

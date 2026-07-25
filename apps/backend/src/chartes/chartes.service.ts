@@ -191,16 +191,15 @@ export class ChartesService {
       },
     });
 
-    // Reset ALL users' chartesAcceptedAt when a mandatory charte gets a new version.
-    // This forces every user to re-check and re-sign, which is correct because
-    // chartesAcceptedAt represents "all mandatory chartes signed at current version".
-    // Non-mandatory chartes should not trigger this global reset.
-    if (charte.isMandatory) {
-      await this.prisma.user.updateMany({
-        where: { chartesAcceptedAt: { not: null } },
-        data: { chartesAcceptedAt: null },
-      });
-    }
+    // NB : la péremption globale des attestations (chartesAcceptedAt → null
+    // pour tous) N'EST PLUS déclenchée ici. Elle l'est désormais à la
+    // VALIDATION DIRECTION (markSignedByDirection), une fois la nouvelle
+    // version réellement opposable. Sinon on ouvrait une fenêtre où tout le
+    // monde était déclaré non conforme (chartesAcceptedAt null) ALORS que le
+    // mur des chartes était éteint (getUnsignedChartes filtre
+    // signedByDirection:true) et que l'attestation était impossible (sign()
+    // refuse tant que signedByDirection est false) — donc personne ne pouvait
+    // régulariser jusqu'à la validation direction.
 
     // La validation de la direction porte sur UNE version : publier une
     // nouvelle version active la réinitialise (boolean legacy + champs
@@ -288,6 +287,19 @@ export class ChartesService {
         },
       },
     });
+
+    // Péremption des attestations : c'est MAINTENANT (et pas au moment de
+    // l'upload) que la nouvelle version devient opposable. On remet
+    // chartesAcceptedAt à null pour tous — le mur des chartes est de nouveau
+    // armé (signedByDirection vient de repasser à true) et les collaborateurs
+    // peuvent immédiatement ré-attester. Conditionné à isMandatory : une
+    // charte facultative ne déclenche pas de péremption globale.
+    if (charte.isMandatory) {
+      await this.prisma.user.updateMany({
+        where: { chartesAcceptedAt: { not: null } },
+        data: { chartesAcceptedAt: null },
+      });
+    }
 
     await this.audit.log({
       userId,

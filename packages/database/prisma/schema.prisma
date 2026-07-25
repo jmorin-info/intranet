@@ -743,6 +743,10 @@ model SignatureRequest {
   id                   String          @id @default(uuid())
   documentVersionId    String
   docusealSubmissionId String?
+  /// Slug du submitter DocuSeal (chaîne alphanumérique) — c'est LUI qui
+  /// permet de construire l'URL de signature /s/:slug. Le submissionId
+  /// numérique ne sert qu'aux callbacks. Null pour les demandes historiques.
+  docusealSlug         String?
   requestedById        String
   signerId             String
   status               SignatureStatus @default(PENDING)
@@ -2271,6 +2275,11 @@ model SignatureCampaign {
   // DocuSeal : ID du template, ID de la submission parent
   docusealTemplateId        String?
   docusealSubmissionGroupId String?
+  // Version du document source FIGÉE au lancement (campagnes DOCUMENT_POLICY).
+  // Immuable pour toute la campagne : toutes les cibles signent la même
+  // version approuvée, même si une nouvelle version (brouillon) apparaît
+  // ensuite. Null pour les campagnes CHARTE ou lancées avant ce figement.
+  documentVersionId         String?
   // Echeances
   sentAt                    DateTime?
   dueAt                     DateTime?
