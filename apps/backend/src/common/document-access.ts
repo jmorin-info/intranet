@@ -33,14 +33,20 @@ export function canAccessDocumentByClassification(
 ): boolean {
   if (PRIVILEGED_ROLES.includes(user.role)) return true;
 
+  // Comparaison d'identités : un id absent des deux côtés (document orphelin,
+  // contexte d'auth incomplet) ne doit JAMAIS matcher — sinon `null === null`
+  // ouvrirait un document SECRET à un appelant sans identité.
+  const isSameUser = (id: string | null | undefined): boolean =>
+    !!id && !!user.id && id === user.id;
+
   switch (doc.classification) {
     case "PUBLIC":
     case "INTERNE":
       return true;
     case "CONFIDENTIEL":
-      return doc.ownerId === user.id || doc.reviewerId === user.id || doc.approverId === user.id;
+      return isSameUser(doc.ownerId) || isSameUser(doc.reviewerId) || isSameUser(doc.approverId);
     case "SECRET":
-      return doc.ownerId === user.id;
+      return isSameUser(doc.ownerId);
     default:
       // Classification inconnue → fail closed
       return false;
