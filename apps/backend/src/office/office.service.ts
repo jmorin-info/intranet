@@ -1418,8 +1418,27 @@ export class OfficeService {
       );
     }
 
+    // La version cible doit avoir un fichier local restaurable. Certaines
+    // DocumentVersion n'en ont pas : snapshots de documents natifs
+    // (`fileUrl: "inline://<docId>"`) ou versions dont le fichier a été
+    // supprimé par un overwrite brouillon (unlink). On renvoie une erreur
+    // métier explicite (400/404) plutôt qu'un 500 disque brut sur une action
+    // utilisateur légitime.
+    if (!target.fileUrl || !target.fileUrl.startsWith("/storage/")) {
+      throw new BadRequestException(
+        "Cette version n'a pas de fichier restaurable (document natif ou version sans fichier local).",
+      );
+    }
     // Copie physique du fichier de la version cible → nouvelle version mineure
-    const buffer = await fs.promises.readFile(this.storage.getFilePath(target.fileUrl));
+    let buffer: Buffer;
+    try {
+      buffer = await fs.promises.readFile(this.storage.getFilePath(target.fileUrl));
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
+        throw new NotFoundException("Le fichier de la version à restaurer est introuvable.");
+      }
+      throw err;
+    }
     const oldVersionNumber = currentVersion.versionNumber || "1.0";
     const numMatch = oldVersionNumber.match(/(\d+)(?:\.(\d+))?/);
     const major = numMatch ? parseInt(numMatch[1], 10) : 1;
@@ -1440,25 +1459,33 @@ export class OfficeService {
       `documents/${documentId}/v${newVersionNumber}`,
     );
 
-    const newVersion = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.documentVersion.create({
-        data: {
-          documentId,
-          versionNumber: newVersionNumber,
-          fileUrl: uploaded.fileUrl,
-          fileType: target.fileType,
-          fileSizeBytes: buffer.length,
-          checksum: target.checksum,
-          changeLog: `Restauration de la version ${target.versionNumber} via OnlyOffice`,
-          uploadedById: currentUser.id,
-        },
+    let newVersion;
+    try {
+      newVersion = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.documentVersion.create({
+          data: {
+            documentId,
+            versionNumber: newVersionNumber,
+            fileUrl: uploaded.fileUrl,
+            fileType: target.fileType,
+            fileSizeBytes: buffer.length,
+            checksum: target.checksum,
+            changeLog: `Restauration de la version ${target.versionNumber} via OnlyOffice`,
+            uploadedById: currentUser.id,
+          },
+        });
+        await tx.document.update({
+          where: { id: documentId },
+          data: { currentVersionId: created.id },
+        });
+        return created;
       });
-      await tx.document.update({
-        where: { id: documentId },
-        data: { currentVersionId: created.id },
-      });
-      return created;
-    });
+    } catch (err) {
+      // La transaction a échoué après l'upload : purge le fichier copié pour
+      // ne pas laisser d'orphelin sur disque (l'upload précède la $transaction).
+      await this.storage.deleteFile(uploaded.fileUrl).catch(() => undefined);
+      throw err;
+    }
 
     await this.audit?.log({
       userId: currentUser.id,
