@@ -30,6 +30,12 @@ interface SignatureRequest {
   createdAt: string;
   signedAt: string | null;
   docusealSubmissionId: string | null;
+  /**
+   * Slug du submitter DocuSeal — c'est LUI qui construit l'URL de signature
+   * (/s/:slug). Le submissionId numérique donne un 404. Fallback historique
+   * possible (demandes créées avant la persistance du slug).
+   */
+  docusealSlug: string | null;
   documentVersion: {
     document: { id: string; title: string; reference: string };
   };
@@ -47,11 +53,18 @@ interface SignatureRequest {
  * DocuSeal : il n'existe plus de « signature au clic » côté intranet
  * (l'ancien PATCH /signatures/:id/sign est désactivé par défaut via
  * SIGNATURES_ALLOW_DIRECT=false et n'est plus exposé dans l'UI).
+ *
+ * DocuSeal sert le formulaire sur /s/:slug (slug du submitter). Le
+ * submissionId numérique donne un 404 : on privilégie donc le slug, avec
+ * repli sur le submissionId pour les demandes historiques sans slug persisté.
  */
-function docusealUrl(submissionId: string) {
+function docusealUrl(sig: {
+  docusealSlug: string | null;
+  docusealSubmissionId: string | null;
+}) {
   const base =
     process.env.NEXT_PUBLIC_DOCUSEAL_URL || "http://localhost:7000";
-  return `${base}/s/${submissionId}`;
+  return `${base}/s/${sig.docusealSlug || sig.docusealSubmissionId}`;
 }
 
 export default function MySignaturesPage() {
@@ -289,7 +302,7 @@ export default function MySignaturesPage() {
                       <div className="flex flex-wrap items-center gap-3 mt-1">
                         {sig.docusealSubmissionId && (
                           <a
-                            href={docusealUrl(sig.docusealSubmissionId)}
+                            href={docusealUrl(sig)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
@@ -315,7 +328,7 @@ export default function MySignaturesPage() {
                         <Button
                           onClick={() =>
                             window.open(
-                              docusealUrl(sig.docusealSubmissionId as string),
+                              docusealUrl(sig),
                               "_blank",
                               "noopener,noreferrer",
                             )

@@ -66,9 +66,10 @@ export class SignaturesService {
     }
 
     let docusealSubmissionId: string | null = null;
-    // docusealSlug est capture pour debug uniquement — non persiste cote DB
-    // (on n'utilise que submission_id pour les callbacks).
-    let _docusealSlug: string | null = null;
+    // docusealSlug : slug du submitter DocuSeal — PERSISTÉ, c'est lui qui
+    // construit l'URL de signature (/s/:slug). Le submissionId numérique sert
+    // aux callbacks mais donne un 404 en URL de formulaire.
+    let docusealSlug: string | null = null;
 
     // Appel DocuSeal OBLIGATOIRE : si l'API échoue, on THROW au lieu de
     // créer une demande fantôme (docusealSubmissionId=null) que le webhook
@@ -104,7 +105,7 @@ export class SignaturesService {
           data[0]?.submission_id?.toString() ||
           data[0]?.id?.toString() ||
           null;
-        _docusealSlug = data[0]?.slug || null;
+        docusealSlug = data[0]?.slug || null;
       } else {
         this.logger.error(
           `DocuSeal API returned ${response.status}: ${await response.text()}`,
@@ -127,6 +128,7 @@ export class SignaturesService {
         requestedById,
         signerId,
         docusealSubmissionId,
+        docusealSlug,
         status: 'PENDING',
       },
       include: {

@@ -211,6 +211,29 @@ export class CampaignsService {
       );
     }
 
+    // Fige la version signable pour les campagnes DOCUMENT_POLICY : toutes
+    // les cibles (y compris celles re-dispatchées plus tard) signeront CETTE
+    // version approuvée, jamais une version postérieure créée entre-temps
+    // (brouillon, rejet de relecture...). Refuse le lancement si le document
+    // n'est plus APPROVED ou n'a pas de version courante.
+    let frozenVersionId: string | null = null;
+    if (campaign.sourceType === "DOCUMENT_POLICY") {
+      const document = await this.prisma.document.findUnique({
+        where: { id: campaign.sourceId },
+        select: { status: true, currentVersionId: true },
+      });
+      if (
+        !document ||
+        document.status !== "APPROVED" ||
+        !document.currentVersionId
+      ) {
+        throw new BadRequestException(
+          "Le document source n'est plus APPROVED ou n'a pas de version courante : impossible de lancer la campagne.",
+        );
+      }
+      frozenVersionId = document.currentVersionId;
+    }
+
     if (!campaign.docusealTemplateId) {
       this.logger.warn(
         `Campagne ${campaignId} lancee sans docusealTemplateId — aucune submission DocuSeal ne sera creee tant qu'un template n'est pas renseigne`,
@@ -262,6 +285,7 @@ export class CampaignsService {
       data: {
         status: "SENT",
         sentAt: now,
+        documentVersionId: frozenVersionId,
       },
     });
 
@@ -589,6 +613,13 @@ export class CampaignsService {
       );
     }
 
+    // Clôt les SignatureRequest jumelles encore PENDING : un cycle
+    // « Retirer » puis « Ajouter » (addSigners → dispatch) recréait sinon un
+    // doublon, l'ancien lien DocuSeal restant signable. On archive aussi la
+    // submission DocuSeal résiduelle (best-effort).
+    await this.cancelPendingRequests(campaignId, userId);
+    await this.archiveDocusealSubmission(sig.docusealSubmissionId);
+
     await this.prisma.campaignSignature.delete({ where: { id: sig.id } });
 
     await this.prisma.auditLog.create({
@@ -700,6 +731,15 @@ export class CampaignsService {
     });
     if (!sig) throw new NotFoundException("Signature not found");
 
+    // Clôt la ou les SignatureRequest résiduelles ENCORE en attente (PENDING)
+    // AVANT de repasser la CampaignSignature à PENDING : sinon le prochain
+    // dispatch créait un DOUBLON de demande sur /signatures, et l'ancien lien
+    // DocuSeal restait signable (webhook rattachant l'ancienne demande, la
+    // CampaignSignature ne portant plus le submissionId). Les SIGNED (preuves
+    // historiques + SignatureEvidence) ne sont JAMAIS touchées.
+    await this.cancelPendingRequests(campaignId, userId);
+    await this.archiveDocusealSubmission(sig.docusealSubmissionId);
+
     await this.prisma.campaignSignature.update({
       where: { id: sig.id },
       data: {
@@ -794,6 +834,42 @@ export class CampaignsService {
   }
 
   /**
+   * Passe à EXPIRED les SignatureRequest ENCORE en attente (PENDING) d'une
+   * cible de campagne — utilisé au reset et au retrait d'un signataire pour
+   * éviter les doublons au prochain dispatch. Ne touche jamais les SIGNED /
+   * REJECTED (preuves historiques). Idempotent.
+   */
+  private async cancelPendingRequests(
+    campaignId: string,
+    signerId: string,
+  ): Promise<void> {
+    await this.prisma.signatureRequest.updateMany({
+      where: { campaignId, signerId, status: "PENDING" },
+      data: { status: "EXPIRED" },
+    });
+  }
+
+  /**
+   * Archive (best-effort) une submission DocuSeal résiduelle pour invalider
+   * l'ancien lien de signature. Un échec est loggé sans jamais interrompre
+   * l'opération métier appelante (reset / retrait).
+   */
+  private async archiveDocusealSubmission(
+    submissionId: string | null,
+  ): Promise<void> {
+    if (!submissionId) return;
+    try {
+      await this.docusealFetch(`/submissions/${submissionId}`, {
+        method: "DELETE",
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `Archivage submission DocuSeal ${submissionId} echoue (non bloquant): ${err?.message || err}`,
+      );
+    }
+  }
+
+  /**
    * Crée les submissions DocuSeal INDIVIDUELLES manquantes pour une
    * campagne, par lots de DISPATCH_BATCH_SIZE, avec gestion d'erreur par
    * cible (un échec n'interrompt pas le lot).
@@ -844,6 +920,19 @@ export class CampaignsService {
     }
 
     const documentVersionId = await this.resolveDocumentVersionId(campaign);
+
+    // Garde-fou eIDAS : une campagne DOCUMENT_POLICY DOIT matérialiser une
+    // SignatureRequest (porteuse de l'evidence). Si aucune version signable
+    // n'est résolue (document non APPROVED, sans version...), on REFUSE le
+    // dispatch au lieu d'envoyer des e-mails DocuSeal sans SignatureRequest —
+    // ce qui produirait des signatures sans aucune valeur probante. Les
+    // cibles restent PENDING/non consommées, retentées au prochain dispatch.
+    if (campaign.sourceType === "DOCUMENT_POLICY" && !documentVersionId) {
+      this.logger.warn(
+        `Campagne ${campaignId} DOCUMENT_POLICY sans version signable (document non APPROVED ou version figée absente) — dispatch refusé, ${pending.length} cible(s) non consommée(s)`,
+      );
+      return { dispatched: 0, failed: 0, skipped: pending.length };
+    }
 
     let dispatched = 0;
     let failed = 0;
@@ -921,57 +1010,102 @@ export class CampaignsService {
     }
 
     const now = new Date();
-    await this.prisma.campaignSignature.update({
-      where: { id: sig.id },
-      data: {
-        docusealSubmissionId: submissionId,
-        docusealSlug: slug,
-        sentAt: now,
-      },
-    });
 
-    // SignatureRequest jumelle (source de vérité signature + evidence).
-    // Créée UNIQUEMENT avec un submissionId valide — jamais de fantôme.
+    // Idempotence : si une SignatureRequest PENDING existe déjà pour cette
+    // cible sur cette campagne (dispatch concurrent, réémission...), on ne
+    // recrée pas de doublon — on ne fait que rattacher la submission.
+    let alreadyHasPending = false;
     if (documentVersionId) {
-      await this.prisma.signatureRequest.create({
-        data: {
-          documentVersionId,
-          requestedById: campaign.createdById,
-          signerId: sig.userId,
+      const existing = await this.prisma.signatureRequest.findFirst({
+        where: {
           campaignId: campaign.id,
-          docusealSubmissionId: submissionId,
+          signerId: sig.userId,
           status: "PENDING",
         },
+        select: { id: true },
       });
+      alreadyHasPending = existing !== null;
     }
+
+    // Écriture ATOMIQUE : CampaignSignature.docusealSubmissionId et la
+    // SignatureRequest jumelle sont commit dans la MÊME transaction. Sans
+    // cela, un crash entre les deux laissait une submission DocuSeal (e-mail
+    // parti) rattachée à la CampaignSignature mais SANS SignatureRequest —
+    // ligne définitivement exclue du retry (filtre docusealSubmissionId:null)
+    // et signature sans aucune SignatureEvidence (valeur probante perdue).
+    // L'appel DocuSeal reste hors transaction (déjà effectué au-dessus).
+    await this.prisma.$transaction([
+      this.prisma.campaignSignature.update({
+        where: { id: sig.id },
+        data: {
+          docusealSubmissionId: submissionId,
+          docusealSlug: slug,
+          sentAt: now,
+        },
+      }),
+      // SignatureRequest jumelle (source de vérité signature + evidence).
+      // Créée UNIQUEMENT avec un submissionId valide — jamais de fantôme.
+      ...(documentVersionId && !alreadyHasPending
+        ? [
+            this.prisma.signatureRequest.create({
+              data: {
+                documentVersionId,
+                requestedById: campaign.createdById,
+                signerId: sig.userId,
+                campaignId: campaign.id,
+                docusealSubmissionId: submissionId,
+                docusealSlug: slug,
+                status: "PENDING",
+              },
+            }),
+          ]
+        : []),
+    ]);
   }
 
   /**
    * Résout la DocumentVersion à faire signer pour les campagnes
-   * DOCUMENT_POLICY (dernière version du document source). Les campagnes
-   * CHARTE n'ont pas de DocumentVersion : retourne null (suivi
-   * CampaignSignature uniquement).
+   * DOCUMENT_POLICY. Les campagnes CHARTE n'ont pas de DocumentVersion :
+   * retourne null (suivi CampaignSignature uniquement).
+   *
+   * Priorité à la version FIGÉE au lancement (campaign.documentVersionId) :
+   * elle garantit que toutes les cibles signent la même version approuvée,
+   * indépendamment des versions créées après le launch (brouillons, rejets
+   * de relecture...). Pour les campagnes anciennes sans version figée, on
+   * n'accepte QUE la version courante d'un document toujours APPROVED —
+   * jamais un `findFirst` par date qui pourrait retourner un brouillon.
    */
   private async resolveDocumentVersionId(campaign: {
     id: string;
     sourceType: string;
     sourceId: string;
+    documentVersionId: string | null;
   }): Promise<string | null> {
     if (campaign.sourceType !== "DOCUMENT_POLICY") {
       return null;
     }
-    const version = await this.prisma.documentVersion.findFirst({
-      where: { documentId: campaign.sourceId },
-      orderBy: { createdAt: "desc" },
-      select: { id: true },
+    // Version figée au lancement : source de vérité immuable.
+    if (campaign.documentVersionId) {
+      return campaign.documentVersionId;
+    }
+    // Fallback (campagnes lancées avant le figement) : version courante d'un
+    // document TOUJOURS approuvé, sinon on refuse (retour null → dispatch
+    // refusé en amont).
+    const document = await this.prisma.document.findUnique({
+      where: { id: campaign.sourceId },
+      select: { status: true, currentVersionId: true },
     });
-    if (!version) {
+    if (
+      !document ||
+      document.status !== "APPROVED" ||
+      !document.currentVersionId
+    ) {
       this.logger.warn(
-        `Campagne ${campaign.id}: document source ${campaign.sourceId} sans version — pas de SignatureRequest generee`,
+        `Campagne ${campaign.id}: document source ${campaign.sourceId} non APPROVED ou sans version courante — pas de SignatureRequest generee`,
       );
       return null;
     }
-    return version.id;
+    return document.currentVersionId;
   }
 
   /**

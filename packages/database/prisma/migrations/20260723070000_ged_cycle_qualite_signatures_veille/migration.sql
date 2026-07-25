@@ -42,3 +42,14 @@ ALTER TABLE "SignatureRequest" ADD COLUMN "campaignId" TEXT;
 ALTER TABLE "SignatureRequest" ADD CONSTRAINT "SignatureRequest_campaignId_fkey"
   FOREIGN KEY ("campaignId") REFERENCES "SignatureCampaign"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 CREATE INDEX "SignatureRequest_campaignId_idx" ON "SignatureRequest"("campaignId");
+
+-- 4b. SignatureRequest.docusealSlug — slug submitter DocuSeal (URL de signature
+--     /s/:slug). Sans lui, l'UI construisait l'URL avec le submissionId
+--     numérique → 404. Additif, nullable (demandes historiques = NULL).
+ALTER TABLE "SignatureRequest" ADD COLUMN "docusealSlug" TEXT;
+
+-- 4c. SignatureCampaign.documentVersionId — version du document source figée
+--     au lancement (immuable pour toute la campagne). Évite que des cibles
+--     re-dispatchées signent une version postérieure non approuvée. Additif,
+--     nullable (campagnes CHARTE ou lancées avant le figement = NULL).
+ALTER TABLE "SignatureCampaign" ADD COLUMN "documentVersionId" TEXT;
