@@ -104,3 +104,6 @@ Thumbs.db
 
 # Registre SMSI en clair — ne pas versionner sur le remote
 packages/database/prisma/reg016/registre.tsv
+
+# Symlinks node_modules des worktrees (gitignore "node_modules/" ne matche pas un lien)
+node_modules
