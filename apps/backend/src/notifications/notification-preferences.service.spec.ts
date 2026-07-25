@@ -141,7 +141,7 @@ describe("NotificationPreferencesService", () => {
       expect(DEFAULT_NOTIFICATION_PREFERENCES.inApp.veille).toBe(true);
       expect(DEFAULT_NOTIFICATION_PREFERENCES.email.veille).toBe(false);
       expect(
-        (DEFAULT_NOTIFICATION_PREFERENCES.push as Record<string, unknown>).veille,
+        (DEFAULT_NOTIFICATION_PREFERENCES.push as unknown as Record<string, unknown>).veille,
       ).toBeUndefined();
     });
 
