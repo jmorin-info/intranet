@@ -292,7 +292,13 @@ export class DocumentsService {
    * for the document's classification level.
    */
   private checkClassificationAccess(
-    document: { classification?: string | null; ownerId: string },
+    document: {
+      classification?: string | null;
+      ownerId: string;
+      verifierId?: string | null;
+      reviewerId?: string | null;
+      approverId?: string | null;
+    },
     currentUser: RequestUser,
   ): void {
     const userRole = (currentUser.role || "").toUpperCase() as UserRole;
@@ -304,6 +310,21 @@ export class DocumentsService {
     if (roleLevel >= ROLE_HIERARCHY[UserRole.DIRECTION]) return;
     // Owner always has access to their own document
     if (isOwner) return;
+    // Un assigné du workflow accède au document qu'il doit traiter,
+    // en cohérence avec findById / findAll (contournement tracé A.5.12).
+    const isAssigned = [
+      document.verifierId,
+      document.reviewerId,
+      document.approverId,
+    ].some((x) => !!x && x === currentUser.id);
+    if (isAssigned) {
+      if (classification === "SECRET") {
+        this.logger.warn(
+          `checkClassificationAccess: accès SECRET accordé par assignation user=${currentUser.id} owner=${document.ownerId} (contournement A.5.12)`,
+        );
+      }
+      return;
+    }
 
     if (userRole === UserRole.COLLABORATEUR) {
       // COLLABORATEUR: PUBLIC + INTERNE only
@@ -538,6 +559,27 @@ export class DocumentsService {
       roleLevelForBypass < ROLE_HIERARCHY[UserRole.DIRECTION] &&
       (await this.hasExplicitPermission(currentUser.id, id, userRole))
     ) {
+      return enrichIsoControls(document);
+    }
+
+    // Un utilisateur assigné à une étape du workflow (vérificateur,
+    // relecteur ou approbateur) doit toujours pouvoir lire le document
+    // qu'il est censé traiter, quelle que soit sa classification. Sans
+    // cela, findAll / getPendingForUser exposent le document dans sa file
+    // (« à vous d'agir ») mais findById renvoie un 403 → dead-end, et
+    // possibilité d'approbation à l'aveugle. Contournement volontaire et
+    // tracé de la matrice de classification (ISO 27001 A.5.12).
+    const isAssigned =
+      !isOwner &&
+      [document.verifierId, document.reviewerId, document.approverId].some(
+        (x) => !!x && x === currentUser.id,
+      );
+    if (isAssigned) {
+      if ((classification || "INTERNE").toUpperCase() === "SECRET") {
+        this.logger.warn(
+          `findById: accès SECRET accordé par assignation user=${currentUser.id} doc=${id} (contournement A.5.12)`,
+        );
+      }
       return enrichIsoControls(document);
     }
 
@@ -1116,6 +1158,64 @@ export class DocumentsService {
             `(rôle ${userRole}). Utilisez le workflow de validation pour faire ` +
             `avancer ce document.`,
         );
+      }
+
+      // Les transitions qui ENTRENT dans une phase de workflow doivent
+      // instancier une ValidationRequest + ValidationStep et notifier l'assigné
+      // — c'est le rôle des endpoints dédiés (submit-review / request-approval).
+      // Un PATCH direct (ex. drag Kanban) ferait avancer le statut sans workflow :
+      // document orphelin, invisible de toutes les files et non rattrapable par
+      // submit-review (qui exige DRAFT). On refuse ces deux transitions précises
+      // tout en gardant la matrice partagée intacte (les boutons du front, qui
+      // passent eux par les endpoints dédiés, restent affichés).
+      const enterWorkflowViaPatch =
+        (document.status === "DRAFT" && dto.status === "IN_REVIEW") ||
+        (document.status === "REVIEW_APPROVED" && dto.status === "PENDING_APPROVAL");
+      if (enterWorkflowViaPatch) {
+        throw new BadRequestException(
+          dto.status === "IN_REVIEW"
+            ? "Pour soumettre ce document en revue, utilisez le bouton « Soumettre en revue » (POST /documents/:id/submit-review) : un PATCH direct ne crée pas le circuit de validation."
+            : "Pour demander l'approbation, utilisez le bouton « Demander l'approbation » (POST /documents/:id/request-approval) : un PATCH direct ne crée pas le circuit de validation.",
+        );
+      }
+    }
+
+    // Désassignation (Xid: null) d'un rôle dont l'étape est actuellement en
+    // cours : refuser explicitement AVANT toute écriture. Sinon la
+    // ValidationStep PENDING reste orpheline (assignée à l'ancien acteur,
+    // action=null pendant que document.Xid devient null) : l'ancien acteur
+    // continue de la voir dans sa file « à vous d'agir » mais son clic
+    // « Valider » échoue (resolveDecisionActor lit document.Xid = null → 403),
+    // et le cron de relance le harcèle indéfiniment. Réassigner à quelqu'un
+    // d'autre reste possible ; retirer sans remplaçant tant que l'étape court
+    // ne l'est pas.
+    const pendingReqForClear = document.validationRequests?.[0];
+    if (pendingReqForClear && !statusChanges) {
+      const stepTypeByRoleField: Record<string, "VERIFICATION" | "REVIEW" | "APPROVAL"> = {
+        verifierId: "VERIFICATION",
+        reviewerId: "REVIEW",
+        approverId: "APPROVAL",
+      };
+      const labelByRoleField: Record<string, string> = {
+        verifierId: "vérificateur",
+        reviewerId: "relecteur",
+        approverId: "approbateur",
+      };
+      for (const field of ["verifierId", "reviewerId", "approverId"] as const) {
+        const clearing = dto[field] === null && !!document[field];
+        if (!clearing) continue;
+        const wantedStepType = stepTypeByRoleField[field];
+        if (pendingReqForClear.currentStep !== wantedStepType) continue;
+        const hasPendingStep = pendingReqForClear.steps.some(
+          (s) => s.stepType === wantedStepType,
+        );
+        if (hasPendingStep) {
+          throw new BadRequestException(
+            `Impossible de retirer le ${labelByRoleField[field]} tant que l'étape ` +
+              `« ${wantedStepType} » est en cours. Réassignez-le à un autre ` +
+              `utilisateur, ou faites d'abord avancer ou annuler le workflow.`,
+          );
+        }
       }
     }
 

@@ -1528,8 +1528,18 @@ function DocumentsContent() {
               try {
                 await api.patch(`/documents/${docId}`, { status: newStatus });
                 fetchDocuments();
-              } catch {
-                /* handled */
+              } catch (err) {
+                // Le backend rejette désormais les transitions illégales et les
+                // avances « dans » le workflow (400 « Transition… » / « Utilisez
+                // le bouton… »). Sans ce toast, la carte revenait à sa colonne
+                // sans aucun message : indiscernable d'un bug de drag-and-drop.
+                toast.error(
+                  (err as { response?: { data?: { message?: string } } })?.response?.data
+                    ?.message ?? "Transition de statut impossible",
+                );
+                // Resynchronise le board (annule tout état visuel optimiste et
+                // récupère un éventuel changement concurrent).
+                fetchDocuments();
               }
             }}
             onCardClick={(id) => router.push(`/documents/${id}`)}
