@@ -183,9 +183,10 @@ export class OfficeController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   async forceSave(
     @Param("documentId", ParseUUIDPipe) documentId: string,
+    @Body() body: { key?: string },
     @CurrentUser() user: RequestUser,
   ) {
-    return this.officeService.forceSave(documentId, user);
+    return this.officeService.forceSave(documentId, user, body?.key);
   }
 
   /**
