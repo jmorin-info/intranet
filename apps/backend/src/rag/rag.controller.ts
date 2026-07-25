@@ -118,8 +118,8 @@ export class RagController {
     // Heartbeat anti-coupure passerelle pendant le prompt-eval CPU (cf.
     // documentSummaryStream) : commentaire SSE toutes les 10 s.
     const heartbeat = setInterval(() => {
-      if (!res.writableEnded) res.write(`: keepalive\n\n`);
-    }, 10_000);
+      if (!res.writableEnded) res.write(`data: ${JSON.stringify({ type: "ping" })}\n\n`);
+    }, 5_000);
 
     try {
       await this.ragService.answerStream(
@@ -184,8 +184,8 @@ export class RagController {
     // envoie donc un commentaire SSE (`:` = ignoré par EventSource) toutes les
     // 10 s tant que la génération n'a rien émis.
     const heartbeat = setInterval(() => {
-      if (!res.writableEnded) res.write(`: keepalive\n\n`);
-    }, 10_000);
+      if (!res.writableEnded) res.write(`data: ${JSON.stringify({ type: "ping" })}\n\n`);
+    }, 5_000);
 
     const ctx: RagSearchContext = {
       userId: user.id,
