@@ -5,10 +5,10 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  GoneException,
   Param,
   Post,
   Req,
-  UnauthorizedException,
   UseGuards,
   Logger,
 } from "@nestjs/common";
@@ -93,29 +93,26 @@ export class CampaignsController {
     return this.campaigns.sendReminders(id);
   }
 
-  // ----- Webhook public (signature DocuSeal) ----------------------
+  // ----- Webhook DocuSeal : ENDPOINT RETIRÉ (410 Gone) --------------
+  //
+  // Refonte 2026-07-24 : il n'existe plus qu'UN point d'entrée webhook
+  // DocuSeal, POST /signatures/webhook (vérification HMAC-SHA256 stricte
+  // + timingSafeEqual sur le body brut). Il chaîne SignaturesService puis
+  // CampaignsService. Cet endpoint historique avait une vérification plus
+  // faible (comparaison du secret en clair toujours acceptée) : il répond
+  // désormais 410 Gone et log l'appel pour permettre la reconfiguration
+  // du webhook côté DocuSeal.
 
   @Public()
   @Post("webhook/docuseal")
-  @HttpCode(HttpStatus.OK)
-  async webhook(@Req() req: any, @Body() payload: any) {
-    const signature =
-      (req.headers["x-docuseal-signature"] as string | undefined) ||
-      (req.headers["x-docuseal-webhook-signature"] as string | undefined);
-
-    const rawBody =
-      (req.rawBody && req.rawBody.toString && req.rawBody.toString("utf8")) ||
-      JSON.stringify(payload || {});
-
-    const ok = this.campaigns.verifyWebhookSignature(rawBody, signature);
-    if (!ok) {
-      this.logger.warn("Signature webhook DocuSeal invalide");
-      throw new UnauthorizedException("Invalid webhook signature");
-    }
-
-    // TODO: tester — DocuSeal signe generalement avec HMAC-SHA256 sur le body brut,
-    // il faut confirmer le header exact et activer le middleware rawBody si absent.
-    return this.campaigns.handleWebhook(payload);
+  async deprecatedWebhook(@Req() req: any) {
+    const ip = req?.ip || req?.headers?.["x-forwarded-for"] || "unknown";
+    this.logger.warn(
+      `[MIGRATION] Appel de l'endpoint retiré POST /signature-campaigns/webhook/docuseal depuis ${ip} — reconfigurez DocuSeal sur POST /signatures/webhook`,
+    );
+    throw new GoneException(
+      "Endpoint retiré : configurez le webhook DocuSeal sur POST /signatures/webhook (point d'entrée unique, HMAC-SHA256 obligatoire).",
+    );
   }
 
   // ----- Endpoint utilisateur -------------------------------------

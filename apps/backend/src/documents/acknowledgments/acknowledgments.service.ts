@@ -29,6 +29,25 @@ export class AcknowledgmentsService {
       throw new NotFoundException('Document not found');
     }
 
+    // Snapshot identité (ISO 27001 A.5.28) : l'attestation doit rester une
+    // preuve exploitable 3 ans après une éventuelle suppression du compte
+    // (User est en onDelete: SetNull). On fige donc email/nom/rôle au moment
+    // du clic — jamais recalculés ensuite.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, firstName: true, lastName: true, role: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const identitySnapshot = {
+      userEmail: user.email,
+      userFirstName: user.firstName,
+      userLastName: user.lastName,
+      userRole: String(user.role),
+    };
+
     const acknowledgment = await this.prisma.documentAcknowledgment.upsert({
       where: {
         documentId_userId: {
@@ -41,11 +60,13 @@ export class AcknowledgmentsService {
         userId,
         ipAddress,
         userAgent,
+        ...identitySnapshot,
       },
       update: {
         acknowledgedAt: new Date(),
         ipAddress,
         userAgent,
+        ...identitySnapshot,
       },
     });
 

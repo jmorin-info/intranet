@@ -31,6 +31,9 @@ export class ChartesService {
           orderBy: { createdAt: "desc" },
           take: 1,
         },
+        directionValidatedBy: {
+          select: { id: true, firstName: true, lastName: true },
+        },
         _count: { select: { signatures: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -69,6 +72,9 @@ export class ChartesService {
       where: { id },
       include: {
         versions: { orderBy: { createdAt: "desc" } },
+        directionValidatedBy: {
+          select: { id: true, firstName: true, lastName: true },
+        },
         _count: { select: { signatures: true } },
       },
     });
@@ -195,6 +201,48 @@ export class ChartesService {
       });
     }
 
+    // La validation de la direction porte sur UNE version : publier une
+    // nouvelle version active la réinitialise (boolean legacy + champs
+    // tracés). Les attestations restent bloquées tant que la direction n'a
+    // pas re-validé — c'est le sens du workflow qualité.
+    const wasValidated = charte.signedByDirection;
+    await this.prisma.charte.update({
+      where: { id: charteId },
+      data: {
+        signedByDirection: false,
+        directionValidatedById: null,
+        directionValidatedAt: null,
+        directionValidatedVersionId: null,
+      },
+    });
+
+    // Notifie la direction que la nouvelle version est à (re)valider.
+    // Insertion directe dans Notification (pas via NotificationsService pour
+    // éviter un import circulaire ChartesModule → NotificationsModule).
+    const directionUsers = await this.prisma.user.findMany({
+      where: {
+        role: { in: ["DIRECTION", "SUPER_ADMIN"] as any },
+        isActive: true,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    if (directionUsers.length > 0) {
+      await this.prisma.notification.createMany({
+        data: directionUsers.map((u) => ({
+          userId: u.id,
+          type: "DOC_APPROVAL_NEEDED" as any,
+          title: wasValidated
+            ? `Charte à re-valider : ${charte.title}`
+            : `Charte à valider : ${charte.title}`,
+          body: `La version ${versionNumber} de la charte « ${charte.title} » vient d'être publiée. La validation de la direction est requise avant que les collaborateurs puissent attester leur lecture.`,
+          resourceType: "Charte",
+          resourceId: charteId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
     // Audit log
     await this.audit.log({
       userId,
@@ -208,30 +256,58 @@ export class ChartesService {
     return version;
   }
 
-  // Mark charte as signed by Direction
+  // Validation de la direction — étape de workflow qualité tracée (qui,
+  // quand, sur quelle version). Ce n'est PAS une signature : le boolean
+  // legacy signedByDirection est maintenu en double-écriture pour compat.
   async markSignedByDirection(charteId: string, userId: string) {
     const charte = await this.prisma.charte.findUnique({
       where: { id: charteId },
+      include: { versions: { where: { isActive: true }, take: 1 } },
     });
     if (!charte) throw new NotFoundException("Charte not found");
 
+    const activeVersion = charte.versions[0];
+    if (!activeVersion) {
+      throw new BadRequestException(
+        "Aucune version active : uploadez d'abord le PDF de la charte avant de la valider.",
+      );
+    }
+
     const updated = await this.prisma.charte.update({
       where: { id: charteId },
-      data: { signedByDirection: true },
+      data: {
+        signedByDirection: true, // legacy — double écriture
+        directionValidatedById: userId,
+        directionValidatedAt: new Date(),
+        directionValidatedVersionId: activeVersion.id,
+      },
+      include: {
+        directionValidatedBy: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+      },
     });
 
     await this.audit.log({
       userId,
-      action: "CHARTE_SIGNED_BY_DIRECTION",
+      action: "CHARTE_VALIDATED_BY_DIRECTION",
       resourceType: "Charte",
       resourceId: charteId,
+      metadata: {
+        charteTitle: charte.title,
+        versionId: activeVersion.id,
+        versionNumber: activeVersion.versionNumber,
+      },
       severity: "WARN",
     });
 
     return updated;
   }
 
-  // User signs a specific version of a charte
+  // Attestation de lecture d'une version de charte par un utilisateur.
+  // Ce n'est PAS une signature engageante (DocuSeal) : c'est un accusé de
+  // lecture horodaté avec IP/UA + snapshot identité (ISO 27001 A.5.28 —
+  // la preuve doit survivre 3 ans à la suppression du compte).
   async sign(
     charteId: string,
     userId: string,
@@ -252,6 +328,19 @@ export class ChartesService {
     if (!activeVersion)
       throw new NotFoundException("Aucune version active pour cette charte");
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, firstName: true, lastName: true, role: true },
+    });
+    if (!user) throw new NotFoundException("User not found");
+
+    const identitySnapshot = {
+      userEmail: user.email,
+      userFirstName: user.firstName,
+      userLastName: user.lastName,
+      userRole: String(user.role),
+    };
+
     const sig = await this.prisma.charteSignature.upsert({
       where: {
         charteId_charteVersionId_userId: {
@@ -266,8 +355,14 @@ export class ChartesService {
         userId,
         ipAddress,
         userAgent,
+        ...identitySnapshot,
       },
-      update: { signedAt: new Date(), ipAddress, userAgent },
+      update: {
+        signedAt: new Date(),
+        ipAddress,
+        userAgent,
+        ...identitySnapshot,
+      },
     });
 
     // Audit log for compliance tracking
