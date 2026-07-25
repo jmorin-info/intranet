@@ -21,6 +21,7 @@ import { DocumentFiltersDto } from "./dto/document-filters.dto";
 import { RequestUser } from "../common/interfaces";
 import type { UserRole as PrismaUserRole } from "@prisma/client";
 import { UserRole, ROLE_HIERARCHY } from "../common/enums";
+import { isLegalStatusTransition } from "../common/document-workflow";
 import { ISO_CONTROLS_FR } from "../iso-controls/iso-controls-fr.map";
 import { sanitizePlainText, sanitizeRichText } from "../common/sanitize";
 import { safeParseInt } from "../common/validation-helpers";
@@ -361,6 +362,15 @@ export class DocumentsService {
       },
     };
 
+    // Un utilisateur assigné à une étape du workflow (vérificateur, relecteur
+    // ou approbateur) DOIT toujours voir le document — quelle que soit sa
+    // classification — sinon il ne peut pas agir sur ce qui lui est demandé.
+    const assignedToUser = [
+      { verifierId: currentUser.id },
+      { reviewerId: currentUser.id },
+      { approverId: currentUser.id },
+    ];
+
     if (userRole === UserRole.PRESTATAIRE) {
       // Prestataires: CONTRACT documents + public approved docs only
       // + permissions explicites (audit/migration/contrat ad-hoc)
@@ -368,40 +378,44 @@ export class DocumentsService {
         OR: [
           { category: "CONTRACT", status: "APPROVED" },
           { isPublic: true, status: "APPROVED" },
+          ...assignedToUser,
           explicitPermissionMatch,
         ],
       });
     } else if (userRole === UserRole.COLLABORATEUR) {
       // Collaborateurs (ISO 27001 A.5.12):
       //   PUBLIC + INTERNE = visible (approved only)
-      //   CONFIDENTIEL + SECRET = invisible (sauf s'ils sont propriétaire ou
-      //   bénéficient d'une permission explicite)
+      //   CONFIDENTIEL + SECRET = invisible (sauf s'ils sont propriétaire,
+      //   assigné au workflow, ou bénéficient d'une permission explicite)
       where.AND.push({
         OR: [
           { status: "APPROVED", classification: { in: ["PUBLIC", "INTERNE"] } },
           { ownerId: currentUser.id },
+          ...assignedToUser,
           explicitPermissionMatch,
         ],
       });
     } else if (userRole === UserRole.AUDITEUR) {
       // Auditeurs: PUBLIC + INTERNE + CONFIDENTIEL approved (pas SECRET)
-      // + permissions explicites
+      // + docs assignés + permissions explicites
       where.AND.push({
         OR: [
           {
             status: "APPROVED",
             classification: { in: ["PUBLIC", "INTERNE", "CONFIDENTIEL"] },
           },
+          ...assignedToUser,
           explicitPermissionMatch,
         ],
       });
     } else if (userRole === UserRole.REVIEWER) {
-      // Reviewers: tout sauf SECRET (sauf s'ils sont propriétaire ou
-      // bénéficient d'une permission explicite SECRET)
+      // Reviewers: tout sauf SECRET (sauf s'ils sont propriétaire, assigné au
+      // workflow, ou bénéficient d'une permission explicite SECRET)
       where.AND.push({
         OR: [
           { classification: { in: ["PUBLIC", "INTERNE", "CONFIDENTIEL"] } },
           { ownerId: currentUser.id },
+          ...assignedToUser,
           explicitPermissionMatch,
         ],
       });
@@ -622,6 +636,7 @@ export class DocumentsService {
         category: dto.category,
         reference,
         ownerId: userId,
+        verifierId: dto.verifierId,
         reviewerId: dto.reviewerId,
         approverId: dto.approverId,
         nextReviewDate: dto.nextReviewDate ? new Date(dto.nextReviewDate) : null,
@@ -939,6 +954,7 @@ export class DocumentsService {
         category: dto.category,
         reference,
         ownerId: userId,
+        verifierId: dto.verifierId,
         reviewerId: dto.reviewerId,
         approverId: dto.approverId,
         nextReviewDate: dto.nextReviewDate ? new Date(dto.nextReviewDate) : null,
@@ -1047,7 +1063,25 @@ export class DocumentsService {
   }
 
   async update(id: string, dto: UpdateDocumentDto, currentUser: RequestUser) {
-    const document = await this.prisma.document.findUnique({ where: { id } });
+    const document = await this.prisma.document.findUnique({
+      where: { id },
+      include: {
+        // Étape PENDING courante du workflow actif : sert à (1) annuler la
+        // ValidationRequest si le statut change hors workflow, (2) réassigner
+        // la step si le vérificateur/relecteur/approbateur change en cours.
+        validationRequests: {
+          where: { status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: {
+            steps: {
+              where: { action: null },
+              orderBy: { createdAt: "desc" },
+            },
+          },
+        },
+      },
+    });
 
     if (!document || document.deletedAt) {
       throw new NotFoundException("Document introuvable");
@@ -1063,6 +1097,21 @@ export class DocumentsService {
       );
     }
 
+    // Garde de transition : un PATCH manuel de `status` ne peut suivre que la
+    // matrice du cycle de vie (ISO 27001 A.5.1) et exige le rôle adéquat. Les
+    // transitions du workflow nominal passent par les endpoints dédiés
+    // (submit-review, approve, …), jamais par ici.
+    const statusChanges = dto.status !== undefined && dto.status !== document.status;
+    if (statusChanges) {
+      if (!isLegalStatusTransition(document.status, dto.status!, userRole)) {
+        throw new BadRequestException(
+          `Transition de statut illégale : « ${document.status} » → « ${dto.status} » ` +
+            `(rôle ${userRole}). Utilisez le workflow de validation pour faire ` +
+            `avancer ce document.`,
+        );
+      }
+    }
+
     const updateData: any = {};
     // sanitizePlainText sur title/description pour cohérence avec create()
     // (P1 — évite une XSS stockée si ces champs sont un jour rendus en HTML).
@@ -1072,6 +1121,7 @@ export class DocumentsService {
         ? sanitizePlainText(dto.description)
         : dto.description;
     if (dto.category !== undefined) updateData.category = dto.category;
+    if (dto.verifierId !== undefined) updateData.verifierId = dto.verifierId;
     if (dto.reviewerId !== undefined) updateData.reviewerId = dto.reviewerId;
     if (dto.approverId !== undefined) updateData.approverId = dto.approverId;
     if (dto.nextReviewDate !== undefined)
@@ -1118,16 +1168,17 @@ export class DocumentsService {
     });
 
     // Notify document owner when status changes (e.g. Kanban drag-and-drop)
-    if (dto.status && dto.status !== document.status) {
+    if (statusChanges) {
       const statusLabels: Record<string, string> = {
         DRAFT: "Brouillon",
         IN_REVIEW: "En revue",
+        REVIEW_APPROVED: "Revue validée",
         PENDING_APPROVAL: "En attente d'approbation",
         APPROVED: "Approuvé",
         OBSOLETE: "Obsolète",
         ARCHIVED: "Archivé",
       };
-      const newStatusLabel = statusLabels[dto.status] || dto.status;
+      const newStatusLabel = statusLabels[dto.status!] || dto.status;
       const oldStatusLabel = statusLabels[document.status] || document.status;
 
       // Notify the owner if the change was made by someone else
@@ -1140,6 +1191,116 @@ export class DocumentsService {
           resourceType: "Document",
           resourceId: id,
         });
+      }
+    }
+
+    // --- Cohérence workflow : réassignation & annulation des étapes en cours --
+    const pendingRequest = document.validationRequests?.[0];
+    if (pendingRequest) {
+      if (statusChanges) {
+        // Changement de statut hors workflow → la ValidationRequest pendante
+        // devient orpheline : on l'annule proprement (CANCELLED + audit) pour
+        // ne pas laisser d'étape « à faire » fantôme (cause des docs incohérents).
+        await this.prisma.validationRequest.update({
+          where: { id: pendingRequest.id },
+          data: { status: "CANCELLED" },
+        });
+        await this.auditService.log({
+          userId: currentUser.id,
+          action: "DOCUMENT_VALIDATION_CANCELLED",
+          resourceType: "Document",
+          resourceId: id,
+          severity: "WARN",
+          metadata: {
+            reason: "status_changed_out_of_workflow",
+            from: document.status,
+            to: dto.status,
+            requestId: pendingRequest.id,
+          },
+        });
+      } else {
+        // Statut inchangé mais l'assigné de l'étape courante a changé →
+        // réassigner la ValidationStep PENDING, notifier le nouvel assigné,
+        // tracer. Sinon l'ancien assigné garde une action fantôme et le nouveau
+        // ne voit rien dans sa file « à traiter ».
+        const stepTypeByRole: Record<string, "VERIFICATION" | "REVIEW" | "APPROVAL"> = {
+          verifierId: "VERIFICATION",
+          reviewerId: "REVIEW",
+          approverId: "APPROVAL",
+        };
+        const roleChanges: Array<{
+          field: "verifierId" | "reviewerId" | "approverId";
+          newId: string;
+          label: string;
+          notifType: "DOC_REVIEW_NEEDED" | "DOC_APPROVAL_NEEDED";
+        }> = [];
+        if (
+          dto.verifierId !== undefined &&
+          dto.verifierId !== null &&
+          dto.verifierId !== document.verifierId
+        )
+          roleChanges.push({
+            field: "verifierId",
+            newId: dto.verifierId,
+            label: "vérification",
+            notifType: "DOC_REVIEW_NEEDED",
+          });
+        if (
+          dto.reviewerId !== undefined &&
+          dto.reviewerId !== null &&
+          dto.reviewerId !== document.reviewerId
+        )
+          roleChanges.push({
+            field: "reviewerId",
+            newId: dto.reviewerId,
+            label: "revue technique",
+            notifType: "DOC_REVIEW_NEEDED",
+          });
+        if (
+          dto.approverId !== undefined &&
+          dto.approverId !== null &&
+          dto.approverId !== document.approverId
+        )
+          roleChanges.push({
+            field: "approverId",
+            newId: dto.approverId,
+            label: "approbation",
+            notifType: "DOC_APPROVAL_NEEDED",
+          });
+
+        for (const change of roleChanges) {
+          const wantedStepType = stepTypeByRole[change.field];
+          // On ne réassigne QUE l'étape effectivement en cours (currentStep).
+          if (pendingRequest.currentStep !== wantedStepType) continue;
+          const pendingStep = pendingRequest.steps.find((s) => s.stepType === wantedStepType);
+          if (!pendingStep) continue;
+
+          await this.prisma.validationStep.update({
+            where: { id: pendingStep.id },
+            data: { assignedToId: change.newId },
+          });
+          await this.notificationsService.create({
+            userId: change.newId,
+            type: change.notifType,
+            title: `Étape ${change.label} qui vous est réassignée`,
+            body: `Le document "${document.title}" (${document.reference}) vous a été réassigné pour l'étape de ${change.label}.`,
+            resourceType: "Document",
+            resourceId: id,
+          });
+          await this.auditService.log({
+            userId: currentUser.id,
+            action: "DOCUMENT_VALIDATION_REASSIGNED",
+            resourceType: "Document",
+            resourceId: id,
+            severity: "INFO",
+            metadata: {
+              stepType: wantedStepType,
+              stepId: pendingStep.id,
+              from: pendingStep.assignedToId,
+              to: change.newId,
+            },
+          });
+        }
       }
     }
 
