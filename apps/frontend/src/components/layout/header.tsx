@@ -382,6 +382,23 @@ export function Header() {
 
   const getNotifHref = (n: Notification): string | null => {
     if (!n.resourceType || !n.resourceId) return null;
+
+    // Campagne de signature : la demande individuelle générée par la campagne
+    // apparaît sur /signatures (une campagne = un générateur de
+    // SignatureRequest) — pas de page dédiée par campagne côté utilisateur.
+    if (
+      n.resourceType === "SIGNATURE_CAMPAIGN" ||
+      n.resourceType === "SignatureCampaign"
+    ) {
+      return "/signatures";
+    }
+
+    // Charte : la direction est renvoyée vers l'écran de validation, les
+    // collaborateurs vers le mur d'attestation de lecture.
+    if (n.resourceType === "Charte") {
+      return n.type === "DOC_APPROVAL_NEEDED" ? "/admin/chartes" : "/chartes";
+    }
+
     const typeToPath: Record<string, string> = {
       Document: "documents",
       NewsPost: "news",
