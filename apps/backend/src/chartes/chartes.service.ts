@@ -5,6 +5,7 @@ import {
   BadRequestException,
   ConflictException,
 } from "@nestjs/common";
+import { NotificationType, UserRole } from "@prisma/client";
 import { slugify, generateUniqueSlug } from "../common/utils/slugify";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
@@ -221,7 +222,7 @@ export class ChartesService {
     // éviter un import circulaire ChartesModule → NotificationsModule).
     const directionUsers = await this.prisma.user.findMany({
       where: {
-        role: { in: ["DIRECTION", "SUPER_ADMIN"] as any },
+        role: { in: [UserRole.DIRECTION, UserRole.SUPER_ADMIN] },
         isActive: true,
         deletedAt: null,
       },
@@ -231,7 +232,7 @@ export class ChartesService {
       await this.prisma.notification.createMany({
         data: directionUsers.map((u) => ({
           userId: u.id,
-          type: "DOC_APPROVAL_NEEDED" as any,
+          type: NotificationType.DOC_APPROVAL_NEEDED,
           title: wasValidated
             ? `Charte à re-valider : ${charte.title}`
             : `Charte à valider : ${charte.title}`,
@@ -319,9 +320,11 @@ export class ChartesService {
       include: { versions: { where: { isActive: true }, take: 1 } },
     });
     if (!charte) throw new NotFoundException("Charte not found");
+    // Blocage volontaire (workflow qualité) : tant que la direction n'a pas
+    // validé la version courante, personne n'atteste sa lecture.
     if (!charte.signedByDirection)
       throw new ForbiddenException(
-        "Cette charte n'a pas encore été validée par la Direction",
+        "Cette charte n'a pas encore été validée par la Direction : l'attestation de lecture sera possible dès sa validation.",
       );
 
     const activeVersion = charte.versions[0];
@@ -679,9 +682,9 @@ export class ChartesService {
     await this.prisma.notification.createMany({
       data: toRemind.map((u: any) => ({
         userId: u.id,
-        type: "SIGNATURE_REMINDER" as any,
-        title: `Signature requise : ${report.charte.title}`,
-        body: "Vous n'avez pas encore signé cette charte. Merci de procéder à la signature.",
+        type: NotificationType.SIGNATURE_REMINDER,
+        title: `Attestation de lecture requise : ${report.charte.title}`,
+        body: "Vous n'avez pas encore attesté avoir lu cette charte. Merci d'ouvrir le PDF puis de confirmer votre lecture.",
         resourceType: "Charte",
         resourceId: charteId,
       })),

@@ -9,7 +9,15 @@ import { CampaignsService } from "./campaigns.service";
 
 /**
  * Cron des campagnes de signature — tous les jours a 9h.
- * Envoie des rappels J-7 / J-1 / J et marque les retards EXPIRED.
+ *
+ * Trois responsabilites :
+ *  1. RETRY DU DISPATCH : re-tente la creation des submissions DocuSeal
+ *     individuelles des cibles restees PENDING sans docusealSubmissionId
+ *     (DocuSeal indisponible au moment du launch, template renseigne apres
+ *     coup, signataires ajoutes hors ligne...). C'est ce qui garantit
+ *     qu'aucune cible ne reste orpheline sans intervention manuelle.
+ *  2. Rappels J-7 / J-1 / J.
+ *  3. Marquage EXPIRED des campagnes en retard.
  *
  * Regle absolue : NE JAMAIS throw depuis un cron — on log et on continue.
  */
@@ -58,6 +66,21 @@ export class CampaignsCron {
   }
 
   private async processCampaign(campaign: any, now: Date) {
+    // 1. Retry du dispatch DocuSeal — independant de dueAt : une campagne
+    //    sans echeance peut tout autant avoir des cibles non dispatchees.
+    try {
+      const res = await this.campaigns.dispatchPendingSubmissions(campaign.id);
+      if (res.dispatched > 0 || res.failed > 0) {
+        this.logger.log(
+          `Retry dispatch campagne ${campaign.id}: ${res.dispatched} creee(s), ${res.failed} echec(s), ${res.skipped} ignoree(s)`,
+        );
+      }
+    } catch (err: any) {
+      this.logger.error(
+        `Retry dispatch a echoue pour ${campaign.id}: ${err?.message || err}`,
+      );
+    }
+
     if (!campaign.dueAt) return;
 
     const due = new Date(campaign.dueAt);

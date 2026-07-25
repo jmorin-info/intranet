@@ -23,7 +23,14 @@ import { CampaignsService, CreateCampaignOptions } from "./campaigns.service";
 
 /**
  * Controleur des campagnes de signature DocuSeal.
- * Scaffold 2026-04-13 — a activer apres migration Prisma.
+ *
+ * Une campagne est un GENERATEUR de SignatureRequest individuelles : le
+ * lancement cree une submission DocuSeal par cible et la SignatureRequest
+ * correspondante (campaignId renseigne). Les signataires voient leur demande
+ * sur /signatures comme n'importe quelle demande individuelle.
+ *
+ * Le webhook DocuSeal n'est PLUS servi ici (410 Gone) : point d'entree unique
+ * POST /signatures/webhook.
  */
 @Controller("signature-campaigns")
 export class CampaignsController {

@@ -540,7 +540,8 @@ export class CampaignsService {
     path: string,
     init: RequestInit = {},
   ): Promise<unknown> {
-    // TODO: tester — wrapper fetch natif avec timeout 5s
+    // Wrapper fetch natif : timeout 5 s + throw sur statut non-2xx (l'appelant
+    // decide quoi faire de l'echec — jamais de best-effort silencieux).
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.fetchTimeoutMs);
     try {
