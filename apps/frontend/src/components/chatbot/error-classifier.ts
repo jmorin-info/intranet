@@ -11,25 +11,26 @@
  *   - unknown         → [Réessayer, Créer un ticket]
  */
 
-import type { ChatbotError, ChatbotErrorKind } from './types';
+import type { ChatbotError, ChatbotErrorKind } from "./types";
 
 interface ErrorShape {
   name?: string;
+  code?: string;
   message?: string;
   response?: { status?: number; data?: { message?: string } };
 }
 
 export function classifyError(err: unknown): ChatbotError {
   const e = (err ?? {}) as ErrorShape;
-  const message = e?.response?.data?.message ?? e?.message ?? '';
+  const message = e?.response?.data?.message ?? e?.message ?? "";
   const status = e?.response?.status;
   const name = e?.name;
 
   // Abort (user pressed Stop / Esc)
-  if (name === 'AbortError' || /aborted|user abort/i.test(message)) {
+  if (name === "AbortError" || /aborted|user abort/i.test(message)) {
     return {
-      kind: 'aborted',
-      message: 'Génération interrompue.',
+      kind: "aborted",
+      message: "Génération interrompue.",
       technical: message,
     };
   }
@@ -37,8 +38,8 @@ export function classifyError(err: unknown): ChatbotError {
   // Rate limit (429)
   if (status === 429) {
     return {
-      kind: 'rate_limit',
-      message: 'Trop de requêtes — merci de patienter quelques instants avant de réessayer.',
+      kind: "rate_limit",
+      message: "Trop de requêtes — merci de patienter quelques instants avant de réessayer.",
       technical: message,
     };
   }
@@ -46,20 +47,28 @@ export function classifyError(err: unknown): ChatbotError {
   // RBAC filtered (403)
   if (status === 403 || /rbac|forbidden|interdit/i.test(message)) {
     return {
-      kind: 'rbac_filtered',
-      message: 'Aucune source accessible avec vos habilitations pour cette requête.',
+      kind: "rbac_filtered",
+      message: "Aucune source accessible avec vos habilitations pour cette requête.",
+      technical: message,
+    };
+  }
+
+  // IA surchargée / indisponible (503/504 renvoyés par le backend depuis le
+  // fix 2026-07 — plus de 200 { summary: "Erreur…" }) ou timeout client axios.
+  if (status === 503 || status === 504 || e?.code === "ECONNABORTED") {
+    return {
+      kind: "ollama_timeout",
+      message: "L'IA est momentanément surchargée — réessayez dans quelques minutes.",
       technical: message,
     };
   }
 
   // Ollama timeout / LLM down
-  if (
-    /ollama|llm.*(timeout|unavailable|down)|timeout.*ollama/i.test(message) ||
-    (status === 504 && /ollama/i.test(message))
-  ) {
+  if (/ollama|llm.*(timeout|unavailable|down)|timeout.*ollama/i.test(message)) {
     return {
-      kind: 'ollama_timeout',
-      message: 'Le moteur IA est temporairement indisponible. Une réponse extractive peut être disponible en réessayant.',
+      kind: "ollama_timeout",
+      message:
+        "Le moteur IA est temporairement indisponible. Une réponse extractive peut être disponible en réessayant.",
       technical: message,
     };
   }
@@ -67,18 +76,18 @@ export function classifyError(err: unknown): ChatbotError {
   // Network / no response
   if (!status && /network|fetch|econn/i.test(message)) {
     return {
-      kind: 'network',
-      message: 'Erreur réseau — vérifiez votre connexion internet.',
+      kind: "network",
+      message: "Erreur réseau — vérifiez votre connexion internet.",
       technical: message,
     };
   }
 
   // Unknown
   return {
-    kind: 'unknown',
+    kind: "unknown",
     message:
       message ||
-      'La recherche intelligente est temporairement indisponible. Réessayez dans quelques instants.',
+      "La recherche intelligente est temporairement indisponible. Réessayez dans quelques instants.",
     technical: message,
   };
 }
@@ -89,7 +98,7 @@ export function classifyError(err: unknown): ChatbotError {
  */
 export function buildLowConfidenceError(confidencePercent: number): ChatbotError {
   return {
-    kind: 'confidence_low',
+    kind: "confidence_low",
     message: `Réponse peu fiable (confiance ${confidencePercent}%). Essayez de reformuler ou de préciser votre question.`,
     technical: `retrievalConfidence=${confidencePercent}%`,
   };
@@ -99,36 +108,36 @@ export const LOW_CONFIDENCE_THRESHOLD = 40 as const;
 
 export function ctaTargetsForError(kind: ChatbotErrorKind): Array<{
   label: string;
-  action: 'retry' | 'rephrase' | 'ticket' | 'contact_it' | 'contact_rssi' | 'dismiss';
+  action: "retry" | "rephrase" | "ticket" | "contact_it" | "contact_rssi" | "dismiss";
 }> {
   switch (kind) {
-    case 'confidence_low':
+    case "confidence_low":
       return [
-        { label: 'Réessayer', action: 'retry' },
-        { label: 'Reformuler', action: 'rephrase' },
-        { label: 'Contacter IT', action: 'contact_it' },
+        { label: "Réessayer", action: "retry" },
+        { label: "Reformuler", action: "rephrase" },
+        { label: "Contacter IT", action: "contact_it" },
       ];
-    case 'ollama_timeout':
+    case "ollama_timeout":
       return [
-        { label: 'Réessayer', action: 'retry' },
-        { label: 'Créer un ticket', action: 'ticket' },
+        { label: "Réessayer", action: "retry" },
+        { label: "Créer un ticket", action: "ticket" },
       ];
-    case 'rbac_filtered':
+    case "rbac_filtered":
       return [
-        { label: 'Contacter le RSSI', action: 'contact_rssi' },
-        { label: 'Fermer', action: 'dismiss' },
+        { label: "Contacter le RSSI", action: "contact_rssi" },
+        { label: "Fermer", action: "dismiss" },
       ];
-    case 'rate_limit':
-      return [{ label: 'Réessayer dans 1 min', action: 'retry' }];
-    case 'aborted':
-      return [{ label: 'Réessayer', action: 'retry' }];
-    case 'network':
-      return [{ label: 'Réessayer', action: 'retry' }];
-    case 'unknown':
+    case "rate_limit":
+      return [{ label: "Réessayer dans 1 min", action: "retry" }];
+    case "aborted":
+      return [{ label: "Réessayer", action: "retry" }];
+    case "network":
+      return [{ label: "Réessayer", action: "retry" }];
+    case "unknown":
     default:
       return [
-        { label: 'Réessayer', action: 'retry' },
-        { label: 'Créer un ticket', action: 'ticket' },
+        { label: "Réessayer", action: "retry" },
+        { label: "Créer un ticket", action: "ticket" },
       ];
   }
 }

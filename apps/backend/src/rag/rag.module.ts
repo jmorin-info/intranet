@@ -1,18 +1,19 @@
-import { Module } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
-import { RagController } from './rag.controller';
-import { RagService } from './rag.service';
-import { TextExtractorService } from './text-extractor.service';
-import { InputGuardService } from './guardrails/input-guard.service';
-import { EmbeddingService } from './embedding/embedding.service';
-import { HybridSearchService } from './embedding/hybrid-search.service';
-import { RerankerService } from './embedding/reranker.service';
-import { QueryExpansionService } from './embedding/query-expansion.service';
-import { LlmService } from './llm/llm.service';
-import { PiiSanitizerService } from './ingestion/pii-sanitizer.service';
-import { SemanticChunkerService } from './ingestion/semantic-chunker.service';
-import { RagReindexScheduler } from './rag-reindex.scheduler';
-import { RagEvalService } from './eval/rag-eval.service';
+import { Module } from "@nestjs/common";
+import { PrismaModule } from "../prisma/prisma.module";
+import { RagController } from "./rag.controller";
+import { RagService } from "./rag.service";
+import { TextExtractorService } from "./text-extractor.service";
+import { InputGuardService } from "./guardrails/input-guard.service";
+import { EmbeddingService } from "./embedding/embedding.service";
+import { HybridSearchService } from "./embedding/hybrid-search.service";
+import { RerankerService } from "./embedding/reranker.service";
+import { QueryExpansionService } from "./embedding/query-expansion.service";
+import { LlmService } from "./llm/llm.service";
+import { LlmWarmupService } from "./llm/llm-warmup.service";
+import { PiiSanitizerService } from "./ingestion/pii-sanitizer.service";
+import { SemanticChunkerService } from "./ingestion/semantic-chunker.service";
+import { RagReindexScheduler } from "./rag-reindex.scheduler";
+import { RagEvalService } from "./eval/rag-eval.service";
 
 /**
  * Module RAG / AI Search.
@@ -35,6 +36,7 @@ import { RagEvalService } from './eval/rag-eval.service';
     RerankerService,
     QueryExpansionService,
     LlmService,
+    LlmWarmupService,
     PiiSanitizerService,
     SemanticChunkerService,
     RagReindexScheduler,

@@ -30,6 +30,7 @@ import {
   classifyError,
   LOW_CONFIDENCE_THRESHOLD,
 } from "@/components/chatbot/error-classifier";
+import { aiStreamStageLabel } from "@/lib/ai-stream-status";
 import type { ChatbotError, RagCitation } from "@/components/chatbot/types";
 
 /** RAG-specific timeout — Ollama can take 10-30s, we allow up to 120s. */
@@ -165,6 +166,8 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [regenerateCount, setRegenerateCount] = useState(0);
   const [abortedByUser, setAbortedByUser] = useState(false);
+  /** Étape SSE en cours (retrieving/generating/model_fallback) — fix 2026-07. */
+  const [streamStage, setStreamStage] = useState<string | null>(null);
 
   /** Dernière question soumise (utilisée par regenerate + retry). */
   const lastQuestionRef = useRef<string>("");
@@ -216,6 +219,7 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
     }
     setIsStreaming(false);
     setLoading(false);
+    setStreamStage(null);
     setAbortedByUser(true);
   }, []);
 
@@ -270,6 +274,7 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
       setFeedbackToast(false);
       setShowFeedbackPanel(false);
       setIsStreaming(false);
+      setStreamStage(null);
 
       // Update history (only for fresh queries, not regenerates)
       if (!opts.isRegenerate) {
@@ -327,7 +332,11 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
                 const payload = JSON.parse(line.slice(6));
                 if (payload.type === "token") {
                   fullAnswer += payload.token;
+                  setStreamStage(null);
                   setDisplayed(fullAnswer);
+                } else if (payload.type === "status") {
+                  // Progression backend (retrieving / generating / model_fallback)
+                  setStreamStage(payload.stage ?? null);
                 } else if (payload.type === "meta") {
                   setSources(payload.sources ?? []);
                   setRetrievalConfidence(payload.retrievalConfidence ?? null);
@@ -379,6 +388,7 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
       } finally {
         if (!streamStarted) setLoading(false);
         setIsStreaming(false);
+        setStreamStage(null);
         abortRef.current = null;
       }
     },
@@ -607,7 +617,8 @@ export function AiSearchModal({ open, onClose }: AiSearchModalProps) {
                 </div>
               ) : (
                 <div className="text-sm leading-relaxed text-seal-navy dark:text-slate-100 whitespace-pre-wrap">
-                  {loading ? "Recherche en cours…" : ""}
+                  {aiStreamStageLabel(streamStage) ??
+                    (loading || isStreaming ? "Recherche en cours…" : "")}
                 </div>
               )}
               <div className="mt-2 flex items-center gap-3 flex-wrap">

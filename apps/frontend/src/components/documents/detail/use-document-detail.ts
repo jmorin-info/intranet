@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { aiErrorMessage } from "@/lib/ai-errors";
 import { logger } from "@/lib/logger";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDocumentStore } from "@/stores/document-store";
@@ -196,12 +197,15 @@ export function useDocumentDetail(id: string | undefined) {
     if (!doc) return;
     setAiSummaryLoading(true);
     try {
+      // 240 s : aligné sur le budget serveur OLLAMA_TIMEOUT_MS (inférence CPU,
+      // map-reduce possible sur les gros documents).
       const { data } = await api.get(`/rag/documents/${doc.id}/ai-summary`, {
-        timeout: 120_000,
+        timeout: 240_000,
       });
       setAiSummary(data.summary);
-    } catch {
-      setAiSummary("IA non disponible actuellement.");
+    } catch (err) {
+      // Erreurs différenciées : 403 accès restreint / 429 throttle / 503 surcharge.
+      setAiSummary(aiErrorMessage(err));
     } finally {
       setAiSummaryLoading(false);
     }
@@ -213,15 +217,16 @@ export function useDocumentDetail(id: string | undefined) {
     setAiAnswer(null);
     setAiAnswerSources([]);
     try {
+      // 200 s : budget serveur RAG_ANSWER_TIMEOUT_MS (180 s) + marge réseau.
       const { data } = await api.post(
         "/rag/ask",
         { question: `Concernant ${doc.title}: ${aiQuestion}` },
-        { timeout: 120_000 },
+        { timeout: 200_000 },
       );
       setAiAnswer(data.answer || "Pas de réponse disponible.");
       setAiAnswerSources(data.sources || []);
-    } catch {
-      setAiAnswer("IA non disponible actuellement.");
+    } catch (err) {
+      setAiAnswer(aiErrorMessage(err));
     } finally {
       setAiAnswerLoading(false);
     }
@@ -480,8 +485,8 @@ export function useDocumentDetail(id: string | undefined) {
       setIsoAnalysis(data.results || []);
       setActiveTab("iso-analysis");
       toast.success("Analyse ISO terminée");
-    } catch {
-      toast.error("Erreur analyse ISO");
+    } catch (err) {
+      toast.error(aiErrorMessage(err, "Erreur analyse ISO"));
     } finally {
       setAnalyzing(false);
     }

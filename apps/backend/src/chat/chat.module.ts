@@ -1,12 +1,13 @@
-import { Module } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
-import { RagModule } from '../rag/rag.module';
-import { NoaMemoryModule } from '../noa-memory/noa-memory.module';
-import { ChatController } from './chat.controller';
-import { ChatService } from './chat.service';
-import { SessionService } from './session.service';
-import { FeedbackService } from './feedback.service';
-import { ChatStreamService } from './chat-stream.service';
+import { Module } from "@nestjs/common";
+import { PrismaModule } from "../prisma/prisma.module";
+import { RagModule } from "../rag/rag.module";
+import { NoaMemoryModule } from "../noa-memory/noa-memory.module";
+import { ChatController } from "./chat.controller";
+import { ChatConfigController } from "./chat-config.controller";
+import { ChatService } from "./chat.service";
+import { SessionService } from "./session.service";
+import { FeedbackService } from "./feedback.service";
+import { ChatStreamService } from "./chat-stream.service";
 
 /**
  * Mission 3 Phase 1 — Unified chatbot backend.
@@ -18,7 +19,9 @@ import { ChatStreamService } from './chat-stream.service';
  */
 @Module({
   imports: [PrismaModule, RagModule, NoaMemoryModule],
-  controllers: [ChatController],
+  // ChatConfigController est HORS ChatbotUnifiedGuard : GET /chat/config
+  // répond même quand le flag est off (il renvoie { unified: false }).
+  controllers: [ChatConfigController, ChatController],
   providers: [ChatService, SessionService, FeedbackService, ChatStreamService],
   exports: [ChatService, SessionService],
 })

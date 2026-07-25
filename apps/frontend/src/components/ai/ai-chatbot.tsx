@@ -8,6 +8,8 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useChatbotStore, type ChatMessage } from "@/stores/chatbot-store";
 import { useTranslation } from "@/lib/i18n";
 import { api } from "@/lib/api";
+import { aiErrorMessage } from "@/lib/ai-errors";
+import { aiStreamStageLabel } from "@/lib/ai-stream-status";
 import { getPageContext, getActionsForRole, executeAction, trackPageView } from "@/lib/copilot";
 import { MarkdownRenderer } from "@/components/chatbot/markdown-renderer";
 import { MessageToolbar } from "@/components/chatbot/message-toolbar";
@@ -424,6 +426,33 @@ async function generateResponse(
   };
 }
 
+// ── Chatbot unifié (flag serveur CHATBOT_UNIFIED_ENABLED) ─────────
+
+/**
+ * Clé localStorage de la session /chat/* courante (mode unifié uniquement).
+ * Permet de reprendre la même ChatSession persistée entre deux montages.
+ */
+const CHAT_SESSION_KEY = "omnitech:chatbot:sessionId";
+
+function loadChatSessionId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(CHAT_SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveChatSessionId(id: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (id) localStorage.setItem(CHAT_SESSION_KEY, id);
+    else localStorage.removeItem(CHAT_SESSION_KEY);
+  } catch {
+    /* quota — ignore */
+  }
+}
+
 // ── Haptic feedback (safe local util, no cross-package dep) ───────
 function hapticTap(): void {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -479,11 +508,20 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [slashIndex, setSlashIndex] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
+  /** Étape SSE en cours (retrieving/generating/model_fallback) — fix 2026-07. */
+  const [streamStage, setStreamStage] = useState<string | null>(null);
+  /**
+   * Mode chatbot unifié (/chat/* : sessions persistées serveur, mémoire Noa).
+   * Piloté par GET /chat/config (flag serveur CHATBOT_UNIFIED_ENABLED) —
+   * false par défaut : le flux historique /rag/ask-stream reste utilisé.
+   */
+  const [unifiedChat, setUnifiedChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastQuestionRef = useRef<string>("");
+  const chatSessionIdRef = useRef<string | null>(null);
 
   const currentModule = detectModule(pathname || "/");
   const pageContext = getPageContext(pathname || "/");
@@ -534,6 +572,32 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
   }, [open]);
 
   /**
+   * Détection du mode chatbot unifié au montage (fix 2026-07).
+   *
+   * GET /chat/config est la seule route /chat/* hors ChatbotUnifiedGuard :
+   * elle répond { unified: false } quand CHATBOT_UNIFIED_ENABLED est
+   * absent/false (les autres routes restent 404). Toute erreur (401 au
+   * chargement, réseau) laisse le mode historique /rag/ask-stream actif.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data } = await api.get("/chat/config");
+        if (!cancelled && data?.unified === true) {
+          setUnifiedChat(true);
+          chatSessionIdRef.current = loadChatSessionId();
+        }
+      } catch {
+        // Flag off, route absente ou non authentifié → flux historique.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /**
    * Stop génération (Feature 1) — abort le controller SSE/HTTP en cours.
    *
    * On marque immédiatement le DERNIER message assistant comme `aborted`
@@ -557,6 +621,7 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
     }
     setStreaming(false);
     setLoading(false);
+    setStreamStage(null);
   }, [setLoading, setStreaming, updateMessage]);
 
   // ESC handling :
@@ -584,16 +649,26 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
 
   /**
    * Tente une requête RAG en SSE pour récupérer le queryId + sources.
-   * Renvoie null si SSE indisponible (l'appelant fait alors le fallback local).
+   *
+   * Format historique /rag/ask-stream : lignes `data: {type: token|meta|status}`.
+   * Le champ `status` (retrieving/generating/model_fallback) alimente le
+   * libellé d'attente — sur cette machine (inférence CPU) le prompt-eval seul
+   * prend 15-40 s, un spinner muet donne l'impression d'une panne.
+   *
+   * `httpStatus` est remonté à l'appelant pour différencier 403/429/503.
    */
   const tryRagStream = useCallback(
-    async (question: string, assistantId: string): Promise<{ ok: boolean; aborted: boolean }> => {
+    async (
+      question: string,
+      assistantId: string,
+    ): Promise<{ ok: boolean; aborted: boolean; httpStatus?: number }> => {
       // ANSSI A.5.34 — JWT vit en cookie httpOnly. `credentials: 'include'`
       // demande au navigateur d'attacher le cookie. On ne lit plus le token
       // depuis localStorage (anti-XSS).
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "/api/v1");
       const controller = new AbortController();
       abortRef.current = controller;
+      setStreamStage("retrieving");
 
       let res: Response;
       try {
@@ -605,11 +680,15 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
           signal: controller.signal,
         });
       } catch (err) {
+        setStreamStage(null);
         if ((err as Error).name === "AbortError") return { ok: false, aborted: true };
         return { ok: false, aborted: false };
       }
 
-      if (!res.ok || !res.body) return { ok: false, aborted: false };
+      if (!res.ok || !res.body) {
+        setStreamStage(null);
+        return { ok: false, aborted: false, httpStatus: res.status };
+      }
 
       setStreaming(true);
       setLoading(false);
@@ -631,29 +710,152 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
               const payload = JSON.parse(line.slice(6));
               if (payload.type === "token") {
                 fullAnswer += payload.token;
+                setStreamStage(null);
                 updateMessage(assistantId, { content: fullAnswer });
               } else if (payload.type === "meta") {
                 updateMessage(assistantId, {
                   sources: payload.sources ?? [],
                   queryId: payload.queryId ?? undefined,
                 });
+              } else if (payload.type === "status") {
+                setStreamStage(payload.stage ?? null);
               }
             } catch {
               /* partial JSON */
             }
           }
         }
-        return { ok: true, aborted: false };
+        // Un flux vide (aucun token) doit repartir sur le fallback non-streamé.
+        return { ok: fullAnswer.length > 0, aborted: false };
       } catch (err) {
         if ((err as Error).name === "AbortError") return { ok: false, aborted: true };
         return { ok: false, aborted: false };
       } finally {
         reader.cancel().catch(() => {});
         setStreaming(false);
+        setStreamStage(null);
         abortRef.current = null;
       }
     },
     [setStreaming, setLoading, updateMessage],
+  );
+
+  /**
+   * Mode chatbot unifié (/chat/ask-stream) — actif seulement si le serveur
+   * répond { unified: true } sur /chat/config.
+   *
+   * Différences avec le flux historique :
+   *  - session persistée côté serveur (id mémorisé en localStorage, repris
+   *    au montage suivant → historique multi-appareils) ;
+   *  - format SSE à événements nommés (`event: token|sources|status|done`)
+   *    et non `data: {type}` ;
+   *  - la mémoire Noa (recall + extraction) est exécutée côté serveur.
+   */
+  const tryUnifiedStream = useCallback(
+    async (
+      question: string,
+      assistantId: string,
+    ): Promise<{ ok: boolean; aborted: boolean; httpStatus?: number }> => {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "/api/v1");
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setStreamStage("retrieving");
+
+      let res: Response;
+      try {
+        res = await fetch(`${baseUrl}/chat/ask-stream`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            query: question,
+            sessionId: chatSessionIdRef.current ?? undefined,
+            surface: embedded ? "MODAL" : "FAB",
+            context: { page: pathname || "/", module: currentModule },
+          }),
+          signal: controller.signal,
+        });
+      } catch (err) {
+        setStreamStage(null);
+        if ((err as Error).name === "AbortError") return { ok: false, aborted: true };
+        return { ok: false, aborted: false };
+      }
+
+      if (!res.ok || !res.body) {
+        setStreamStage(null);
+        // 404 = flag désactivé entre-temps → on repassera par /rag/ask-stream.
+        if (res.status === 404) setUnifiedChat(false);
+        return { ok: false, aborted: false, httpStatus: res.status };
+      }
+
+      setStreaming(true);
+      setLoading(false);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullAnswer = "";
+      // SSE à événements nommés : `event:` puis `data:` sur la ligne suivante.
+      let currentEvent = "message";
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              currentEvent = line.slice(7).trim();
+              continue;
+            }
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const payload = JSON.parse(line.slice(6));
+              switch (currentEvent) {
+                case "token":
+                  fullAnswer += payload.token ?? "";
+                  setStreamStage(null);
+                  updateMessage(assistantId, { content: fullAnswer });
+                  break;
+                case "sources":
+                  updateMessage(assistantId, { sources: payload.sources ?? [] });
+                  break;
+                case "status":
+                  setStreamStage(payload.stage ?? null);
+                  break;
+                case "session":
+                  if (payload.id) {
+                    chatSessionIdRef.current = payload.id;
+                    saveChatSessionId(payload.id);
+                  }
+                  break;
+                case "done":
+                  // messageId serveur : permet feedback/regenerate côté /chat/*.
+                  if (payload.messageId) {
+                    updateMessage(assistantId, { queryId: payload.messageId });
+                  }
+                  break;
+                default:
+                  break;
+              }
+            } catch {
+              /* partial JSON */
+            }
+          }
+        }
+        return { ok: fullAnswer.length > 0, aborted: false };
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return { ok: false, aborted: true };
+        return { ok: false, aborted: false };
+      } finally {
+        reader.cancel().catch(() => {});
+        setStreaming(false);
+        setStreamStage(null);
+        abortRef.current = null;
+      }
+    },
+    [setStreaming, setLoading, updateMessage, embedded, pathname, currentModule],
   );
 
   const handleSend = useCallback(
@@ -733,8 +935,12 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
         /* continue vers RAG */
       }
 
-      // 2. Fallback RAG streaming SSE → fournit queryId + sources
-      const stream = await tryRagStream(query, assistantId);
+      // 2. Streaming SSE → fournit queryId + sources.
+      //    Mode unifié (/chat/ask-stream, sessions persistées) si le serveur
+      //    l'annonce via /chat/config, sinon flux historique /rag/ask-stream.
+      const stream = unifiedChat
+        ? await tryUnifiedStream(query, assistantId)
+        : await tryRagStream(query, assistantId);
       if (stream.aborted) {
         updateMessage(assistantId, { aborted: true });
         setLoading(false);
@@ -742,6 +948,21 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
         return;
       }
       if (stream.ok) {
+        setLoading(false);
+        return;
+      }
+
+      // Erreurs explicites du stream : inutile de retenter en non-streamé,
+      // le message doit être actionnable (habilitations / quota / surcharge).
+      if (
+        stream.httpStatus === 403 ||
+        stream.httpStatus === 429 ||
+        stream.httpStatus === 503 ||
+        stream.httpStatus === 504
+      ) {
+        updateMessage(assistantId, {
+          content: aiErrorMessage({ response: { status: stream.httpStatus } }),
+        });
         setLoading(false);
         return;
       }
@@ -770,9 +991,14 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
               "Je n'ai pas trouvé de réponse précise. Essayez de reformuler ou créez un ticket.",
           });
         }
-      } catch {
+      } catch (err) {
+        // Erreur différenciée (403 habilitations / 429 quota / 503 surcharge)
+        // au lieu du générique « une erreur est survenue ».
         updateMessage(assistantId, {
-          content: "Désolé, une erreur est survenue. Réessayez dans quelques instants.",
+          content: aiErrorMessage(
+            err,
+            "Désolé, une erreur est survenue. Réessayez dans quelques instants.",
+          ),
         });
       } finally {
         setLoading(false);
@@ -790,6 +1016,8 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
       setLoading,
       setStreaming,
       tryRagStream,
+      tryUnifiedStream,
+      unifiedChat,
       messages,
     ],
   );
@@ -846,6 +1074,12 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
     },
     [editingId, messages, removeAfter, clearHistory, handleSend],
   );
+
+  /**
+   * Libellé de l'étape IA en cours (« Recherche documentaire… », « Rédaction… »).
+   * Null tant qu'aucun événement de statut n'est arrivé, ou dès le 1er token.
+   */
+  const stageLabel = aiStreamStageLabel(streamStage);
 
   // Filtré pour la recherche dans l'historique (Feature 9)
   const visibleMessages = useMemo(() => {
@@ -1009,7 +1243,7 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
             );
           })}
 
-          {loading && !streaming && (
+          {((loading && !streaming) || stageLabel) && (
             <div className="flex justify-start">
               <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
                 <div className="flex items-center gap-1.5">
@@ -1026,6 +1260,16 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
+                {/* Étape en cours : l'inférence CPU peut prendre 15-40 s avant
+                    le 1er token — un spinner muet passe pour une panne. */}
+                {stageLabel && (
+                  <p
+                    className="mt-1.5 text-xs text-gray-500 dark:text-slate-400"
+                    aria-live="polite"
+                  >
+                    {stageLabel}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -1371,7 +1615,7 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
             );
           })}
 
-          {loading && !streaming && (
+          {((loading && !streaming) || stageLabel) && (
             <div className="flex justify-start">
               <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
                 <div className="flex items-center gap-1.5">
@@ -1388,6 +1632,16 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
+                {/* Étape en cours : l'inférence CPU peut prendre 15-40 s avant
+                    le 1er token — un spinner muet passe pour une panne. */}
+                {stageLabel && (
+                  <p
+                    className="mt-1.5 text-xs text-gray-500 dark:text-slate-400"
+                    aria-live="polite"
+                  >
+                    {stageLabel}
+                  </p>
+                )}
               </div>
             </div>
           )}

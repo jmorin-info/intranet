@@ -11,6 +11,9 @@ import {
   NotFoundException,
   ForbiddenException,
   GoneException,
+  HttpException,
+  Logger,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import { Response } from "express";
 import { Throttle } from "@nestjs/throttler";
@@ -36,6 +39,8 @@ import { RagEvalService } from "./eval/rag-eval.service";
 @Controller("rag")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class RagController {
+  private readonly logger = new Logger(RagController.name);
+
   constructor(
     private readonly ragService: RagService,
     private readonly inputGuard: InputGuardService,
@@ -46,10 +51,7 @@ export class RagController {
   /** Pose une question au moteur RAG (avec filtrage RBAC ISO 27001 A.5.15 + guardrails P0.2). */
   @Post("ask")
   @Throttle({ default: { limit: 10, ttl: 60000 } })
-  async ask(
-    @Body() body: { question: string },
-    @CurrentUser() user: RequestUser,
-  ) {
+  async ask(@Body() body: { question: string }, @CurrentUser() user: RequestUser) {
     const raw = (body?.question ?? "").trim();
 
     // Guardrails input (P0.2)
@@ -92,9 +94,7 @@ export class RagController {
     // Guardrails input (P0.2)
     const guard = this.inputGuard.validate(raw, user.id);
     if (!guard.allowed) {
-      res.write(
-        `data: ${JSON.stringify({ type: "token", token: guard.reason })}\n\n`,
-      );
+      res.write(`data: ${JSON.stringify({ type: "token", token: guard.reason })}\n\n`);
       res.write(
         `data: ${JSON.stringify({ type: "done", sources: [], retrievalConfidence: 0, durationMs: 0 })}\n\n`,
       );
@@ -122,6 +122,9 @@ export class RagController {
         (token) => write({ type: "token", token }),
         (meta) => write({ type: "meta", ...meta }),
         ctx,
+        // Événements de progression (retrieving / generating / model_fallback)
+        // pour rendre l'attente lisible côté frontend (~15-40 s de prompt-eval CPU).
+        (status) => write({ type: "status", ...status }),
       );
     } catch (err) {
       write({ type: "error", message: (err as Error).message });
@@ -134,26 +137,40 @@ export class RagController {
   /**
    * Résumé IA d'un document.
    *
-   * Sécurité : restreint à REVIEWER+ pour éviter qu'un user lambda
-   * puisse résumer (et donc lire indirectement) n'importe quel document
-   * via son UUID — `summarizeDocument` ne fait aucun check ACL côté
-   * Prisma. Les utilisateurs standards utilisent /rag/ask qui filtre
-   * par RBAC ISO 27001 A.5.15 dans la couche RagService.answer().
+   * Sécurité : ouvert à TOUS les rôles authentifiés (fix 2026-07) — le
+   * contrôle d'accès par classification (ISO 27001 A.5.15) est appliqué
+   * DANS RagService.summarizeDocument via le contexte utilisateur : un
+   * utilisateur ne peut résumer que ce qu'il a le droit de lire.
+   *
+   * Erreurs : 403 si classification inaccessible, 404 si document inconnu,
+   * 503 si le LLM est indisponible/en dépassement de budget (plus de
+   * 200 { summary: "Erreur…" } qui faussait cache et monitoring).
    */
   @Get("documents/:id/ai-summary")
-  @Roles(
-    UserRole.REVIEWER,
-    UserRole.AUDITEUR,
-    UserRole.DIRECTION,
-    UserRole.ADMIN,
-    UserRole.SUPER_ADMIN,
-  )
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  async documentSummary(@Param("id", ParseUUIDPipe) id: string) {
+  async documentSummary(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
+    const ctx: RagSearchContext = {
+      userId: user.id,
+      role: user.role,
+      departmentId: user.departmentId,
+    };
     try {
-      return await this.ragService.summarizeDocument(id);
+      return await this.ragService.summarizeDocument(id, ctx);
     } catch (err) {
-      return { summary: `Erreur : ${(err as Error).message}` };
+      if (err instanceof HttpException) throw err;
+      // Prisma findUniqueOrThrow → P2025 quand le document n'existe pas.
+      if ((err as { code?: string }).code === "P2025") {
+        throw new NotFoundException("Document introuvable");
+      }
+      this.logger.warn({
+        msg: "rag.ai_summary.failed",
+        documentId: id,
+        userId: user.id,
+        error: (err as Error).message,
+      });
+      throw new ServiceUnavailableException(
+        "L'IA est momentanément indisponible ou surchargée — réessayez dans quelques minutes.",
+      );
     }
   }
 
@@ -166,16 +183,19 @@ export class RagController {
    * user pouvait fuiter le titre/description d'un ticket via son UUID.
    */
   @Get("tickets/:id/ai-suggest")
-  @Roles(
-    UserRole.REVIEWER,
-    UserRole.DIRECTION,
-    UserRole.ADMIN,
-    UserRole.SUPER_ADMIN,
-  )
-  async ticketSuggestion(@Param("id", ParseUUIDPipe) id: string) {
+  @Roles(UserRole.REVIEWER, UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async ticketSuggestion(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
     try {
       return await this.ragService.suggestTicketResponse(id);
     } catch (err) {
+      // Dégradé volontaire (l'UI affiche le message), mais plus de catch muet :
+      // on loggue en warn avec contexte pour le monitoring.
+      this.logger.warn({
+        msg: "rag.ticket_suggest.failed",
+        ticketId: id,
+        userId: user.id,
+        error: (err as Error).message,
+      });
       return { suggestion: `Erreur : ${(err as Error).message}` };
     }
   }
@@ -228,14 +248,19 @@ export class RagController {
       (page.visibility === "ROLE" &&
         Array.isArray(page.allowedRoles) &&
         (page.allowedRoles as string[]).includes(user.role)) ||
-      (Array.isArray(page.collaborators) &&
-        (page.collaborators as string[]).includes(user.id));
+      (Array.isArray(page.collaborators) && (page.collaborators as string[]).includes(user.id));
     if (!canView) {
       throw new ForbiddenException("You cannot access this wiki page");
     }
     try {
       return await this.ragService.askAboutArticle(id, question);
     } catch (err) {
+      this.logger.warn({
+        msg: "rag.wiki_ask.failed",
+        wikiPageId: id,
+        userId: user.id,
+        error: (err as Error).message,
+      });
       return { answer: `Erreur : ${(err as Error).message}` };
     }
   }
@@ -335,11 +360,7 @@ export class RagController {
     const { rating, feedback } = body ?? {};
 
     // Validate rating
-    if (
-      rating === undefined ||
-      rating === null ||
-      ![-1, 0, 1].includes(rating)
-    ) {
+    if (rating === undefined || rating === null || ![-1, 0, 1].includes(rating)) {
       throw new BadRequestException("rating must be -1, 0, or 1");
     }
 
@@ -424,10 +445,7 @@ export class RagController {
       throw new BadRequestException("cannot share more than 100 messages");
     }
     // Garde-fou taille payload
-    const totalChars = messages.reduce(
-      (acc, m) => acc + (m.content?.length ?? 0),
-      0,
-    );
+    const totalChars = messages.reduce((acc, m) => acc + (m.content?.length ?? 0), 0);
     if (totalChars > 200_000) {
       throw new BadRequestException("conversation too large to share");
     }
