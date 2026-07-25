@@ -527,6 +527,47 @@ describe("OfficeService", () => {
     });
   });
 
+  describe("getAvailability (disponibilité dynamique + cache 30s)", () => {
+    const originalFetch = global.fetch;
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it("disponible quand le Docs Server répond true, puis servi depuis le cache", async () => {
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve("true"),
+      });
+      global.fetch = fetchMock as any;
+      const { service: svc } = makeService();
+
+      expect(await svc.getAvailability()).toEqual({ available: true });
+      expect(await svc.getAvailability()).toEqual({ available: true });
+      // 2e appel servi par le cache 30s → un seul healthcheck
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("indisponible avec la raison quand le healthcheck échoue", async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error("ECONNREFUSED")) as any;
+      const { service: svc } = makeService();
+      const result = await svc.getAvailability();
+      expect(result.available).toBe(false);
+      expect(result.reason).toContain("ECONNREFUSED");
+    });
+
+    it("indisponible (sans appel réseau) si le secret manque et que l'unsigned n'est pas autorisé", async () => {
+      const fetchMock = jest.fn();
+      global.fetch = fetchMock as any;
+      const { service: svc } = makeService({
+        env: { ONLYOFFICE_JWT_SECRET: undefined, ONLYOFFICE_ALLOW_UNSIGNED: undefined },
+      });
+      const result = await svc.getAvailability();
+      expect(result.available).toBe(false);
+      expect(result.reason).toContain("ONLYOFFICE_JWT_SECRET");
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  });
+
   describe("assertCanReadDocument (contrôle d'accès en lecture)", () => {
     /** Prisma minimal pour le chemin « aucune permission explicite ». */
     function noPermissionPrisma() {

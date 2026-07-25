@@ -217,6 +217,15 @@ export class OfficeService {
         available: false,
         reason: "Éditeur OnlyOffice désactivé côté serveur",
       };
+    } else if (!this.jwtSecret && !this.allowUnsigned) {
+      // Même garde que buildEditorConfig : sans secret partagé (et sans opt-in
+      // explicite au mode non signé), toute ouverture échouerait. On le dit ici
+      // pour que l'UI désactive le bouton au lieu d'envoyer sur une page d'erreur.
+      value = {
+        available: false,
+        reason:
+          "Éditeur non configuré côté serveur (ONLYOFFICE_JWT_SECRET manquant) — contactez un administrateur",
+      };
     } else {
       const health = await this.healthCheck();
       value = health.ok ? { available: true } : { available: false, reason: health.message };
