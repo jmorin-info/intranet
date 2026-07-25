@@ -252,8 +252,16 @@ export default function DocumentEditorPage() {
         }
         if (forceSaveInFlightRef.current) return;
         forceSaveInFlightRef.current = true;
+        // On transmet la clé de session RÉELLEMENT ouverte dans l'éditeur
+        // (document.key émise au mount). Sans elle, le backend recalculerait la
+        // clé depuis la DB et échouerait dès le 2e Ctrl+S (le checksum change à
+        // chaque save → clé divergente → « session introuvable »).
+        const sessionKey = cfg?.config?.document?.key;
         api
-          .post<{ ok: boolean; error?: number; message: string }>(`/office/forcesave/${params.id}`)
+          .post<{ ok: boolean; error?: number; message: string }>(
+            `/office/forcesave/${params.id}`,
+            sessionKey ? { key: sessionKey } : {},
+          )
           .then(({ data }) => {
             if (data?.ok && data.error === 4) {
               toast.info("Aucune modification à sauvegarder");

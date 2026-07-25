@@ -248,13 +248,62 @@ describe("OfficeService", () => {
     it("secret défini + header Authorization Bearer : déballe l'enveloppe { payload }", () => {
       const jwt = {
         sign: jest.fn(),
-        verify: jest.fn().mockReturnValue({ payload: { status: 6, key: "k2" } }),
+        verify: jest
+          .fn()
+          .mockReturnValue({ payload: { status: 6, url: `${DS_URL}/cache/f.docx`, key: "k2" } }),
       };
       const { service: svc } = makeService({ jwt });
       const result = svc.verifyIncomingCallbackJwt({ status: 6 }, "Bearer header-token");
       expect(result.ok).toBe(true);
       expect(result.data.key).toBe("k2");
       expect(jwt.verify).toHaveBeenCalledWith("header-token", { secret: "shared-ds-secret" });
+    });
+
+    it("liaison purpose : rejette un payload de CONFIG rejoué comme callback", () => {
+      // signConfig() signe { document, documentType, editorConfig } avec le même
+      // secret et l'expose au navigateur. Rejoué comme token de callback, il ne
+      // doit PAS être accepté (sinon status/url/key du body — contrôlés par
+      // l'attaquant — pilotent dropSession et le fetch backend).
+      const jwt = {
+        sign: jest.fn(),
+        verify: jest.fn().mockReturnValue({
+          document: { key: "k", url: "u" },
+          documentType: "word",
+          editorConfig: { mode: "edit" },
+        }),
+      };
+      const { service: svc } = makeService({ jwt });
+      const result = svc.verifyIncomingCallbackJwt(
+        { status: 2, url: "http://evil.example/x.docx", key: "victim-key", token: "config-jwt" },
+        undefined,
+      );
+      expect(result.ok).toBe(false);
+      expect(result.reason).toContain("configuration");
+    });
+
+    it("liaison purpose : rejette un payload signé sans `status`", () => {
+      const jwt = {
+        sign: jest.fn(),
+        verify: jest.fn().mockReturnValue({ foo: "bar" }),
+      };
+      const { service: svc } = makeService({ jwt });
+      const result = svc.verifyIncomingCallbackJwt({ status: 2, token: "t" }, undefined);
+      expect(result.ok).toBe(false);
+      expect(result.reason).toContain("status");
+    });
+
+    it("liaison purpose : rejette un save (status 2) sans `url` signée", () => {
+      const jwt = {
+        sign: jest.fn(),
+        verify: jest.fn().mockReturnValue({ status: 2 }),
+      };
+      const { service: svc } = makeService({ jwt });
+      const result = svc.verifyIncomingCallbackJwt(
+        { status: 2, url: "http://evil.example/x.docx", token: "t" },
+        undefined,
+      );
+      expect(result.ok).toBe(false);
+      expect(result.reason).toContain("url");
     });
 
     it("secret défini + signature invalide : rejet", () => {
@@ -456,7 +505,9 @@ describe("OfficeService", () => {
       const dropSpy = jest.spyOn(svc, "dropSession").mockResolvedValue({ ok: true, message: "" });
 
       const result = await svc.handleCallback(
-        { status: 2, url: `${DS_URL}/cache/f.docx`, key: "doc-1-ver-1-oldcheck" },
+        // La clé fournie dans le body est CONTRÔLABLE par l'appelant : elle doit
+        // être IGNORÉE. Le backend recalcule toujours la clé côté serveur.
+        { status: 2, url: `${DS_URL}/cache/f.docx`, key: "doc-9-forged-key" },
         "ver-1",
         "user-1",
       );
@@ -468,8 +519,9 @@ describe("OfficeService", () => {
       );
       // Pas de bump : aucune transaction de création de version
       expect(prismaMock.$transaction).not.toHaveBeenCalled();
-      // status 2 = fin de session → purge du cache Docs Server (clé du callback)
-      expect(dropSpy).toHaveBeenCalledWith("doc-1-ver-1-oldcheck");
+      // status 2 = fin de session → purge du cache Docs Server avec la clé
+      // RECALCULÉE (documentId-versionId-checksum8), jamais celle du body.
+      expect(dropSpy).toHaveBeenCalledWith("doc-1-ver-1-old-chec");
     });
 
     it("APPROVED : bump mineur en transaction + currentVersionId + dropSession", async () => {
@@ -480,8 +532,9 @@ describe("OfficeService", () => {
       const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock });
       const dropSpy = jest.spyOn(svc, "dropSession").mockResolvedValue({ ok: true, message: "" });
 
+      // status 2 (fin de session) sur un doc APPROVED = bump mineur + drop.
       const result = await svc.handleCallback(
-        { status: 6, url: `${DS_URL}/cache/f.docx` },
+        { status: 2, url: `${DS_URL}/cache/f.docx` },
         "ver-1",
         "user-1",
       );
@@ -497,8 +550,44 @@ describe("OfficeService", () => {
         expect.objectContaining({ data: { currentVersionId: "ver-2" } }),
       );
       expect(prismaMock.documentVersion.update).not.toHaveBeenCalled();
-      // Bump → la clé de session de l'ancienne version est droppée
+      // Fin de session (status 2) → la clé de session de l'ancienne version est droppée
       expect(dropSpy).toHaveBeenCalled();
+    });
+
+    it("force-save (status 6) : ne drop PAS la session encore ouverte", async () => {
+      const { prismaMock, storageMock } = buildCallbackMocks({ status: "DRAFT" });
+      const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock });
+      const dropSpy = jest.spyOn(svc, "dropSession").mockResolvedValue({ ok: true, message: "" });
+
+      const result = await svc.handleCallback(
+        { status: 6, url: `${DS_URL}/cache/f.docx` },
+        "ver-1",
+        "user-1",
+      );
+
+      expect(result).toEqual({ error: 0 });
+      // Un force-save signifie que la session est TOUJOURS ouverte : pas de drop.
+      expect(dropSpy).not.toHaveBeenCalled();
+    });
+
+    it("session périmée : le pointeur de version a bougé (restauration) → save refusé", async () => {
+      // Le token référence ver-1, mais le document pointe désormais ver-2 (une
+      // restauration a créé une nouvelle version courante). Un overwrite
+      // brouillon écraserait la version restaurée → on refuse.
+      const { prismaMock, storageMock } = buildCallbackMocks({
+        status: "DRAFT",
+        currentVersionId: "ver-2",
+      });
+      const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock });
+      const result = await svc.handleCallback(
+        { status: 2, url: `${DS_URL}/cache/f.docx` },
+        "ver-1",
+        "user-1",
+      );
+      expect(result).toEqual({ error: 1 });
+      // Rien n'est écrit : ni upload, ni update de version.
+      expect(storageMock.upload).not.toHaveBeenCalled();
+      expect(prismaMock.documentVersion.update).not.toHaveBeenCalled();
     });
 
     it("contenu identique (même checksum) → error 0 sans écriture", async () => {
@@ -524,6 +613,61 @@ describe("OfficeService", () => {
       const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock });
       expect(await svc.handleCallback({ status: 3 }, "ver-1", "user-1")).toEqual({ error: 0 });
       expect(await svc.handleCallback({ status: 7 }, "ver-1", "user-1")).toEqual({ error: 0 });
+    });
+  });
+
+  describe("forceSave (Ctrl+S → clé de session de l'éditeur)", () => {
+    function buildForceSaveMocks() {
+      const currentVersion: any = {
+        id: "ver-1",
+        documentId: "doc-1",
+        versionNumber: "1.0",
+        checksum: "new-checksum-after-save",
+      };
+      const document: any = {
+        id: "doc-1",
+        deletedAt: null,
+        ownerId: "user-1",
+        reviewerId: null,
+        currentVersionId: null,
+        versions: [currentVersion],
+      };
+      const prismaMock = {
+        document: { findUnique: jest.fn().mockResolvedValue(document) },
+        documentVersion: { findUnique: jest.fn().mockResolvedValue(currentVersion) },
+      };
+      return { prismaMock };
+    }
+
+    it("utilise la clé fournie par le client (évite l'échec au 2e Ctrl+S)", async () => {
+      const { prismaMock } = buildForceSaveMocks();
+      const { service: svc } = makeService({ prisma: prismaMock });
+      const cmdSpy = jest
+        .spyOn(svc as any, "callCommandService")
+        .mockResolvedValue({ httpOk: true, error: 0, raw: '{"error":0}' });
+
+      // La clé du navigateur reflète le checksum d'OUVERTURE, différent de celui
+      // recalculé depuis la DB (qui a changé au premier save).
+      const clientKey = "doc-1-ver-1-openchk";
+      const res = await svc.forceSave("doc-1", { id: "user-1", role: "MANAGER" } as any, clientKey);
+
+      expect(res.ok).toBe(true);
+      expect(cmdSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ c: "forcesave", key: clientKey }),
+      );
+    });
+
+    it("recalcule la clé si le client n'en fournit pas / préfixe invalide", async () => {
+      const { prismaMock } = buildForceSaveMocks();
+      const { service: svc } = makeService({ prisma: prismaMock });
+      const cmdSpy = jest
+        .spyOn(svc as any, "callCommandService")
+        .mockResolvedValue({ httpOk: true, error: 0, raw: '{"error":0}' });
+
+      // Clé d'un AUTRE document → rejetée, on retombe sur buildSessionKey.
+      await svc.forceSave("doc-1", { id: "user-1", role: "MANAGER" } as any, "doc-9-ver-9-x");
+
+      expect(cmdSpy).toHaveBeenCalledWith(expect.objectContaining({ key: "doc-1-ver-1-new-chec" }));
     });
   });
 

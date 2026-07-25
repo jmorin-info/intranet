@@ -322,6 +322,43 @@ export class OfficeService {
       // vérifié écrase le body brut.
       const verified =
         fromHeader && payload && typeof payload.payload === "object" ? payload.payload : payload;
+
+      // Liaison de PURPOSE — le token doit être un vrai payload de callback DS,
+      // pas n'importe quel JWT signé avec ce secret. signConfig() signe la
+      // config d'éditeur avec CE MÊME secret et l'expose au navigateur
+      // (config.token + callbackUrl) : sans ce contrôle, un éditeur légitime
+      // pourrait rejouer sa propre config comme token de callback et piloter
+      // status/url/key depuis le body (drop de session tierce, fetch backend
+      // arbitraire). On exige donc que le payload VÉRIFIÉ porte lui-même
+      // `status` (et `url` pour un save), et on rejette toute forme de payload
+      // de configuration (présence de `document`/`editorConfig`).
+      if (!verified || typeof verified !== "object") {
+        return { ok: false, data: body, reason: "Payload JWT Docs Server vide ou non-objet" };
+      }
+      if ("document" in verified || "editorConfig" in verified) {
+        return {
+          ok: false,
+          data: body,
+          reason: "Payload JWT de configuration rejeté sur un callback (purpose invalide)",
+        };
+      }
+      if (typeof verified.status !== "number") {
+        return {
+          ok: false,
+          data: body,
+          reason: "Payload de callback Docs Server sans `status` signé",
+        };
+      }
+      if ((verified.status === 2 || verified.status === 6) && typeof verified.url !== "string") {
+        return {
+          ok: false,
+          data: body,
+          reason: "Payload de callback Docs Server sans `url` signée pour un save (status 2/6)",
+        };
+      }
+      // Le payload vérifié fait autorité : status/url/key du body ne survivent
+      // au merge que s'ils sont ABSENTS du payload signé — et on vient de
+      // garantir que `status` (et `url` pour les saves) y figurent bien.
       return { ok: true, data: { ...body, ...verified } };
     } catch (err) {
       return {
@@ -1112,6 +1149,7 @@ export class OfficeService {
   async forceSave(
     documentId: string,
     currentUser: RequestUser,
+    clientKey?: string,
   ): Promise<{ ok: boolean; error?: number; message: string }> {
     if (!this.enabled) {
       throw new ForbiddenException("OnlyOffice désactivé");
@@ -1126,7 +1164,19 @@ export class OfficeService {
       throw new ForbiddenException("Vous n'avez pas les droits d'édition sur ce document");
     }
 
-    const key = this.buildSessionKey(document.id, currentVersion);
+    // Clé de session : on privilégie celle RÉELLEMENT ouverte dans l'éditeur du
+    // navigateur (config.document.key émise au mount), transmise par le
+    // frontend. La recalculer depuis la DB échouerait dès le 2e Ctrl+S : après
+    // un save la row de version voit son checksum changer, donc buildSessionKey
+    // renverrait une clé différente de celle sous laquelle la session DS reste
+    // ouverte → « clé inconnue » alors que le document est bel et bien ouvert.
+    // On borne au préfixe `${documentId}-` : l'autorisation d'édition est déjà
+    // vérifiée ci-dessus et la clé n'est que transmise au Docs Server (au pire
+    // un éditeur autorisé force-save une autre session DU MÊME document).
+    const key =
+      typeof clientKey === "string" && clientKey.startsWith(`${document.id}-`)
+        ? clientKey
+        : this.buildSessionKey(document.id, currentVersion);
     try {
       const res = await this.callCommandService({
         c: "forcesave",
@@ -1368,8 +1418,27 @@ export class OfficeService {
       );
     }
 
+    // La version cible doit avoir un fichier local restaurable. Certaines
+    // DocumentVersion n'en ont pas : snapshots de documents natifs
+    // (`fileUrl: "inline://<docId>"`) ou versions dont le fichier a été
+    // supprimé par un overwrite brouillon (unlink). On renvoie une erreur
+    // métier explicite (400/404) plutôt qu'un 500 disque brut sur une action
+    // utilisateur légitime.
+    if (!target.fileUrl || !target.fileUrl.startsWith("/storage/")) {
+      throw new BadRequestException(
+        "Cette version n'a pas de fichier restaurable (document natif ou version sans fichier local).",
+      );
+    }
     // Copie physique du fichier de la version cible → nouvelle version mineure
-    const buffer = await fs.promises.readFile(this.storage.getFilePath(target.fileUrl));
+    let buffer: Buffer;
+    try {
+      buffer = await fs.promises.readFile(this.storage.getFilePath(target.fileUrl));
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
+        throw new NotFoundException("Le fichier de la version à restaurer est introuvable.");
+      }
+      throw err;
+    }
     const oldVersionNumber = currentVersion.versionNumber || "1.0";
     const numMatch = oldVersionNumber.match(/(\d+)(?:\.(\d+))?/);
     const major = numMatch ? parseInt(numMatch[1], 10) : 1;
@@ -1390,25 +1459,33 @@ export class OfficeService {
       `documents/${documentId}/v${newVersionNumber}`,
     );
 
-    const newVersion = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.documentVersion.create({
-        data: {
-          documentId,
-          versionNumber: newVersionNumber,
-          fileUrl: uploaded.fileUrl,
-          fileType: target.fileType,
-          fileSizeBytes: buffer.length,
-          checksum: target.checksum,
-          changeLog: `Restauration de la version ${target.versionNumber} via OnlyOffice`,
-          uploadedById: currentUser.id,
-        },
+    let newVersion;
+    try {
+      newVersion = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.documentVersion.create({
+          data: {
+            documentId,
+            versionNumber: newVersionNumber,
+            fileUrl: uploaded.fileUrl,
+            fileType: target.fileType,
+            fileSizeBytes: buffer.length,
+            checksum: target.checksum,
+            changeLog: `Restauration de la version ${target.versionNumber} via OnlyOffice`,
+            uploadedById: currentUser.id,
+          },
+        });
+        await tx.document.update({
+          where: { id: documentId },
+          data: { currentVersionId: created.id },
+        });
+        return created;
       });
-      await tx.document.update({
-        where: { id: documentId },
-        data: { currentVersionId: created.id },
-      });
-      return created;
-    });
+    } catch (err) {
+      // La transaction a échoué après l'upload : purge le fichier copié pour
+      // ne pas laisser d'orphelin sur disque (l'upload précède la $transaction).
+      await this.storage.deleteFile(uploaded.fileUrl).catch(() => undefined);
+      throw err;
+    }
 
     await this.audit?.log({
       userId: currentUser.id,
@@ -1673,6 +1750,38 @@ export class OfficeService {
       //     communication de la version N au temps T).
       const isDraftOverwrite = doc.status === "DRAFT" || doc.status === "IN_REVIEW";
 
+      // Session périmée après restauration / bump concurrent.
+      // Le token de callback référence `documentVersionId` = la version ouverte
+      // dans cette session (= currentVersion.id). Si le pointeur de version
+      // courante du document a bougé depuis l'ouverture (une restauration a
+      // créé une nouvelle version et l'a pointée, ou un rejet de revue a cloné
+      // la version), un overwrite brouillon écraserait SILENCIEUSEMENT la
+      // version désormais pointée (p. ex. la version restaurée) avec le contenu
+      // pré-restauration de cette session → la restauration serait annulée sans
+      // trace et la piste d'audit ISO mentirait. On refuse le save : l'auteur a
+      // délibérément restauré, ses modifs pré-restauration doivent être perdues.
+      if (isDraftOverwrite && doc.currentVersionId && doc.currentVersionId !== currentVersion.id) {
+        this.logger.warn(
+          `OnlyOffice callback REJETÉ : session périmée sur doc ${documentId} ` +
+            `(token→ver=${currentVersion.id}, courant→ver=${doc.currentVersionId}) — ` +
+            `le pointeur de version a changé depuis l'ouverture (restauration/bump concurrent).`,
+        );
+        await this.audit?.log({
+          userId,
+          action: "DOCUMENT_VERSION_CREATED_VIA_OFFICE_DENIED",
+          resourceType: "Document",
+          resourceId: documentId,
+          metadata: {
+            reason: "stale_session_after_restore",
+            tokenVersionId: currentVersion.id,
+            currentVersionId: doc.currentVersionId,
+            documentStatus: doc.status,
+          },
+          severity: "WARN",
+        });
+        return { error: 1 };
+      }
+
       type VersionRow = {
         id: string;
         documentId: string;
@@ -1771,16 +1880,19 @@ export class OfficeService {
         `OnlyOffice save: document ${doc.reference} → ${isDraftOverwrite ? "overwrite" : "bump"} v${newVersionNumber} (${buffer.length} bytes)`,
       );
 
-      // Invalidation du cache Docs Server : la clé de session dérive du
-      // checksum, qui vient de changer. On drop la clé de la session qui a
-      // sauvegardé (status 2 = fin de session) ou dont la version a été
-      // bumpée, pour que la prochaine ouverture reparte sur la nouvelle clé
-      // au lieu de restaurer une session périmée. Best-effort, non bloquant.
-      const sessionKey =
-        typeof callbackData?.key === "string" && callbackData.key
-          ? callbackData.key
-          : this.buildSessionKey(documentId, latestVersion);
-      if (status === 2 || !isDraftOverwrite) {
+      // Invalidation du cache Docs Server. La clé droppée est TOUJOURS
+      // recalculée côté serveur à partir de la version courante (checksum
+      // PRÉ-save de `latestVersion` = clé que l'éditeur détenait) et JAMAIS
+      // dérivée de `callbackData.key` : ce champ est contrôlable par un porteur
+      // de token de callback, qui pourrait sinon faire dropper la clé de
+      // session d'un AUTRE document (clés récupérables via getHistory).
+      const sessionKey = this.buildSessionKey(documentId, latestVersion);
+      // On ne drop qu'à la FIN de session (status 2). Un force-save (status 6)
+      // signifie que la session est encore ouverte : invalider son cache
+      // n'aurait pas de sens et flirterait avec le comportement « restore old
+      // session ». Le bump de version (APPROVED) crée de toute façon une
+      // nouvelle clé, l'ancienne s'éteint d'elle-même à la fermeture.
+      if (status === 2) {
         void this.dropSession(sessionKey).catch(() => undefined);
       }
 
