@@ -432,6 +432,18 @@ describe("VeilleService", () => {
       expect(service.detectSeverity("CVE-2026-1234 CVSS 9.8 RCE")).toBe("CRITICAL");
     });
 
+    it("CRITICAL si CVE + CVSS 9.8 au format VECTEUR (le vecteur ne masque plus le score)", () => {
+      expect(
+        service.detectSeverity(
+          "FortiOS CVE-2026-1234 CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H score de base 9.8",
+        ),
+      ).toBe("CRITICAL");
+    });
+
+    it("CRITICAL si CVE + « CVSS v3.1 : 9.8 » (numéro de version ignoré)", () => {
+      expect(service.detectSeverity("CVE-2026-1234 score CVSS v3.1 : 9.8")).toBe("CRITICAL");
+    });
+
     it("« critical » seul, sans CVE, ne suffit plus → HIGH", () => {
       expect(service.detectSeverity("A critical opinion piece on cybersecurity")).toBe("HIGH");
     });

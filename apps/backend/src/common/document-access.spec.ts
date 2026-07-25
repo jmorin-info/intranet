@@ -1,7 +1,9 @@
 import {
   canAccessDocumentByClassification,
+  canReadDocument,
   ClassifiedDocument,
   DocumentAccessUser,
+  ReadableDocument,
 } from "./document-access";
 
 /**
@@ -108,5 +110,150 @@ describe("canAccessDocumentByClassification", () => {
         canAccessDocumentByClassification(orphan, { id: null as unknown as string, role: "X" }),
       ).toBe(false);
     });
+  });
+});
+
+/**
+ * Tests de canReadDocument — matrice complète rôle × statut × classification ×
+ * soft-delete, alignée sur DocumentsService.findById. Ferme les régressions où
+ * l'analyse ISO / le résumé IA ne regardaient QUE la classification (brouillons
+ * et documents supprimés d'autrui restaient exposés).
+ */
+describe("canReadDocument", () => {
+  const rdoc = (o: Partial<ReadableDocument> = {}): ReadableDocument => ({
+    classification: "INTERNE",
+    ownerId: "owner",
+    reviewerId: null,
+    approverId: null,
+    status: "APPROVED",
+    deletedAt: null,
+    category: "PROCEDURE",
+    isPublic: false,
+    ...o,
+  });
+
+  it("un document soft-supprimé n'est lisible par personne, pas même un ADMIN", () => {
+    expect(canReadDocument(rdoc({ deletedAt: new Date() }), user("x", "ADMIN"))).toBe(false);
+    expect(canReadDocument(rdoc({ deletedAt: new Date() }), user("owner", "COLLABORATEUR"))).toBe(
+      false,
+    );
+  });
+
+  it.each(["SUPER_ADMIN", "ADMIN", "DIRECTION"])(
+    "%s lit un brouillon SECRET non supprimé",
+    (role) => {
+      expect(
+        canReadDocument(rdoc({ status: "DRAFT", classification: "SECRET" }), user("x", role)),
+      ).toBe(true);
+    },
+  );
+
+  describe("COLLABORATEUR non-owner", () => {
+    it("REFUSE un brouillon INTERNE d'autrui (régression fermée)", () => {
+      expect(
+        canReadDocument(rdoc({ status: "DRAFT", classification: "INTERNE" }), user("bob")),
+      ).toBe(false);
+    });
+    it("lit un INTERNE APPROVED", () => {
+      expect(canReadDocument(rdoc({ status: "APPROVED" }), user("bob"))).toBe(true);
+    });
+    it("REFUSE un CONFIDENTIEL même APPROVED", () => {
+      expect(
+        canReadDocument(rdoc({ status: "APPROVED", classification: "CONFIDENTIEL" }), user("bob")),
+      ).toBe(false);
+    });
+    it("lit son PROPRE brouillon", () => {
+      expect(canReadDocument(rdoc({ status: "DRAFT" }), user("owner"))).toBe(true);
+    });
+  });
+
+  describe("PRESTATAIRE non-owner", () => {
+    it("REFUSE un INTERNE APPROVED (ni CONTRACT ni public)", () => {
+      expect(
+        canReadDocument(
+          rdoc({ status: "APPROVED", category: "PROCEDURE" }),
+          user("ext", "PRESTATAIRE"),
+        ),
+      ).toBe(false);
+    });
+    it("lit un CONTRACT APPROVED", () => {
+      expect(
+        canReadDocument(
+          rdoc({ status: "APPROVED", category: "CONTRACT" }),
+          user("ext", "PRESTATAIRE"),
+        ),
+      ).toBe(true);
+    });
+    it("REFUSE un CONTRACT en brouillon", () => {
+      expect(
+        canReadDocument(
+          rdoc({ status: "DRAFT", category: "CONTRACT" }),
+          user("ext", "PRESTATAIRE"),
+        ),
+      ).toBe(false);
+    });
+    it("lit un document public APPROVED", () => {
+      expect(
+        canReadDocument(
+          rdoc({ status: "APPROVED", category: "PROCEDURE", isPublic: true }),
+          user("ext", "PRESTATAIRE"),
+        ),
+      ).toBe(true);
+    });
+  });
+
+  describe("AUDITEUR", () => {
+    it("lit un CONFIDENTIEL APPROVED", () => {
+      expect(
+        canReadDocument(
+          rdoc({ status: "APPROVED", classification: "CONFIDENTIEL" }),
+          user("a", "AUDITEUR"),
+        ),
+      ).toBe(true);
+    });
+    it("REFUSE un SECRET", () => {
+      expect(
+        canReadDocument(
+          rdoc({ status: "APPROVED", classification: "SECRET" }),
+          user("a", "AUDITEUR"),
+        ),
+      ).toBe(false);
+    });
+    it("REFUSE un CONFIDENTIEL non APPROVED", () => {
+      expect(
+        canReadDocument(
+          rdoc({ status: "IN_REVIEW", classification: "CONFIDENTIEL" }),
+          user("a", "AUDITEUR"),
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe("REVIEWER", () => {
+    it("lit un CONFIDENTIEL en brouillon", () => {
+      expect(
+        canReadDocument(
+          rdoc({ status: "DRAFT", classification: "CONFIDENTIEL" }),
+          user("r", "REVIEWER"),
+        ),
+      ).toBe(true);
+    });
+    it("REFUSE un SECRET dont il n'est pas owner", () => {
+      expect(
+        canReadDocument(
+          rdoc({ classification: "SECRET", ownerId: "owner" }),
+          user("r", "REVIEWER"),
+        ),
+      ).toBe(false);
+    });
+    it("lit son PROPRE SECRET", () => {
+      expect(
+        canReadDocument(rdoc({ classification: "SECRET", ownerId: "r" }), user("r", "REVIEWER")),
+      ).toBe(true);
+    });
+  });
+
+  it("rôle inconnu → fail closed", () => {
+    expect(canReadDocument(rdoc({ status: "APPROVED" }), user("x", "GUEST"))).toBe(false);
   });
 });

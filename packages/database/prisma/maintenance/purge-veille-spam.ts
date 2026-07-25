@@ -75,6 +75,15 @@ interface Options {
   onlyUnread: boolean;
 }
 
+/** Erreur d'usage fatale : le script est destructeur et pointé sur la prod —
+ *  aucun argument mal formé ne doit être silencieusement ignoré (sinon le
+ *  périmètre retombe sur « tout supprimer »). */
+function fail(message: string): never {
+  console.error(`[purge-veille-spam] ${message}`);
+  console.error("  Usage : --apply | --older-than-days=N | --only-read | --only-unread");
+  process.exit(1);
+}
+
 function parseArgs(argv: string[]): Options {
   const opts: Options = {
     apply: false,
@@ -86,10 +95,26 @@ function parseArgs(argv: string[]): Options {
     if (arg === "--apply") opts.apply = true;
     else if (arg === "--only-read") opts.onlyRead = true;
     else if (arg === "--only-unread") opts.onlyUnread = true;
-    else if (arg.startsWith("--older-than-days=")) {
-      const n = parseInt(arg.split("=")[1] ?? "", 10);
-      if (Number.isFinite(n) && n >= 0) opts.olderThanDays = n;
+    else if (arg === "--older-than-days") {
+      // Forme espacée « --older-than-days 14 » : le 14 serait ignoré et l'âge
+      // retomberait à 0 (= toutes). On refuse explicitement.
+      fail(
+        `Argument mal formé: "${arg}". Utilisez la forme collée --older-than-days=N (ex: --older-than-days=14).`,
+      );
+    } else if (arg.startsWith("--older-than-days=")) {
+      const raw = arg.slice("--older-than-days=".length);
+      if (!/^\d+$/.test(raw)) {
+        fail(`Valeur invalide pour --older-than-days: "${raw}" (entier >= 0 attendu).`);
+      }
+      opts.olderThanDays = parseInt(raw, 10);
+    } else {
+      fail(`Argument inconnu: "${arg}".`);
     }
+  }
+  // --only-read + --only-unread s'annulaient (les deux gardes && !opts.onlyX se
+  // neutralisent) → lues ET non lues supprimées, avec un en-tête mensonger.
+  if (opts.onlyRead && opts.onlyUnread) {
+    fail("--only-read et --only-unread sont mutuellement exclusifs.");
   }
   return opts;
 }
@@ -144,10 +169,14 @@ async function main() {
   console.log("========================================================\n");
 
   // 1. Comptages globaux (toujours, avant toute suppression).
+  // Ventilation lues/non lues INTERSECTÉE avec le périmètre (AND) et non par
+  // spread : `{ ...where, isRead: true }` écrasait un where.isRead posé par
+  // --only-unread → readCount comptait des notifs hors périmètre et la
+  // ventilation ne s'additionnait plus au total.
   const [total, readCount, unreadCount] = await Promise.all([
     prisma.notification.count({ where }),
-    prisma.notification.count({ where: { ...where, isRead: true } }),
-    prisma.notification.count({ where: { ...where, isRead: false } }),
+    prisma.notification.count({ where: { AND: [where, { isRead: true }] } }),
+    prisma.notification.count({ where: { AND: [where, { isRead: false }] } }),
   ]);
 
   if (total === 0) {

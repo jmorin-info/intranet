@@ -90,14 +90,39 @@ export class LlmService {
     const chain = this.getModelChain();
     const start = Date.now();
 
+    // `timeoutMs`, quand fourni, est un budget GLOBAL pour tout l'appel
+    // (retries primary + fallback + emergency), PAS par tentative. Sans ce
+    // deadline, il était réarmé neuf à chaque callOllama → jusqu'à
+    // (3 retries + 2 fallbacks) × timeoutMs par generate(). On calcule ici le
+    // reliquat et on le passe à chaque tentative ; budget épuisé → on arrête.
+    const deadline = options.timeoutMs && options.timeoutMs > 0 ? start + options.timeoutMs : null;
+
     for (let level = 0; level < chain.length; level++) {
       const model = chain[level];
       const isPrimary = level === 0;
       const retries = isPrimary ? PRIMARY_RETRIES : 0;
 
       for (let attempt = 0; attempt <= retries; attempt++) {
+        // Budget global épuisé : inutile d'entamer une nouvelle tentative.
+        const remaining = deadline ? deadline - Date.now() : null;
+        if (remaining !== null && remaining <= 0) {
+          this.logger.error({
+            msg: "llm.budget_exhausted",
+            model,
+            elapsedMs: Date.now() - start,
+            budgetMs: options.timeoutMs,
+          });
+          throw new Error(
+            `LLM budget exhausted after ${Date.now() - start}ms (chain: ${chain.join(", ")})`,
+          );
+        }
+        // Le reliquat borne le timeout de CETTE tentative (jamais au-dessus du
+        // budget global restant).
+        const attemptOptions: GenerateOptions =
+          remaining !== null ? { ...options, timeoutMs: remaining } : options;
+
         try {
-          const text = await this.callOllama(model, prompt, options);
+          const text = await this.callOllama(model, prompt, attemptOptions);
           this.metrics.fallbacksByLevel[level]++;
           this.metrics.callsByModel.set(model, (this.metrics.callsByModel.get(model) || 0) + 1);
           if (level > 0) {

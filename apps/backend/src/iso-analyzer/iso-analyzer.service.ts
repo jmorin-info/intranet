@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { canAccessDocumentByClassification, DocumentAccessUser } from "../common/document-access";
+import { canReadDocument, DocumentAccessUser } from "../common/document-access";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -351,8 +351,10 @@ export class IsoAnalyzerService {
    * déjà restreintes REVIEWER+/ADMIN) passent sans contexte.
    */
   async analyzeDocument(documentId: string, user?: DocumentAccessUser): Promise<AnalysisResult[]> {
-    const document = await this.prisma.document.findUnique({
-      where: { id: documentId },
+    // findFirst (et non findUnique) pour pouvoir filtrer les documents
+    // soft-supprimés : deletedAt n'est pas une colonne unique.
+    const document = await this.prisma.document.findFirst({
+      where: { id: documentId, deletedAt: null },
       include: {
         versions: { orderBy: { createdAt: "desc" }, take: 1 },
       },
@@ -362,7 +364,11 @@ export class IsoAnalyzerService {
       throw new NotFoundException("Document not found");
     }
 
-    if (user && !canAccessDocumentByClassification(document, user)) {
+    // Contrôle d'accès complet (rôle × statut × classification × soft-delete),
+    // aligné sur DocumentsService.findById : sans cela, la route ouverte à tous
+    // les rôles laisserait un PRESTATAIRE/COLLABORATEUR/AUDITEUR analyser un
+    // brouillon (status !== APPROVED) d'autrui — cf. document-access.ts.
+    if (user && !canReadDocument(document, user)) {
       this.logger.warn(
         `iso.analyze.rbac_denied document=${documentId} user=${user.id} role=${user.role} classification=${document.classification}`,
       );
