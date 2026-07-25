@@ -86,6 +86,11 @@ export class JobsService {
         createdAt: { lt: fiveDaysAgo },
         request: { status: "PENDING" },
       },
+      // Ordre déterministe : sur un document portant plusieurs steps action=null
+      // (données héritées double-step), la step la plus ancienne — donc l'étape
+      // réellement décidée en premier — est traitée d'abord, ce qui rend le
+      // comportement reproductible d'un run à l'autre.
+      orderBy: { createdAt: "asc" },
       include: {
         assignedTo: { select: { id: true, firstName: true, lastName: true } },
         request: {
@@ -113,13 +118,38 @@ export class JobsService {
       const doc = step.request?.document;
       if (!doc || doc.deletedAt) continue;
 
-      // Throttle : une relance a-t-elle déjà été envoyée dans les 3 derniers
-      // jours pour ce document ? (audit = journal des relances).
+      // On ne relance QUE l'étape réellement en cours. Les données héritées
+      // (l'ancien approveReview créait une 2e step sans clôturer la 1re)
+      // laissent des steps REVIEW action=null sur des requests déjà avancées :
+      // sans ce filtre, le relecteur est relancé pour un document déjà validé,
+      // et l'escalade cite le mauvais acteur.
+      if (step.stepType !== step.request?.currentStep) {
+        skipped++;
+        continue;
+      }
+      // Cohérence du statut documentaire : une step VERIFICATION/REVIEW n'est
+      // légitimement pendante que si le document est IN_REVIEW ; une step
+      // APPROVAL, que s'il est PENDING_APPROVAL. REVIEW_APPROVED = la balle est
+      // dans le camp du rédacteur, pas de l'assigné.
+      const statusMismatch =
+        step.stepType === "APPROVAL"
+          ? doc.status !== "PENDING_APPROVAL"
+          : doc.status !== "IN_REVIEW";
+      if (statusMismatch) {
+        skipped++;
+        continue;
+      }
+
+      // Throttle PAR ÉTAPE : une relance a-t-elle déjà été envoyée dans les 3
+      // derniers jours pour CETTE step ? (audit = journal des relances ;
+      // metadata.stepId identifie l'étape). Un throttle par document laisserait
+      // sur un même document une step masquer la relance d'une autre.
       const recentReminder = await this.prisma.auditLog.findFirst({
         where: {
           action: "DOCUMENT_WORKFLOW_REMINDER",
           resourceId: doc.id,
           createdAt: { gte: threeDaysAgo },
+          metadata: { path: ["stepId"], equals: step.id },
         },
         select: { id: true },
       });
