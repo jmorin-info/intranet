@@ -36,7 +36,9 @@ import {
   ArrowRight,
   Send,
   Settings,
+  Rss,
 } from "lucide-react";
+import { isRouteEnabled } from "@/lib/features";
 import { useTranslation } from "@/lib/i18n";
 import { ExportButton } from "@/components/ui/export-button";
 import { PageHeader } from "@/components/layout/page-header";
@@ -54,13 +56,42 @@ const typeIcons: Record<string, React.ElementType> = {
   NEWS_POSTED: Newspaper,
   TICKET_CREATED: Ticket,
   EXTERNAL_ACCESS_REVIEW: UserCheck,
+  VEILLE_CRITICAL: Rss,
+  VEILLE_BULLETIN: Rss,
 };
 
-function getNotificationAction(n: {
-  type: string;
-  resourceType?: string;
-  resourceId?: string;
-}) {
+const VEILLE_RESOURCE_TYPES = new Set(["VeilleItem", "VeilleBulletin"]);
+
+/**
+ * Une notification relève-t-elle du module Veille cyber ? Couvre les types
+ * dédiés VEILLE_* ET les notifications legacy DOC_PUBLISHED liées à une
+ * ressource VeilleItem/VeilleBulletin (émises avant l'introduction des types
+ * dédiés le 2026-07-23) : dans les deux cas l'affichage doit être « Veille
+ * cyber » avec l'icône du module et un lien vers /veille.
+ */
+function isVeilleNotif(n: { type?: string; resourceType?: string | null }): boolean {
+  return (n.type || "").startsWith("VEILLE_") || VEILLE_RESOURCE_TYPES.has(n.resourceType || "");
+}
+
+/** Icône d'une notification (veille → icône dédiée, sinon map par type). */
+function getNotifIcon(n: { type: string; resourceType?: string | null }): React.ElementType {
+  if (isVeilleNotif(n)) return Rss;
+  return typeIcons[n.type] || Bell;
+}
+
+/** Libellé de catégorie d'une notification (veille → « Veille cyber »). */
+function getNotifTypeLabel(n: { type: string; resourceType?: string | null }): string | null {
+  if (isVeilleNotif(n)) return "Veille cyber";
+  return notificationTypeLabels[n.type] || null;
+}
+
+function getNotificationAction(n: { type: string; resourceType?: string; resourceId?: string }) {
+  // Veille cyber : pas de page de détail par item — lien vers le module
+  // /veille, gardé par le feature flag. Module masqué → pas de lien (on est
+  // déjà sur /notifications, un self-link serait inutile).
+  if (isVeilleNotif(n)) {
+    return isRouteEnabled("/veille") ? { label: "Voir la veille", href: "/veille" } : null;
+  }
   if (n.resourceType === "Document" && n.resourceId) {
     const labels: Record<string, string> = {
       DOC_REVIEW_NEEDED: "Voir le document",
@@ -80,11 +111,7 @@ function getNotificationAction(n: {
   if (n.type === "SIGNATURE_NEEDED") {
     return { label: "Signer la charte", href: "/chartes" };
   }
-  if (
-    n.type === "ACK_REQUIRED" &&
-    n.resourceType === "Document" &&
-    n.resourceId
-  ) {
+  if (n.type === "ACK_REQUIRED" && n.resourceType === "Document" && n.resourceId) {
     return { label: "Accuser réception", href: `/documents/${n.resourceId}` };
   }
   if (n.resourceType === "NewsPost" && n.resourceId) {
@@ -105,6 +132,8 @@ const notificationTypeLabels: Record<string, string> = {
   NEWS_POSTED: "Nouvelle actualité",
   TICKET_CREATED: "Nouveau ticket",
   EXTERNAL_ACCESS_REVIEW: "Revue accès prestataire",
+  VEILLE_CRITICAL: "Veille cyber",
+  VEILLE_BULLETIN: "Veille cyber",
 };
 
 export default function NotificationsPage() {
@@ -112,8 +141,7 @@ export default function NotificationsPage() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const isAdmin = user && isRoleAtLeast(user.role, UserRole.ADMIN);
-  const { notifications, setNotifications, markAsRead, markAllAsRead } =
-    useNotificationStore();
+  const { notifications, setNotifications, markAsRead, markAllAsRead } = useNotificationStore();
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -132,9 +160,7 @@ export default function NotificationsPage() {
     targetDepartmentId: "",
   });
   const [sendingBroadcast, setSendingBroadcast] = useState(false);
-  const [departments, setDepartments] = useState<
-    { id: string; name: string }[]
-  >([]);
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -158,9 +184,7 @@ export default function NotificationsPage() {
         setHasMore(meta ? meta.page < meta.totalPages : false);
         setPage(1);
       })
-      .catch((err) =>
-        logger.error(err, { page: "notifications", context: "load" }),
-      )
+      .catch((err) => logger.error(err, { page: "notifications", context: "load" }))
       .finally(() => setLoading(false));
   }, [setNotifications]);
 
@@ -214,7 +238,10 @@ export default function NotificationsPage() {
       }
     }
     // Navigate to resource
-    if (notif.resourceType === "Document" && notif.resourceId) {
+    if (isVeilleNotif(notif)) {
+      // Veille : lien vers le module s'il est actif (sinon on reste sur place).
+      if (isRouteEnabled("/veille")) router.push("/veille");
+    } else if (notif.resourceType === "Document" && notif.resourceId) {
       router.push(`/documents/${notif.resourceId}`);
     } else if (notif.resourceType === "NewsPost" && notif.resourceId) {
       router.push(`/news/${notif.resourceId}`);
@@ -235,10 +262,7 @@ export default function NotificationsPage() {
       if (broadcastForm.target === "role" && broadcastForm.targetRole) {
         payload.targetRole = broadcastForm.targetRole;
       }
-      if (
-        broadcastForm.target === "department" &&
-        broadcastForm.targetDepartmentId
-      ) {
+      if (broadcastForm.target === "department" && broadcastForm.targetDepartmentId) {
         payload.targetDepartmentId = broadcastForm.targetDepartmentId;
       }
       await api.post("/notifications/broadcast", payload);
@@ -279,9 +303,7 @@ export default function NotificationsPage() {
     return filtered;
   }, [notifications, typeFilter, dateFilter]);
 
-  const [readAnimatingIds, setReadAnimatingIds] = useState<Set<string>>(
-    new Set(),
-  );
+  const [readAnimatingIds, setReadAnimatingIds] = useState<Set<string>>(new Set());
 
   const grouped = useMemo(() => {
     const groups: Record<string, typeof filteredNotifications> = {};
@@ -341,19 +363,14 @@ export default function NotificationsPage() {
             )}
             <ExportButton
               filename="notifications"
-              rows={
-                (notifications || []) as unknown as Array<
-                  Record<string, unknown>
-                >
-              }
+              rows={(notifications || []) as unknown as Array<Record<string, unknown>>}
               columns={[
                 { header: "ID", accessor: (r: any) => r?.id || "" },
                 { header: "Type", accessor: (r: any) => r?.type || "" },
                 { header: "Titre", accessor: (r: any) => r?.title || "" },
                 {
                   header: "Message",
-                  accessor: (r: any) =>
-                    r?.body ? String(r.body).slice(0, 200) : "",
+                  accessor: (r: any) => (r?.body ? String(r.body).slice(0, 200) : ""),
                 },
                 {
                   header: "Ressource",
@@ -407,17 +424,13 @@ export default function NotificationsPage() {
             label={t("notifications.form.titleLabel")}
             placeholder={t("notifications.form.titlePh")}
             value={broadcastForm.title}
-            onChange={(e) =>
-              setBroadcastForm({ ...broadcastForm, title: e.target.value })
-            }
+            onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
           />
           <Textarea
             label={t("notifications.form.messageLabel")}
             placeholder={t("notifications.form.messagePh")}
             value={broadcastForm.body}
-            onChange={(e) =>
-              setBroadcastForm({ ...broadcastForm, body: e.target.value })
-            }
+            onChange={(e) => setBroadcastForm({ ...broadcastForm, body: e.target.value })}
             rows={3}
           />
           <div>
@@ -431,9 +444,7 @@ export default function NotificationsPage() {
               id="broadcast-type"
               className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white focus:border-seal-navy focus:outline-none focus:ring-2 focus:ring-seal-navy/20 transition"
               value={broadcastForm.type}
-              onChange={(e) =>
-                setBroadcastForm({ ...broadcastForm, type: e.target.value })
-              }
+              onChange={(e) => setBroadcastForm({ ...broadcastForm, type: e.target.value })}
             >
               <option value="DOC_PUBLISHED">Document publié</option>
               <option value="SIGNATURE_NEEDED">Signature requise</option>
@@ -568,8 +579,7 @@ export default function NotificationsPage() {
                       </p>
                     )}
                     <span className="inline-block mt-1.5 rounded-full bg-gray-200 dark:bg-slate-600 px-2 py-0.5 text-[10px] font-semibold text-seal-gray-500 dark:text-slate-300">
-                      {notificationTypeLabels[broadcastForm.type] ||
-                        broadcastForm.type}
+                      {notificationTypeLabels[broadcastForm.type] || broadcastForm.type}
                     </span>
                   </div>
                 </div>
@@ -586,10 +596,8 @@ export default function NotificationsPage() {
               loading={sendingBroadcast}
               disabled={
                 !broadcastForm.title.trim() ||
-                (broadcastForm.target === "role" &&
-                  !broadcastForm.targetRole) ||
-                (broadcastForm.target === "department" &&
-                  !broadcastForm.targetDepartmentId)
+                (broadcastForm.target === "role" && !broadcastForm.targetRole) ||
+                (broadcastForm.target === "department" && !broadcastForm.targetDepartmentId)
               }
             >
               <Send className="h-4 w-4" />
@@ -600,11 +608,7 @@ export default function NotificationsPage() {
       </Dialog>
 
       {/* Type filter pills */}
-      <div
-        className="flex flex-wrap gap-2 mb-2"
-        role="tablist"
-        aria-label="Filtrer par type"
-      >
+      <div className="flex flex-wrap gap-2 mb-2" role="tablist" aria-label="Filtrer par type">
         {[
           { value: "", label: "Tous" },
           { value: "DOC_", label: "Documents", icon: FileText },
@@ -672,11 +676,7 @@ export default function NotificationsPage() {
         <div className="space-y-4">
           <EmptyState
             type="notifications"
-            title={
-              notifications.length === 0
-                ? "Tout est calme ici"
-                : t("notifications.empty")
-            }
+            title={notifications.length === 0 ? "Tout est calme ici" : t("notifications.empty")}
             description={
               notifications.length === 0
                 ? "Aucune notification pour le moment. Vous serez prévenu dès qu'il y aura du nouveau !"
@@ -722,7 +722,7 @@ export default function NotificationsPage() {
               <Card>
                 <CardContent className="p-0 divide-y divide-gray-100 dark:divide-slate-700">
                   {groupNotifs.map((notif) => {
-                    const Icon = typeIcons[notif.type] || Bell;
+                    const Icon = getNotifIcon(notif);
                     const isAnimating = readAnimatingIds.has(notif.id);
                     return (
                       <button
@@ -732,17 +732,11 @@ export default function NotificationsPage() {
                         className={`w-full text-left flex items-start gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${
                           !notif.isRead ? "bg-primary/5 dark:bg-primary/10" : ""
                         } ${isAnimating ? "opacity-60 scale-[0.99]" : ""}`}
-                        style={
-                          isAnimating
-                            ? { transition: "all 0.4s ease-out" }
-                            : undefined
-                        }
+                        style={isAnimating ? { transition: "all 0.4s ease-out" } : undefined}
                       >
                         <div
                           className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-full flex-shrink-0 ${
-                            !notif.isRead
-                              ? "bg-primary-light"
-                              : "bg-gray-100 dark:bg-slate-800"
+                            !notif.isRead ? "bg-primary-light" : "bg-gray-100 dark:bg-slate-800"
                           }`}
                         >
                           <Icon
@@ -764,9 +758,9 @@ export default function NotificationsPage() {
                               <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
                             )}
                           </div>
-                          {notificationTypeLabels[notif.type] && (
+                          {getNotifTypeLabel(notif) && (
                             <span className="inline-block mt-0.5 rounded-full bg-gray-100 dark:bg-slate-700 px-2 py-0.5 text-[10px] font-semibold text-seal-gray-500 dark:text-slate-300">
-                              {notificationTypeLabels[notif.type]}
+                              {getNotifTypeLabel(notif)}
                             </span>
                           )}
                           <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mt-0.5">
@@ -801,11 +795,7 @@ export default function NotificationsPage() {
           ))}
           {hasMore && (
             <div className="text-center pt-2">
-              <Button
-                variant="outline"
-                onClick={handleLoadMore}
-                loading={loadingMore}
-              >
+              <Button variant="outline" onClick={handleLoadMore} loading={loadingMore}>
                 Charger plus
               </Button>
             </div>
