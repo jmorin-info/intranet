@@ -29,6 +29,10 @@ const DEFAULT_ANSWER_MAX_TOKENS = 256;
 // Résumé IA : entrée ≤ 2000 chars (≈ 550 tokens de prompt-eval, ~35 s CPU),
 // map-reduce en 2 passes au-delà (max 3 segments = 6000 chars couverts).
 const SUMMARY_INPUT_CHARS = 2000;
+// Fenêtre d'entrée de la PASSE UNIQUE en streaming (pas de map-reduce) : plus
+// large que le mode bloquant car un seul appel LLM, tokens streamés au fil de
+// l'eau. ~1700 tokens de contexte, acceptable sur mistral.
+const SUMMARY_STREAM_INPUT_CHARS = 6000;
 const SUMMARY_MAX_SEGMENTS = 3;
 const SUMMARY_MAX_TOKENS = 220;
 const SUMMARY_SEGMENT_MAX_TOKENS = 120;
@@ -49,6 +53,7 @@ const SUMMARY_REDUCE_RESERVE_MS = 60_000;
 export interface RagStreamStatus {
   stage: "retrieving" | "generating" | "model_fallback";
   model?: string;
+  level?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -1555,6 +1560,112 @@ export class RagService {
     const result = { summary };
     setCache(cacheKey, result, SUMMARY_CACHE_TTL_MS);
     return result;
+  }
+
+  /**
+   * Variante STREAMING du résumé (SSE).
+   *
+   * Pourquoi : sur CPU l'inférence dure 50 s–2 min ; un résumé bloquant est
+   * coupé par le timeout de la passerelle réseau (~30 s) avant d'aboutir. En
+   * streaming, les tokens partent au fur et à mesure → la connexion reste
+   * active (réarme le read-timeout) et l'utilisateur voit le texte se former.
+   *
+   * Différence avec `summarizeDocument` : PASSE UNIQUE (pas de map-reduce, qui
+   * n'est pas streamable et sous-budgétait chaque segment à ~46 s < un appel
+   * de 53 s → auto-coupure). On tronque l'entrée à SUMMARY_STREAM_INPUT_CHARS
+   * (fenêtre plus large qu'en bloquant car un seul appel) et on streame.
+   *
+   * Même RBAC (classification × statut) et même cache (checksum de version)
+   * que la version bloquante : un résumé déjà en cache est renvoyé en flux
+   * immédiat, et le résultat complet réalimente le cache.
+   */
+  async summarizeDocumentStream(
+    documentId: string,
+    ctx: RagSearchContext | undefined,
+    onToken: (token: string) => void,
+    onStatus?: (status: RagStreamStatus) => void,
+  ): Promise<void> {
+    onStatus?.({ stage: "retrieving" });
+
+    const doc = await this.prisma.document.findFirstOrThrow({
+      where: { id: documentId, deletedAt: null },
+      include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
+    });
+
+    if (
+      ctx &&
+      process.env.RBAC_RAG_ENABLED !== "false" &&
+      !canReadDocument(doc, { id: ctx.userId, role: ctx.role })
+    ) {
+      this.logger.warn({
+        msg: "rag.summary_stream.rbac_denied",
+        documentId,
+        userId: ctx.userId,
+        role: ctx.role,
+        classification: doc.classification,
+      });
+      throw new ForbiddenException(
+        "Accès restreint : la classification de ce document ne permet pas d'en générer un résumé avec vos habilitations.",
+      );
+    }
+
+    const versionKey =
+      doc.versions[0]?.checksum ??
+      `native:${createHash("sha256")
+        .update(doc.content ?? "")
+        .digest("hex")
+        .slice(0, 16)}`;
+    const cacheKey = `doc-summary:${documentId}:${versionKey}`;
+
+    // Cache chaud → on streame le texte déjà connu (chunks de mots) pour une
+    // UX cohérente, sans rappeler le LLM.
+    const cached = getCached<{ summary: string }>(cacheKey);
+    if (cached) {
+      onStatus?.({ stage: "generating" });
+      for (const chunk of cached.summary.match(/\S+\s*/g) ?? [cached.summary]) {
+        onToken(chunk);
+      }
+      return;
+    }
+
+    let text = doc.content ?? "";
+    if (!text && doc.versions.length > 0) {
+      const latest = doc.versions[0];
+      const extracted = await this.textExtractor.extractText(latest.fileUrl, latest.fileType);
+      if (extracted) text = extracted;
+    }
+
+    if (!text.trim()) {
+      onToken("Aucun contenu textuel disponible pour ce document.");
+      return;
+    }
+
+    if (!this.isOllamaEnabled()) {
+      const summary = text.slice(0, 500).trim() + (text.length > 500 ? "…" : "");
+      onToken(summary);
+      setCache(cacheKey, { summary }, SUMMARY_CACHE_TTL_MS);
+      return;
+    }
+
+    onStatus?.({ stage: "generating" });
+    const templates = getPromptTemplates(this.llmService.getActiveModel());
+    const prompt = templates.summary(text.slice(0, SUMMARY_STREAM_INPUT_CHARS));
+
+    let acc = "";
+    for await (const token of this.llmService.generateStream(prompt, {
+      maxTokens: SUMMARY_MAX_TOKENS,
+      timeoutMs: SUMMARY_TOTAL_BUDGET_MS,
+      onModelFallback: (model, level) => onStatus?.({ stage: "model_fallback", model, level }),
+    })) {
+      acc += token;
+      onToken(token);
+    }
+
+    // Ne mettre en cache qu'un résumé réellement produit (une génération vide
+    // ne doit pas empoisonner le cache 24 h).
+    if (acc.trim()) {
+      setCache(cacheKey, { summary: acc.trim() }, SUMMARY_CACHE_TTL_MS);
+    }
   }
 
   // =========================================================================
