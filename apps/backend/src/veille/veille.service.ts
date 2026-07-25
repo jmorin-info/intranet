@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  ConflictException,
-} from "@nestjs/common";
+import { Injectable, Logger, NotFoundException, ConflictException } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -320,8 +315,7 @@ export class VeilleService {
     const limit = filters.limit || 30;
     const where: any = {};
 
-    if (filters.isProcessed !== undefined)
-      where.isProcessed = filters.isProcessed;
+    if (filters.isProcessed !== undefined) where.isProcessed = filters.isProcessed;
     if (filters.dateFrom) {
       where.publishedAt = { gte: new Date(filters.dateFrom) };
     }
@@ -356,12 +350,7 @@ export class VeilleService {
     };
   }
 
-  async acknowledge(
-    veilleItemId: string,
-    userId: string,
-    action: string,
-    comment?: string,
-  ) {
+  async acknowledge(veilleItemId: string, userId: string, action: string, comment?: string) {
     const item = await this.prisma.veilleItem.findUnique({
       where: { id: veilleItemId },
     });
@@ -420,25 +409,24 @@ export class VeilleService {
     bySource: Record<string, number>;
     lastCollect: string | null;
   }> {
-    const [total, unprocessed, processed, bySeverity, bySource, lastItem] =
-      await Promise.all([
-        this.prisma.veilleItem.count(),
-        this.prisma.veilleItem.count({ where: { isProcessed: false } }),
-        this.prisma.veilleItem.count({ where: { isProcessed: true } }),
-        this.prisma.veilleItem.groupBy({
-          by: ["severity"],
-          _count: true,
-          where: { isProcessed: false },
-        }),
-        this.prisma.veilleItem.groupBy({
-          by: ["sourceName"],
-          _count: true,
-        }),
-        this.prisma.veilleItem.findFirst({
-          orderBy: { publishedAt: "desc" },
-          select: { publishedAt: true },
-        }),
-      ]);
+    const [total, unprocessed, processed, bySeverity, bySource, lastItem] = await Promise.all([
+      this.prisma.veilleItem.count(),
+      this.prisma.veilleItem.count({ where: { isProcessed: false } }),
+      this.prisma.veilleItem.count({ where: { isProcessed: true } }),
+      this.prisma.veilleItem.groupBy({
+        by: ["severity"],
+        _count: true,
+        where: { isProcessed: false },
+      }),
+      this.prisma.veilleItem.groupBy({
+        by: ["sourceName"],
+        _count: true,
+      }),
+      this.prisma.veilleItem.findFirst({
+        orderBy: { publishedAt: "desc" },
+        select: { publishedAt: true },
+      }),
+    ]);
     return {
       total,
       unprocessed,
@@ -473,10 +461,7 @@ export class VeilleService {
     }
   }
 
-  async updateSource(
-    id: string,
-    data: { name?: string; url?: string; isActive?: boolean },
-  ) {
+  async updateSource(id: string, data: { name?: string; url?: string; isActive?: boolean }) {
     const existing = await this.prisma.veilleSource.findUnique({
       where: { id },
     });
@@ -513,9 +498,7 @@ export class VeilleService {
       });
       inserted++;
     }
-    this.logger.log(
-      `seedDefaultSources: ${inserted} inserted, ${skipped} skipped`,
-    );
+    this.logger.log(`seedDefaultSources: ${inserted} inserted, ${skipped} skipped`);
     return { inserted, skipped };
   }
 
@@ -565,12 +548,8 @@ export class VeilleService {
             });
             if (existing) continue; // déjà ingéré
 
-            const severity = this.detectSeverity(
-              item.title + " " + (item.description || ""),
-            );
-            const cveId = this.extractCVE(
-              item.title + " " + (item.description || ""),
-            );
+            const severity = this.detectSeverity(item.title + " " + (item.description || ""));
+            const cveId = this.extractCVE(item.title + " " + (item.description || ""));
             const created = await this.prisma.veilleItem.create({
               data: {
                 title: item.title,
@@ -632,9 +611,7 @@ export class VeilleService {
         `Veille: ${failed.length}/${feeds.length} sources vides ou en erreur: ${failed.map((f) => f.feed).join(", ")}`,
       );
     }
-    this.logger.log(
-      `Veille: ${total} items processed sur ${feeds.length} sources`,
-    );
+    this.logger.log(`Veille: ${total} items processed sur ${feeds.length} sources`);
   }
 
   /**
@@ -653,9 +630,7 @@ export class VeilleService {
    * Plus de cap silencieux slice(0,5) : tout item passant ces filtres est
    * notifié (le filtrage strict garantit un volume très faible).
    */
-  private async notifyImmediateCriticals(
-    items: NewCriticalItem[],
-  ): Promise<void> {
+  private async notifyImmediateCriticals(items: NewCriticalItem[]): Promise<void> {
     if (!(await this.areNotificationsEnabled())) {
       this.logger.debug(
         `Veille: notifications désactivées (${VEILLE_NOTIFICATIONS_ENABLED_KEY}=false) — ${items.length} item(s) CRITICAL non notifié(s), disponibles dans le digest si réactivation`,
@@ -663,18 +638,33 @@ export class VeilleService {
       return;
     }
 
+    // 1. Candidats : CVE non nul + correspondance parc STRICTE.
+    const candidates = items.filter(
+      (i) => i.cveId && this.isStrictParcMatch(i.title + " " + (i.description || "")),
+    );
+
+    // 2. Dédup INTRA-cycle par CVE : le même CVE arrivé via plusieurs flux
+    //    dans le même cycle ne donne qu'UN candidat. Sans cette étape, la
+    //    dédup historique (§3) verrait chaque copie comme le doublon des
+    //    autres et les annulerait TOUTES (l'alerte ne partirait jamais).
+    const byCve = new Map<string, NewCriticalItem>();
+    for (const c of candidates) {
+      const key = c.cveId as string; // non nul (garanti par le filtre §1)
+      if (!byCve.has(key)) byCve.set(key, c);
+    }
+
+    // 3. Dédup HISTORIQUE : on exclut TOUT le lot courant du lookup pour ne
+    //    comparer qu'aux items des cycles précédents (fenêtre 30 jours).
+    const batchIds = items.map((i) => i.id);
     const toNotify: NewCriticalItem[] = [];
-    for (const item of items) {
-      if (!item.cveId) continue;
-      const text = item.title + " " + (item.description || "");
-      if (!this.isStrictParcMatch(text)) continue;
-      if (await this.hasRecentDuplicate(item)) {
+    for (const cand of byCve.values()) {
+      if (await this.hasRecentDuplicate(cand, batchIds)) {
         this.logger.debug(
-          `Veille: notification skippée (doublon <30j) pour ${item.cveId} — ${item.title.substring(0, 80)}`,
+          `Veille: notification skippée (doublon <30j) pour ${cand.cveId} — ${cand.title.substring(0, 80)}`,
         );
         continue;
       }
-      toNotify.push(item);
+      toNotify.push(cand);
     }
     if (toNotify.length === 0) return;
 
@@ -708,17 +698,23 @@ export class VeilleService {
    * source ? (Le même CVE revient souvent via plusieurs flux/URLs — la
    * contrainte unique sourceUrl ne suffit pas.)
    */
-  private async hasRecentDuplicate(item: {
-    id: string;
-    title: string;
-    sourceName: string;
-    cveId: string | null;
-  }): Promise<boolean> {
+  private async hasRecentDuplicate(
+    item: {
+      id: string;
+      title: string;
+      sourceName: string;
+      cveId: string | null;
+    },
+    excludeIds: string[] = [item.id],
+  ): Promise<boolean> {
     const since = new Date(Date.now() - 30 * 86400000);
+    // On exclut le lot courant (par défaut le seul `item.id`) pour ne
+    // comparer qu'aux items PRÉEXISTANTS (cf. notifyImmediateCriticals §3).
+    const idFilter = excludeIds.length > 0 ? { notIn: excludeIds } : undefined;
     if (item.cveId) {
       const dupByCve = await this.prisma.veilleItem.findFirst({
         where: {
-          id: { not: item.id },
+          id: idFilter,
           cveId: item.cveId,
           fetchedAt: { gte: since },
         },
@@ -728,7 +724,7 @@ export class VeilleService {
     }
     const siblings = await this.prisma.veilleItem.findMany({
       where: {
-        id: { not: item.id },
+        id: idFilter,
         sourceName: item.sourceName,
         fetchedAt: { gte: since },
       },
@@ -754,9 +750,7 @@ export class VeilleService {
     try {
       await this.sendDailyCriticalDigest();
     } catch (err) {
-      this.logger.error(
-        `Veille daily digest failed: ${err instanceof Error ? err.message : err}`,
-      );
+      this.logger.error(`Veille daily digest failed: ${err instanceof Error ? err.message : err}`);
     }
   }
 
@@ -805,17 +799,14 @@ export class VeilleService {
     }
 
     const parcCveCount = relevant.filter(
-      (i) =>
-        i.cveId &&
-        this.isStrictParcMatch((i.title || "") + " " + (i.description || "")),
+      (i) => i.cveId && this.isStrictParcMatch((i.title || "") + " " + (i.description || "")),
     ).length;
 
     const top = relevant
       .slice(0, 3)
       .map((i) => `• ${i.cveId ? `${i.cveId} — ` : ""}${i.title.substring(0, 120)}`)
       .join("\n");
-    const rest =
-      relevant.length > 3 ? `\n… et ${relevant.length - 3} autre(s).` : "";
+    const rest = relevant.length > 3 ? `\n… et ${relevant.length - 3} autre(s).` : "";
 
     const admins = await this.prisma.user.findMany({
       where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
@@ -838,17 +829,13 @@ export class VeilleService {
     return { notified, items: relevant.length };
   }
 
-  private async parseRSSFeed(
-    url: string,
-    sourceName: string,
-  ): Promise<RSSItem[]> {
+  private async parseRSSFeed(url: string, sourceName: string): Promise<RSSItem[]> {
     // Le `fetchRSSFeeds` catche par-source : on laisse remonter l'erreur
     // pour qu'elle soit loggée avec le nom du flux (diagnostic).
     const response = await fetch(url, {
       signal: AbortSignal.timeout(10000),
       headers: {
-        "User-Agent":
-          "OmnitechVeille/1.0 (+https://intranet.omnitech-security.fr)",
+        "User-Agent": "OmnitechVeille/1.0 (+https://intranet.omnitech-security.fr)",
       },
     });
     if (!response.ok) {
@@ -883,11 +870,9 @@ export class VeilleService {
         const linkMatch = /<link[^>]*href="([^"]+)"/.exec(entryXml);
         const link = linkMatch?.[1] || this.extractTag(entryXml, "id");
         const description =
-          this.extractTag(entryXml, "summary") ||
-          this.extractTag(entryXml, "content");
+          this.extractTag(entryXml, "summary") || this.extractTag(entryXml, "content");
         const pubDate =
-          this.extractTag(entryXml, "updated") ||
-          this.extractTag(entryXml, "published");
+          this.extractTag(entryXml, "updated") || this.extractTag(entryXml, "published");
         if (title && link) {
           items.push({ title, description, link, pubDate, source: sourceName });
         }
@@ -927,8 +912,7 @@ export class VeilleService {
       );
     const cvss = extractCvssScore(t);
 
-    if (hasCve && (activelyExploited || (cvss !== null && cvss >= 9)))
-      return "CRITICAL";
+    if (hasCve && (activelyExploited || (cvss !== null && cvss >= 9))) return "CRITICAL";
 
     const criticalWords = /\b(critical|critique|urgent|urgente)\b/.test(t);
     if (
@@ -955,8 +939,7 @@ export class VeilleService {
    */
   isRelevantToParc(text: string): boolean {
     return (
-      this.isStrictParcMatch(text) ||
-      OMNITECH_TOPICS.some((topic) => containsToken(text, topic))
+      this.isStrictParcMatch(text) || OMNITECH_TOPICS.some((topic) => containsToken(text, topic))
     );
   }
 
@@ -1004,9 +987,7 @@ export class VeilleService {
 
     // Filter relevant to OMNITECH parc
     const relevant = items.filter((item) =>
-      this.isRelevantToParc(
-        (item.title || "") + " " + (item.description || ""),
-      ),
+      this.isRelevantToParc((item.title || "") + " " + (item.description || "")),
     );
 
     // Group by severity
@@ -1018,12 +999,7 @@ export class VeilleService {
     };
 
     // Generate HTML
-    const content = this.generateBulletinHtml(
-      start,
-      end,
-      bySeverity,
-      relevant.length,
-    );
+    const content = this.generateBulletinHtml(start, end, bySeverity, relevant.length);
 
     const title = `Bulletin Cybersécurité — Semaine du ${start.toLocaleDateString("fr-FR")} au ${end.toLocaleDateString("fr-FR")}`;
 
@@ -1335,11 +1311,7 @@ export class VeilleService {
     });
 
     return all
-      .filter((item) =>
-        this.isRelevantToParc(
-          (item.title || "") + " " + (item.description || ""),
-        ),
-      )
+      .filter((item) => this.isRelevantToParc((item.title || "") + " " + (item.description || "")))
       .slice(0, limit);
   }
 }
