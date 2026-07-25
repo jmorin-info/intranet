@@ -2,22 +2,29 @@
 
 import React from "react";
 import { SignatureBadge } from "@omnitech/ui";
-import { PenLine, CheckCircle2 } from "lucide-react";
+import { PenLine, AlertTriangle } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import type { DocuSealTemplate, SignatureData } from "./types";
 
+/**
+ * Panneau « Signatures » d'un document.
+ *
+ * Une signature engageante passe TOUJOURS par DocuSeal (preuve eIDAS-AES).
+ * La signature « au clic » interne a été retirée de l'UI : elle ne produisait
+ * aucune preuve et rendait la signature engageante équivalente à un simple
+ * accusé de lecture. Côté backend elle est désactivée par défaut
+ * (SIGNATURES_ALLOW_DIRECT=false) et ne subsiste que comme issue de secours.
+ */
 interface DocumentSignaturesPanelProps {
   signatures: SignatureData[];
   templates: DocuSealTemplate[];
   currentUserId?: string;
-  onConfirmSign: (sigId: string) => void;
 }
 
 export function DocumentSignaturesPanel({
   signatures,
   templates,
   currentUserId,
-  onConfirmSign,
 }: DocumentSignaturesPanelProps) {
   return (
     <div className="space-y-4">
@@ -67,17 +74,16 @@ export function DocumentSignaturesPanel({
                       className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                     >
                       <PenLine className="h-3.5 w-3.5" />
-                      Signer via DocuSeal
+                      {sig.signer.id === currentUserId
+                        ? "Signer via DocuSeal"
+                        : "Ouvrir dans DocuSeal"}
                     </a>
-                  ) : null}
-                  {sig.signer.id === currentUserId && (
-                    <button
-                      onClick={() => onConfirmSign(sig.id)}
-                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition"
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Signer
-                    </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Aucune soumission DocuSeal rattachée — la demande doit
+                      être recréée.
+                    </span>
                   )}
                 </div>
               )}
