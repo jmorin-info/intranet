@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { aiErrorMessage } from "@/lib/ai-errors";
+import { consumeAiSse, aiStreamStageLabel } from "@/lib/ai-stream-status";
 import { logger } from "@/lib/logger";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDocumentStore } from "@/stores/document-store";
@@ -83,6 +84,7 @@ export function useDocumentDetail(id: string | undefined) {
   // --- AI ---
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const [aiSummaryStage, setAiSummaryStage] = useState<string | null>(null);
   const [aiQuestionOpen, setAiQuestionOpen] = useState(false);
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export function useDocumentDetail(id: string | undefined) {
     Array<{ title?: string; reference?: string }>
   >([]);
   const [aiAnswerLoading, setAiAnswerLoading] = useState(false);
+  const [aiAnswerStage, setAiAnswerStage] = useState<string | null>(null);
 
   // --- Signature modal ---
   const [docusealTemplates, setDocusealTemplates] = useState<DocuSealTemplate[]>([]);
@@ -196,18 +199,34 @@ export function useDocumentDetail(id: string | undefined) {
   const handleAiSummary = async () => {
     if (!doc) return;
     setAiSummaryLoading(true);
+    setAiSummary(null);
+    setAiSummaryStage("retrieving");
+    // Streaming SSE : sur CPU le résumé prend 50 s–2 min ; en bloquant la
+    // passerelle réseau coupe à ~30 s. Les tokens streamés réarment le
+    // read-timeout et l'utilisateur voit le résumé se former.
+    let acc = "";
     try {
-      // 240 s : aligné sur le budget serveur OLLAMA_TIMEOUT_MS (inférence CPU,
-      // map-reduce possible sur les gros documents).
-      const { data } = await api.get(`/rag/documents/${doc.id}/ai-summary`, {
-        timeout: 240_000,
-      });
-      setAiSummary(data.summary);
+      await consumeAiSse(
+        `/rag/documents/${doc.id}/ai-summary-stream`,
+        { method: "GET" },
+        {
+          onToken: (t) => {
+            acc += t;
+            setAiSummary(acc);
+          },
+          onStatus: (stage) => setAiSummaryStage(stage),
+          onError: (message) => {
+            if (!acc) setAiSummary(message);
+          },
+        },
+      );
+      if (!acc.trim()) setAiSummary("Aucun résumé n'a pu être généré.");
     } catch (err) {
-      // Erreurs différenciées : 403 accès restreint / 429 throttle / 503 surcharge.
+      // 403 accès restreint / 429 throttle / 503 surcharge / réseau.
       setAiSummary(aiErrorMessage(err));
     } finally {
       setAiSummaryLoading(false);
+      setAiSummaryStage(null);
     }
   };
 
@@ -216,19 +235,35 @@ export function useDocumentDetail(id: string | undefined) {
     setAiAnswerLoading(true);
     setAiAnswer(null);
     setAiAnswerSources([]);
+    setAiAnswerStage("retrieving");
+    // Streaming SSE (comme le chatbot) : survit au timeout passerelle.
+    let acc = "";
     try {
-      // 200 s : budget serveur RAG_ANSWER_TIMEOUT_MS (180 s) + marge réseau.
-      const { data } = await api.post(
-        "/rag/ask",
-        { question: `Concernant ${doc.title}: ${aiQuestion}` },
-        { timeout: 200_000 },
+      await consumeAiSse(
+        "/rag/ask-stream",
+        { method: "POST", body: { question: `Concernant ${doc.title}: ${aiQuestion}` } },
+        {
+          onToken: (t) => {
+            acc += t;
+            setAiAnswer(acc);
+          },
+          onStatus: (stage) => setAiAnswerStage(stage),
+          onMeta: (meta) => {
+            if (Array.isArray(meta.sources)) {
+              setAiAnswerSources(meta.sources as Array<{ title?: string; reference?: string }>);
+            }
+          },
+          onError: (message) => {
+            if (!acc) setAiAnswer(message);
+          },
+        },
       );
-      setAiAnswer(data.answer || "Pas de réponse disponible.");
-      setAiAnswerSources(data.sources || []);
+      if (!acc.trim()) setAiAnswer("Pas de réponse disponible.");
     } catch (err) {
       setAiAnswer(aiErrorMessage(err));
     } finally {
       setAiAnswerLoading(false);
+      setAiAnswerStage(null);
     }
   };
 
@@ -620,6 +655,7 @@ export function useDocumentDetail(id: string | undefined) {
     commentSubmitting,
     aiSummary,
     aiSummaryLoading,
+    aiSummaryStageLabel: aiStreamStageLabel(aiSummaryStage),
     aiQuestionOpen,
     setAiQuestionOpen,
     aiQuestion,
@@ -627,6 +663,7 @@ export function useDocumentDetail(id: string | undefined) {
     aiAnswer,
     aiAnswerSources,
     aiAnswerLoading,
+    aiAnswerStageLabel: aiStreamStageLabel(aiAnswerStage),
     docusealTemplates,
     signatureModal,
     setSignatureModal,
