@@ -52,3 +52,56 @@ export function canAccessDocumentByClassification(
       return false;
   }
 }
+
+/**
+ * Document lisible pour un utilisateur donné — matrice complète rôle × statut ×
+ * classification, alignée sur DocumentsService.findById (documents.service.ts).
+ *
+ * Là où {@link canAccessDocumentByClassification} ne regarde QUE la
+ * classification, ce helper ajoute les deux garde-fous manquants qui laissaient
+ * fuir des brouillons / documents supprimés vers l'analyse ISO et le résumé IA :
+ *   - `deletedAt` : un document soft-supprimé n'est JAMAIS lisible ;
+ *   - `status`    : les rôles non privilégiés non-owner ne lisent que de
+ *                   l'APPROVED (PRESTATAIRE en plus restreint à CONTRACT/public).
+ *
+ * Matrice (identique à findById) :
+ *   - SUPER_ADMIN / ADMIN / DIRECTION : tout (hors soft-delete)
+ *   - PRESTATAIRE  : owner, sinon APPROVED ET (category CONTRACT OU isPublic)
+ *   - COLLABORATEUR: owner, sinon APPROVED ET classification PUBLIC/INTERNE
+ *   - AUDITEUR     : APPROVED ET classification ≠ SECRET
+ *   - REVIEWER     : tout sauf SECRET (sauf owner)
+ *   - rôle inconnu : fail closed
+ */
+export interface ReadableDocument extends ClassifiedDocument {
+  status: string;
+  deletedAt?: Date | null;
+  category?: string | null;
+  isPublic?: boolean | null;
+}
+
+export function canReadDocument(doc: ReadableDocument, user: DocumentAccessUser): boolean {
+  // Un document soft-supprimé n'est lisible par personne (cf. findById → 404).
+  if (doc.deletedAt) return false;
+
+  if (PRIVILEGED_ROLES.includes(user.role)) return true;
+
+  const isOwner = !!doc.ownerId && !!user.id && doc.ownerId === user.id;
+  const classification = doc.classification || "INTERNE";
+  const isApproved = doc.status === "APPROVED";
+
+  switch (user.role) {
+    case "PRESTATAIRE":
+      if (isOwner) return true;
+      return isApproved && (doc.category === "CONTRACT" || !!doc.isPublic);
+    case "COLLABORATEUR":
+      if (isOwner) return true;
+      return isApproved && ["PUBLIC", "INTERNE"].includes(classification);
+    case "AUDITEUR":
+      return isApproved && classification !== "SECRET";
+    case "REVIEWER":
+      return isOwner || classification !== "SECRET";
+    default:
+      // Rôle inconnu → fail closed
+      return false;
+  }
+}
