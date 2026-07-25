@@ -700,8 +700,15 @@ export class DocumentsService {
           );
         }
       } catch (err) {
+        // Non bloquant : le moteur générique (approval-workflows) est un
+        // chantier séparé et échoue encore à la création (aucune version
+        // n'existe → currentVersionId:null). Le document reste valide et suit
+        // le workflow ValidationRequest classique (reviewer/approver). On trace
+        // clairement pour ne pas masquer un futur branchement du moteur.
         this.logger.warn(
-          `WorkflowRule instantiation skipped for ${document.id}: ${(err as Error).message}`,
+          `[workflow-rules] instantiateWorkflow ignoré pour document ${document.id} ` +
+            `(${reference}) — fallback sur le workflow ValidationRequest. Cause : ` +
+            `${(err as Error).message}`,
         );
       }
     }
