@@ -1307,11 +1307,35 @@ export class WorkflowService {
     // Un document est « pour moi » si sa demande de validation PENDING porte une
     // étape non encore décidée qui m'est assignée. Cela suit automatiquement les
     // réassignations (documents.service.update) et l'enchaînement des étapes.
-    const pendingStepAssignedToMe = {
+    // La step pendante qui m'est assignée doit correspondre à l'étape
+    // RÉELLEMENT en cours (currentStep + stepType), sinon les steps REVIEW
+    // héritées (l'ancien approveReview ne clôturait pas la step d'origine)
+    // font remonter des documents PENDING_APPROVAL dans la file du relecteur :
+    // il clique « Approuver » → 403 garanti (RolesGuard DIRECTION), file
+    // définitivement polluée. On type donc la jointure par étape.
+    const reviewStepAssignedToMe = {
       validationRequests: {
         some: {
           status: "PENDING",
-          steps: { some: { action: null, assignedToId: userId } },
+          currentStep: { in: ["VERIFICATION", "REVIEW"] },
+          steps: {
+            some: {
+              action: null,
+              assignedToId: userId,
+              stepType: { in: ["VERIFICATION", "REVIEW"] },
+            },
+          },
+        },
+      },
+    } as const;
+    const approvalStepAssignedToMe = {
+      validationRequests: {
+        some: {
+          status: "PENDING",
+          currentStep: "APPROVAL",
+          steps: {
+            some: { action: null, assignedToId: userId, stepType: "APPROVAL" },
+          },
         },
       },
     } as const;
@@ -1320,9 +1344,9 @@ export class WorkflowService {
       // Rédacteur : revue validée, à confirmer pour lancer l'approbation.
       { status: "REVIEW_APPROVED", ownerId: userId },
       // Vérificateur / relecteur : l'étape courante leur est assignée.
-      { status: "IN_REVIEW", ...pendingStepAssignedToMe },
+      { status: "IN_REVIEW", ...reviewStepAssignedToMe },
       // Approbateur : l'étape d'approbation leur est assignée.
-      { status: "PENDING_APPROVAL", ...pendingStepAssignedToMe },
+      { status: "PENDING_APPROVAL", ...approvalStepAssignedToMe },
     ];
 
     return this.prisma.document.findMany({
