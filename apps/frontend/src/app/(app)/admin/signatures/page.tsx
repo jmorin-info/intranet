@@ -53,6 +53,8 @@ interface SignatureRequest {
     versionNumber?: string;
     document: { id: string; title: string; reference: string };
   };
+  /** Campagne d'origine — une campagne génère N SignatureRequest. */
+  campaign?: { id: string; title: string; dueAt: string | null } | null;
 }
 
 export default function AdminSignaturesPage() {
@@ -108,17 +110,42 @@ export default function AdminSignaturesPage() {
     if (!selectedDocVersionId || selectedSigners.length === 0) return;
     setSubmitting(true);
     try {
+      // Depuis la refonte, POST /signatures/request ÉCHOUE (503) si DocuSeal
+      // ne répond pas — plus aucune demande fantôme n'est créée. On traite
+      // donc chaque signataire indépendamment et on rend compte du résultat
+      // réel au lieu d'interrompre la boucle au premier échec.
+      const failures: string[] = [];
       for (const signerId of selectedSigners) {
-        await api.post("/signatures/request", {
-          documentVersionId: selectedDocVersionId,
-          signerId,
-        });
+        try {
+          await api.post("/signatures/request", {
+            documentVersionId: selectedDocVersionId,
+            signerId,
+          });
+        } catch (err: any) {
+          failures.push(
+            err?.response?.data?.message || err?.message || signerId,
+          );
+        }
       }
-      toast.success(`${selectedSigners.length} demande(s) de signature créée(s)`);
-      setShowRequestDialog(false);
-      setSelectedDocVersionId("");
-      setSelectedSigners([]);
-      setSignerSearch("");
+
+      const created = selectedSigners.length - failures.length;
+      if (created > 0) {
+        toast.success(`${created} demande(s) de signature créée(s)`);
+      }
+      if (failures.length > 0) {
+        showToast(
+          "error",
+          null,
+          `${failures.length} demande(s) non créée(s) : ${failures[0]}`,
+        );
+      }
+
+      if (failures.length === 0) {
+        setShowRequestDialog(false);
+        setSelectedDocVersionId("");
+        setSelectedSigners([]);
+        setSignerSearch("");
+      }
       // Refresh list
       const { data } = await api.get("/signatures/all");
       setRequests(Array.isArray(data) ? data : []);
@@ -556,12 +583,22 @@ export default function AdminSignaturesPage() {
                 >
                   <PenLine className="h-5 w-5 text-primary flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <Link
-                      href={`/documents/${req.documentVersion.document.id}`}
-                      className="text-sm font-semibold text-seal-navy dark:text-white hover:text-primary transition-colors"
-                    >
-                      {req.documentVersion.document.title}
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/documents/${req.documentVersion.document.id}`}
+                        className="text-sm font-semibold text-seal-navy dark:text-white hover:text-primary transition-colors"
+                      >
+                        {req.documentVersion.document.title}
+                      </Link>
+                      {req.campaign && (
+                        <span
+                          className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                          title={`Demande générée par la campagne « ${req.campaign.title} »`}
+                        >
+                          Campagne : {req.campaign.title}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                       <span className="font-mono">{req.documentVersion.document.reference}</span>
                       {` — ${t("signatures.signer")} : `}
