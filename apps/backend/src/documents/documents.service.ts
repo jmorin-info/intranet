@@ -292,7 +292,13 @@ export class DocumentsService {
    * for the document's classification level.
    */
   private checkClassificationAccess(
-    document: { classification?: string | null; ownerId: string },
+    document: {
+      classification?: string | null;
+      ownerId: string;
+      verifierId?: string | null;
+      reviewerId?: string | null;
+      approverId?: string | null;
+    },
     currentUser: RequestUser,
   ): void {
     const userRole = (currentUser.role || "").toUpperCase() as UserRole;
@@ -304,6 +310,21 @@ export class DocumentsService {
     if (roleLevel >= ROLE_HIERARCHY[UserRole.DIRECTION]) return;
     // Owner always has access to their own document
     if (isOwner) return;
+    // Un assigné du workflow accède au document qu'il doit traiter,
+    // en cohérence avec findById / findAll (contournement tracé A.5.12).
+    const isAssigned = [
+      document.verifierId,
+      document.reviewerId,
+      document.approverId,
+    ].some((x) => !!x && x === currentUser.id);
+    if (isAssigned) {
+      if (classification === "SECRET") {
+        this.logger.warn(
+          `checkClassificationAccess: accès SECRET accordé par assignation user=${currentUser.id} owner=${document.ownerId} (contournement A.5.12)`,
+        );
+      }
+      return;
+    }
 
     if (userRole === UserRole.COLLABORATEUR) {
       // COLLABORATEUR: PUBLIC + INTERNE only
@@ -538,6 +559,27 @@ export class DocumentsService {
       roleLevelForBypass < ROLE_HIERARCHY[UserRole.DIRECTION] &&
       (await this.hasExplicitPermission(currentUser.id, id, userRole))
     ) {
+      return enrichIsoControls(document);
+    }
+
+    // Un utilisateur assigné à une étape du workflow (vérificateur,
+    // relecteur ou approbateur) doit toujours pouvoir lire le document
+    // qu'il est censé traiter, quelle que soit sa classification. Sans
+    // cela, findAll / getPendingForUser exposent le document dans sa file
+    // (« à vous d'agir ») mais findById renvoie un 403 → dead-end, et
+    // possibilité d'approbation à l'aveugle. Contournement volontaire et
+    // tracé de la matrice de classification (ISO 27001 A.5.12).
+    const isAssigned =
+      !isOwner &&
+      [document.verifierId, document.reviewerId, document.approverId].some(
+        (x) => !!x && x === currentUser.id,
+      );
+    if (isAssigned) {
+      if ((classification || "INTERNE").toUpperCase() === "SECRET") {
+        this.logger.warn(
+          `findById: accès SECRET accordé par assignation user=${currentUser.id} doc=${id} (contournement A.5.12)`,
+        );
+      }
       return enrichIsoControls(document);
     }
 
