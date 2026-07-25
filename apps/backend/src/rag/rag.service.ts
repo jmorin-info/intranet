@@ -32,9 +32,12 @@ const SUMMARY_INPUT_CHARS = 2000;
 // Fenêtre d'entrée de la PASSE UNIQUE en streaming (pas de map-reduce) : plus
 // large que le mode bloquant car un seul appel LLM, tokens streamés au fil de
 // l'eau. ~1700 tokens de contexte, acceptable sur mistral.
-const SUMMARY_STREAM_INPUT_CHARS = 6000;
+// Réglage vitesse 2026-07-25 : 4000 (au lieu de 6000) → moins de prompt-eval
+// CPU donc 1er token plus rapide, sans perte notable de qualité de synthèse.
+const SUMMARY_STREAM_INPUT_CHARS = 4000;
 const SUMMARY_MAX_SEGMENTS = 3;
-const SUMMARY_MAX_TOKENS = 220;
+// 160 (au lieu de 220) : un résumé de 3-4 phrases suffit ; -27 % de génération.
+const SUMMARY_MAX_TOKENS = 160;
 const SUMMARY_SEGMENT_MAX_TOKENS = 120;
 const SUMMARY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 h — invalidé par checksum de version
 // Budget temps AGRÉGÉ de tout le map-reduce (jusqu'à 3 map + 1 reduce). Calé
@@ -51,9 +54,11 @@ const SUMMARY_REDUCE_RESERVE_MS = 60_000;
 
 /** Étapes de progression exposées en SSE (chatbot / recherche IA). */
 export interface RagStreamStatus {
-  stage: "retrieving" | "generating" | "model_fallback";
+  stage: "retrieving" | "generating" | "model_fallback" | "queued";
   model?: string;
   level?: number;
+  /** Position en file d'attente LLM (stage=queued). 1 = juste après la requête en cours. */
+  position?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -1225,6 +1230,7 @@ export class RagService {
           maxTokens: this.getAnswerMaxTokens(),
           timeoutMs: this.getAnswerTimeoutMs(),
           onModelFallback: (model) => onStatus?.({ stage: "model_fallback", model }),
+          onQueue: (position) => onStatus?.({ stage: "queued", position }),
         })) {
           onToken(token);
         }
@@ -1420,6 +1426,45 @@ export class RagService {
   // =========================================================================
 
   /**
+   * Cache L2 PERSISTANT (base) du résumé — survit aux redémarrages et partagé
+   * entre utilisateurs. Renvoie le résumé si une ligne existe pour ce document
+   * ET que son `versionKey` correspond (sinon le doc a changé → périmé).
+   */
+  private async getPersistedSummary(
+    documentId: string,
+    versionKey: string,
+  ): Promise<{ summary: string } | undefined> {
+    try {
+      const row = await this.prisma.documentAiSummary.findUnique({ where: { documentId } });
+      if (row && row.versionKey === versionKey && row.summary.trim()) {
+        return { summary: row.summary };
+      }
+    } catch {
+      // Cache best-effort : une erreur DB ne doit jamais casser le résumé.
+    }
+    return undefined;
+  }
+
+  /** Écrit/actualise le cache L2 (upsert par documentId). Best-effort. */
+  private async persistSummary(
+    documentId: string,
+    versionKey: string,
+    summary: string,
+    model: string,
+  ): Promise<void> {
+    if (!summary.trim()) return;
+    try {
+      await this.prisma.documentAiSummary.upsert({
+        where: { documentId },
+        create: { documentId, versionKey, summary, model },
+        update: { versionKey, summary, model },
+      });
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  /**
    * Generate an LLM summary of a document.
    *
    * Fix 2026-07 :
@@ -1429,8 +1474,8 @@ export class RagService {
    *  - Passe par LlmService.generate (chaîne de fallback + template [INST]
    *    par modèle) au lieu de callLlm brut.
    *  - Entrée ≤ 2000 chars, map-reduce en 2 passes au-delà.
-   *  - Cache mémoire keyé par checksum de la version courante, TTL 24 h
-   *    (invalidation automatique quand une nouvelle version est uploadée).
+   *  - Cache L1 mémoire + L2 base keyés par checksum de la version courante,
+   *    TTL 24 h L1 (invalidation auto quand une nouvelle version est uploadée).
    *  - Les erreurs LLM REMONTENT à l'appelant (le contrôleur renvoie 503) au
    *    lieu d'un 200 { summary: "Erreur…" } qui polluait cache et monitoring.
    */
@@ -1477,6 +1522,12 @@ export class RagService {
     const cacheKey = `doc-summary:${documentId}:${versionKey}`;
     const cached = getCached<{ summary: string }>(cacheKey);
     if (cached) return cached;
+    // L2 : cache persistant (base) — survit aux redémarrages, partagé.
+    const persisted = await this.getPersistedSummary(documentId, versionKey);
+    if (persisted) {
+      setCache(cacheKey, persisted, SUMMARY_CACHE_TTL_MS);
+      return persisted;
+    }
 
     let text = doc.content ?? "";
 
@@ -1559,6 +1610,7 @@ export class RagService {
 
     const result = { summary };
     setCache(cacheKey, result, SUMMARY_CACHE_TTL_MS);
+    void this.persistSummary(documentId, versionKey, summary, this.llmService.getActiveModel());
     return result;
   }
 
@@ -1617,10 +1669,13 @@ export class RagService {
         .slice(0, 16)}`;
     const cacheKey = `doc-summary:${documentId}:${versionKey}`;
 
-    // Cache chaud → on streame le texte déjà connu (chunks de mots) pour une
-    // UX cohérente, sans rappeler le LLM.
-    const cached = getCached<{ summary: string }>(cacheKey);
+    // Cache chaud (L1 mémoire, puis L2 base) → on streame le texte déjà connu
+    // (chunks de mots) pour une UX cohérente, sans rappeler le LLM.
+    const cached =
+      getCached<{ summary: string }>(cacheKey) ??
+      (await this.getPersistedSummary(documentId, versionKey));
     if (cached) {
+      setCache(cacheKey, cached, SUMMARY_CACHE_TTL_MS);
       onStatus?.({ stage: "generating" });
       for (const chunk of cached.summary.match(/\S+\s*/g) ?? [cached.summary]) {
         onToken(chunk);
@@ -1656,15 +1711,22 @@ export class RagService {
       maxTokens: SUMMARY_MAX_TOKENS,
       timeoutMs: SUMMARY_TOTAL_BUDGET_MS,
       onModelFallback: (model, level) => onStatus?.({ stage: "model_fallback", model, level }),
+      onQueue: (position) => onStatus?.({ stage: "queued", position }),
     })) {
       acc += token;
       onToken(token);
     }
 
     // Ne mettre en cache qu'un résumé réellement produit (une génération vide
-    // ne doit pas empoisonner le cache 24 h).
+    // ne doit pas empoisonner le cache). L1 mémoire + L2 base persistant.
     if (acc.trim()) {
       setCache(cacheKey, { summary: acc.trim() }, SUMMARY_CACHE_TTL_MS);
+      void this.persistSummary(
+        documentId,
+        versionKey,
+        acc.trim(),
+        this.llmService.getActiveModel(),
+      );
     }
   }
 

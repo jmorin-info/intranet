@@ -823,6 +823,25 @@ model DocumentAcknowledgment {
   @@unique([documentId, userId])
 }
 
+/// Cache PERSISTANT des résumés IA (2026-07-25). Le cache mémoire seul était
+/// perdu à chaque redémarrage backend → chaque document re-résumé (50 s CPU).
+/// Ici : un résumé par document, invalidé quand `versionKey` (checksum de la
+/// version courante, ou hash du contenu natif) change. Partagé entre tous les
+/// utilisateurs → un document n'est résumé qu'une fois. Pas de FK (le résumé
+/// est un cache jetable ; une ligne orpheline ne matche jamais un versionKey
+/// futur et est purgeable).
+model DocumentAiSummary {
+  id         String   @id @default(uuid())
+  documentId String   @unique
+  versionKey String
+  summary    String
+  model      String   @default("mistral")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([documentId])
+}
+
 model NewsPost {
   id            String     @id @default(uuid())
   title         String

@@ -19,6 +19,12 @@ export interface GenerateOptions {
   temperature?: number;
   /** Budget global de l'appel (non-streaming) ou de la génération (streaming). */
   timeoutMs?: number;
+  /**
+   * Notifié si l'appel doit ATTENDRE (Ollama ne traite qu'une génération à la
+   * fois sur ce matériel). `position` = nombre de requêtes devant celle-ci
+   * (1 = juste après celle en cours). Appelé une seule fois, à l'entrée en file.
+   */
+  onQueue?: (position: number) => void;
 }
 
 export interface StreamOptions extends GenerateOptions {
@@ -70,6 +76,45 @@ export class LlmService {
     fallbacksByLevel: [0, 0, 0],
   };
 
+  // --- Sérialisation des générations LLM ------------------------------------
+  // Ollama (num_parallel=1 sur cette VM CPU) ne traite qu'UNE génération à la
+  // fois : lancer 2 requêtes en parallèle les fait ramer toutes les deux. On
+  // sérialise donc en amont via une chaîne de promesses, ce qui (1) évite
+  // l'empilement de requêtes zombies côté Ollama et (2) permet de signaler la
+  // position d'attente à l'utilisateur (onQueue). Les embeddings (bge-m3,
+  // rapides, autre modèle) ne passent PAS par cette file.
+  private llmWaiting = 0;
+  private llmTail: Promise<void> = Promise.resolve();
+
+  /**
+   * Réserve le créneau LLM. Renvoie une fonction de libération à appeler dans
+   * un finally. `onQueue(position)` est notifié si l'appel doit attendre.
+   */
+  private async acquireSlot(onQueue?: (position: number) => void): Promise<() => void> {
+    const position = this.llmWaiting; // 0 = démarre tout de suite
+    this.llmWaiting++;
+    if (position > 0) {
+      try {
+        onQueue?.(position);
+      } catch {
+        /* callback best-effort */
+      }
+    }
+    const prev = this.llmTail;
+    let release!: () => void;
+    this.llmTail = new Promise<void>((res) => {
+      release = res;
+    });
+    await prev;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.llmWaiting--;
+      release();
+    };
+  }
+
   /** Renvoie la chaîne ordonnée des modèles : primary, fallback, emergency. */
   private getModelChain(): string[] {
     const primary = process.env.OLLAMA_LLM_MODEL_PRIMARY || process.env.OLLAMA_MODEL || "mistral";
@@ -83,10 +128,22 @@ export class LlmService {
   }
 
   /**
-   * Génère une réponse avec fallback automatique.
-   * Loggue chaque escalade de manière structurée.
+   * Génère une réponse avec fallback automatique (sérialisé : une génération à
+   * la fois, cf. acquireSlot). Loggue chaque escalade de manière structurée.
    */
   async generate(prompt: string, options: GenerateOptions = {}): Promise<GenerateResult> {
+    const release = await this.acquireSlot(options.onQueue);
+    try {
+      return await this.generateInner(prompt, options);
+    } finally {
+      release();
+    }
+  }
+
+  private async generateInner(
+    prompt: string,
+    options: GenerateOptions = {},
+  ): Promise<GenerateResult> {
     const chain = this.getModelChain();
     const start = Date.now();
 
@@ -181,6 +238,21 @@ export class LlmService {
    * l'erreur est propagée.
    */
   async *generateStream(prompt: string, options: StreamOptions = {}): AsyncGenerator<string> {
+    // Sérialisation (une génération à la fois). Le finally libère le créneau que
+    // le stream se termine normalement, échoue, ou soit interrompu (.return()
+    // quand le client SSE se déconnecte).
+    const release = await this.acquireSlot(options.onQueue);
+    try {
+      yield* this.generateStreamInner(prompt, options);
+    } finally {
+      release();
+    }
+  }
+
+  private async *generateStreamInner(
+    prompt: string,
+    options: StreamOptions = {},
+  ): AsyncGenerator<string> {
     const chain = this.getModelChain();
     const ttftMs = options.ttftTimeoutMs ?? getTtftTimeoutMs();
     const idleMs = options.idleTimeoutMs ?? getIdleTimeoutMs();
