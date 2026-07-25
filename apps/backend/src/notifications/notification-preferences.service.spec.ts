@@ -35,10 +35,7 @@ describe("NotificationPreferencesService", () => {
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
-      providers: [
-        NotificationPreferencesService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [NotificationPreferencesService, { provide: PrismaService, useValue: prisma }],
     }).compile();
 
     service = moduleRef.get(NotificationPreferencesService);
@@ -122,12 +119,39 @@ describe("NotificationPreferencesService", () => {
     it("MENTION → mentions", () => {
       expect(categoryFromType("MENTION")).toBe("mentions");
     });
+    it("VEILLE_* → veille", () => {
+      expect(categoryFromType("VEILLE_CRITICAL")).toBe("veille");
+      expect(categoryFromType("VEILLE_BULLETIN")).toBe("veille");
+    });
     it("type non-mutable → null", () => {
       expect(categoryFromType("SECURITY_ALERT")).toBeNull();
       expect(categoryFromType("ALERT_CRITICAL")).toBeNull();
     });
     it("undefined → null", () => {
       expect(categoryFromType(undefined)).toBeNull();
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────
+  //  Défauts de la catégorie « veille » (anti-spam)
+  // ──────────────────────────────────────────────────────────────
+
+  describe("défauts catégorie veille", () => {
+    it("veille : in-app ON, email OFF, jamais de push", () => {
+      expect(DEFAULT_NOTIFICATION_PREFERENCES.inApp.veille).toBe(true);
+      expect(DEFAULT_NOTIFICATION_PREFERENCES.email.veille).toBe(false);
+      expect(
+        (DEFAULT_NOTIFICATION_PREFERENCES.push as unknown as Record<string, unknown>).veille,
+      ).toBeUndefined();
+    });
+
+    it("sans prefs enregistrées : in-app veille autorisé, email/push refusés", async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        notificationPreferences: null,
+      });
+      await expect(service.isChannelEnabled("u1", "inApp", "VEILLE_CRITICAL")).resolves.toBe(true);
+      await expect(service.isChannelEnabled("u1", "email", "VEILLE_CRITICAL")).resolves.toBe(false);
+      await expect(service.isChannelEnabled("u1", "push", "VEILLE_CRITICAL")).resolves.toBe(false);
     });
   });
 
@@ -181,9 +205,7 @@ describe("NotificationPreferencesService", () => {
       const args = prisma.user.update.mock.calls[0][0];
       expect(args.where).toEqual({ id: "u1" });
       expect(args.data.digestFrequency).toBe(PrismaDigestFrequency.WEEKLY);
-      expect((args.data.notificationPreferences as any).email.digest).toBe(
-        "weekly",
-      );
+      expect((args.data.notificationPreferences as any).email.digest).toBe("weekly");
     });
 
     it("top-level digestFrequency prime sur email.digest si les 2 fournis", async () => {
@@ -253,11 +275,7 @@ describe("NotificationPreferencesService", () => {
 
   describe("isChannelEnabled()", () => {
     it("type non-mutable (SECURITY_ALERT) → toujours envoyé", async () => {
-      const ok = await service.isChannelEnabled(
-        "u1",
-        "email",
-        "SECURITY_ALERT",
-      );
+      const ok = await service.isChannelEnabled("u1", "email", "SECURITY_ALERT");
       expect(ok).toBe(true);
       expect(prisma.user.findUnique).not.toHaveBeenCalled();
     });
@@ -266,11 +284,7 @@ describe("NotificationPreferencesService", () => {
       prisma.user.findUnique.mockResolvedValue({
         notificationPreferences: null,
       });
-      const ok = await service.isChannelEnabled(
-        "u1",
-        "email",
-        "TICKET_CREATED",
-      );
+      const ok = await service.isChannelEnabled("u1", "email", "TICKET_CREATED");
       expect(ok).toBe(true);
     });
 
@@ -278,11 +292,7 @@ describe("NotificationPreferencesService", () => {
       prisma.user.findUnique.mockResolvedValue({
         notificationPreferences: { email: { tickets: false } },
       });
-      const ok = await service.isChannelEnabled(
-        "u1",
-        "email",
-        "TICKET_CREATED",
-      );
+      const ok = await service.isChannelEnabled("u1", "email", "TICKET_CREATED");
       expect(ok).toBe(false);
     });
 
@@ -296,11 +306,7 @@ describe("NotificationPreferencesService", () => {
 
     it("DB throw → fail-open (allow)", async () => {
       prisma.user.findUnique.mockRejectedValue(new Error("DB down"));
-      const ok = await service.isChannelEnabled(
-        "u1",
-        "email",
-        "TICKET_CREATED",
-      );
+      const ok = await service.isChannelEnabled("u1", "email", "TICKET_CREATED");
       expect(ok).toBe(true);
     });
   });

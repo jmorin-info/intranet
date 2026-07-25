@@ -165,13 +165,6 @@ export class VeilleController {
     return this.veilleService.getRelevantItems(safeParseInt(limit, 20));
   }
 
-  @Post("fetch")
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  async triggerFetch() {
-    await this.veilleService.fetchRSSFeeds();
-    return { message: "RSS feeds fetched" };
-  }
-
   @Post("fetch-now")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async fetchNow() {
@@ -180,6 +173,40 @@ export class VeilleController {
       message: "Manual RSS fetch completed",
       timestamp: new Date().toISOString(),
     };
+  }
+
+  /**
+   * @deprecated Alias historique de POST /veille/fetch-now (les deux
+   * endpoints faisaient exactement la même chose). Conservé pour
+   * rétrocompat des éventuels scripts — utiliser /veille/fetch-now.
+   */
+  @Post("fetch")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async triggerFetch() {
+    const result = await this.fetchNow();
+    return { ...result, deprecated: "Utiliser POST /veille/fetch-now" };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Kill-switch notifications veille (AppConfig veille.notifications.enabled)
+  // ---------------------------------------------------------------------------
+
+  @Get("notifications-config")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  getNotificationsConfig() {
+    return this.veilleService.getNotificationsConfig();
+  }
+
+  @Patch("notifications-config")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  updateNotificationsConfig(
+    @Body() body: { enabled: boolean },
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.veilleService.setNotificationsEnabled(
+      body?.enabled === true,
+      user.id,
+    );
   }
 
   @Post("bulk-process")

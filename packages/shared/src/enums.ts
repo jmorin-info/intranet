@@ -136,6 +136,10 @@ export enum NotificationType {
   TICKET_CREATED = 'TICKET_CREATED',
   TICKET_UPDATED = 'TICKET_UPDATED',
   TICKET_SLA_BREACH = 'TICKET_SLA_BREACH',
+  // Veille cyber — types dédiés (2026-07-23), remplacent la réutilisation
+  // de DOC_PUBLISHED pour les alertes critiques et bulletins hebdomadaires.
+  VEILLE_CRITICAL = 'VEILLE_CRITICAL',
+  VEILLE_BULLETIN = 'VEILLE_BULLETIN',
 }
 
 export enum AuditSeverity {
