@@ -8,6 +8,8 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useChatbotStore, type ChatMessage } from "@/stores/chatbot-store";
 import { useTranslation } from "@/lib/i18n";
 import { api } from "@/lib/api";
+import { aiErrorMessage } from "@/lib/ai-errors";
+import { aiStreamStageLabel } from "@/lib/ai-stream-status";
 import { getPageContext, getActionsForRole, executeAction, trackPageView } from "@/lib/copilot";
 import { MarkdownRenderer } from "@/components/chatbot/markdown-renderer";
 import { MessageToolbar } from "@/components/chatbot/message-toolbar";
@@ -424,6 +426,33 @@ async function generateResponse(
   };
 }
 
+// ── Chatbot unifié (flag serveur CHATBOT_UNIFIED_ENABLED) ─────────
+
+/**
+ * Clé localStorage de la session /chat/* courante (mode unifié uniquement).
+ * Permet de reprendre la même ChatSession persistée entre deux montages.
+ */
+const CHAT_SESSION_KEY = "omnitech:chatbot:sessionId";
+
+function loadChatSessionId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(CHAT_SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveChatSessionId(id: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (id) localStorage.setItem(CHAT_SESSION_KEY, id);
+    else localStorage.removeItem(CHAT_SESSION_KEY);
+  } catch {
+    /* quota — ignore */
+  }
+}
+
 // ── Haptic feedback (safe local util, no cross-package dep) ───────
 function hapticTap(): void {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -479,11 +508,20 @@ export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [slashIndex, setSlashIndex] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
+  /** Étape SSE en cours (retrieving/generating/model_fallback) — fix 2026-07. */
+  const [streamStage, setStreamStage] = useState<string | null>(null);
+  /**
+   * Mode chatbot unifié (/chat/* : sessions persistées serveur, mémoire Noa).
+   * Piloté par GET /chat/config (flag serveur CHATBOT_UNIFIED_ENABLED) —
+   * false par défaut : le flux historique /rag/ask-stream reste utilisé.
+   */
+  const [unifiedChat, setUnifiedChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastQuestionRef = useRef<string>("");
+  const chatSessionIdRef = useRef<string | null>(null);
 
   const currentModule = detectModule(pathname || "/");
   const pageContext = getPageContext(pathname || "/");
