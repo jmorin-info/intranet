@@ -278,10 +278,13 @@ export default function DocumentEditorPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [params.id]);
 
-  // Mapping versionNumber (affiché dans le panneau Historique OnlyOffice) →
-  // DocumentVersion.id, alimenté par GET /office/history/:id et consommé par
-  // onRequestHistoryData / onRequestRestore.
-  const historyVersionsRef = useRef<Map<string, string>>(new Map());
+  // Mapping ordinal de version DocsAPI (« 1 », « 2 »… affichés dans le panneau
+  // Historique OnlyOffice) → { id de DocumentVersion, numéro métier }, alimenté
+  // par GET /office/history/:id et consommé par onRequestHistoryData /
+  // onRequestRestore.
+  const historyVersionsRef = useRef<Map<string, { versionId: string; versionNumber: string }>>(
+    new Map(),
+  );
 
   // Fetch editor config from backend
   useEffect(() => {
@@ -564,15 +567,21 @@ export default function DocumentEditorPage() {
           onRequestHistory: async () => {
             try {
               const { data } = await api.get<{
-                currentVersion: string;
+                currentVersion: number;
                 history: any[];
-                versions: { version: string; versionId: string }[];
+                versions: { version: number; versionId: string; versionNumber: string }[];
               }>(`/office/history/${params.id}`);
               if (!data?.history) {
                 throw new Error("Réponse historique invalide");
               }
+              // `version` est l'ordinal chronologique renvoyé par le backend
+              // (contrat DocsAPI : entier). On mémorise l'id de version ET le
+              // numéro métier (« 1.2 ») pour les messages utilisateur.
               historyVersionsRef.current = new Map(
-                data.versions.map((v) => [String(v.version), v.versionId]),
+                data.versions.map((v) => [
+                  String(v.version),
+                  { versionId: v.versionId, versionNumber: v.versionNumber },
+                ]),
               );
               editorInstanceRef.current?.refreshHistory?.({
                 currentVersion: data.currentVersion,
@@ -586,22 +595,24 @@ export default function DocumentEditorPage() {
             }
           },
           onRequestHistoryData: async (event: any) => {
-            const versionNumber = String(event?.data ?? "");
-            const versionId = historyVersionsRef.current.get(versionNumber);
-            if (!versionId) {
+            const versionOrdinal = String(event?.data ?? "");
+            const entry = historyVersionsRef.current.get(versionOrdinal);
+            if (!entry) {
               editorInstanceRef.current?.setHistoryData?.({
-                error: `Version ${versionNumber} introuvable`,
-                version: versionNumber,
+                error: `Version ${versionOrdinal} introuvable`,
+                version: versionOrdinal,
               });
               return;
             }
             try {
-              const { data } = await api.get(`/office/history/${params.id}/version/${versionId}`);
+              const { data } = await api.get(
+                `/office/history/${params.id}/version/${entry.versionId}`,
+              );
               editorInstanceRef.current?.setHistoryData?.(data);
             } catch (err: any) {
               editorInstanceRef.current?.setHistoryData?.({
                 error: err?.response?.data?.message || "Impossible de charger cette version",
-                version: versionNumber,
+                version: versionOrdinal,
               });
             }
           },
@@ -615,18 +626,18 @@ export default function DocumentEditorPage() {
           ...(cfg.canEdit
             ? {
                 onRequestRestore: async (event: any) => {
-                  const versionNumber = String(event?.data?.version ?? "");
-                  const versionId = historyVersionsRef.current.get(versionNumber);
-                  if (!versionId) {
-                    toast.error(`Version ${versionNumber} introuvable`);
+                  const versionOrdinal = String(event?.data?.version ?? "");
+                  const entry = historyVersionsRef.current.get(versionOrdinal);
+                  if (!entry) {
+                    toast.error(`Version ${versionOrdinal} introuvable`);
                     return;
                   }
                   try {
                     const { data } = await api.post<{
                       newVersionNumber: string;
-                    }>(`/office/restore/${params.id}`, { versionId });
+                    }>(`/office/restore/${params.id}`, { versionId: entry.versionId });
                     toast.success(
-                      `Version ${versionNumber} restaurée (nouvelle version ${data?.newVersionNumber}) — rechargement…`,
+                      `Version ${entry.versionNumber} restaurée (nouvelle version ${data?.newVersionNumber}) — rechargement…`,
                     );
                     setTimeout(() => window.location.reload(), 1200);
                   } catch (err: any) {

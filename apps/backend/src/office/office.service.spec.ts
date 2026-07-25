@@ -3,7 +3,7 @@ import { OfficeService } from "./office.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import { JwtService } from "@nestjs/jwt";
-import { NotFoundException } from "@nestjs/common";
+import { ForbiddenException, NotFoundException } from "@nestjs/common";
 
 describe("OfficeService", () => {
   let service: OfficeService;
@@ -524,6 +524,276 @@ describe("OfficeService", () => {
       const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock });
       expect(await svc.handleCallback({ status: 3 }, "ver-1", "user-1")).toEqual({ error: 0 });
       expect(await svc.handleCallback({ status: 7 }, "ver-1", "user-1")).toEqual({ error: 0 });
+    });
+  });
+
+  describe("assertCanReadDocument (contrôle d'accès en lecture)", () => {
+    /** Prisma minimal pour le chemin « aucune permission explicite ». */
+    function noPermissionPrisma() {
+      return {
+        user: { findUnique: jest.fn().mockResolvedValue({ departmentId: null }) },
+        userDepartment: { findMany: jest.fn().mockResolvedValue([]) },
+        documentPermission: { findFirst: jest.fn().mockResolvedValue(null) },
+      };
+    }
+
+    const secretDoc = {
+      id: "doc-1",
+      ownerId: "owner-1",
+      reviewerId: null,
+      approverId: null,
+      status: "APPROVED",
+      classification: "SECRET",
+      category: "PROCEDURE",
+      isPublic: false,
+    };
+
+    it("refuse un COLLABORATEUR sur un document SECRET (fuite de confidentialité)", async () => {
+      const { service: svc } = makeService({ prisma: noPermissionPrisma() });
+      await expect(
+        svc.assertCanReadDocument(secretDoc, {
+          id: "u-1",
+          email: "u@omnitech.fr",
+          role: "COLLABORATEUR" as any,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it("refuse un COLLABORATEUR sur un document INTERNE non approuvé", async () => {
+      const { service: svc } = makeService({ prisma: noPermissionPrisma() });
+      await expect(
+        svc.assertCanReadDocument(
+          { ...secretDoc, classification: "INTERNE", status: "DRAFT" },
+          { id: "u-1", email: "u@omnitech.fr", role: "COLLABORATEUR" as any },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it("refuse un PRESTATAIRE sur un document non contractuel", async () => {
+      const { service: svc } = makeService({ prisma: noPermissionPrisma() });
+      await expect(
+        svc.assertCanReadDocument(
+          { ...secretDoc, classification: "INTERNE" },
+          { id: "u-1", email: "u@omnitech.fr", role: "PRESTATAIRE" as any },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it("autorise le propriétaire, le relecteur et l'approbateur même en SECRET", async () => {
+      const { service: svc } = makeService({ prisma: noPermissionPrisma() });
+      const doc = { ...secretDoc, reviewerId: "rev-1", approverId: "app-1" };
+      await expect(
+        svc.assertCanReadDocument(doc, {
+          id: "owner-1",
+          email: "o@omnitech.fr",
+          role: "COLLABORATEUR" as any,
+        }),
+      ).resolves.toBeUndefined();
+      await expect(
+        svc.assertCanReadDocument(doc, {
+          id: "rev-1",
+          email: "r@omnitech.fr",
+          role: "REVIEWER" as any,
+        }),
+      ).resolves.toBeUndefined();
+      await expect(
+        svc.assertCanReadDocument(doc, {
+          id: "app-1",
+          email: "a@omnitech.fr",
+          role: "REVIEWER" as any,
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it("autorise ADMIN sans requête de permission explicite", async () => {
+      const prismaMock = noPermissionPrisma();
+      const { service: svc } = makeService({ prisma: prismaMock });
+      await expect(
+        svc.assertCanReadDocument(secretDoc, {
+          id: "adm-1",
+          email: "adm@omnitech.fr",
+          role: "ADMIN" as any,
+        }),
+      ).resolves.toBeUndefined();
+      expect(prismaMock.documentPermission.findFirst).not.toHaveBeenCalled();
+    });
+
+    it("autorise via une permission GED explicite non expirée", async () => {
+      const prismaMock = noPermissionPrisma();
+      prismaMock.documentPermission.findFirst.mockResolvedValue({ id: "perm-1" });
+      const { service: svc } = makeService({ prisma: prismaMock });
+      await expect(
+        svc.assertCanReadDocument(secretDoc, {
+          id: "u-1",
+          email: "u@omnitech.fr",
+          role: "COLLABORATEUR" as any,
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it("buildEditorConfig refuse un document hors périmètre de lecture", async () => {
+      const prismaMock: any = {
+        ...noPermissionPrisma(),
+        document: {
+          findUnique: jest.fn().mockResolvedValue({
+            ...secretDoc,
+            deletedAt: null,
+            currentVersionId: "ver-1",
+            title: "Secret",
+            reference: "SEC-001",
+            versions: [
+              {
+                id: "ver-1",
+                documentId: "doc-1",
+                versionNumber: "1.0",
+                fileUrl: "documents/doc-1/f.docx",
+                checksum: "abcdef0123",
+                createdAt: new Date(),
+              },
+            ],
+          }),
+        },
+        documentVersion: { findUnique: jest.fn().mockResolvedValue(null) },
+      };
+      const { service: svc } = makeService({ prisma: prismaMock });
+      await expect(
+        svc.buildEditorConfig("doc-1", {
+          id: "u-1",
+          email: "u@omnitech.fr",
+          role: "COLLABORATEUR" as any,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe("getHistory / getHistoryVersionData (ordinaux DocsAPI)", () => {
+    function historyPrisma() {
+      const versions = [
+        {
+          id: "ver-1",
+          documentId: "doc-1",
+          versionNumber: "1.0",
+          fileUrl: "documents/doc-1/a.docx",
+          checksum: "aaaaaaaa1111",
+          changeLog: "Création",
+          uploadedById: "user-1",
+          createdAt: new Date("2026-01-01T08:00:00Z"),
+          uploadedBy: {
+            id: "user-1",
+            firstName: "Jean",
+            lastName: "Morin",
+            email: "jm@omnitech.fr",
+          },
+        },
+        {
+          id: "ver-2",
+          documentId: "doc-1",
+          versionNumber: "1.1",
+          fileUrl: "documents/doc-1/b.docx",
+          checksum: "bbbbbbbb2222",
+          changeLog: "Correction",
+          uploadedById: "user-1",
+          createdAt: new Date("2026-02-01T09:30:00Z"),
+          uploadedBy: {
+            id: "user-1",
+            firstName: "Jean",
+            lastName: "Morin",
+            email: "jm@omnitech.fr",
+          },
+        },
+      ];
+      return {
+        versions,
+        prismaMock: {
+          user: { findUnique: jest.fn().mockResolvedValue({ departmentId: null }) },
+          userDepartment: { findMany: jest.fn().mockResolvedValue([]) },
+          documentPermission: { findFirst: jest.fn().mockResolvedValue(null) },
+          document: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: "doc-1",
+              reference: "PGS-001",
+              deletedAt: null,
+              ownerId: "user-1",
+              reviewerId: null,
+              approverId: null,
+              status: "DRAFT",
+              classification: "INTERNE",
+              category: "PROCEDURE",
+              isPublic: false,
+              currentVersionId: "ver-1",
+              versions,
+            }),
+          },
+          documentVersion: { findMany: jest.fn().mockResolvedValue(versions) },
+        },
+      };
+    }
+
+    const owner = { id: "user-1", email: "jm@omnitech.fr", role: "COLLABORATEUR" as any };
+
+    it("renvoie des ordinaux entiers + le numéro métier, currentVersion suit currentVersionId", async () => {
+      const { prismaMock } = historyPrisma();
+      const { service: svc } = makeService({ prisma: prismaMock });
+      const result = await svc.getHistory("doc-1", owner);
+
+      expect(result.currentVersion).toBe(1); // currentVersionId = ver-1
+      expect(result.history.map((h: any) => h.version)).toEqual([1, 2]);
+      expect(result.history[0].created).toBe("2026-01-01 08:00:00");
+      expect(result.history[0].user.name).toBe("Jean Morin");
+      // La clé d'historique est la clé de session stable de CETTE version
+      expect(result.history[1].key).toBe("doc-1-ver-2-bbbbbbbb");
+      expect(result.versions).toEqual([
+        { version: 1, versionId: "ver-1", versionNumber: "1.0", changeLog: "Création" },
+        { version: 2, versionId: "ver-2", versionNumber: "1.1", changeLog: "Correction" },
+      ]);
+    });
+
+    it("getHistoryVersionData renvoie le MÊME ordinal que getHistory + une URL tokenisée", async () => {
+      const { prismaMock } = historyPrisma();
+      const jwt = { sign: jest.fn().mockReturnValue("signed-token"), verify: jest.fn() };
+      const { service: svc } = makeService({ prisma: prismaMock, jwt });
+      const data = await svc.getHistoryVersionData("doc-1", "ver-2", owner);
+
+      expect(data.version).toBe(2);
+      expect(data.key).toBe("doc-1-ver-2-bbbbbbbb");
+      expect(data.url).toContain("/api/v1/office/file?token=");
+      expect(data.fileType).toBe("docx");
+      // Secret DS défini → payload signé pour setHistoryData
+      expect(data.token).toBe("signed-token");
+    });
+
+    it("getHistoryVersionData refuse une version d'un autre document", async () => {
+      const { prismaMock } = historyPrisma();
+      const { service: svc } = makeService({ prisma: prismaMock });
+      await expect(svc.getHistoryVersionData("doc-1", "ver-999", owner)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it("getHistory refuse un utilisateur hors périmètre de lecture", async () => {
+      const { prismaMock } = historyPrisma();
+      prismaMock.document.findUnique.mockResolvedValue({
+        id: "doc-1",
+        reference: "PGS-001",
+        deletedAt: null,
+        ownerId: "someone-else",
+        reviewerId: null,
+        approverId: null,
+        status: "DRAFT",
+        classification: "CONFIDENTIEL",
+        category: "PROCEDURE",
+        isPublic: false,
+        currentVersionId: "ver-1",
+        versions: [],
+      });
+      const { service: svc } = makeService({ prisma: prismaMock });
+      await expect(
+        svc.getHistory("doc-1", {
+          id: "u-2",
+          email: "x@omnitech.fr",
+          role: "COLLABORATEUR" as any,
+        }),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 

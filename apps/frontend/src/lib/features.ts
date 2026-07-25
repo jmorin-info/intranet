@@ -6,7 +6,7 @@
  * Passer un flag à `true` une fois que le backend correspondant est câblé.
  */
 export const features: Record<
-  "ai" | "officeEditor" | "onboardingAdmin" | "scanner" | "helpdeskKbAdmin" | "veille",
+  "ai" | "onboardingAdmin" | "scanner" | "helpdeskKbAdmin" | "veille",
   boolean
 > = {
   /**
@@ -23,8 +23,10 @@ export const features: Record<
    * `/ai/search` quand la KB statique ne trouve rien.
    */
   ai: true,
-  /** OnlyOffice / LibreOffice editor session management. */
-  officeEditor: false,
+  // NB : plus de flag `officeEditor` ici. La disponibilité de l'éditeur
+  // OnlyOffice est DYNAMIQUE (GET /office/availability, healthcheck du Docs
+  // Server caché 30 s) et consommée via `useOfficeAvailability()` — un flag
+  // constant obligeait à rebuilder le frontend à chaque bascule.
   /** Onboarding admin (modèle Prisma existe, controller manquant). */
   onboardingAdmin: false,
   /** Scanner de vulnérabilités (pas d'endpoints exposés). */

@@ -77,6 +77,20 @@ export class OfficeService {
    */
   private readonly internalDsUrl: string;
 
+  /**
+   * Tri chronologique des versions utilisé par TOUS les endpoints d'historique.
+   * `id` en tie-breaker : un overwrite de brouillon ne change pas `createdAt`,
+   * deux versions peuvent donc partager la même seconde — sans clé secondaire,
+   * l'ordinal renvoyé par `getHistory` et celui recalculé par
+   * `getHistoryVersionData` pourraient diverger.
+   */
+  private static readonly HISTORY_ORDER = [{ createdAt: "asc" as const }, { id: "asc" as const }];
+
+  /** Format de date attendu par DocsAPI pour l'historique : `YYYY-MM-DD HH:mm:ss`. */
+  private static formatHistoryDate(date: Date): string {
+    return date.toISOString().replace("T", " ").slice(0, 19);
+  }
+
   /** Cache 30s du résultat de disponibilité (healthcheck DS). */
   private availabilityCache: {
     at: number;
@@ -132,6 +146,9 @@ export class OfficeService {
       enabled: this.enabled,
       documentServerUrl: this.documentServerUrl,
       internalBackendUrl: this.internalBackendUrl,
+      // Host autorisé (avec documentServerUrl) pour les URLs de téléchargement
+      // des callbacks — utile pour diagnostiquer un rejet anti-SSRF.
+      internalDsUrl: this.internalDsUrl,
       jwtSigningConfig: Boolean(this.jwtSecret),
       allowUnsigned: this.allowUnsigned,
     };
@@ -478,6 +495,118 @@ export class OfficeService {
   }
 
   /**
+   * Permission GED explicite (DocumentPermission) valide et non expirée sur un
+   * document : cible utilisateur, département (direct ou via UserDepartment)
+   * ou rôle. Même règle que `DocumentsService.hasExplicitPermission`.
+   */
+  private async hasExplicitDocumentPermission(
+    userId: string,
+    documentId: string,
+    role: string,
+  ): Promise<boolean> {
+    const [user, memberships] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { departmentId: true },
+      }),
+      this.prisma.userDepartment.findMany({
+        where: { userId },
+        select: { departmentId: true },
+      }),
+    ]);
+    const departmentIds = new Set<string>();
+    if (user?.departmentId) departmentIds.add(user.departmentId);
+    for (const m of memberships) departmentIds.add(m.departmentId);
+
+    const perm = await this.prisma.documentPermission.findFirst({
+      where: {
+        documentId,
+        OR: [
+          { userId },
+          ...(departmentIds.size > 0 ? [{ departmentId: { in: Array.from(departmentIds) } }] : []),
+          { role },
+        ],
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }],
+      },
+      select: { id: true },
+    });
+    return perm !== null;
+  }
+
+  /**
+   * Contrôle d'accès en LECTURE (ISO 27001 A.5.12 classification + A.5.15
+   * contrôle d'accès), aligné sur `DocumentsService.findById`.
+   *
+   * Sans ce contrôle, TOUT utilisateur authentifié pouvait ouvrir n'importe
+   * quel document dans l'éditeur (mode view) et surtout récupérer une URL de
+   * téléchargement tokenisée — y compris pour un document SECRET dont il
+   * n'aurait jamais dû voir la fiche. Les endpoints d'historique
+   * (`/office/history/...`) exposent la même surface : ils passent par ici.
+   *
+   * Bypass (dans l'ordre) : rôle ≥ DIRECTION, propriétaire / relecteur /
+   * approbateur du document, permission GED explicite non expirée. Le
+   * relecteur et l'approbateur sont explicitement autorisés (ils peuvent avoir
+   * à relire un document SECRET dont ils ne sont pas propriétaires — c'est déjà
+   * la règle appliquée par `canEdit`).
+   */
+  async assertCanReadDocument(
+    document: {
+      id: string;
+      ownerId: string;
+      reviewerId?: string | null;
+      approverId?: string | null;
+      status?: string | null;
+      classification?: string | null;
+      category?: string | null;
+      isPublic?: boolean | null;
+    },
+    currentUser: RequestUser,
+  ): Promise<void> {
+    const userRole = (currentUser.role || "").toUpperCase() as UserRole;
+    const roleLevel = ROLE_HIERARCHY[userRole] ?? 0;
+    // ADMIN / SUPER_ADMIN / DIRECTION : accès total
+    if (roleLevel >= ROLE_HIERARCHY[UserRole.DIRECTION]) return;
+    if (
+      document.ownerId === currentUser.id ||
+      document.reviewerId === currentUser.id ||
+      document.approverId === currentUser.id
+    ) {
+      return;
+    }
+    if (await this.hasExplicitDocumentPermission(currentUser.id, document.id, userRole)) {
+      return;
+    }
+
+    const classification = (document.classification || "INTERNE").toUpperCase();
+    const denied = () => {
+      this.logger.warn(
+        `OnlyOffice: accès en lecture refusé doc=${document.id} user=${currentUser.id} ` +
+          `role=${userRole} classification=${classification} status=${document.status}`,
+      );
+      throw new ForbiddenException("Accès refusé à ce document");
+    };
+
+    if (userRole === UserRole.PRESTATAIRE) {
+      // Prestataires : uniquement les contrats approuvés ou les docs publics approuvés
+      if (
+        document.status !== "APPROVED" ||
+        (document.category !== "CONTRACT" && !document.isPublic)
+      ) {
+        denied();
+      }
+    } else if (userRole === UserRole.COLLABORATEUR) {
+      if (document.status !== "APPROVED") denied();
+      if (!["PUBLIC", "INTERNE"].includes(classification)) denied();
+    } else if (userRole === UserRole.AUDITEUR) {
+      if (document.status !== "APPROVED") denied();
+      if (classification === "SECRET") denied();
+    } else if (userRole === UserRole.REVIEWER) {
+      if (classification === "SECRET") denied();
+    }
+    // MANAGER et au-dessus : accès en lecture (cf. DocumentsService.findById)
+  }
+
+  /**
    * Génère la config complète pour ouvrir un document dans OnlyOffice Docs Editor.
    * À passer au JS front `DocsAPI.DocEditor('placeholder', config)`.
    *
@@ -511,6 +640,10 @@ export class OfficeService {
     }
 
     const { document, currentVersion } = await this.loadDocumentWithCurrentVersion(documentId);
+
+    // Contrôle d'accès EN LECTURE avant toute émission de token de
+    // téléchargement (le mode view en délivre un lui aussi).
+    await this.assertCanReadDocument(document, currentUser);
 
     // Extraction du nom + extension
     const fileName = currentVersion.fileUrl.split("/").pop() || "document";
@@ -1053,7 +1186,7 @@ export class OfficeService {
       where: { id: documentId },
       include: {
         versions: {
-          orderBy: { createdAt: "asc" },
+          orderBy: OfficeService.HISTORY_ORDER,
           include: {
             uploadedBy: {
               select: {
@@ -1070,23 +1203,28 @@ export class OfficeService {
     if (!document || document.deletedAt) {
       throw new NotFoundException("Document introuvable");
     }
+    await this.assertCanReadDocument(document, currentUser);
     if (document.versions.length === 0) {
       throw new NotFoundException("Aucune version disponible pour ce document");
     }
-    let currentVersion = document.versions[document.versions.length - 1];
+    let currentIndex = document.versions.length - 1;
     if (document.currentVersionId) {
-      const pointed = document.versions.find((v) => v.id === document.currentVersionId);
-      if (pointed) currentVersion = pointed;
+      const pointedIndex = document.versions.findIndex((v) => v.id === document.currentVersionId);
+      if (pointedIndex >= 0) currentIndex = pointedIndex;
     }
     this.logger.debug(
       `OnlyOffice history: doc=${document.reference} versions=${document.versions.length} user=${currentUser.id}`,
     );
     return {
-      currentVersion: currentVersion.versionNumber,
-      history: document.versions.map((v) => ({
+      // `version` est un ENTIER (contrat DocsAPI refreshHistory/setHistoryData) :
+      // on expose l'ordinal chronologique, pas le numéro métier « 1.2 » qui
+      // n'est pas un nombre. Le numéro métier reste dans `versions[].versionNumber`
+      // pour l'affichage côté frontend.
+      currentVersion: currentIndex + 1,
+      history: document.versions.map((v, index) => ({
         key: this.buildSessionKey(document.id, v),
-        version: v.versionNumber,
-        created: v.createdAt.toISOString(),
+        version: index + 1,
+        created: OfficeService.formatHistoryDate(v.createdAt),
         user: {
           id: v.uploadedById,
           name:
@@ -1095,9 +1233,10 @@ export class OfficeService {
             "Inconnu",
         },
       })),
-      versions: document.versions.map((v) => ({
-        version: v.versionNumber,
+      versions: document.versions.map((v, index) => ({
+        version: index + 1,
         versionId: v.id,
+        versionNumber: v.versionNumber,
         changeLog: v.changeLog,
       })),
     };
@@ -1115,17 +1254,35 @@ export class OfficeService {
     }
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
-      select: { id: true, deletedAt: true },
+      select: {
+        id: true,
+        deletedAt: true,
+        ownerId: true,
+        reviewerId: true,
+        approverId: true,
+        status: true,
+        classification: true,
+        category: true,
+        isPublic: true,
+      },
     });
     if (!document || document.deletedAt) {
       throw new NotFoundException("Document introuvable");
     }
-    const version = await this.prisma.documentVersion.findUnique({
-      where: { id: versionId },
+    await this.assertCanReadDocument(document, currentUser);
+
+    // Ordinal chronologique — DOIT correspondre à celui renvoyé par getHistory
+    // (même tri), sinon DocsAPI n'associe pas la réponse à la ligne demandée.
+    const versions = await this.prisma.documentVersion.findMany({
+      where: { documentId },
+      orderBy: OfficeService.HISTORY_ORDER,
+      select: { id: true, versionNumber: true, fileUrl: true, checksum: true },
     });
-    if (!version || version.documentId !== documentId) {
+    const index = versions.findIndex((v) => v.id === versionId);
+    if (index < 0) {
       throw new NotFoundException("Version introuvable pour ce document");
     }
+    const version = versions[index];
 
     const fileName = version.fileUrl.split("/").pop() || "document";
     const extensionMatch = fileName.match(/\.([^.?]+)(\?|$)/);
@@ -1133,7 +1290,7 @@ export class OfficeService {
     const accessToken = this.generateFileAccessToken(version.id, documentId, currentUser.id);
 
     const data: any = {
-      version: version.versionNumber,
+      version: index + 1,
       key: this.buildSessionKey(documentId, version),
       url: `${this.internalBackendUrl}/api/v1/office/file?token=${accessToken}`,
       fileType,
