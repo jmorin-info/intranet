@@ -115,6 +115,12 @@ export class RagController {
       }
     };
 
+    // Heartbeat anti-coupure passerelle pendant le prompt-eval CPU (cf.
+    // documentSummaryStream) : commentaire SSE toutes les 10 s.
+    const heartbeat = setInterval(() => {
+      if (!res.writableEnded) res.write(`: keepalive\n\n`);
+    }, 10_000);
+
     try {
       await this.ragService.answerStream(
         question,
@@ -129,6 +135,7 @@ export class RagController {
     } catch (err) {
       write({ type: "error", message: (err as Error).message });
     } finally {
+      clearInterval(heartbeat);
       write({ type: "done" });
       if (!res.writableEnded) res.end();
     }
@@ -171,6 +178,15 @@ export class RagController {
       if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
+    // Heartbeat : sur CPU, le prompt-eval précède le 1er token de 20 à 60 s
+    // selon la taille du document. Sans octet pendant ce délai, la passerelle
+    // réseau (~30 s d'inactivité) coupe la connexion AVANT le 1er token. On
+    // envoie donc un commentaire SSE (`:` = ignoré par EventSource) toutes les
+    // 10 s tant que la génération n'a rien émis.
+    const heartbeat = setInterval(() => {
+      if (!res.writableEnded) res.write(`: keepalive\n\n`);
+    }, 10_000);
+
     const ctx: RagSearchContext = {
       userId: user.id,
       role: user.role,
@@ -201,6 +217,7 @@ export class RagController {
       });
       write({ type: "error", message });
     } finally {
+      clearInterval(heartbeat);
       write({ type: "done" });
       if (!res.writableEnded) res.end();
     }
