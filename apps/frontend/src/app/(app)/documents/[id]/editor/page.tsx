@@ -22,6 +22,10 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { logger } from "@/lib/logger";
+import {
+  fetchOfficeAvailability,
+  OFFICE_MAINTENANCE_MESSAGE,
+} from "@/hooks/use-office-availability";
 
 interface EditorConfig {
   documentServerUrl: string;
@@ -127,6 +131,9 @@ export default function DocumentEditorPage() {
   const [editorConfig, setEditorConfig] = useState<EditorConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Docs Server indisponible (GET /office/availability) → early-return propre
+  // avec message de maintenance au lieu de laisser tourner le watchdog 20s.
+  const [maintenanceReason, setMaintenanceReason] = useState<string | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [editorMounted, setEditorMounted] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
@@ -229,32 +236,67 @@ export default function DocumentEditorPage() {
     };
   }, [editorConfig]);
 
-  // Ctrl+S handler
+  // Ctrl+S → vraie sauvegarde forcée côté Docs Server via le backend
+  // (POST /office/forcesave/:id → CommandService c:'forcesave').
+  // L'ancienne implémentation appelait editorInstance.triggerForceSave, une
+  // méthode qui n'existe pas dans l'API DocsAPI.DocEditor.
+  const forceSaveInFlightRef = useRef(false);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
-        // Try to trigger force save via OnlyOffice API if available
-        try {
-          if (editorInstanceRef.current?.triggerForceSave) {
-            editorInstanceRef.current.triggerForceSave();
-            toast.success("Sauvegarde forcée déclenchée");
-          } else {
-            toast.info("Auto-save activé — vos modifications sont sauvegardées automatiquement");
-          }
-        } catch {
-          toast.info("Auto-save activé — vos modifications sont sauvegardées automatiquement");
+        const cfg = editorConfigRef.current;
+        if (!cfg?.canEdit) {
+          toast.info("Document en lecture seule — rien à sauvegarder");
+          return;
         }
+        if (forceSaveInFlightRef.current) return;
+        forceSaveInFlightRef.current = true;
+        api
+          .post<{ ok: boolean; error?: number; message: string }>(`/office/forcesave/${params.id}`)
+          .then(({ data }) => {
+            if (data?.ok && data.error === 4) {
+              toast.info("Aucune modification à sauvegarder");
+            } else if (data?.ok) {
+              toast.success("Sauvegarde forcée déclenchée");
+            } else {
+              toast.error(data?.message || "La sauvegarde forcée a échoué");
+            }
+          })
+          .catch((err: any) => {
+            toast.error(
+              err?.response?.data?.message ||
+                "La sauvegarde forcée a échoué — l'auto-save reste actif",
+            );
+          })
+          .finally(() => {
+            forceSaveInFlightRef.current = false;
+          });
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [params.id]);
+
+  // Mapping ordinal de version DocsAPI (« 1 », « 2 »… affichés dans le panneau
+  // Historique OnlyOffice) → { id de DocumentVersion, numéro métier }, alimenté
+  // par GET /office/history/:id et consommé par onRequestHistoryData /
+  // onRequestRestore.
+  const historyVersionsRef = useRef<Map<string, { versionId: string; versionNumber: string }>>(
+    new Map(),
+  );
 
   // Fetch editor config from backend
   useEffect(() => {
     async function fetchConfig() {
       try {
+        // Disponibilité du Docs Server AVANT de charger la config : si le
+        // serveur est en maintenance, message propre immédiat (pas de watchdog).
+        const availability = await fetchOfficeAvailability();
+        if (!availability.available) {
+          setMaintenanceReason(availability.reason || OFFICE_MAINTENANCE_MESSAGE);
+          return;
+        }
         const res = await api.get<EditorConfig>(`/office/editor/${params.id}?mode=${mode}`);
         // L'intercepteur axios renvoie { data: null, status } pour 403/429 sur GET
         // (cf. api.ts) — ne PAS déréférencer data dans ce cas, sinon TypeError.
@@ -518,6 +560,92 @@ export default function DocumentEditorPage() {
               }
             }
           },
+          // === Historique de versions (panneau natif OnlyOffice) ===
+          // GET /office/history/:id renvoie { currentVersion, history, versions } ;
+          // `versions` alimente le mapping versionNumber → versionId utilisé
+          // par onRequestHistoryData / onRequestRestore.
+          onRequestHistory: async () => {
+            try {
+              const { data } = await api.get<{
+                currentVersion: number;
+                history: any[];
+                versions: { version: number; versionId: string; versionNumber: string }[];
+              }>(`/office/history/${params.id}`);
+              if (!data?.history) {
+                throw new Error("Réponse historique invalide");
+              }
+              // `version` est l'ordinal chronologique renvoyé par le backend
+              // (contrat DocsAPI : entier). On mémorise l'id de version ET le
+              // numéro métier (« 1.2 ») pour les messages utilisateur.
+              historyVersionsRef.current = new Map(
+                data.versions.map((v) => [
+                  String(v.version),
+                  { versionId: v.versionId, versionNumber: v.versionNumber },
+                ]),
+              );
+              editorInstanceRef.current?.refreshHistory?.({
+                currentVersion: data.currentVersion,
+                history: data.history,
+              });
+            } catch (err: any) {
+              editorInstanceRef.current?.refreshHistory?.({
+                error:
+                  err?.response?.data?.message || "Impossible de charger l'historique des versions",
+              });
+            }
+          },
+          onRequestHistoryData: async (event: any) => {
+            const versionOrdinal = String(event?.data ?? "");
+            const entry = historyVersionsRef.current.get(versionOrdinal);
+            if (!entry) {
+              editorInstanceRef.current?.setHistoryData?.({
+                error: `Version ${versionOrdinal} introuvable`,
+                version: versionOrdinal,
+              });
+              return;
+            }
+            try {
+              const { data } = await api.get(
+                `/office/history/${params.id}/version/${entry.versionId}`,
+              );
+              editorInstanceRef.current?.setHistoryData?.(data);
+            } catch (err: any) {
+              editorInstanceRef.current?.setHistoryData?.({
+                error: err?.response?.data?.message || "Impossible de charger cette version",
+                version: versionOrdinal,
+              });
+            }
+          },
+          onRequestHistoryClose: () => {
+            // Recommandation OnlyOffice : recharger l'éditeur pour sortir
+            // proprement du mode historique et rouvrir la version courante.
+            window.location.reload();
+          },
+          // La restauration n'est proposée que si l'utilisateur peut éditer :
+          // le backend re-vérifie de toute façon les droits (POST /office/restore).
+          ...(cfg.canEdit
+            ? {
+                onRequestRestore: async (event: any) => {
+                  const versionOrdinal = String(event?.data?.version ?? "");
+                  const entry = historyVersionsRef.current.get(versionOrdinal);
+                  if (!entry) {
+                    toast.error(`Version ${versionOrdinal} introuvable`);
+                    return;
+                  }
+                  try {
+                    const { data } = await api.post<{
+                      newVersionNumber: string;
+                    }>(`/office/restore/${params.id}`, { versionId: entry.versionId });
+                    toast.success(
+                      `Version ${entry.versionNumber} restaurée (nouvelle version ${data?.newVersionNumber}) — rechargement…`,
+                    );
+                    setTimeout(() => window.location.reload(), 1200);
+                  } catch (err: any) {
+                    toast.error(err?.response?.data?.message || "La restauration a échoué");
+                  }
+                },
+              }
+            : {}),
         },
       };
 
@@ -598,6 +726,55 @@ export default function DocumentEditorPage() {
             Chargement de l&apos;éditeur...
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // Docs Server en maintenance : message propre, pas d'éditeur ni de watchdog.
+  if (maintenanceReason) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-4">
+        <Link
+          href={`/documents/${params.id}`}
+          className="inline-flex items-center gap-1.5 text-sm text-seal-gray-500 hover:text-primary transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour au document
+        </Link>
+
+        <Card className="border-l-4 border-l-amber-500">
+          <CardContent className="py-6">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-seal-navy dark:text-white mb-2">
+                  {OFFICE_MAINTENANCE_MESSAGE}
+                </h3>
+                <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-1">
+                  L&apos;éditeur en ligne est momentanément indisponible. Vos documents restent
+                  consultables et téléchargeables depuis la page du document.
+                </p>
+                <p className="text-xs text-seal-gray-500 dark:text-slate-500 italic mb-4">
+                  Détail : {maintenanceReason}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                    Réessayer
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push(`/documents/${params.id}`)}
+                  >
+                    Retour au document
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -897,16 +1074,20 @@ export default function DocumentEditorPage() {
                       {editorConfig.diagnostic.internalBackendUrl}
                     </span>
                   </li>
-                  <li className="break-all">
-                    <a
-                      href={editorConfig.diagnostic.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline"
-                    >
-                      Tester le téléchargement du fichier (nouvel onglet)
-                    </a>
-                  </li>
+                  {/* En mode édition le token est masqué (token=***) : le lien
+                      de test ne fonctionnerait pas, on ne l'affiche qu'en vue. */}
+                  {!editorConfig.diagnostic.fileUrl.includes("token=***") && (
+                    <li className="break-all">
+                      <a
+                        href={editorConfig.diagnostic.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline"
+                      >
+                        Tester le téléchargement du fichier (nouvel onglet)
+                      </a>
+                    </li>
+                  )}
                   <li>
                     JWT config signée : {editorConfig.diagnostic.jwtConfigured ? "oui" : "non"}
                   </li>

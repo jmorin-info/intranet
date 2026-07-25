@@ -1,12 +1,16 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { Button, Card, CardContent } from '@omnitech/ui';
-import { ArrowLeft, AlertTriangle, Loader2 } from 'lucide-react';
-import { useTranslation } from '@/lib/i18n';
-import { logger } from '@/lib/logger';
+import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { Button, Card, CardContent } from "@omnitech/ui";
+import { ArrowLeft, AlertTriangle, Loader2 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
+import { logger } from "@/lib/logger";
+import {
+  fetchOfficeAvailability,
+  OFFICE_MAINTENANCE_MESSAGE,
+} from "@/hooks/use-office-availability";
 
 interface StoredEditorConfig {
   sessionId: string;
@@ -22,16 +26,20 @@ interface StoredEditorConfig {
  * quand le backend renvoie une URL interne style http://localhost:8082).
  */
 function resolveClientUrl(backendUrl: string): string {
-  if (typeof window === 'undefined') return backendUrl;
+  if (typeof window === "undefined") return backendUrl;
   try {
     const parsed = new URL(backendUrl);
-    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '0.0.0.0') {
+    if (
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "0.0.0.0"
+    ) {
       const currentHost = window.location.hostname;
-      if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+      if (currentHost !== "localhost" && currentHost !== "127.0.0.1") {
         parsed.hostname = currentHost;
       }
     }
-    return parsed.toString().replace(/\/$/, '');
+    return parsed.toString().replace(/\/$/, "");
   } catch {
     return backendUrl;
   }
@@ -50,28 +58,42 @@ export default function SmbEditorPage() {
 
   const [editorData, setEditorData] = useState<StoredEditorConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [maintenanceReason, setMaintenanceReason] = useState<string | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const placeholderRef = useRef<HTMLDivElement>(null);
   const editorInstanceRef = useRef<any>(null);
 
-  // Charge la config depuis sessionStorage
+  // Charge la config depuis sessionStorage — après vérification de la
+  // disponibilité du Docs Server (message maintenance propre sinon).
   useEffect(() => {
     if (!params.sessionId) return;
-    try {
-      const raw = sessionStorage.getItem('smb-office-' + params.sessionId);
-      if (!raw) {
-        setError(
-          "Session OnlyOffice introuvable en sessionStorage. " +
-            "Retournez sur la page Fichiers et réouvrez le document.",
-        );
+    let mounted = true;
+    (async () => {
+      const availability = await fetchOfficeAvailability();
+      if (!mounted) return;
+      if (!availability.available) {
+        setMaintenanceReason(availability.reason || OFFICE_MAINTENANCE_MESSAGE);
         return;
       }
-      const parsed = JSON.parse(raw) as StoredEditorConfig;
-      parsed.documentServerUrl = resolveClientUrl(parsed.documentServerUrl);
-      setEditorData(parsed);
-    } catch (e: any) {
-      setError(e?.message || 'Configuration OnlyOffice corrompue');
-    }
+      try {
+        const raw = sessionStorage.getItem("smb-office-" + params.sessionId);
+        if (!raw) {
+          setError(
+            "Session OnlyOffice introuvable en sessionStorage. " +
+              "Retournez sur la page Fichiers et réouvrez le document.",
+          );
+          return;
+        }
+        const parsed = JSON.parse(raw) as StoredEditorConfig;
+        parsed.documentServerUrl = resolveClientUrl(parsed.documentServerUrl);
+        setEditorData(parsed);
+      } catch (e: any) {
+        setError(e?.message || "Configuration OnlyOffice corrompue");
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, [params.sessionId]);
 
   // Hauteur explicite sur le placeholder
@@ -85,8 +107,8 @@ export default function SmbEditorPage() {
       el.style.maxHeight = `${h}px`;
     };
     apply();
-    window.addEventListener('resize', apply);
-    return () => window.removeEventListener('resize', apply);
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
   }, [editorData]);
 
   // Charge le script OnlyOffice
@@ -102,20 +124,18 @@ export default function SmbEditorPage() {
       const check = () => {
         if ((window as any).DocsAPI?.DocEditor) setScriptLoaded(true);
       };
-      existing.addEventListener('load', check);
+      existing.addEventListener("load", check);
       check();
       return;
     }
-    const script = document.createElement('script');
+    const script = document.createElement("script");
     script.src = scriptUrl;
     script.async = true;
     script.onload = () => {
       if ((window as any).DocsAPI?.DocEditor) {
         setScriptLoaded(true);
       } else {
-        setError(
-          `OnlyOffice a répondu mais DocsAPI n'est pas défini. Vérifiez ${scriptUrl}.`,
-        );
+        setError(`OnlyOffice a répondu mais DocsAPI n'est pas défini. Vérifiez ${scriptUrl}.`);
       }
     };
     script.onerror = () =>
@@ -128,11 +148,11 @@ export default function SmbEditorPage() {
     if (editorInstanceRef.current) return;
     if (!scriptLoaded || !editorData || !placeholderRef.current) return;
 
-    const placeholder = document.getElementById('onlyoffice-placeholder');
+    const placeholder = document.getElementById("onlyoffice-placeholder");
     if (!placeholder) return;
 
     const DocsAPI = (window as any).DocsAPI;
-    if (!DocsAPI || typeof DocsAPI.DocEditor !== 'function') {
+    if (!DocsAPI || typeof DocsAPI.DocEditor !== "function") {
       setError("DocsAPI indisponible après chargement du script.");
       return;
     }
@@ -147,12 +167,15 @@ export default function SmbEditorPage() {
         height: `${measuredH}px`,
         events: {
           onError: (event: any) => {
-            logger.error(new Error(`OnlyOffice error: ${event?.data?.errorDescription || 'unknown'}`), { tool: 'OnlyOffice', event });
-            setError(event?.data?.errorDescription || 'Erreur OnlyOffice');
+            logger.error(
+              new Error(`OnlyOffice error: ${event?.data?.errorDescription || "unknown"}`),
+              { tool: "OnlyOffice", event },
+            );
+            setError(event?.data?.errorDescription || "Erreur OnlyOffice");
           },
           onDocumentReady: () => {
             const forceFill = () => {
-              const iframe = placeholder.querySelector('iframe') as HTMLIFrameElement | null;
+              const iframe = placeholder.querySelector("iframe") as HTMLIFrameElement | null;
               if (!iframe) return;
               const targetH = Math.max(500, window.innerHeight - 200);
               iframe.style.cssText = `width: 100% !important; height: ${targetH}px !important; min-height: 500px !important; display: block !important; border: 0 !important;`;
@@ -163,16 +186,51 @@ export default function SmbEditorPage() {
           },
         },
       };
-      editorInstanceRef.current = new DocsAPI.DocEditor('onlyoffice-placeholder', configWithEvents);
+      editorInstanceRef.current = new DocsAPI.DocEditor("onlyoffice-placeholder", configWithEvents);
     } catch (err: any) {
       setError(err?.message || String(err));
     }
   }, [scriptLoaded, editorData]);
 
+  // Docs Server en maintenance : message propre, pas d'éditeur.
+  if (maintenanceReason) {
+    return (
+      <div className="space-y-4">
+        <Link
+          href="/files"
+          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" /> Retour aux fichiers
+        </Link>
+        <Card className="border-2 border-amber-200 dark:border-amber-900/40">
+          <CardContent className="py-8 text-center">
+            <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
+            <h2 className="text-lg font-semibold text-seal-navy dark:text-white mb-2">
+              {OFFICE_MAINTENANCE_MESSAGE}
+            </h2>
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 max-w-xl mx-auto">
+              L&apos;éditeur en ligne est momentanément indisponible. Vous pouvez toujours
+              télécharger le fichier depuis la page Fichiers.
+            </p>
+            <p className="text-xs text-seal-gray-500 dark:text-slate-500 italic mt-2">
+              Détail : {maintenanceReason}
+            </p>
+            <Button className="mt-4" onClick={() => router.push("/files")}>
+              Retour aux fichiers
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="space-y-4">
-        <Link href="/files" className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
+        <Link
+          href="/files"
+          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+        >
           <ArrowLeft className="h-4 w-4" /> Retour aux fichiers
         </Link>
         <Card className="border-2 border-red-200 dark:border-red-900/40">
@@ -181,8 +239,10 @@ export default function SmbEditorPage() {
             <h2 className="text-lg font-semibold text-seal-navy dark:text-white mb-2">
               Impossible d'ouvrir l'éditeur
             </h2>
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400 max-w-xl mx-auto">{error}</p>
-            <Button className="mt-4" onClick={() => router.push('/files')}>
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400 max-w-xl mx-auto">
+              {error}
+            </p>
+            <Button className="mt-4" onClick={() => router.push("/files")}>
               Retour aux fichiers
             </Button>
           </CardContent>
@@ -203,7 +263,10 @@ export default function SmbEditorPage() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Link href="/files" className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
+        <Link
+          href="/files"
+          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+        >
           <ArrowLeft className="h-4 w-4" /> Retour aux fichiers
         </Link>
         <div className="text-sm text-seal-navy dark:text-white font-medium truncate max-w-md">
@@ -217,7 +280,7 @@ export default function SmbEditorPage() {
       <div
         id="onlyoffice-placeholder"
         ref={placeholderRef}
-        style={{ width: '100%', height: '80vh', minHeight: '600px' }}
+        style={{ width: "100%", height: "80vh", minHeight: "600px" }}
         className="rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden bg-white"
       />
     </div>
