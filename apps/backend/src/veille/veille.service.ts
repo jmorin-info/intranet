@@ -1274,7 +1274,7 @@ export class VeilleService {
       </div>
       <div style="padding:20px 24px;background:white;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
         <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:12px 16px;margin-bottom:20px;">
-          <strong>Produits surveillés :</strong> FortiGate/FortiOS, VMware/vSphere/ESXi, ESET, Microsoft/Windows/Exchange/Azure, Veeam, Dell/HPE, Cisco/Meraki, Sophos, Acronis, PostgreSQL, Redis, Nginx, Node.js
+          <strong>Produits surveillés :</strong> FortiGate/FortiOS, VMware/vSphere/ESXi, ESET, Microsoft (Exchange/365/Windows Server/AD/Entra/Defender), Veeam, Acronis, Aruba/ClearPass, Cisco/Meraki, Sophos, CrowdStrike, SentinelOne, Genetec/Milestone (hypervision), Hikvision/Dahua/Axis/Avigilon, HID/MIFARE, PostgreSQL, Redis, Nginx, Node.js
         </div>
         ${renderSection("Alertes CRITIQUES", "🔴", bySeverity.CRITICAL)}
         ${renderSection("Alertes HAUTES", "🟠", bySeverity.HIGH)}
