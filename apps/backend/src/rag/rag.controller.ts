@@ -146,6 +146,66 @@ export class RagController {
    * 503 si le LLM est indisponible/en dépassement de budget (plus de
    * 200 { summary: "Erreur…" } qui faussait cache et monitoring).
    */
+  /**
+   * Résumé IA en STREAMING (SSE) — chemin par défaut du frontend.
+   *
+   * Pourquoi : sur CPU un résumé prend 50 s–2 min ; en bloquant, la passerelle
+   * réseau coupe la requête à ~30 s. Le flux SSE envoie les tokens au fil de
+   * l'eau → la connexion reste active et l'utilisateur voit le résumé se
+   * former. Même RBAC/cache que la route bloquante (conservée pour compat).
+   */
+  @Get("documents/:id/ai-summary-stream")
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async documentSummaryStream(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+    @Res() res: Response,
+  ) {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+
+    const write = (data: Record<string, unknown>) => {
+      if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    const ctx: RagSearchContext = {
+      userId: user.id,
+      role: user.role,
+      departmentId: user.departmentId,
+    };
+    try {
+      await this.ragService.summarizeDocumentStream(
+        id,
+        ctx,
+        (token) => write({ type: "token", token }),
+        (status) => write({ type: "status", ...status }),
+      );
+    } catch (err) {
+      // Erreurs métier → message lisible ; 403 explicite pour l'accès refusé.
+      let message = "L'IA est momentanément indisponible ou surchargée — réessayez dans quelques minutes.";
+      if (err instanceof ForbiddenException) {
+        message = (err.getResponse() as { message?: string })?.message ?? err.message;
+      } else if (err instanceof HttpException) {
+        message = err.message;
+      } else if ((err as { code?: string }).code === "P2025") {
+        message = "Document introuvable.";
+      }
+      this.logger.warn({
+        msg: "rag.ai_summary_stream.failed",
+        documentId: id,
+        userId: user.id,
+        error: (err as Error).message,
+      });
+      write({ type: "error", message });
+    } finally {
+      write({ type: "done" });
+      if (!res.writableEnded) res.end();
+    }
+  }
+
   @Get("documents/:id/ai-summary")
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async documentSummary(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {

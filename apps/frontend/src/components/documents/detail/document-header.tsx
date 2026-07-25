@@ -48,6 +48,8 @@ interface DocumentHeaderProps {
   analyzing: boolean;
   reviewInfo: ReviewDeadlineInfo | null;
   aiSummaryLoading: boolean;
+  aiSummaryStageLabel?: string | null;
+  aiAnswerStageLabel?: string | null;
   onAction: (action: string) => void;
   onIsoAnalysis: () => void;
   onAiSummary: () => void;
@@ -77,6 +79,8 @@ export function DocumentHeader({
   analyzing,
   reviewInfo,
   aiSummaryLoading,
+  aiSummaryStageLabel,
+  aiAnswerStageLabel,
   onAction,
   onIsoAnalysis,
   onAiSummary,
@@ -388,7 +392,7 @@ export function DocumentHeader({
               className="gap-2"
             >
               <Sparkles className={`h-4 w-4 ${aiSummaryLoading ? "animate-spin" : ""}`} />
-              {aiSummaryLoading ? "Analyse en cours…" : "Résumé IA"}
+              {aiSummaryLoading ? (aiSummaryStageLabel ?? "Analyse en cours…") : "Résumé IA"}
             </Button>
             {/* Stirling PDF / OnlyOffice */}
             {currentVersion &&
@@ -620,16 +624,24 @@ export function DocumentHeader({
                 {aiAnswerLoading ? "Analyse…" : "Envoyer"}
               </Button>
             </div>
-            {aiAnswerLoading && (
+            {/* Attente lisible : tant qu'aucun token n'est arrivé, on montre
+                l'étape en cours (Recherche… / Rédaction…) puis un skeleton. */}
+            {aiAnswerLoading && !aiAnswer && (
               <div className="space-y-2">
+                {aiAnswerStageLabel && (
+                  <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                    {aiAnswerStageLabel}
+                  </p>
+                )}
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />
               </div>
             )}
-            {aiAnswer && !aiAnswerLoading && (
+            {aiAnswer && (
               <div className="rounded-lg bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 p-3 space-y-2">
                 <p className="text-sm leading-relaxed text-seal-navy dark:text-slate-200 whitespace-pre-wrap">
                   {aiAnswer}
+                  {aiAnswerLoading && <span className="ml-0.5 animate-pulse">▋</span>}
                 </p>
                 {aiAnswerSources.length > 0 && (
                   <div className="pt-2 border-t border-gray-100 dark:border-slate-700">

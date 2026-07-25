@@ -17,3 +17,87 @@ export function aiStreamStageLabel(stage: string | null | undefined): string | n
   if (!stage) return null;
   return AI_STREAM_STAGE_LABELS[stage as AiStreamStage] ?? null;
 }
+
+/**
+ * Consomme un flux SSE `data: {type: token|meta|status|error|done}` du backend
+ * RAG (résumé, question, recherche). Mutualise le parsing utilisé par le
+ * chatbot pour que résumé/recherche survivent eux aussi au timeout de la
+ * passerelle réseau (les tokens qui arrivent réarment le read-timeout).
+ *
+ * `credentials: include` → le JWT httpOnly est attaché par le navigateur
+ * (ANSSI A.5.34, pas de token en localStorage).
+ *
+ * Renvoie true si au moins un token a été reçu.
+ */
+export interface AiSseHandlers {
+  onToken: (token: string) => void;
+  onStatus?: (stage: string | null) => void;
+  onMeta?: (meta: Record<string, unknown>) => void;
+  onError?: (message: string) => void;
+  signal?: AbortSignal;
+}
+
+export async function consumeAiSse(
+  path: string,
+  init: { method: "GET" | "POST"; body?: unknown },
+  handlers: AiSseHandlers,
+): Promise<boolean> {
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "/api/v1");
+  const res = await fetch(`${baseUrl}${path}`, {
+    method: init.method,
+    headers: init.body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    credentials: "include",
+    body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+    signal: handlers.signal,
+  });
+
+  if (!res.ok || !res.body) {
+    const err = new Error(`SSE HTTP ${res.status}`) as Error & { httpStatus?: number };
+    err.httpStatus = res.status;
+    throw err;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let gotToken = false;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        let payload: Record<string, unknown>;
+        try {
+          payload = JSON.parse(line.slice(6));
+        } catch {
+          continue; // JSON partiel
+        }
+        switch (payload.type) {
+          case "token":
+            gotToken = true;
+            handlers.onStatus?.(null);
+            handlers.onToken(String(payload.token ?? ""));
+            break;
+          case "status":
+            handlers.onStatus?.((payload.stage as string) ?? null);
+            break;
+          case "meta":
+            handlers.onMeta?.(payload);
+            break;
+          case "error":
+            handlers.onError?.(String(payload.message ?? ""));
+            break;
+          // "done" → fin de flux, rien à faire
+        }
+      }
+    }
+  } finally {
+    reader.cancel().catch(() => {});
+  }
+  return gotToken;
+}

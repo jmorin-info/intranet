@@ -113,6 +113,8 @@ export default function DocumentDetailPage() {
         analyzing={ctx.analyzing}
         reviewInfo={reviewInfo}
         aiSummaryLoading={ctx.aiSummaryLoading}
+        aiSummaryStageLabel={ctx.aiSummaryStageLabel}
+        aiAnswerStageLabel={ctx.aiAnswerStageLabel}
         onAction={ctx.handleAction}
         onIsoAnalysis={ctx.handleIsoAnalysis}
         onAiSummary={ctx.handleAiSummary}
