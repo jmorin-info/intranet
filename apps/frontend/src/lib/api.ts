@@ -50,9 +50,14 @@ api.interceptors.request.use((config) => {
   // la fin → le chatbot bascule à tort sur le fallback (ou échoue) et l'IA
   // « ne répond pas ». On laisse une marge au-dessus du budget backend.
   if (url.startsWith("/rag/ask") || url.startsWith("/ai/search")) {
-    // Doit rester au-dessus du budget backend (RAG_ANSWER_TIMEOUT_MS ~90 s)
-    // pour ne pas avorter une génération qui aboutit côté serveur.
-    config.timeout = 95_000;
+    // Doit rester AU-DESSUS du budget backend (RAG_ANSWER_TIMEOUT_MS, défaut
+    // code 180 s, non surchargé par le .env de prod) pour ne pas avorter une
+    // génération qui aboutit côté serveur. On ne pose ce timeout QUE si
+    // l'appelant n'en a pas fourni un explicite (sinon on écrasait le
+    // { timeout: 200_000 } de handleAskAi → code mort).
+    if (!config.timeout || config.timeout === api.defaults.timeout) {
+      config.timeout = 200_000;
+    }
   }
   return config;
 });
@@ -120,11 +125,7 @@ api.interceptors.response.use(
         // accessToken cookie on success — no need to read/write the body
         // token client-side. We still surface `accessToken` to processQueue
         // for legacy waiters that still want to set Authorization headers.
-        const { data } = await axios.post(
-          `${API_URL}/auth/refresh`,
-          {},
-          { withCredentials: true },
-        );
+        const { data } = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
 
         const { accessToken } = data;
         // Cleanup éventuel reliquat localStorage post-migration cookie.
@@ -155,10 +156,7 @@ api.interceptors.response.use(
       const body = error.response.data as { code?: string } | undefined;
       const code = body?.code;
       const currentPath = window.location.pathname + window.location.search;
-      if (
-        code === "MFA_SETUP_REQUIRED" &&
-        !window.location.pathname.startsWith("/mfa")
-      ) {
+      if (code === "MFA_SETUP_REQUIRED" && !window.location.pathname.startsWith("/mfa")) {
         // L'utilisateur a la politique mfaRequired imposée mais n'a pas activé
         // son MFA. On force le passage par /mfa avant tout autre accès.
         localStorage.setItem("mfaSetupRequired", "true");
@@ -212,11 +210,7 @@ api.interceptors.response.use(
 
     // Network errors (no response) or server errors (5xx) — show a toast
     if (!error.response) {
-      showToast(
-        "error",
-        "api.networkError",
-        "Erreur réseau — vérifiez votre connexion internet.",
-      );
+      showToast("error", "api.networkError", "Erreur réseau — vérifiez votre connexion internet.");
     } else if (error.response.status >= 500) {
       showToast(
         "error",
