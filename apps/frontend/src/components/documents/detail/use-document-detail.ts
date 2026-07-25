@@ -29,9 +29,7 @@ export function useDocumentDetail(id: string | undefined) {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { maybePrompt: maybePromptTestimonial } = useTestimonialTrigger();
-  const decrementPendingCount = useDocumentStore(
-    (s) => s.decrementPendingCount,
-  );
+  const decrementPendingCount = useDocumentStore((s) => s.decrementPendingCount);
 
   // --- Core state ---
   const [doc, setDoc] = useState<DocumentDetail | null>(null);
@@ -55,14 +53,13 @@ export function useDocumentDetail(id: string | undefined) {
 
   // --- Rejection dialog ---
   const [showRejectDialog, setShowRejectDialog] = useState<
-    "reject-review" | "reject-direction" | null
+    "reject-review" | "reject-direction" | "verify-reject" | null
   >(null);
   const [rejectComment, setRejectComment] = useState("");
-  const [rejectSuggestions, setRejectSuggestions] = useState<Set<string>>(
-    new Set(),
+  const [rejectSuggestions, setRejectSuggestions] = useState<Set<string>>(new Set());
+  const [suggestionsCatalog, setSuggestionsCatalog] = useState<RejectionSuggestionsCatalog | null>(
+    null,
   );
-  const [suggestionsCatalog, setSuggestionsCatalog] =
-    useState<RejectionSuggestionsCatalog | null>(null);
 
   // --- History tab ---
   const [history, setHistory] = useState<{
@@ -71,9 +68,7 @@ export function useDocumentDetail(id: string | undefined) {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   // --- ISO analysis ---
-  const [isoAnalysis, setIsoAnalysis] = useState<IsoAnalysisItem[] | null>(
-    null,
-  );
+  const [isoAnalysis, setIsoAnalysis] = useState<IsoAnalysisItem[] | null>(null);
 
   // --- Related ---
   const [relatedDocs, setRelatedDocs] = useState<RelatedDoc[]>([]);
@@ -97,9 +92,7 @@ export function useDocumentDetail(id: string | undefined) {
   const [aiAnswerLoading, setAiAnswerLoading] = useState(false);
 
   // --- Signature modal ---
-  const [docusealTemplates, setDocusealTemplates] = useState<
-    DocuSealTemplate[]
-  >([]);
+  const [docusealTemplates, setDocusealTemplates] = useState<DocuSealTemplate[]>([]);
   const [signatureModal, setSignatureModal] = useState(false);
   const [signerList, setSignerList] = useState<
     Array<{ id: string; firstName: string; lastName: string; role: string }>
@@ -115,8 +108,7 @@ export function useDocumentDetail(id: string | undefined) {
     try {
       const { data } = await api.get(`/documents/${id}`);
       const allSignatures = (data.versions || []).flatMap(
-        (v: { signatureRequests?: SignatureData[] }) =>
-          v.signatureRequests || [],
+        (v: { signatureRequests?: SignatureData[] }) => v.signatureRequests || [],
       );
       data.signatureRequests = allSignatures;
       setDoc(data);
@@ -126,9 +118,8 @@ export function useDocumentDetail(id: string | undefined) {
       }
       if (user) {
         setHasAcknowledged(
-          data.acknowledgments?.some(
-            (a: { user?: { id?: string } }) => a.user?.id === user.id,
-          ) || false,
+          data.acknowledgments?.some((a: { user?: { id?: string } }) => a.user?.id === user.id) ||
+            false,
         );
       }
     } catch {
@@ -156,8 +147,7 @@ export function useDocumentDetail(id: string | undefined) {
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { message?: string } } }).response
-              ?.data?.message
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : null;
       toast.error(msg || "Erreur upload");
     } finally {
@@ -181,8 +171,7 @@ export function useDocumentDetail(id: string | undefined) {
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { message?: string } } }).response
-              ?.data?.message
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : null;
       toast.error(msg || "Erreur réouverture");
     } finally {
@@ -245,8 +234,7 @@ export function useDocumentDetail(id: string | undefined) {
       try {
         const { data } = await api.get(`/documents/${id}`);
         const allSignatures = (data.versions || []).flatMap(
-          (v: { signatureRequests?: SignatureData[] }) =>
-            v.signatureRequests || [],
+          (v: { signatureRequests?: SignatureData[] }) => v.signatureRequests || [],
         );
         data.signatureRequests = allSignatures;
         setDoc(data);
@@ -256,9 +244,8 @@ export function useDocumentDetail(id: string | undefined) {
         }
         if (user) {
           setHasAcknowledged(
-            data.acknowledgments?.some(
-              (a: { user?: { id?: string } }) => a.user?.id === user.id,
-            ) || false,
+            data.acknowledgments?.some((a: { user?: { id?: string } }) => a.user?.id === user.id) ||
+              false,
           );
         }
         api
@@ -361,6 +348,26 @@ export function useDocumentDetail(id: string | undefined) {
           await api.post(`/documents/${doc.id}/submit-review`);
           toast.success("Soumis en revue");
           break;
+        case "verify-approve":
+          await api.post(`/documents/${doc.id}/approve-verification`);
+          decrementPendingCount();
+          toast.success("Vérification validée");
+          break;
+        case "verify-reject":
+          if (!rejectComment.trim() || rejectComment.trim().length < 10) {
+            setShowRejectDialog("verify-reject");
+            return;
+          }
+          await api.post(`/documents/${doc.id}/reject-verification`, {
+            comment: rejectComment,
+            suggestions: Array.from(rejectSuggestions),
+          });
+          decrementPendingCount();
+          toast.success("Vérification rejetée");
+          setShowRejectDialog(null);
+          setRejectComment("");
+          setRejectSuggestions(new Set());
+          break;
         case "approve-review":
           await api.post(`/documents/${doc.id}/approve-review`);
           decrementPendingCount();
@@ -425,9 +432,7 @@ export function useDocumentDetail(id: string | undefined) {
           await api.post(`/documents/${doc.id}/force-approve`, {
             makePermanent: false,
           });
-          toast.success(
-            "Document publie directement (workflow court-circuite)",
-          );
+          toast.success("Document publie directement (workflow court-circuite)");
           break;
         case "force-approve-permanent":
           await api.post(`/documents/${doc.id}/force-approve`, {
@@ -441,9 +446,9 @@ export function useDocumentDetail(id: string | undefined) {
         (v: { signatureRequests?: unknown[] }) => v.signatureRequests || [],
       );
       setDoc(refreshed);
-      const eventType = ["approve-review", "approve-direction"].includes(action)
+      const eventType = ["approve-review", "approve-direction", "verify-approve"].includes(action)
         ? ("APPROVED" as const)
-        : ["reject-review", "reject-direction"].includes(action)
+        : ["reject-review", "reject-direction", "verify-reject"].includes(action)
           ? ("REJECTED" as const)
           : action === "submit-review"
             ? ("STATUS_CHANGED" as const)
@@ -460,8 +465,8 @@ export function useDocumentDetail(id: string | undefined) {
       );
     } catch (error: unknown) {
       const msg =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Erreur";
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Erreur";
       toast.error(msg);
     } finally {
       setActionLoading(false);
@@ -547,8 +552,8 @@ export function useDocumentDetail(id: string | undefined) {
       setInlineDirty(false);
     } catch (error: unknown) {
       const msg =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Erreur lors de l'enregistrement";
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Erreur lors de l'enregistrement";
       toast.error(msg);
     } finally {
       setInlineSaving(false);
@@ -563,8 +568,7 @@ export function useDocumentDetail(id: string | undefined) {
     const users = usersRes.data?.data || usersRes.data || [];
     const eligible = users.filter(
       (u: { role: string; isActive?: boolean }) =>
-        ["DIRECTION", "SUPER_ADMIN", "ADMIN", "REVIEWER"].includes(u.role) &&
-        u.isActive !== false,
+        ["DIRECTION", "SUPER_ADMIN", "ADMIN", "REVIEWER"].includes(u.role) && u.isActive !== false,
     );
     setSignerList(eligible.length > 0 ? eligible : users.slice(0, 30));
     setTemplates(tplRes.data?.data || []);

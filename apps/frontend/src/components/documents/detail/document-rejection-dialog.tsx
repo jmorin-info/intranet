@@ -5,7 +5,7 @@ import { Button, Dialog, Textarea } from "@omnitech/ui";
 import type { RejectionSuggestionsCatalog } from "./types";
 
 interface DocumentRejectionDialogProps {
-  mode: "reject-review" | "reject-direction" | null;
+  mode: "reject-review" | "reject-direction" | "verify-reject" | null;
   comment: string;
   suggestions: Set<string>;
   catalog: RejectionSuggestionsCatalog | null;
@@ -34,7 +34,9 @@ export function DocumentRejectionDialog({
       title={
         mode === "reject-review"
           ? "Rejeter la revue technique"
-          : "Rejeter le document"
+          : mode === "verify-reject"
+            ? "Rejeter la vérification"
+            : "Rejeter le document"
       }
       description="Indiquez le motif du refus et cochez les suggestions d'amélioration pour guider le rédacteur."
       className="max-w-3xl"
@@ -55,8 +57,7 @@ export function DocumentRejectionDialog({
                   Suggestions d&apos;amélioration
                 </p>
                 <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
-                  Cochez les points à retravailler. Le rédacteur les verra dans
-                  sa notification.
+                  Cochez les points à retravailler. Le rédacteur les verra dans sa notification.
                 </p>
               </div>
               {suggestions.size > 0 && (
