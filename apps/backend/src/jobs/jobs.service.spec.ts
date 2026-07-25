@@ -58,3 +58,110 @@ describe("JobsService — purgeOldNotifications (rétention)", () => {
     await expect(service.purgeOldNotifications()).resolves.toBeUndefined();
   });
 });
+
+/**
+ * Tests unitaires — relance des étapes en souffrance
+ * (JobsService.remindStaleWorkflowSteps).
+ *
+ * Garde-fous introduits (remédiation double-step héritée) :
+ *   - ne relance QUE la step dont stepType === request.currentStep ;
+ *   - cohérence de statut documentaire (VERIFICATION/REVIEW => IN_REVIEW,
+ *     APPROVAL => PENDING_APPROVAL) ;
+ *   - throttle PAR step (metadata.stepId).
+ */
+describe("JobsService — remindStaleWorkflowSteps (garde-fous double-step)", () => {
+  let service: JobsService;
+  let prisma: any;
+  let notifications: { create: jest.Mock };
+
+  const SIX_DAYS_AGO = new Date(Date.now() - 6 * 86400000);
+
+  function makeStep(over: Record<string, any>) {
+    return {
+      id: over.id ?? "step-1",
+      stepType: over.stepType ?? "REVIEW",
+      assignedToId: over.assignedToId ?? "user-assignee",
+      createdAt: over.createdAt ?? SIX_DAYS_AGO,
+      assignedTo: { id: "user-assignee", firstName: "Alice", lastName: "R" },
+      request: {
+        currentStep: over.currentStep ?? "REVIEW",
+        document: {
+          id: over.docId ?? "doc-1",
+          title: "Doc",
+          reference: "REF-1",
+          ownerId: "owner-1",
+          deletedAt: null,
+          status: over.docStatus ?? "IN_REVIEW",
+        },
+      },
+    };
+  }
+
+  beforeEach(() => {
+    notifications = { create: jest.fn().mockResolvedValue(undefined) };
+    prisma = {
+      validationStep: { findMany: jest.fn().mockResolvedValue([]) },
+      auditLog: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({}),
+      },
+    };
+    service = new JobsService(prisma, notifications as any);
+  });
+
+  it("relance une step dont le type correspond à l'étape courante et au statut du doc", async () => {
+    prisma.validationStep.findMany.mockResolvedValue([
+      makeStep({ stepType: "REVIEW", currentStep: "REVIEW", docStatus: "IN_REVIEW" }),
+    ]);
+    await service.remindStaleWorkflowSteps();
+    expect(notifications.create).toHaveBeenCalledTimes(1);
+    expect(notifications.create.mock.calls[0][0].userId).toBe("user-assignee");
+    // Throttle interrogé par step (metadata.stepId).
+    expect(prisma.auditLog.findFirst.mock.calls[0][0].where.metadata).toEqual({
+      path: ["stepId"],
+      equals: "step-1",
+    });
+  });
+
+  it("ignore une step REVIEW héritée quand currentStep = APPROVAL (pas de relance fantôme)", async () => {
+    prisma.validationStep.findMany.mockResolvedValue([
+      makeStep({
+        stepType: "REVIEW",
+        currentStep: "APPROVAL",
+        docStatus: "PENDING_APPROVAL",
+      }),
+    ]);
+    await service.remindStaleWorkflowSteps();
+    expect(notifications.create).not.toHaveBeenCalled();
+  });
+
+  it("ignore une step REVIEW quand le document est REVIEW_APPROVED (balle au rédacteur)", async () => {
+    prisma.validationStep.findMany.mockResolvedValue([
+      makeStep({ stepType: "REVIEW", currentStep: "REVIEW", docStatus: "REVIEW_APPROVED" }),
+    ]);
+    await service.remindStaleWorkflowSteps();
+    expect(notifications.create).not.toHaveBeenCalled();
+  });
+
+  it("relance la vraie step APPROVAL même si une step REVIEW fantôme la précède", async () => {
+    prisma.validationStep.findMany.mockResolvedValue([
+      makeStep({
+        id: "ghost-review",
+        stepType: "REVIEW",
+        currentStep: "APPROVAL",
+        docStatus: "PENDING_APPROVAL",
+        assignedToId: "old-reviewer",
+      }),
+      makeStep({
+        id: "real-approval",
+        stepType: "APPROVAL",
+        currentStep: "APPROVAL",
+        docStatus: "PENDING_APPROVAL",
+        assignedToId: "approver",
+      }),
+    ]);
+    await service.remindStaleWorkflowSteps();
+    expect(notifications.create).toHaveBeenCalledTimes(1);
+    expect(notifications.create.mock.calls[0][0].userId).toBe("approver");
+  });
+});

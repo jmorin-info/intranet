@@ -377,7 +377,7 @@ describe("WorkflowService", () => {
       );
     });
 
-    it("should query IN_REVIEW docs by the PENDING step assigned to the user", async () => {
+    it("should query IN_REVIEW docs by the PENDING step (VERIFICATION/REVIEW) assigned to the user", async () => {
       await service.getPendingForUser("user-2", UserRole.REVIEWER);
       expect(prisma.document.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -388,7 +388,42 @@ describe("WorkflowService", () => {
                 validationRequests: {
                   some: {
                     status: "PENDING",
-                    steps: { some: { action: null, assignedToId: "user-2" } },
+                    currentStep: { in: ["VERIFICATION", "REVIEW"] },
+                    steps: {
+                      some: {
+                        action: null,
+                        assignedToId: "user-2",
+                        stepType: { in: ["VERIFICATION", "REVIEW"] },
+                      },
+                    },
+                  },
+                },
+              },
+            ]),
+          }),
+        }),
+      );
+    });
+
+    it("should query PENDING_APPROVAL docs only when currentStep=APPROVAL and an APPROVAL step is assigned (steps héritées exclues)", async () => {
+      await service.getPendingForUser("user-3", UserRole.DIRECTION);
+      expect(prisma.document.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: expect.arrayContaining([
+              {
+                status: "PENDING_APPROVAL",
+                validationRequests: {
+                  some: {
+                    status: "PENDING",
+                    currentStep: "APPROVAL",
+                    steps: {
+                      some: {
+                        action: null,
+                        assignedToId: "user-3",
+                        stepType: "APPROVAL",
+                      },
+                    },
                   },
                 },
               },
