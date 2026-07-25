@@ -266,6 +266,27 @@ describe("LlmService", () => {
       global.fetch = jest.fn().mockRejectedValue(new Error("down")) as unknown as typeof fetch;
       await expect(service.generate("p")).rejects.toThrow(/All LLM models in chain failed/);
     }, 20000);
+
+    it("traite timeoutMs comme un budget GLOBAL (retries + fallbacks), pas par tentative", async () => {
+      // fetch ne résout jamais : seul l'abort du service le termine. Ancienne
+      // sémantique : 3 retries + 2 fallbacks = jusqu'à 5 × timeoutMs. Désormais
+      // le budget est agrégé → on s'arrête bien avant d'empiler la chaîne.
+      const fetchMock = jest.fn((_url, init) =>
+        neverResolvingUntilAbort((init as RequestInit).signal as AbortSignal),
+      );
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      const start = Date.now();
+      await expect(service.generate("p", { timeoutMs: 400 })).rejects.toThrow(
+        /budget exhausted|All LLM models in chain failed/,
+      );
+      const elapsed = Date.now() - start;
+
+      // Budget 400 ms + au plus une pause de retry : jamais 5 × 400 ms.
+      expect(elapsed).toBeLessThan(3000);
+      // Au plus 2 appels réseau (et non les 5 de l'ancienne sémantique).
+      expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(2);
+    }, 20000);
   });
 
   // ---------------------------------------------------------------- warmup

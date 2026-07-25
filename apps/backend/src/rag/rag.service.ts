@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { createHash } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
-import { canAccessDocumentByClassification } from "../common/document-access";
+import { canReadDocument } from "../common/document-access";
 import { TextExtractorService } from "./text-extractor.service";
 import { EmbeddingService } from "./embedding/embedding.service";
 import { HybridSearchService, HybridChunk } from "./embedding/hybrid-search.service";
@@ -33,6 +33,17 @@ const SUMMARY_MAX_SEGMENTS = 3;
 const SUMMARY_MAX_TOKENS = 220;
 const SUMMARY_SEGMENT_MAX_TOKENS = 120;
 const SUMMARY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 h — invalidé par checksum de version
+// Budget temps AGRÉGÉ de tout le map-reduce (jusqu'à 3 map + 1 reduce). Calé
+// SOUS le timeout client (240 s côté fiche document) pour qu'un backend saturé
+// n'accumule pas de requêtes zombies : sans lui, les 4 appels × 5 tentatives ×
+// 240 s pouvaient atteindre ~80 min par requête HTTP.
+const SUMMARY_TOTAL_BUDGET_MS = 200_000;
+// En-dessous de ce reliquat, inutile d'entamer un appel LLM : on réduit sur ce
+// qu'on a déjà (partiels) plutôt que de lancer une tentative vouée à l'échec.
+const SUMMARY_MIN_CALL_MS = 3_000;
+// Part du budget réservée à la passe reduce (sinon les 3 segments map peuvent
+// consommer tout le budget et ne rien laisser à la synthèse finale).
+const SUMMARY_REDUCE_RESERVE_MS = 60_000;
 
 /** Étapes de progression exposées en SSE (chatbot / recherche IA). */
 export interface RagStreamStatus {
@@ -1422,16 +1433,21 @@ export class RagService {
     documentId: string,
     ctx?: RagSearchContext,
   ): Promise<{ summary: string }> {
-    const doc = await this.prisma.document.findUniqueOrThrow({
-      where: { id: documentId },
+    // findFirstOrThrow (et non findUniqueOrThrow) pour filtrer les documents
+    // soft-supprimés : deletedAt n'est pas une colonne unique. Absent/soft-delete
+    // → P2025 → 404 (aligné sur DocumentsService.findById).
+    const doc = await this.prisma.document.findFirstOrThrow({
+      where: { id: documentId, deletedAt: null },
       include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
     });
 
-    // RBAC par classification — fail closed sur classification inconnue.
+    // RBAC complet (rôle × statut × classification), aligné sur findById —
+    // fail closed. Sans le contrôle de statut, un PRESTATAIRE/COLLABORATEUR
+    // pouvait résumer un brouillon (status !== APPROVED) d'autrui via son UUID.
     if (
       ctx &&
       process.env.RBAC_RAG_ENABLED !== "false" &&
-      !canAccessDocumentByClassification(doc, { id: ctx.userId, role: ctx.role })
+      !canReadDocument(doc, { id: ctx.userId, role: ctx.role })
     ) {
       this.logger.warn({
         msg: "rag.summary.rbac_denied",
@@ -1478,13 +1494,18 @@ export class RagService {
     }
 
     const templates = getPromptTemplates(this.llmService.getActiveModel());
-    const timeoutMs = getOllamaTimeoutMs();
+    // Budget temps AGRÉGÉ de tout l'appel (bornée sous le timeout client) : le
+    // reliquat est passé comme `timeoutMs` à chaque generate(), désormais
+    // interprété par LlmService comme un budget global (retries + fallbacks
+    // compris) et non plus par tentative.
+    const deadline = Date.now() + SUMMARY_TOTAL_BUDGET_MS;
+    const remaining = () => deadline - Date.now();
     let summary: string;
 
     if (text.length <= SUMMARY_INPUT_CHARS) {
       const result = await this.llmService.generate(templates.summary(text), {
         maxTokens: SUMMARY_MAX_TOKENS,
-        timeoutMs,
+        timeoutMs: Math.max(SUMMARY_MIN_CALL_MS, remaining()),
       });
       summary = result.text;
     } else {
@@ -1501,10 +1522,21 @@ export class RagService {
       }
 
       const partials: string[] = [];
-      for (const seg of segments) {
-        const partial = await this.llmService.generate(templates.summary(seg), {
+      for (let s = 0; s < segments.length; s++) {
+        // On réserve SUMMARY_REDUCE_RESERVE_MS pour la synthèse finale et on
+        // répartit le reste entre les segments map restants. Si le budget est
+        // trop maigre, on abandonne la boucle map et on réduit sur les partiels
+        // déjà obtenus (voire sur le début du texte) plutôt que d'accumuler des
+        // tentatives vouées à l'échec.
+        const mapBudget = remaining() - SUMMARY_REDUCE_RESERVE_MS;
+        if (mapBudget < SUMMARY_MIN_CALL_MS) break;
+        const perSegment = Math.max(
+          SUMMARY_MIN_CALL_MS,
+          Math.floor(mapBudget / (segments.length - s)),
+        );
+        const partial = await this.llmService.generate(templates.summary(segments[s]), {
           maxTokens: SUMMARY_SEGMENT_MAX_TOKENS,
-          timeoutMs,
+          timeoutMs: perSegment,
         });
         if (partial.text.trim()) partials.push(partial.text.trim());
       }
@@ -1515,7 +1547,7 @@ export class RagService {
         partials.join("\n\n").slice(0, SUMMARY_INPUT_CHARS) || text.slice(0, SUMMARY_INPUT_CHARS);
       const final = await this.llmService.generate(templates.summary(combined), {
         maxTokens: SUMMARY_MAX_TOKENS,
-        timeoutMs,
+        timeoutMs: Math.max(SUMMARY_MIN_CALL_MS, remaining()),
       });
       summary = final.text;
     }

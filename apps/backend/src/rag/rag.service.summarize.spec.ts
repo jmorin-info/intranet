@@ -20,6 +20,10 @@ interface DocStub {
   ownerId: string;
   reviewerId?: string | null;
   approverId?: string | null;
+  status: string;
+  deletedAt?: Date | null;
+  category?: string | null;
+  isPublic?: boolean | null;
   content?: string | null;
   versions: Array<{ checksum: string | null; fileUrl: string; fileType: string }>;
 }
@@ -35,6 +39,12 @@ function makeDoc(overrides: Partial<DocStub> = {}): DocStub {
     ownerId: "owner-1",
     reviewerId: null,
     approverId: null,
+    // Le RBAC s'aligne désormais sur DocumentsService.findById (statut +
+    // soft-delete inclus) : un document lisible par défaut = APPROVED, vivant.
+    status: "APPROVED",
+    deletedAt: null,
+    category: "PROCEDURE",
+    isPublic: false,
     content: "Contenu court du document.",
     versions: [{ checksum: `sum-${docSeq}`, fileUrl: "/f.pdf", fileType: "pdf" }],
     ...overrides,
@@ -43,7 +53,8 @@ function makeDoc(overrides: Partial<DocStub> = {}): DocStub {
 
 function build(doc: DocStub) {
   const prisma = {
-    document: { findUniqueOrThrow: jest.fn().mockResolvedValue(doc) },
+    // Le service utilise findFirstOrThrow (filtre deletedAt: null).
+    document: { findFirstOrThrow: jest.fn().mockResolvedValue(doc) },
   };
   const textExtractor = { extractText: jest.fn().mockResolvedValue("") };
   const llmService = {
@@ -115,21 +126,77 @@ describe("RagService.summarizeDocument", () => {
       expect(llmService.generate).not.toHaveBeenCalled();
     });
 
-    it("autorise le reviewer désigné sur un document CONFIDENTIEL", async () => {
-      const doc = makeDoc({ classification: "CONFIDENTIEL", reviewerId: "user-42" });
+    it("autorise un REVIEWER sur un document CONFIDENTIEL (matrice findById)", async () => {
+      const doc = makeDoc({ classification: "CONFIDENTIEL" });
       const { service } = build(doc);
 
-      const res = await service.summarizeDocument(doc.id, collaborateur("user-42"));
+      const res = await service.summarizeDocument(doc.id, {
+        userId: "rev-1",
+        role: "REVIEWER",
+        departmentId: null,
+      });
       expect(res.summary).toBe("Résumé généré.");
     });
 
-    it("refuse un non-owner sur un document SECRET, même reviewer", async () => {
-      const doc = makeDoc({ classification: "SECRET", reviewerId: "user-42" });
+    it("REFUSE un COLLABORATEUR sur un brouillon INTERNE d'autrui (statut non APPROVED)", async () => {
+      // Régression fermée : sans contrôle de statut, un brouillon d'autrui
+      // était résumable via son UUID.
+      const doc = makeDoc({ classification: "INTERNE", status: "DRAFT", ownerId: "owner-1" });
+      const { service, llmService } = build(doc);
+
+      await expect(service.summarizeDocument(doc.id, collaborateur("bob"))).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(llmService.generate).not.toHaveBeenCalled();
+    });
+
+    it("refuse un REVIEWER non-owner sur un document SECRET", async () => {
+      const doc = makeDoc({ classification: "SECRET", ownerId: "owner-1" });
       const { service } = build(doc);
 
       await expect(
-        service.summarizeDocument(doc.id, collaborateur("user-42")),
+        service.summarizeDocument(doc.id, {
+          userId: "rev-1",
+          role: "REVIEWER",
+          departmentId: null,
+        }),
       ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it("refuse tout le monde sur un document soft-supprimé (findFirstOrThrow → 404 via P2025)", async () => {
+      const doc = makeDoc({ deletedAt: new Date() });
+      const prisma = {
+        // findFirstOrThrow avec deletedAt: null ne renvoie rien → P2025.
+        document: {
+          findFirstOrThrow: jest
+            .fn()
+            .mockRejectedValue(Object.assign(new Error("No Document found"), { code: "P2025" })),
+        },
+      };
+      const llmService = {
+        getActiveModel: jest.fn().mockReturnValue("mistral"),
+        generate: jest.fn(),
+      };
+      const service = new RagService(
+        prisma as never,
+        { extractText: jest.fn() } as never,
+        {} as never,
+        llmService as unknown as LlmService,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+      );
+      jest.spyOn(service["logger"], "warn").mockImplementation(() => undefined);
+
+      await expect(
+        service.summarizeDocument(doc.id, {
+          userId: "owner-1",
+          role: "DIRECTION",
+          departmentId: null,
+        }),
+      ).rejects.toMatchObject({ code: "P2025" });
+      expect(llmService.generate).not.toHaveBeenCalled();
     });
 
     it("laisse passer un rôle privilégié (DIRECTION) sur SECRET", async () => {
@@ -218,13 +285,18 @@ describe("RagService.summarizeDocument", () => {
       expect(reducePrompt).toContain("d");
     });
 
-    it("passe le budget OLLAMA_TIMEOUT_MS à LlmService", async () => {
+    it("passe un budget temps AGRÉGÉ (≤ 200 s) à LlmService, découplé d'OLLAMA_TIMEOUT_MS", async () => {
+      // Le résumé n'utilise plus OLLAMA_TIMEOUT_MS (240 s par appel) comme
+      // budget : il impose un budget global calé sous le timeout client, pour
+      // ne pas accumuler de requêtes zombies quand Ollama est saturé.
       process.env.OLLAMA_TIMEOUT_MS = "240000";
       const doc = makeDoc();
       const { service, llmService } = build(doc);
 
       await service.summarizeDocument(doc.id, collaborateur());
-      expect(llmService.generate.mock.calls[0][1]).toMatchObject({ timeoutMs: 240000 });
+      const { timeoutMs } = llmService.generate.mock.calls[0][1] as { timeoutMs: number };
+      expect(timeoutMs).toBeLessThanOrEqual(200_000);
+      expect(timeoutMs).toBeGreaterThan(100_000);
     });
   });
 
@@ -299,7 +371,7 @@ describe("RagService.summarizeDocument", () => {
       await service.summarizeDocument(doc.id, collaborateur());
 
       // Nouvelle version uploadée → checksum différent → cache invalidé.
-      prisma.document.findUniqueOrThrow.mockResolvedValue({
+      prisma.document.findFirstOrThrow.mockResolvedValue({
         ...doc,
         versions: [{ checksum: "checksum-v2", fileUrl: "/f.pdf", fileType: "pdf" }],
       });
