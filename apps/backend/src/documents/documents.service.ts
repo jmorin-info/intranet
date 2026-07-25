@@ -1159,6 +1159,64 @@ export class DocumentsService {
             `avancer ce document.`,
         );
       }
+
+      // Les transitions qui ENTRENT dans une phase de workflow doivent
+      // instancier une ValidationRequest + ValidationStep et notifier l'assigné
+      // — c'est le rôle des endpoints dédiés (submit-review / request-approval).
+      // Un PATCH direct (ex. drag Kanban) ferait avancer le statut sans workflow :
+      // document orphelin, invisible de toutes les files et non rattrapable par
+      // submit-review (qui exige DRAFT). On refuse ces deux transitions précises
+      // tout en gardant la matrice partagée intacte (les boutons du front, qui
+      // passent eux par les endpoints dédiés, restent affichés).
+      const enterWorkflowViaPatch =
+        (document.status === "DRAFT" && dto.status === "IN_REVIEW") ||
+        (document.status === "REVIEW_APPROVED" && dto.status === "PENDING_APPROVAL");
+      if (enterWorkflowViaPatch) {
+        throw new BadRequestException(
+          dto.status === "IN_REVIEW"
+            ? "Pour soumettre ce document en revue, utilisez le bouton « Soumettre en revue » (POST /documents/:id/submit-review) : un PATCH direct ne crée pas le circuit de validation."
+            : "Pour demander l'approbation, utilisez le bouton « Demander l'approbation » (POST /documents/:id/request-approval) : un PATCH direct ne crée pas le circuit de validation.",
+        );
+      }
+    }
+
+    // Désassignation (Xid: null) d'un rôle dont l'étape est actuellement en
+    // cours : refuser explicitement AVANT toute écriture. Sinon la
+    // ValidationStep PENDING reste orpheline (assignée à l'ancien acteur,
+    // action=null pendant que document.Xid devient null) : l'ancien acteur
+    // continue de la voir dans sa file « à vous d'agir » mais son clic
+    // « Valider » échoue (resolveDecisionActor lit document.Xid = null → 403),
+    // et le cron de relance le harcèle indéfiniment. Réassigner à quelqu'un
+    // d'autre reste possible ; retirer sans remplaçant tant que l'étape court
+    // ne l'est pas.
+    const pendingReqForClear = document.validationRequests?.[0];
+    if (pendingReqForClear && !statusChanges) {
+      const stepTypeByRoleField: Record<string, "VERIFICATION" | "REVIEW" | "APPROVAL"> = {
+        verifierId: "VERIFICATION",
+        reviewerId: "REVIEW",
+        approverId: "APPROVAL",
+      };
+      const labelByRoleField: Record<string, string> = {
+        verifierId: "vérificateur",
+        reviewerId: "relecteur",
+        approverId: "approbateur",
+      };
+      for (const field of ["verifierId", "reviewerId", "approverId"] as const) {
+        const clearing = dto[field] === null && !!document[field];
+        if (!clearing) continue;
+        const wantedStepType = stepTypeByRoleField[field];
+        if (pendingReqForClear.currentStep !== wantedStepType) continue;
+        const hasPendingStep = pendingReqForClear.steps.some(
+          (s) => s.stepType === wantedStepType,
+        );
+        if (hasPendingStep) {
+          throw new BadRequestException(
+            `Impossible de retirer le ${labelByRoleField[field]} tant que l'étape ` +
+              `« ${wantedStepType} » est en cours. Réassignez-le à un autre ` +
+              `utilisateur, ou faites d'abord avancer ou annuler le workflow.`,
+          );
+        }
+      }
     }
 
     const updateData: any = {};
