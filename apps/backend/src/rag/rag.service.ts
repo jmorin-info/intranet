@@ -32,10 +32,11 @@ const SUMMARY_INPUT_CHARS = 2000;
 // Fenêtre d'entrée de la PASSE UNIQUE en streaming (pas de map-reduce) : plus
 // large que le mode bloquant car un seul appel LLM, tokens streamés au fil de
 // l'eau. ~1700 tokens de contexte, acceptable sur mistral.
-// Budget d'entrée du résumé streamé. 5000 chars échantillonnés INTELLIGEMMENT
-// (début + milieu + fin, cf. sampleForSummary) : couvre tout le document sans
-// exploser le prompt-eval, au lieu de ne lire que le début.
-const SUMMARY_STREAM_INPUT_CHARS = 5000;
+// Budget d'entrée du résumé streamé. 4000 chars (baseline latence connu) mais
+// échantillonnés INTELLIGEMMENT (début + milieu + fin, cf. sampleForSummary) :
+// couvre tout le document au lieu de ne lire que le début, SANS alourdir le
+// prompt-eval CPU (le 1er token reste ~30-40 s, pas 54 s comme à 5000).
+const SUMMARY_STREAM_INPUT_CHARS = 4000;
 const SUMMARY_MAX_SEGMENTS = 3;
 // 240 tokens (2026-07-31) : résumé structuré et complet (objet + points clés +
 // portée) au lieu de 3-4 phrases. Streamé → surcoût peu perceptible.
