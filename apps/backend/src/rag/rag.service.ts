@@ -32,12 +32,14 @@ const SUMMARY_INPUT_CHARS = 2000;
 // Fenêtre d'entrée de la PASSE UNIQUE en streaming (pas de map-reduce) : plus
 // large que le mode bloquant car un seul appel LLM, tokens streamés au fil de
 // l'eau. ~1700 tokens de contexte, acceptable sur mistral.
-// Réglage vitesse 2026-07-25 : 4000 (au lieu de 6000) → moins de prompt-eval
-// CPU donc 1er token plus rapide, sans perte notable de qualité de synthèse.
-const SUMMARY_STREAM_INPUT_CHARS = 4000;
+// Budget d'entrée du résumé streamé. 5000 chars échantillonnés INTELLIGEMMENT
+// (début + milieu + fin, cf. sampleForSummary) : couvre tout le document sans
+// exploser le prompt-eval, au lieu de ne lire que le début.
+const SUMMARY_STREAM_INPUT_CHARS = 5000;
 const SUMMARY_MAX_SEGMENTS = 3;
-// 160 (au lieu de 220) : un résumé de 3-4 phrases suffit ; -27 % de génération.
-const SUMMARY_MAX_TOKENS = 160;
+// 240 tokens (2026-07-31) : résumé structuré et complet (objet + points clés +
+// portée) au lieu de 3-4 phrases. Streamé → surcoût peu perceptible.
+const SUMMARY_MAX_TOKENS = 240;
 const SUMMARY_SEGMENT_MAX_TOKENS = 120;
 const SUMMARY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 h — invalidé par checksum de version
 // Budget temps AGRÉGÉ de tout le map-reduce (jusqu'à 3 map + 1 reduce). Calé
@@ -538,7 +540,7 @@ export class RagService {
     return words.filter((w) => w.length >= 3 && !FR_STOP_WORDS.has(w)).slice(0, 8);
   }
 
-  /** Build a ~300-char snippet window centered on the first matching term. */
+  /** Build a ~420-char snippet window centered on the first matching term. */
   buildSnippet(content: string, terms: string[]): string {
     const lowerContent = content
       .normalize("NFD")
@@ -553,8 +555,8 @@ export class RagService {
       }
     }
     if (bestPos === -1) bestPos = 0;
-    const start = Math.max(0, bestPos - 150);
-    const end = Math.min(content.length, start + 300);
+    const start = Math.max(0, bestPos - 180);
+    const end = Math.min(content.length, start + 420);
     let snippet = content.slice(start, end).trim();
     if (start > 0) snippet = "…" + snippet;
     if (end < content.length) snippet = snippet + "…";
@@ -1207,16 +1209,17 @@ export class RagService {
     onMeta({ sources, retrievalConfidence, durationMs: 0, queryId });
 
     // P1.8.1.3 : prompt template adapté au modèle actif.
-    // Contexte réduit à 3 chunks × 250 chars (fix 2026-07) : le prompt-eval
-    // domine la latence CPU (~16 tok/s) — passer de 5×300 à 3×250 retire
-    // ~40 % des tokens de contexte sans dégrader visiblement la pertinence.
+    // Contexte : 4 chunks × 320 chars (enrichi le 2026-07-31 depuis 3×250 pour
+    // des réponses plus complètes). Le prompt-eval domine la latence CPU, donc
+    // on borne : 4×320 ≈ +130 tokens de contexte (~+5 s au 1er token) contre un
+    // gain net de justesse/ancrage. Au-delà, la latence deviendrait sensible.
     const templates = getPromptTemplates(this.llmService.getActiveModel());
     const prompt = templates.rag({
       query: question,
-      chunks: sources.slice(0, 3).map((s) => ({
+      chunks: sources.slice(0, 4).map((s) => ({
         sourceType: s.sourceType,
         title: s.title,
-        snippet: s.snippet.slice(0, 250),
+        snippet: s.snippet.slice(0, 320),
       })),
     });
 
@@ -1424,6 +1427,27 @@ export class RagService {
   // =========================================================================
   // Document summary
   // =========================================================================
+
+  /**
+   * Échantillonne le texte pour le résumé afin de couvrir TOUT le document sans
+   * dépasser `budget` caractères (le prompt-eval CPU domine la latence). Si le
+   * texte tient dans le budget, on le renvoie tel quel. Sinon on prend le début
+   * (~50 %, contient objet/portée), le milieu (~25 %) et la fin (~25 %,
+   * contient souvent conclusions/annexes) — bien mieux que de tronquer au début.
+   */
+  private sampleForSummary(text: string, budget: number): string {
+    const t = text.trim();
+    if (t.length <= budget) return t;
+    const head = Math.floor(budget * 0.5);
+    const mid = Math.floor(budget * 0.25);
+    const tail = budget - head - mid;
+    const midStart = Math.floor(t.length / 2 - mid / 2);
+    return [
+      t.slice(0, head).trim(),
+      "\n[…]\n" + t.slice(midStart, midStart + mid).trim(),
+      "\n[…]\n" + t.slice(t.length - tail).trim(),
+    ].join("");
+  }
 
   /**
    * Cache L2 PERSISTANT (base) du résumé — survit aux redémarrages et partagé
@@ -1704,7 +1728,8 @@ export class RagService {
 
     onStatus?.({ stage: "generating" });
     const templates = getPromptTemplates(this.llmService.getActiveModel());
-    const prompt = templates.summary(text.slice(0, SUMMARY_STREAM_INPUT_CHARS));
+    // Échantillonnage début+milieu+fin → le résumé couvre tout le document.
+    const prompt = templates.summary(this.sampleForSummary(text, SUMMARY_STREAM_INPUT_CHARS));
 
     let acc = "";
     for await (const token of this.llmService.generateStream(prompt, {

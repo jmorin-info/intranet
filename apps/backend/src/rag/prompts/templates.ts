@@ -27,15 +27,15 @@ const buildContext = (chunks: RagPromptContext['chunks']): string =>
 
 export const PROMPT_TEMPLATES: Record<'mistral' | 'phi3' | 'qwen', TemplateSet> = {
   mistral: {
-    rag: (ctx) => `[INST] Tu es l'assistant documentaire OMNITECH Security. Réponds en français de manière concise (max 4 phrases) en te basant uniquement sur le contexte fourni. Si le contexte ne permet pas de répondre, dis-le clairement.
+    rag: (ctx) => `[INST] Tu es l'assistant documentaire d'OMNITECH Security. À partir UNIQUEMENT du contexte fourni, rédige une réponse complète, précise et bien structurée en français : développe les points pertinents, explique le « pourquoi » quand le contexte le permet, et cite les sources utilisées entre crochets (ex. [Source 2]). Si la question comporte plusieurs aspects, organise ta réponse (courts paragraphes ou puces). Reste strictement factuel : n'invente rien et n'ajoute aucune information absente du contexte. Si le contexte est insuffisant pour répondre, dis-le explicitement et précise ce qui manquerait.
 
 Contexte :
 ${buildContext(ctx.chunks)}
 
 Question : ${ctx.query} [/INST]`,
-    summary: (text) => `[INST] Résume le document suivant en 3-5 phrases en français.
+    summary: (text) => `[INST] Rédige un résumé structuré et complet du document suivant, en français. Couvre explicitement : (1) l'objet et la finalité du document, (2) les points clés — obligations, règles, responsabilités, procédures importantes, (3) sa portée (à qui et à quoi il s'applique). Utilise des puces pour les points clés si c'est plus lisible. Va à l'essentiel mais n'omets aucun élément important. N'invente aucune information absente du texte.
 
-${text.slice(0, 4000)} [/INST]`,
+${text.slice(0, 8000)} [/INST]`,
     ticketSuggest: (ticketText) => `[INST] Tu es un agent de support OMNITECH. Propose une réponse professionnelle en français au ticket suivant.
 
 ${ticketText} [/INST]`,
