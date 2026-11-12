@@ -8,6 +8,7 @@ import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, Button, Input } from "@omnitech/ui";
 import { ShieldCheck, Lock } from "lucide-react";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 /**
  * Page de re-validation MFA.
@@ -27,7 +28,7 @@ function MfaRevalidatePageInner() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/dashboard";
+  const next = safeRedirectPath(params.get("next"));
 
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);

@@ -595,6 +595,7 @@ export class MfaService {
   async revalidateMfa(
     userId: string,
     code: string,
+    sessionId?: string,
   ): Promise<{ valid: boolean; mfaValidatedAt: number }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
@@ -619,17 +620,21 @@ export class MfaService {
       throw new UnauthorizedException("Code MFA invalide");
     }
     const now = Date.now();
-    // Met à jour TOUS les refresh tokens actifs de cet utilisateur — chaque
-    // device ouvert profite ainsi de la re-validation. Côté JWT, le claim sera
-    // ré-injecté à la prochaine rotation de l'access token (auto via interceptor).
-    await this.prisma.refreshToken.updateMany({
-      where: {
-        userId,
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
-      data: { mfaValidatedAt: new Date(now) },
-    });
+    // Une validation sur cet appareil ne doit pas autoriser une autre session.
+    // Les JWT anciens sans sid reçoivent un JWT frais, sans modifier de session
+    // persistée ; la prochaine rotation de refresh leur attribuera un sid.
+    if (sessionId) {
+      await this.prisma.refreshToken.updateMany({
+        where: {
+          id: sessionId,
+          userId,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+          userAgent: { not: "PASSWORD_RESET" },
+        },
+        data: { mfaValidatedAt: new Date(now) },
+      });
+    }
     this.auditService
       .log({
         userId,

@@ -34,6 +34,7 @@ import { AppModule } from "./app.module";
 import { ApiSocketIoAdapter } from "./socket-io-adapter";
 import { SentryExceptionFilter } from "./common/sentry.filter";
 import { AppMetricsService } from "./health/app-metrics.service";
+import { blockPrivateUploads } from "./common/private-uploads.middleware";
 
 async function bootstrap() {
   const logger = new Logger("Bootstrap");
@@ -52,6 +53,7 @@ async function bootstrap() {
 
   // Serve uploaded files (wiki attachments, certificates, etc.)
   const uploadsDir = join(process.cwd(), "uploads");
+  app.use(blockPrivateUploads);
   app.useStaticAssets(uploadsDir, { prefix: "/uploads/" });
 
   // Enable strong ETags on GET responses so clients get automatic 304 Not

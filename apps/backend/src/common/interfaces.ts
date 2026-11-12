@@ -6,6 +6,8 @@ export interface JwtPayload {
   role: UserRole;
   departmentId?: string;
   iat?: number;
+  /** Identifiant signé de la ligne refresh de cette session (absent sur les anciens JWT). */
+  sid?: string;
   /**
    * Timestamp (ms epoch) du dernier challenge MFA validé sur cette session.
    * Sert au guard `FreshMfaGuard` pour exiger une re-validation périodique
@@ -46,6 +48,7 @@ export interface RequestUser {
   lastName?: string;
   mfaRequired?: boolean;
   iat?: number;
+  sid?: string;
   /**
    * Propagé depuis le JwtPayload — voir doc ci-dessus. Utilisé par
    * `FreshMfaGuard` pour décider si une re-validation MFA est requise.

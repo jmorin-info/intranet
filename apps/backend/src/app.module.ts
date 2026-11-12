@@ -9,6 +9,7 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { BullModule } from "@nestjs/bullmq";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
+import { PreMfaAuthGuard } from "./auth/guards/pre-mfa-auth.guard";
 import { UsersModule } from "./users/users.module";
 import { DepartmentsModule } from "./departments/departments.module";
 import { DocumentsModule } from "./documents/documents.module";
@@ -216,8 +217,9 @@ import { MaintenanceModule } from "./maintenance/maintenance.module";
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    // Ordre des APP_GUARD : ThrottlerGuard → JwtAuthGuard (déclaré au niveau
-    // controller via @UseGuards) → MfaRequiredGuard → FreshMfaGuard.
+    // Les APP_GUARD passent avant les gardes de contrôleur. Il faut résoudre
+    // l'identité JWT ici pour que les politiques MFA disposent de req.user.
+    { provide: APP_GUARD, useClass: PreMfaAuthGuard },
     // MfaRequiredGuard bloque toute requête authentifiée d'un user soumis à
     // la politique MFA mais non encore enrôlé (sauf @Public/@SkipMfaCheck).
     // FreshMfaGuard ne s'active que si la route est annotée @RequireFreshMfa.

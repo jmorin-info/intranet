@@ -13,6 +13,7 @@ import { Shield, Lock, Mail, Key, UserCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { loginSchema, type LoginFormData } from "@/lib/validation/schemas";
 import { useCmsBlocks, getBlockText } from "@/lib/cms-client";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 type LoginForm = LoginFormData;
 
@@ -77,7 +78,7 @@ function LoginPageInner() {
       localStorage.setItem("had_session", "1");
       toast.success(t("loginSuccess"));
       // Hard navigation to ensure SW cache is bypassed after login
-      const redirect = searchParams?.get("redirect") || "/dashboard";
+      const redirect = safeRedirectPath(searchParams?.get("redirect"));
       window.location.href = redirect;
     } catch (error: unknown) {
       const err = error as {
@@ -110,7 +111,7 @@ function LoginPageInner() {
       localStorage.setItem("had_session", "1");
       toast.success(t("loginSuccess"));
       // Hard navigation to ensure SW cache is bypassed after login
-      const redirect = searchParams?.get("redirect") || "/dashboard";
+      const redirect = safeRedirectPath(searchParams?.get("redirect"));
       window.location.href = redirect;
     } catch (error: unknown) {
       const err = error as {

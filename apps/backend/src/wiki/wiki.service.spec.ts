@@ -9,6 +9,8 @@ import {
 import { UserRole } from '../common/enums';
 import { RequestUser } from '../common/interfaces';
 
+jest.mock('../rag/rag.service', () => ({ RagService: class RagService {} }));
+
 describe('WikiService', () => {
   let service: WikiService;
   let prisma: any;

@@ -21,6 +21,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { ExportButton } from '@/components/ui/export-button';
 import { formatDate } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
+import { certificateAssetUrl } from '@/lib/private-asset-url';
 import {
   Award,
   Plus,
@@ -504,7 +505,7 @@ export default function AdminCertificatesPage() {
           return (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={cert.thumbnailUrl}
+              src={certificateAssetUrl(cert.id, 'thumbnail')}
               alt=""
               className="h-10 w-10 rounded-md object-cover border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800"
             />
@@ -571,7 +572,7 @@ export default function AdminCertificatesPage() {
               </a>
             );
             if (cert.fileUrl) return (
-              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); window.open(cert.fileUrl!, '_blank'); }} title="Voir / Télécharger">
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); window.open(certificateAssetUrl(cert.id), '_blank', 'noopener,noreferrer'); }} title="Voir / Télécharger">
                 <Eye className="h-3.5 w-3.5" />
               </Button>
             );
@@ -583,7 +584,7 @@ export default function AdminCertificatesPage() {
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(cert.fileUrl!, '_blank');
+                window.open(certificateAssetUrl(cert.id), '_blank', 'noopener,noreferrer');
               }}
               title="Télécharger"
             >
@@ -662,7 +663,7 @@ export default function AdminCertificatesPage() {
                 { header: 'Date d\'expiration', accessor: (r: Record<string, unknown>) => (r as unknown as Certificate).expiresAt || '' },
                 { header: 'Statut', accessor: (r: Record<string, unknown>) => { const c = r as unknown as Certificate; if (!c.expiresAt) return 'Valide (sans expiration)'; const exp = new Date(c.expiresAt); const now = new Date(); if (exp < now) return 'Expiré'; const diff = exp.getTime() - now.getTime(); return diff < 30 * 86400000 ? 'Expire bientôt' : 'Valide'; } },
                 { header: 'Fichier joint', accessor: (r: Record<string, unknown>) => (r as unknown as Certificate).fileUrl ? 'Oui' : 'Non' },
-                { header: 'Lien certificat', accessor: (r: Record<string, unknown>) => { const c = r as unknown as Certificate; if (c.fileUrl) return c.fileUrl; const m = (c.notes ?? '').match(/enrollment #(\d+)/i); return m?.[1] ? `https://eu.knowbe4.com/enrollments/${m[1]}/certificate.pdf` : ''; } },
+                { header: 'Lien certificat', accessor: (r: Record<string, unknown>) => { const c = r as unknown as Certificate; if (c.fileUrl) return certificateAssetUrl(c.id); const m = (c.notes ?? '').match(/enrollment #(\d+)/i); return m?.[1] ? `https://eu.knowbe4.com/enrollments/${m[1]}/certificate.pdf` : ''; } },
                 { header: 'Notes', accessor: (r: Record<string, unknown>) => String((r as unknown as Certificate).notes || '') },
               ]}
             />

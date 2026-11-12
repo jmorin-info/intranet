@@ -7,7 +7,6 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { LdapService } from '../ldap/ldap.service';
@@ -45,7 +44,9 @@ export class AuthService {
           where: { id: syncedUser.id },
           include: { department: true },
         });
-        if (!fullUser) throw new UnauthorizedException('Utilisateur introuvable après sync LDAP');
+        if (!fullUser || !fullUser.isActive || fullUser.deletedAt) {
+          throw new UnauthorizedException('Ce compte est désactivé ou supprimé');
+        }
         this.logger.log(`User ${email} authenticated via LDAPS`);
         return fullUser;
       }
@@ -103,8 +104,10 @@ export class AuthService {
      */
     mfaValidated = false,
   ) {
+    const sessionId = crypto.randomUUID();
     const payload: JwtPayload = {
       sub: user.id,
+      sid: sessionId,
       email: user.email,
       role: user.role as UserRole,
       departmentId: user.departmentId ?? undefined,
@@ -133,6 +136,7 @@ export class AuthService {
 
     await this.prisma.refreshToken.create({
       data: {
+        id: sessionId,
         tokenHash: refreshTokenHash,
         userId: user.id,
         expiresAt,
@@ -219,7 +223,9 @@ export class AuthService {
       include: { user: true },
     });
 
-    if (!storedToken) {
+    // Les liens de réinitialisation partagent cette table, mais ne sont pas
+    // des sessions : ils ne doivent jamais émettre de JWT ou contourner le MFA.
+    if (!storedToken || storedToken.userAgent === 'PASSWORD_RESET') {
       throw new UnauthorizedException('Session expirée');
     }
 
@@ -227,10 +233,20 @@ export class AuthService {
       throw new UnauthorizedException('Ce compte est désactivé ou supprimé');
     }
 
-    await this.prisma.refreshToken.update({
-      where: { id: storedToken.id },
+    const consumed = await this.prisma.refreshToken.updateMany({
+      where: {
+        id: storedToken.id,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
       data: { revokedAt: new Date() },
     });
+
+    // Une seule rotation peut consommer ce jeton, même si plusieurs requêtes
+    // ont lu son état actif avant la première révocation.
+    if (consumed.count !== 1) {
+      throw new UnauthorizedException('Session expirée');
+    }
 
     // Propage le claim MFA du précédent refresh token : sans cela, l'utilisateur
     // serait re-challenge MFA à chaque rotation d'access token (15 min) sur les
@@ -238,8 +254,10 @@ export class AuthService {
     // FreshMfaGuard (12 h par défaut), donc cette propagation reste bornée.
     const previousMfaValidatedAt = storedToken.mfaValidatedAt;
 
+    const sessionId = crypto.randomUUID();
     const payload: JwtPayload = {
       sub: storedToken.user.id,
+      sid: sessionId,
       email: storedToken.user.email,
       role: storedToken.user.role as UserRole,
       departmentId: storedToken.user.departmentId || undefined,
@@ -257,6 +275,7 @@ export class AuthService {
 
     await this.prisma.refreshToken.create({
       data: {
+        id: sessionId,
         tokenHash: newRefreshTokenHash,
         userId: storedToken.user.id,
         expiresAt,
@@ -301,7 +320,7 @@ export class AuthService {
   }
 
   generateRefreshToken(): { token: string; hash: string } {
-    const token = uuidv4();
+    const token = crypto.randomUUID();
     const hash = this.hashToken(token);
     return { token, hash };
   }

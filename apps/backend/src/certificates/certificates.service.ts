@@ -15,6 +15,8 @@ import { NotificationType } from "@prisma/client";
 import { CreateCertificateDto } from "./dto/create-certificate.dto";
 import { UpdateCertificateDto } from "./dto/update-certificate.dto";
 import { RequestUser } from "../common/interfaces";
+import { UserRole } from "../common/enums";
+import { privateUploadPath } from "../common/utils/private-upload";
 
 const THUMBS_DIR = path.join(process.cwd(), "uploads", "certificates", "thumbs");
 const THUMB_SIZE = 256;
@@ -407,6 +409,24 @@ export class CertificatesService {
     });
 
     return this.addStatus(cert);
+  }
+
+  async getFileForUser(id: string, user: RequestUser, thumbnail = false) {
+    const cert = await this.findOne(id);
+    if (cert.userId !== user.id && user.role !== UserRole.ADMIN && user.role !== UserRole.SUPER_ADMIN) {
+      throw new NotFoundException("Certificate not found");
+    }
+    const prefix = thumbnail ? "/uploads/certificates/thumbs/" : "/uploads/certificates/";
+    const url = thumbnail ? cert.thumbnailUrl : cert.fileUrl;
+    if (!url || !url.startsWith(prefix)) {
+      throw new NotFoundException("File not found");
+    }
+    const filename = url.slice(prefix.length);
+    const directory = path.join(process.cwd(), "uploads", "certificates", ...(thumbnail ? ["thumbs"] : []));
+    return {
+      path: await privateUploadPath(directory, filename),
+      name: thumbnail ? filename : cert.fileName || filename,
+    };
   }
 
   async createMy(dto: CreateCertificateDto, user: RequestUser) {

@@ -20,6 +20,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { formatDate } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 import { withAuthToken } from "@/lib/media-url";
+import { certificateAssetUrl } from "@/lib/private-asset-url";
 import {
   Award,
   Download,
@@ -28,7 +29,6 @@ import {
   ExternalLink,
   Plus,
   Upload,
-  FileText,
   FileBadge2,
 } from "lucide-react";
 
@@ -39,6 +39,7 @@ interface Certificate {
   obtainedAt: string;
   expiresAt: string | null;
   fileUrl: string | null;
+  thumbnailUrl?: string | null;
   notes: string | null;
 }
 
@@ -154,7 +155,7 @@ export default function MyCertificatesPage() {
   const handleDownload = async (cert: Certificate) => {
     if (!cert.fileUrl) return;
     try {
-      window.open(cert.fileUrl, "_blank");
+      window.open(certificateAssetUrl(cert.id), "_blank", "noopener,noreferrer");
     } catch {
       toast.error("Impossible de télécharger le fichier.");
     }
@@ -237,8 +238,8 @@ export default function MyCertificatesPage() {
             const status = getCertStatus(cert.expiresAt);
             const pending = isPendingValidation(cert);
             const ext = certExtension(cert.fileUrl);
-            const previewSrc = cert.fileUrl
-              ? withAuthToken(cert.fileUrl)
+            const previewSrc = cert.thumbnailUrl
+              ? withAuthToken(certificateAssetUrl(cert.id, "thumbnail"))
               : null;
             return (
               <Card
@@ -248,7 +249,7 @@ export default function MyCertificatesPage() {
                 {/* Preview de la pièce jointe */}
                 {cert.fileUrl && (
                   <div className="relative h-32 bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 border-b border-gray-100 dark:border-slate-800 flex items-center justify-center overflow-hidden">
-                    {isImageExt(ext) && previewSrc ? (
+                    {(isImageExt(ext) || isPdfExt(ext)) && previewSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={previewSrc}
@@ -259,20 +260,6 @@ export default function MyCertificatesPage() {
                             "none";
                         }}
                       />
-                    ) : isPdfExt(ext) && previewSrc ? (
-                      <>
-                        <object
-                          data={`${previewSrc}#toolbar=0&navpanes=0&view=FitH&page=1`}
-                          type="application/pdf"
-                          className="w-full h-full pointer-events-none"
-                          aria-label={`Aperçu PDF : ${cert.name}`}
-                        >
-                          <FileText className="h-10 w-10 text-primary/60" />
-                        </object>
-                        <span className="absolute bottom-1 right-2 text-[10px] font-semibold text-primary bg-white/80 dark:bg-slate-900/80 rounded px-1.5 py-0.5 uppercase">
-                          PDF
-                        </span>
-                      </>
                     ) : (
                       <div className="flex flex-col items-center gap-1 text-seal-gray-500 dark:text-slate-400">
                         <FileBadge2 className="h-10 w-10" />

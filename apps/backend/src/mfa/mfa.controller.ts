@@ -10,9 +10,8 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from "@nestjs/common";
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import { Throttle } from "@nestjs/throttler";
-import { Request } from "express";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { UserThrottlerGuard } from "../auth/guards/user-throttler.guard";
@@ -169,7 +168,7 @@ export class MfaController {
     @Body() body: RevalidateMfaDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.mfaService.revalidateMfa(user.id, body.code);
+    const result = await this.mfaService.revalidateMfa(user.id, body.code, user.sid);
 
     // Signe un nouveau JWT avec le claim mfaValidatedAt rafraîchi. On lit le
     // user complet pour récupérer email/role/dept afin que le payload soit
@@ -184,6 +183,7 @@ export class MfaController {
     }
     const accessToken = this.authService.generateAccessToken({
       sub: dbUser.id,
+      sid: user.sid,
       email: dbUser.email,
       role: dbUser.role as UserRole,
       departmentId: dbUser.departmentId ?? undefined,

@@ -9,11 +9,13 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import type { Response } from "express";
 import { diskStorage } from "multer";
 import * as path from "path";
 import * as fs from "fs";
@@ -271,6 +273,22 @@ export class WikiController {
   }
 
   // ---- Attachments ----
+
+  @Get("attachments/:filename")
+  @Roles(UserRole.COLLABORATEUR)
+  async downloadAttachment(
+    @Param("filename") filename: string,
+    @CurrentUser() user: RequestUser,
+    @Res() res: Response,
+  ) {
+    const file = await this.wikiService.getAttachmentFile(filename, user);
+    res.set({
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "sandbox; default-src 'none'",
+    });
+    res.download(file.path, file.name);
+  }
 
   @Get(":id/attachments")
   @Roles(UserRole.COLLABORATEUR)

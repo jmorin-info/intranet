@@ -12,10 +12,9 @@ import {
   UseInterceptors,
   UploadedFile,
   ParseUUIDPipe,
-  NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
-import { Response } from "express";
+import type { Response } from "express";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import * as fs from "fs";
@@ -36,6 +35,18 @@ const UPLOAD_PATH = path.join(process.cwd(), "uploads", "certificates");
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CertificatesController {
   constructor(private readonly certificatesService: CertificatesService) {}
+
+  private setUploadMetadata(dto: CreateCertificateDto | UpdateCertificateDto, file?: Express.Multer.File) {
+    // Disk locations only come from Multer, never from caller-supplied JSON fields.
+    delete dto.fileUrl;
+    delete dto.fileName;
+    delete dto.fileSizeBytes;
+    if (file) {
+      dto.fileUrl = `/uploads/certificates/${file.filename}`;
+      dto.fileName = file.originalname;
+      dto.fileSizeBytes = file.size;
+    }
+  }
 
   @Get("my")
   @Roles(UserRole.COLLABORATEUR)
@@ -69,11 +80,7 @@ export class CertificatesController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
   ) {
-    if (file) {
-      dto.fileUrl = `/uploads/certificates/${file.filename}`;
-      dto.fileName = file.originalname;
-      dto.fileSizeBytes = file.size;
-    }
+    this.setUploadMetadata(dto, file);
     const cert = await this.certificatesService.createMy(dto, user);
     if (file) {
       await this.certificatesService.regenerateThumbnailForCert(
@@ -112,11 +119,7 @@ export class CertificatesController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
   ) {
-    if (file) {
-      dto.fileUrl = `/uploads/certificates/${file.filename}`;
-      dto.fileName = file.originalname;
-      dto.fileSizeBytes = file.size;
-    }
+    this.setUploadMetadata(dto, file);
     const cert = await this.certificatesService.updateMy(id, dto, user);
     if (file) {
       await this.certificatesService.regenerateThumbnailForCert(
@@ -194,11 +197,7 @@ export class CertificatesController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
   ) {
-    if (file) {
-      dto.fileUrl = `/uploads/certificates/${file.filename}`;
-      dto.fileName = file.originalname;
-      dto.fileSizeBytes = file.size;
-    }
+    this.setUploadMetadata(dto, file);
     const cert = await this.certificatesService.create(dto, user.id);
     if (file) {
       await this.certificatesService.regenerateThumbnailForCert(
@@ -237,11 +236,7 @@ export class CertificatesController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
   ) {
-    if (file) {
-      dto.fileUrl = `/uploads/certificates/${file.filename}`;
-      dto.fileName = file.originalname;
-      dto.fileSizeBytes = file.size;
-    }
+    this.setUploadMetadata(dto, file);
     const cert = await this.certificatesService.update(id, dto, user.id);
     if (file) {
       await this.certificatesService.regenerateThumbnailForCert(
@@ -312,18 +307,32 @@ export class CertificatesController {
   @Roles(UserRole.COLLABORATEUR)
   async downloadFile(
     @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
     @Res() res: Response,
   ) {
-    const cert = await this.certificatesService.findOne(id);
-    if (!cert.fileUrl) {
-      throw new NotFoundException("No file attached to this certificate");
-    }
+    const file = await this.certificatesService.getFileForUser(id, user);
+    res.set({
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "sandbox; default-src 'none'",
+    });
+    res.download(file.path, file.name);
+  }
 
-    const filePath = path.join(process.cwd(), cert.fileUrl);
-    if (!fs.existsSync(filePath)) {
-      throw new NotFoundException("File not found on disk");
-    }
-
-    res.download(filePath, cert.fileName || path.basename(filePath));
+  @Get(":id/thumbnail")
+  @Roles(UserRole.COLLABORATEUR)
+  async thumbnail(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+    @Res() res: Response,
+  ) {
+    const file = await this.certificatesService.getFileForUser(id, user, true);
+    res.set({
+      "Content-Type": "image/webp",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "sandbox; default-src 'none'",
+    });
+    res.sendFile(file.path);
   }
 }

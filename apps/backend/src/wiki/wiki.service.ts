@@ -21,6 +21,7 @@ import { CacheService } from "../common/cache/cache.service";
 import { BacklinkService } from "./backlink.service";
 import { CreateWikiPageDto, UpdateWikiPageDto, WikiVisibility } from "./dto/create-wiki-page.dto";
 import { ShareWikiPageDto } from "./dto/share-wiki-page.dto";
+import { privateUploadPath } from "../common/utils/private-upload";
 
 const EDIT_LOCK_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -1062,6 +1063,26 @@ export class WikiService {
       throw new ForbiddenException("You cannot access this wiki page");
     }
     return this.parseAttachments(page.attachments);
+  }
+
+  async getAttachmentFile(filename: string, user: RequestUser) {
+    if (!filename || filename === "." || filename === ".." || /[/\\\0]/.test(filename)) {
+      throw new NotFoundException("Attachment not found");
+    }
+    const url = `/uploads/wiki/${filename}`;
+    const pages = await this.prisma.wikiPage.findMany({
+      where: { attachments: { contains: url } },
+    });
+    for (const page of pages) {
+      if (!this.canView(page, user)) continue;
+      const attachment = this.parseAttachments(page.attachments).find((item) => item.url === url);
+      if (!attachment) continue;
+      return {
+        path: await privateUploadPath(path.join(process.cwd(), "uploads", "wiki"), filename),
+        name: attachment.name,
+      };
+    }
+    throw new NotFoundException("Attachment not found");
   }
 
   async addAttachment(pageId: string, user: RequestUser, file: Express.Multer.File) {

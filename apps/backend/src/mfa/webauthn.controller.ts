@@ -105,17 +105,20 @@ export class WebAuthnController {
     );
 
     // Mêmes effets de bord que `/mfa/revalidate` : sur succès, on signe un
-    // nouveau JWT avec `mfaValidatedAt = now` (FreshMfaGuard 12 h) et on met
-    // à jour les refresh tokens actifs pour propager l'état entre devices.
+    // nouveau JWT frais et on met à jour uniquement la session signée courante.
     const now = Date.now();
-    await this.prisma.refreshToken.updateMany({
-      where: {
-        userId: user.id,
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
-      data: { mfaValidatedAt: new Date(now) },
-    });
+    if (user.sid) {
+      await this.prisma.refreshToken.updateMany({
+        where: {
+          id: user.sid,
+          userId: user.id,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+          userAgent: { not: "PASSWORD_RESET" },
+        },
+        data: { mfaValidatedAt: new Date(now) },
+      });
+    }
 
     const dbUser = await this.prisma.user.findUnique({
       where: { id: user.id },
@@ -124,6 +127,7 @@ export class WebAuthnController {
     if (dbUser) {
       const accessToken = this.authService.generateAccessToken({
         sub: dbUser.id,
+        sid: user.sid,
         email: dbUser.email,
         role: dbUser.role as UserRole,
         departmentId: dbUser.departmentId ?? undefined,

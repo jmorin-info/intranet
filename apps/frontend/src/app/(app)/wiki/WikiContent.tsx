@@ -84,6 +84,20 @@ import { WikiTagInput, type WikiTagOption } from "@/components/wiki/wiki-tag-inp
 import { CategoryDndView } from "@/components/wiki/category-dnd-view";
 import { WikiSlashMenu, useSlashMenu, type SlashCommand } from "@/components/wiki/wiki-slash-menu";
 import { RichTextEditor } from "@/components/editor/rich-text-editor";
+import { wikiAttachmentUrl } from "@/lib/private-asset-url";
+
+function rewriteWikiAttachmentHtml(html: string): string {
+  if (typeof document === "undefined") return html;
+  const fragment = document.createElement("template");
+  fragment.innerHTML = html;
+  fragment.content.querySelectorAll("[href], [src]").forEach((element) => {
+    for (const attribute of ["href", "src"]) {
+      const value = element.getAttribute(attribute);
+      if (value) element.setAttribute(attribute, wikiAttachmentUrl(value));
+    }
+  });
+  return fragment.innerHTML;
+}
 
 type WikiVisibility = "PRIVATE" | "DEPARTMENT" | "ROLE" | "PUBLIC";
 
@@ -1216,8 +1230,9 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
   useEffect(() => {
     if ((showCreate || showCreatePersonal || showEdit) && editorRef.current) {
       if (!editorInitializedRef.current) {
-        editorRef.current.innerHTML = formData.content;
-        editorContentRef.current = formData.content;
+        const html = rewriteWikiAttachmentHtml(DOMPurify.sanitize(formData.content));
+        editorRef.current.innerHTML = html;
+        editorContentRef.current = html;
         editorInitializedRef.current = true;
       }
     } else {
@@ -2429,10 +2444,10 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
 
     // Align sanitization with news reader: preserve id attributes (anchors for ToC)
     // and explicitly allow pre/code tags (fix du rendu des blocs de code).
-    const rawHtml = DOMPurify.sanitize(viewingPage.content || "", {
+    const rawHtml = rewriteWikiAttachmentHtml(DOMPurify.sanitize(viewingPage.content || "", {
       ADD_ATTR: ["id"],
       ADD_TAGS: ["pre", "code"],
-    });
+    }));
     const { html: withIds, entries: tocEntries } = extractOutline(rawHtml);
 
     const readingTime = computeReadingTime(viewingPage.content || "");
@@ -2842,7 +2857,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <a
-                                    href={att.url}
+                                    href={wikiAttachmentUrl(att.url)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-sm font-medium text-seal-navy dark:text-white hover:text-primary truncate block"
@@ -2855,7 +2870,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
                                   </p>
                                 </div>
                                 <a
-                                  href={att.url}
+                                  href={wikiAttachmentUrl(att.url)}
                                   download
                                   className="text-xs text-primary hover:underline flex-shrink-0"
                                 >

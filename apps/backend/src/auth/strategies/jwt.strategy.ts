@@ -101,9 +101,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return {
       id: user.id,
       email: user.email,
-      role: payload.role,
+      // Les changements de droits doivent s'appliquer aux JWT déjà émis.
+      role: user.role as RequestUser['role'],
       departmentId: user.departmentId || undefined,
       iat: payload.iat,
+      sid: typeof payload.sid === 'string' ? payload.sid : undefined,
       // Propagé pour `FreshMfaGuard` — décide si une re-validation MFA est
       // nécessaire pour les endpoints sensibles (admin, signatures, incidents,
       // compliance). Signé au login lorsque l'utilisateur valide son MFA.

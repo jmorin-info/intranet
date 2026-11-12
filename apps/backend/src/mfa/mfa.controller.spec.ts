@@ -1,11 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { MfaController } from './mfa.controller';
-import { MfaService } from './mfa.service';
-import { AuthService } from '../auth/auth.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { Reflector } from '@nestjs/core';
 import { UserRole } from '../common/enums';
 import type { Request, Response } from 'express';
+
+jest.mock('./mfa.service', () => ({ MfaService: class MfaService {} }));
 
 /**
  * Tests du MFA controller :
@@ -80,19 +77,10 @@ describe('MfaController', () => {
           chartesAcceptedAt: new Date('2026-01-10T12:00:00Z'),
         }),
       },
+      webAuthnCredential: { count: jest.fn().mockResolvedValue(0) },
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [MfaController],
-      providers: [
-        { provide: MfaService, useValue: mfaService },
-        { provide: AuthService, useValue: authService },
-        { provide: PrismaService, useValue: prisma },
-        Reflector,
-      ],
-    }).compile();
-
-    controller = module.get<MfaController>(MfaController);
+    controller = new MfaController(mfaService, authService, prisma);
   });
 
   describe('setup (happy path)', () => {
@@ -157,11 +145,19 @@ describe('MfaController', () => {
         { code: '123456' },
         res,
       );
-      expect(mfaService.revalidateMfa).toHaveBeenCalledWith('user-1', '123456');
+      expect(mfaService.revalidateMfa).toHaveBeenCalledWith('user-1', '123456', undefined);
       expect(authService.generateAccessToken).toHaveBeenCalled();
       expect(res.cookie).toHaveBeenCalled();
       expect(result.accessToken).toBe('refreshed-token');
       expect(result.mfaValidatedAt).toBeDefined();
+    });
+
+    it('revalidates only the signed session and preserves its id in the new JWT', async () => {
+      await controller.revalidate({ ...mockUser, sid: 'session-a' }, { code: '123456' }, buildResponse());
+      expect(mfaService.revalidateMfa).toHaveBeenCalledWith('user-1', '123456', 'session-a');
+      expect(authService.generateAccessToken).toHaveBeenCalledWith(expect.objectContaining({
+        sub: 'user-1', sid: 'session-a', mfaValidatedAt: expect.any(Number),
+      }));
     });
 
     it('throws when DB user vanishes between guard and revalidate', async () => {

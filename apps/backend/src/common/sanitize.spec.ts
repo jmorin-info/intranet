@@ -60,6 +60,19 @@ describe("sanitize — vecteurs XSS OMNITECH", () => {
       mustContain?: string[];
     }> = [
       {
+        // GHSA-rpr9-rxv7-x643 : le wrapper interdit xmp mais son contenu
+        // raw-text ne doit pas redevenir du HTML exécutable en sortie.
+        name: "xmp désautorisé contenant un script",
+        input: '<p>Avant</p><xmp><script>window.auditMarker=1;</script></xmp><p>Après</p>',
+        mustNotContain: ["<script", "window.auditMarker"],
+        mustContain: ["<p>Avant</p>", "<p>Après</p>"],
+      },
+      {
+        name: "xmp désautorisé contenant un handler image",
+        input: '<xmp><img src=x onerror="window.auditMarker=1"></xmp>',
+        mustNotContain: ["onerror", "window.auditMarker"],
+      },
+      {
         name: "<script> entre paragraphes légitimes",
         input: "<p>Avant</p><script>window.x=1;</script><p>Après</p>",
         mustNotContain: ["<script", "window.x"],
