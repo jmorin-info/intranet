@@ -31,7 +31,7 @@ interface SidebarBadgeProps {
 }
 
 const VARIANT_STYLES: Record<NonNullable<SidebarBadgeProps['variant']>, string> = {
-  orange: 'bg-[#F9964A] text-white ring-[#F9964A]/30',
+  orange: 'bg-[#F9964A] text-[#004469] ring-[#F9964A]/30',
   bordeaux: 'bg-[#892034] text-white ring-[#892034]/30',
   emerald: 'bg-emerald-500 text-white ring-emerald-500/30',
 };

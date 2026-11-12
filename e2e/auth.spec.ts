@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { testApiUrl } from './helpers/test-environment';
+import { test, expect } from './helpers/safe-test';
 import { ADMIN_CREDS } from './helpers/auth';
 
 /**
@@ -6,7 +7,7 @@ import { ADMIN_CREDS } from './helpers/auth';
  * Covers login (OK/KO), MFA challenge, forgot-password, refresh, logout.
  */
 
-const API = process.env.E2E_API_URL || 'http://10.33.120.55:3000/api';
+const API = testApiUrl();
 
 test.describe('Authentication', () => {
   test('login page renders', async ({ page }) => {

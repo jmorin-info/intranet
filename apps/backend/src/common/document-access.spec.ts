@@ -1,124 +1,8 @@
-import {
-  canAccessDocumentByClassification,
-  canReadDocument,
-  ClassifiedDocument,
-  DocumentAccessUser,
-  ReadableDocument,
-} from "./document-access";
+import { canAccessDocumentByClassification, canReadDocument, ReadableDocument, DocumentAccessUser, canReadDocumentWithPermissions, documentReaderScope } from './document-access';
+import { hasBaselineDocumentReadAccess } from './document-library.policy';
+import { RequestUser } from './interfaces';
+const user = (id: string, role = 'COLLABORATEUR'): DocumentAccessUser => ({ id, role });
 
-/**
- * Tests du contrôle d'accès documentaire par classification (ISO 27001 A.5.15).
- *
- * Ces règles conditionnent l'ouverture des routes IA (résumé, analyse ISO) à
- * tous les rôles authentifiés : le garde-fou n'est plus le rôle mais la
- * classification du document. Toute régression ici est une fuite de données.
- */
-
-const doc = (o: Partial<ClassifiedDocument> = {}): ClassifiedDocument => ({
-  classification: "INTERNE",
-  ownerId: "owner",
-  reviewerId: null,
-  approverId: null,
-  ...o,
-});
-
-const user = (id: string, role = "COLLABORATEUR"): DocumentAccessUser => ({ id, role });
-
-describe("canAccessDocumentByClassification", () => {
-  describe("rôles privilégiés", () => {
-    it.each(["SUPER_ADMIN", "ADMIN", "DIRECTION"])("%s accède à tout, y compris SECRET", (role) => {
-      expect(
-        canAccessDocumentByClassification(doc({ classification: "SECRET" }), user("x", role)),
-      ).toBe(true);
-    });
-
-    it("un rôle privilégié passe même sur une classification inconnue", () => {
-      expect(
-        canAccessDocumentByClassification(doc({ classification: "???" }), user("x", "ADMIN")),
-      ).toBe(true);
-    });
-  });
-
-  describe("PUBLIC / INTERNE", () => {
-    it.each(["PUBLIC", "INTERNE"])("%s est lisible par tout authentifié", (classification) => {
-      expect(canAccessDocumentByClassification(doc({ classification }), user("anyone"))).toBe(true);
-    });
-  });
-
-  describe("CONFIDENTIEL", () => {
-    const confidentiel = doc({
-      classification: "CONFIDENTIEL",
-      ownerId: "owner",
-      reviewerId: "reviewer",
-      approverId: "approver",
-    });
-
-    it.each([
-      ["owner", "owner"],
-      ["reviewer", "reviewer"],
-      ["approver", "approver"],
-    ])("%s du document y accède", (_label, id) => {
-      expect(canAccessDocumentByClassification(confidentiel, user(id))).toBe(true);
-    });
-
-    it("un tiers non désigné est refusé", () => {
-      expect(canAccessDocumentByClassification(confidentiel, user("tiers"))).toBe(false);
-    });
-
-    it("un REVIEWER global non désigné sur CE document est refusé", () => {
-      // Le rôle ne suffit pas : c'est bien la désignation nominative qui compte.
-      expect(canAccessDocumentByClassification(confidentiel, user("autre", "REVIEWER"))).toBe(
-        false,
-      );
-    });
-  });
-
-  describe("SECRET", () => {
-    const secret = doc({
-      classification: "SECRET",
-      ownerId: "owner",
-      reviewerId: "reviewer",
-      approverId: "approver",
-    });
-
-    it("seul l'owner accède", () => {
-      expect(canAccessDocumentByClassification(secret, user("owner"))).toBe(true);
-    });
-
-    it.each(["reviewer", "approver", "tiers"])("%s est refusé", (id) => {
-      expect(canAccessDocumentByClassification(secret, user(id))).toBe(false);
-    });
-  });
-
-  describe("fail closed", () => {
-    it.each(["", "INCONNUE", "TOP_SECRET", "public"])(
-      "classification %p → refus (fail closed)",
-      (classification) => {
-        expect(canAccessDocumentByClassification(doc({ classification }), user("anyone"))).toBe(
-          false,
-        );
-      },
-    );
-
-    it("ne se laisse pas contourner par un ownerId null côté document", () => {
-      const orphan = doc({
-        classification: "SECRET",
-        ownerId: null as unknown as string,
-      });
-      // Un user sans id (edge case auth) ne doit pas matcher un owner null.
-      expect(
-        canAccessDocumentByClassification(orphan, { id: null as unknown as string, role: "X" }),
-      ).toBe(false);
-    });
-  });
-});
-
-/**
- * Tests de canReadDocument — matrice complète rôle × statut × classification ×
- * soft-delete, alignée sur DocumentsService.findById. Ferme les régressions où
- * l'analyse ISO / le résumé IA ne regardaient QUE la classification (brouillons
- * et documents supprimés d'autrui restaient exposés).
- */
 describe("canReadDocument", () => {
   const rdoc = (o: Partial<ReadableDocument> = {}): ReadableDocument => ({
     classification: "INTERNE",
@@ -176,13 +60,13 @@ describe("canReadDocument", () => {
         ),
       ).toBe(false);
     });
-    it("lit un CONTRACT APPROVED", () => {
+    it("ne laisse pas une catégorie CONTRACT exposer un document INTERNE", () => {
       expect(
         canReadDocument(
           rdoc({ status: "APPROVED", category: "CONTRACT" }),
           user("ext", "PRESTATAIRE"),
         ),
-      ).toBe(true);
+      ).toBe(false);
     });
     it("REFUSE un CONTRACT en brouillon", () => {
       expect(
@@ -195,7 +79,7 @@ describe("canReadDocument", () => {
     it("lit un document public APPROVED", () => {
       expect(
         canReadDocument(
-          rdoc({ status: "APPROVED", category: "PROCEDURE", isPublic: true }),
+          rdoc({ status: "APPROVED", classification: "PUBLIC", category: "PROCEDURE", isPublic: true }),
           user("ext", "PRESTATAIRE"),
         ),
       ).toBe(true);
@@ -255,5 +139,59 @@ describe("canReadDocument", () => {
 
   it("rôle inconnu → fail closed", () => {
     expect(canReadDocument(rdoc({ status: "APPROVED" }), user("x", "GUEST"))).toBe(false);
+  });
+});
+
+
+describe('One document policy across GED and content services', () => {
+  it('compares every role, status and classification with the GED baseline', () => {
+    const roles = ['SUPER_ADMIN', 'ADMIN', 'DIRECTION', 'MANAGER', 'REVIEWER', 'AUDITEUR', 'COLLABORATEUR', 'PRESTATAIRE', 'UNKNOWN'];
+    const statuses = ['DRAFT', 'IN_REVIEW', 'REVIEW_APPROVED', 'PENDING_APPROVAL', 'APPROVED', 'OBSOLETE', 'ARCHIVED'];
+    for (const role of roles) for (const status of statuses) for (const classification of ['PUBLIC', 'INTERNE', 'CONFIDENTIEL', 'SECRET', 'UNKNOWN']) {
+      for (const actor of ['other', 'owner', 'assigned']) {
+        const doc = { ownerId: 'owner', verifierId: 'assigned', status, classification };
+        const reader = { id: actor, role };
+        expect(canReadDocument(doc, reader)).toBe(hasBaselineDocumentReadAccess(doc, reader as RequestUser));
+        expect(canAccessDocumentByClassification(doc, reader)).toBe(canReadDocument(doc, reader));
+      }
+    }
+  });
+  it('requires identity and status, even for privileged callers', () => {
+    expect(canReadDocument({ ownerId: 'x', classification: 'PUBLIC', status: 'APPROVED' }, user('', 'ADMIN'))).toBe(false);
+    expect(canAccessDocumentByClassification({ ownerId: 'x', classification: 'SECRET' }, user('admin', 'ADMIN'))).toBe(false);
+    expect(canReadDocument({ ownerId: 'x', classification: 'SECRET', status: 'APPROVED', isPublic: true }, user('external', 'PRESTATAIRE'))).toBe(false);
+  });
+});
+
+describe('Canonical SQL and object permissions', () => {
+  let db: any;
+  const reader = { id: 'reader', role: 'COLLABORATEUR', departmentId: 'primary' };
+  const document = { id: 'doc', ownerId: 'other', status: 'DRAFT', classification: 'SECRET', currentVersionId: 'v1' };
+  beforeEach(() => {
+    db = {
+      user: { findUnique: jest.fn().mockResolvedValue({ departmentId: 'primary' }) },
+      userDepartment: { findMany: jest.fn().mockResolvedValue([{ departmentId: 'secondary' }]) },
+      documentPermission: { findFirst: jest.fn().mockResolvedValue(null) },
+      approvalStepInstance: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+  });
+  it('resolves valid explicit permissions before loading a summary or ISO content', async () => {
+    db.documentPermission.findFirst.mockResolvedValue({ level: 'READ' });
+    await expect(canReadDocumentWithPermissions(db, document, reader)).resolves.toBe(true);
+    expect(db.documentPermission.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ documentId: 'doc', level: { in: ['READ', 'COMMENT', 'EDIT', 'ADMIN'] }, OR: expect.arrayContaining([{ departmentId: { in: ['primary', 'secondary'] } }]) }) }));
+  });
+  it('grants only the active workflow step and exact current version', async () => {
+    db.approvalStepInstance.findMany.mockResolvedValue([{ step: { order: 1 }, instance: { currentStepOrder: 1, documentId: 'doc', documentVersionId: 'v1' } }]);
+    await expect(canReadDocumentWithPermissions(db, document, reader)).resolves.toBe(true);
+    await expect(canReadDocumentWithPermissions(db, { ...document, currentVersionId: 'v2' }, reader)).resolves.toBe(false);
+    const scope = await documentReaderScope(db, reader);
+    expect(scope).toMatchObject({ OR: expect.arrayContaining([{ id: 'doc', currentVersionId: 'v1' }]) });
+    expect(db.approvalStepInstance.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ OR: expect.arrayContaining([{ assignedToId: null, step: { OR: [{ approverUserId: 'reader' }, { approverUserId: null, approverDeptId: 'primary' }, { approverUserId: null, approverDeptId: null, approverRole: 'COLLABORATEUR' }] } }]) }) }));
+  });
+  it('fails closed on database failure, unknown roles or missing identity', async () => {
+    db.documentPermission.findFirst.mockRejectedValue(new Error('database unavailable'));
+    await expect(canReadDocumentWithPermissions(db, document, reader)).resolves.toBe(false);
+    await expect(documentReaderScope(db, { id: '', role: 'ADMIN' })).resolves.toEqual({ deletedAt: null, id: { in: [] } });
+    await expect(documentReaderScope(db, { id: 'reader', role: 'UNKNOWN' })).resolves.toEqual({ deletedAt: null, id: { in: [] } });
   });
 });

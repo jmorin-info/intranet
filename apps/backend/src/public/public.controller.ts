@@ -1,7 +1,21 @@
-import { Controller, Get, Param, Query, Res, NotFoundException } from '@nestjs/common';
-import { Response } from 'express';
+import { BadRequestException, Controller, Get, Param, Query, Res, NotFoundException } from '@nestjs/common';
+import type { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+
+const publicNewsWhere = { deletedAt: null, isPublished: true, targetRoles: { isEmpty: true } };
+const publicDocumentWhere = {
+  deletedAt: null, status: 'APPROVED' as const, isPublic: true,
+  classification: 'PUBLIC', scanStatus: 'CLEAN', currentVersionId: { not: null },
+};
+
+function positiveInteger(value: string | undefined, fallback: number, maximum: number): number {
+  if (value === undefined || value === '') return fallback;
+  if (!/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(Number(value))) {
+    throw new BadRequestException('La pagination doit contenir des entiers positifs');
+  }
+  return Math.min(Number(value), maximum);
+}
 
 @Controller('public')
 export class PublicController {
@@ -15,7 +29,7 @@ export class PublicController {
     const [totalDocs, approvedDocs, newsCount, userCount, veilleCount, ticketsResolved, deptCount, wikiCount] = await Promise.all([
       this.prisma.document.count({ where: { deletedAt: null } }),
       this.prisma.document.count({ where: { deletedAt: null, status: 'APPROVED' } }),
-      this.prisma.newsPost.count({ where: { deletedAt: null, isPublished: true } }),
+      this.prisma.newsPost.count({ where: publicNewsWhere }),
       this.prisma.user.count({ where: { isActive: true, deletedAt: null } }),
       this.prisma.veilleItem.count(),
       this.prisma.ticket.count({ where: { status: { in: ['RESOLVED', 'CLOSED'] } } }),
@@ -35,10 +49,9 @@ export class PublicController {
 
   @Get('news')
   async getPublicNews(@Query('page') page: string, @Query('limit') limit: string) {
-    const p = parseInt(page || '1');
-    const l = Math.min(parseInt(limit || '10'), 20);
-    // Show all published news in public view (targetRoles filtering is for the authenticated intranet)
-    const where = { deletedAt: null as null, isPublished: true };
+    const p = positiveInteger(page, 1, 1_000_000);
+    const l = positiveInteger(limit, 10, 20);
+    const where = publicNewsWhere;
 
     const [data, total] = await Promise.all([
       this.prisma.newsPost.findMany({
@@ -59,7 +72,7 @@ export class PublicController {
   @Get('news/:slug')
   async getPublicNewsArticle(@Param('slug') slug: string) {
     return this.prisma.newsPost.findFirst({
-      where: { slug, isPublished: true, deletedAt: null, targetRoles: { isEmpty: true } },
+      where: { ...publicNewsWhere, slug },
       select: {
         id: true, title: true, slug: true, content: true, excerpt: true,
         coverImageUrl: true, category: true, publishedAt: true,
@@ -70,26 +83,34 @@ export class PublicController {
 
   @Get('documents')
   async getPublicDocuments(@Query('page') page: string, @Query('limit') limit: string) {
-    const p = parseInt(page || '1');
-    const l = Math.min(parseInt(limit || '10'), 20);
-    const where = { deletedAt: null as null, status: 'APPROVED' as const, isPublic: true };
+    const p = positiveInteger(page, 1, 1_000_000);
+    const l = positiveInteger(limit, 10, 20);
+    const where = publicDocumentWhere;
 
     const [data, total] = await Promise.all([
       this.prisma.document.findMany({
         where,
         select: {
           id: true, title: true, reference: true, category: true,
-          description: true, updatedAt: true,
+          description: true, updatedAt: true, currentVersionId: true,
           owner: { select: { firstName: true, lastName: true } },
           isoControls: { include: { isoControl: { select: { code: true, title: true } } } },
-          versions: { orderBy: { createdAt: 'desc' as const }, take: 1, select: { id: true, fileType: true } },
         },
         orderBy: { updatedAt: 'desc' },
         skip: (p - 1) * l, take: l,
       }),
       this.prisma.document.count({ where }),
     ]);
-    return { data, meta: { total, page: p, limit: l, totalPages: Math.ceil(total / l) } };
+    // At most one requested version per document, independent of the size of its history.
+    const versions = data.length ? await this.prisma.documentVersion.findMany({
+      where: { OR: data.map((document) => ({ id: document.currentVersionId!, documentId: document.id })) },
+      select: { id: true, documentId: true, fileType: true },
+    }) : [];
+    const byDocument = new Map(versions.map(({ documentId, ...version }) => [documentId, version]));
+    const documents = data.map(({ currentVersionId, ...document }) => ({
+      ...document, versions: byDocument.has(document.id) ? [byDocument.get(document.id)!] : [],
+    }));
+    return { data: documents, meta: { total, page: p, limit: l, totalPages: Math.ceil(total / l) } };
   }
 
   /**
@@ -101,20 +122,33 @@ export class PublicController {
     @Res() res: Response,
   ) {
     const doc = await this.prisma.document.findFirst({
-      where: { id: docId, status: 'APPROVED', isPublic: true, deletedAt: null },
-      include: { versions: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      where: { ...publicDocumentWhere, id: docId },
     });
 
-    if (!doc || !doc.versions[0]) throw new NotFoundException('Document introuvable');
+    // Recheck the policy explicitly as well as in the query, before opening a stream.
+    if (!doc || doc.deletedAt || doc.status !== 'APPROVED' || !doc.isPublic ||
+        doc.classification !== 'PUBLIC' || doc.scanStatus !== 'CLEAN' || !doc.currentVersionId) {
+      throw new NotFoundException('Document introuvable');
+    }
 
-    const version = doc.versions[0];
+    const version = await this.prisma.documentVersion.findFirst({
+      where: { id: doc.currentVersionId, documentId: doc.id },
+    });
+    if (!version) throw new NotFoundException('Document introuvable');
+
     try {
       const stream = this.storageService.getFileStream(version.fileUrl);
-      const filename = version.fileUrl.split('/').pop() || 'document';
+      const filename = (version.fileUrl.split('/').pop() || 'document').replace(/[^\x20-\x7e]|["\\]/g, '_');
       res.set({
-        'Content-Type': version.fileType || 'application/octet-stream',
-        'Content-Disposition': `inline; filename="${filename}"`,
-        'Cache-Control': 'public, max-age=3600',
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Security-Policy': "sandbox; default-src 'none'",
+      });
+      stream.once('error', () => {
+        if (res.headersSent) res.destroy();
+        else res.status(404).end();
       });
       stream.pipe(res);
     } catch {
@@ -127,7 +161,7 @@ export class PublicController {
    */
   @Get('veille')
   async getPublicVeille(@Query('limit') limit: string) {
-    const l = Math.min(parseInt(limit || '10'), 30);
+    const l = positiveInteger(limit, 10, 30);
 
     const data = await this.prisma.veilleItem.findMany({
       select: {

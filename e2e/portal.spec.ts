@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { testApiUrl } from './helpers/test-environment';
+import { test, expect } from './helpers/safe-test';
 
 /**
  * E2E Tests — Public Portal & Route Health
@@ -53,7 +54,7 @@ test.describe('Public Portal (/welcome)', () => {
 });
 
 test.describe('Public API Endpoints', () => {
-  const API = process.env.E2E_API_URL || 'http://localhost:3000/api';
+  const API = testApiUrl();
 
   test('GET /public/info returns platform stats', async ({ request }) => {
     const res = await request.get(`${API}/public/info`);

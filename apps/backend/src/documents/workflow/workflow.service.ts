@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Logger,
   Optional,
+  ConflictException,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../audit/audit.service";
@@ -14,6 +15,9 @@ import { UserRole, ROLE_HIERARCHY } from "../../common/enums";
 import { DocumentsService } from "../documents.service";
 import { MentionsService } from "../../mentions/mentions.service";
 import { AppMetricsService } from "../../health/app-metrics.service";
+import { WorkflowRulesService } from '../../workflow-rules/workflow-rules.service';
+import { workflowTransaction } from '../../approval-workflows/workflow-transaction';
+import type { Document, Prisma, ValidationStepType } from '@prisma/client';
 
 /**
  * Catalogue de suggestions pré-définies que le reviewer/approbateur peut
@@ -63,7 +67,44 @@ export class WorkflowService {
     private readonly documentsService: DocumentsService,
     @Optional() private readonly mentions?: MentionsService,
     @Optional() private readonly metrics?: AppMetricsService,
+    @Optional() private readonly workflowRules?: WorkflowRulesService,
   ) {}
+
+  private assertDecisionSnapshot(document: Document, actorId: string) {
+    if (document.ownerId === actorId) throw new ForbiddenException('Le rédacteur ne peut pas valider son propre document.');
+    if (!document.currentVersionId || document.scanStatus !== 'CLEAN') throw new BadRequestException('Une version figée et contrôlée est requise avant toute validation.');
+  }
+
+  private async approveQualityStep(db: Prisma.TransactionClient, document: Document,
+    request: { id: string; documentVersionId: string; currentStep: ValidationStepType; steps: Array<{ id: string; stepType: ValidationStepType }> } | undefined,
+    stepType: 'VERIFICATION' | 'REVIEW', actorId: string, comment?: string) {
+    const step = request?.steps.find(item => item.stepType === stepType);
+    if (!request || request.currentStep !== stepType || request.documentVersionId !== document.currentVersionId || !step) throw new ConflictException('Cette étape de validation a changé. Rechargez le document.');
+    if (stepType === 'REVIEW' && document.verifierId && !await db.validationStep.findFirst({ where: { requestId: request.id, stepType: 'VERIFICATION', action: 'APPROVED' }, select: { id: true } })) throw new BadRequestException('La vérification technique doit précéder la revue.');
+    const changed = await db.document.updateMany({ where: { id: document.id, status: 'IN_REVIEW', currentVersionId: document.currentVersionId, updatedAt: document.updatedAt, scanStatus: 'CLEAN', deletedAt: null }, data: { status: stepType === 'REVIEW' ? 'REVIEW_APPROVED' : 'IN_REVIEW' } });
+    const decided = await db.validationStep.updateMany({ where: { id: step.id, action: null }, data: { action: 'APPROVED', decidedById: actorId, comment, actionAt: new Date() } });
+    const moved = await db.validationRequest.updateMany({ where: { id: request.id, status: 'PENDING', currentStep: stepType }, data: { currentStep: 'REVIEW' } });
+    if (changed.count !== 1 || decided.count !== 1 || moved.count !== 1) throw new ConflictException('Une autre décision a déjà modifié ce circuit.');
+    if (stepType === 'VERIFICATION') await db.validationStep.create({ data: { requestId: request.id, stepType: 'REVIEW', assignedToId: document.reviewerId! } });
+  }
+
+  private async returnForCorrection(db: Prisma.TransactionClient, document: Document, request: { id: string; documentVersionId: string; currentStep: ValidationStepType; steps: Array<{ id: string; stepType: ValidationStepType }> } | undefined,
+    stepType: ValidationStepType, actorId: string, comment: string) {
+    const step = request?.steps.find(item => item.stepType === stepType);
+    if (!request || request.currentStep !== stepType || request.documentVersionId !== document.currentVersionId || !step) {
+      throw new ConflictException('Cette étape de validation a changé. Rechargez le document.');
+    }
+    const changed = await db.document.updateMany({ where: { id: document.id, status: document.status, currentVersionId: document.currentVersionId, updatedAt: document.updatedAt, deletedAt: null }, data: { status: 'DRAFT' } });
+    const closed = await db.validationRequest.updateMany({ where: { id: request.id, status: 'PENDING', currentStep: stepType }, data: { status: 'REJECTED' } });
+    const decided = await db.validationStep.updateMany({ where: { id: step.id, action: null }, data: { action: 'REJECTED', decidedById: actorId, comment, actionAt: new Date() } });
+    if (changed.count !== 1 || closed.count !== 1 || decided.count !== 1) throw new ConflictException('Une autre décision a déjà modifié ce circuit.');
+    const circuits = await db.approvalInstance.findMany({ where: { documentId: document.id, status: 'PENDING' }, select: { id: true } });
+    for (const circuit of circuits) {
+      await db.approvalInstance.update({ where: { id: circuit.id }, data: { status: 'CANCELLED', completedAt: new Date() } });
+      await db.approvalStepInstance.updateMany({ where: { instanceId: circuit.id, decision: 'PENDING' }, data: { decision: 'SKIPPED', decidedAt: new Date(), comment: 'Retour du document pour correction.' } });
+      await db.approvalAuditLog.create({ data: { action: 'APPROVAL_CANCELLED_FOR_CORRECTION', actorId, approvalInstanceId: circuit.id, metadata: { documentId: document.id, documentVersionId: document.currentVersionId, reason: comment } } });
+    }
+  }
 
   /**
    * Parse the given comment for @mentions and notify the cited users.
@@ -164,7 +205,7 @@ export class WorkflowService {
   }
 
   async submitForReview(docId: string, userId: string) {
-    const document = await this.prisma.document.findUnique({
+    let document = await this.prisma.document.findUnique({
       where: { id: docId },
       // isNative, content, currentVersionId, verifierId are scalar fields
     });
@@ -208,6 +249,12 @@ export class WorkflowService {
     if (document.isNative && (!document.content || document.content.trim().length === 0)) {
       throw new BadRequestException("Le document natif doit avoir du contenu avant soumission");
     }
+    if (document.isNative) document = await this.documentsService.ensureNativeVersion(docId, userId);
+    if (!document.reviewerId || !document.approverId || !document.currentVersionId) throw new BadRequestException("Le document doit avoir une version figée, un relecteur et un approbateur.");
+    if (document.scanStatus !== 'CLEAN') throw new BadRequestException('Le contrôle antimalware doit être terminé avant la soumission.');
+    if (document.reviewerId === document.ownerId || document.approverId === document.ownerId || document.verifierId === document.ownerId) {
+      throw new BadRequestException('Le rédacteur doit être distinct des vérificateurs, relecteurs et approbateurs.');
+    }
 
     // Cycle qualité 5 rôles : si un vérificateur est désigné, le workflow
     // démarre par l'étape VERIFICATION (contrôle technique) ; sinon il démarre
@@ -217,43 +264,18 @@ export class WorkflowService {
     const firstAssigneeId = document.verifierId ?? document.reviewerId;
 
     // Atomic: update status + create validation request + validation step
-    await this.prisma.$transaction(async (tx) => {
-      await tx.document.update({
-        where: { id: docId },
+    await workflowTransaction(this.prisma, async (tx) => {
+      const claimed = await tx.document.updateMany({
+        where: { id: docId, status: 'DRAFT', updatedAt: document.updatedAt, currentVersionId: document.currentVersionId, content: document.content, title: document.title, scanStatus: 'CLEAN', deletedAt: null },
         data: { status: "IN_REVIEW" },
       });
-
-      // ValidationRequest.documentVersionId is required by schema.
-      // For native docs without a version, create a synthetic version
-      // snapshot so the validation chain remains traceable (ISO 27001 A.5.28).
-      let versionId = document.currentVersionId;
-      if (!versionId && document.isNative) {
-        const snapshot = await tx.documentVersion.create({
-          data: {
-            documentId: docId,
-            versionNumber: "1.0",
-            fileUrl: `inline://${docId}`,
-            fileType: "text/html",
-            fileSizeBytes: Buffer.byteLength(document.content || "", "utf8"),
-            checksum: require("crypto")
-              .createHash("sha256")
-              .update(document.content || "")
-              .digest("hex"),
-            changeLog: "Snapshot du contenu natif pour validation",
-            uploadedById: userId,
-          },
-        });
-        versionId = snapshot.id;
-        await tx.document.update({
-          where: { id: docId },
-          data: { currentVersionId: snapshot.id },
-        });
-      }
+      if (claimed.count !== 1) throw new ConflictException('Le document a été modifié ou soumis simultanément. Rechargez la page.');
+      await this.workflowRules?.applyAtSubmission(tx, document, userId);
 
       const validationRequest = await tx.validationRequest.create({
         data: {
           documentId: docId,
-          documentVersionId: versionId!,
+          documentVersionId: document.currentVersionId!,
           requestedById: userId,
           currentStep: startStep,
           status: "PENDING",
@@ -311,7 +333,7 @@ export class WorkflowService {
    */
   async approveVerification(docId: string, userId: string, comment?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    if (!user || !user.isActive || user.deletedAt) throw new ForbiddenException("Utilisateur indisponible ou désactivé.");
     const userRole = user.role as UserRole;
 
     const document = await this.prisma.document.findUnique({
@@ -353,45 +375,8 @@ export class WorkflowService {
       "vérificateur",
     );
 
-    await this.prisma.$transaction(async (tx) => {
-      const pendingStep = request.steps.find((s) => s.stepType === "VERIFICATION");
-      if (pendingStep) {
-        await tx.validationStep.update({
-          where: { id: pendingStep.id },
-          data: {
-            action: "APPROVED",
-            decidedById: userId,
-            comment,
-            actionAt: new Date(),
-          },
-        });
-      } else {
-        await tx.validationStep.create({
-          data: {
-            requestId: request.id,
-            stepType: "VERIFICATION",
-            assignedToId: document.verifierId ?? userId,
-            action: "APPROVED",
-            decidedById: userId,
-            comment,
-            actionAt: new Date(),
-          },
-        });
-      }
-
-      // Enchaînement automatique sur l'étape REVIEW (relecteur).
-      await tx.validationRequest.update({
-        where: { id: request.id },
-        data: { currentStep: "REVIEW" },
-      });
-      await tx.validationStep.create({
-        data: {
-          requestId: request.id,
-          stepType: "REVIEW",
-          assignedToId: reviewerId,
-        },
-      });
-    });
+    this.assertDecisionSnapshot(document, userId);
+    await workflowTransaction(this.prisma, tx => this.approveQualityStep(tx, document, request, "VERIFICATION", userId, comment));
 
     await this.notifyReviewerWithEmailLinks({
       id: docId,
@@ -439,7 +424,7 @@ export class WorkflowService {
       );
     }
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    if (!user || !user.isActive || user.deletedAt) throw new ForbiddenException("Utilisateur indisponible ou désactivé.");
     const userRole = user.role as UserRole;
 
     const document = await this.prisma.document.findUnique({
@@ -475,28 +460,7 @@ export class WorkflowService {
 
     const enrichedComment = this.buildRejectionComment(comment, suggestions);
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.document.update({
-        where: { id: docId },
-        data: { status: "DRAFT" },
-      });
-      const pendingStep = request.steps.find((s) => s.stepType === "VERIFICATION");
-      if (pendingStep) {
-        await tx.validationStep.update({
-          where: { id: pendingStep.id },
-          data: {
-            action: "REJECTED",
-            decidedById: userId,
-            comment: enrichedComment,
-            actionAt: new Date(),
-          },
-        });
-      }
-      await tx.validationRequest.update({
-        where: { id: request.id },
-        data: { status: "REJECTED" },
-      });
-    });
+    await workflowTransaction(this.prisma, tx => this.returnForCorrection(tx, document, request, "VERIFICATION", userId, enrichedComment));
 
     await this.notificationsService.create({
       userId: document.ownerId,
@@ -540,7 +504,7 @@ export class WorkflowService {
    */
   async approveReview(docId: string, userId: string, comment?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    if (!user || !user.isActive || user.deletedAt) throw new ForbiddenException("Utilisateur indisponible ou désactivé.");
     const userRole = user.role as UserRole;
 
     const document = await this.prisma.document.findUnique({
@@ -588,42 +552,8 @@ export class WorkflowService {
     }
 
     // Atomic: status → REVIEW_APPROVED + close reviewer step (real decider)
-    await this.prisma.$transaction(async (tx) => {
-      await tx.document.update({
-        where: { id: docId },
-        data: { status: "REVIEW_APPROVED" },
-      });
-
-      if (request) {
-        // Ne change PAS currentStep : on reste à REVIEW jusqu'à ce que
-        // le rédacteur appelle requestApproval(). On CLÔTURE la step REVIEW
-        // pendante (acteur réel dans decidedById) au lieu d'en créer une 2e.
-        const pendingStep = request.steps.find((s) => s.stepType === "REVIEW");
-        if (pendingStep) {
-          await tx.validationStep.update({
-            where: { id: pendingStep.id },
-            data: {
-              action: "APPROVED",
-              decidedById: userId,
-              comment,
-              actionAt: new Date(),
-            },
-          });
-        } else {
-          await tx.validationStep.create({
-            data: {
-              requestId: request.id,
-              stepType: "REVIEW",
-              assignedToId: document.reviewerId ?? userId,
-              action: "APPROVED",
-              decidedById: userId,
-              comment,
-              actionAt: new Date(),
-            },
-          });
-        }
-      }
-    });
+    this.assertDecisionSnapshot(document, userId);
+    await workflowTransaction(this.prisma, tx => this.approveQualityStep(tx, document, request, "REVIEW", userId, comment));
 
     if (isDerogation) {
       await this.auditService.log({
@@ -713,31 +643,14 @@ export class WorkflowService {
       throw new BadRequestException("Aucun approbateur n'est assigné au document");
     }
 
-    // Atomic: status → PENDING_APPROVAL + validation step
-    await this.prisma.$transaction(async (tx) => {
-      await tx.document.update({
-        where: { id: docId },
-        data: { status: "PENDING_APPROVAL" },
-      });
-
-      const request = document.validationRequests[0];
-      if (request) {
-        await tx.validationRequest.update({
-          where: { id: request.id },
-          data: { currentStep: "APPROVAL" },
-        });
-
-        // Step "approval pending" pour l'approbateur. La confirmation du
-        // rédacteur est tracée par l'audit DOCUMENT_APPROVAL_REQUESTED (on ne
-        // crée plus de 2e step REVIEW synthétique qui polluait l'historique).
-        await tx.validationStep.create({
-          data: {
-            requestId: request.id,
-            stepType: "APPROVAL",
-            assignedToId: document.approverId!,
-          },
-        });
-      }
+    const request = document.validationRequests[0];
+    if (!request || request.currentStep !== 'REVIEW' || request.documentVersionId !== document.currentVersionId) throw new ConflictException('La revue ne correspond pas à la version courante.');
+    await workflowTransaction(this.prisma, async tx => {
+      if (!await tx.validationStep.findFirst({ where: { requestId: request.id, stepType: 'REVIEW', action: 'APPROVED' }, select: { id: true } })) throw new BadRequestException('La revue doit être approuvée avant la demande finale.');
+      const changed = await tx.document.updateMany({ where: { id: docId, status: 'REVIEW_APPROVED', currentVersionId: document.currentVersionId, updatedAt: document.updatedAt, scanStatus: 'CLEAN' }, data: { status: 'PENDING_APPROVAL' } });
+      const moved = await tx.validationRequest.updateMany({ where: { id: request.id, status: 'PENDING', currentStep: 'REVIEW' }, data: { currentStep: 'APPROVAL' } });
+      if (changed.count !== 1 || moved.count !== 1) throw new ConflictException('Une autre action a déjà modifié ce circuit.');
+      await tx.validationStep.create({ data: { requestId: request.id, stepType: 'APPROVAL', assignedToId: document.approverId! } });
     });
 
     // Notify approver
@@ -787,7 +700,7 @@ export class WorkflowService {
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    if (!user || !user.isActive || user.deletedAt) throw new ForbiddenException("Utilisateur indisponible ou désactivé.");
     const userRole = user.role as UserRole;
 
     const document = await this.prisma.document.findUnique({
@@ -828,84 +741,7 @@ export class WorkflowService {
 
     const enrichedComment = this.buildRejectionComment(comment, suggestions);
 
-    // Versionning OMNITECH :
-    //   - Les édits de brouillon ne bumpent PAS la version (overwrite en place)
-    //   - Le rejet de revue BUMPE la version : la version rejetée reste figée
-    //     dans l'historique pour l'audit ISO, et les édits suivants vont dans
-    //     une nouvelle version mineure qui pourra elle-même être soumise
-    //     (puis rejetée ou approuvée).
-    const currentDoc = await this.prisma.document.findUnique({
-      where: { id: docId },
-      include: {
-        versions: { orderBy: { createdAt: "desc" }, take: 1 },
-      },
-    });
-    const currentVersion = currentDoc?.versions?.[0];
-
-    await this.prisma.$transaction(async (tx) => {
-      await tx.document.update({
-        where: { id: docId },
-        data: { status: "DRAFT" },
-      });
-
-      // Bump de version : clone la row courante avec un version number bumpé
-      if (currentVersion) {
-        const oldNum = currentVersion.versionNumber || "1.0";
-        const m = oldNum.match(/(\d+)(?:\.(\d+))?/);
-        const major = m ? parseInt(m[1], 10) : 1;
-        const minor = m && m[2] ? parseInt(m[2], 10) : 0;
-        const newVersionNumber = `${major}.${minor + 1}`;
-
-        const bumped = await tx.documentVersion.create({
-          data: {
-            documentId: docId,
-            versionNumber: newVersionNumber,
-            fileUrl: currentVersion.fileUrl,
-            fileType: currentVersion.fileType,
-            fileSizeBytes: currentVersion.fileSizeBytes,
-            checksum: currentVersion.checksum,
-            changeLog: `Post-rejet de revue (base v${oldNum})`,
-            uploadedById: userId,
-          },
-        });
-        await tx.document.update({
-          where: { id: docId },
-          data: { currentVersionId: bumped.id },
-        });
-      }
-
-      if (pendingRequest) {
-        await tx.validationRequest.update({
-          where: { id: pendingRequest.id },
-          data: { status: "REJECTED" },
-        });
-
-        const pendingStep = pendingRequest.steps.find((s) => s.stepType === "REVIEW");
-        if (pendingStep) {
-          await tx.validationStep.update({
-            where: { id: pendingStep.id },
-            data: {
-              action: "REJECTED",
-              decidedById: userId,
-              comment: enrichedComment,
-              actionAt: new Date(),
-            },
-          });
-        } else {
-          await tx.validationStep.create({
-            data: {
-              requestId: pendingRequest.id,
-              stepType: "REVIEW",
-              assignedToId: document.reviewerId ?? userId,
-              action: "REJECTED",
-              decidedById: userId,
-              comment: enrichedComment,
-              actionAt: new Date(),
-            },
-          });
-        }
-      }
-    });
+    await workflowTransaction(this.prisma, tx => this.returnForCorrection(tx, document, pendingRequest, "REVIEW", userId, enrichedComment));
 
     if (isDerogation) {
       await this.auditService.log({
@@ -968,7 +804,7 @@ export class WorkflowService {
 
   async approveDocument(docId: string, userId: string, comment?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    if (!user || !user.isActive || user.deletedAt) throw new ForbiddenException("Utilisateur indisponible ou désactivé.");
 
     const userRole = user.role as UserRole;
     if (ROLE_HIERARCHY[userRole] < ROLE_HIERARCHY[UserRole.DIRECTION]) {
@@ -999,6 +835,14 @@ export class WorkflowService {
       );
     }
 
+    if (document.ownerId === userId) throw new ForbiddenException("Le rédacteur ne peut pas approuver définitivement son document.");
+    if (!document.currentVersionId || document.scanStatus !== "CLEAN") throw new BadRequestException("Une version figée et contrôlée doit précéder l’approbation.");
+    const request = document.validationRequests[0];
+    const pendingStep = request?.steps.find(step => step.stepType === "APPROVAL");
+    if (!request || request.currentStep !== "APPROVAL" || request.documentVersionId !== document.currentVersionId || !pendingStep) {
+      throw new BadRequestException("Le circuit qualité n’a pas terminé ses étapes préalables sur cette version.");
+    }
+
     // Contrôle approbateur (ISO 27001 A.5.1) : seul l'approbateur ASSIGNÉ peut
     // approuver ; une dérogation ADMIN/SUPER_ADMIN est autorisée mais tracée
     // (audit WARN + decidedById ≠ approverId assigné).
@@ -1009,45 +853,25 @@ export class WorkflowService {
       "approbateur",
     );
 
-    // Atomic: approve status + complete validation request + approval step
-    await this.prisma.$transaction(async (tx) => {
-      await tx.document.update({
-        where: { id: docId },
+    await workflowTransaction(this.prisma, async tx => {
+      const latest = await tx.approvalInstance.findFirst({
+        where: { documentId: docId, documentVersionId: document.currentVersionId! },
+        orderBy: { startedAt: "desc" }, select: { status: true },
+      });
+      if (latest && latest.status !== "APPROVED") throw new BadRequestException("Terminez le circuit d’approbation additionnel avant la publication définitive.");
+      const review = await tx.validationStep.findFirst({ where: { requestId: request.id, stepType: "REVIEW", action: "APPROVED" }, select: { id: true } });
+      if (!review) throw new BadRequestException("La revue de cette version n’a pas été approuvée.");
+      if (document.verifierId && !await tx.validationStep.findFirst({ where: { requestId: request.id, stepType: "VERIFICATION", action: "APPROVED" }, select: { id: true } })) {
+        throw new BadRequestException("La vérification technique de cette version n’a pas été approuvée.");
+      }
+      const changed = await tx.document.updateMany({
+        where: { id: docId, status: "PENDING_APPROVAL", currentVersionId: document.currentVersionId, updatedAt: document.updatedAt, scanStatus: "CLEAN", deletedAt: null },
         data: { status: "APPROVED" },
       });
-
-      const request = document.validationRequests[0];
-      if (request) {
-        await tx.validationRequest.update({
-          where: { id: request.id },
-          data: { status: "COMPLETED" },
-        });
-
-        const pendingStep = request.steps.find((s) => s.stepType === "APPROVAL");
-        if (pendingStep) {
-          await tx.validationStep.update({
-            where: { id: pendingStep.id },
-            data: {
-              action: "APPROVED",
-              decidedById: userId,
-              comment,
-              actionAt: new Date(),
-            },
-          });
-        } else {
-          await tx.validationStep.create({
-            data: {
-              requestId: request.id,
-              stepType: "APPROVAL",
-              assignedToId: document.approverId ?? userId,
-              action: "APPROVED",
-              decidedById: userId,
-              comment,
-              actionAt: new Date(),
-            },
-          });
-        }
-      }
+      if (changed.count !== 1) throw new ConflictException("Le document a changé pendant l’approbation. Rechargez la page.");
+      const decision = await tx.validationStep.updateMany({ where: { id: pendingStep.id, action: null }, data: { action: "APPROVED", decidedById: userId, comment, actionAt: new Date() } });
+      const closed = await tx.validationRequest.updateMany({ where: { id: request.id, status: "PENDING", currentStep: "APPROVAL" }, data: { status: "COMPLETED" } });
+      if (decision.count !== 1 || closed.count !== 1) throw new ConflictException("Une autre décision a déjà modifié ce circuit.");
     });
 
     // Notify owner
@@ -1113,7 +937,7 @@ export class WorkflowService {
 
     // Auto-scan for ISO 27001 control mapping on approval
     try {
-      const isoResult = await this.isoAnalyzerService.autoAssignControls(docId, 35);
+      const isoResult = await this.isoAnalyzerService.autoAssignControls(docId, 35, { id: user.id, email: user.email, role: userRole, departmentId: user.departmentId });
       if (isoResult.assigned > 0) {
         this.logger.log(
           `ISO auto-assign on approval: ${document.reference} → ${isoResult.assigned} controls (${isoResult.controls.join(", ")})`,
@@ -1137,7 +961,7 @@ export class WorkflowService {
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    if (!user || !user.isActive || user.deletedAt) throw new ForbiddenException("Utilisateur indisponible ou désactivé.");
 
     const userRole = user.role as UserRole;
     if (ROLE_HIERARCHY[userRole] < ROLE_HIERARCHY[UserRole.DIRECTION]) {
@@ -1179,45 +1003,7 @@ export class WorkflowService {
     const enrichedComment = this.buildRejectionComment(comment, suggestions);
 
     // Atomic: revert status + reject validation request + rejection step
-    await this.prisma.$transaction(async (tx) => {
-      await tx.document.update({
-        where: { id: docId },
-        data: { status: "DRAFT" },
-      });
-
-      const request = document.validationRequests[0];
-      if (request) {
-        await tx.validationRequest.update({
-          where: { id: request.id },
-          data: { status: "REJECTED" },
-        });
-
-        const pendingStep = request.steps.find((s) => s.stepType === "APPROVAL");
-        if (pendingStep) {
-          await tx.validationStep.update({
-            where: { id: pendingStep.id },
-            data: {
-              action: "REJECTED",
-              decidedById: userId,
-              comment: enrichedComment,
-              actionAt: new Date(),
-            },
-          });
-        } else {
-          await tx.validationStep.create({
-            data: {
-              requestId: request.id,
-              stepType: "APPROVAL",
-              assignedToId: document.approverId ?? userId,
-              action: "REJECTED",
-              decidedById: userId,
-              comment: enrichedComment,
-              actionAt: new Date(),
-            },
-          });
-        }
-      }
-    });
+    await workflowTransaction(this.prisma, tx => this.returnForCorrection(tx, document, document.validationRequests[0], "APPROVAL", userId, enrichedComment));
 
     await this.notificationsService.create({
       userId: document.ownerId,
@@ -1260,7 +1046,7 @@ export class WorkflowService {
 
   async markObsolete(docId: string, userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    if (!user || !user.isActive || user.deletedAt) throw new ForbiddenException("Utilisateur indisponible ou désactivé.");
 
     const userRole = user.role as UserRole;
     if (ROLE_HIERARCHY[userRole] < ROLE_HIERARCHY[UserRole.ADMIN]) {

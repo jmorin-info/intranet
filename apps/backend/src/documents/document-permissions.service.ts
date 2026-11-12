@@ -9,6 +9,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { RequestUser } from "../common/interfaces";
 import { UserRole, ROLE_HIERARCHY } from "../common/enums";
+import { hasBaselineDocumentReadAccess } from './document-library.policy';
 
 /**
  * Niveaux de permission GED (cumulatifs).
@@ -99,15 +100,18 @@ export class DocumentPermissionsService {
         isPublic: true,
         status: true,
         deletedAt: true,
+        verifierId: true,
+        reviewerId: true,
+        approverId: true,
       },
     });
     if (!document || document.deletedAt) return null;
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, role: true, departmentId: true },
+      select: { id: true, role: true, departmentId: true, isActive: true, deletedAt: true },
     });
-    if (!user) return null;
+    if (!user || !user.isActive || user.deletedAt) return null;
 
     // 1. Owner = ADMIN auto
     if (document.ownerId === userId) return "ADMIN";
@@ -140,46 +144,20 @@ export class DocumentPermissionsService {
     if (explicitPerms.length > 0) {
       // Précédence : user > department > role. À niveau de précédence égal,
       // on garde le niveau cumulatif le plus élevé.
-      const userPerm = explicitPerms.find((p) => p.userId === userId);
-      const dptPerm = explicitPerms.find((p) => p.departmentId !== null);
-      const rolePerm = explicitPerms.find((p) => p.role !== null);
-      const winner = userPerm ?? dptPerm ?? rolePerm;
-      if (winner && VALID_LEVELS.has(winner.level as DocPermLevel)) {
-        return winner.level as DocPermLevel;
+      const valid = explicitPerms.filter((permission) => VALID_LEVELS.has(permission.level as DocPermLevel));
+      const tiers = [
+        valid.filter((permission) => permission.userId === userId),
+        valid.filter((permission) => permission.departmentId !== null),
+        valid.filter((permission) => permission.role !== null),
+      ];
+      for (const tier of tiers) {
+        if (tier.length) {
+          return tier.reduce((best, permission) => LEVEL_RANK[permission.level as DocPermLevel] > LEVEL_RANK[best] ? permission.level as DocPermLevel : best, 'READ' as DocPermLevel);
+        }
       }
     }
 
-    // 6. Fallback classification + isPublic
-    const classification = (document.classification || "INTERNE").toUpperCase();
-    const isApproved = document.status === "APPROVED";
-
-    if (user.role === UserRole.PRESTATAIRE) {
-      // Prestataire : seulement PUBLIC approved
-      if (classification === "PUBLIC" && isApproved) return "READ";
-      return null;
-    }
-    if (user.role === UserRole.AUDITEUR) {
-      if (
-        ["PUBLIC", "INTERNE", "CONFIDENTIEL"].includes(classification) &&
-        isApproved
-      ) {
-        return "READ";
-      }
-      return null;
-    }
-    if (user.role === UserRole.COLLABORATEUR) {
-      if (["PUBLIC", "INTERNE"].includes(classification) && isApproved) {
-        return "READ";
-      }
-      // isPublic explicit override
-      if (document.isPublic && isApproved) return "READ";
-      return null;
-    }
-    if (user.role === UserRole.REVIEWER || user.role === UserRole.MANAGER) {
-      if (classification !== "SECRET") return "READ";
-      return null;
-    }
-    return null;
+    return hasBaselineDocumentReadAccess(document, { id: user.id, role: user.role as UserRole, email: '' }) ? 'READ' : null;
   }
 
   async canRead(userId: string, documentId: string): Promise<boolean> {
@@ -286,6 +264,9 @@ export class DocumentPermissionsService {
     const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
     if (expiresAt && Number.isNaN(expiresAt.getTime())) {
       throw new BadRequestException("expiresAt invalide");
+    }
+    if (expiresAt && expiresAt <= new Date()) {
+      throw new BadRequestException("L'expiration doit se situer dans le futur");
     }
 
     const created = await this.prisma.documentPermission.create({

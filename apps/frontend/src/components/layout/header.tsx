@@ -56,6 +56,7 @@ const HUB_BY_SEGMENT: Record<string, HubCrumb> = {
   profile: { label: "Mon espace", href: "/dashboard", accent: "navy" },
   tickets: { label: "Mon espace", href: "/dashboard", accent: "navy" },
   signatures: { label: "Mon espace", href: "/dashboard", accent: "navy" },
+  approvals: { label: "Mon espace", href: "/dashboard", accent: "navy" },
   calendar: { label: "Mon espace", href: "/dashboard", accent: "navy" },
   mfa: { label: "Mon espace", href: "/dashboard", accent: "navy" },
   // Travail & Connaissance
@@ -191,6 +192,7 @@ export function Header() {
     quiz: "Quiz",
     mfa: "MFA",
     signatures: "Signatures",
+    approvals: "Mes approbations",
     files: "Fichiers",
     changelog: "Nouveautés",
     admin: "Administration",

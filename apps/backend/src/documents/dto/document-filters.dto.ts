@@ -6,6 +6,8 @@ import {
   IsDateString,
   IsNumberString,
   IsBooleanString,
+  IsIn,
+  MaxLength,
 } from "class-validator";
 import { DocumentStatus, DocumentCategory, DocumentLevel, DocumentPriority } from "@prisma/client";
 
@@ -13,6 +15,10 @@ export class DocumentFiltersDto {
   @IsOptional()
   @IsEnum(DocumentStatus)
   status?: DocumentStatus;
+
+  @IsOptional()
+  @IsIn(['drafts', 'review', 'published', 'expired', 'archived'])
+  statusGroup?: 'drafts' | 'review' | 'published' | 'expired' | 'archived';
 
   @IsOptional()
   @IsEnum(DocumentCategory)
@@ -42,6 +48,7 @@ export class DocumentFiltersDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   search?: string;
 
   @IsOptional()

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/safe-test';
 
 /**
  * Glance overlay — Alt+click on an internal link previews the target in an

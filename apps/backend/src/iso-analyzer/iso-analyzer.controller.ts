@@ -41,6 +41,7 @@ export class IsoAnalyzerController {
     const results = await this.isoAnalyzerService.analyzeDocument(documentId, {
       id: user.id,
       role: user.role,
+      departmentId: user.departmentId,
     });
 
     await this.auditService.log({
@@ -66,7 +67,7 @@ export class IsoAnalyzerController {
     @CurrentUser() user: RequestUser,
   ) {
     const thresholdNum = Math.max(0, Math.min(100, parseInt(threshold, 10) || 50));
-    const result = await this.isoAnalyzerService.autoAssignControls(documentId, thresholdNum);
+    const result = await this.isoAnalyzerService.autoAssignControls(documentId, thresholdNum, user);
 
     await this.auditService.log({
       userId: user.id,
@@ -118,7 +119,7 @@ export class IsoAnalyzerController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async scanAllDocuments(@Query("threshold") threshold: string, @CurrentUser() user: RequestUser) {
     const thresholdNum = Math.max(0, Math.min(100, parseInt(threshold, 10) || 35));
-    const result = await this.isoAnalyzerService.scanAllDocuments(thresholdNum);
+    const result = await this.isoAnalyzerService.scanAllDocuments(thresholdNum, user);
 
     await this.auditService.log({
       userId: user.id,

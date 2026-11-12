@@ -4,14 +4,15 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { Cron } from "@nestjs/schedule";
+import { UserRole } from "@prisma/client";
+import { WorkflowRuntimeService } from "../approval-workflows/workflow-runtime.service";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateWorkflowRuleDto } from "./dto/create-workflow-rule.dto";
 import { UpdateWorkflowRuleDto } from "./dto/update-workflow-rule.dto";
 
 /**
- * Contexte d'évaluation d'une règle. Construit à la création d'un document
+ * Contexte d'évaluation d'une règle. Construit à la soumission d'un document
  * (ou en dry-run) ; les clés correspondent aux conditions supportées par
  * WorkflowRuleConditionDto.
  */
@@ -46,15 +47,14 @@ interface RuleStepConfig {
  *  - Le workflow ainsi créé est marqué `isActive=false, isDefault=false` pour
  *    qu'il n'apparaisse pas dans les sélecteurs UI ; son nom est préfixé
  *    `[rule:<ruleId>]` pour audit.
- *  - Le matching des conditions est tolérant : une clé absente du contexte
- *    est ignorée silencieusement (pas d'échec). Une clé renseignée doit
- *    matcher (égalité scalaire ou inclusion si la condition est un tableau).
+ *  - Une condition inconnue ou absente du contexte ne matche pas. Une règle
+ *    vide est le seul cas inconditionnel, avec une priorité explicite.
  */
 @Injectable()
 export class WorkflowRulesService {
   private readonly logger = new Logger(WorkflowRulesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly runtime: WorkflowRuntimeService) {}
 
   // ---------------------------------------------------------------------------
   // CRUD
@@ -139,8 +139,8 @@ export class WorkflowRulesService {
    * priorité, la plus récente l'emporte).
    * Retourne null si aucune règle ne matche.
    */
-  async findApplicableRule(ctx: RuleEvaluationContext) {
-    const rules = await this.prisma.workflowRule.findMany({
+  async findApplicableRule(ctx: RuleEvaluationContext, db: Prisma.TransactionClient = this.prisma) {
+    const rules = await db.workflowRule.findMany({
       where: { isActive: true },
       orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
     });
@@ -174,16 +174,18 @@ export class WorkflowRulesService {
    *  - clé `minAmount` → comparaison numérique (ctx.amount ≥ minAmount)
    */
   private matches(condition: unknown, ctx: RuleEvaluationContext): boolean {
-    if (!condition || typeof condition !== "object") return true;
+    if (condition == null) return true;
+    if (typeof condition !== "object" || Array.isArray(condition)) return false;
     const c = condition as Record<string, unknown>;
 
     for (const key of Object.keys(c)) {
+      if (!["classification", "category", "departmentId", "minAmount"].includes(key)) return false;
       const expected = c[key];
       if (expected === null || expected === undefined) continue;
 
       if (key === "minAmount") {
         const amount = ctx.amount ?? null;
-        if (typeof expected !== "number") continue;
+        if (typeof expected !== "number" || !Number.isFinite(expected)) return false;
         if (amount === null || amount < expected) return false;
         continue;
       }
@@ -219,159 +221,91 @@ export class WorkflowRulesService {
     ruleOrId: string | { id: string; name: string; steps: unknown },
     document: { id: string; currentVersionId?: string | null },
     actorId: string,
+    transaction?: Prisma.TransactionClient,
   ) {
-    const rule =
-      typeof ruleOrId === "string" ? await this.findOne(ruleOrId) : ruleOrId;
-
-    const steps = (rule.steps as unknown as RuleStepConfig[]) ?? [];
-    if (!Array.isArray(steps) || steps.length === 0) {
-      throw new BadRequestException(
-        `La règle ${rule.id} ne contient aucune étape`,
-      );
-    }
-
-    // Le schema actuel impose un documentVersionId NOT NULL. On utilise la
-    // version courante du document, sinon on ne peut pas instancier — dans
-    // ce cas on remonte un BadRequest pour signaler au caller (documents
-    // service) qu'il doit retomber sur le fallback reviewerId.
-    const docVersionId =
-      document.currentVersionId ??
-      (
-        await this.prisma.documentVersion.findFirst({
-          where: { documentId: document.id },
-          orderBy: { createdAt: "desc" },
-          select: { id: true },
-        })
-      )?.id ??
-      null;
-
-    if (!docVersionId) {
-      throw new BadRequestException(
-        "Document sans version — impossible d'instancier un workflow",
-      );
-    }
-
-    // Crée un ApprovalWorkflow éphémère pour porter les étapes (FK requirement)
-    const ephemeralWf = await this.prisma.approvalWorkflow.create({
-      data: {
-        name: `[rule:${rule.id}] ${rule.name}`,
-        description: `Workflow instancié depuis la règle ${rule.name}`,
-        isActive: false,
-        isDefault: false,
-        createdById: actorId,
-      },
-    });
-
-    // Trie les steps par level pour respecter l'ordre hiérarchique
-    const sorted = [...steps].sort((a, b) => (a.level ?? 1) - (b.level ?? 1));
-
-    const stepRows: Array<{ id: string; cfg: RuleStepConfig; order: number }> =
-      [];
-    for (let i = 0; i < sorted.length; i++) {
-      const cfg = sorted[i]!;
-      const created = await this.prisma.workflowStep.create({
-        data: {
-          workflowId: ephemeralWf.id,
-          order: i + 1,
-          name: cfg.name ?? `Niveau ${cfg.level}`,
-          mode: cfg.parallel ? "PARALLEL_ALL" : "SINGLE",
-          approverRole: (cfg.approverRole as never) ?? null,
-          approverUserId: cfg.approverUserId ?? null,
-          approverDeptId: cfg.approverDeptId ?? null,
-          slaHours: cfg.deadlineHours ?? null,
-          autoApproveOnTimeout: false,
-        },
-      });
-      stepRows.push({ id: created.id, cfg, order: i + 1 });
-    }
-
-    // Crée l'instance + step-instances initialement toutes PENDING
-    const instance = await this.prisma.approvalInstance.create({
-      data: {
-        workflowId: ephemeralWf.id,
-        documentId: document.id,
-        documentVersionId: docVersionId,
-        startedById: actorId,
-        currentStepOrder: 1,
-        status: "PENDING",
-        stepResults: {
-          create: stepRows.map((row) => ({
-            step: { connect: { id: row.id } },
-            decision: "PENDING",
-            level: row.cfg.level,
-            parallelGroupId: row.cfg.parallelGroupId ?? null,
-            deadlineAt: row.cfg.deadlineHours
-              ? new Date(Date.now() + row.cfg.deadlineHours * 3600_000)
-              : null,
-            dueAt: row.cfg.deadlineHours
-              ? new Date(Date.now() + row.cfg.deadlineHours * 3600_000)
-              : null,
-          })),
-        },
-      },
-    });
-
-    await this.audit(rule.id, actorId, "RULE_INSTANTIATED", {
-      documentId: document.id,
-      instanceId: instance.id,
-      stepCount: stepRows.length,
-    });
-
-    this.logger.log(
-      `WorkflowRule ${rule.id} appliquée sur document ${document.id} ` +
-        `→ instance ${instance.id} (${stepRows.length} étapes)`,
-    );
-
-    return instance;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Cron : surveillance des deadlines
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Tâche planifiée — détecte les step-instances dont la deadline est dépassée.
-   * Première version : log seulement (no-op métier). Une itération ultérieure
-   * pourra escalader les approbateurs ou notifier un délégué.
-   */
-  @Cron("0 9 * * *")
-  async evaluateOverdue() {
-    try {
-      const now = new Date();
-      const overdue = await this.prisma.approvalStepInstance.findMany({
-        where: {
-          decision: "PENDING",
-          deadlineAt: { not: null, lt: now },
-        },
-        select: { id: true, instanceId: true, deadlineAt: true },
-      });
-      if (overdue.length === 0) {
-        this.logger.log(
-          "WorkflowRules.evaluateOverdue : aucune step en retard",
-        );
-        return { overdueCount: 0 };
+    const instantiate = async (db: Prisma.TransactionClient) => {
+      const rule = typeof ruleOrId === "string" ? await db.workflowRule.findUnique({ where: { id: ruleOrId } }) : ruleOrId;
+      if (!rule) throw new NotFoundException("Règle introuvable.");
+      const configurations = rule.steps as unknown as RuleStepConfig[];
+      this.assertValidSteps(configurations);
+      const doc = await db.document.findUnique({ where: { id: document.id } });
+      if (!doc || doc.deletedAt) throw new NotFoundException("Document introuvable.");
+      if (!doc.currentVersionId || document.currentVersionId && document.currentVersionId !== doc.currentVersionId) {
+        throw new BadRequestException("Une version courante figée est requise avant de lancer la règle.");
       }
-      this.logger.warn(
-        `WorkflowRules.evaluateOverdue : ${overdue.length} step-instances en retard`,
-      );
-      return { overdueCount: overdue.length };
-    } catch (err) {
-      this.logger.error("evaluateOverdue failed", err as Error);
-      return { overdueCount: 0, error: (err as Error).message };
-    }
+      const existing = await db.approvalInstance.findFirst({ where: { documentId: doc.id, status: "PENDING" }, include: { workflow: true } });
+      if (existing) {
+        if (existing.documentVersionId === doc.currentVersionId && existing.workflow.name.startsWith(`[rule:${rule.id}] `)) return existing;
+        throw new BadRequestException("Un autre circuit est déjà actif. Terminez-le ou faites-le annuler avant cette soumission.");
+      }
+      const workflow = await db.approvalWorkflow.create({ data: {
+        name: `[rule:${rule.id}] ${rule.name}`, description: `Règle automatique : ${rule.name}`,
+        isActive: false, isDefault: false, createdById: actorId,
+      } });
+      const sorted = [...configurations].sort((left, right) => left.level - right.level);
+      const groups: RuleStepConfig[][] = [];
+      const byGroup = new Map<string, RuleStepConfig[]>();
+      for (const configuration of sorted) {
+        if (configuration.parallel && configuration.parallelGroupId) {
+          const key = `${configuration.level}:${configuration.parallelGroupId}`;
+          const existingGroup = byGroup.get(key);
+          if (existingGroup) existingGroup.push(configuration);
+          else { const group = [configuration]; byGroup.set(key, group); groups.push(group); }
+        } else groups.push([configuration]);
+      }
+      const assignments: Record<string, { userIds: string[]; level: number; parallelGroupId: string | null }> = {};
+      for (let index = 0; index < groups.length; index++) {
+        const group = groups[index]!;
+        const first = group[0]!;
+        const combined = group.length > 1;
+        const deadlines = group.flatMap(configuration => configuration.deadlineHours ? [configuration.deadlineHours] : []);
+        const step = await db.workflowStep.create({ data: {
+          workflowId: workflow.id, order: index + 1,
+          name: combined ? `Niveau ${first.level} — validations parallèles` : first.name || `Niveau ${first.level}`,
+          mode: first.parallel ? "PARALLEL_ALL" : "SINGLE",
+          approverRole: combined ? null : (first.approverRole as UserRole | undefined) ?? null,
+          approverUserId: combined ? null : first.approverUserId ?? null,
+          approverDeptId: combined ? null : first.approverDeptId ?? null,
+          slaHours: deadlines.length ? Math.min(...deadlines) : null,
+          condition: { ruleId: rule.id, level: first.level, selectors: group as unknown as Prisma.InputJsonArray },
+        } });
+        {
+          const ids = new Set<string>();
+          for (const configuration of group) {
+            for (const id of await this.runtime.approvers(db, {
+              name: configuration.name || `Niveau ${configuration.level}`,
+              approverRole: (configuration.approverRole as UserRole | undefined) ?? null,
+              approverUserId: configuration.approverUserId ?? null, approverDeptId: configuration.approverDeptId ?? null,
+            }, doc.ownerId)) ids.add(id);
+          }
+          assignments[step.id] = { userIds: [...ids], level: first.level, parallelGroupId: first.parallelGroupId ?? null };
+        }
+      }
+      const instance = await this.runtime.startInTransaction(db, workflow.id, doc.id, doc.currentVersionId, actorId, [], true, assignments);
+      await db.workflowRuleAuditLog.create({ data: { ruleId: rule.id, actorId, action: "RULE_INSTANTIATED", metadata: { documentId: doc.id, instanceId: instance.id, stepCount: groups.length } } });
+      return instance;
+    };
+    return transaction ? instantiate(transaction) : this.runtime.transact(instantiate);
   }
 
-  // ---------------------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------------------
+  async applyAtSubmission(db: Prisma.TransactionClient, document: { id: string; category: string; classification: string; currentVersionId: string | null }, actorId: string) {
+    const actor = await db.user.findUnique({ where: { id: actorId }, select: { departmentId: true } });
+    const rule = await this.findApplicableRule({ category: document.category, classification: document.classification, departmentId: actor?.departmentId }, db);
+    if (!rule) return null;
+    if (!document.currentVersionId) throw new BadRequestException("Enregistrez une version du document avant sa soumission au circuit automatique.");
+    return this.instantiateWorkflow(rule, document, actorId, db);
+  }
 
   private assertValidSteps(steps: RuleStepConfig[] | undefined): void {
-    if (!steps || steps.length === 0) {
+    if (!Array.isArray(steps) || steps.length === 0 || steps.length > 200) {
       throw new BadRequestException(
         "Une règle doit contenir au moins une étape",
       );
     }
     for (const s of steps) {
+      if (!s || !Number.isInteger(s.level) || s.level < 1 || s.level > 100) throw new BadRequestException('Le niveau doit être compris entre 1 et 100.');
+      if (s.approverRole && !Object.values(UserRole).includes(s.approverRole as UserRole)) throw new BadRequestException('Rôle d’approbateur inconnu.');
+      if (s.deadlineHours != null && (!Number.isInteger(s.deadlineHours) || s.deadlineHours < 1 || s.deadlineHours > 8760)) throw new BadRequestException('Délai d’approbation invalide.');
       const provided = [
         s.approverRole,
         s.approverUserId,

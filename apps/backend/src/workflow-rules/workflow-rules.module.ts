@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { PrismaModule } from "../prisma/prisma.module";
 import { WorkflowRulesService } from "./workflow-rules.service";
 import { WorkflowRulesController } from "./workflow-rules.controller";
+import { ApprovalWorkflowsModule } from '../approval-workflows/workflows.module';
 
 /**
  * Module règles d'approbation N+1 dynamique (ISO 27001 A.5.1).
@@ -12,7 +13,7 @@ import { WorkflowRulesController } from "./workflow-rules.controller";
  * instancie le workflow correspondant ; sinon fallback sur reviewerId.
  */
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, ApprovalWorkflowsModule],
   providers: [WorkflowRulesService],
   controllers: [WorkflowRulesController],
   exports: [WorkflowRulesService],

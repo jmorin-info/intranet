@@ -238,13 +238,12 @@ jobs:
           retention-days: 7
 
   # ---------------------------------------------------------------------------
-  # 5. Security audit (warn-only — does not fail the build)
+  # 5. Block critical dependency advisories and retain the full inventory.
   # ---------------------------------------------------------------------------
   security-audit:
-    name: Security audit (warn-only)
+    name: Critical dependency gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -265,10 +264,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: pnpm audit (high+)
-        # Warn-only: 7 known high CVEs are being patched in parallel — we do not
-        # want to block the pipeline on them. Re-tighten this once patched.
-        run: pnpm audit --prod --audit-level=high || true
+      - name: Block critical production advisories
+        run: pnpm audit --prod --audit-level=critical
+
+      - name: Save complete dependency audit
+        if: always()
+        run: pnpm audit --prod --json > dependency-audit.json || test -s dependency-audit.json
+
+      - name: Upload dependency audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit
+          path: dependency-audit.json
+          retention-days: 30
 
   # ---------------------------------------------------------------------------
   # 6. Prettier check (warn-only on first iteration to avoid mass churn)
@@ -300,6 +309,45 @@ jobs:
 
       - name: Prettier check
         run: pnpm exec prettier --check "{apps,packages,e2e}/**/*.{ts,tsx,json,md}" || true
+
+  # Browser rendering/interaction only. Real business E2E still needs an
+  # isolated database and dedicated accounts (see e2e/README.md).
+  ui-browser-mocks:
+    name: UI navigateur avec mocks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Browser UI with local API fixtures (desktop and mobile)
+        run: pnpm exec playwright test --config playwright.ui.config.ts
+
+      - name: Upload UI captures and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-browser-mocks
+          path: test-results/ui/
+          retention-days: 14
+          if-no-files-found: ignore
 
 # -----------------------------------------------------------------------------
 # TODO (next sprint): real e2e job

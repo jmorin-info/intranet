@@ -29,6 +29,7 @@ describe("WebDAVController (Obsidian sync)", () => {
     lastName: "Martin",
     deletedAt: null,
     isActive: true,
+    webdavEnabled: true,
   };
 
   const mockPage = {
@@ -48,6 +49,7 @@ describe("WebDAVController (Obsidian sync)", () => {
       "test-crypto-secret-32-bytes-minimum-for-aes256-gcm-test";
 
     prisma = {
+      appConfig: { findUnique: jest.fn().mockResolvedValue({ value: "true" }) },
       user: {
         findUnique: jest.fn().mockImplementation(async ({ where }) => {
           if (where?.email === mockUser.email.toLowerCase()) return mockUser;

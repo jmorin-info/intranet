@@ -1,3 +1,4 @@
+import { assertTestEnvironment, testApiUrl, requireTestCredentials } from './test-environment';
 import type { Page } from "@playwright/test";
 import {
   ADMIN_CREDS,
@@ -36,8 +37,9 @@ export async function login(page: Page, role: Role): Promise<void> {
       return;
     case "SUPER_ADMIN": {
       // Force a fresh login if credentials differ from the default admin
-      const { email, password } = SUPER_ADMIN_CREDS;
-      const apiBase = process.env.E2E_API_URL || "http://10.33.120.55:3000/api";
+      assertTestEnvironment();
+      const { email, password } = process.env.E2E_SUPER_ADMIN_EMAIL ? requireTestCredentials('SUPER_ADMIN') : requireTestCredentials('ADMIN');
+      const apiBase = testApiUrl();
       const res = await page.request
         .post(`${apiBase}/auth/login`, {
           data: { email, password },

@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import type { ApprovalDelegationScope, DocumentCategory } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { workflowTransaction } from "./workflow-transaction";
 
 /**
  * DelegationService — Délégation des approbations (item #27).
@@ -14,9 +15,8 @@ import { PrismaService } from "../prisma/prisma.service";
  * Trois flux d'usage :
  *  1. Manuel : un utilisateur configure une période (vacances, mission…) et
  *     désigne un délégataire.
- *  2. Automatique : un cron quotidien re-route les approbations PENDING
- *     dépassant un seuil (default 48h) vers le manager du délégant. Si le
- *     manager est absent, escalade vers RSSI / SUPER_ADMIN.
+ *  2. Automatique : le cron réattribue uniquement la tâche active en retard,
+ *     vers la cible configurée, le manager, puis un SUPER_ADMIN disponible.
  *  3. Résolution runtime : `resolveDelegate(userId)` retourne le délégataire
  *     actif à l'instant T pour un utilisateur donné — utilisé par le moteur
  *     d'approbation pour réassigner les step-instances avant notification.
@@ -73,15 +73,16 @@ export class DelegationService {
 
     const target = await this.prisma.user.findUnique({
       where: { id: data.toUserId },
-      select: { id: true, isActive: true, deletedAt: true },
+      select: { id: true, isActive: true, deletedAt: true, role: true },
     });
-    if (!target || !target.isActive || target.deletedAt) {
+    if (!target || !target.isActive || target.deletedAt || ['AUDITEUR', 'PRESTATAIRE'].includes(target.role)) {
       throw new BadRequestException(
         "L'utilisateur destinataire est introuvable ou inactif.",
       );
     }
 
     const scope = data.scope ?? "GLOBAL";
+    if (scope === 'SCOPED' && !data.categories?.length) throw new BadRequestException('Choisissez au moins une catégorie pour une délégation ciblée.');
 
     // Refuse les chevauchements GLOBAL stricts pour éviter une cascade ambiguë.
     if (scope === "GLOBAL") {
@@ -248,10 +249,12 @@ export class DelegationService {
     const active = await this.prisma.approvalDelegation.findMany({
       where: {
         fromUserId,
+        auto: false,
         isActive: true,
         revokedAt: null,
         startDate: { lte: at },
-        endDate: { gte: at },
+        endDate: { gt: at },
+        toUser: { isActive: true, deletedAt: null, role: { notIn: ['AUDITEUR', 'PRESTATAIRE'] } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -275,14 +278,8 @@ export class DelegationService {
   // ---------------------------------------------------------------------------
 
   /**
-   * Pour chaque step-instance `PENDING` dont la `dueAt` ou la `createdAt + N heures`
-   * est dépassée, crée une délégation automatique vers :
-   *  1. Le manager (User.managerId) de l'assignee si présent et actif.
-   *  2. Sinon, escalade vers le 1er user avec rôle SUPER_ADMIN actif.
-   *
-   * Renvoie le résumé `{ delegated, escalated, skipped }` pour visibilité côté
-   * dashboard / log d'audit. La méthode est idempotente (on ne crée pas une
-   * 2e délégation si elle existe déjà active sur la même période).
+   * Réassigne une seule fois une validation active en retard. Une escalade
+   * porte sur cette validation, jamais sur les autres pouvoirs du délégant.
    *
    * @param thresholdHours Seuil au-delà duquel une step est éligible — peut
    *   provenir de `AppConfig.delegation.autoThresholdHours` (default 48h).
@@ -292,133 +289,58 @@ export class DelegationService {
     escalated: number;
     skipped: number;
   }> {
-    const cutoff = new Date(Date.now() - thresholdHours * 3600_000);
+    const now = new Date();
+    const threshold = Number.isFinite(thresholdHours) && thresholdHours >= 1 ? thresholdHours : 48;
     let delegated = 0;
     let escalated = 0;
     let skipped = 0;
 
-    // step-instances PENDING avec assignedTo et "vieilles" — on s'appuie sur
-    // `dueAt` (si présent) sinon sur la date de démarrage de l'instance, car
-    // ApprovalStepInstance n'a pas de champ `createdAt` propre.
     const stale = await this.prisma.approvalStepInstance.findMany({
       where: {
         decision: "PENDING",
-        assignedToId: { not: null },
-        instance: { status: "PENDING", startedAt: { lt: cutoff } },
-        OR: [
-          { dueAt: null },
-          { dueAt: { lt: new Date() } },
-        ],
+        escalatedAt: null,
+        instance: { status: "PENDING" },
+        OR: [{ dueAt: null }, { dueAt: { lte: now } }],
       },
-      include: {
-        assignedTo: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            isActive: true,
-            deletedAt: true,
-            managerId: true,
-          },
-        },
-        step: { select: { id: true, name: true, slaHours: true } },
-        instance: { select: { id: true, documentId: true } },
-      },
+      select: { id: true },
+      orderBy: [{ dueAt: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
       take: 200, // batch pour ne pas saturer
     });
 
-    for (const si of stale) {
-      const fromUser = si.assignedTo;
-      if (!fromUser || !fromUser.isActive || fromUser.deletedAt) {
-        skipped++;
-        continue;
-      }
-
-      // 1. Tentative manager
-      let targetUserId: string | null = null;
-      let isEscalation = false;
-      if (fromUser.managerId) {
-        const mgr = await this.prisma.user.findUnique({
-          where: { id: fromUser.managerId },
-          select: { id: true, isActive: true, deletedAt: true },
-        });
-        if (mgr && mgr.isActive && !mgr.deletedAt) {
-          targetUserId = mgr.id;
+    for (const candidate of stale) {
+      const result = await workflowTransaction(this.prisma, async db => {
+        const si = await db.approvalStepInstance.findUnique({ where: { id: candidate.id }, include: { assignedTo: true, step: true, instance: true } });
+        if (!si || si.decision !== 'PENDING' || si.escalatedAt || si.instance.status !== 'PENDING' || si.step.order !== si.instance.currentStepOrder || ['START', 'BRANCH', 'END'].includes(si.step.type)) return 'skipped';
+        const document = await db.document.findUnique({ where: { id: si.instance.documentId }, select: { id: true, ownerId: true, currentVersionId: true, deletedAt: true, title: true, reference: true, status: true } });
+        if (!document || document.deletedAt || ['APPROVED', 'ARCHIVED', 'OBSOLETE'].includes(document.status) || document.currentVersionId !== si.instance.documentVersionId) return 'skipped';
+        const activated = await db.approvalAuditLog.findFirst({ where: { approvalInstanceId: si.instanceId, action: 'APPROVAL_STEP_ACTIVATED', metadata: { path: ['stepId'], equals: si.stepId } }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
+        const eligibleAt = si.dueAt ?? new Date((activated?.createdAt ?? si.instance.startedAt).getTime() + threshold * 3_600_000);
+        if (eligibleAt > now) return 'skipped';
+        const excluded = [si.assignedToId, document.ownerId].filter((id): id is string => Boolean(id));
+        const targetIds = [si.step.escalateToUserId, si.assignedTo?.managerId].filter((id): id is string => Boolean(id) && !excluded.includes(id!));
+        let target: { id: string } | null = null;
+        let isEscalation = false;
+        for (const id of targetIds) {
+          target = await db.user.findFirst({ where: { id, isActive: true, deletedAt: null, role: { notIn: ['PRESTATAIRE', 'AUDITEUR'] } }, select: { id: true } });
+          if (target) { isEscalation = id === si.step.escalateToUserId; break; }
         }
-      }
-
-      // 2. Escalade SUPER_ADMIN
-      if (!targetUserId) {
-        const superAdmin = await this.prisma.user.findFirst({
-          where: { role: "SUPER_ADMIN", isActive: true, deletedAt: null },
-          orderBy: { createdAt: "asc" },
-          select: { id: true },
-        });
-        if (!superAdmin) {
-          this.logger.warn(
-            `Aucun SUPER_ADMIN disponible pour escalade — step-instance ${si.id} skip`,
-          );
-          skipped++;
-          continue;
+        if (!target) {
+          target = await db.user.findFirst({ where: { role: 'SUPER_ADMIN', isActive: true, deletedAt: null, id: { notIn: excluded } }, orderBy: { createdAt: 'asc' }, select: { id: true } });
+          isEscalation = true;
         }
-        targetUserId = superAdmin.id;
-        isEscalation = true;
-      }
-
-      // Anti-double : si une délégation active auto existe déjà
-      const existing = await this.prisma.approvalDelegation.findFirst({
-        where: {
-          fromUserId: fromUser.id,
-          toUserId: targetUserId,
-          isActive: true,
-          revokedAt: null,
-          auto: true,
-          endDate: { gt: new Date() },
-        },
+        if (!target || excluded.includes(target.id)) return 'skipped';
+        // Deux voix d'un quorum ne peuvent pas être réattribuées à la même personne.
+        const peer = await db.approvalStepInstance.findFirst({ where: { instanceId: si.instanceId, stepId: si.stepId, id: { not: si.id }, OR: [{ assignedToId: target.id }, { decidedById: target.id, decision: 'APPROVED' }] }, select: { id: true } });
+        if (peer) return 'skipped';
+        const claimed = await db.approvalStepInstance.updateMany({ where: { id: si.id, decision: 'PENDING', escalatedAt: null, assignedToId: si.assignedToId, instance: { status: 'PENDING', currentStepOrder: si.step.order } }, data: { assignedToId: target.id, escalatedAt: now } });
+        if (claimed.count !== 1) return 'skipped';
+        await db.approvalAuditLog.create({ data: { actorId: null, action: isEscalation ? 'DELEGATION_AUTO_ESCALATED' : 'DELEGATION_AUTO_CREATED', approvalInstanceId: si.instanceId, stepInstanceId: si.id, metadata: { thresholdHours: threshold, originalAssignee: si.assignedToId, target: target.id, scope: 'STEP_ONLY' } } });
+        await db.notification.create({ data: { userId: target.id, type: 'DOC_APPROVAL_NEEDED', title: `Validation réattribuée : ${document.reference}`, body: `Le document « ${document.title} » attend votre décision à l’étape « ${si.step.name} ».`, resourceType: 'Document', resourceId: document.id } });
+        return isEscalation ? 'escalated' : 'delegated';
       });
-
-      if (!existing) {
-        // 7 jours de fenêtre auto-délégation par défaut.
-        const start = new Date();
-        const end = new Date(start.getTime() + 7 * 24 * 3600_000);
-        const delegation = await this.prisma.approvalDelegation.create({
-          data: {
-            fromUserId: fromUser.id,
-            toUserId: targetUserId,
-            startDate: start,
-            endDate: end,
-            reason: isEscalation
-              ? `Escalade automatique RSSI/SUPER_ADMIN (>${thresholdHours}h sans réponse)`
-              : `Délégation automatique manager (>${thresholdHours}h sans réponse)`,
-            scope: "GLOBAL",
-            auto: true,
-          },
-        });
-
-        await this.audit({
-          actorId: null,
-          action: isEscalation
-            ? "DELEGATION_AUTO_ESCALATED"
-            : "DELEGATION_AUTO_CREATED",
-          delegationId: delegation.id,
-          stepInstanceId: si.id,
-          approvalInstanceId: si.instanceId,
-          metadata: {
-            thresholdHours,
-            originalAssignee: fromUser.id,
-            target: targetUserId,
-          },
-        });
-
-        if (isEscalation) escalated++;
-        else delegated++;
-      }
-
-      // Réassigne la step-instance au délégataire pour qu'il la voie.
-      await this.prisma.approvalStepInstance.update({
-        where: { id: si.id },
-        data: { assignedToId: targetUserId },
-      });
+      if (result === 'escalated') escalated++;
+      else if (result === 'delegated') delegated++;
+      else skipped++;
     }
 
     this.logger.log(

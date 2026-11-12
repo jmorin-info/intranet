@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { isRoleAtLeast, UserRole, getStatusTransitions } from "@omnitech/shared";
 import { Button } from "@omnitech/ui";
+import { extensionForMime } from "@/lib/download";
+import { useDocumentPreview } from "@/components/documents/detail/use-document-preview";
 import { PenLine } from "lucide-react";
 import { EntityBreadcrumb } from "@/components/ui/entity-breadcrumb";
 
@@ -36,6 +38,11 @@ const ReadingMode = dynamic(
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const ctx = useDocumentDetail(id);
+  const versionForPreview = ctx.doc?.currentVersionId
+    ? ctx.doc.versions?.find((version) => version.id === ctx.doc?.currentVersionId)
+    : ctx.doc?.versions?.[0];
+  const preview = useDocumentPreview(ctx.doc?.id, versionForPreview?.id,
+    (ctx.activeTab === "preview" || ctx.readingModeOpen) && ctx.doc?.scanStatus === "CLEAN");
 
   if (ctx.loading) {
     return <DocumentDetailLoading />;
@@ -47,7 +54,7 @@ export default function DocumentDetailPage() {
   const versions = doc.versions || [];
   const sigs = doc.signatureRequests || [];
   const acks = doc.acknowledgments || [];
-  const currentVersion = versions[0];
+  const currentVersion = versionForPreview;
   const canEdit = isRoleAtLeast(user.role, UserRole.ADMIN) || doc.owner.id === user.id;
   const transitions = getStatusTransitions(
     doc.status as never,
@@ -61,25 +68,17 @@ export default function DocumentDetailPage() {
   const reviewInfo = getReviewDeadlineInfo(doc.nextReviewDate);
   const workflowSteps = buildWorkflowSteps(doc);
 
-  const canPreview =
-    !!currentVersion &&
-    /\.(pdf|docx?|md|txt|png|jpe?g|webp|gif)$/i.test(currentVersion.fileType || "");
-  const apiV1Base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "/api/v1");
-  const previewUrl = currentVersion?.fileUrl
-    ? currentVersion.fileUrl.startsWith("http")
-      ? currentVersion.fileUrl
-      : `${apiV1Base}${currentVersion.fileUrl.startsWith("/") ? "" : "/"}${currentVersion.fileUrl}`
-    : "";
-  const isPdf = currentVersion && /\.pdf$/i.test(currentVersion.fileType || "");
-  const readingModePdfUrl = isPdf
-    ? `${apiV1Base}/documents/${doc.id}/download?inline=true`
-    : undefined;
-  const canOpenReadingMode = Boolean(isPdf);
+  const extension = currentVersion ? extensionForMime(currentVersion.fileType, currentVersion.fileUrl) : "";
+  const canPreview = !!currentVersion && ["pdf", "docx", "md", "txt", "png", "jpg", "jpeg", "webp", "gif"].includes(extension) && doc.scanStatus === "CLEAN";
+  const previewUrl = preview.url;
+  const isPdf = extension === "pdf";
+  const readingModePdfUrl = isPdf ? previewUrl : undefined;
+  const canOpenReadingMode = isPdf && doc.scanStatus === "CLEAN";
 
   const canEditInline =
     !!doc.isNative &&
     (canEdit || doc.reviewer?.id === user.id) &&
-    (doc.status === "DRAFT" || doc.status === "IN_REVIEW");
+    doc.status === "DRAFT";
 
   // L'onglet "Partage et permissions" est visible pour le propriétaire et
   // les ADMIN+ (le backend revérifie strictement via canAdmin()).
@@ -101,6 +100,11 @@ export default function DocumentDetailPage() {
       <EntityBreadcrumb module="Documents" href="/documents" current={doc.reference} />
 
       <MissingApproverBanner doc={doc} currentUserId={user.id} />
+      {doc.scanStatus && doc.scanStatus !== "CLEAN" && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+        {doc.scanStatus === "INFECTED" ? "Le fichier est bloqué par le contrôle antivirus. Déposez une version saine après retour en correction." : doc.scanStatus === "ERROR" ? "Le contrôle antivirus n’a pas abouti. Le téléchargement et la publication restent bloqués jusqu’à un contrôle concluant." : "Analyse antivirus en cours. Le fichier sera accessible après vérification."}
+      </div>}
+      {preview.error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-200">L’aperçu n’a pas pu être chargé. Vérifiez votre accès et le contrôle antivirus, puis réessayez.</p>}
+      {preview.loading && ctx.readingModeOpen && <p role="status" className="text-sm text-seal-gray-500">Préparation du mode lecture…</p>}
 
       <DocumentHeader
         doc={doc}
@@ -153,7 +157,7 @@ export default function DocumentDetailPage() {
       )}
 
       <DraftEmptyBanner
-        canEdit={canEdit}
+        canEdit={canEdit && !doc.isNative}
         doc={doc}
         versionsCount={versions.length}
         onUploadClick={() => {

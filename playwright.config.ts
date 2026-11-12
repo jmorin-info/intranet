@@ -1,35 +1,21 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'node:path';
+import { assertTestEnvironment, testBaseUrl } from './e2e/helpers/test-environment';
 
 /**
- * Playwright configuration — OMNITECH Intranet E2E suite
- *
- * Strategy
- * --------
- * - Base URL configurable via BASE_URL env (defaults to preprod 10.33.120.55:3001)
- * - Global setup performs a single SUPER_ADMIN login and persists the session to
- *   `e2e/.auth/admin.json` (storageState). All "authenticated" projects reuse it.
- * - Three browsers (chromium, firefox, webkit) share the authenticated state.
- * - An additional `unauthenticated` project skips storageState for public flows
- *   (welcome, login, forgot-password...).
- * - Destructive tests are tagged `@destructive` / `@slow` and skipped by default
- *   on the preprod DB (10.33.120.55) unless `RUN_DESTRUCTIVE=1` is set.
- *
- * Running
- * -------
- *   pnpm test:e2e                                  # all projects
- *   pnpm test:e2e -- --project=chromium            # single browser
- *   pnpm test:e2e -- --project=unauthenticated     # public flows only
- *   BASE_URL=http://localhost:3001 pnpm test:e2e   # override target
+ * Real E2E suite for an isolated local/preproduction instance.
+ * Production hosts are rejected, including public URLs in ignored .env files.
+ * A fresh dedicated test account is required unless E2E_SKIP_LOGIN=1.
+ * See e2e/README.md. Visual mock QA uses playwright.ui.config.ts instead.
  */
-
-const BASE_URL = process.env.BASE_URL || 'http://10.33.120.55:3001';
+assertTestEnvironment();
+const BASE_URL = testBaseUrl();
 const IS_CI = !!process.env.CI;
 const AUTH_FILE = path.join(__dirname, 'e2e/.auth/admin.json');
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: ['**/helpers/**', '**/.auth/**', '**/global-setup.ts'],
+  testIgnore: ['**/helpers/**', '**/.auth/**', '**/global-setup.ts', '**/ui/**'],
   timeout: 30_000,
   expect: { timeout: 10_000 },
   retries: IS_CI ? 1 : 0,
@@ -42,6 +28,7 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     headless: true,
+    serviceWorkers: 'block',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
     video: 'retain-on-failure',

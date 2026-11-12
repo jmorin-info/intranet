@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { UserThrottlerGuard } from './guards/user-throttler.guard';
+import { WebAuthnService } from '../mfa/webauthn.service';
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -94,9 +96,10 @@ describe('AuthController', () => {
         { provide: AuthService, useValue: authService },
         { provide: UsersService, useValue: usersService },
         { provide: MfaService, useValue: mfaService },
+        { provide: WebAuthnService, useValue: { hasCredentials: jest.fn().mockResolvedValue(false) } },
         Reflector,
       ],
-    }).compile();
+    }).overrideGuard(UserThrottlerGuard).useValue({ canActivate: () => true }).compile();
 
     controller = module.get<AuthController>(AuthController);
   });

@@ -21,6 +21,7 @@ interface DocStub {
   reviewerId?: string | null;
   approverId?: string | null;
   status: string;
+  scanStatus: string;
   deletedAt?: Date | null;
   category?: string | null;
   isPublic?: boolean | null;
@@ -42,6 +43,7 @@ function makeDoc(overrides: Partial<DocStub> = {}): DocStub {
     // Le RBAC s'aligne désormais sur DocumentsService.findById (statut +
     // soft-delete inclus) : un document lisible par défaut = APPROVED, vivant.
     status: "APPROVED",
+    scanStatus: "CLEAN",
     deletedAt: null,
     category: "PROCEDURE",
     isPublic: false,
@@ -220,27 +222,26 @@ describe("RagService.summarizeDocument", () => {
       );
     });
 
-    it("n'applique aucun filtre quand RBAC_RAG_ENABLED=false", async () => {
+    it("ne permet jamais au flag RBAC_RAG_ENABLED=false de désactiver les habilitations", async () => {
       process.env.RBAC_RAG_ENABLED = "false";
       const doc = makeDoc({ classification: "SECRET" });
       const { service } = build(doc);
 
-      const res = await service.summarizeDocument(doc.id, collaborateur());
-      expect(res.summary).toBe("Résumé généré.");
+      await expect(service.summarizeDocument(doc.id, collaborateur())).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
 
   // ------------------------------------------------------------ Map-reduce
 
   describe("génération et map-reduce", () => {
-    it("fait un seul appel (maxTokens 220) pour un texte ≤ 2000 chars", async () => {
+    it("fait un seul appel borné au budget configuré pour un texte ≤ 2000 chars", async () => {
       const doc = makeDoc({ content: "a".repeat(1500) });
       const { service, llmService } = build(doc);
 
       await service.summarizeDocument(doc.id, collaborateur());
 
       expect(llmService.generate).toHaveBeenCalledTimes(1);
-      expect(llmService.generate.mock.calls[0][1]).toMatchObject({ maxTokens: 220 });
+      expect(llmService.generate.mock.calls[0][1]).toMatchObject({ maxTokens: 240 });
     });
 
     it("découpe en segments puis résume la concaténation au-delà de 2000 chars", async () => {
@@ -256,7 +257,7 @@ describe("RagService.summarizeDocument", () => {
         expect(llmService.generate.mock.calls[i][1]).toMatchObject({ maxTokens: 120 });
       }
       // Dernier appel = passe "reduce" avec le budget plein.
-      expect(llmService.generate.mock.calls[3][1]).toMatchObject({ maxTokens: 220 });
+      expect(llmService.generate.mock.calls[3][1]).toMatchObject({ maxTokens: 240 });
     });
 
     it("plafonne à 3 segments même pour un très gros document", async () => {
@@ -391,5 +392,22 @@ describe("RagService.summarizeDocument", () => {
         service.summarizeDocument(doc.id, collaborateur("intrus")),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
+  });
+});
+
+
+describe('Document content access is mandatory before AI work', () => {
+  it('rejects missing identity before querying the document or a cached summary', async () => {
+    const doc = makeDoc(); const { service, prisma, llmService } = build(doc);
+    await expect(service.summarizeDocument(doc.id)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.summarizeDocumentStream(doc.id, undefined, jest.fn())).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.document.findFirstOrThrow).not.toHaveBeenCalled();
+    expect(llmService.generate).not.toHaveBeenCalled();
+  });
+  it.each(['PENDING', 'ERROR', 'INFECTED'])('refuses %s files before extraction or inference', async (scanStatus) => {
+    const doc = makeDoc({ scanStatus }); const { service, textExtractor, llmService } = build(doc);
+    await expect(service.summarizeDocument(doc.id, collaborateur())).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.summarizeDocumentStream(doc.id, collaborateur(), jest.fn())).rejects.toBeInstanceOf(ForbiddenException);
+    expect(textExtractor.extractText).not.toHaveBeenCalled(); expect(llmService.generate).not.toHaveBeenCalled();
   });
 });

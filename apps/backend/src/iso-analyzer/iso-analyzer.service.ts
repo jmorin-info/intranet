@@ -1,8 +1,11 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { canReadDocument, DocumentAccessUser } from "../common/document-access";
+import { canReadDocumentWithPermissions, documentReaderScope, DocumentAccessUser } from "../common/document-access";
 import * as fs from "fs";
 import * as path from "path";
+import { execFile } from "child_process";
+import { StorageService } from "../storage/storage.service";
+import { sanitizePlainText } from "../common/sanitize";
 
 /**
  * ISO 27001:2022 Document Analyzer
@@ -339,18 +342,17 @@ interface ComplianceGapResult {
 export class IsoAnalyzerService {
   private readonly logger = new Logger(IsoAnalyzerService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly storage: StorageService) {}
 
   /**
    * Analyze document content and return matching ISO 27001 controls
    * with relevance scores and conformity justifications.
    *
-   * `user` optionnel : quand fourni (route /iso-analyzer/analyze ouverte à
-   * tous les rôles), le contrôle d'accès par classification est appliqué ici
-   * (ISO 27001 A.5.15). Les appels internes (auto-assign, scan-all — routes
-   * déjà restreintes REVIEWER+/ADMIN) passent sans contexte.
+   * Every caller, including auto-assign and bulk scans, supplies the real actor.
+   * Authorization is applied before reading file content.
    */
   async analyzeDocument(documentId: string, user?: DocumentAccessUser): Promise<AnalysisResult[]> {
+    if (!user?.id || !user.role) throw new ForbiddenException("Un acteur authentifié est requis pour analyser un document");
     // findFirst (et non findUnique) pour pouvoir filtrer les documents
     // soft-supprimés : deletedAt n'est pas une colonne unique.
     const document = await this.prisma.document.findFirst({
@@ -368,7 +370,7 @@ export class IsoAnalyzerService {
     // aligné sur DocumentsService.findById : sans cela, la route ouverte à tous
     // les rôles laisserait un PRESTATAIRE/COLLABORATEUR/AUDITEUR analyser un
     // brouillon (status !== APPROVED) d'autrui — cf. document-access.ts.
-    if (user && !canReadDocument(document, user)) {
+    if (document.scanStatus !== "CLEAN" || !await canReadDocumentWithPermissions(this.prisma, document, user)) {
       this.logger.warn(
         `iso.analyze.rbac_denied document=${documentId} user=${user.id} role=${user.role} classification=${document.classification}`,
       );
@@ -378,10 +380,13 @@ export class IsoAnalyzerService {
     }
 
     // Extract text from actual file content (PDF/DOCX) if available
-    let fileText = "";
-    const latestVersion = document.versions[0];
-    if (latestVersion?.fileUrl) {
-      fileText = await this.extractFileText(latestVersion.fileUrl, document.id);
+    let fileText = document.isNative ? sanitizePlainText(document.content) : "";
+    const currentVersion = document.currentVersionId
+      ? document.versions.find((version) => version.id === document.currentVersionId)
+        ?? await this.prisma.documentVersion.findFirst({ where: { id: document.currentVersionId, documentId } })
+      : null;
+    if (!document.isNative && currentVersion?.fileUrl) {
+      fileText = await this.extractFileText(currentVersion.fileUrl, document.id);
     }
 
     // Build text corpus from metadata + file content
@@ -442,8 +447,9 @@ export class IsoAnalyzerService {
   async autoAssignControls(
     documentId: string,
     threshold = 40,
+    user?: DocumentAccessUser,
   ): Promise<{ assigned: number; controls: string[] }> {
-    const results = await this.analyzeDocument(documentId);
+    const results = await this.analyzeDocument(documentId, user);
     const relevant = results.filter((r) => r.relevanceScore >= threshold);
 
     if (relevant.length === 0) {
@@ -735,50 +741,20 @@ export class IsoAnalyzerService {
    */
   private async extractFileText(fileUrl: string, documentId: string): Promise<string> {
     try {
-      // Resolve the file path from storage
-      const storageRoot = path.resolve(process.cwd(), "..", "..", "storage");
-      let filePath = "";
-
-      if (fileUrl.startsWith("/") || fileUrl.startsWith("storage/")) {
-        filePath = path.resolve(storageRoot, "..", fileUrl.replace(/^\//, ""));
-      } else {
-        // fileUrl is like "documents/{docId}/{versionId}.pdf"
-        filePath = path.join(storageRoot, fileUrl);
-      }
-
-      if (!fs.existsSync(filePath)) {
-        // Try direct path within storage/documents/{docId}/
-        const altPath = path.join(storageRoot, "documents", documentId);
-        if (fs.existsSync(altPath)) {
-          const files = fs.readdirSync(altPath);
-          const targetFile = files.find((f) => /\.(pdf|docx?)$/i.test(f));
-          if (targetFile) filePath = path.join(altPath, targetFile);
-        }
-      }
-
-      if (!fs.existsSync(filePath)) {
-        this.logger.debug(`File not found for extraction: ${fileUrl}`);
-        return "";
-      }
-
+      const filePath = this.storage.getFilePath(fileUrl);
+      if (!fs.existsSync(filePath)) return "";
+      const stat = await fs.promises.stat(filePath);
+      if (!stat.isFile() || stat.size > 50 * 1024 * 1024) return "";
       const ext = path.extname(filePath).toLowerCase();
-
       if (ext === ".pdf") {
-        // Use pdftotext (poppler-utils) — fast and reliable
-        const { execSync } = await import("child_process");
-        try {
-          const text = execSync(`pdftotext -enc UTF-8 "${filePath}" -`, {
-            encoding: "utf-8",
-            timeout: 30000,
-            maxBuffer: 10 * 1024 * 1024,
-          });
-          this.logger.debug(`Extracted ${text.length} chars from PDF (${documentId})`);
-          return text.substring(0, 50000);
-        } catch {
-          this.logger.debug(`pdftotext failed for ${documentId}, trying fallback`);
-          return "";
-        }
+        const text = await new Promise<string>((resolve, reject) => {
+          execFile("pdftotext", ["-enc", "UTF-8", filePath, "-"], {
+            encoding: "utf8", timeout: 30_000, maxBuffer: 10 * 1024 * 1024,
+          }, (error, stdout) => error ? reject(error) : resolve(String(stdout)));
+        });
+        return text.substring(0, 50000);
       }
+      if ([".txt", ".md", ".csv", ".html"].includes(ext)) return sanitizePlainText(await fs.promises.readFile(filePath, "utf8")).substring(0, 50000);
 
       if (ext === ".docx" || ext === ".doc") {
         const mammoth = await import("mammoth");
@@ -875,14 +851,16 @@ export class IsoAnalyzerService {
    * Scan ALL approved documents and auto-assign ISO controls.
    * This is the "full rescan" that recalculates compliance from scratch.
    */
-  async scanAllDocuments(threshold = 35): Promise<{
+  async scanAllDocuments(threshold = 35, user?: DocumentAccessUser): Promise<{
     scanned: number;
     assigned: number;
     errors: number;
     details: Array<{ reference: string; controls: number; status: string }>;
   }> {
+    if (!user?.id || !["ADMIN", "SUPER_ADMIN"].includes(user.role)) throw new ForbiddenException("Un administrateur authentifié est requis pour lancer le scan global");
+    const scope = await documentReaderScope(this.prisma, user);
     const documents = await this.prisma.document.findMany({
-      where: { deletedAt: null, status: { in: ["APPROVED", "IN_REVIEW", "PENDING_APPROVAL"] } },
+      where: { AND: [scope, { scanStatus: "CLEAN", status: { in: ["APPROVED", "IN_REVIEW", "PENDING_APPROVAL"] } }] },
       select: { id: true, reference: true, title: true, status: true },
     });
 
@@ -895,7 +873,7 @@ export class IsoAnalyzerService {
     for (let i = 0; i < documents.length; i += batchSize) {
       const batch = documents.slice(i, i + batchSize);
       const results = await Promise.allSettled(
-        batch.map((doc) => this.autoAssignControls(doc.id, threshold)),
+        batch.map((doc) => this.autoAssignControls(doc.id, threshold, user)),
       );
 
       results.forEach((result, idx) => {

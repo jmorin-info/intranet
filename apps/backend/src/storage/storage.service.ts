@@ -26,19 +26,24 @@ export class StorageService {
     file: Express.Multer.File,
     directory: string,
   ): Promise<{ filePath: string; fileUrl: string }> {
-    const targetDir = path.join(this.basePath, directory);
-    this.ensureDirectory(targetDir);
+    return this.storeBuffer(file.buffer, file.originalname, directory);
+  }
 
-    const ext = path.extname(file.originalname);
+  async storeBuffer(buffer: Buffer, originalName: string, directory: string): Promise<{ filePath: string; fileUrl: string }> {
+    const targetDir = this.getFilePath(`/storage/${directory}`);
+    await fs.promises.mkdir(targetDir, { recursive: true });
+    const [realBase, realTarget] = await Promise.all([
+      fs.promises.realpath(this.basePath), fs.promises.realpath(targetDir),
+    ]);
+    if (realTarget !== realBase && !realTarget.startsWith(realBase + path.sep)) {
+      throw new NotFoundException("Invalid storage directory");
+    }
+    const candidate = path.extname(originalName).toLowerCase();
+    const ext = /^\.[a-z0-9]{1,10}$/.test(candidate) ? candidate : ".bin";
     const filename = `${crypto.randomUUID()}${ext}`;
-    const filePath = path.join(targetDir, filename);
-
-    fs.writeFileSync(filePath, file.buffer);
-
-    const fileUrl = `/storage/${directory}/${filename}`;
-    this.logger.log(`File uploaded: ${fileUrl}`);
-
-    return { filePath, fileUrl };
+    const filePath = path.join(realTarget, filename);
+    await fs.promises.writeFile(filePath, buffer, { flag: "wx", mode: 0o600 });
+    return { filePath, fileUrl: `/storage/${directory}/${filename}` };
   }
 
   async generateChecksum(file: Express.Multer.File): Promise<string> {
@@ -54,7 +59,8 @@ export class StorageService {
       .update(`${fileUrl}:${expires}`)
       .digest("hex");
 
-    return `${fileUrl}?expires=${expires}&signature=${signature}`;
+    const token = Buffer.from(fileUrl, "utf8").toString("base64url");
+    return `/storage/download/${token}?expires=${expires}&signature=${signature}`;
   }
 
   getFilePath(fileUrl: string): string {
@@ -66,6 +72,14 @@ export class StorageService {
     const resolved = path.resolve(this.basePath, relativePath);
     const baseResolved = path.resolve(this.basePath);
     if (resolved !== baseResolved && !resolved.startsWith(baseResolved + path.sep)) {
+      throw new NotFoundException("Invalid file path");
+    }
+    // Existing parents may be symlinks, including before the final file exists.
+    let ancestor = resolved;
+    while (!fs.existsSync(ancestor) && ancestor !== baseResolved) ancestor = path.dirname(ancestor);
+    const realBase = fs.realpathSync(baseResolved);
+    const realAncestor = fs.realpathSync(ancestor);
+    if (realAncestor !== realBase && !realAncestor.startsWith(realBase + path.sep)) {
       throw new NotFoundException("Invalid file path");
     }
     return resolved;
@@ -83,14 +97,22 @@ export class StorageService {
     const url = new URL(signedUrl, "http://localhost");
     const expires = url.searchParams.get("expires");
     const signature = url.searchParams.get("signature");
-    const fileUrl = url.pathname;
+    let fileUrl = url.pathname;
+    if (fileUrl.startsWith("/storage/download/")) {
+      const token = fileUrl.slice("/storage/download/".length);
+      if (!/^[A-Za-z0-9_-]{1,2048}$/.test(token)) return { valid: false, fileUrl: "" };
+      fileUrl = Buffer.from(token, "base64url").toString("utf8");
+      if (Buffer.from(fileUrl, "utf8").toString("base64url") !== token) return { valid: false, fileUrl: "" };
+    }
+    if (!fileUrl.startsWith("/storage/") || /[\\\0?#]/.test(fileUrl)) return { valid: false, fileUrl: "" };
+    try { this.getFilePath(fileUrl); } catch { return { valid: false, fileUrl: "" }; }
 
     if (!expires || !signature) {
       return { valid: false, fileUrl: "" };
     }
 
-    const expiresNum = parseInt(expires, 10);
-    if (Date.now() > expiresNum) {
+    const expiresNum = Number(expires);
+    if (!/^\d+$/.test(expires) || !Number.isSafeInteger(expiresNum) || Date.now() >= expiresNum) {
       return { valid: false, fileUrl: "" };
     }
 
@@ -100,8 +122,9 @@ export class StorageService {
       .digest("hex");
 
     // Comparaison en temps constant (évite une timing attack sur la signature HMAC).
-    const signatureBuf = Buffer.from(signature);
-    const expectedSigBuf = Buffer.from(expectedSig);
+    if (!/^[a-f0-9]{64}$/i.test(signature)) return { valid: false, fileUrl: "" };
+    const signatureBuf = Buffer.from(signature, "hex");
+    const expectedSigBuf = Buffer.from(expectedSig, "hex");
     if (
       signatureBuf.length !== expectedSigBuf.length ||
       !crypto.timingSafeEqual(signatureBuf, expectedSigBuf)

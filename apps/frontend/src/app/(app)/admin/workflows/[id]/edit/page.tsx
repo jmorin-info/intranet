@@ -40,6 +40,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { Button, Card, CardContent, Badge, ConfirmDialog } from "@omnitech/ui";
+import { UserRole } from '@omnitech/shared';
 
 type NodeType =
   | "START"
@@ -78,6 +79,7 @@ interface Graph {
   name: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
+  definitionLocked?: boolean;
 }
 
 const NODE_TYPE_LABELS: Record<NodeType, string> = {
@@ -103,15 +105,8 @@ const NODE_TYPE_COLORS: Record<NodeType, { bg: string; border: string; icon: typ
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 70;
 
-const ROLES = [
-  "COLLABORATEUR",
-  "AUDITEUR",
-  "PRESTATAIRE",
-  "REVIEWER",
-  "DIRECTION",
-  "ADMIN",
-  "SUPER_ADMIN",
-];
+const ROLES = [UserRole.COLLABORATEUR, UserRole.REVIEWER, UserRole.MANAGER,
+  UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN];
 
 /**
  * Génère un UUID v4 simple côté client (sans dépendance), utilisé pour les
@@ -137,6 +132,8 @@ export default function WorkflowGraphEditorPage() {
   const [graph, setGraph] = useState<Graph | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<'unchanged' | 'pending' | 'saved' | 'error'>('unchanged');
+  const [loadError, setLoadError] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [pendingEdgeFrom, setPendingEdgeFrom] = useState<string | null>(null);
@@ -148,6 +145,7 @@ export default function WorkflowGraphEditorPage() {
   } | null>(null);
   const canvasRef = useRef<SVGSVGElement>(null);
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const saveGenerationRef = useRef(0);
 
   // ---------------------------------------------------------------------------
   // Load / Save
@@ -156,6 +154,7 @@ export default function WorkflowGraphEditorPage() {
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
+    setLoadError(false);
     try {
       const { data } = await api.get<Graph>(`/approval-workflows/${id}/graph`);
       // Si le graphe est vide (workflow sans steps), on initialise un canevas
@@ -181,11 +180,13 @@ export default function WorkflowGraphEditorPage() {
             },
           ],
           edges: [],
+          definitionLocked: data.definitionLocked,
         });
       } else {
         setGraph(data);
       }
     } catch (err: unknown) {
+      setLoadError(true);
       toast.error("Impossible de charger le graphe");
       logger.error(err, { page: "admin/workflows/edit", context: "loadGraph" });
     } finally {
@@ -195,7 +196,15 @@ export default function WorkflowGraphEditorPage() {
 
   useEffect(() => {
     void load();
+    return () => { saveGenerationRef.current += 1; if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [load]);
+
+  useEffect(() => {
+    if (saveState !== 'pending' && saveState !== 'error' && !saving) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [saveState, saving]);
 
   /**
    * Validation client (miroir des règles serveur) — affiche les warnings sans
@@ -302,6 +311,9 @@ export default function WorkflowGraphEditorPage() {
 
   const scheduleSave = useCallback(
     (g: Graph) => {
+      if (g.definitionLocked) return;
+      const generation = ++saveGenerationRef.current;
+      setSaveState('pending');
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
         void (async () => {
@@ -325,12 +337,14 @@ export default function WorkflowGraphEditorPage() {
               nodes: g.nodes,
               edges: g.edges,
             });
+            if (generation === saveGenerationRef.current) setSaveState('saved');
           } catch (err: unknown) {
+            if (generation === saveGenerationRef.current) setSaveState('error');
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data
               ?.message;
             toast.error(msg ?? "Erreur de sauvegarde");
           } finally {
-            setSaving(false);
+            if (generation === saveGenerationRef.current) setSaving(false);
           }
         })();
       }, 500);
@@ -341,7 +355,7 @@ export default function WorkflowGraphEditorPage() {
   const updateGraph = useCallback(
     (mutator: (g: Graph) => Graph) => {
       setGraph((prev) => {
-        if (!prev) return prev;
+        if (!prev || prev.definitionLocked) return prev;
         const next = mutator(prev);
         scheduleSave(next);
         return next;
@@ -471,14 +485,20 @@ export default function WorkflowGraphEditorPage() {
     [graph, selectedNodeId],
   );
 
+  if (loadError) return <div className="space-y-4 p-6"><p role="alert">Impossible de charger le circuit.</p><Button onClick={() => void load()}>Réessayer</Button></div>;
+
   if (loading || !graph) {
     return <div className="p-6 text-gray-500 dark:text-slate-400">Chargement…</div>;
   }
 
+  if (graph.definitionLocked) return <div className="space-y-4 p-6"><h1 className="text-xl font-semibold">Étapes protégées</h1>
+    <p>Ce circuit a déjà été utilisé. Dupliquez-le depuis sa fiche pour créer un nouveau parcours sans modifier les demandes existantes.</p>
+    <Link href={`/admin/workflows/${encodeURIComponent(id)}`} className="inline-block font-medium text-seal-blue underline">Revenir au circuit et le dupliquer</Link></div>;
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-3">
         <div className="flex items-center gap-3">
           <Link
             href={`/admin/workflows/${id}`}
@@ -506,8 +526,10 @@ export default function WorkflowGraphEditorPage() {
           )}
           {saving ? (
             <span className="text-xs text-gray-500 dark:text-slate-400">Sauvegarde…</span>
+          ) : saveState === 'error' ? (
+            <Button variant="outline" size="sm" onClick={() => scheduleSave(graph)}>Échec de l’enregistrement · Réessayer</Button>
           ) : (
-            <span className="text-xs text-gray-400 dark:text-slate-500">Enregistré</span>
+            <span role="status" className="text-xs text-gray-600 dark:text-slate-400">{saveState === 'pending' ? 'Modifications non enregistrées' : saveState === 'saved' ? 'Enregistré' : 'Aucune modification'}</span>
           )}
         </div>
       </header>

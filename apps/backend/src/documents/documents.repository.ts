@@ -119,7 +119,7 @@ export class DocumentsRepository {
 
   async findManyWithCount(
     where: Prisma.DocumentWhereInput,
-    orderBy: Prisma.DocumentOrderByWithRelationInput,
+    orderBy: Prisma.DocumentOrderByWithRelationInput | Prisma.DocumentOrderByWithRelationInput[],
     skip: number,
     take: number,
   ) {

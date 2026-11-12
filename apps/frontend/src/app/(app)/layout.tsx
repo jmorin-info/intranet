@@ -165,7 +165,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Breadcrumbs />
             </div>
           )}
-          <main id="main-content" className="p-4 lg:p-6 pb-[calc(64px+env(safe-area-inset-bottom))] lg:pb-6 pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(1rem+env(safe-area-inset-right))] lg:pl-[calc(1.5rem+env(safe-area-inset-left))] lg:pr-[calc(1.5rem+env(safe-area-inset-right))] animate-[fadeIn_0.25s_ease-out]">
+          <main id="main-content" tabIndex={-1} className="p-4 lg:p-6 pb-[calc(64px+env(safe-area-inset-bottom))] lg:pb-6 pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(1rem+env(safe-area-inset-right))] lg:pl-[calc(1.5rem+env(safe-area-inset-left))] lg:pr-[calc(1.5rem+env(safe-area-inset-right))] animate-[fadeIn_0.25s_ease-out] focus:outline-none">
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
         </div>

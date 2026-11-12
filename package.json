@@ -4,6 +4,8 @@
   "private": true,
   "description": "Intranet GED sécurisé OMNITECH Security — ISO 27001:2022",
   "scripts": {
+    "test": "pnpm --filter @omnitech/backend exec jest --runInBand && pnpm --filter @omnitech/frontend test",
+    "verify:maintenance": "bash scripts/verify-maintenance.sh",
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",

@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
+import { approvalRequestError } from '@/lib/approvals';
+import { UserRole } from '@omnitech/shared';
 
 type StepMode = 'SINGLE' | 'PARALLEL_ALL' | 'PARALLEL_ANY';
 
@@ -45,17 +47,12 @@ interface WorkflowDetail {
   isActive: boolean;
   isDefault: boolean;
   steps: WorkflowStep[];
+  definitionLocked?: boolean;
+  _count?: { instances: number };
 }
 
-const ROLES = [
-  'COLLABORATEUR',
-  'AUDITEUR',
-  'PRESTATAIRE',
-  'REVIEWER',
-  'DIRECTION',
-  'ADMIN',
-  'SUPER_ADMIN',
-];
+const ROLES = [UserRole.COLLABORATEUR, UserRole.REVIEWER, UserRole.MANAGER,
+  UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN];
 
 const MODE_LABELS: Record<StepMode, string> = {
   SINGLE: 'Un seul approbateur',
@@ -72,6 +69,10 @@ export default function WorkflowDetailPage() {
   const [wf, setWf] = useState<WorkflowDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [stepSaving, setStepSaving] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const locked = wf?.definitionLocked === true || (wf?._count?.instances ?? 0) > 0;
 
   // Form state for header edit
   const [name, setName] = useState('');
@@ -94,6 +95,7 @@ export default function WorkflowDetailPage() {
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
+    setLoadError('');
     try {
       const { data } = await api.get<WorkflowDetail>(`/approval-workflows/${id}`);
       setWf(data);
@@ -102,7 +104,7 @@ export default function WorkflowDetailPage() {
       setIsActive(data.isActive);
       setIsDefault(data.isDefault);
     } catch (err) {
-      toast.error('Impossible de charger le workflow');
+      setLoadError(approvalRequestError(err, 'Impossible de charger le circuit. Réessayez dans un instant.'));
     } finally {
       setLoading(false);
     }
@@ -113,24 +115,25 @@ export default function WorkflowDetailPage() {
   }, [load]);
 
   const handleSaveHeader = async () => {
+    if (!name.trim()) { toast.error('Le nom du circuit est obligatoire.'); return; }
     setSaving(true);
     try {
       await api.patch(`/approval-workflows/${id}`, {
-        name: name.trim(),
-        description: description.trim() || null,
+        ...(!locked ? { name: name.trim(), description: description.trim() || null } : {}),
         isActive,
         isDefault,
       });
       toast.success('Workflow mis à jour');
       await load();
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erreur');
+    } catch (err: unknown) {
+      toast.error(approvalRequestError(err, 'Impossible d’enregistrer le circuit.'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleAddStep = async () => {
+    if (locked || stepSaving) return;
     if (!stepForm.name.trim()) {
       toast.error('Le nom de l\'étape est obligatoire');
       return;
@@ -139,6 +142,11 @@ export default function WorkflowDetailPage() {
       toast.error('Définir au moins un approbateur (rôle ou utilisateur)');
       return;
     }
+    if (stepForm.slaHours && (!Number.isInteger(Number(stepForm.slaHours)) || Number(stepForm.slaHours) < 1 || Number(stepForm.slaHours) > 8760)) {
+      toast.error('Le délai doit être un nombre entier entre 1 et 8 760 heures.');
+      return;
+    }
+    setStepSaving(true);
     try {
       await api.post(`/approval-workflows/${id}/steps`, {
         name: stepForm.name.trim(),
@@ -147,7 +155,7 @@ export default function WorkflowDetailPage() {
         approverUserId: stepForm.approverUserId || null,
         slaHours: stepForm.slaHours ? Number(stepForm.slaHours) : null,
         escalateToUserId: stepForm.escalateToUserId || null,
-        autoApproveOnTimeout: stepForm.autoApproveOnTimeout,
+        autoApproveOnTimeout: false,
       });
       toast.success('Étape ajoutée');
       setStepDialogOpen(false);
@@ -161,24 +169,25 @@ export default function WorkflowDetailPage() {
         autoApproveOnTimeout: false,
       });
       await load();
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erreur');
-    }
+    } catch (err: unknown) {
+      toast.error(approvalRequestError(err, 'Impossible d’ajouter cette étape.'));
+    } finally { setStepSaving(false); }
   };
 
   const handleRemoveStep = async (stepId: string) => {
+    if (locked) return;
     if (!confirm('Supprimer cette étape ?')) return;
     try {
       await api.delete(`/approval-workflows/steps/${stepId}`);
       toast.success('Étape supprimée');
       await load();
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erreur');
+    } catch (err: unknown) {
+      toast.error(approvalRequestError(err, 'Impossible de supprimer cette étape.'));
     }
   };
 
   const handleMove = async (index: number, direction: -1 | 1) => {
-    if (!wf) return;
+    if (!wf || locked) return;
     const newSteps = [...wf.steps];
     const target = index + direction;
     if (target < 0 || target >= newSteps.length) return;
@@ -191,10 +200,24 @@ export default function WorkflowDetailPage() {
         orderedStepIds: newSteps.map((s) => s.id),
       });
       await load();
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erreur réordonnancement');
+    } catch (err: unknown) {
+      toast.error(approvalRequestError(err, 'Impossible de réordonner les étapes.'));
     }
   };
+
+  const handleDuplicate = async () => {
+    if (duplicating) return;
+    setDuplicating(true);
+    try {
+      const { data } = await api.post<{ id: string }>(`/approval-workflows/${id}/duplicate`);
+      toast.success('Copie créée et désactivée. Vérifiez ses étapes avant de l’activer.');
+      router.push(`/admin/workflows/${encodeURIComponent(data.id)}`);
+    } catch (err: unknown) { toast.error(approvalRequestError(err, 'Impossible de dupliquer le circuit.')); }
+    finally { setDuplicating(false); }
+  };
+
+  if (loadError) return <div className="space-y-4 p-6"><Link href="/admin/workflows" className="text-seal-blue underline">Retour aux circuits</Link>
+    <p role="alert" className="text-red-700 dark:text-red-300">{loadError}</p><Button onClick={() => void load()}>Réessayer</Button></div>;
 
   if (loading || !wf) {
     return (
@@ -211,10 +234,16 @@ export default function WorkflowDetailPage() {
         <ArrowLeft className="w-4 h-4 mr-1" /> Retour à la liste
       </Link>
 
+      {locked && <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-seal-navy dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+        <p className="font-semibold">Ce circuit a déjà été utilisé : ses étapes sont protégées.</p>
+        <p className="mt-1">Dupliquez-le pour modifier le parcours des prochaines demandes. L’historique et les demandes existantes restent rattachés à leur circuit d’origine.</p>
+        <Button className="mt-3" variant="outline" onClick={() => void handleDuplicate()} loading={duplicating}>Dupliquer le circuit</Button>
+      </div>}
+
       <Card>
         <CardContent className="p-6 space-y-4">
           <h1 className="text-xl font-bold text-seal-navy dark:text-white">
-            Configuration du workflow
+            Configuration du circuit d’approbation
           </h1>
           <div>
             <label className="block text-sm font-medium text-seal-navy dark:text-white mb-1">
@@ -224,6 +253,7 @@ export default function WorkflowDetailPage() {
               type="text"
               className="w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               value={name}
+              disabled={locked}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
@@ -235,10 +265,11 @@ export default function WorkflowDetailPage() {
               className="w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               rows={2}
               value={description}
+              disabled={locked}
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 text-sm text-seal-navy dark:text-white">
               <input
                 type="checkbox"
@@ -256,7 +287,8 @@ export default function WorkflowDetailPage() {
               Workflow par défaut pour cette catégorie
             </label>
           </div>
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            {!locked && <Button variant="outline" onClick={() => void handleDuplicate()} loading={duplicating}>Dupliquer</Button>}
             <Button onClick={handleSaveHeader} disabled={saving}>
               <Save className="w-4 h-4 mr-2" />
               {saving ? 'Enregistrement…' : 'Enregistrer'}
@@ -267,11 +299,11 @@ export default function WorkflowDetailPage() {
 
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-bold text-seal-navy dark:text-white">
               Étapes du workflow
             </h2>
-            <Button onClick={() => setStepDialogOpen(true)}>
+            <Button disabled={locked} onClick={() => setStepDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Ajouter une étape
             </Button>
@@ -288,7 +320,7 @@ export default function WorkflowDetailPage() {
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 text-center max-w-xs">
                 Ajoutez une première étape pour activer ce workflow d&apos;approbation.
               </p>
-              <Button onClick={() => setStepDialogOpen(true)}>
+              <Button disabled={locked} onClick={() => setStepDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Ajouter une première étape
               </Button>
@@ -304,7 +336,7 @@ export default function WorkflowDetailPage() {
                     <button
                       type="button"
                       onClick={() => handleMove(idx, -1)}
-                      disabled={idx === 0}
+                      disabled={locked || idx === 0}
                       className="p-1 disabled:opacity-30 text-gray-600 dark:text-gray-300"
                       aria-label="Monter"
                     >
@@ -313,7 +345,7 @@ export default function WorkflowDetailPage() {
                     <button
                       type="button"
                       onClick={() => handleMove(idx, 1)}
-                      disabled={idx === wf.steps.length - 1}
+                      disabled={locked || idx === wf.steps.length - 1}
                       className="p-1 disabled:opacity-30 text-gray-600 dark:text-gray-300"
                       aria-label="Descendre"
                     >
@@ -333,16 +365,17 @@ export default function WorkflowDetailPage() {
                         </span>
                       )}
                       {step.slaHours != null && (
-                        <span>· SLA {step.slaHours}h</span>
+                        <span>· Délai de traitement : {step.slaHours} h</span>
                       )}
                       {step.autoApproveOnTimeout && (
-                        <span>· Auto-approuvé sur timeout</span>
+                        <span>· Ancienne option d’auto-approbation : décision humaine requise</span>
                       )}
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRemoveStep(step.id)}
+                    disabled={locked}
                     className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                     aria-label="Supprimer"
                   >
@@ -460,24 +493,12 @@ export default function WorkflowDetailPage() {
                 />
               </div>
             </div>
-            <label className="flex items-center gap-2 text-sm text-seal-navy dark:text-white">
-              <input
-                type="checkbox"
-                checked={stepForm.autoApproveOnTimeout}
-                onChange={(e) =>
-                  setStepForm({
-                    ...stepForm,
-                    autoApproveOnTimeout: e.target.checked,
-                  })
-                }
-              />
-              Auto-approuver si pas de réponse dans le SLA
-            </label>
+            <p className="rounded-lg bg-blue-50 p-3 text-sm text-seal-navy dark:bg-blue-950/40 dark:text-blue-100">Le délai commence à l’ouverture de l’étape. Une échéance dépassée peut déclencher une relance ou une escalade ; la décision reste humaine.</p>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setStepDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button onClick={handleAddStep}>Ajouter</Button>
+              <Button onClick={handleAddStep} loading={stepSaving} disabled={locked}>Ajouter l’étape</Button>
             </div>
           </div>
         </Dialog>

@@ -21,6 +21,7 @@ import {
   DOCUMENT_CATEGORY_LABELS,
 } from "@omnitech/shared";
 import { api } from "@/lib/api";
+import { buildDocumentFilename } from "@/lib/download";
 import { formatDate, formatRelativeTime, getInitials } from "@/lib/utils";
 import {
   categoryBadgeVariant,
@@ -231,7 +232,7 @@ export function useDocumentsColumns({
               onClick={async (e) => {
                 e.stopPropagation();
                 try {
-                  const { data } = await api.get(
+                  const { data, headers } = await api.get(
                     `/documents/${doc.id}/download`,
                     { responseType: "blob" },
                   );
@@ -240,12 +241,12 @@ export function useDocumentsColumns({
                   link.href = blobUrl;
                   link.setAttribute(
                     "download",
-                    `${doc.reference}-${doc.title}.pdf`,
+                    buildDocumentFilename(doc.reference, undefined, String(headers["content-type"] || "")),
                   );
                   window.document.body.appendChild(link);
                   link.click();
                   link.remove();
-                  URL.revokeObjectURL(blobUrl);
+                  setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
                   toast.success("Téléchargement lancé");
                 } catch {
                   toast.error("Téléchargement impossible");

@@ -5,7 +5,7 @@ import { Reflector } from '@nestjs/core';
 import { UserRole } from '../common/enums';
 import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 import type { Request, Response } from 'express';
-import * as fs from 'fs';
+import fs = require('fs');
 
 jest.mock('fs');
 

@@ -71,8 +71,13 @@ docs(cms): MIGRATION.md — procédure de déploiement
 chore(ci): tests axe-core sur 10 pages clés
 ```
 
-Les commits sont co-signés `Co-Authored-By: Claude <noreply@anthropic.com>`
-quand un assistant IA a contribué — pour traçabilité ISO 27001 A.5.33.
+La description de PR précise l'outil d'assistance effectivement utilisé, les
+changements produits et les vérifications exécutées. Un reviewer humain porte
+la validation technique et métier. Les identités de commit correspondent aux
+contributeurs réels ; les décisions restent consignées dans le dépôt.
+
+Le dossier [de maintenabilité](docs/maintenance/README.md) décrit les preuves de
+reprise, d'exploitation et de validation attendues pour chaque release.
 
 ## Standards de code
 

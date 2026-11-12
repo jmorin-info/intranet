@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { createHash } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
-import { canReadDocument } from "../common/document-access";
+import { documentReaderScope, canReadDocumentWithPermissions } from "../common/document-access";
 import { TextExtractorService } from "./text-extractor.service";
 import { EmbeddingService } from "./embedding/embedding.service";
 import { HybridSearchService, HybridChunk } from "./embedding/hybrid-search.service";
@@ -574,27 +574,13 @@ export class RagService {
    * Filtrage AVANT retrieval pour conformité ISO 27001.
    */
   private async getAccessibleDocumentIds(ctx: RagSearchContext): Promise<string[] | "ALL"> {
-    const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(ctx.role);
-    if (isPrivileged) return "ALL";
-
+    if (!ctx?.userId || !ctx.role) return [];
     try {
+      const scope = await documentReaderScope(this.prisma, { id: ctx.userId, role: ctx.role, departmentId: ctx.departmentId });
       const docs = await this.prisma.document.findMany({
-        where: {
-          OR: [
-            { classification: "PUBLIC" },
-            { classification: "INTERNE" },
-            // CONFIDENTIEL : accessible si owner, reviewer, ou approver
-            {
-              classification: "CONFIDENTIEL",
-              OR: [{ ownerId: ctx.userId }, { reviewerId: ctx.userId }, { approverId: ctx.userId }],
-            },
-            // SECRET : uniquement owner
-            { classification: "SECRET", ownerId: ctx.userId },
-          ],
-        },
-        select: { id: true },
+        where: { AND: [scope, { scanStatus: "CLEAN" }] }, select: { id: true },
       });
-      return docs.map((d) => d.id);
+      return docs.map((document) => document.id);
     } catch (err) {
       this.logger.error({
         msg: "rbac.document_ids.failed",
@@ -611,10 +597,9 @@ export class RagService {
    * - Wiki / Runbook : accessible si publié (déjà filtré à l'indexation)
    * - Procédure / FAQ : accessible à tous les authentifiés
    */
-  private async applyRbacFilter(candidates: any[], ctx: RagSearchContext): Promise<any[]> {
-    if (!ctx || process.env.RBAC_RAG_ENABLED === "false") {
-      return candidates; // Feature flag désactivé → pas de filtrage
-    }
+  private async applyRbacFilter(candidates: any[], ctx?: RagSearchContext): Promise<any[]> {
+    // Calls without an actor can search public knowledge sources, never GED content.
+    if (!ctx?.userId || !ctx.role) return candidates.filter((candidate) => candidate.sourceType !== "DOCUMENT");
 
     const docChunks = candidates.filter((c: any) => c.sourceType === "DOCUMENT");
     const otherChunks = candidates.filter((c: any) => c.sourceType !== "DOCUMENT");
@@ -678,9 +663,7 @@ export class RagService {
     }
 
     // RBAC filtering BEFORE scoring (ISO 27001 Annex A.5.15)
-    if (ctx) {
-      candidates = await this.applyRbacFilter(candidates, ctx);
-    }
+    candidates = await this.applyRbacFilter(candidates, ctx);
 
     const lowerQuery = query
       .normalize("NFD")
@@ -764,21 +747,8 @@ export class RagService {
 
     const threshold = parseFloat(process.env.VECTOR_SIMILARITY_THRESHOLD || "0.5");
 
-    // Build accessible IDs filter for RBAC
-    let accessFilter = "";
-    if (ctx && process.env.RBAC_RAG_ENABLED !== "false") {
-      const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(ctx.role);
-      if (!isPrivileged) {
-        const accessibleIds = await this.getAccessibleDocumentIds(ctx);
-        if (accessibleIds !== "ALL" && accessibleIds.length === 0) {
-          // User has no document access — only search non-DOCUMENT sources
-          accessFilter = `AND ("sourceType" != 'DOCUMENT')`;
-        } else if (accessibleIds !== "ALL") {
-          const idsList = accessibleIds.map((id) => `'${id}'`).join(",");
-          accessFilter = `AND ("sourceType" != 'DOCUMENT' OR "sourceId" IN (${idsList}))`;
-        }
-      }
-    }
+    // The shared builder validates identifiers before constructing the SQL clause.
+    const accessFilter = await this.buildAccessFilter(ctx) ?? "";
 
     try {
       const embeddingStr = `[${queryEmbedding.join(",")}]`;
@@ -950,7 +920,7 @@ export class RagService {
       const hybrid = await this.hybridSearch.search(query, limit, filter);
       // Le filtrage RBAC est deja applique cote SQL via `filter`. On ne re-filtre
       // que si l'appelant a fourni un ctx (defense en profondeur post-SQL).
-      const filtered = ctx ? await this.applyRbacFilter(hybrid, ctx) : hybrid;
+      const filtered = await this.applyRbacFilter(hybrid, ctx);
       return this.toRagSources(filtered, query);
     }
 
@@ -1006,10 +976,7 @@ export class RagService {
    * ou si user privileged (acces total).
    */
   private async buildAccessFilter(ctx?: RagSearchContext): Promise<string | undefined> {
-    if (!ctx || process.env.RBAC_RAG_ENABLED === "false") return undefined;
-
-    const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(ctx.role);
-    if (isPrivileged) return undefined;
+    if (!ctx?.userId || !ctx.role) return `AND ("sourceType" != 'DOCUMENT')`;
 
     const accessibleIds = await this.getAccessibleDocumentIds(ctx);
     if (accessibleIds === "ALL") return undefined;
@@ -1508,6 +1475,7 @@ export class RagService {
     documentId: string,
     ctx?: RagSearchContext,
   ): Promise<{ summary: string }> {
+    if (!ctx?.userId || !ctx.role) throw new ForbiddenException("Un acteur authentifié est requis pour résumer un document");
     // findFirstOrThrow (et non findUniqueOrThrow) pour filtrer les documents
     // soft-supprimés : deletedAt n'est pas une colonne unique. Absent/soft-delete
     // → P2025 → 404 (aligné sur DocumentsService.findById).
@@ -1520,9 +1488,8 @@ export class RagService {
     // fail closed. Sans le contrôle de statut, un PRESTATAIRE/COLLABORATEUR
     // pouvait résumer un brouillon (status !== APPROVED) d'autrui via son UUID.
     if (
-      ctx &&
-      process.env.RBAC_RAG_ENABLED !== "false" &&
-      !canReadDocument(doc, { id: ctx.userId, role: ctx.role })
+      doc.scanStatus !== "CLEAN" ||
+      !await canReadDocumentWithPermissions(this.prisma, doc, { id: ctx.userId, role: ctx.role, departmentId: ctx.departmentId })
     ) {
       this.logger.warn({
         msg: "rag.summary.rbac_denied",
@@ -1662,6 +1629,7 @@ export class RagService {
     onToken: (token: string) => void,
     onStatus?: (status: RagStreamStatus) => void,
   ): Promise<void> {
+    if (!ctx?.userId || !ctx.role) throw new ForbiddenException("Un acteur authentifié est requis pour résumer un document");
     onStatus?.({ stage: "retrieving" });
 
     const doc = await this.prisma.document.findFirstOrThrow({
@@ -1670,9 +1638,8 @@ export class RagService {
     });
 
     if (
-      ctx &&
-      process.env.RBAC_RAG_ENABLED !== "false" &&
-      !canReadDocument(doc, { id: ctx.userId, role: ctx.role })
+      doc.scanStatus !== "CLEAN" ||
+      !await canReadDocumentWithPermissions(this.prisma, doc, { id: ctx.userId, role: ctx.role, departmentId: ctx.departmentId })
     ) {
       this.logger.warn({
         msg: "rag.summary_stream.rbac_denied",

@@ -58,6 +58,7 @@ export const BREADCRUMBS_LABELS: Record<string, BreadcrumbLabelConfig> = {
   mfa: { label: 'Authentification (MFA)' },
   certificates: { label: 'Mes certifications' },
   signatures: { label: 'Mes signatures' },
+  approvals: { label: 'Mes approbations' },
   testimonials: { label: 'Mon avis' },
 
   // Travail / Collaboration

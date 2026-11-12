@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/safe-test';
 
 /**
  * Dashboard — relies on global-setup storageState (SUPER_ADMIN authenticated).

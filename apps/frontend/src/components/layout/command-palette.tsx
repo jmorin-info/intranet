@@ -35,6 +35,7 @@ import {
   Settings,
   ShieldCheck,
   ClipboardList,
+  CheckCircle2,
   User,
   Moon,
   LogOut,
@@ -371,6 +372,15 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const allCommands: CommandItem[] = useMemo(() => {
     const items: CommandItem[] = [
       // ── Pages ──
+      {
+        id: "page:approvals",
+        minRole: UserRole.COLLABORATEUR,
+        label: "Mes approbations",
+        icon: CheckCircle2,
+        category: "pages",
+        href: "/approvals",
+        keywords: ["approbation", "validation", "circuit", "workflow", "relance"],
+      },
       {
         id: "page:dashboard",
         label: "Tableau de bord",

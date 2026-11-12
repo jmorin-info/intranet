@@ -559,6 +559,9 @@ export function Sidebar() {
           badgeTone: "amber",
         },
         { label: t("nav.mySignatures"), href: "/signatures", icon: PenLine },
+        { label: "Mes approbations", href: "/approvals", icon: Workflow,
+          minRole: UserRole.COLLABORATEUR,
+          badge: counters.pendingApprovals || undefined, badgeTone: "amber" },
         { label: "Mes certifications", href: "/certificates", icon: Award },
         { label: t("nav.calendar"), href: "/calendar", icon: Calendar },
         { label: t("nav.mfa"), href: "/mfa", icon: Shield },
@@ -920,6 +923,8 @@ export function Sidebar() {
   // -------------------------------------------------------------------------
 
   const moduleOf = (href: string): string => {
+    // L’inbox est un parcours GED, pas un nouveau module à activer.
+    if (href === '/approvals' || href.startsWith('/approvals/')) return 'documents';
     const segments = href.split("/").filter(Boolean);
     if (segments.length === 0) return "dashboard";
     return segments[0]!;

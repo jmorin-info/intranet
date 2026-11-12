@@ -7,7 +7,7 @@
  * ainsi que des helpers de validation et de lookup.
  */
 
-import type { UserRole } from '@omnitech/shared';
+import { UserRole } from '@omnitech/shared';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -50,6 +50,7 @@ export const ROUTES: readonly RouteEntry[] = [
   { path: '/notifications',  label: 'Notifications',        labelEn: 'Notifications',     icon: 'Bell',            group: 'mySpace' },
   { path: '/tickets',        label: 'Mes tickets',          labelEn: 'My Tickets',        icon: 'Ticket',          group: 'mySpace' },
   { path: '/signatures',     label: 'Mes signatures',       labelEn: 'My Signatures',     icon: 'PenLine',         group: 'mySpace' },
+  { path: '/approvals',      label: 'Mes approbations',     labelEn: 'My Approvals',      icon: 'Workflow',        group: 'mySpace', requiredRole: UserRole.COLLABORATEUR },
   { path: '/certificates',   label: 'Mes certifications',   labelEn: 'My Certifications', icon: 'Award',           group: 'mySpace' },
   { path: '/calendar',       label: 'Calendrier',           labelEn: 'Calendar',          icon: 'Calendar',        group: 'mySpace' },
   { path: '/mfa',            label: 'Authentification MFA', labelEn: 'MFA Authentication',icon: 'Shield',          group: 'mySpace' },

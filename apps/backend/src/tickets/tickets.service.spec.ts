@@ -120,14 +120,16 @@ describe('TicketsService', () => {
       );
     });
 
-    it('should restrict collaborateur to own tickets + assigned + department', async () => {
+    it('keeps the collaborator ACL together with the ticket-space ACL', async () => {
       await service.findAll({}, collaborateurUser);
       // Le nouveau scoping : creatorId OR assigneeId OR departmentId
       expect(prisma.ticket.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            OR: expect.arrayContaining([
-              expect.objectContaining({ creatorId: 'user-1' }),
+            AND: expect.arrayContaining([
+              expect.objectContaining({ OR: expect.arrayContaining([
+                expect.objectContaining({ creatorId: 'user-1' }),
+              ]) }),
             ]),
           }),
         }),
@@ -418,7 +420,8 @@ describe('TicketsService', () => {
       const collabWithDept = { id: 'user-1', role: 'COLLABORATEUR', departmentId: 'dept-1' };
       await service.findAll({}, collabWithDept);
       const callArgs = prisma.ticket.findMany.mock.calls[0][0];
-      expect(callArgs.where.OR).toEqual(
+      const access = callArgs.where.AND.find((clause: any) => clause.OR?.some((entry: any) => entry.creatorId));
+      expect(access.OR).toEqual(
         expect.arrayContaining([
           { creatorId: 'user-1' },
           { assigneeId: 'user-1' },
@@ -431,8 +434,9 @@ describe('TicketsService', () => {
       const collabNoDept = { id: 'user-1', role: 'COLLABORATEUR', departmentId: null };
       await service.findAll({}, collabNoDept);
       const callArgs = prisma.ticket.findMany.mock.calls[0][0];
-      expect(callArgs.where.OR).toHaveLength(2);
-      expect(callArgs.where.OR).toEqual(
+      const access = callArgs.where.AND.find((clause: any) => clause.OR?.some((entry: any) => entry.creatorId));
+      expect(access.OR).toHaveLength(2);
+      expect(access.OR).toEqual(
         expect.arrayContaining([
           { creatorId: 'user-1' },
           { assigneeId: 'user-1' },

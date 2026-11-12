@@ -1,3 +1,4 @@
+import { assertTestEnvironment, testApiUrl, requireTestCredentials } from './test-environment';
 import type { APIRequestContext, Page } from '@playwright/test';
 
 /**
@@ -14,17 +15,18 @@ import type { APIRequestContext, Page } from '@playwright/test';
  */
 
 export const ADMIN_CREDS = {
-  email: process.env.E2E_ADMIN_EMAIL || 'jmorin@omnitech-security.fr',
-  password: process.env.E2E_ADMIN_PASSWORD || 'Admin123!',
+  email: process.env.E2E_ADMIN_EMAIL || '',
+  password: process.env.E2E_ADMIN_PASSWORD || '',
 };
 
 export const COLLAB_CREDS = {
-  email: process.env.E2E_COLLAB_EMAIL || 'collaborateur@omnitech-security.fr',
-  password: process.env.E2E_COLLAB_PASSWORD || 'Collab123!',
+  email: process.env.E2E_COLLAB_EMAIL || '',
+  password: process.env.E2E_COLLAB_PASSWORD || '',
 };
 
 function apiBase(): string {
-  return process.env.E2E_API_URL || 'http://10.33.120.55:3000/api';
+  assertTestEnvironment();
+  return testApiUrl();
 }
 
 async function apiLogin(
@@ -45,11 +47,11 @@ async function apiLogin(
  * context. Falls back to UI form login if the API call fails.
  */
 export async function loginAsAdmin(page: Page): Promise<void> {
-  return loginAs(page, ADMIN_CREDS);
+  return loginAs(page, requireTestCredentials('ADMIN'));
 }
 
 export async function loginAsCollaborateur(page: Page): Promise<void> {
-  return loginAs(page, COLLAB_CREDS);
+  return loginAs(page, requireTestCredentials('COLLAB'));
 }
 
 async function loginAs(

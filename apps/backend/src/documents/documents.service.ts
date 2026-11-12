@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Logger,
   Optional,
+  ConflictException,
 } from "@nestjs/common";
 import * as crypto from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
@@ -19,7 +20,7 @@ import { CreateDocumentDto } from "./dto/create-document.dto";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 import { DocumentFiltersDto } from "./dto/document-filters.dto";
 import { RequestUser } from "../common/interfaces";
-import type { UserRole as PrismaUserRole } from "@prisma/client";
+import type { Prisma, UserRole as PrismaUserRole } from "@prisma/client";
 import { UserRole, ROLE_HIERARCHY } from "../common/enums";
 import { isLegalStatusTransition } from "../common/document-workflow";
 import { ISO_CONTROLS_FR } from "../iso-controls/iso-controls-fr.map";
@@ -28,6 +29,11 @@ import { safeParseInt } from "../common/validation-helpers";
 import { MeilisearchService, MeiliDocument } from "../search/meilisearch.service";
 import { RagService } from "../rag/rag.service";
 import { WorkflowRulesService } from "../workflow-rules/workflow-rules.service";
+import { DocumentPermissionsService } from "./document-permissions.service";
+import { DOCUMENT_STATUS_GROUPS, ReadableDocument } from "./document-library.policy";
+import { cancelPendingDocumentCircuits } from "./document-circuit-cancellation";
+import { workflowTransaction } from "../approval-workflows/workflow-transaction";
+import { documentReaderScope, canReadDocumentWithPermissions } from "../common/document-access";
 
 /** Enrich any object that has nested isoControls[].isoControl with titleFr */
 function enrichIsoControls<T>(doc: T): T {
@@ -201,6 +207,7 @@ export class DocumentsService {
     @Optional() private readonly rag?: RagService,
     @Optional() private readonly workflowRules?: WorkflowRulesService,
     @Optional() private readonly metrics?: AppMetricsService,
+    @Optional() private readonly permissions?: DocumentPermissionsService,
   ) {}
 
   /** Invalidate document + dashboard stats caches after mutations. */
@@ -237,215 +244,28 @@ export class DocumentsService {
       );
   }
 
-  /**
-   * Récupère les département-IDs de l'utilisateur (UserDepartment.userId multi-
-   * membership + legacy User.departmentId mono-membership). Utilisé par le
-   * résolveur ACL granulaire (DocumentPermission.departmentId).
-   */
-  private async getUserDepartmentIds(userId: string): Promise<string[]> {
-    const [user, memberships] = await Promise.all([
-      this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { departmentId: true },
-      }),
-      this.prisma.userDepartment.findMany({
-        where: { userId },
-        select: { departmentId: true },
-      }),
-    ]);
-    const ids = new Set<string>();
-    if (user?.departmentId) ids.add(user.departmentId);
-    for (const m of memberships) ids.add(m.departmentId);
-    return Array.from(ids);
+  private readWhere(user: RequestUser): Promise<Prisma.DocumentWhereInput> {
+    return documentReaderScope(this.prisma, user);
   }
 
-  /**
-   * Vérifie si un utilisateur dispose d'une permission explicite valide
-   * (non expirée) sur un document, soit via user direct, soit via
-   * département, soit via rôle. Retourne true si au moins une perm match.
-   */
-  private async hasExplicitPermission(
-    userId: string,
-    documentId: string,
-    role: UserRole,
-  ): Promise<boolean> {
-    const dptIds = await this.getUserDepartmentIds(userId);
-    const now = new Date();
-    const perm = await this.prisma.documentPermission.findFirst({
-      where: {
-        documentId,
-        OR: [
-          { userId },
-          ...(dptIds.length > 0 ? [{ departmentId: { in: dptIds } }] : []),
-          { role },
-        ],
-        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
-      },
-      select: { id: true },
-    });
-    return perm !== null;
+  private async assertReadAccess(document: ReadableDocument & { id: string; currentVersionId?: string | null }, user: RequestUser): Promise<void> {
+    if (!await canReadDocumentWithPermissions(this.prisma, document, user)) throw new ForbiddenException("Niveau de classification insuffisant ou accès non accordé à ce document");
   }
 
-  /**
-   * Classification-based access check (ISO 27001 A.5.12 + A.5.15).
-   * Throws ForbiddenException if the user's role is not sufficient
-   * for the document's classification level.
-   */
-  private checkClassificationAccess(
-    document: {
-      classification?: string | null;
-      ownerId: string;
-      verifierId?: string | null;
-      reviewerId?: string | null;
-      approverId?: string | null;
-    },
-    currentUser: RequestUser,
-  ): void {
-    const userRole = (currentUser.role || "").toUpperCase() as UserRole;
-    const roleLevel = ROLE_HIERARCHY[userRole] ?? 0;
-    const classification = (document.classification || "INTERNE").toUpperCase();
-    const isOwner = document.ownerId === currentUser.id;
-
-    // ADMIN+ and DIRECTION see everything
-    if (roleLevel >= ROLE_HIERARCHY[UserRole.DIRECTION]) return;
-    // Owner always has access to their own document
-    if (isOwner) return;
-    // Un assigné du workflow accède au document qu'il doit traiter,
-    // en cohérence avec findById / findAll (contournement tracé A.5.12).
-    const isAssigned = [
-      document.verifierId,
-      document.reviewerId,
-      document.approverId,
-    ].some((x) => !!x && x === currentUser.id);
-    if (isAssigned) {
-      if (classification === "SECRET") {
-        this.logger.warn(
-          `checkClassificationAccess: accès SECRET accordé par assignation user=${currentUser.id} owner=${document.ownerId} (contournement A.5.12)`,
-        );
-      }
-      return;
-    }
-
-    if (userRole === UserRole.COLLABORATEUR) {
-      // COLLABORATEUR: PUBLIC + INTERNE only
-      if (!["PUBLIC", "INTERNE"].includes(classification)) {
-        throw new ForbiddenException("Accès refusé");
-      }
-    } else if (userRole === UserRole.AUDITEUR) {
-      // AUDITEUR: up to CONFIDENTIEL
-      if (classification === "SECRET") {
-        throw new ForbiddenException("Accès refusé");
-      }
-    } else if (userRole === UserRole.REVIEWER) {
-      // REVIEWER: all except SECRET
-      if (classification === "SECRET") {
-        throw new ForbiddenException("Accès refusé");
-      }
-    } else if (userRole === UserRole.PRESTATAIRE) {
-      // PRESTATAIRE: very restricted, only PUBLIC
-      if (classification !== "PUBLIC") {
-        throw new ForbiddenException("Accès refusé");
-      }
-    }
-  }
-
-  async findAll(filters: DocumentFiltersDto, currentUser: RequestUser) {
-    const page = safeParseInt(filters.page, 1);
+  async findAll(filters: DocumentFiltersDto, currentUser: RequestUser, maximumLimit = 100) {
+    const page = Math.max(1, Math.min(safeParseInt(filters.page, 1), 1_000_000));
     const rawLimit = safeParseInt(filters.limit, 20);
-    const limit = Math.min(Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20, 100);
-    const where: any = { deletedAt: null, AND: [] };
-
-    // Role-based filtering (ISO 27001 A.5.15 — Access control)
-    const userRole = (currentUser.role || "").toUpperCase() as UserRole;
-    this.logger.debug(`findAll: user=${currentUser.id} role=${userRole}`);
-
-    // === GED Permissions granulaires (Phase 1 MVP) === 2026-04-26
-    // Récupère les département-IDs (multi-membership + legacy) pour matcher
-    // les permissions explicites par dpt. Une seule requête, ~10 ms en P95.
-    const userDepartmentIds = await this.getUserDepartmentIds(currentUser.id);
-    const now = new Date();
-    const explicitPermissionMatch = {
-      permissions: {
-        some: {
-          AND: [
-            { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
-            {
-              OR: [
-                { userId: currentUser.id },
-                ...(userDepartmentIds.length > 0
-                  ? [{ departmentId: { in: userDepartmentIds } }]
-                  : []),
-                { role: userRole },
-              ],
-            },
-          ],
-        },
-      },
-    };
-
-    // Un utilisateur assigné à une étape du workflow (vérificateur, relecteur
-    // ou approbateur) DOIT toujours voir le document — quelle que soit sa
-    // classification — sinon il ne peut pas agir sur ce qui lui est demandé.
-    const assignedToUser = [
-      { verifierId: currentUser.id },
-      { reviewerId: currentUser.id },
-      { approverId: currentUser.id },
-    ];
-
-    if (userRole === UserRole.PRESTATAIRE) {
-      // Prestataires: CONTRACT documents + public approved docs only
-      // + permissions explicites (audit/migration/contrat ad-hoc)
-      where.AND.push({
-        OR: [
-          { category: "CONTRACT", status: "APPROVED" },
-          { isPublic: true, status: "APPROVED" },
-          ...assignedToUser,
-          explicitPermissionMatch,
-        ],
-      });
-    } else if (userRole === UserRole.COLLABORATEUR) {
-      // Collaborateurs (ISO 27001 A.5.12):
-      //   PUBLIC + INTERNE = visible (approved only)
-      //   CONFIDENTIEL + SECRET = invisible (sauf s'ils sont propriétaire,
-      //   assigné au workflow, ou bénéficient d'une permission explicite)
-      where.AND.push({
-        OR: [
-          { status: "APPROVED", classification: { in: ["PUBLIC", "INTERNE"] } },
-          { ownerId: currentUser.id },
-          ...assignedToUser,
-          explicitPermissionMatch,
-        ],
-      });
-    } else if (userRole === UserRole.AUDITEUR) {
-      // Auditeurs: PUBLIC + INTERNE + CONFIDENTIEL approved (pas SECRET)
-      // + docs assignés + permissions explicites
-      where.AND.push({
-        OR: [
-          {
-            status: "APPROVED",
-            classification: { in: ["PUBLIC", "INTERNE", "CONFIDENTIEL"] },
-          },
-          ...assignedToUser,
-          explicitPermissionMatch,
-        ],
-      });
-    } else if (userRole === UserRole.REVIEWER) {
-      // Reviewers: tout sauf SECRET (sauf s'ils sont propriétaire, assigné au
-      // workflow, ou bénéficient d'une permission explicite SECRET)
-      where.AND.push({
-        OR: [
-          { classification: { in: ["PUBLIC", "INTERNE", "CONFIDENTIEL"] } },
-          { ownerId: currentUser.id },
-          ...assignedToUser,
-          explicitPermissionMatch,
-        ],
-      });
-    }
-    // ADMIN, SUPER_ADMIN, DIRECTION: voient TOUT (y compris SECRET)
+    const limit = Math.min(Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20, maximumLimit);
+    const where: any = { AND: [await this.readWhere(currentUser)] };
 
     // Apply filters
     if (filters.status) {
       where.AND.push({ status: filters.status });
+    }
+    if (filters.statusGroup) {
+      const statuses = DOCUMENT_STATUS_GROUPS[filters.statusGroup];
+      if (!statuses) throw new BadRequestException("Groupe de statuts invalide");
+      where.AND.push({ status: { in: statuses } });
     }
     if (filters.category) {
       where.AND.push({ category: filters.category });
@@ -465,19 +285,30 @@ export class DocumentsService {
     if (filters.ownerId) {
       where.AND.push({ ownerId: filters.ownerId });
     }
-    if (filters.search) {
+    const search = filters.search?.trim();
+    if (search) {
       where.AND.push({
         OR: [
-          { title: { contains: filters.search, mode: "insensitive" } },
-          { description: { contains: filters.search, mode: "insensitive" } },
-          { reference: { contains: filters.search, mode: "insensitive" } },
+          { title: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
+          { reference: { contains: search, mode: "insensitive" } },
         ],
       });
     }
     if (filters.dateFrom || filters.dateTo) {
-      where.createdAt = {};
-      if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-      if (filters.dateTo) where.createdAt.lte = new Date(filters.dateTo);
+      const from = filters.dateFrom ? new Date(filters.dateFrom) : undefined;
+      const until = filters.dateTo ? new Date(filters.dateTo) : undefined;
+      if ((from && !Number.isFinite(from.getTime())) || (until && !Number.isFinite(until.getTime())) || (from && until && from > until)) {
+        throw new BadRequestException("La période de recherche est invalide");
+      }
+      const createdAt: Prisma.DateTimeFilter = {};
+      if (from) createdAt.gte = from;
+      if (until) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(filters.dateTo!)) {
+          createdAt.lt = new Date(until.getTime() + 24 * 60 * 60 * 1000);
+        } else createdAt.lte = until;
+      }
+      where.createdAt = createdAt;
     }
     if (filters.isoControlCode) {
       where.isoControls = {
@@ -512,7 +343,7 @@ export class DocumentsService {
       // est encapsule dans DocumentsRepository.findManyWithCount.
       [data, total] = await this.repo.findManyWithCount(
         where,
-        { [sortBy]: sortOrder },
+        [{ [sortBy]: sortOrder }, { id: "asc" }],
         (page - 1) * limit,
         limit,
       );
@@ -544,73 +375,7 @@ export class DocumentsService {
       throw new NotFoundException("Document introuvable");
     }
 
-    // Access checks (ISO 27001 A.5.12 — Classification + A.5.15 — Access Control)
-    const userRole = (currentUser.role || "").toUpperCase() as UserRole;
-    const isOwner = document.ownerId === currentUser.id;
-    const classification = document.classification || "INTERNE";
-
-    // === GED Permissions granulaires (Phase 1 MVP) === 2026-04-26
-    // Si l'utilisateur dispose d'une permission explicite valide, on
-    // court-circuite les checks de classification (ADMIN+/DIRECTION et
-    // owner court-circuitent déjà via les branches existantes).
-    const roleLevelForBypass = ROLE_HIERARCHY[userRole] ?? 0;
-    if (
-      !isOwner &&
-      roleLevelForBypass < ROLE_HIERARCHY[UserRole.DIRECTION] &&
-      (await this.hasExplicitPermission(currentUser.id, id, userRole))
-    ) {
-      return enrichIsoControls(document);
-    }
-
-    // Un utilisateur assigné à une étape du workflow (vérificateur,
-    // relecteur ou approbateur) doit toujours pouvoir lire le document
-    // qu'il est censé traiter, quelle que soit sa classification. Sans
-    // cela, findAll / getPendingForUser exposent le document dans sa file
-    // (« à vous d'agir ») mais findById renvoie un 403 → dead-end, et
-    // possibilité d'approbation à l'aveugle. Contournement volontaire et
-    // tracé de la matrice de classification (ISO 27001 A.5.12).
-    const isAssigned =
-      !isOwner &&
-      [document.verifierId, document.reviewerId, document.approverId].some(
-        (x) => !!x && x === currentUser.id,
-      );
-    if (isAssigned) {
-      if ((classification || "INTERNE").toUpperCase() === "SECRET") {
-        this.logger.warn(
-          `findById: accès SECRET accordé par assignation user=${currentUser.id} doc=${id} (contournement A.5.12)`,
-        );
-      }
-      return enrichIsoControls(document);
-    }
-
-    if (userRole === UserRole.PRESTATAIRE) {
-      // Prestataires: only CONTRACT + APPROVED or public + APPROVED
-      if (
-        !isOwner &&
-        (document.status !== "APPROVED" || (document.category !== "CONTRACT" && !document.isPublic))
-      ) {
-        throw new ForbiddenException("Accès refusé");
-      }
-    } else if (userRole === UserRole.COLLABORATEUR) {
-      // Collaborateurs: PUBLIC + INTERNE approved only, or own documents
-      if (!isOwner) {
-        if (document.status !== "APPROVED") throw new ForbiddenException("Accès refusé");
-        if (!["PUBLIC", "INTERNE"].includes(classification)) {
-          throw new ForbiddenException("Niveau de classification insuffisant");
-        }
-      }
-    } else if (userRole === UserRole.AUDITEUR) {
-      // Auditeurs: PUBLIC + INTERNE + CONFIDENTIEL approved only (not SECRET)
-      if (document.status !== "APPROVED") throw new ForbiddenException("Accès refusé");
-      if (classification === "SECRET")
-        throw new ForbiddenException("Niveau de classification insuffisant");
-    } else if (userRole === UserRole.REVIEWER) {
-      // Reviewers: all except SECRET (unless owner)
-      if (!isOwner && classification === "SECRET") {
-        throw new ForbiddenException("Niveau de classification insuffisant");
-      }
-    }
-    // ADMIN, SUPER_ADMIN, DIRECTION: full access
+    await this.assertReadAccess(document, currentUser);
 
     return enrichIsoControls(document);
   }
@@ -624,7 +389,7 @@ export class DocumentsService {
 
     // Classification-based access check before exposing related documents
     if (currentUser) {
-      this.checkClassificationAccess(doc, currentUser);
+      await this.assertReadAccess(doc, currentUser);
     }
 
     const isoControlIds = doc.isoControls.map((c) => c.isoControlId);
@@ -632,20 +397,13 @@ export class DocumentsService {
     // Find docs that share the same category OR the same ISO controls
     const related = await this.prisma.document.findMany({
       where: {
-        id: { not: id },
-        deletedAt: null,
-        status: { not: "ARCHIVED" },
-        OR: [
-          { category: doc.category },
-          ...(isoControlIds.length > 0
-            ? [
-                {
-                  isoControls: {
-                    some: { isoControlId: { in: isoControlIds } },
-                  },
-                },
-              ]
-            : []),
+        AND: [
+          currentUser ? await this.readWhere(currentUser) : { deletedAt: null },
+          { id: { not: id }, status: { not: "ARCHIVED" } },
+          { OR: [
+            { category: doc.category },
+            ...(isoControlIds.length ? [{ isoControls: { some: { isoControlId: { in: isoControlIds } } } }] : []),
+          ] },
         ],
       },
       select: {
@@ -718,42 +476,8 @@ export class DocumentsService {
     this.indexForMeili(document);
     this.invalidateStatsCaches();
 
-    // ---- Approbation N+1 dynamique : règles WorkflowRule -------------------
-    // On cherche une règle applicable au contexte du document. Si match, on
-    // instancie le workflow correspondant à la place du fallback `reviewerId`.
-    // Toute erreur ici est non bloquante — on log et on retombe sur le
-    // comportement historique pour ne pas casser la création de doc.
-    if (this.workflowRules) {
-      try {
-        const author = await this.prisma.user.findUnique({
-          where: { id: userId },
-          select: { departmentId: true },
-        });
-        const rule = await this.workflowRules.findApplicableRule({
-          classification: document.classification ?? null,
-          category: document.category ?? null,
-          departmentId: author?.departmentId ?? null,
-        });
-        if (rule) {
-          await this.workflowRules.instantiateWorkflow(
-            { id: rule.id, name: rule.name, steps: rule.steps },
-            { id: document.id, currentVersionId: null },
-            userId,
-          );
-        }
-      } catch (err) {
-        // Non bloquant : le moteur générique (approval-workflows) est un
-        // chantier séparé et échoue encore à la création (aucune version
-        // n'existe → currentVersionId:null). Le document reste valide et suit
-        // le workflow ValidationRequest classique (reviewer/approver). On trace
-        // clairement pour ne pas masquer un futur branchement du moteur.
-        this.logger.warn(
-          `[workflow-rules] instantiateWorkflow ignoré pour document ${document.id} ` +
-            `(${reference}) — fallback sur le workflow ValidationRequest. Cause : ` +
-            `${(err as Error).message}`,
-        );
-      }
-    }
+    // Les règles d'approbation sont appliquées à la soumission d'une version,
+    // pas à la création d'un document encore dépourvu de fichier.
 
     return enrichIsoControls(document);
   }
@@ -770,20 +494,22 @@ export class DocumentsService {
    * can track bypasses.
    */
   async directPublish(dto: CreateDocumentDto, user: RequestUser) {
-    // Delegate to normal create first so references, slugs, audit trail,
-    // search indexing etc. are identical.
-    const doc = await this.create(dto, user.id);
-
-    const published = await this.prisma.document.update({
-      where: { id: doc.id },
+    if ((ROLE_HIERARCHY[user.role as UserRole] ?? 0) < ROLE_HIERARCHY[UserRole.DIRECTION]) throw new ForbiddenException("Une autorisation de publication administrative est requise");
+    if (!dto.content?.trim()) throw new BadRequestException("Un contenu est requis. Pour un fichier, créez un brouillon puis publiez-le après son contrôle antivirus.");
+    const created = await this.createInline(dto, user.id);
+    const doc = await this.ensureNativeVersion(created.id, user.id);
+    const claimed = await this.prisma.document.updateMany({
+      where: { id: doc.id, deletedAt: null, status: "DRAFT", currentVersionId: doc.currentVersionId, updatedAt: doc.updatedAt, scanStatus: "CLEAN", content: doc.content, title: doc.title },
       data: { status: "APPROVED" },
-      include: {
-        owner: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
+    });
+    if (claimed.count !== 1) throw new ConflictException("Le document a changé avant publication. Rechargez sa fiche.");
+    const published = await this.prisma.document.findUniqueOrThrow({
+      where: { id: doc.id }, include: {
+        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
         isoControls: { include: { isoControl: true } },
       },
     });
+    this.invalidateStatsCaches();
 
     await this.auditService.log({
       userId: user.id,
@@ -818,59 +544,41 @@ export class DocumentsService {
    * + approuvé sans revue si déjà existant".
    */
   async forceApprove(id: string, user: RequestUser, makePermanent: boolean) {
-    const doc = await this.prisma.document.findUnique({ where: { id } });
+    let doc = await this.prisma.document.findUnique({ where: { id } });
     if (!doc || doc.deletedAt) {
       throw new NotFoundException("Document introuvable");
     }
 
     // Role check (double-guard ; le controller a déjà @Roles(ADMIN+))
-    if (ROLE_HIERARCHY[user.role as UserRole] < ROLE_HIERARCHY[UserRole.ADMIN]) {
+    if ((ROLE_HIERARCHY[user.role as UserRole] ?? 0) < ROLE_HIERARCHY[UserRole.ADMIN]) {
       throw new ForbiddenException(
         "Seul un administrateur peut forcer l'approbation d'un document.",
       );
     }
 
-    // Annule les workflows pending (même logique que softDelete)
-    const pendingInstances = await this.prisma.approvalInstance.findMany({
-      where: { documentId: id, status: "PENDING" },
-      select: { id: true },
-    });
-    if (pendingInstances.length > 0) {
-      const instanceIds = pendingInstances.map((i) => i.id);
-      await this.prisma.$transaction([
-        this.prisma.approvalInstance.updateMany({
-          where: { id: { in: instanceIds } },
-          data: { status: "CANCELLED", completedAt: new Date() },
-        }),
-        this.prisma.approvalStepInstance.updateMany({
-          where: { instanceId: { in: instanceIds }, decision: "PENDING" },
-          data: {
-            decision: "REJECTED",
-            decidedAt: new Date(),
-            comment: "Approbation forcée par un administrateur",
-          },
-        }),
-      ]);
-    }
-
-    const updated = await this.prisma.document.update({
-      where: { id },
-      data: {
-        status: "APPROVED",
-        ...(makePermanent ? { nextReviewDate: null } : {}),
-      },
-      include: {
-        owner: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-        reviewer: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-        approver: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
+    if (doc.isNative && doc.status === "DRAFT") doc = await this.ensureNativeVersion(id, user.id);
+    if (!doc.currentVersionId || doc.scanStatus !== "CLEAN") throw new BadRequestException("Une version courante contrôlée sans menace est requise avant publication");
+    const current = doc;
+    const { updated, cancelledCount } = await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.document.updateMany({
+        where: { id, deletedAt: null, status: current.status, currentVersionId: current.currentVersionId, updatedAt: current.updatedAt, scanStatus: "CLEAN", content: current.content, title: current.title },
+        data: { status: "APPROVED", ...(makePermanent ? { nextReviewDate: null } : {}) },
+      });
+      if (claimed.count !== 1) throw new ConflictException("Le document a changé avant publication. Rechargez sa fiche.");
+      const pendingInstances = await tx.approvalInstance.findMany({ where: { documentId: id, status: "PENDING" }, select: { id: true } });
+      if (pendingInstances.length) {
+        const instanceIds = pendingInstances.map((instance) => instance.id);
+        await tx.approvalInstance.updateMany({ where: { id: { in: instanceIds } }, data: { status: "CANCELLED", completedAt: new Date() } });
+        await tx.approvalStepInstance.updateMany({ where: { instanceId: { in: instanceIds }, decision: "PENDING" }, data: { decision: "REJECTED", decidedAt: new Date(), comment: "Approbation forcée par un administrateur" } });
+      }
+      await tx.validationRequest.updateMany({ where: { documentId: id, status: "PENDING" }, data: { status: "CANCELLED" } });
+      const result = await tx.document.findUniqueOrThrow({ where: { id }, include: {
+        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
+        reviewer: { select: { id: true, firstName: true, lastName: true, email: true } },
+        approver: { select: { id: true, firstName: true, lastName: true, email: true } },
         isoControls: { include: { isoControl: true } },
-      },
+      } });
+      return { updated: result, cancelledCount: pendingInstances.length };
     });
 
     await this.auditService.log({
@@ -884,12 +592,12 @@ export class DocumentsService {
         reference: doc.reference,
         fromStatus: doc.status,
         makePermanent,
-        cancelledWorkflows: pendingInstances.length,
+        cancelledWorkflows: cancelledCount,
       },
     });
 
     this.logger.warn(
-      `forceApprove doc ${id} by ${user.id} (${doc.status} → APPROVED, permanent=${makePermanent}, ${pendingInstances.length} workflow(s) annulé(s))`,
+      `forceApprove doc ${id} by ${user.id} (${doc.status} → APPROVED, permanent=${makePermanent}, ${cancelledCount} workflow(s) annulé(s))`,
     );
 
     try {
@@ -931,44 +639,17 @@ export class DocumentsService {
       );
     }
 
-    // Annule d'éventuels workflows pending (rare, mais sécuritaire)
-    const pendingInstances = await this.prisma.approvalInstance.findMany({
-      where: { documentId: id, status: "PENDING" },
-      select: { id: true },
-    });
-    if (pendingInstances.length > 0) {
-      const instanceIds = pendingInstances.map((i) => i.id);
-      await this.prisma.$transaction([
-        this.prisma.approvalInstance.updateMany({
-          where: { id: { in: instanceIds } },
-          data: { status: "CANCELLED", completedAt: new Date() },
-        }),
-        this.prisma.approvalStepInstance.updateMany({
-          where: { instanceId: { in: instanceIds }, decision: "PENDING" },
-          data: {
-            decision: "REJECTED",
-            decidedAt: new Date(),
-            comment: "Document réouvert — workflow annulé",
-          },
-        }),
-      ]);
-    }
-
-    const updated = await this.prisma.document.update({
-      where: { id },
-      data: { status: "DRAFT" },
-      include: {
-        owner: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-        reviewer: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-        approver: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
+    let cancelledCount = 0;
+    const updated = await workflowTransaction(this.prisma, async (tx) => {
+      const changed = await tx.document.updateMany({
+        where: { id, deletedAt: null, status: doc.status, currentVersionId: doc.currentVersionId, updatedAt: doc.updatedAt }, data: { status: "DRAFT" },
+      });
+      if (changed.count !== 1) throw new ConflictException("Le document a changé. Rechargez sa fiche avant de le réouvrir.");
+      cancelledCount = await cancelPendingDocumentCircuits(tx, [id], user.id, "Document réouvert en brouillon");
+      return tx.document.findUniqueOrThrow({ where: { id }, include: {
+        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
         isoControls: { include: { isoControl: true } },
-      },
+      } });
     });
 
     await this.auditService.log({
@@ -981,12 +662,12 @@ export class DocumentsService {
         title: doc.title,
         reference: doc.reference,
         fromStatus: doc.status,
-        cancelledWorkflows: pendingInstances.length,
+        cancelledWorkflows: cancelledCount,
       },
     });
 
     this.logger.log(
-      `reopen doc ${id} by ${user.id} (${doc.status} → DRAFT, ${pendingInstances.length} workflow(s) annulé(s))`,
+      `reopen doc ${id} by ${user.id} (${doc.status} → DRAFT, ${cancelledCount} workflow(s) annulé(s))`,
     );
 
     this.invalidateStatsCaches();
@@ -1056,12 +737,55 @@ export class DocumentsService {
     return enrichIsoControls(document);
   }
 
+  async ensureNativeVersion(documentId: string, userId: string) {
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId }, include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
+    });
+    if (!document || document.deletedAt) throw new NotFoundException("Document introuvable");
+    if (!document.isNative || !document.content?.trim()) throw new BadRequestException("Le document natif doit avoir un contenu à soumettre");
+    if (document.status !== "DRAFT") throw new ForbiddenException("Seul un brouillon peut être figé avant validation");
+    if (document.ownerId !== userId) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (!actor?.isActive || actor.deletedAt || (ROLE_HIERARCHY[actor.role as UserRole] ?? 0) < ROLE_HIERARCHY[UserRole.ADMIN]) throw new ForbiddenException("Seul l’auteur ou un administrateur peut figer ce brouillon");
+    }
+    const content = sanitizeRichText(document.content);
+    const title = sanitizePlainText(document.title).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const buffer = Buffer.from(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${title}</title></head><body>${content}</body></html>`, "utf8");
+    const checksum = crypto.createHash("sha256").update(buffer).digest("hex");
+    const previous = document.versions[0];
+    if (previous?.id === document.currentVersionId && previous.checksum === checksum) return document;
+    const { fileUrl } = await this.storageService.storeBuffer(buffer, `${documentId}.html`, `documents/${documentId}`);
+    const match = /^(\d+)(?:\.(\d+))?$/.exec(previous?.versionNumber ?? "");
+    const versionNumber = !previous ? "1.0" : `${match ? Number(match[1]) : 1}.${(match?.[2] ? Number(match[2]) : 0) + 1}`;
+    let frozenDocument;
+    try {
+      frozenDocument = await workflowTransaction(this.prisma, async (tx) => {
+        const version = await tx.documentVersion.create({ data: {
+          documentId, versionNumber, fileUrl, fileType: "text/html", fileSizeBytes: buffer.length,
+          checksum, changeLog: "Version native figée avant validation", uploadedById: userId,
+        } });
+        const claimed = await tx.document.updateMany({
+          where: { id: documentId, deletedAt: null, status: "DRAFT", currentVersionId: document.currentVersionId, updatedAt: document.updatedAt, content: document.content, title: document.title },
+          data: { currentVersionId: version.id, content, scanStatus: "CLEAN" },
+        });
+        if (claimed.count !== 1) throw new ConflictException("Le brouillon a changé pendant la création de sa version. Rechargez-le avant de soumettre.");
+        await cancelPendingDocumentCircuits(tx, [documentId], userId, "Nouveau snapshot natif");
+        return tx.document.findUniqueOrThrow({ where: { id: documentId } });
+      });
+    } catch (error) {
+      await this.storageService.deleteFile(fileUrl).catch(() => this.logger.warn("Nettoyage du snapshot non retenu impossible"));
+      throw error;
+    }
+    await this.auditService.log({ userId, action: "DOCUMENT_NATIVE_VERSION_SNAPSHOTTED", resourceType: "Document", resourceId: documentId, metadata: { versionNumber, checksum } });
+    return frozenDocument;
+  }
+
   /**
    * Update the HTML content of a native (inline) document.
    * Lock rules:
    *  - document must be native (isNative = true)
    *  - only the owner OR an assigned reviewer OR ADMIN+ may edit
-   *  - status must be DRAFT or IN_REVIEW (once approved, content is frozen)
+   *  - status must be DRAFT (validation always freezes the content)
    */
   async updateInlineContent(id: string, content: string, currentUser: RequestUser) {
     const document = await this.prisma.document.findUnique({ where: { id } });
@@ -1078,26 +802,28 @@ export class DocumentsService {
     const isOwner = document.ownerId === currentUser.id;
     const isAssignedReviewer = document.reviewerId === currentUser.id;
 
-    if (!isAdmin && !isOwner && !isAssignedReviewer) {
+    const delegatedEditor = this.permissions ? await this.permissions.canEdit(currentUser.id, id) : false;
+    if (!isAdmin && !isOwner && !isAssignedReviewer && !delegatedEditor) {
       throw new ForbiddenException(
         "Seul le propriétaire, le relecteur assigné ou un administrateur peut éditer ce document",
       );
     }
 
-    if (document.status !== "DRAFT" && document.status !== "IN_REVIEW") {
-      throw new ForbiddenException("Le contenu ne peut être édité qu'en statut DRAFT ou IN_REVIEW");
+    if (document.status !== "DRAFT") {
+      throw new ForbiddenException("Le contenu est figé pendant la validation. Demandez un retour en correction pour le modifier.");
     }
 
-    const updated = await this.prisma.document.update({
-      where: { id },
-      // XSS stockée : assainir le HTML avant persistance (cf. createInline).
-      data: { content: sanitizeRichText(content) },
-      include: {
-        owner: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
+    const updated = await workflowTransaction(this.prisma, async (tx) => {
+      const claimed = await tx.document.updateMany({
+        where: { id, status: "DRAFT", deletedAt: null, currentVersionId: document.currentVersionId, updatedAt: document.updatedAt, content: document.content },
+        data: { content: sanitizeRichText(content) },
+      });
+      if (claimed.count !== 1) throw new ConflictException("Le document a changé pendant l’édition. Rechargez-le pour reprendre vos modifications.");
+      await cancelPendingDocumentCircuits(tx, [id], currentUser.id, "Contenu du brouillon natif modifié");
+      return tx.document.findUniqueOrThrow({ where: { id }, include: {
+        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
         isoControls: { include: { isoControl: true } },
-      },
+      } });
     });
 
     await this.auditService.log({
@@ -1160,23 +886,10 @@ export class DocumentsService {
         );
       }
 
-      // Les transitions qui ENTRENT dans une phase de workflow doivent
-      // instancier une ValidationRequest + ValidationStep et notifier l'assigné
-      // — c'est le rôle des endpoints dédiés (submit-review / request-approval).
-      // Un PATCH direct (ex. drag Kanban) ferait avancer le statut sans workflow :
-      // document orphelin, invisible de toutes les files et non rattrapable par
-      // submit-review (qui exige DRAFT). On refuse ces deux transitions précises
-      // tout en gardant la matrice partagée intacte (les boutons du front, qui
-      // passent eux par les endpoints dédiés, restent affichés).
-      const enterWorkflowViaPatch =
-        (document.status === "DRAFT" && dto.status === "IN_REVIEW") ||
-        (document.status === "REVIEW_APPROVED" && dto.status === "PENDING_APPROVAL");
-      if (enterWorkflowViaPatch) {
-        throw new BadRequestException(
-          dto.status === "IN_REVIEW"
-            ? "Pour soumettre ce document en revue, utilisez le bouton « Soumettre en revue » (POST /documents/:id/submit-review) : un PATCH direct ne crée pas le circuit de validation."
-            : "Pour demander l'approbation, utilisez le bouton « Demander l'approbation » (POST /documents/:id/request-approval) : un PATCH direct ne crée pas le circuit de validation.",
-        );
+      // Toute entrée en validation ou publication exige ses contrôles dédiés :
+      // version figée, scan CLEAN, acteur autorisé et décisions du circuit.
+      if (["IN_REVIEW", "REVIEW_APPROVED", "PENDING_APPROVAL", "APPROVED"].includes(dto.status!)) {
+        throw new BadRequestException("Les transitions de validation et de publication passent par les actions du circuit documentaire, jamais par une modification directe du statut.");
       }
     }
 
@@ -1244,34 +957,23 @@ export class DocumentsService {
     if (dto.reviewPeriodicity !== undefined)
       updateData.reviewPeriodicity = dto.reviewPeriodicity || null;
 
-    // Handle ISO controls update — wrapped in a transaction to avoid
-    // leaving the document with no ISO controls if the createMany fails.
-    if (dto.isoControlIds !== undefined) {
-      const newIsoControlIds = dto.isoControlIds;
-      await this.prisma.$transaction(async (tx) => {
-        await tx.documentIsoControl.deleteMany({
-          where: { documentId: id },
-        });
-        if (newIsoControlIds.length > 0) {
-          await tx.documentIsoControl.createMany({
-            data: newIsoControlIds.map((isoControlId) => ({
-              documentId: id,
-              isoControlId,
-            })),
-          });
-        }
+    const updated = await workflowTransaction(this.prisma, async (tx) => {
+      // Relation writes (ISO links) remain supported, guarded by a row claim.
+      const claimed = await tx.document.updateMany({
+        where: { id, deletedAt: null, status: document.status, currentVersionId: document.currentVersionId, updatedAt: document.updatedAt },
+        data: { updatedAt: new Date() },
       });
-    }
-
-    const updated = await this.prisma.document.update({
-      where: { id },
-      data: updateData,
-      include: {
-        owner: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
+      if (claimed.count !== 1) throw new ConflictException("Le document a changé. Rechargez sa fiche avant de le modifier.");
+      if (dto.isoControlIds !== undefined) {
+        await tx.documentIsoControl.deleteMany({ where: { documentId: id } });
+        if (dto.isoControlIds.length) await tx.documentIsoControl.createMany({ data: dto.isoControlIds.map((isoControlId) => ({ documentId: id, isoControlId })) });
+      }
+      const result = await tx.document.update({ where: { id }, data: updateData, include: {
+        owner: { select: { id: true, firstName: true, lastName: true, email: true } },
         isoControls: { include: { isoControl: true } },
-      },
+      } });
+      if (statusChanges) await cancelPendingDocumentCircuits(tx, [id], currentUser.id, `Statut documentaire modifié vers ${dto.status}`);
+      return result;
     });
 
     // Notify document owner when status changes (e.g. Kanban drag-and-drop)
@@ -1308,10 +1010,6 @@ export class DocumentsService {
         // Changement de statut hors workflow → la ValidationRequest pendante
         // devient orpheline : on l'annule proprement (CANCELLED + audit) pour
         // ne pas laisser d'étape « à faire » fantôme (cause des docs incohérents).
-        await this.prisma.validationRequest.update({
-          where: { id: pendingRequest.id },
-          data: { status: "CANCELLED" },
-        });
         await this.auditService.log({
           userId: currentUser.id,
           action: "DOCUMENT_VALIDATION_CANCELLED",
@@ -1559,10 +1257,12 @@ export class DocumentsService {
     if (existing.length === 0) return { updated: 0 };
 
     const existingIds = existing.map((d) => d.id);
-    const result = await this.prisma.document.updateMany({
-      where: { id: { in: existingIds } },
-      data: { status: "ARCHIVED" },
+    const result = await workflowTransaction(this.prisma, async (tx) => {
+      const archived = await tx.document.updateMany({ where: { id: { in: existingIds }, deletedAt: null }, data: { status: "ARCHIVED" } });
+      await cancelPendingDocumentCircuits(tx, existingIds, currentUser.id, "Documents archivés");
+      return archived;
     });
+    this.invalidateStatsCaches();
 
     for (const doc of existing) {
       await this.auditService.log({
@@ -1655,6 +1355,23 @@ export class DocumentsService {
       throw new NotFoundException("Document introuvable");
     }
 
+    const actor = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!actor || !actor.isActive || actor.deletedAt) throw new ForbiddenException("Compte indisponible");
+    const role = actor.role as UserRole;
+    const isAdmin = (ROLE_HIERARCHY[role] ?? 0) >= ROLE_HIERARCHY[UserRole.ADMIN];
+    const delegated = this.permissions ? await this.permissions.canEdit(userId, documentId) : false;
+    if (document.ownerId !== userId && !isAdmin && !delegated) {
+      throw new ForbiddenException("Un droit de modification est requis pour déposer une version");
+    }
+    if (!["DRAFT", "APPROVED"].includes(document.status)) {
+      throw new ConflictException("Le contenu est figé pendant la validation. Renvoyez le document en correction avant de déposer une version.");
+    }
+    if (!file?.buffer || file.size > 50 * 1024 * 1024) {
+      throw new BadRequestException("Le fichier est requis et doit faire au maximum 50 Mo");
+    }
+
+    if (document.isNative) throw new BadRequestException("Utilisez l’éditeur pour modifier ce document natif");
+
     // Normalise le MIME : certains OS envoient application/octet-stream pour
     // les .md / .txt — on rétro-projette à partir de l'extension avant validation.
     normalizeMimeType(file);
@@ -1686,70 +1403,37 @@ export class DocumentsService {
     // Upload file
     const { fileUrl } = await this.storageService.upload(file, `documents/${documentId}`);
 
-    // Règle versionning OMNITECH :
-    //   - Pas de version précédente : crée v1.0
-    //   - Brouillon (DRAFT) ET version existante : overwrite la version
-    //     courante (pas de bump — l'incrément se fera au rejet de revue pour
-    //     préserver la version rejetée)
-    //   - Toute autre transition (APPROVED, etc.) : bump majeur (1.0 → 2.0)
     const lastVersion = document.versions[0];
-    const isDraftOverwrite =
-      !!lastVersion && (document.status === "DRAFT" || document.status === "IN_REVIEW");
+    const parts = /^(\d+)(?:\.(\d+))?$/.exec(lastVersion?.versionNumber ?? "");
+    const major = parts ? Number(parts[1]) : 1;
+    const minor = parts?.[2] ? Number(parts[2]) : 0;
+    const nextVersionNumber = !lastVersion ? "1.0" : document.status === "APPROVED" ? `${major + 1}.0` : `${major}.${minor + 1}`;
 
     let version;
-    let nextVersionNumber: string;
-
-    if (isDraftOverwrite) {
-      // Overwrite en place : update la row existante, supprime l'ancien
-      // fichier best-effort, garde le même versionNumber.
-      nextVersionNumber = lastVersion.versionNumber;
-      const oldFileUrl = lastVersion.fileUrl;
-
-      version = await this.prisma.documentVersion.update({
-        where: { id: lastVersion.id },
-        data: {
-          fileUrl,
-          fileType: file.mimetype,
-          fileSizeBytes: file.size,
-          checksum,
-          changeLog: changeLog || "Brouillon mis à jour",
-          uploadedById: userId,
-        },
+    try {
+      version = await workflowTransaction(this.prisma, async (tx) => {
+        const created = await tx.documentVersion.create({
+          data: {
+            documentId, versionNumber: nextVersionNumber, fileUrl,
+            fileType: file.mimetype, fileSizeBytes: file.size, checksum,
+            changeLog: changeLog?.trim() || (document.status === "APPROVED" ? "Nouvelle révision à valider" : "Brouillon mis à jour"),
+            uploadedById: userId,
+          },
+        });
+        const claimed = await tx.document.updateMany({
+          where: { id: documentId, deletedAt: null, status: document.status,
+            currentVersionId: document.currentVersionId, updatedAt: document.updatedAt },
+          data: { currentVersionId: created.id, status: "DRAFT", scanStatus: "PENDING" },
+        });
+        if (claimed.count !== 1) throw new ConflictException("Le document a changé. Rechargez sa fiche avant de déposer la version.");
+        await cancelPendingDocumentCircuits(tx, [documentId], userId, "Nouvelle version documentaire");
+        return created;
       });
-
-      try {
-        const oldPath = this.storageService.getFilePath(oldFileUrl);
-        if (require("fs").existsSync(oldPath)) {
-          require("fs").unlinkSync(oldPath);
-        }
-      } catch (err) {
-        this.logger.warn(
-          `uploadVersion overwrite: suppression ancien fichier échouée (${oldFileUrl}): ${err}`,
-        );
-      }
-    } else {
-      nextVersionNumber = lastVersion
-        ? `${parseInt(lastVersion.versionNumber.split(".")[0] ?? "1", 10) + 1}.0`
-        : "1.0";
-
-      version = await this.prisma.documentVersion.create({
-        data: {
-          documentId,
-          versionNumber: nextVersionNumber,
-          fileUrl,
-          fileType: file.mimetype,
-          fileSizeBytes: file.size,
-          checksum,
-          changeLog,
-          uploadedById: userId,
-        },
-      });
-
-      await this.prisma.document.update({
-        where: { id: documentId },
-        data: { currentVersionId: version.id },
-      });
+    } catch (error) {
+      await this.storageService.deleteFile(fileUrl).catch(() => this.logger.warn("Nettoyage du dépôt non retenu impossible"));
+      throw error;
     }
+    this.invalidateStatsCaches();
 
     await this.auditService.log({
       userId,
@@ -1771,24 +1455,8 @@ export class DocumentsService {
       this.logger.warn(`Scan failed for ${fileUrl}: ${err}`);
     });
 
-    // If this version was uploaded on an already APPROVED document,
-    // notify all concerned users that an update is available.
-    // ISO 27001 A.5.12 — classification-aware notification.
-    if (document.status === "APPROVED") {
-      try {
-        await this.notifyNewDocumentAvailable(
-          await this.prisma.document.findUnique({ where: { id: documentId } }),
-          true,
-        );
-      } catch (err) {
-        this.logger.warn(
-          `notifyNewDocumentAvailable failed for ${documentId}: ${
-            err instanceof Error ? err.message : err
-          }`,
-        );
-      }
-    }
-
+    // La diffusion attend une nouvelle approbation : un contenu téléversé
+    // ne doit jamais hériter silencieusement du statut publié précédent.
     return version;
   }
 
@@ -1806,8 +1474,8 @@ export class DocumentsService {
     changeLog: string | undefined,
     userId: string,
   ) {
-    if (!file) {
-      throw new BadRequestException("Fichier requis");
+    if (!file?.buffer || file.size > 50 * 1024 * 1024) {
+      throw new BadRequestException("Le fichier est requis et doit faire au maximum 50 Mo");
     }
 
     const document = await this.prisma.document.findUnique({
@@ -1827,7 +1495,7 @@ export class DocumentsService {
 
     // Owner OR ADMIN+ can reimport
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("Utilisateur introuvable");
+    if (!user || !user.isActive || user.deletedAt) throw new ForbiddenException("Compte indisponible");
     const userRole = (user.role as UserRole) || UserRole.COLLABORATEUR;
     const isOwner = document.ownerId === userId;
     const isAdmin = (ROLE_HIERARCHY[userRole] ?? 0) >= ROLE_HIERARCHY[UserRole.ADMIN];
@@ -1878,28 +1546,27 @@ export class DocumentsService {
       nextVersionNumber = `${major + 1}.0`;
     }
 
-    // Create new version — DO NOT touch previous versions
-    const version = await this.prisma.documentVersion.create({
-      data: {
-        documentId: docId,
-        versionNumber: nextVersionNumber,
-        fileUrl,
-        fileType: file.mimetype,
-        fileSizeBytes: file.size,
-        checksum: newHash,
-        changeLog: changeLog || "Réimport après obsolescence",
-        uploadedById: userId,
-      },
-    });
-
-    // Document points to the new version, status → DRAFT (restart workflow)
-    await this.prisma.document.update({
-      where: { id: docId },
-      data: {
-        currentVersionId: version.id,
-        status: "DRAFT",
-      },
-    });
+    let version;
+    try {
+      version = await workflowTransaction(this.prisma, async (tx) => {
+        const created = await tx.documentVersion.create({ data: {
+          documentId: docId, versionNumber: nextVersionNumber, fileUrl,
+          fileType: file.mimetype, fileSizeBytes: file.size, checksum: newHash,
+          changeLog: changeLog?.trim() || "Réimport après obsolescence", uploadedById: userId,
+        } });
+        const claimed = await tx.document.updateMany({
+          where: { id: docId, deletedAt: null, status: "OBSOLETE", currentVersionId: document.currentVersionId, updatedAt: document.updatedAt },
+          data: { currentVersionId: created.id, status: "DRAFT", scanStatus: "PENDING" },
+        });
+        if (claimed.count !== 1) throw new ConflictException("Le document a changé. Rechargez-le avant le réimport.");
+        await cancelPendingDocumentCircuits(tx, [docId], userId, "Réimport du document en brouillon");
+        return created;
+      });
+    } catch (error) {
+      await this.storageService.deleteFile(fileUrl).catch(() => this.logger.warn("Nettoyage du réimport non retenu impossible"));
+      throw error;
+    }
+    this.invalidateStatsCaches();
 
     await this.auditService.log({
       userId,
@@ -2045,7 +1712,7 @@ export class DocumentsService {
     }
 
     if (currentUser) {
-      this.checkClassificationAccess(document, currentUser);
+      await this.assertReadAccess(document, currentUser);
     }
 
     return this.prisma.documentVersion.findMany({
@@ -2068,33 +1735,10 @@ export class DocumentsService {
       throw new NotFoundException("Document introuvable");
     }
 
-    // Access check (ISO 27001 A.5.12 — same rules as findById)
-    const userRole = (currentUser.role || "").toUpperCase() as UserRole;
-    const isOwner = document.ownerId === currentUser.id;
-    const classification = document.classification || "INTERNE";
-
-    if (userRole === UserRole.PRESTATAIRE) {
-      if (
-        !isOwner &&
-        (document.status !== "APPROVED" || (document.category !== "CONTRACT" && !document.isPublic))
-      ) {
-        throw new ForbiddenException("Accès refusé");
-      }
-    } else if (userRole === UserRole.COLLABORATEUR) {
-      if (!isOwner) {
-        if (document.status !== "APPROVED") throw new ForbiddenException("Accès refusé");
-        if (!["PUBLIC", "INTERNE"].includes(classification)) {
-          throw new ForbiddenException("Niveau de classification insuffisant");
-        }
-      }
-    } else if (userRole === UserRole.AUDITEUR) {
-      if (document.status !== "APPROVED") throw new ForbiddenException("Accès refusé");
-      if (classification === "SECRET")
-        throw new ForbiddenException("Niveau de classification insuffisant");
-    } else if (userRole === UserRole.REVIEWER) {
-      if (!isOwner && classification === "SECRET") {
-        throw new ForbiddenException("Niveau de classification insuffisant");
-      }
+    await this.assertReadAccess(document, currentUser);
+    const classification = (document.classification || "INTERNE").toUpperCase();
+    if (document.scanStatus !== "CLEAN") {
+      throw new ForbiddenException(document.scanStatus === "INFECTED" ? "Ce document est bloqué par le contrôle antivirus" : "Le contrôle antivirus doit être terminé avant le téléchargement");
     }
 
     const version = await this.prisma.documentVersion.findFirst({
@@ -2103,6 +1747,13 @@ export class DocumentsService {
 
     if (!version) {
       throw new NotFoundException("Version introuvable");
+    }
+
+    if (versionId !== document.currentVersionId) {
+      const scan = await this.scannerService.scanFile(this.storageService.getFilePath(version.fileUrl));
+      if (!scan.clean || scan.status !== "CLEAN") {
+        throw new ForbiddenException("Cette ancienne version ne peut pas être téléchargée tant que son contrôle antivirus n’est pas concluant");
+      }
     }
 
     const signedUrl = await this.storageService.generateSignedUrl(version.fileUrl, 3600);
@@ -2140,7 +1791,7 @@ export class DocumentsService {
       if (!document || document.deletedAt) {
         throw new NotFoundException("Document introuvable");
       }
-      this.checkClassificationAccess(document, currentUser);
+      await this.assertReadAccess(document, currentUser);
     }
 
     const [versions, auditLogs] = await Promise.all([

@@ -53,7 +53,7 @@ export function PageHeader({
   const accent = ACCENTS[hub];
   return (
     <header className={cn("mb-6", className)}>
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-start">
         <div className="flex items-center gap-3 min-w-0">
           {Icon && (
             <span
@@ -65,7 +65,7 @@ export function PageHeader({
             </span>
           )}
           <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-semibold text-seal-navy dark:text-white truncate">
+            <h1 className="break-words text-xl md:text-2xl font-semibold text-seal-navy dark:text-white">
               {title}
             </h1>
             {subtitle && (
@@ -76,7 +76,7 @@ export function PageHeader({
           </div>
         </div>
         {actions && (
-          <div id="page-actions" className="flex items-center gap-2 flex-wrap">
+          <div id="page-actions" tabIndex={-1} className="flex shrink-0 items-center gap-2 flex-wrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-blue rounded-lg">
             {actions}
           </div>
         )}

@@ -102,6 +102,9 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    // AbortController cleanup / a replaced search request is intentional.
+    // Preserve rejection for the caller without reporting a network outage.
+    if (axios.isCancel(error) || error.code === 'ERR_CANCELED') return Promise.reject(error);
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };

@@ -5,8 +5,9 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import type { UserRole, WorkflowStepType } from "@prisma/client";
+import type { UserRole, WorkflowStepType, WorkflowStepMode } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { workflowTransaction } from "./workflow-transaction";
 
 /**
  * WorkflowEngineService — Moteur d'exécution d'un workflow d'approbation
@@ -48,6 +49,7 @@ export class WorkflowEngineService {
     const wf = await this.prisma.approvalWorkflow.findUnique({
       where: { id: workflowId },
       include: {
+        _count: { select: { instances: true } },
         steps: {
           orderBy: { order: "asc" },
           include: {
@@ -79,6 +81,7 @@ export class WorkflowEngineService {
         approverDept: step.approverDept ?? null,
         slaHours: step.slaHours,
         minApprovers: step.minApprovers,
+        escalateToUserId: step.escalateToUserId,
         condition: (step.condition as unknown) ?? null,
         autoApproveOnTimeout: step.autoApproveOnTimeout,
       },
@@ -86,10 +89,9 @@ export class WorkflowEngineService {
 
     const edges: WorkflowGraphEdge[] = [];
     for (const step of wf.steps) {
-      const nexts =
-        step.nextStepIds && step.nextStepIds.length > 0
-          ? step.nextStepIds
-          : this.fallbackNextIds(step.id, wf.steps);
+      const isGraph = wf.steps.some(item => item.type === "START");
+      const nexts = step.type === "END" ? [] : isGraph ? step.nextStepIds :
+        step.nextStepIds.length ? step.nextStepIds : this.fallbackNextIds(step.id, wf.steps);
       for (const targetId of nexts) {
         edges.push({
           id: `${step.id}->${targetId}`,
@@ -102,6 +104,7 @@ export class WorkflowEngineService {
     return {
       workflowId: wf.id,
       name: wf.name,
+      definitionLocked: (wf._count?.instances ?? 0) > 0,
       nodes,
       edges,
     };
@@ -140,105 +143,44 @@ export class WorkflowEngineService {
     workflowId: string,
     graph: WorkflowGraphInput,
   ): Promise<WorkflowGraph> {
-    const wf = await this.prisma.approvalWorkflow.findUnique({
-      where: { id: workflowId },
-    });
-    if (!wf) {
-      throw new NotFoundException(`Workflow ${workflowId} introuvable`);
-    }
-
-    // Bloque la mise à jour si une instance est en cours
-    const pendingInstances = await this.prisma.approvalInstance.count({
-      where: { workflowId, status: "PENDING" },
-    });
-    if (pendingInstances > 0) {
-      throw new BadRequestException(
-        `Le workflow a ${pendingInstances} instance(s) en cours — impossible de modifier la définition tant qu'elles ne sont pas terminées.`,
-      );
-    }
-
-    // 1. Validation DAG
     this.validateGraph(graph);
-
-    // 2. Détermine l'ordre topologique pour assigner `order` (1, 2, 3…)
-    const topoOrder = this.topologicalSort(graph);
-
-    // 3. Synchronisation en transaction
-    const existing = await this.prisma.workflowStep.findMany({
-      where: { workflowId },
-      select: { id: true },
-    });
-    const existingIds = new Set(existing.map((s) => s.id));
-    const incomingIds = new Set(graph.nodes.map((n) => n.id));
-
-    const toDelete = [...existingIds].filter((id) => !incomingIds.has(id));
-
-    const ops: Prisma.PrismaPromise<unknown>[] = [];
-
-    // 3a. Supprime les step-instances orphelines pour les steps à supprimer.
-    //     Seul autorisé car aucune instance PENDING (vérifié plus haut).
-    if (toDelete.length > 0) {
-      ops.push(
-        this.prisma.approvalStepInstance.deleteMany({
-          where: { stepId: { in: toDelete } },
-        }),
-      );
-      ops.push(
-        this.prisma.workflowStep.deleteMany({
-          where: { id: { in: toDelete } },
-        }),
-      );
-    }
-
-    // 3b. Upsert chaque noeud avec son order topologique
-    for (let i = 0; i < topoOrder.length; i++) {
-      const nodeId = topoOrder[i]!;
-      const node = graph.nodes.find((n) => n.id === nodeId)!;
-      const order = i + 1;
-
-      const dataCommon = {
-        order,
-        name: node.label,
-        type: node.type,
-        mode: this.deriveMode(node.type),
-        approverRole: (node.data?.approverRole ?? null) as UserRole | null,
-        approverUserId: node.data?.approverUserId ?? null,
-        approverDeptId: node.data?.approverDeptId ?? null,
-        slaHours: node.data?.slaHours ?? null,
-        minApprovers: Math.max(1, node.data?.minApprovers ?? 1),
-        autoApproveOnTimeout: node.data?.autoApproveOnTimeout ?? false,
-        positionX: Math.round(node.position?.x ?? 0),
-        positionY: Math.round(node.position?.y ?? 0),
-        condition: (node.data?.condition ?? Prisma.DbNull) as Prisma.InputJsonValue,
-        nextStepIds: this.outgoingFor(nodeId, graph.edges),
-      } satisfies Partial<Prisma.WorkflowStepUncheckedCreateInput>;
-
-      if (existingIds.has(nodeId)) {
-        ops.push(
-          this.prisma.workflowStep.update({
-            where: { id: nodeId },
-            data: dataCommon as Prisma.WorkflowStepUncheckedUpdateInput,
-          }),
-        );
-      } else {
-        ops.push(
-          this.prisma.workflowStep.create({
-            data: {
-              id: nodeId,
-              workflowId,
-              ...dataCommon,
-            },
-          }),
-        );
+    const ordered = this.topologicalSort(graph);
+    await workflowTransaction(this.prisma, async db => {
+      const workflow = await db.approvalWorkflow.findUnique({ where: { id: workflowId } });
+      if (!workflow) throw new NotFoundException(`Workflow ${workflowId} introuvable`);
+      if (await db.approvalInstance.count({ where: { workflowId } })) {
+        throw new BadRequestException("Ce circuit a déjà des instances. Dupliquez-le pour modifier sa définition sans altérer l’historique.");
       }
-    }
-
-    await this.prisma.$transaction(ops);
-
-    this.logger.log(
-      `Graphe workflow ${workflowId} sauvegardé : ${graph.nodes.length} noeuds, ${graph.edges.length} arêtes`,
-    );
-
+      const existing = await db.workflowStep.findMany({ where: { workflowId }, select: { id: true } });
+      const existingIds = new Set(existing.map(step => step.id));
+      const incomingIds = new Set(graph.nodes.map(node => node.id));
+      const toDelete = [...existingIds].filter(id => !incomingIds.has(id));
+      const newIds = [...incomingIds].filter(id => !existingIds.has(id));
+      if (newIds.length && await db.workflowStep.count({ where: { id: { in: newIds } } })) {
+        throw new BadRequestException("Un identifiant d’étape appartient déjà à un autre circuit.");
+      }
+      // Libère les ordres avant de les réattribuer (contrainte unique workflow/order).
+      for (let index = 0; index < existing.length; index++) {
+        await db.workflowStep.update({ where: { id: existing[index]!.id }, data: { order: -index - 1 } });
+      }
+      if (toDelete.length) await db.workflowStep.deleteMany({ where: { id: { in: toDelete }, workflowId } });
+      for (let index = 0; index < ordered.length; index++) {
+        const node = graph.nodes.find(item => item.id === ordered[index])!;
+        const data = {
+          order: index + 1, name: node.label.trim(), type: node.type,
+          mode: (node.type === 'APPROVAL' && node.data?.mode ? node.data.mode : this.deriveMode(node.type)) as WorkflowStepMode,
+          approverRole: (node.data?.approverRole ?? null) as UserRole | null,
+          approverUserId: node.data?.approverUserId ?? null, approverDeptId: node.data?.approverDeptId ?? null,
+          slaHours: node.data?.slaHours ?? null, escalateToUserId: node.data?.escalateToUserId ?? null, minApprovers: node.data?.minApprovers ?? 1,
+          autoApproveOnTimeout: node.data?.autoApproveOnTimeout ?? false,
+          positionX: Math.round(node.position?.x ?? 0), positionY: Math.round(node.position?.y ?? 0),
+          condition: node.data?.condition == null ? Prisma.DbNull : node.data.condition as Prisma.InputJsonValue,
+          nextStepIds: this.outgoingFor(node.id, graph.edges),
+        };
+        if (existingIds.has(node.id)) await db.workflowStep.update({ where: { id: node.id }, data });
+        else await db.workflowStep.create({ data: { ...data, id: node.id, workflowId } });
+      }
+    });
     return this.getGraph(workflowId);
   }
 
@@ -272,11 +214,25 @@ export class WorkflowEngineService {
    * Lève BadRequestException avec un message explicite en cas d'échec.
    */
   validateGraph(graph: WorkflowGraphInput): void {
-    if (!graph.nodes || graph.nodes.length === 0) {
+    if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges) || graph.nodes.length === 0) {
       throw new BadRequestException("Le graphe doit contenir au moins un noeud");
     }
 
+    if (graph.nodes.length > 200 || graph.edges.length > 400) throw new BadRequestException("Le circuit dépasse la limite de 200 étapes ou 400 transitions.");
+    const kinds = new Set(["START", "END", "APPROVAL", "BRANCH", "PARALLEL_ALL", "PARALLEL_ANY", "DELEGATE"]);
+    for (const node of graph.nodes) {
+      if (!node || typeof node.id !== "string" || !node.id.trim() || node.id.length > 128 || typeof node.label !== "string" || !node.label.trim() || node.label.length > 255 || !kinds.has(node.type)) {
+        throw new BadRequestException("Identifiant, libellé ou type d’étape invalide.");
+      }
+      if (node.data?.slaHours != null && (!Number.isInteger(node.data.slaHours) || node.data.slaHours < 1 || node.data.slaHours > 8760)) throw new BadRequestException("Le délai d’étape doit être compris entre 1 et 8760 heures.");
+      if (node.data?.minApprovers != null && (!Number.isInteger(node.data.minApprovers) || node.data.minApprovers < 1 || node.data.minApprovers > 500)) throw new BadRequestException("Le quorum doit être compris entre 1 et 500.");
+      if (node.data?.mode != null && !['SINGLE', 'PARALLEL_ALL', 'PARALLEL_ANY'].includes(node.data.mode)) throw new BadRequestException('Mode d’approbation invalide.');
+      if (node.position && (![node.position.x, node.position.y].every(value => Number.isFinite(value) && Math.abs(value) <= 100000))) throw new BadRequestException("Position d’étape invalide.");
+    }
     const nodeIds = new Set(graph.nodes.map((n) => n.id));
+    if (nodeIds.size !== graph.nodes.length) throw new BadRequestException("Un identifiant d’étape est présent plusieurs fois.");
+    if (graph.edges.some(edge => !edge || typeof edge.source !== 'string' || typeof edge.target !== 'string')) throw new BadRequestException('Transition invalide.');
+    if (new Set(graph.edges.map(edge => `${edge.source}→${edge.target}`)).size !== graph.edges.length) throw new BadRequestException("Une transition est présente plusieurs fois.");
 
     // 1. edges référencent uniquement des nodes existants
     for (const e of graph.edges) {
@@ -346,6 +302,11 @@ export class WorkflowEngineService {
           `Le noeud BRANCH "${node.label || node.id}" doit avoir au moins 2 transitions sortantes`,
         );
       }
+    }
+    for (const node of graph.nodes) {
+      const count = (adj.get(node.id) ?? []).length;
+      if (node.type !== "END" && count === 0) throw new BadRequestException(`L’étape « ${node.label} » ne conduit à aucune suite.`);
+      if (node.type !== "BRANCH" && node.type !== "END" && count !== 1) throw new BadRequestException("Utilisez un embranchement explicite pour choisir une suite ; le parallèle concerne les approbateurs d’une étape.");
     }
   }
 
@@ -469,23 +430,24 @@ export class WorkflowEngineService {
   evaluateCondition(
     condition: unknown,
     context: Record<string, unknown>,
+    depth = 0,
   ): boolean {
-    if (!condition || typeof condition !== "object") return true; // pas de condition = always true
-
+    if (condition == null) return true;
+    if (typeof condition !== 'object' || Array.isArray(condition) || depth > 16) return false;
     const c = condition as Record<string, unknown>;
-
-    if (Array.isArray(c.and)) {
-      return c.and.every((sub) => this.evaluateCondition(sub, context));
+    if ('and' in c || 'or' in c) {
+      if (Object.keys(c).length !== 1) return false;
+      const expressions = c.and ?? c.or;
+      if (!Array.isArray(expressions) || !expressions.length || expressions.length > 100) return false;
+      return c.and ? expressions.every(sub => sub != null && this.evaluateCondition(sub, context, depth + 1)) : expressions.some(sub => sub != null && this.evaluateCondition(sub, context, depth + 1));
     }
-    if (Array.isArray(c.or)) {
-      return c.or.some((sub) => this.evaluateCondition(sub, context));
-    }
+    if (Object.keys(c).some(key => !['field', 'op', 'value'].includes(key))) return false;
 
     const field = typeof c.field === "string" ? c.field : null;
     const op = typeof c.op === "string" ? c.op : "eq";
     const value = c.value;
 
-    if (!field) return false;
+    if (!field || !Object.prototype.hasOwnProperty.call(context, field) || !('value' in c)) return false;
     const actual = context[field];
 
     switch (op) {
@@ -510,43 +472,25 @@ export class WorkflowEngineService {
     }
   }
 
-  /**
-   * Calcule la liste des prochains step-ids depuis un step source.
-   *
-   * - APPROVAL / PARALLEL_* / DELEGATE : retourne `nextStepIds` brut
-   *   (puis l'instance avance sur ces nodes).
-   * - BRANCH : pour chaque sortant, vérifie sa condition (`condition` sur le
-   *   step cible) ; ne retient que ceux qui matchent. Si aucune branche ne
-   *   matche, retourne le premier sortant comme fallback "default".
-   * - START : retourne le premier nextStepId, ou [].
-   * - END : []
-   */
+  /** Une branche exige une condition unique ou une sortie explicitement par défaut. */
   computeNextSteps(
-    step: {
-      id: string;
-      type: WorkflowStepType;
-      nextStepIds: string[];
-    },
+    step: { id: string; type: WorkflowStepType; nextStepIds: string[] },
     allSteps: Array<{ id: string; condition: Prisma.JsonValue | null }>,
     context: Record<string, unknown>,
   ): string[] {
-    if (step.type === "END") return [];
-    if (!step.nextStepIds || step.nextStepIds.length === 0) return [];
-
-    if (step.type === "BRANCH") {
-      const matching: string[] = [];
-      for (const targetId of step.nextStepIds) {
-        const target = allSteps.find((s) => s.id === targetId);
-        const cond = target?.condition ?? null;
-        if (cond && this.evaluateCondition(cond as unknown, context)) {
-          matching.push(targetId);
-        }
-      }
-      // Si rien ne matche, on prend le 1er comme fallback (default)
-      return matching.length > 0 ? matching : [step.nextStepIds[0]!];
+    if (step.type === 'END') return [];
+    const targets = step.nextStepIds.map(id => allSteps.find(target => target.id === id));
+    if (!targets.length || targets.some(target => !target)) throw new BadRequestException('Une transition référence une étape manquante.');
+    if (step.type === 'BRANCH') {
+      const matching = targets.filter(target => target?.condition != null && this.evaluateCondition(target.condition, context));
+      if (matching.length > 1) throw new BadRequestException('Plusieurs branches correspondent. Précisez des conditions exclusives.');
+      if (matching[0]) return [matching[0].id];
+      const fallback = targets.filter(target => target?.condition === null);
+      if (fallback.length === 1) return [fallback[0]!.id];
+      throw new BadRequestException('Aucune branche ne correspond et aucune branche par défaut unique n’est définie.');
     }
-
-    return step.nextStepIds;
+    if (targets.length !== 1) throw new BadRequestException('Le passage vers plusieurs étapes exige un embranchement explicite.');
+    return [targets[0]!.id];
   }
 }
 
@@ -557,6 +501,7 @@ export class WorkflowEngineService {
 export interface WorkflowGraph {
   workflowId: string;
   name: string;
+  definitionLocked?: boolean;
   nodes: WorkflowGraphNode[];
   edges: WorkflowGraphEdge[];
 }
@@ -581,6 +526,7 @@ export interface WorkflowGraphNodeData {
   minApprovers?: number;
   condition?: unknown;
   autoApproveOnTimeout?: boolean;
+  escalateToUserId?: string | null;
 }
 
 export interface WorkflowGraphEdge {

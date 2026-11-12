@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/safe-test';
 
 /**
  * /admin/access — 3-tab access configuration. Read-only assertions by default,

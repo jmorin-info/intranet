@@ -103,8 +103,8 @@ describe('DocumentsController', () => {
       getFileStream: jest.fn().mockReturnValue({ pipe: jest.fn() }),
     };
 
-    (fs.existsSync as jest.Mock) = jest.fn().mockReturnValue(true);
-    (fs.readFileSync as jest.Mock) = jest.fn().mockReturnValue(Buffer.from(''));
+    (fs.existsSync as jest.Mock).mockReturnValue(true);
+    (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from(''));
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DocumentsController],
@@ -169,15 +169,14 @@ describe('DocumentsController', () => {
   });
 
   describe('uploadVersion (input invalide)', () => {
-    it('throws BadRequestException when no file is provided', async () => {
-      await expect(
-        controller.uploadVersion(
+    it('throws BadRequestException when no file is provided', () => {
+      expect(() => controller.uploadVersion(
           'doc-1',
           undefined as unknown as Express.Multer.File,
           'changelog',
           collabUser as any,
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).toThrow(BadRequestException);
     });
 
     it('forwards file + changelog when valid', async () => {
@@ -226,6 +225,16 @@ describe('DocumentsController', () => {
           buildResponse(),
         ),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('downloads the current approved pointer rather than an unrelated newer historical row', async () => {
+      documentsService.findById.mockResolvedValueOnce({ currentVersionId: 'current-version' });
+      documentsService.getVersions.mockResolvedValueOnce([{ id: 'other-version' }]);
+      const stream = jest.spyOn(controller as any, 'streamWatermarkedDocument').mockResolvedValue(undefined);
+      const response = buildResponse();
+      await controller.downloadLatest('doc-1', collabUser as any, 'true', 'false', response);
+      expect(stream).toHaveBeenCalledWith('doc-1', 'current-version', collabUser, 'true', 'false', response);
+      expect(documentsService.getVersions).not.toHaveBeenCalled();
     });
   });
 

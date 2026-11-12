@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/safe-test';
 
 /**
  * Tickets flows — authenticated. Destructive (create, comment, assign) gated

@@ -7,7 +7,7 @@ import {
   BadRequestException,
   Query,
 } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { StorageService } from './storage.service';
 import { Public } from '../auth/decorators/public.decorator';
 import * as path from 'path';
@@ -80,7 +80,9 @@ export class StorageController {
       res.set({
         'Content-Disposition': `attachment; filename="${fileName}"`,
         'Content-Type': 'application/octet-stream',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'private, no-store',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Security-Policy': "sandbox; default-src 'none'",
       });
 
       stream.pipe(res);

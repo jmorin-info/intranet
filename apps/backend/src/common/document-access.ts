@@ -1,107 +1,85 @@
-/**
- * Contrôle d'accès documentaire par classification (ISO 27001 A.5.15).
- *
- * Règles identiques à RagService.getAccessibleDocumentIds (filtrage
- * pré-retrieval SQL) — centralisées ici pour les vérifications unitaires
- * (résumé IA, analyse ISO) où l'on connaît déjà le document.
- *
- * Échelle : PUBLIC < INTERNE < CONFIDENTIEL < SECRET.
- *   - PUBLIC / INTERNE      : tout utilisateur authentifié
- *   - CONFIDENTIEL          : owner, reviewer ou approver du document
- *   - SECRET                : owner uniquement
- *   - rôles privilégiés     : SUPER_ADMIN / ADMIN / DIRECTION → tout
- *   - classification inconnue → fail closed (aucun accès)
- */
+import type { PrismaClient, Prisma, UserRole as PrismaUserRole } from '@prisma/client';
+import type { RequestUser } from './interfaces';
+import { ROLE_HIERARCHY, UserRole } from './enums';
+import { documentReadWhere, hasBaselineDocumentReadAccess, DOCUMENT_PERMISSION_LEVELS, ReadableDocument as PolicyDocument } from './document-library.policy';
 
-export interface DocumentAccessUser {
-  id: string;
-  role: string;
-}
-
+export interface DocumentAccessUser { id: string; role: string; departmentId?: string | null; email?: string }
 export interface ClassifiedDocument {
-  classification: string;
-  ownerId: string;
-  reviewerId?: string | null;
-  approverId?: string | null;
-}
-
-const PRIVILEGED_ROLES = ["SUPER_ADMIN", "ADMIN", "DIRECTION"];
-
-export function canAccessDocumentByClassification(
-  doc: ClassifiedDocument,
-  user: DocumentAccessUser,
-): boolean {
-  if (PRIVILEGED_ROLES.includes(user.role)) return true;
-
-  // Comparaison d'identités : un id absent des deux côtés (document orphelin,
-  // contexte d'auth incomplet) ne doit JAMAIS matcher — sinon `null === null`
-  // ouvrirait un document SECRET à un appelant sans identité.
-  const isSameUser = (id: string | null | undefined): boolean =>
-    !!id && !!user.id && id === user.id;
-
-  switch (doc.classification) {
-    case "PUBLIC":
-    case "INTERNE":
-      return true;
-    case "CONFIDENTIEL":
-      return isSameUser(doc.ownerId) || isSameUser(doc.reviewerId) || isSameUser(doc.approverId);
-    case "SECRET":
-      return isSameUser(doc.ownerId);
-    default:
-      // Classification inconnue → fail closed
-      return false;
-  }
-}
-
-/**
- * Document lisible pour un utilisateur donné — matrice complète rôle × statut ×
- * classification, alignée sur DocumentsService.findById (documents.service.ts).
- *
- * Là où {@link canAccessDocumentByClassification} ne regarde QUE la
- * classification, ce helper ajoute les deux garde-fous manquants qui laissaient
- * fuir des brouillons / documents supprimés vers l'analyse ISO et le résumé IA :
- *   - `deletedAt` : un document soft-supprimé n'est JAMAIS lisible ;
- *   - `status`    : les rôles non privilégiés non-owner ne lisent que de
- *                   l'APPROVED (PRESTATAIRE en plus restreint à CONTRACT/public).
- *
- * Matrice (identique à findById) :
- *   - SUPER_ADMIN / ADMIN / DIRECTION : tout (hors soft-delete)
- *   - PRESTATAIRE  : owner, sinon APPROVED ET (category CONTRACT OU isPublic)
- *   - COLLABORATEUR: owner, sinon APPROVED ET classification PUBLIC/INTERNE
- *   - AUDITEUR     : APPROVED ET classification ≠ SECRET
- *   - REVIEWER     : tout sauf SECRET (sauf owner)
- *   - rôle inconnu : fail closed
- */
-export interface ReadableDocument extends ClassifiedDocument {
-  status: string;
+  classification: string; ownerId: string; verifierId?: string | null;
+  reviewerId?: string | null; approverId?: string | null; status?: string;
   deletedAt?: Date | null;
-  category?: string | null;
-  isPublic?: boolean | null;
+}
+export interface ReadableDocument extends ClassifiedDocument {
+  status: string; category?: string | null; isPublic?: boolean | null;
 }
 
+/** @deprecated A classification alone cannot authorize document access. Supply its status. */
+export function canAccessDocumentByClassification(doc: ClassifiedDocument, user: DocumentAccessUser): boolean {
+  return !!doc.status && canReadDocument({ ...doc, status: doc.status }, user);
+}
+
+/** Baseline matrix shared by GED, summaries and ISO. Explicit grants use the async resolver. */
 export function canReadDocument(doc: ReadableDocument, user: DocumentAccessUser): boolean {
-  // Un document soft-supprimé n'est lisible par personne (cf. findById → 404).
-  if (doc.deletedAt) return false;
+  return hasBaselineDocumentReadAccess(doc, user as RequestUser);
+}
 
-  if (PRIVILEGED_ROLES.includes(user.role)) return true;
+function knownReader(user: DocumentAccessUser): boolean {
+  return !!user.id && typeof user.role === 'string' && Object.values(UserRole).includes(user.role.toUpperCase() as UserRole);
+}
 
-  const isOwner = !!doc.ownerId && !!user.id && doc.ownerId === user.id;
-  const classification = doc.classification || "INTERNE";
-  const isApproved = doc.status === "APPROVED";
+type AccessDatabase = Pick<PrismaClient, 'user' | 'userDepartment' | 'approvalStepInstance' | 'documentPermission'>;
 
-  switch (user.role) {
-    case "PRESTATAIRE":
-      if (isOwner) return true;
-      return isApproved && (doc.category === "CONTRACT" || !!doc.isPublic);
-    case "COLLABORATEUR":
-      if (isOwner) return true;
-      return isApproved && ["PUBLIC", "INTERNE"].includes(classification);
-    case "AUDITEUR":
-      return isApproved && classification !== "SECRET";
-    case "REVIEWER":
-      return isOwner || classification !== "SECRET";
-    default:
-      // Rôle inconnu → fail closed
-      return false;
-  }
+export async function activeDocumentAssignments(db: AccessDatabase, user: DocumentAccessUser, documentId?: string) {
+  if (!knownReader(user) || !db.approvalStepInstance) return [];
+  const primaryDepartmentId = user.departmentId !== undefined ? user.departmentId : (await db.user.findUnique({ where: { id: user.id }, select: { departmentId: true } }))?.departmentId;
+  const rows = await db.approvalStepInstance.findMany({
+    where: {
+      decision: 'PENDING', instance: { status: 'PENDING', ...(documentId ? { documentId } : {}) },
+      OR: [
+        { assignedToId: user.id },
+        { assignedToId: null, step: { OR: [
+          { approverUserId: user.id },
+          ...(primaryDepartmentId ? [{ approverUserId: null, approverDeptId: primaryDepartmentId }] : []),
+          { approverUserId: null, approverDeptId: null, approverRole: user.role.toUpperCase() as PrismaUserRole },
+        ] } },
+      ],
+    },
+    select: { step: { select: { order: true } }, instance: { select: { documentId: true, documentVersionId: true, currentStepOrder: true } } },
+  });
+  return rows.filter((row) => row.step.order === row.instance.currentStepOrder).map((row) => row.instance);
+}
+
+async function readerDepartments(db: AccessDatabase, user: DocumentAccessUser): Promise<string[]> {
+  const [account, memberships] = await Promise.all([
+    db.user.findUnique({ where: { id: user.id }, select: { departmentId: true } }),
+    db.userDepartment.findMany({ where: { userId: user.id }, select: { departmentId: true } }),
+  ]);
+  return [...new Set([account?.departmentId, ...memberships.map((membership) => membership.departmentId)].filter((id): id is string => !!id))];
+}
+
+/** SQL scope used before document lists or retrieval; permissions and active version assignments included. */
+export async function documentReaderScope(db: AccessDatabase, user: DocumentAccessUser): Promise<Prisma.DocumentWhereInput> {
+  if (!knownReader(user)) return { deletedAt: null, id: { in: [] } };
+  if (ROLE_HIERARCHY[user.role.toUpperCase() as UserRole] >= ROLE_HIERARCHY[UserRole.DIRECTION]) return { deletedAt: null };
+  const [departments, assignments] = await Promise.all([readerDepartments(db, user), activeDocumentAssignments(db, user)]);
+  return documentReadWhere(user as RequestUser, departments, new Date(), assignments);
+}
+
+/** Object check before loading content or a cached summary. Database errors remain fail closed. */
+export async function canReadDocumentWithPermissions(
+  db: AccessDatabase, doc: PolicyDocument & { id: string; currentVersionId?: string | null }, user: DocumentAccessUser,
+): Promise<boolean> {
+  if (!knownReader(user) || doc.deletedAt) return false;
+  if (hasBaselineDocumentReadAccess(doc, user as RequestUser)) return true;
+  try {
+    const departments = await readerDepartments(db, user);
+    const permission = await db.documentPermission.findFirst({ where: {
+      documentId: doc.id, level: { in: DOCUMENT_PERMISSION_LEVELS },
+      OR: [{ userId: user.id }, ...(departments.length ? [{ departmentId: { in: departments } }] : []), { role: user.role.toUpperCase() as PrismaUserRole }],
+      AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }],
+    } });
+    if (permission) return true;
+    const assignments = await activeDocumentAssignments(db, user, doc.id);
+    return assignments.some((assignment) => assignment.documentVersionId === doc.currentVersionId);
+  } catch { return false; }
 }

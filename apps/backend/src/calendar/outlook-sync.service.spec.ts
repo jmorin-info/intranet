@@ -4,6 +4,7 @@ import { OutlookSyncService } from "./outlook-sync.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CryptoService } from "../common/crypto/crypto.service";
 import { AuditService } from "../audit/audit.service";
+import { OAuthCredsService } from "./oauth-creds.service";
 
 jest.mock("axios");
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -40,6 +41,14 @@ describe("OutlookSyncService", () => {
       providers: [
         OutlookSyncService,
         CryptoService,
+        {
+          provide: OAuthCredsService,
+          useValue: { getOutlook: () => ({
+            clientId: process.env.MICROSOFT_OAUTH_CLIENT_ID,
+            clientSecret: process.env.MICROSOFT_OAUTH_CLIENT_SECRET,
+            tenantId: "common",
+          }) },
+        },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditService, useValue: { log: jest.fn() } },
       ],

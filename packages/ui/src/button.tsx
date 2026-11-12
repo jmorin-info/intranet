@@ -5,25 +5,25 @@ import { Loader2 } from 'lucide-react';
 import { haptic, type HapticPattern } from './haptic';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 font-semibold text-sm transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none touch-manipulation select-none active:scale-[0.97] transition-transform duration-100',
+  'inline-flex items-center justify-center gap-2 font-semibold text-sm transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy focus-visible:ring-offset-2 dark:focus-visible:ring-blue-300 dark:focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:pointer-events-none touch-manipulation select-none active:scale-[0.97] transition-transform duration-100',
   {
     variants: {
       variant: {
-        // Primary OMNITECH (#F68D2E) — bouton principal renforcé look SEAL
-        primary: 'bg-[#F9964A] text-white hover:bg-[#e67d1e] active:bg-[#c46714] rounded-btn shadow-sm hover:shadow-md',
+        // Orange OMNITECH + texte navy : contraste AA pour les libellés.
+        primary: 'bg-[#F9964A] text-[#004469] hover:bg-[#ffb27a] active:bg-[#ffcc99] rounded-btn shadow-sm hover:shadow-md',
         secondary:
-          'bg-transparent border-2 border-seal-navy text-seal-navy hover:bg-seal-navy hover:text-white rounded-btn',
+          'bg-transparent border-2 border-seal-navy text-seal-navy hover:bg-seal-navy hover:text-white dark:border-blue-300 dark:text-blue-300 dark:hover:bg-blue-300 dark:hover:text-slate-950 rounded-btn',
         danger: 'bg-[#892034] text-white hover:bg-[#6f1a2a] rounded-btn shadow-sm hover:shadow-md',
         // Alias sémantique de `danger` (terminologie shadcn/ui)
         destructive: 'bg-[#892034] text-white hover:bg-[#6f1a2a] rounded-btn shadow-sm hover:shadow-md',
-        ghost: 'bg-transparent text-primary hover:bg-primary-light rounded-btn',
+        ghost: 'bg-transparent text-seal-navy hover:bg-primary-light dark:text-blue-300 dark:hover:bg-slate-800 rounded-btn',
         outline:
           'bg-transparent border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-btn',
         // Bouton lien : usage minimal, inline, navy SEAL souligné au hover
         link: 'bg-transparent text-seal-navy dark:text-blue-300 underline-offset-4 hover:underline px-0 h-auto rounded-none shadow-none',
         // === Variantes SEAL System (look produit hypervision OMNITECH) ===
-        // Bouton signature SEAL : orange plein → s'inverse au hover (transparent + bordure orange)
-        seal: 'bg-[#F9964A] text-white border-2 border-[#F9964A] uppercase tracking-wider rounded-seal hover:bg-transparent hover:text-[#F9964A] font-semibold',
+        // Bouton signature SEAL : même contraste lisible et traitement de marque.
+        seal: 'bg-[#F9964A] text-[#004469] border-2 border-[#F9964A] uppercase tracking-wider rounded-seal hover:bg-[#ffb27a] active:bg-[#ffcc99] font-semibold',
         'seal-blue': 'bg-[#296DC1] text-white border-2 border-[#296DC1] uppercase tracking-wider rounded-seal hover:bg-transparent hover:text-[#296DC1] font-semibold',
         'seal-green': 'bg-[#006233] text-white border-2 border-[#006233] uppercase tracking-wider rounded-seal hover:bg-transparent hover:text-[#006233] font-semibold',
       },

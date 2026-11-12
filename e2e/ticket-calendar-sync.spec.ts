@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { testApiUrl } from './helpers/test-environment';
+import { test, expect } from "./helpers/safe-test";
 import { login } from "./helpers/login";
 
 /**
@@ -76,7 +77,7 @@ test.describe("Tickets ↔ Calendar sync", () => {
   });
 
   test("calendar API exposes ticket due dates", async ({ request }) => {
-    const apiBase = process.env.E2E_API_URL || "http://10.33.120.55:3000/api";
+    const apiBase = testApiUrl();
     const res = await request
       .get(`${apiBase}/calendar/events?source=tickets`, {
         failOnStatusCode: false,

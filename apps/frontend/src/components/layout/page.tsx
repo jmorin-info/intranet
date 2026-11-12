@@ -233,7 +233,7 @@ function PageRoot({
         {breadcrumbs && breadcrumbs.length > 0 && (
           <Breadcrumbs items={breadcrumbs} />
         )}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-start">
           <div className="flex min-w-0 items-start gap-3">
             {Icon && (
               <div
@@ -244,7 +244,7 @@ function PageRoot({
               </div>
             )}
             <div className="min-w-0">
-              <h1 className="truncate text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">
+              <h1 className="break-words text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">
                 {title}
               </h1>
               {subtitle && (
@@ -255,7 +255,7 @@ function PageRoot({
             </div>
           </div>
           {actions && (
-            <div className="flex shrink-0 items-center gap-2">{actions}</div>
+            <div className="flex flex-wrap shrink-0 items-center gap-2">{actions}</div>
           )}
         </div>
       </header>

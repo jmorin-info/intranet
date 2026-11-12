@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { testApiUrl } from './helpers/test-environment';
+import { test, expect } from "./helpers/safe-test";
 import { credsFor, login } from "./helpers/login";
 
 /**
@@ -25,7 +26,7 @@ test.describe("Fresh MFA Guard (12h)", () => {
   test("sensitive API endpoint rejects request without recent MFA", async ({
     request,
   }) => {
-    const apiBase = process.env.E2E_API_URL || "http://10.33.120.55:3000/api";
+    const apiBase = testApiUrl();
     const { email, password } = credsFor("USER");
 
     // Login via API — récupère un access token sans passer par MFA fresh.

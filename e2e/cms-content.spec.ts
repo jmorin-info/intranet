@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/safe-test";
 
 /**
  * CMS module — flows admin critiques + sanitization XSS.

@@ -346,6 +346,8 @@ export function DocumentHeader({
               <Button
                 variant="secondary"
                 size="sm"
+                disabled={!!doc.scanStatus && doc.scanStatus !== 'CLEAN'}
+                title={doc.scanStatus && doc.scanStatus !== 'CLEAN' ? 'Contrôle antivirus requis avant téléchargement' : undefined}
                 onClick={() =>
                   authenticatedDownload(
                     `/documents/${doc.id}/versions/${currentVersion.id}/download`,

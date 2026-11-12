@@ -4,6 +4,7 @@ import React from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@omnitech/ui";
 import { FileImage, Maximize2 } from "lucide-react";
+import { extensionForMime } from '@/lib/download';
 
 const MarkdownViewer = dynamic(
   () =>
@@ -50,22 +51,24 @@ export function DocumentViewer({
   canOpenReadingMode,
   onOpenReadingMode,
 }: DocumentViewerProps) {
+  const extension = extensionForMime(fileType, fileType.startsWith('.') ? `file${fileType}` : fileType);
+  if (!previewUrl) return <p role="status" className="py-10 text-center text-sm text-seal-gray-500">Préparation de l’aperçu…</p>;
   const renderViewer = () => {
-    if (/\.pdf$/i.test(fileType)) {
+    if (extension === 'pdf') {
       return (
         <PdfViewer url={previewUrl} onOpenReadingMode={onOpenReadingMode} />
       );
     }
-    if (/\.docx?$/i.test(fileType)) {
+    if (extension === 'docx') {
       return <DocxViewer url={previewUrl} />;
     }
-    if (/\.(md|markdown)$/i.test(fileType)) {
+    if (['md', 'markdown'].includes(extension)) {
       return <MarkdownViewer url={previewUrl} />;
     }
-    if (/\.txt$/i.test(fileType)) {
+    if (extension === 'txt') {
       return <MarkdownViewer url={previewUrl} />;
     }
-    if (/\.(png|jpe?g|webp|gif)$/i.test(fileType)) {
+    if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(extension)) {
       return <ImageViewer url={previewUrl} alt={title} />;
     }
     return (
@@ -87,7 +90,7 @@ export function DocumentViewer({
             className="text-[11px]"
           >
             <Maximize2 className="h-3.5 w-3.5" />
-            Plein ecran
+            Plein écran
           </Button>
         </div>
       )}

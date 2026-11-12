@@ -25,6 +25,8 @@ describe("WorkflowService", () => {
     reviewerId: "user-2",
     approverId: "user-3",
     currentVersionId: "ver-1",
+    scanStatus: "CLEAN",
+    updatedAt: new Date("2026-11-12T00:00:00Z"),
     isNative: false,
     content: null,
     deletedAt: null,
@@ -35,17 +37,23 @@ describe("WorkflowService", () => {
     tx = {
       document: {
         update: jest.fn().mockResolvedValue(mockDocument),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         findUnique: jest.fn().mockResolvedValue(mockDocument),
       },
       documentVersion: {
         create: jest.fn().mockResolvedValue({ id: "ver-snap" }),
       },
+      approvalInstance: { findFirst: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]), update: jest.fn() },
+      approvalStepInstance: { updateMany: jest.fn() }, approvalAuditLog: { create: jest.fn() },
       validationRequest: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         create: jest.fn().mockResolvedValue({ id: "req-1" }),
         update: jest.fn().mockResolvedValue({}),
         findFirst: jest.fn().mockResolvedValue({ id: "req-1", status: "PENDING" }),
       },
       validationStep: {
+        findFirst: jest.fn().mockResolvedValue({ id: "previous-review" }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         create: jest.fn().mockResolvedValue({}),
         update: jest.fn().mockResolvedValue({}),
       },
@@ -63,7 +71,7 @@ describe("WorkflowService", () => {
       user: {
         // Par défaut : l'approbateur/relecteur assigné (user-2/user-3) a un rôle
         // DIRECTION. Les tests surchargent au besoin.
-        findUnique: jest.fn().mockResolvedValue({ id: "user-3", role: "DIRECTION" }),
+        findUnique: jest.fn().mockResolvedValue({ id: "user-3", role: "DIRECTION", isActive: true, deletedAt: null }),
       },
       validationRequest: {
         create: jest.fn().mockResolvedValue({ id: "req-1" }),
@@ -171,15 +179,15 @@ describe("WorkflowService", () => {
       status: "IN_REVIEW",
       verifierId: "user-9",
       validationRequests: [
-        { id: "req-1", status: "PENDING", currentStep: "VERIFICATION", steps: [] },
+        { id: "req-1", documentVersionId: "ver-1", status: "PENDING", currentStep: "VERIFICATION", steps: [{ id: "verification", stepType: "VERIFICATION" }] },
       ],
     };
 
     it("should throw if not at VERIFICATION step", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: "user-9", role: "REVIEWER" });
+      prisma.user.findUnique.mockResolvedValue({ id: "user-9", role: "REVIEWER", isActive: true, deletedAt: null });
       prisma.document.findUnique.mockResolvedValue({
         ...docVerif,
-        validationRequests: [{ id: "req-1", status: "PENDING", currentStep: "REVIEW", steps: [] }],
+        validationRequests: [{ id: "req-1", documentVersionId: "ver-1", status: "PENDING", currentStep: "REVIEW", steps: [{ id: "review", stepType: "REVIEW" }] }],
       });
       await expect(service.approveVerification("doc-1", "user-9")).rejects.toThrow(
         BadRequestException,
@@ -187,7 +195,7 @@ describe("WorkflowService", () => {
     });
 
     it("should throw Forbidden if actor is neither verifier nor admin", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: "user-x", role: "COLLABORATEUR" });
+      prisma.user.findUnique.mockResolvedValue({ id: "user-x", role: "COLLABORATEUR", isActive: true, deletedAt: null });
       prisma.document.findUnique.mockResolvedValue(docVerif);
       await expect(service.approveVerification("doc-1", "user-x")).rejects.toThrow(
         ForbiddenException,
@@ -195,10 +203,10 @@ describe("WorkflowService", () => {
     });
 
     it("should advance to REVIEW and notify the reviewer", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: "user-9", role: "REVIEWER" });
+      prisma.user.findUnique.mockResolvedValue({ id: "user-9", role: "REVIEWER", isActive: true, deletedAt: null });
       prisma.document.findUnique.mockResolvedValue(docVerif);
       const result = await service.approveVerification("doc-1", "user-9", "ok");
-      expect(tx.validationRequest.update).toHaveBeenCalledWith(
+      expect(tx.validationRequest.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({ data: { currentStep: "REVIEW" } }),
       );
       expect(tx.validationStep.create).toHaveBeenCalledWith(
@@ -217,11 +225,11 @@ describe("WorkflowService", () => {
     const docInReview = {
       ...mockDocument,
       status: "IN_REVIEW",
-      validationRequests: [{ id: "req-1", status: "PENDING", currentStep: "REVIEW", steps: [] }],
+      validationRequests: [{ id: "req-1", documentVersionId: "ver-1", status: "PENDING", currentStep: "REVIEW", steps: [{ id: "review", stepType: "REVIEW" }] }],
     };
 
     it("should throw if document is not IN_REVIEW", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: "user-2", role: "REVIEWER" });
+      prisma.user.findUnique.mockResolvedValue({ id: "user-2", role: "REVIEWER", isActive: true, deletedAt: null });
       prisma.document.findUnique.mockResolvedValue({
         ...docInReview,
         status: "DRAFT",
@@ -230,13 +238,13 @@ describe("WorkflowService", () => {
     });
 
     it("should throw if user is not the assigned reviewer (non-admin)", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: "user-999", role: "REVIEWER" });
+      prisma.user.findUnique.mockResolvedValue({ id: "user-999", role: "REVIEWER", isActive: true, deletedAt: null });
       prisma.document.findUnique.mockResolvedValue(docInReview);
       await expect(service.approveReview("doc-1", "user-999")).rejects.toThrow(ForbiddenException);
     });
 
     it("should approve review and notify the owner", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: "user-2", role: "REVIEWER" });
+      prisma.user.findUnique.mockResolvedValue({ id: "user-2", role: "REVIEWER", isActive: true, deletedAt: null });
       prisma.document.findUnique.mockResolvedValue(docInReview);
       const result = await service.approveReview("doc-1", "user-2", "LGTM");
       expect(prisma.$transaction).toHaveBeenCalled();
@@ -251,7 +259,7 @@ describe("WorkflowService", () => {
     const docPending = {
       ...mockDocument,
       status: "PENDING_APPROVAL",
-      validationRequests: [{ id: "req-1", status: "PENDING", currentStep: "APPROVAL", steps: [] }],
+      validationRequests: [{ id: "req-1", documentVersionId: "ver-1", status: "PENDING", currentStep: "APPROVAL", steps: [{ id: "step-approval", stepType: "APPROVAL" }] }],
     };
 
     it("should throw if user role is below DIRECTION", async () => {
@@ -266,7 +274,7 @@ describe("WorkflowService", () => {
 
     it("should throw Forbidden if DIRECTION user is NOT the assigned approver", async () => {
       // Un DIRECTION non assigné (et non ADMIN) ne peut pas approuver.
-      prisma.user.findUnique.mockResolvedValue({ id: "user-other", role: "DIRECTION" });
+      prisma.user.findUnique.mockResolvedValue({ id: "user-other", role: "DIRECTION", isActive: true, deletedAt: null });
       prisma.document.findUnique.mockResolvedValue(docPending);
       await expect(service.approveDocument("doc-1", "user-other")).rejects.toThrow(
         ForbiddenException,
@@ -274,14 +282,14 @@ describe("WorkflowService", () => {
     });
 
     it("should approve when the assigned approver acts (no derogation)", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: "user-3", role: "DIRECTION" });
+      prisma.user.findUnique.mockResolvedValue({ id: "user-3", role: "DIRECTION", isActive: true, deletedAt: null });
       prisma.document.findUnique.mockResolvedValue(docPending);
       const result = await service.approveDocument("doc-1", "user-3", "Approved");
       expect(notificationsService.create).toHaveBeenCalledWith(
         expect.objectContaining({ userId: "user-1", type: "DOC_APPROVED" }),
       );
       // decidedById = acteur réel
-      expect(tx.validationStep.create).toHaveBeenCalledWith(
+      expect(tx.validationStep.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ decidedById: "user-3", action: "APPROVED" }),
         }),
@@ -298,7 +306,7 @@ describe("WorkflowService", () => {
     });
 
     it("should allow ADMIN derogation but trace it (audit WARN)", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: "admin-1", role: "ADMIN" });
+      prisma.user.findUnique.mockResolvedValue({ id: "admin-1", role: "ADMIN", isActive: true, deletedAt: null });
       prisma.document.findUnique.mockResolvedValue(docPending);
       await service.approveDocument("doc-1", "admin-1", "Override");
       expect(auditService.log).toHaveBeenCalledWith(
@@ -319,7 +327,7 @@ describe("WorkflowService", () => {
     const docPending = {
       ...mockDocument,
       status: "PENDING_APPROVAL",
-      validationRequests: [{ id: "req-1", status: "PENDING", currentStep: "APPROVAL", steps: [] }],
+      validationRequests: [{ id: "req-1", documentVersionId: "ver-1", status: "PENDING", currentStep: "APPROVAL", steps: [{ id: "step-approval", stepType: "APPROVAL" }] }],
     };
 
     it("should throw if comment is missing", async () => {
@@ -329,7 +337,7 @@ describe("WorkflowService", () => {
     });
 
     it("should reject and return document to DRAFT (assigned approver)", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: "user-3", role: "DIRECTION" });
+      prisma.user.findUnique.mockResolvedValue({ id: "user-3", role: "DIRECTION", isActive: true, deletedAt: null });
       prisma.document.findUnique.mockResolvedValue(docPending);
       const result = await service.rejectDocument(
         "doc-1",
@@ -354,7 +362,7 @@ describe("WorkflowService", () => {
     });
 
     it("should mark document as OBSOLETE for ADMIN", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: "admin-1", role: "ADMIN" });
+      prisma.user.findUnique.mockResolvedValue({ id: "admin-1", role: "ADMIN", isActive: true, deletedAt: null });
       const result = await service.markObsolete("doc-1", "admin-1");
       expect(prisma.document.update).toHaveBeenCalledWith({
         where: { id: "doc-1" },

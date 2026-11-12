@@ -1,15 +1,21 @@
 import {
   ArrayNotEmpty,
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsInt,
+  IsEnum,
+  IsUUID,
   IsOptional,
   IsString,
   MaxLength,
+  Max,
   Min,
+  MinLength,
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
+import { DocumentCategory, UserRole } from '@prisma/client';
 
 /**
  * Condition d'une règle (DTO faiblement typé : JSONB côté DB).
@@ -19,12 +25,15 @@ import { Type } from "class-transformer";
  */
 export class WorkflowRuleConditionDto {
   @IsOptional()
+  @IsString({ each: true })
   classification?: string | string[];
 
   @IsOptional()
+  @IsEnum(DocumentCategory, { each: true })
   category?: string | string[];
 
   @IsOptional()
+  @IsUUID('all', { each: true })
   departmentId?: string | string[];
 
   @IsOptional()
@@ -37,28 +46,31 @@ export class WorkflowRuleConditionDto {
 export class WorkflowRuleStepDto {
   @IsInt()
   @Min(1)
+  @Max(100)
   level: number;
 
   @IsOptional()
   @IsString()
+  @MinLength(1)
   @MaxLength(120)
   name?: string;
 
   @IsOptional()
-  @IsString()
+  @IsEnum(UserRole)
   approverRole?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   approverUserId?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   approverDeptId?: string;
 
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(8760)
   deadlineHours?: number;
 
   @IsOptional()
@@ -67,11 +79,13 @@ export class WorkflowRuleStepDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(128)
   parallelGroupId?: string;
 }
 
 export class CreateWorkflowRuleDto {
   @IsString()
+  @MinLength(1)
   @MaxLength(160)
   name: string;
 
@@ -86,6 +100,7 @@ export class CreateWorkflowRuleDto {
 
   @IsArray()
   @ArrayNotEmpty()
+  @ArrayMaxSize(200)
   @ValidateNested({ each: true })
   @Type(() => WorkflowRuleStepDto)
   steps: WorkflowRuleStepDto[];

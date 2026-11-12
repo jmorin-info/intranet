@@ -628,7 +628,12 @@ export default function NewDocumentPage() {
   };
 
   const onSubmit = async (data: DocumentForm) => {
+    if (directPublish && !file) {
+      toast.error("Ajoutez un fichier avant de demander une publication administrative");
+      return;
+    }
     setLoading(true);
+    let createdDocumentId: string | null = null;
     try {
       // Document permanent = pas de nextReviewDate. On le force à null pour
       // ne pas envoyer une chaîne vide que le DTO backend refuserait.
@@ -641,10 +646,9 @@ export default function NewDocumentPage() {
         ...buildReg016Payload(reg016),
       };
 
-      // Direct-publish : endpoint dédié qui crée + met APPROVED en une
-      // transaction (admin bypass workflow, audit log WARN).
-      const endpoint = directPublish ? "/documents/direct-publish" : "/documents";
-      const { data: doc } = await api.post(endpoint, payload);
+      // Every upload starts in draft and is scanned before publication.
+      const { data: doc } = await api.post("/documents", payload);
+      createdDocumentId = doc.id;
 
       // Upload file if provided
       if (file) {
@@ -656,11 +660,15 @@ export default function NewDocumentPage() {
         });
       }
 
-      toast.success(
-        directPublish
-          ? "Document publié directement (workflow court-circuité)"
-          : t("documents.new.success"),
-      );
+      if (directPublish) {
+        const { data: uploaded } = await api.get(`/documents/${doc.id}`);
+        if (uploaded.scanStatus === "CLEAN") {
+          await api.post(`/documents/${doc.id}/force-approve`, { makePermanent: isPermanent });
+          toast.success("Document publié après contrôle antivirus");
+        } else {
+          toast.info("Brouillon enregistré. Confirmez sa publication depuis la fiche après le contrôle antivirus.");
+        }
+      } else toast.success(t("documents.new.success"));
       // Brouillon submitted avec succès → purger pour ne pas le re-restaurer
       // au prochain /documents/new
       try {
@@ -674,6 +682,8 @@ export default function NewDocumentPage() {
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         t("documents.new.error");
       toast.error(msg);
+      // A failed upload must lead back to the created draft, avoiding duplicates.
+      if (createdDocumentId) router.push(`/documents/${createdDocumentId}`);
     } finally {
       setLoading(false);
     }
@@ -1150,12 +1160,10 @@ export default function NewDocumentPage() {
                     />
                     <div className="flex-1">
                       <p className="text-[13px] font-semibold text-amber-800 dark:text-amber-200">
-                        Publier directement (sans workflow de revue)
+                        Publication administrative après contrôle antivirus
                       </p>
                       <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
-                        Le document sera créé en statut <strong>Approuvé</strong> sans passer par
-                        les étapes Revue/Approbation. Réservé aux documents permanents (notes info,
-                        références internes). Action tracée en audit log.
+                        Un fichier est requis. Sa publication peut être approuvée par un administrateur après un contrôle antivirus concluant. Si l’analyse est encore en cours, le document reste en brouillon et vous pourrez confirmer depuis sa fiche. Cette décision est tracée.
                       </p>
                     </div>
                   </label>

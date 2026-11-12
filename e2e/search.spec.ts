@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { testApiUrl } from './helpers/test-environment';
+import { test, expect } from './helpers/safe-test';
 
 /**
  * Unified search — Cmd+K palette (CommandPalette).
@@ -15,7 +16,7 @@ import { test, expect } from '@playwright/test';
  * least the static "Pages" or "Actions" group is rendered.
  */
 
-const API = process.env.E2E_API_URL || 'http://10.33.120.55:3000/api';
+const API = testApiUrl();
 
 test.describe('Search — Cmd+K command palette', () => {
   test('Cmd+K opens the command palette dialog', async ({ page }) => {

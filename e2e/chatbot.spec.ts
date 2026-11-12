@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/safe-test';
 
 /**
  * RAG chatbot — Ctrl+Shift+K opens modal, streaming Q&A, stop/copy/feedback.

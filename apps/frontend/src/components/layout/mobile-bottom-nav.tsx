@@ -37,7 +37,7 @@ const HUB_TABS: HubTab[] = [
     href: '/dashboard',
     icon: Home,
     label: 'Espace',
-    match: ['/dashboard', '/notifications', '/profile', '/tickets', '/signatures', '/calendar', '/mfa'],
+    match: ['/dashboard', '/notifications', '/profile', '/tickets', '/signatures', '/approvals', '/calendar', '/mfa'],
   },
   {
     href: '/hub/work',

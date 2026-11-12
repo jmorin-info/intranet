@@ -2,10 +2,10 @@ name: Security
 
 # Garde-fous de sécurité supply-chain :
 #   1. gitleaks      — scan secrets dans le diff + l'historique
-#   2. SBOM (syft)   — Software Bill of Materials (exigé NIS2 / ISO A.5.20)
+#   2. SBOM (syft)   — inventaire exploitable des composants de la release
 #
 # CodeQL (SAST) est dans un workflow séparé (codeql.yml).
-# pnpm audit (deps vulnérables) est dans ci.yml (warn-only).
+# pnpm audit est dans ci.yml : les avis critiques bloquent la validation.
 
 on:
   push:
