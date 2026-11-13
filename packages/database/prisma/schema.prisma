@@ -62,10 +62,10 @@ enum DocumentCategory {
 /// Niveau dans la pyramide documentaire (PRO_040 §7.1).
 /// Determine l'autorite d'approbation attendue et la portee.
 enum DocumentLevel {
-  GOVERNANCE     // Politique, Plan, Organisation -> Direction / RSSI
-  OPERATIONAL    // Procedure, Instruction, Standard, Guide -> RSSI / Resp. processus
-  EVIDENCE       // Registre, Formulaire, Compte rendu, Journal, Rapport -> Qualite / Proprietaire
-  COMMUNICATION  // Charte, Communication -> Direction / RH / RSSI
+  GOVERNANCE // Politique, Plan, Organisation -> Direction / RSSI
+  OPERATIONAL // Procedure, Instruction, Standard, Guide -> RSSI / Resp. processus
+  EVIDENCE // Registre, Formulaire, Compte rendu, Journal, Rapport -> Qualite / Proprietaire
+  COMMUNICATION // Charte, Communication -> Direction / RH / RSSI
 }
 
 /// Priorite metier du document (REG_016 colonne H).
@@ -529,17 +529,17 @@ model Document {
   /// Reference parent au sens PRO_040 §7.3 (codification imbriquee).
   /// Ex. POL_015_POL_013 -> parentReference = "POL_013" (la PSSI).
   /// Permet de modeliser l'arborescence documentaire REG_016 colonne B.
-  parentReference  String?
+  parentReference String?
 
   /// Niveau de la pyramide documentaire (PRO_040 §7.1 / REG_016 col. D).
   /// Si null, derive automatiquement de `category` via DOCUMENT_CATEGORY_LEVEL.
-  documentLevel    DocumentLevel?
+  documentLevel DocumentLevel?
 
   /// Priorite metier (REG_016 col. H). Conditionne le SLA de revue.
-  priority         DocumentPriority?
+  priority DocumentPriority?
 
   /// Bloquant pour la conformite/certification (REG_016 col. I).
-  blocking         Boolean          @default(false)
+  blocking Boolean @default(false)
 
   /// Periodicite de revue exprimee en texte libre (REG_016 col. N), ex.
   /// "24 mois", "À chaque changement majeur". `nextReviewDate` reste la date
@@ -555,27 +555,27 @@ model Document {
   externalStorageProvider String?
 
   /// URL canonique du fichier dans le stockage externe (ex. webUrl Graph).
-  externalStorageUrl      String?
+  externalStorageUrl String?
 
   /// Identifiant Graph du driveItem (driveId + itemId combines ou JSON).
   /// Utilise pour pull periodique sans avoir a re-resoudre par path.
-  externalStorageItemId   String?
+  externalStorageItemId String?
 
   /// Dossier logique aligne sur REG_016 col. Q (ex. "03 - Chartes",
   /// "07 - Formulaires/00 - Modèles vierges"). Sert au mapping
   /// SharePoint library -> categorie/dossier intranet.
-  externalStoragePath     String?
+  externalStoragePath String?
 
   /// Derniere synchronisation reussie depuis la source externe.
-  externalLastSyncAt      DateTime?
+  externalLastSyncAt DateTime?
 
   /// Hash/etag du contenu externe au dernier sync — sert a detecter les
   /// changements entre deux pulls Graph.
-  externalEtag            String?
+  externalEtag String?
 
-  deletedAt        DateTime?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   // Relations
   owner              User                     @relation("DocumentOwner", fields: [ownerId], references: [id])
@@ -1267,24 +1267,24 @@ model QuestionAnswer {
 // =============================================================================
 
 model Charte {
-  id                String   @id @default(uuid())
-  title             String
-  slug              String   @unique
-  isMandatory       Boolean  @default(true)
-  isActive          Boolean  @default(true)
+  id                          String    @id @default(uuid())
+  title                       String
+  slug                        String    @unique
+  isMandatory                 Boolean   @default(true)
+  isActive                    Boolean   @default(true)
   /// @deprecated Conservé pour compat lecture. La validation direction tracée
   /// est portée par directionValidatedById/At/VersionId ci-dessous (étape de
   /// workflow qualité, PAS une signature). Maintenu en double-écriture.
-  signedByDirection Boolean  @default(false)
-  classification    String   @default("INTERNE")
+  signedByDirection           Boolean   @default(false)
+  classification              String    @default("INTERNE")
   // === Validation hiérarchique tracée (2026-07-23) ===
   directionValidatedById      String?
   directionValidatedAt        DateTime?
   /// Version de charte sur laquelle porte la validation — une nouvelle
   /// version active invalide la validation (à re-valider).
   directionValidatedVersionId String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 
   directionValidatedBy User? @relation("CharteDirectionValidator", fields: [directionValidatedById], references: [id])
 
