@@ -63,6 +63,23 @@ api.interceptors.request.use((config) => {
 });
 
 let isRefreshing = false;
+type RetryRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+  _legacyAuthorization?: boolean;
+};
+
+function clearLegacyAuthorization(config: RetryRequestConfig) {
+  if (config._legacyAuthorization) {
+    config.headers.delete("Authorization");
+    delete config._legacyAuthorization;
+  }
+}
+
+function isPublicAuthRequest(config: RetryRequestConfig): boolean {
+  const path = (config.url || "").split(/[?#]/)[0]?.replace(/\/+$/, "") || "";
+  return /(?:^|\/)auth\/(?:login|refresh(?:\/logout)?|logout|forgot-password|reset-password)$/.test(path);
+}
+
 let failedQueue: Array<{
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
@@ -94,6 +111,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const legacyToken = localStorage.getItem("accessToken");
     if (legacyToken && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${legacyToken}`;
+      (config as RetryRequestConfig)._legacyAuthorization = true;
     }
   }
   return config;
@@ -105,17 +123,20 @@ api.interceptors.response.use(
     // AbortController cleanup / a replaced search request is intentional.
     // Preserve rejection for the caller without reporting a network outage.
     if (axios.isCancel(error) || error.code === 'ERR_CANCELED') return Promise.reject(error);
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean;
-    };
+    const originalRequest = error.config as RetryRequestConfig | undefined;
+    if (!originalRequest) return Promise.reject(error);
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // A rejected login/reset is its own result, not an expired existing session.
+    // In particular, preserve the login error for the form instead of navigating.
+    if (error.response?.status === 401 && !originalRequest._retry && !isPublicAuthRequest(originalRequest)) {
       if (isRefreshing) {
+        originalRequest._retry = true;
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then(() => {
           // Cookie has been rotated server-side — just retry, navigateur
           // attache le nouveau cookie automatiquement.
+          clearLegacyAuthorization(originalRequest);
           return api(originalRequest);
         });
       }
@@ -132,7 +153,8 @@ api.interceptors.response.use(
 
         const { accessToken } = data;
         // Cleanup éventuel reliquat localStorage post-migration cookie.
-        localStorage.removeItem("accessToken");
+        if (typeof localStorage !== "undefined") localStorage.removeItem("accessToken");
+        clearLegacyAuthorization(originalRequest);
 
         processQueue(null, accessToken);
 
@@ -140,7 +162,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem("accessToken");
+        if (typeof localStorage !== "undefined") localStorage.removeItem("accessToken");
         if (typeof window !== "undefined") {
           window.location.href = "/login?reason=session_expired";
         }
@@ -185,7 +207,13 @@ api.interceptors.response.use(
       (error.response?.status === 403 || error.response?.status === 429) &&
       originalRequest.method === "get"
     ) {
-      return Promise.resolve({ data: null, status: error.response.status });
+      return Promise.resolve({
+        data: null,
+        status: error.response.status,
+        statusText: error.response.statusText,
+        headers: error.response.headers,
+        config: originalRequest,
+      });
     }
 
     // ── Offline fallback: serve from IndexedDB when a GET has no response ──
