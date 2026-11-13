@@ -9,6 +9,7 @@ import { noaZodResolver } from "@/lib/noa/zod-resolver";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
+import { RoleGuard } from "@/components/role-guard";
 import { UserRole, USER_ROLE_LABELS, isRoleAtLeast } from "@omnitech/shared";
 import { adminUserCreateSchema, type AdminUserCreateFormData } from "@/lib/validation/schemas";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -115,6 +116,14 @@ const ROLE_BADGE_VARIANT: Record<UserRole, string> = {
 /* ------------------------------------------------------------------ */
 
 export default function AdminUsersPage() {
+  return (
+    <RoleGuard minRole={UserRole.ADMIN}>
+      <AdminUsersContent />
+    </RoleGuard>
+  );
+}
+
+function AdminUsersContent() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
 
