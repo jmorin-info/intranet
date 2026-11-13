@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CacheService } from "../common/cache/cache.service";
+import { inputArray, inputRecord, inputText } from "../common/validation/content-input";
 
 interface QuizQuestion {
   id: string;
@@ -445,7 +446,14 @@ export class QuizService {
       .slice(0, 20);
   }
 
-  async updateQuestions(questions: any[]) {
+  async updateQuestions(value: unknown) {
+    const questions: QuizQuestion[] = inputArray(value, "Questions", 200).map((entry) => {
+      const item = inputRecord(entry);
+      const options = inputArray(item.options, "Réponses", 10).map((option) => inputText(option, "Réponse", 1000));
+      if (options.length < 2 || !Number.isInteger(item.correctIndex) || (item.correctIndex as number) < 0 || (item.correctIndex as number) >= options.length) throw new BadRequestException("La bonne réponse doit désigner une option existante.");
+      return { id: inputText(item.id, "Identifiant", 128), question: inputText(item.question, "Question", 2000), options, correctIndex: item.correctIndex as number, explanation: item.explanation === undefined ? "" : inputText(item.explanation, "Explication", 4000, true), category: item.category === undefined ? "" : inputText(item.category, "Catégorie", 100, true) };
+    });
+    if (new Set(questions.map((question) => question.id)).size !== questions.length) throw new BadRequestException("Les identifiants des questions doivent être uniques.");
     await this.prisma.appConfig.upsert({
       where: { key: "quiz_questions" },
       create: {

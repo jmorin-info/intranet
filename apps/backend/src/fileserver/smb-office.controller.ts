@@ -201,7 +201,7 @@ export class SmbOfficeController {
     @Body() body: any,
     @Req() req: Request,
   ): Promise<{ error: number }> {
-    if (!token) {
+    if (typeof token !== "string" || !token || token.length > 4096) {
       this.logger.warn(`[smb-office/callback] token manquant sessionId=${sessionId}`);
       return { error: 1 };
     }
@@ -238,7 +238,7 @@ export class SmbOfficeController {
     }
 
     const downloadUrl = callbackData?.url;
-    if (!downloadUrl) {
+    if (typeof downloadUrl !== "string" || !downloadUrl) {
       this.logger.warn(`[smb-office/callback] pas d'URL de téléchargement sessionId=${sessionId}`);
       return { error: 1 };
     }
@@ -246,23 +246,13 @@ export class SmbOfficeController {
     // Anti-SSRF : le backend ne télécharge que depuis le Docs Server
     if (!this.officeService.isAllowedDownloadUrl(downloadUrl)) {
       this.logger.warn(
-        `[smb-office/callback] URL de téléchargement hors liste blanche sessionId=${sessionId} url=${String(downloadUrl).slice(0, 200)}`,
+        `[smb-office/callback] origine ou chemin de téléchargement non autorisé sessionId=${sessionId}`,
       );
       return { error: 1 };
     }
 
     try {
-      const response = await fetch(downloadUrl, {
-        signal: AbortSignal.timeout(60000),
-      });
-      if (!response.ok) {
-        this.logger.error(
-          `[smb-office/callback] HTTP ${response.status} en téléchargeant depuis OnlyOffice sessionId=${sessionId}`,
-        );
-        return { error: 1 };
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      const buffer = await this.officeService.downloadCallbackFile(downloadUrl);
       this.sessions.saveFile(sessionId, buffer);
       this.logger.log(
         `[smb-office/callback] fichier sauvegardé sessionId=${sessionId} bytes=${buffer.length}`,

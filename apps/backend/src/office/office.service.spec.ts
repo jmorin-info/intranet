@@ -1,3 +1,4 @@
+import * as trustedDownloads from "../common/http/trusted-download";
 import { Test, TestingModule } from "@nestjs/testing";
 import { OfficeService } from "./office.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -425,6 +426,8 @@ describe("OfficeService", () => {
         upload: jest.fn().mockResolvedValue({ fileUrl: "documents/doc-1/new-file.docx" }),
         getFilePath: jest.fn().mockReturnValue("/nonexistent/old-file.docx"),
       };
+
+      jest.spyOn(trustedDownloads, "downloadTrustedBuffer").mockResolvedValue(Buffer.from("NOUVEAU CONTENU"));
 
       // Téléchargement du fichier modifié depuis le Docs Server.
       // NB : slice() pour obtenir un ArrayBuffer EXACT (Buffer.from utilise un

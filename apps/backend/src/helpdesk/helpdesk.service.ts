@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { inputArray, inputRecord, inputText } from '../common/validation/content-input';
 
 const DEFAULT_KB = [
   { keywords: ['vpn', 'connexion', 'distant'], question: 'Problème de connexion VPN', answer: 'Vérifiez que FortiClient est à jour. Redémarrez le client VPN. Si le problème persiste, vérifiez vos identifiants AD.' },
@@ -145,6 +146,7 @@ export class HelpdeskService {
     allResults: KBSearchResult[];
     suggestTicket: boolean;
   }> {
+    inputText(query, "Recherche", 512, true);
     const kb: KBArticle[] = await this.getKnowledgeBase();
     if (!query || query.trim().length < 2) {
       return { result: null, allResults: [], suggestTicket: false };
@@ -215,7 +217,11 @@ export class HelpdeskService {
     };
   }
 
-  async updateKnowledgeBase(kb: Array<{ keywords: string[]; question: string; answer: string }>) {
+  async updateKnowledgeBase(value: unknown) {
+    const kb: KBArticle[] = inputArray(value, "Articles", 200).map((entry) => {
+      const item = inputRecord(entry);
+      return { keywords: inputArray(item.keywords, "Mots clés", 50).map((word) => inputText(word, "Mot clé", 100)), question: inputText(item.question, "Question", 2000), answer: inputText(item.answer, "Réponse", 20_000) };
+    });
     await this.prisma.appConfig.upsert({
       where: { key: 'helpdesk_kb' },
       create: { key: 'helpdesk_kb', value: JSON.stringify(kb), description: 'Helpdesk knowledge base articles' },

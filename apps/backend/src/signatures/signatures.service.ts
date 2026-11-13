@@ -93,6 +93,7 @@ export class SignaturesService {
           ],
         }),
         signal: AbortSignal.timeout(this.DOCUSEAL_TIMEOUT_MS),
+        redirect: "error",
       });
 
       if (response.ok) {
@@ -307,6 +308,7 @@ export class SignaturesService {
       const response = await fetch(`${this.docusealApiUrl}/templates`, {
         headers: { 'X-Auth-Token': this.docusealApiKey },
         signal: AbortSignal.timeout(this.DOCUSEAL_TIMEOUT_MS),
+        redirect: "error",
       });
       if (!response.ok) {
         this.logger.warn(
@@ -332,12 +334,15 @@ export class SignaturesService {
   }
 
   async getSubmission(id: string) {
+    if (typeof id !== "string" || !/^[1-9][0-9]{0,15}$/.test(id) || !Number.isSafeInteger(Number(id))) throw new BadRequestException("Identifiant de soumission DocuSeal invalide.");
+    const submissionId = Number(id);
     try {
       const response = await fetch(
-        `${this.docusealApiUrl}/submissions/${id}`,
+        `${this.docusealApiUrl}/submissions/${submissionId}`,
         {
           headers: { 'X-Auth-Token': this.docusealApiKey },
           signal: AbortSignal.timeout(this.DOCUSEAL_TIMEOUT_MS),
+        redirect: "error",
         },
       );
       if (!response.ok) {
@@ -362,6 +367,7 @@ export class SignaturesService {
       const response = await fetch(`${this.docusealApiUrl}/submissions`, {
         headers: { 'X-Auth-Token': this.docusealApiKey },
         signal: AbortSignal.timeout(this.DOCUSEAL_TIMEOUT_MS),
+        redirect: "error",
       });
       if (!response.ok) {
         this.logger.warn(

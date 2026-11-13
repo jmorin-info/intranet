@@ -199,8 +199,11 @@ export class OfficeController {
   async downloadFile(@Query("token") token: string, @Req() req: Request, @Res() res: Response) {
     // Instrumentation pour diagnostiquer les cas "canvas vide" — trace chaque
     // tentative de téléchargement par OnlyOffice avec l'origine + user-agent.
-    const ua = (req.headers["user-agent"] as string) || "unknown";
-    const clientIp = (req.headers["x-forwarded-for"] as string) || req.ip;
+    if (typeof token !== "string" || !token || token.length > 4096) throw new BadRequestException("Token de fichier invalide.");
+    const userAgent = req.headers["user-agent"];
+    const forwarded = req.headers["x-forwarded-for"];
+    const ua = typeof userAgent === "string" ? userAgent : "unknown";
+    const clientIp = typeof forwarded === "string" ? forwarded.slice(0, 128) : req.ip;
     this.logger.log(
       `[office/file] GET from ip=${clientIp} ua="${ua.substring(0, 60)}" tokenLen=${(token || "").length}`,
     );

@@ -1,3 +1,4 @@
+import { downloadTrustedBuffer, trustedDownloadTarget } from "../common/http/trusted-download";
 import {
   Injectable,
   Logger,
@@ -255,26 +256,13 @@ export class OfficeService {
    * token de callback valide pourrait faire fetch une URL arbitraire par le
    * backend et injecter son contenu comme version de document.
    */
-  isAllowedDownloadUrl(rawUrl: string): boolean {
-    let parsed: URL;
-    try {
-      parsed = new URL(rawUrl);
-    } catch {
-      return false;
-    }
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return false;
-    }
-    const allowedHosts = new Set<string>();
-    for (const base of [this.documentServerUrl, this.internalDsUrl]) {
-      if (!base) continue;
-      try {
-        allowedHosts.add(new URL(base).host);
-      } catch {
-        // URL de config invalide — ignorée
-      }
-    }
-    return allowedHosts.has(parsed.host);
+  isAllowedDownloadUrl(rawUrl: unknown): boolean {
+    try { trustedDownloadTarget(rawUrl, [this.documentServerUrl, this.internalDsUrl]); return true; }
+    catch { return false; }
+  }
+
+  async downloadCallbackFile(rawUrl: unknown): Promise<Buffer> {
+    return downloadTrustedBuffer(rawUrl, [this.documentServerUrl, this.internalDsUrl]);
   }
 
   /**
@@ -1567,7 +1555,7 @@ export class OfficeService {
     }
 
     const downloadUrl = callbackData?.url;
-    if (!downloadUrl) {
+    if (typeof downloadUrl !== "string" || !downloadUrl) {
       this.logger.warn("OnlyOffice callback sans URL de téléchargement");
       return { error: 1 };
     }
@@ -1576,7 +1564,7 @@ export class OfficeService {
     // interne). Voir isAllowedDownloadUrl().
     if (!this.isAllowedDownloadUrl(downloadUrl)) {
       this.logger.warn(
-        `OnlyOffice callback REJETÉ : URL de téléchargement hors liste blanche (${String(downloadUrl).slice(0, 200)})`,
+        "OnlyOffice callback REJETÉ : origine ou chemin de téléchargement non autorisé",
       );
       return { error: 1 };
     }
@@ -1702,13 +1690,7 @@ export class OfficeService {
       // Télécharge le fichier modifié depuis OnlyOffice Docs.
       // Timeout 60s : éviter de bloquer le callback save indéfiniment si Docs Server est indisponible
       // (sinon Docs Server retentera et on accumule des versions ratées).
-      const response = await fetch(downloadUrl, {
-        signal: AbortSignal.timeout(60_000),
-      });
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.status}`);
-      }
-      const buffer = Buffer.from(await response.arrayBuffer());
+      const buffer = await this.downloadCallbackFile(downloadUrl);
 
       // Calcule le nouveau hash
       const newChecksum = crypto.createHash("sha256").update(buffer).digest("hex");
