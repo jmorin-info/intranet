@@ -1,6 +1,8 @@
-import { ForbiddenException, Injectable, Logger } from "@nestjs/common";
+import { ConflictException, ForbiddenException, Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { createHash } from "node:crypto";
+import { assertBackgroundCapacity, positiveInt, throwIfAborted } from "./reindex-safety";
+import { acquireReindexLease } from "./reindex-lease";
 import { PrismaService } from "../prisma/prisma.service";
 import { documentReaderScope, canReadDocumentWithPermissions } from "../common/document-access";
 import { TextExtractorService } from "./text-extractor.service";
@@ -202,7 +204,8 @@ const FR_STOP_WORDS = new Set([
 ]);
 
 @Injectable()
-export class RagService {
+export class RagService implements OnModuleDestroy {
+  private reindexController?: AbortController;
   private readonly logger = new Logger(RagService.name);
 
   constructor(
@@ -286,245 +289,154 @@ export class RagService {
   // Indexing
   // =========================================================================
 
-  /**
-   * Index a single source: purge existing chunks then create new ones.
-   */
+  /** Prepare outside the transaction; replace the complete generation atomically. */
   async indexSource(
     sourceType: SourceType,
     sourceId: string,
     content: string,
     metadata?: Record<string, unknown>,
+    options: { signal?: AbortSignal; background?: boolean; semantic?: boolean } = {},
   ): Promise<number> {
-    const ragChunk = this.prisma.ragChunk;
-
-    // Purge old chunks
-    await ragChunk
-      .deleteMany({
-        where: { sourceType, sourceId },
-      })
-      .catch((err: Error) => {
-        this.logger.warn(
-          `Failed to delete old chunks for ${sourceType}/${sourceId}: ${err.message}`,
-        );
-      });
-
+    const check = () => {
+      throwIfAborted(options.signal);
+      if (options.background !== false) assertBackgroundCapacity(options.semantic !== false && this.embeddingService.isEnabled());
+    };
+    check();
+    let source: any;
+    if (sourceType === "DOCUMENT") {
+      source = await this.prisma.document.findFirst({ where: { id: sourceId, deletedAt: null, scanStatus: "CLEAN", currentVersionId: { not: null } } });
+      if (!source) return 0;
+      const version = await this.prisma.documentVersion.findFirst({ where: { id: source.currentVersionId!, documentId: sourceId } });
+      if (!version) return 0;
+      // Canonical current version only. Never trust content / provenance supplied by a caller.
+      check();
+      const stillClean = await this.prisma.document.findFirst({ where: { id: sourceId, deletedAt: null, scanStatus: "CLEAN", currentVersionId: source.currentVersionId, updatedAt: source.updatedAt } });
+      if (!stillClean) return 0;
+      content = await this.textExtractor.extractText(version.fileUrl, version.fileType, options.signal) ?? "";
+      if (!content.trim()) throw new Error("Current document text unavailable; previous index preserved");
+      metadata = { title: source.title, reference: source.reference, classification: source.classification, documentVersionId: source.currentVersionId, sourceUpdatedAt: String(source.updatedAt.getTime()) };
+    } else if (sourceType === "WIKI" || sourceType === "RUNBOOK") {
+      source = sourceType === "WIKI"
+        ? await this.prisma.wikiPage.findFirst({ where: { id: sourceId, isPublished: true, visibility: "PUBLIC" } })
+        : await this.prisma.runbook.findFirst({ where: { id: sourceId, isPublished: true } });
+      if (!source) return 0;
+      content = sourceType === "WIKI" ? source.content : `${source.title}\n${source.description ?? ""}\n${source.content}`;
+      metadata = { title: source.title, slug: source.slug, sourceUpdatedAt: String(source.updatedAt.getTime()) };
+    }
+    if (content.length > 512_000) throw new Error("RAG source exceeds the 512000 character indexing limit");
     const chunks = this.chunkContent(content);
-    const semantic = this.embeddingService.isEnabled();
+    if (chunks.length > 300) throw new Error("RAG source exceeds the 300 chunk indexing limit");
+    const vectors: Array<number[] | undefined> = [];
     let embedded = 0;
-    let embedFailed = 0;
-    for (let i = 0; i < chunks.length; i++) {
-      let created: { id: string } | null = null;
-      try {
-        created = await ragChunk.create({
-          data: {
-            sourceType,
-            sourceId,
-            chunkIndex: i,
-            content: chunks[i],
-            tokenCount: Math.ceil(chunks[i].length / 4),
-            // Prisma.InputJsonValue : metadata est un Record<string, unknown>.
-            metadata: (metadata ?? undefined) as Prisma.InputJsonValue | undefined,
-          },
-          select: { id: true },
-        });
-      } catch (err) {
-        this.logger.warn(
-          `Failed to create chunk ${i} for ${sourceType}/${sourceId}: ${(err as Error).message}`,
-        );
-        continue;
-      }
-
-      // P1.2 — Embedding semantique (pgvector). Best-effort : un echec n'empeche
-      // pas l'indexation, le chunk reste interrogeable en lexical. Historiquement
-      // indexSource creait les chunks SANS embedding (bug) : la recherche vectorielle
-      // ne pouvait rien retrouver. On embedde desormais comme ticket-indexer.
-      if (semantic && chunks[i].trim().length > 0) {
+    for (const chunk of chunks) {
+      check();
+      let vector: number[] | undefined;
+      if (options.semantic !== false && this.embeddingService.isEnabled() && chunk.trim()) {
         try {
-          const vec = await this.embeddingService.embed(chunks[i]);
-          await this.prisma.$executeRawUnsafe(
-            `UPDATE "RagChunk" SET embedding = $1::vector WHERE id = $2`,
-            `[${vec.join(",")}]`,
-            created.id,
-          );
+          vector = await this.embeddingService.embed(chunk, { signal: options.signal, background: options.background !== false });
           embedded++;
-        } catch (embErr) {
-          embedFailed++;
-          this.logger.warn(
-            `Embedding failed for chunk ${i} of ${sourceType}/${sourceId}: ${(embErr as Error).message}`,
-          );
+        } catch (err) {
+          check(); // cancellation / low capacity must preserve the previous complete index
+          this.logger.warn(`rag.embedding.lexical_fallback ${sourceType}/${sourceId}: ${(err as Error).message}`);
         }
       }
+      vectors.push(vector);
     }
-
-    this.logger.log(
-      `Indexed ${chunks.length} chunks for ${sourceType}/${sourceId} (embedded=${embedded}, failed=${embedFailed})`,
-    );
+    check();
+    await this.prisma.$transaction(async (tx) => {
+      // All writers (including deindex) serialize per source, across backend processes.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${sourceType}), hashtext(${sourceId}))`;
+      if (source) {
+        const table = sourceType === "DOCUMENT" ? Prisma.sql`"Document"` : sourceType === "WIKI" ? Prisma.sql`"WikiPage"` : Prisma.sql`"Runbook"`;
+        await tx.$queryRaw(Prisma.sql`SELECT id FROM ${table} WHERE id = ${sourceId} FOR UPDATE`);
+        const current = sourceType === "DOCUMENT"
+          ? await tx.document.findFirst({ where: { id: sourceId, deletedAt: null, scanStatus: "CLEAN", currentVersionId: source.currentVersionId, updatedAt: source.updatedAt } })
+          : sourceType === "WIKI"
+            ? await tx.wikiPage.findFirst({ where: { id: sourceId, isPublished: true, visibility: "PUBLIC", updatedAt: source.updatedAt } })
+            : await tx.runbook.findFirst({ where: { id: sourceId, isPublished: true, updatedAt: source.updatedAt } });
+        if (!current) throw new Error("RAG source changed during indexing; previous index preserved");
+      }
+      check();
+      await tx.ragChunk.deleteMany({ where: { sourceType, sourceId } });
+      for (let i = 0; i < chunks.length; i++) {
+        check();
+        const created = await tx.ragChunk.create({ data: { sourceType, sourceId, chunkIndex: i, content: chunks[i], tokenCount: Math.ceil(chunks[i].length / 4), metadata: metadata as Prisma.InputJsonValue | undefined }, select: { id: true } });
+        if (vectors[i]) {
+          await tx.$executeRaw`UPDATE "RagChunk" SET embedding = ${`[${vectors[i]!.join(",")}]`}::vector WHERE id = ${created.id}`;
+        }
+      }
+      check();
+    }, { maxWait: 5_000, timeout: 30_000 });
+    this.logger.log(`Indexed ${chunks.length} chunks for ${sourceType}/${sourceId} (embedded=${embedded})`);
     return chunks.length;
   }
 
-  /**
-   * Removes a source from the RAG index (all its chunks).
-   * Called when a Document / WikiPage / Runbook / NewsPost is deleted
-   * or soft-deleted so it disappears from AI search results.
-   * Safe to call on a source that's not indexed (no-op).
-   */
+  /** Deindex uses the same advisory lock as replacement. Retrieval also checks live state. */
   async removeFromIndex(sourceType: SourceType, sourceId: string): Promise<number> {
-    const ragChunk = this.prisma.ragChunk;
-    const result = await ragChunk
-      .deleteMany({
-        where: { sourceType, sourceId },
-      })
-      .catch((err: Error) => {
-        this.logger.warn(`rag.deindex.failed ${sourceType}/${sourceId}: ${err.message}`);
-        return { count: 0 };
-      });
-    const count = result?.count ?? 0;
-    if (count > 0) {
-      this.logger.log(`rag.deindex ${sourceType}/${sourceId} — ${count} chunks removed`);
-    }
-    return count;
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${sourceType}), hashtext(${sourceId}))`;
+      return tx.ragChunk.deleteMany({ where: { sourceType, sourceId } });
+    });
+    return result.count;
   }
 
-  /**
-   * Reindex all known content sources using cursor-based pagination.
-   */
-  async reindexAll(): Promise<{
-    indexed: Record<string, number>;
-    errors: string[];
-  }> {
-    const BATCH_SIZE = 100;
-    const indexed: Record<string, number> = {
-      DOCUMENT: 0,
-      WIKI: 0,
-      PROCEDURE: 0,
-      RUNBOOK: 0,
-      FAQ: 0,
-    };
+  /** Bounded, single-flight in this process; DB locks also protect multiple instances. */
+  async reindexAll(options: { signal?: AbortSignal; semantic?: boolean } = {}): Promise<{ indexed: Record<string, number>; errors: string[] }> {
+    if (this.reindexController) throw new ConflictException("A RAG reindex is already running");
+    const controller = new AbortController();
+    this.reindexController = controller;
+    const onAbort = () => controller.abort(options.signal?.reason);
+    options.signal?.addEventListener("abort", onAbort, { once: true });
+    if (options.signal?.aborted) onAbort();
+    const budget = positiveInt(process.env.RAG_REINDEX_MAX_DURATION_MS, 1_800_000, 7_200_000);
+    const deadline = Date.now() + budget;
+    const timer = setTimeout(() => controller.abort(new Error("RAG reindex execution budget exceeded")), budget);
+    let release: (() => Promise<void>) | undefined;
+    const semantic = options.semantic ?? process.env.RAG_REINDEX_SEMANTIC_ENABLED === "true";
+    const check = () => { if (Date.now() >= deadline) controller.abort(new Error("RAG reindex execution budget exceeded")); throwIfAborted(controller.signal); assertBackgroundCapacity(semantic && this.embeddingService.isEnabled()); };
+    const indexed: Record<string, number> = { DOCUMENT: 0, WIKI: 0, PROCEDURE: 0, RUNBOOK: 0, FAQ: 0 };
     const errors: string[] = [];
-
-    // --- Documents ---
     try {
-      let cursor: string | undefined;
-      while (true) {
-        const docs = await this.prisma.document.findMany({
-          take: BATCH_SIZE,
-          ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-          orderBy: { id: "asc" },
-          include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
-        });
-        if (docs.length === 0) break;
-        cursor = docs[docs.length - 1].id;
-
-        for (const doc of docs) {
-          try {
-            let text = doc.content ?? "";
-
-            // If the document has uploaded file versions, try to extract text
-            if (!text && doc.versions.length > 0) {
-              const latestVersion = doc.versions[0];
-              const extracted = await this.textExtractor.extractText(
-                latestVersion.fileUrl,
-                latestVersion.fileType,
-              );
-              if (extracted) text = extracted;
+      check();
+      release = await acquireReindexLease(budget);
+      check();
+      const sources = [
+        { type: "DOCUMENT" as const, model: this.prisma.document, where: { deletedAt: null, scanStatus: "CLEAN", currentVersionId: { not: null } } },
+        { type: "WIKI" as const, model: this.prisma.wikiPage, where: { isPublished: true, visibility: "PUBLIC" } },
+        { type: "RUNBOOK" as const, model: this.prisma.runbook, where: { isPublished: true } },
+      ];
+      for (const source of sources) {
+        let cursor: string | undefined;
+        while (true) {
+          check();
+          const rows: Array<{ id: string }> = await (source.model.findMany as Function)({ where: source.where, select: { id: true }, take: 10, ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}), orderBy: { id: "asc" } });
+          if (!rows.length) break;
+          cursor = rows[rows.length - 1].id;
+          for (const row of rows) {
+            check();
+            try {
+              indexed[source.type] += await this.indexSource(source.type, row.id, "", undefined, { signal: controller.signal, background: true, semantic });
+            } catch (err) {
+              check();
+              const message = `${source.type} ${row.id}: ${(err as Error).message}`;
+              this.logger.warn(message);
+              // Bound the report, keep the aggregate count in logs.
+              if (errors.length < 100) errors.push(message);
             }
-
-            if (text.trim().length > 0) {
-              const n = await this.indexSource("DOCUMENT", doc.id, text, {
-                title: doc.title,
-                reference: doc.reference,
-                classification: doc.classification,
-              });
-              indexed.DOCUMENT += n;
-            }
-          } catch (err) {
-            const msg = `Document ${doc.id}: ${(err as Error).message}`;
-            this.logger.warn(msg);
-            errors.push(msg);
           }
         }
       }
-    } catch (err) {
-      const msg = `Documents batch error: ${(err as Error).message}`;
-      this.logger.warn(msg);
-      errors.push(msg);
+      return { indexed, errors };
+    } finally {
+      clearTimeout(timer);
+      options.signal?.removeEventListener("abort", onAbort);
+      this.reindexController = undefined;
+      if (release) await release().catch(() => this.logger.warn("RAG lease release failed; lease will expire"));
     }
+  }
 
-    // --- Wiki pages ---
-    try {
-      let cursor: string | undefined;
-      while (true) {
-        const pages = await this.prisma.wikiPage.findMany({
-          take: BATCH_SIZE,
-          ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-          orderBy: { id: "asc" },
-        });
-        if (pages.length === 0) break;
-        cursor = pages[pages.length - 1].id;
-
-        for (const page of pages) {
-          try {
-            if (page.content && page.content.trim().length > 0) {
-              const n = await this.indexSource("WIKI", page.id, page.content, {
-                title: page.title,
-                slug: page.slug,
-              });
-              indexed.WIKI += n;
-            }
-          } catch (err) {
-            const msg = `Wiki ${page.id}: ${(err as Error).message}`;
-            this.logger.warn(msg);
-            errors.push(msg);
-          }
-        }
-      }
-    } catch (err) {
-      const msg = `Wiki batch error: ${(err as Error).message}`;
-      this.logger.warn(msg);
-      errors.push(msg);
-    }
-
-    // --- Runbooks ---
-    try {
-      let cursor: string | undefined;
-      while (true) {
-        const runbooks = await this.prisma.runbook.findMany({
-          take: BATCH_SIZE,
-          ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-          orderBy: { id: "asc" },
-        });
-        if (runbooks.length === 0) break;
-        cursor = runbooks[runbooks.length - 1].id;
-
-        for (const rb of runbooks) {
-          try {
-            const text = `${rb.title}\n${rb.description ?? ""}\n${rb.content}`;
-            if (text.trim().length > 0) {
-              const n = await this.indexSource("RUNBOOK", rb.id, text, {
-                title: rb.title,
-                slug: rb.slug,
-              });
-              indexed.RUNBOOK += n;
-            }
-          } catch (err) {
-            const msg = `Runbook ${rb.id}: ${(err as Error).message}`;
-            this.logger.warn(msg);
-            errors.push(msg);
-          }
-        }
-      }
-    } catch (err) {
-      const msg = `Runbooks batch error: ${(err as Error).message}`;
-      this.logger.warn(msg);
-      errors.push(msg);
-    }
-
-    // --- Procedures (via ragChunk — no dedicated model, indexed externally) ---
-    // Procedures and FAQs don't have dedicated Prisma models yet.
-    // They can be indexed via `indexSource()` from external callers.
-
-    this.logger.log(`Reindex complete: ${JSON.stringify(indexed)}, errors: ${errors.length}`);
-    return { indexed, errors };
+  onModuleDestroy(): void {
+    this.reindexController?.abort(new Error("Backend shutting down"));
   }
 
   // =========================================================================
@@ -568,66 +480,52 @@ export class RagService {
   // RBAC helpers (ISO 27001 Annex A.5.15 — pré-filtrage par classification)
   // =========================================================================
 
-  /**
-   * Renvoie la liste des sourceIds de Documents auxquels l'utilisateur a accès,
-   * en se basant sur la classification (PUBLIC < INTERNE < CONFIDENTIEL < SECRET).
-   * Filtrage AVANT retrieval pour conformité ISO 27001.
-   */
-  private async getAccessibleDocumentIds(ctx: RagSearchContext): Promise<string[] | "ALL"> {
+  private async getAccessibleDocuments(ctx: RagSearchContext): Promise<Array<{ id: string; currentVersionId: string | null; updatedAt: Date }>> {
     if (!ctx?.userId || !ctx.role) return [];
     try {
       const scope = await documentReaderScope(this.prisma, { id: ctx.userId, role: ctx.role, departmentId: ctx.departmentId });
-      const docs = await this.prisma.document.findMany({
-        where: { AND: [scope, { scanStatus: "CLEAN" }] }, select: { id: true },
+      return await this.prisma.document.findMany({
+        where: { AND: [scope, { scanStatus: "CLEAN", currentVersionId: { not: null } }] },
+        select: { id: true, currentVersionId: true, updatedAt: true },
       });
-      return docs.map((document) => document.id);
-    } catch (err) {
-      this.logger.error({
-        msg: "rbac.document_ids.failed",
-        userId: ctx.userId,
-        error: (err as Error).message,
-      });
-      return []; // Fail closed : aucun accès en cas d'erreur
+    } catch {
+      this.logger.error("rbac.document_ids.failed");
+      return [];
     }
   }
 
-  /**
-   * Applique le filtrage RBAC sur les chunks candidats.
-   * - Documents : filtrage par classification
-   * - Wiki / Runbook : accessible si publié (déjà filtré à l'indexation)
-   * - Procédure / FAQ : accessible à tous les authentifiés
-   */
+  private async getAccessibleDocumentIds(ctx: RagSearchContext): Promise<string[]> {
+    return (await this.getAccessibleDocuments(ctx)).map((doc) => doc.id);
+  }
+
+  /** Every retrieval path checks live source state and immutable generation provenance. */
   private async applyRbacFilter(candidates: any[], ctx?: RagSearchContext): Promise<any[]> {
-    // Calls without an actor can search public knowledge sources, never GED content.
-    if (!ctx?.userId || !ctx.role) return candidates.filter((candidate) => candidate.sourceType !== "DOCUMENT");
+    const docs = candidates.some((c) => c.sourceType === "DOCUMENT") && ctx?.userId && ctx.role
+      ? await this.getAccessibleDocuments(ctx) : [];
+    const currentDocs = new Map(docs.map((d) => [d.id, d]));
+    const wikiIds = candidates.filter((c) => c.sourceType === "WIKI").map((c) => c.sourceId);
+    const runbookIds = candidates.filter((c) => c.sourceType === "RUNBOOK").map((c) => c.sourceId);
+    const [wiki, runbooks] = await Promise.all([
+      wikiIds.length ? this.prisma.wikiPage.findMany({ where: { id: { in: wikiIds }, isPublished: true, visibility: "PUBLIC" }, select: { id: true, updatedAt: true } }).catch(() => []) : [],
+      runbookIds.length ? this.prisma.runbook.findMany({ where: { id: { in: runbookIds }, isPublished: true }, select: { id: true, updatedAt: true } }).catch(() => []) : [],
+    ]);
+    const wikiDates = new Map(wiki.map((p) => [p.id, String(p.updatedAt.getTime())]));
+    const runbookDates = new Map(runbooks.map((p) => [p.id, String(p.updatedAt.getTime())]));
+    return candidates.filter((chunk) => {
+      const meta = chunk.metadata;
+      if (chunk.sourceType === "DOCUMENT") {
+        const doc = currentDocs.get(chunk.sourceId);
+        return !!doc?.currentVersionId && meta?.documentVersionId === doc.currentVersionId && meta?.sourceUpdatedAt === String(doc.updatedAt.getTime());
+      }
+      if (chunk.sourceType === "WIKI") return wikiDates.has(chunk.sourceId) && meta?.sourceUpdatedAt === wikiDates.get(chunk.sourceId);
+      if (chunk.sourceType === "RUNBOOK") return runbookDates.has(chunk.sourceId) && meta?.sourceUpdatedAt === runbookDates.get(chunk.sourceId);
+      return true;
+    });
+  }
 
-    const docChunks = candidates.filter((c: any) => c.sourceType === "DOCUMENT");
-    const otherChunks = candidates.filter((c: any) => c.sourceType !== "DOCUMENT");
-
-    if (docChunks.length === 0) return candidates;
-
-    const accessibleIds = await this.getAccessibleDocumentIds(ctx);
-
-    let filteredDocChunks: any[];
-    if (accessibleIds === "ALL") {
-      filteredDocChunks = docChunks;
-    } else {
-      filteredDocChunks = docChunks.filter((c: any) => accessibleIds.includes(c.sourceId));
-    }
-
-    const filteredOut = docChunks.length - filteredDocChunks.length;
-    if (filteredOut > 0) {
-      this.logger.log({
-        msg: "rbac.chunks_filtered",
-        userId: ctx.userId,
-        role: ctx.role,
-        totalDocChunks: docChunks.length,
-        filteredOut,
-        remaining: filteredDocChunks.length,
-      });
-    }
-
-    return [...filteredDocChunks, ...otherChunks];
+  private async lexicalSourceFilter(ctx?: RagSearchContext): Promise<Prisma.RagChunkWhereInput> {
+    const ids = ctx?.userId && ctx.role ? await this.getAccessibleDocumentIds(ctx) : [];
+    return { OR: [{ sourceType: "DOCUMENT", sourceId: { in: ids } }, { sourceType: { not: "DOCUMENT" } }] };
   }
 
   /**
@@ -647,6 +545,7 @@ export class RagService {
     try {
       candidates = await ragChunk.findMany({
         where: {
+          AND: [await this.lexicalSourceFilter(ctx)],
           OR: terms.map((t: string) => ({
             content: { contains: t, mode: "insensitive" },
           })),
@@ -766,7 +665,8 @@ export class RagService {
         embeddingStr,
       );
 
-      return results.map((r: any) => ({
+      const filtered = await this.applyRbacFilter(results, ctx);
+      return filtered.map((r: any) => ({
         sourceType: r.sourceType as SourceType,
         sourceId: r.sourceId as string,
         title: r.metadata?.title ?? r.sourceId,
@@ -921,7 +821,7 @@ export class RagService {
       // Le filtrage RBAC est deja applique cote SQL via `filter`. On ne re-filtre
       // que si l'appelant a fourni un ctx (defense en profondeur post-SQL).
       const filtered = await this.applyRbacFilter(hybrid, ctx);
-      return this.toRagSources(filtered, query);
+      return filtered.length ? this.toRagSources(filtered, query) : this.searchSimilar(query, limit, ctx);
     }
 
     // Cas 2 : lexical pur (ou semantic disabled) -> ancien searchSimilar
@@ -931,7 +831,8 @@ export class RagService {
 
     // Cas 3 : vector pur
     if (mode === "vector") {
-      return this.vectorSearch(query, limit, ctx);
+      const vector = await this.vectorSearch(query, limit, ctx);
+      return vector.length ? vector : this.searchSimilar(query, limit, ctx);
     }
 
     // Cas 4 : hybrid sans BM25 (legacy) -> RRF lexical + vector
@@ -976,26 +877,20 @@ export class RagService {
    * ou si user privileged (acces total).
    */
   private async buildAccessFilter(ctx?: RagSearchContext): Promise<string | undefined> {
-    if (!ctx?.userId || !ctx.role) return `AND ("sourceType" != 'DOCUMENT')`;
-
-    const accessibleIds = await this.getAccessibleDocumentIds(ctx);
-    if (accessibleIds === "ALL") return undefined;
-    if (accessibleIds.length === 0) {
-      return `AND ("sourceType" != 'DOCUMENT')`;
-    }
-    // Defense-in-depth : whitelist UUID v4 strict avant l'injection SQL.
-    // Les ids viennent de Prisma (donc UUID-valides par construction), mais
-    // on valide explicitement pour bloquer toute corruption du flux amont
-    // (cache, mock test, futur refactor). N'importe quel id non-UUID est
-    // silencieusement filtré — l'effet est qu'il ne sera pas accessible,
-    // pas qu'on injecte du SQL.
+    const accessibleIds = ctx?.userId && ctx.role ? await this.getAccessibleDocumentIds(ctx) : [];
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const safeIds = accessibleIds.filter((id) => UUID_RE.test(id));
-    if (safeIds.length === 0) {
-      return `AND ("sourceType" != 'DOCUMENT')`;
-    }
-    const idsList = safeIds.map((id) => `'${id}'`).join(",");
-    return `AND ("sourceType" != 'DOCUMENT' OR "sourceId" IN (${idsList}))`;
+    const documentGuard = safeIds.length ? `("sourceType" = 'DOCUMENT' AND "sourceId" IN (${safeIds.map((id) => `'${id}'`).join(",")}) AND EXISTS (
+      SELECT 1 FROM "Document" d JOIN "DocumentVersion" v ON v.id = d."currentVersionId" AND v."documentId" = d.id
+      WHERE d.id = "RagChunk"."sourceId" AND d."deletedAt" IS NULL AND d."scanStatus" = 'CLEAN'
+        AND "RagChunk".metadata->>'documentVersionId' = d."currentVersionId"
+        AND "RagChunk".metadata->>'sourceUpdatedAt' = floor(extract(epoch FROM d."updatedAt") * 1000)::bigint::text
+    ))` : "FALSE";
+    return `AND (${documentGuard}
+      OR ("sourceType" = 'WIKI' AND EXISTS (SELECT 1 FROM "WikiPage" w WHERE w.id = "RagChunk"."sourceId" AND w."isPublished" = true AND w.visibility = 'PUBLIC' AND "RagChunk".metadata->>'sourceUpdatedAt' = floor(extract(epoch FROM w."updatedAt") * 1000)::bigint::text))
+      OR ("sourceType" = 'RUNBOOK' AND EXISTS (SELECT 1 FROM "Runbook" r WHERE r.id = "RagChunk"."sourceId" AND r."isPublished" = true AND "RagChunk".metadata->>'sourceUpdatedAt' = floor(extract(epoch FROM r."updatedAt") * 1000)::bigint::text))
+      OR "sourceType" IN ('PROCEDURE', 'FAQ', 'TICKET'))`;
+
   }
 
   /**

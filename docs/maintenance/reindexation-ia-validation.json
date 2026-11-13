@@ -1,0 +1,36 @@
+{
+  "baseCommit": "71520bd2c035b914527b4eedd4ff10f207449578",
+  "node": "24.22.3",
+  "typecheck": "passed",
+  "backendBuild": "passed",
+  "backendSuite": {
+    "suites": 107,
+    "tests": 1576,
+    "status": "passed"
+  },
+  "additionalExtractionSuite": {
+    "suites": 1,
+    "tests": 4,
+    "status": "passed"
+  },
+  "targetedRagSuites": {
+    "suites": 6,
+    "tests": 42,
+    "status": "passed"
+  },
+  "postgresql": "PostgreSQL 16.16 (Debian 16.16-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "integration": {
+    "scenarios": 7,
+    "checks": 44
+  },
+  "containerImage": [
+    "postgres@sha256:63e83b5a3dc36a917dccb76fe1bd2ac51f1ec9c1deb47ff20d4f04233bf6eae9"
+  ],
+  "noPublishedPorts": true,
+  "sandboxCleaned": true,
+  "productionDataUsed": false,
+  "productionMutated": false,
+  "dependenciesUpdated": false,
+  "externalSymlinks": false,
+  "sharedDependencyInodesChecked": false
+}

@@ -139,31 +139,7 @@ export class TicketIndexerService {
             },
           );
 
-          // Embed the newly created chunks
-          if (this.embeddingService.isEnabled()) {
-            const chunks = await this.prisma.ragChunk.findMany({
-              where: { sourceType: RagSourceType.TICKET, sourceId: ticket.id },
-            });
-            for (const chunk of chunks) {
-              try {
-                const embedding = await this.embeddingService.embed(
-                  chunk.content,
-                );
-                const embStr = `[${embedding.join(",")}]`;
-                await this.prisma.$executeRawUnsafe(
-                  `UPDATE "RagChunk" SET embedding = $1::vector WHERE id = $2`,
-                  embStr,
-                  chunk.id,
-                );
-              } catch (err) {
-                this.logger.error({
-                  msg: "ticket_indexer.embedding_failed",
-                  chunkId: chunk.id,
-                  error: (err as Error).message,
-                });
-              }
-            }
-          }
+          // indexSource already prepares embeddings and commits them atomically.
 
           indexed++;
         } catch (err) {

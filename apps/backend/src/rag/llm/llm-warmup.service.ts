@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { LlmService } from "./llm.service";
 import { EmbeddingService } from "../embedding/embedding.service";
+import { assertBackgroundCapacity, availableMemoryBytes } from "../reindex-safety";
 
 /**
  * Préchauffage des modèles IA au boot du backend (fix 2026-07).
@@ -11,7 +12,7 @@ import { EmbeddingService } from "../embedding/embedding.service";
  *
  * Fire-and-forget et non bloquant : le boot NestJS n'attend pas le warmup,
  * et tout échec est seulement loggué (Ollama down ≠ backend down).
- * Actif uniquement si OLLAMA_ENABLED=true.
+ * Activation explicite OLLAMA_WARMUP_ENABLED=true, mémoire contrôlée avant toute inférence.
  */
 @Injectable()
 export class LlmWarmupService implements OnModuleInit {
@@ -24,8 +25,8 @@ export class LlmWarmupService implements OnModuleInit {
 
   onModuleInit(): void {
     const enabled = process.env.OLLAMA_ENABLED === "true" || process.env.OLLAMA_ENABLED === "1";
-    if (!enabled) {
-      this.logger.log("llm.warmup.skipped — OLLAMA_ENABLED != true");
+    if (!enabled || process.env.OLLAMA_WARMUP_ENABLED !== "true" || process.env.RAG_MAINTENANCE_MODE === "true") {
+      this.logger.log("llm.warmup.disabled");
       return;
     }
     // Fire-and-forget : ne bloque jamais le démarrage du backend.
@@ -34,6 +35,13 @@ export class LlmWarmupService implements OnModuleInit {
 
   /** Exposé pour les tests ; exécute les deux préchauffages séquentiellement. */
   async warmupAll(): Promise<void> {
+    try {
+      assertBackgroundCapacity(true);
+      if (availableMemoryBytes() < 4096 * 1024 * 1024) throw new Error("LLM warmup requires 4096 MiB MemAvailable");
+    } catch (error) {
+      this.logger.warn(`llm.warmup.capacity: ${(error as Error).message}`);
+      return;
+    }
     try {
       const { model, latencyMs } = await this.llmService.warmup();
       this.logger.log({ msg: "llm.warmup.done", model, latencyMs });
@@ -47,7 +55,7 @@ export class LlmWarmupService implements OnModuleInit {
     if (this.embeddingService.isEnabled()) {
       const start = Date.now();
       try {
-        await this.embeddingService.embed("warmup omnitech intranet");
+        await this.embeddingService.embed("warmup omnitech intranet", { background: true });
         this.logger.log({
           msg: "embedding.warmup.done",
           model: this.embeddingService.getModelId(),

@@ -165,3 +165,5 @@ planifiés ni exécutés automatiquement.
 Référentiels utiles : [NIST SSDF](https://csrc.nist.gov/pubs/sp/800/218/final)
 et [OWASP SAMM](https://owaspsamm.org/model/). Leur usage fournit une démarche
 de travail ; il ne constitue pas une certification du projet.
+
+- [Réindexation IA : provenance, reprise et capacité](reindexation-ia.md)
