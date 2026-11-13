@@ -12,7 +12,8 @@ import { formatRelativeTime, getInitials } from "@/lib/utils";
 import { useUIStore } from "@/stores/ui-store";
 import { getAvatarUrl } from "@/lib/avatar";
 import { StatusBar } from "./status-bar";
-import { isRouteEnabled } from "@/lib/features";
+import { getNotificationAction } from "@/lib/notifications";
+import { toast } from "sonner";
 import { FocusModeToggle } from "@/components/ui/focus-mode-toggle";
 import { useTranslation } from "@/lib/i18n";
 import {
@@ -383,51 +384,15 @@ export function Header() {
     }
   };
 
-  const getNotifHref = (n: Notification): string | null => {
-    // Veille cyber : pas de page de détail par item — lien vers le module
-    // /veille, gardé par le feature flag. Si le module est masqué, fallback
-    // vers la page notifications (jamais de lien mort).
-    if (
-      n.resourceType === "VeilleItem" ||
-      n.resourceType === "VeilleBulletin"
-    ) {
-      return isRouteEnabled("/veille") ? "/veille" : "/notifications";
-    }
-    if (!n.resourceType || !n.resourceId) return null;
-
-    // Campagne de signature : la demande individuelle générée par la campagne
-    // apparaît sur /signatures (une campagne = un générateur de
-    // SignatureRequest) — pas de page dédiée par campagne côté utilisateur.
-    if (
-      n.resourceType === "SIGNATURE_CAMPAIGN" ||
-      n.resourceType === "SignatureCampaign"
-    ) {
-      return "/signatures";
-    }
-
-    // Charte : la direction est renvoyée vers l'écran de validation, les
-    // collaborateurs vers le mur d'attestation de lecture.
-    if (n.resourceType === "Charte") {
-      return n.type === "DOC_APPROVAL_NEEDED" ? "/admin/chartes" : "/chartes";
-    }
-
-    const typeToPath: Record<string, string> = {
-      Document: "documents",
-      NewsPost: "news",
-      Ticket: "tickets",
-    };
-    const path = typeToPath[n.resourceType];
-    return path ? `/${path}/${n.resourceId}` : null;
-  };
-
-  const handleNotifClick = async (n: Notification) => {
+  const handleNotifClick = (n: Notification) => {
     if (!n.isRead) {
-      api.patch(`/notifications/${n.id}/read`).catch(() => {});
-      markAsRead(n.id); // updates store → recentNotifs re-derives automatically
+      void api.patch(`/notifications/${n.id}/read`)
+        .then(() => markAsRead(n.id))
+        .catch(() => toast.error("La notification n’a pas pu être marquée comme lue."));
     }
     setShowNotifPopup(false);
-    const href = getNotifHref(n);
-    if (href) router.push(href);
+    const action = getNotificationAction(n);
+    if (action) router.push(action.href);
   };
 
   const openQuickSearch = () => {
@@ -791,7 +756,7 @@ export function Header() {
                           {formatRelativeTime(n.createdAt)}
                         </p>
                       </div>
-                      {getNotifHref(n) && (
+                      {getNotificationAction(n) && (
                         <ExternalLink
                           className="h-3.5 w-3.5 text-seal-gray-500 dark:text-slate-500 flex-shrink-0 mt-1"
                           aria-hidden="true"

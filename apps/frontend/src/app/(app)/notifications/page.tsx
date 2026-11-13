@@ -1,16 +1,17 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useNotificationStore } from "@/stores/notification-store";
 import { useAuthStore } from "@/stores/auth-store";
-import { isRoleAtLeast, UserRole } from "@omnitech/shared";
+import { isRoleAtLeast, UserRole, USER_ROLE_LABELS } from "@omnitech/shared";
 import { toast } from "sonner";
 import {
   Card,
   CardContent,
   Button,
+  buttonVariants,
   Badge,
   EmptyState,
   Select,
@@ -38,7 +39,7 @@ import {
   Settings,
   Rss,
 } from "lucide-react";
-import { isRouteEnabled } from "@/lib/features";
+import { getNotificationAction, isVeilleNotification } from "@/lib/notifications";
 import { useTranslation } from "@/lib/i18n";
 import { ExportButton } from "@/components/ui/export-button";
 import { PageHeader } from "@/components/layout/page-header";
@@ -51,6 +52,8 @@ const typeIcons: Record<string, React.ElementType> = {
   DOC_APPROVED: CheckCircle2,
   DOC_REJECTED: AlertTriangle,
   SIGNATURE_NEEDED: PenLine,
+  SIGNATURE_REQUEST: PenLine,
+  SIGNATURE_REMINDER: PenLine,
   REVIEW_OVERDUE: AlertTriangle,
   ACK_REQUIRED: ClipboardCheck,
   NEWS_POSTED: Newspaper,
@@ -60,77 +63,16 @@ const typeIcons: Record<string, React.ElementType> = {
   VEILLE_BULLETIN: Rss,
 };
 
-const VEILLE_RESOURCE_TYPES = new Set(["VeilleItem", "VeilleBulletin"]);
-
-/**
- * Une notification relève-t-elle du module Veille cyber ? Couvre les types
- * dédiés VEILLE_* ET les notifications legacy DOC_PUBLISHED liées à une
- * ressource VeilleItem/VeilleBulletin (émises avant l'introduction des types
- * dédiés le 2026-07-23) : dans les deux cas l'affichage doit être « Veille
- * cyber » avec l'icône du module et un lien vers /veille.
- */
-function isVeilleNotif(n: { type?: string; resourceType?: string | null }): boolean {
-  return (n.type || "").startsWith("VEILLE_") || VEILLE_RESOURCE_TYPES.has(n.resourceType || "");
-}
-
 /** Icône d'une notification (veille → icône dédiée, sinon map par type). */
 function getNotifIcon(n: { type: string; resourceType?: string | null }): React.ElementType {
-  if (isVeilleNotif(n)) return Rss;
+  if (isVeilleNotification(n)) return Rss;
   return typeIcons[n.type] || Bell;
 }
 
 /** Libellé de catégorie d'une notification (veille → « Veille cyber »). */
 function getNotifTypeLabel(n: { type: string; resourceType?: string | null }): string | null {
-  if (isVeilleNotif(n)) return "Veille cyber";
+  if (isVeilleNotification(n)) return "Veille cyber";
   return notificationTypeLabels[n.type] || null;
-}
-
-function getNotificationAction(n: { type: string; resourceType?: string; resourceId?: string }) {
-  // Veille cyber : pas de page de détail par item — lien vers le module
-  // /veille, gardé par le feature flag. Module masqué → pas de lien (on est
-  // déjà sur /notifications, un self-link serait inutile).
-  if (isVeilleNotif(n)) {
-    return isRouteEnabled("/veille") ? { label: "Voir la veille", href: "/veille" } : null;
-  }
-  if (n.resourceType === "Document" && n.resourceId) {
-    const labels: Record<string, string> = {
-      DOC_REVIEW_NEEDED: "Voir le document",
-      DOC_APPROVAL_NEEDED: "Approuver",
-      DOC_PUBLISHED: "Voir le document",
-      DOC_APPROVED: "Voir le document",
-      DOC_REJECTED: "Voir le document",
-    };
-    return {
-      label: labels[n.type] || "Voir le document",
-      href: `/documents/${n.resourceId}`,
-    };
-  }
-  if (n.resourceType === "Ticket" && n.resourceId) {
-    return { label: "Voir le ticket", href: `/tickets/${n.resourceId}` };
-  }
-  if (n.type === "SIGNATURE_NEEDED") {
-    return { label: "Attester la lecture de la charte", href: "/chartes" };
-  }
-  // Campagne de signature : la SignatureRequest générée pour l'utilisateur
-  // est listée sur /signatures (badge campagne).
-  if (
-    n.resourceType === "SIGNATURE_CAMPAIGN" ||
-    n.resourceType === "SignatureCampaign"
-  ) {
-    return { label: "Signer sur DocuSeal", href: "/signatures" };
-  }
-  if (n.resourceType === "Charte") {
-    return n.type === "DOC_APPROVAL_NEEDED"
-      ? { label: "Valider la charte", href: "/admin/chartes" }
-      : { label: "Attester la lecture", href: "/chartes" };
-  }
-  if (n.type === "ACK_REQUIRED" && n.resourceType === "Document" && n.resourceId) {
-    return { label: "Accuser réception", href: `/documents/${n.resourceId}` };
-  }
-  if (n.resourceType === "NewsPost" && n.resourceId) {
-    return { label: "Lire", href: `/news/${n.resourceId}` };
-  }
-  return null;
 }
 
 const notificationTypeLabels: Record<string, string> = {
@@ -140,6 +82,8 @@ const notificationTypeLabels: Record<string, string> = {
   DOC_APPROVED: "Document approuvé",
   DOC_REJECTED: "Document rejeté",
   SIGNATURE_NEEDED: "Signature requise",
+  SIGNATURE_REQUEST: "Signature requise",
+  SIGNATURE_REMINDER: "Rappel de signature",
   REVIEW_OVERDUE: "Revue en retard",
   ACK_REQUIRED: "Accusé de réception requis",
   NEWS_POSTED: "Nouvelle actualité",
@@ -154,11 +98,14 @@ export default function NotificationsPage() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const isAdmin = user && isRoleAtLeast(user.role, UserRole.ADMIN);
-  const { notifications, setNotifications, markAsRead, markAllAsRead } = useNotificationStore();
+  const { notifications, setNotifications, appendNotifications, markAsRead, markAllAsRead } = useNotificationStore();
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
+  const readingIds = useRef(new Set<string>());
   const [typeFilter, setTypeFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
 
@@ -188,82 +135,86 @@ export default function NotificationsPage() {
 
   const PAGE_SIZE = 20;
 
-  useEffect(() => {
-    api
-      .get("/notifications", { params: { page: 1, limit: PAGE_SIZE } })
-      .then(({ data }) => {
-        setNotifications(data?.data || []);
-        const meta = data?.meta;
-        setHasMore(meta ? meta.page < meta.totalPages : false);
-        setPage(1);
-      })
-      .catch((err) => logger.error(err, { page: "notifications", context: "load" }))
-      .finally(() => setLoading(false));
+  const loadNotifications = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const { data } = await api.get("/notifications", { params: { page: 1, limit: PAGE_SIZE }, signal });
+      if (signal?.aborted) return;
+      if (!Array.isArray(data?.data)) throw new Error("Réponse de notifications invalide");
+      setNotifications(data.data);
+      setHasMore(data.meta ? data.meta.page < data.meta.totalPages : false);
+      setPage(1);
+    } catch (err) {
+      if (signal?.aborted) return;
+      setLoadError(true);
+      logger.error(err, { page: "notifications", context: "load" });
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
   }, [setNotifications]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadNotifications(controller.signal);
+    return () => controller.abort();
+  }, [loadNotifications]);
+
   const handleLoadMore = async () => {
+    if (loadingMore) return;
     const nextPage = page + 1;
     setLoadingMore(true);
     try {
       const { data } = await api.get("/notifications", {
         params: { page: nextPage, limit: PAGE_SIZE },
       });
-      const newItems: typeof notifications = data?.data || [];
-      setNotifications([...notifications, ...newItems]);
-      const meta = data?.meta;
-      setHasMore(meta ? nextPage < meta.totalPages : false);
+      if (!Array.isArray(data?.data)) throw new Error("Réponse de notifications invalide");
+      appendNotifications(data.data);
+      setHasMore(data.meta ? nextPage < data.meta.totalPages : false);
       setPage(nextPage);
     } catch {
-      // ignore
+      toast.error("Impossible de charger la suite des notifications. Réessayez.");
     } finally {
       setLoadingMore(false);
     }
   };
 
   const handleMarkAllRead = async () => {
+    if (markingAll) return;
+    setMarkingAll(true);
     try {
       await api.patch("/notifications/read-all");
       markAllAsRead();
     } catch {
-      // ignore
+      toast.error("Les notifications n’ont pas pu être marquées comme lues.");
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
+  const handleRead = async (notif: (typeof notifications)[0]) => {
+    if (notif.isRead || readingIds.current.has(notif.id)) return;
+    readingIds.current.add(notif.id);
+    try {
+      setReadAnimatingIds((prev) => new Set(prev).add(notif.id));
+      await api.patch(`/notifications/${notif.id}/read`);
+      markAsRead(notif.id);
+    } catch {
+      toast.error("La notification n’a pas pu être marquée comme lue.");
+    } finally {
+      readingIds.current.delete(notif.id);
+      setReadAnimatingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(notif.id);
+        return next;
+      });
     }
   };
 
   const handleClick = async (notif: (typeof notifications)[0]) => {
-    if (!notif.isRead) {
-      try {
-        setReadAnimatingIds((prev) => new Set(prev).add(notif.id));
-        await api.patch(`/notifications/${notif.id}/read`);
-        markAsRead(notif.id);
-        setTimeout(() => {
-          setReadAnimatingIds((prev) => {
-            const next = new Set(prev);
-            next.delete(notif.id);
-            return next;
-          });
-        }, 500);
-      } catch {
-        setReadAnimatingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(notif.id);
-          return next;
-        });
-      }
-    }
-    // Navigate to resource
-    if (isVeilleNotif(notif)) {
-      // Veille : lien vers le module s'il est actif (sinon on reste sur place).
-      if (isRouteEnabled("/veille")) router.push("/veille");
-    } else if (notif.resourceType === "Document" && notif.resourceId) {
-      router.push(`/documents/${notif.resourceId}`);
-    } else if (notif.resourceType === "NewsPost" && notif.resourceId) {
-      router.push(`/news/${notif.resourceId}`);
-    } else if (notif.resourceType === "Ticket" && notif.resourceId) {
-      router.push(`/tickets/${notif.resourceId}`);
-    } else {
-      const action = getNotificationAction(notif as any);
-      if (action?.href) router.push(action.href);
-    }
+    await handleRead(notif);
+    const action = getNotificationAction(notif);
+    if (action) router.push(action.href);
   };
 
   const handleSendBroadcast = async () => {
@@ -272,8 +223,8 @@ export default function NotificationsPage() {
     try {
       const payload: Record<string, string> = {
         type: broadcastForm.type,
-        title: broadcastForm.title,
-        body: broadcastForm.body,
+        title: broadcastForm.title.trim(),
+        body: broadcastForm.body.trim(),
       };
       if (broadcastForm.target === "role" && broadcastForm.targetRole) {
         payload.targetRole = broadcastForm.targetRole;
@@ -281,8 +232,23 @@ export default function NotificationsPage() {
       if (broadcastForm.target === "department" && broadcastForm.targetDepartmentId) {
         payload.targetDepartmentId = broadcastForm.targetDepartmentId;
       }
-      await api.post("/notifications/broadcast", payload);
-      toast.success("Notification envoyée avec succès");
+      const { data } = await api.post("/notifications/broadcast", payload);
+      if (!Number.isInteger(data?.sent) || !Number.isInteger(data?.total) || data.sent < 0 || data.total < data.sent) {
+        throw new Error("Le résultat de la diffusion est invalide. Vérifiez son état avant de réessayer.");
+      }
+      if (data.total === 0) {
+        toast.info("Aucun utilisateur ne correspond aux destinataires choisis.");
+        return;
+      }
+      if (data.sent === 0) {
+        toast.error("Aucune notification n’a pu être envoyée. Votre saisie est conservée.");
+        return;
+      }
+      if (data.sent < data.total) {
+        toast.warning(`Diffusion partielle : ${data.sent} utilisateur(s) traité(s) sur ${data.total}.`);
+      } else {
+        toast.success(`Diffusion traitée pour ${data.sent} utilisateur(s).`);
+      }
       setShowBroadcast(false);
       setBroadcastForm({
         type: "DOC_PUBLISHED",
@@ -357,7 +323,7 @@ export default function NotificationsPage() {
       <PageHeader
         title={t("notifications.title")}
         subtitle={
-          unreadCount > 0
+          loading ? "Chargement des notifications…" : loadError ? "Notifications indisponibles" : unreadCount > 0
             ? `${unreadCount} notification${unreadCount > 1 ? "s" : ""} non lue${unreadCount > 1 ? "s" : ""}`
             : "Toutes les notifications sont lues"
         }
@@ -365,13 +331,11 @@ export default function NotificationsPage() {
         hub="monEspace"
         actions={
           <>
-            <Link href="/notifications/preferences">
-              <Button variant="outline">
-                <Settings className="h-4 w-4" />
-                Préférences
-              </Button>
+            <Link href="/notifications/preferences" className={buttonVariants({ variant: 'outline' })}>
+              <Settings className="h-4 w-4" />
+              Préférences
             </Link>
-            {!loading && notifications.length > 0 && unreadCount === 0 && (
+            {!loading && !loadError && notifications.length > 0 && unreadCount === 0 && (
               <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-full text-xs font-semibold">
                 <CheckCheck className="h-4 w-4" />
                 {t("notifications.allRead")}
@@ -400,7 +364,7 @@ export default function NotificationsPage() {
               ]}
             />
             {unreadCount > 0 && (
-              <Button variant="primary" onClick={handleMarkAllRead}>
+              <Button variant="primary" onClick={handleMarkAllRead} loading={markingAll}>
                 <CheckCheck className="h-4 w-4" />
                 {t("notifications.markAllRead")}
               </Button>
@@ -467,7 +431,6 @@ export default function NotificationsPage() {
               <option value="ACK_REQUIRED">Accusé de réception requis</option>
               <option value="NEWS_POSTED">Nouvelle actualité</option>
               <option value="TICKET_CREATED">Nouveau ticket</option>
-              <option value="GENERAL">Information</option>
             </select>
           </div>
           <div>
@@ -517,12 +480,9 @@ export default function NotificationsPage() {
                 }
               >
                 <option value="">Sélectionner un rôle...</option>
-                <option value="SUPER_ADMIN">Super Admin</option>
-                <option value="ADMIN">Admin</option>
-                <option value="QUALITY_MANAGER">Responsable qualité</option>
-                <option value="DEPARTMENT_HEAD">Chef de département</option>
-                <option value="COLLABORATOR">Collaborateur</option>
-                <option value="READER">Lecteur</option>
+                {Object.values(UserRole).map((role) => (
+                  <option key={role} value={role}>{USER_ROLE_LABELS[role]}</option>
+                ))}
               </select>
               {!broadcastForm.targetRole && (
                 <p
@@ -578,7 +538,7 @@ export default function NotificationsPage() {
           {broadcastForm.title.trim() && (
             <div>
               <label className="block text-sm font-semibold text-seal-navy dark:text-white mb-1">
-                Apercu
+                Aperçu
               </label>
               <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-4">
                 <div className="flex items-start gap-3">
@@ -630,7 +590,7 @@ export default function NotificationsPage() {
           { value: "DOC_", label: "Documents", icon: FileText },
           { value: "TICKET_", label: "Tickets", icon: Ticket },
           { value: "SIGNATURE_", label: "Signatures", icon: PenLine },
-          { value: "ACK_", label: "Approbations", icon: ClipboardCheck },
+          { value: "ACK_", label: "Accusés de réception", icon: ClipboardCheck },
           { value: "NEWS_", label: "Actualités", icon: Newspaper },
           { value: "REVIEW_", label: "Revues", icon: Eye },
         ].map(({ value, label, icon: PillIcon }) => (
@@ -642,7 +602,7 @@ export default function NotificationsPage() {
             aria-label={`Filtrer par ${label}`}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy ${
               typeFilter === value
-                ? "bg-primary text-white border-primary"
+                ? "bg-primary text-seal-navy border-primary"
                 : "bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:border-primary hover:text-primary dark:hover:text-primary"
             }`}
           >
@@ -667,6 +627,17 @@ export default function NotificationsPage() {
         />
       </div>
 
+      {loadError && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+          <p>Impossible de charger les notifications. Réessayez pour obtenir une liste à jour.</p>
+          <Button variant="outline" className="mt-3" onClick={() => void loadNotifications()}>Réessayer</Button>
+        </div>
+      )}
+
+      {hasMore && (typeFilter || dateFilter !== "all") && (
+        <p className="text-sm text-seal-gray-500 dark:text-slate-400">Les filtres s’appliquent aux notifications chargées. Chargez la suite pour élargir les résultats.</p>
+      )}
+
       {loading ? (
         <Card>
           <CardContent aria-busy="true" aria-live="polite">
@@ -688,7 +659,7 @@ export default function NotificationsPage() {
             </div>
           </CardContent>
         </Card>
-      ) : filteredNotifications.length === 0 ? (
+      ) : loadError && notifications.length === 0 ? null : filteredNotifications.length === 0 ? (
         <div className="space-y-4">
           <EmptyState
             type="notifications"
@@ -700,10 +671,8 @@ export default function NotificationsPage() {
             }
             action={
               notifications.length === 0 ? (
-                <Link href="/dashboard">
-                  <Button variant="outline" size="sm">
-                    {t("notifications.backToDashboard")}
-                  </Button>
+                <Link href="/dashboard" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                  {t("notifications.backToDashboard")}
                 </Link>
               ) : undefined
             }
@@ -741,15 +710,19 @@ export default function NotificationsPage() {
                     const Icon = getNotifIcon(notif);
                     const isAnimating = readAnimatingIds.has(notif.id);
                     return (
-                      <button
+                      <div
                         key={notif.id}
-                        onClick={() => handleClick(notif)}
-                        aria-label={`${notif.isRead ? "" : "Non lu: "}${notif.title}`}
                         className={`w-full text-left flex items-start gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${
                           !notif.isRead ? "bg-primary/5 dark:bg-primary/10" : ""
                         } ${isAnimating ? "opacity-60 scale-[0.99]" : ""}`}
                         style={isAnimating ? { transition: "all 0.4s ease-out" } : undefined}
                       >
+                        <button
+                          onClick={() => void handleClick(notif)}
+                          aria-label={`${notif.isRead ? "" : "Non lu: "}${notif.title}`}
+                          disabled={isAnimating}
+                          className="flex flex-1 min-w-0 items-start gap-4 text-left rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
                         <div
                           className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-full flex-shrink-0 ${
                             !notif.isRead ? "bg-primary-light" : "bg-gray-100 dark:bg-slate-800"
@@ -783,6 +756,7 @@ export default function NotificationsPage() {
                             {notif.body}
                           </p>
                         </div>
+                        </button>
                         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                           <span className="text-[10px] text-seal-gray-500/70 dark:text-slate-500 whitespace-nowrap">
                             {formatRelativeTime(notif.createdAt)}
@@ -793,8 +767,8 @@ export default function NotificationsPage() {
                             return (
                               <Link
                                 href={action.href}
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary hover:bg-primary/20 transition-colors whitespace-nowrap"
+                                onClick={() => void handleRead(notif)}
+                                className="inline-flex min-h-9 items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-seal-navy dark:text-blue-300 hover:bg-primary/20 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy dark:focus-visible:ring-blue-300"
                               >
                                 {action.label}
                                 <ArrowRight className="h-3 w-3" />
@@ -802,20 +776,18 @@ export default function NotificationsPage() {
                             );
                           })()}
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </CardContent>
               </Card>
             </div>
           ))}
-          {hasMore && (
-            <div className="text-center pt-2">
-              <Button variant="outline" onClick={handleLoadMore} loading={loadingMore}>
-                Charger plus
-              </Button>
-            </div>
-          )}
+        </div>
+      )}
+      {!loading && hasMore && (
+        <div className="text-center pt-2">
+          <Button variant="outline" onClick={handleLoadMore} loading={loadingMore}>Charger plus</Button>
         </div>
       )}
     </div>

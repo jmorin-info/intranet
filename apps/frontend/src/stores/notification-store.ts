@@ -18,6 +18,7 @@ interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
   setNotifications: (notifications: Notification[]) => void;
+  appendNotifications: (notifications: Notification[]) => void;
   addNotification: (notification: Notification) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
@@ -29,14 +30,21 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   notifications: [],
   unreadCount: 0,
 
-  setNotifications: (notifications) =>
-    set({
-      notifications,
-      unreadCount: notifications.filter((n) => !n.isRead).length,
-    }),
+  // The list is paginated. Only /unread-count knows the global total.
+  setNotifications: (notifications) => set({ notifications }),
+
+  appendNotifications: (notifications) => set((state) => {
+    const knownIds = new Set(state.notifications.map((n) => n.id));
+    const additions = notifications.filter((n) => {
+      if (knownIds.has(n.id)) return false;
+      knownIds.add(n.id);
+      return true;
+    });
+    return { notifications: [...state.notifications, ...additions] };
+  }),
 
   addNotification: (notification) =>
-    set((state) => ({
+    set((state) => state.notifications.some((n) => n.id === notification.id) ? state : ({
       notifications: [notification, ...state.notifications],
       unreadCount: state.unreadCount + (notification.isRead ? 0 : 1),
     })),
@@ -46,7 +54,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       notifications: state.notifications.map((n) =>
         n.id === id ? { ...n, isRead: true } : n,
       ),
-      unreadCount: Math.max(0, state.unreadCount - 1),
+      unreadCount: Math.max(0, state.unreadCount - (state.notifications.some((n) => n.id === id && !n.isRead) ? 1 : 0)),
     })),
 
   markAllAsRead: () =>
