@@ -1,3 +1,4 @@
+import { ScannerModule } from "../scanner/scanner.module";
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -9,6 +10,7 @@ import { OfficeController } from './office.controller';
   imports: [
     PrismaModule,
     StorageModule,
+    ScannerModule,
     JwtModule.register({}),
   ],
   controllers: [OfficeController],

@@ -1,9 +1,14 @@
+import { canReadDocumentWithPermissions } from "../common/document-access";
+import { ScannerService } from "../scanner/scanner.service";
+import { cancelPendingDocumentCircuits } from "../documents/document-circuit-cancellation";
+import { workflowTransaction } from "../approval-workflows/workflow-transaction";
 import { downloadTrustedBuffer, trustedDownloadTarget } from "../common/http/trusted-download";
 import {
   Injectable,
   Logger,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
   BadRequestException,
   Optional,
 } from "@nestjs/common";
@@ -49,9 +54,8 @@ export class OfficeService {
    * On utilise un verrou in-memory par `documentId` (et non par callback key)
    * car la key OnlyOffice intègre un time-bucket qui change toutes les 10 min.
    * Les appels concurrents sur un doc déjà en cours de save sont refusés avec
-   * `{error: 0}` (retry-able côté OnlyOffice : le prochain force-save ramassera
-   * les modifs). Note: purement in-memory → ne protège pas un backend en
-   * cluster ; une vraie solution horizontale nécessite un Redis SETNX.
+   * `{error: 1}` pour demander une nouvelle tentative. Le CAS transactionnel
+   * du pointeur/version/statut protège aussi les écritures entre processus.
    */
   private readonly savingDocuments = new Set<string>();
 
@@ -106,6 +110,7 @@ export class OfficeService {
     // tests unitaires existants qui n'ont pas besoin de l'auditer. AuditModule
     // est @Global(), donc en runtime Nest l'injecte toujours.
     @Optional() private readonly audit?: AuditService,
+    @Optional() private readonly scanner?: ScannerService,
   ) {
     this.enabled = process.env.ONLYOFFICE_ENABLED === "true";
     this.documentServerUrl = (
@@ -244,6 +249,34 @@ export class OfficeService {
    * cache DS se fait explicitement via dropSession() après un save réussi,
    * une restauration ou un bump de version.
    */
+  private officeSessionKey(documentId: string): string { return `office.active-session.${documentId}`; }
+
+  private async activeOfficeSession(documentId: string, currentVersionId: string | null) {
+    const row = await this.prisma.appConfig.findUnique({ where: { key: this.officeSessionKey(documentId) } });
+    if (!row) return null;
+    try {
+      const state = JSON.parse(row.value);
+      if (state?.documentId !== documentId || typeof state.originVersionId !== "string" || state.latestVersionId !== currentVersionId || !Number.isSafeInteger(state.expiresAt) || state.expiresAt <= Date.now()) return null;
+      return { originVersionId: state.originVersionId as string, latestVersionId: state.latestVersionId as string };
+    } catch { return null; }
+  }
+
+  private async officeSessionOrigin(documentId: string, currentVersion: { id: string; checksum?: string | null }) {
+    const state = await this.activeOfficeSession(documentId, currentVersion.id);
+    if (!state) return currentVersion;
+    const origin = await this.prisma.documentVersion.findUnique({ where: { id: state.originVersionId }, select: { id: true, documentId: true, checksum: true } });
+    if (!origin || origin.documentId !== documentId) throw new ConflictException("La session Office a changé. Rouvrez le document.");
+    return origin;
+  }
+
+  private scanOfficeVersion(documentId: string, version: { id: string; fileUrl: string }): void {
+    // Missing scanner stays PENDING. No local fallback may mark a file CLEAN.
+    if (!this.scanner) { this.logger.warn("Office antivirus unavailable; version remains PENDING"); return; }
+    try {
+      void this.scanner.scanDocumentVersion(documentId, version.id, this.storage.getFilePath(version.fileUrl)).catch(() => this.logger.warn("Office antivirus incomplete; version remains unverified"));
+    } catch { this.logger.warn("Office antivirus could not start; version remains PENDING"); }
+  }
+
   buildSessionKey(documentId: string, version: { id: string; checksum?: string | null }): string {
     const checksum8 = (version.checksum || "").slice(0, 8) || "nochksum";
     return `${documentId}-${version.id}-${checksum8}`;
@@ -699,7 +732,7 @@ export class OfficeService {
     //   - DRAFT / IN_REVIEW : éditable par owner, reviewer, admin (flux normal)
     //   - APPROVED : éditable par owner ou admin uniquement. Chaque save crée
     //     une version MINEURE (1.1, 1.2…) qui préserve la traçabilité ISO.
-    //     Le statut reste APPROVED (living document) et l'approbateur est
+    //     Le nouveau contenu revient en DRAFT/PENDING et l'approbateur est
     //     notifié. Les acknowledgments antérieurs sont préservés (preuve de
     //     communication de la version N au temps T).
     //   - OBSOLETE / ARCHIVED : lecture seule — il faut d'abord réouvrir
@@ -785,6 +818,8 @@ export class OfficeService {
       );
     }
 
+    const sessionVersion = canEdit ? await this.officeSessionOrigin(document.id, currentVersion) : currentVersion;
+
     // Token d'accès signé pour que OnlyOffice puisse télécharger le fichier
     // (TTL 4h) + token de callback distinct (TTL 24h — voir generateCallbackToken).
     const accessToken = this.generateFileAccessToken(
@@ -793,7 +828,7 @@ export class OfficeService {
       currentUser.id,
     );
     const callbackToken = this.generateCallbackToken(
-      currentVersion.id,
+      sessionVersion.id,
       document.id,
       currentUser.id,
     );
@@ -806,7 +841,7 @@ export class OfficeService {
     // tous les ouvreurs de la même version partagent la même session Docs
     // Server → vraie co-édition temps réel. La clé n'est invalidée que par
     // un nouveau contenu (save/bump/restauration) + dropSession() explicite.
-    const key = this.buildSessionKey(document.id, currentVersion);
+    const key = canEdit ? this.buildSessionKey(document.id, sessionVersion) : `view-${this.buildSessionKey(document.id, currentVersion)}`;
 
     const config: any = {
       document: {
@@ -1164,7 +1199,7 @@ export class OfficeService {
     const key =
       typeof clientKey === "string" && clientKey.startsWith(`${document.id}-`)
         ? clientKey
-        : this.buildSessionKey(document.id, currentVersion);
+        : this.buildSessionKey(document.id, await this.officeSessionOrigin(document.id, currentVersion));
     try {
       const res = await this.callCommandService({
         c: "forcesave",
@@ -1269,7 +1304,7 @@ export class OfficeService {
       // pour l'affichage côté frontend.
       currentVersion: currentIndex + 1,
       history: document.versions.map((v, index) => ({
-        key: this.buildSessionKey(document.id, v),
+        key: `history-${this.buildSessionKey(document.id, v)}`,
         version: index + 1,
         created: OfficeService.formatHistoryDate(v.createdAt),
         user: {
@@ -1338,7 +1373,7 @@ export class OfficeService {
 
     const data: any = {
       version: index + 1,
-      key: this.buildSessionKey(documentId, version),
+      key: `history-${this.buildSessionKey(documentId, version)}`,
       url: `${this.internalBackendUrl}/api/v1/office/file?token=${accessToken}`,
       fileType,
     };
@@ -1449,7 +1484,7 @@ export class OfficeService {
 
     let newVersion;
     try {
-      newVersion = await this.prisma.$transaction(async (tx) => {
+      newVersion = await workflowTransaction(this.prisma, async (tx) => {
         const created = await tx.documentVersion.create({
           data: {
             documentId,
@@ -1457,15 +1492,18 @@ export class OfficeService {
             fileUrl: uploaded.fileUrl,
             fileType: target.fileType,
             fileSizeBytes: buffer.length,
-            checksum: target.checksum,
+            checksum: crypto.createHash("sha256").update(buffer).digest("hex"),
             changeLog: `Restauration de la version ${target.versionNumber} via OnlyOffice`,
             uploadedById: currentUser.id,
           },
         });
-        await tx.document.update({
-          where: { id: documentId },
-          data: { currentVersionId: created.id },
+        const changed = await tx.document.updateMany({
+          where: { id: documentId, deletedAt: null, currentVersionId: document.currentVersionId, updatedAt: document.updatedAt, status: document.status },
+          data: { currentVersionId: created.id, status: "DRAFT", scanStatus: "PENDING" },
         });
+        if (changed.count !== 1) throw new ConflictException("Le document a changé pendant la restauration.");
+        await cancelPendingDocumentCircuits(tx, [documentId], currentUser.id, "Version restaurée via Office");
+        await tx.appConfig.deleteMany({ where: { key: this.officeSessionKey(documentId) } });
         return created;
       });
     } catch (err) {
@@ -1474,6 +1512,8 @@ export class OfficeService {
       await this.storage.deleteFile(uploaded.fileUrl).catch(() => undefined);
       throw err;
     }
+
+    this.scanOfficeVersion(documentId, newVersion);
 
     await this.audit?.log({
       userId: currentUser.id,
@@ -1601,7 +1641,7 @@ export class OfficeService {
       // On retourne error:0 pour qu'OnlyOffice ne retry pas en boucle —
       // la save en cours va capturer ces modifs (OnlyOffice fait toujours
       // un dernier force-save à la fermeture de la session).
-      return { error: 0 };
+      return { error: 1 };
     }
     this.savingDocuments.add(documentId);
 
@@ -1611,9 +1651,9 @@ export class OfficeService {
       // (e.g. changement de reviewer, passage du doc en OBSOLETE/ARCHIVED).
       const editingUser = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, role: true, deletedAt: true },
+        select: { id: true, role: true, isActive: true, deletedAt: true },
       });
-      if (!editingUser || editingUser.deletedAt) {
+      if (!editingUser || !editingUser.isActive || editingUser.deletedAt) {
         this.logger.warn(
           `OnlyOffice callback REJETÉ : utilisateur ${userId} introuvable ou supprimé`,
         );
@@ -1649,6 +1689,12 @@ export class OfficeService {
         return { error: 1 };
       }
 
+      const activeSession = await this.activeOfficeSession(documentId, doc.currentVersionId);
+      if (!doc.currentVersionId || (doc.currentVersionId !== currentVersion.id && activeSession?.originVersionId !== currentVersion.id)) {
+        this.logger.warn("Office callback refused: superseded version or session");
+        return { error: 1 };
+      }
+
       // BUG FIX #5 — Blocage si workflow de validation / signature en cours.
       // On ne fork PAS : on refuse le save. Un doc en relecture formelle ne
       // doit pas changer sous les pieds des validateurs. L'auteur doit soit
@@ -1661,7 +1707,7 @@ export class OfficeService {
         }),
         this.prisma.signatureRequest.findFirst({
           where: {
-            documentVersionId: currentVersion.id,
+            documentVersionId: doc.currentVersionId!,
             status: "PENDING",
           },
           select: { id: true },
@@ -1700,18 +1746,8 @@ export class OfficeService {
       // (document.currentVersionId, fallback createdAt desc — et pas
       // uniquement celle référencée par le token), pour gérer le cas où une
       // autre session aurait déjà poussé une version entretemps.
-      let latestVersion = doc.versions[0] || currentVersion;
-      if (doc.currentVersionId) {
-        const pointed =
-          doc.currentVersionId === currentVersion.id
-            ? currentVersion
-            : await this.prisma.documentVersion.findUnique({
-                where: { id: doc.currentVersionId },
-              });
-        if (pointed && pointed.documentId === documentId) {
-          latestVersion = pointed;
-        }
-      }
+      const latestVersion = doc.currentVersionId === currentVersion.id ? currentVersion : await this.prisma.documentVersion.findUnique({ where: { id: doc.currentVersionId! } });
+      if (!latestVersion || latestVersion.documentId !== documentId) throw new ConflictException("La version courante est introuvable.");
       if (newChecksum === latestVersion.checksum) {
         this.logger.debug(`OnlyOffice callback: no changes (same hash) for doc ${documentId}`);
         return { error: 0 };
@@ -1723,144 +1759,29 @@ export class OfficeService {
       const extension = extMatch ? extMatch[1] : "docx";
       const mimeType = this.getMimeTypeFromExtension(extension);
 
-      // Règle versionning OMNITECH :
-      //   - DRAFT : on écrase la version courante (pas de bump, pas de nouvelle
-      //     row). L'incrément se fera automatiquement en cas de rejet de revue,
-      //     ce qui préserve la version rejetée pour l'audit ISO.
-      //   - APPROVED : on crée une nouvelle version mineure (traçabilité des
-      //     modifs post-approbation — les acks antérieurs restent preuve de
-      //     communication de la version N au temps T).
-      const isDraftOverwrite = doc.status === "DRAFT" || doc.status === "IN_REVIEW";
-
-      // Session périmée après restauration / bump concurrent.
-      // Le token de callback référence `documentVersionId` = la version ouverte
-      // dans cette session (= currentVersion.id). Si le pointeur de version
-      // courante du document a bougé depuis l'ouverture (une restauration a
-      // créé une nouvelle version et l'a pointée, ou un rejet de revue a cloné
-      // la version), un overwrite brouillon écraserait SILENCIEUSEMENT la
-      // version désormais pointée (p. ex. la version restaurée) avec le contenu
-      // pré-restauration de cette session → la restauration serait annulée sans
-      // trace et la piste d'audit ISO mentirait. On refuse le save : l'auteur a
-      // délibérément restauré, ses modifs pré-restauration doivent être perdues.
-      if (isDraftOverwrite && doc.currentVersionId && doc.currentVersionId !== currentVersion.id) {
-        this.logger.warn(
-          `OnlyOffice callback REJETÉ : session périmée sur doc ${documentId} ` +
-            `(token→ver=${currentVersion.id}, courant→ver=${doc.currentVersionId}) — ` +
-            `le pointeur de version a changé depuis l'ouverture (restauration/bump concurrent).`,
-        );
-        await this.audit?.log({
-          userId,
-          action: "DOCUMENT_VERSION_CREATED_VIA_OFFICE_DENIED",
-          resourceType: "Document",
-          resourceId: documentId,
-          metadata: {
-            reason: "stale_session_after_restore",
-            tokenVersionId: currentVersion.id,
-            currentVersionId: doc.currentVersionId,
-            documentStatus: doc.status,
-          },
-          severity: "WARN",
-        });
-        return { error: 1 };
-      }
-
-      type VersionRow = {
-        id: string;
-        documentId: string;
-        versionNumber: string;
-        fileUrl: string;
-        fileType: string;
-        fileSizeBytes: number;
-        checksum: string;
-        changeLog: string | null;
-        uploadedById: string;
-        createdAt: Date;
-      };
-      let newVersion: VersionRow;
-      let newVersionNumber: string;
-
-      if (isDraftOverwrite) {
-        // Overwrite en place : écrit un nouveau fichier (path unique pour éviter
-        // tout risque de corruption si l'écriture échoue), met à jour la row
-        // existante, et supprime best-effort l'ancien fichier.
-        const uploadedFile = await this.storage.upload(
-          {
-            buffer,
-            originalname: `${latestVersion.versionNumber || "v1"}_${Date.now()}.${extension}`,
-            mimetype: mimeType,
-            size: buffer.length,
-          } as Express.Multer.File,
-          `documents/${documentId}/${latestVersion.versionNumber || "draft"}`,
-        );
-
-        newVersionNumber = latestVersion.versionNumber;
-        const oldFileUrl = latestVersion.fileUrl;
-
-        newVersion = await this.prisma.documentVersion.update({
-          where: { id: latestVersion.id },
-          data: {
-            fileUrl: uploadedFile.fileUrl,
-            fileType: mimeType,
-            fileSizeBytes: buffer.length,
-            checksum: newChecksum,
-            changeLog: "Brouillon mis à jour via éditeur OnlyOffice",
-            uploadedById: userId,
-          },
-        });
-
-        // Nettoyage best-effort de l'ancien fichier (on a déjà sauvegardé le
-        // nouveau et mis à jour la DB : rien à rollback si ça échoue).
-        try {
-          const oldPath = this.storage.getFilePath(oldFileUrl);
-          await fs.promises.unlink(oldPath);
-        } catch (err) {
-          this.logger.warn(
-            `OnlyOffice overwrite: suppression ancien fichier échouée (${oldFileUrl}): ${err instanceof Error ? err.message : err}`,
-          );
-        }
-      } else {
-        // APPROVED → bump mineur (traçabilité ISO post-publication)
-        const oldVersionNumber = latestVersion.versionNumber || "1.0";
-        const numMatch = oldVersionNumber.match(/(\d+)(?:\.(\d+))?/);
-        const major = numMatch ? parseInt(numMatch[1], 10) : 1;
-        const minor = numMatch && numMatch[2] ? parseInt(numMatch[2], 10) : 0;
-        newVersionNumber = `${major}.${minor + 1}`;
-
-        const uploadedFile = await this.storage.upload(
-          {
-            buffer,
-            originalname: `v${newVersionNumber}_${Date.now()}.${extension}`,
-            mimetype: mimeType,
-            size: buffer.length,
-          } as Express.Multer.File,
-          `documents/${documentId}/v${newVersionNumber}`,
-        );
-
-        // Atomicité Prisma : create + update currentVersionId dans la même tx
-        newVersion = await this.prisma.$transaction(async (tx) => {
-          const created = await tx.documentVersion.create({
-            data: {
-              documentId,
-              versionNumber: newVersionNumber,
-              fileUrl: uploadedFile.fileUrl,
-              fileType: mimeType,
-              fileSizeBytes: buffer.length,
-              checksum: newChecksum,
-              changeLog: "Modifié via éditeur OnlyOffice",
-              uploadedById: userId,
-            },
-          });
-          await tx.document.update({
-            where: { id: documentId },
-            data: { currentVersionId: created.id },
-          });
+      const oldVersionNumber = latestVersion.versionNumber || "1.0";
+      const numMatch = /^(\d+)(?:\.(\d+))?$/.exec(oldVersionNumber);
+      const newVersionNumber = `${numMatch ? Number(numMatch[1]) : 1}.${numMatch?.[2] ? Number(numMatch[2]) + 1 : 1}`;
+      const uploadedFile = await this.storage.upload({ buffer, originalname: `v${newVersionNumber}.${extension}`, mimetype: mimeType, size: buffer.length } as Express.Multer.File, `documents/${documentId}/v${newVersionNumber}`);
+      let newVersion;
+      try {
+        newVersion = await workflowTransaction(this.prisma, async (tx) => {
+          const created = await tx.documentVersion.create({ data: { documentId, versionNumber: newVersionNumber, fileUrl: uploadedFile.fileUrl, fileType: mimeType, fileSizeBytes: buffer.length, checksum: newChecksum, changeLog: "Modifié via éditeur OnlyOffice", uploadedById: userId } });
+          const changed = await tx.document.updateMany({ where: { id: documentId, deletedAt: null, currentVersionId: doc.currentVersionId, updatedAt: doc.updatedAt, status: doc.status }, data: { currentVersionId: created.id, status: "DRAFT", scanStatus: "PENDING" } });
+          if (changed.count !== 1) throw new ConflictException("Le document a changé pendant la sauvegarde Office.");
+          await cancelPendingDocumentCircuits(tx, [documentId], userId, "Nouvelle version via Office");
+          if (status === 6) {
+            const value = JSON.stringify({ documentId, originVersionId: currentVersion.id, latestVersionId: created.id, expiresAt: Date.now() + 24 * 60 * 60 * 1000 });
+            await tx.appConfig.upsert({ where: { key: this.officeSessionKey(documentId) }, create: { key: this.officeSessionKey(documentId), value }, update: { value } });
+          } else await tx.appConfig.deleteMany({ where: { key: this.officeSessionKey(documentId) } });
           return created;
         });
+      } catch (error) {
+        await this.storage.deleteFile(uploadedFile.fileUrl).catch(() => undefined);
+        throw error;
       }
-
-      this.logger.log(
-        `OnlyOffice save: document ${doc.reference} → ${isDraftOverwrite ? "overwrite" : "bump"} v${newVersionNumber} (${buffer.length} bytes)`,
-      );
+      this.scanOfficeVersion(documentId, newVersion);
+      this.logger.log(`Office save created immutable draft ${newVersionNumber}; antivirus pending`);
 
       // Invalidation du cache Docs Server. La clé droppée est TOUJOURS
       // recalculée côté serveur à partir de la version courante (checksum
@@ -1868,7 +1789,7 @@ export class OfficeService {
       // dérivée de `callbackData.key` : ce champ est contrôlable par un porteur
       // de token de callback, qui pourrait sinon faire dropper la clé de
       // session d'un AUTRE document (clés récupérables via getHistory).
-      const sessionKey = this.buildSessionKey(documentId, latestVersion);
+      const sessionKey = this.buildSessionKey(documentId, currentVersion);
       // On ne drop qu'à la FIN de session (status 2). Un force-save (status 6)
       // signifie que la session est encore ouverte : invalider son cache
       // n'aurait pas de sens et flirterait avec le comportement « restore old
@@ -1913,9 +1834,9 @@ export class OfficeService {
           await this.prisma.notification.create({
             data: {
               userId: doc.approverId,
-              type: "DOC_PUBLISHED",
-              title: `Document modifié après approbation : ${doc.title}`,
-              body: `${doc.reference} a été mis à jour (v${newVersionNumber}) après avoir été publié. Vérifiez que le changement ne remet pas en cause l'approbation.`,
+              type: "DOC_REVIEW_NEEDED",
+              title: `Nouvelle version en brouillon après approbation : ${doc.title}`,
+              body: `${doc.reference} a une nouvelle version ${newVersionNumber} en brouillon. Un nouveau contrôle et une nouvelle validation sont nécessaires.`,
               resourceType: "Document",
               resourceId: documentId,
             },
@@ -2011,7 +1932,7 @@ export class OfficeService {
    * Retourne le stream d'un fichier (utilisé par OnlyOffice Docs pour télécharger
    * le document via le token signé).
    */
-  async getFileStreamForOnlyOffice(documentVersionId: string): Promise<{
+  async getFileStreamForOnlyOffice(documentVersionId: string, userId: string, expectedDocumentId?: string): Promise<{
     stream: NodeJS.ReadableStream;
     fileName: string;
     contentType: string;
@@ -2021,6 +1942,19 @@ export class OfficeService {
     });
     if (!version) {
       throw new NotFoundException("Version introuvable");
+    }
+    if (!userId || (expectedDocumentId && version.documentId !== expectedDocumentId)) throw new ForbiddenException("Accès refusé à ce document");
+    const [document, account] = await Promise.all([
+      this.prisma.document.findUnique({ where: { id: version.documentId } }),
+      this.prisma.user.findUnique({ where: { id: userId } }),
+    ]);
+    if (!document || document.deletedAt || !account?.isActive || account.deletedAt || !await canReadDocumentWithPermissions(this.prisma, document, account)) throw new ForbiddenException("Accès refusé à ce document");
+    if (version.id === document.currentVersionId) {
+      if (document.scanStatus !== "CLEAN") throw new ForbiddenException("Le contrôle antivirus de cette version doit être terminé.");
+    } else {
+      // Historical versions have no persisted per-version scan status. Recheck
+      // their immutable bytes rather than inheriting CLEAN from another version.
+      if (!this.scanner || !(await this.scanner.scanFile(this.storage.getFilePath(version.fileUrl))).clean) throw new ForbiddenException("Cette version historique n'a pas pu être contrôlée.");
     }
     const stream = this.storage.getFileStream(version.fileUrl);
     const fileName = version.fileUrl.split("/").pop() || "document";

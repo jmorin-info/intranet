@@ -221,7 +221,7 @@ export class OfficeController {
     this.logger.log(`[office/file] token ok versionId=${payload.documentVersionId}`);
 
     try {
-      const result = await this.officeService.getFileStreamForOnlyOffice(payload.documentVersionId);
+      const result = await this.officeService.getFileStreamForOnlyOffice(payload.documentVersionId, payload.userId, payload.documentId);
       this.logger.log(
         `[office/file] streaming "${result.fileName}" contentType=${result.contentType}`,
       );

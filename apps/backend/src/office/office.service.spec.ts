@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import * as trustedDownloads from "../common/http/trusted-download";
 import { Test, TestingModule } from "@nestjs/testing";
 import { OfficeService } from "./office.service";
@@ -137,6 +138,7 @@ describe("OfficeService", () => {
     storage?: any;
     jwt?: any;
     env?: Record<string, string | undefined>;
+    scanner?: any;
   }): { service: OfficeService; prisma: any; storage: any; jwt: any } {
     process.env.ONLYOFFICE_ENABLED = "true";
     process.env.ONLYOFFICE_DOCUMENT_SERVER_URL = DS_URL;
@@ -148,9 +150,10 @@ describe("OfficeService", () => {
       else process.env[k] = v;
     }
     const prismaMock = opts?.prisma || {};
+    if (!prismaMock.appConfig) prismaMock.appConfig = { findUnique: jest.fn().mockResolvedValue(null) };
     const storageMock = opts?.storage || {};
     const jwtMock = opts?.jwt || { sign: jest.fn().mockReturnValue("signed"), verify: jest.fn() };
-    const svc = new OfficeService(prismaMock, storageMock, jwtMock);
+    const svc = new OfficeService(prismaMock, storageMock, jwtMock, undefined, opts?.scanner);
     return { service: svc, prisma: prismaMock, storage: storageMock, jwt: jwtMock };
   }
 
@@ -388,6 +391,8 @@ describe("OfficeService", () => {
         reviewerId: null,
         approverId: null,
         currentVersionId: "ver-1",
+        updatedAt: new Date("2026-01-01"),
+        scanStatus: "CLEAN",
         versions: [currentVersion],
         ...docOverrides,
       };
@@ -401,10 +406,15 @@ describe("OfficeService", () => {
               Promise.resolve({ id: "ver-2", createdAt: new Date(), ...data }),
             ),
         },
-        document: { update: jest.fn().mockResolvedValue(document) },
+        document: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+        appConfig: { upsert: jest.fn().mockResolvedValue({}), deleteMany: jest.fn().mockResolvedValue({ count: 1 }) },
+        approvalInstance: { findMany: jest.fn().mockResolvedValue([]), updateMany: jest.fn() },
+        approvalStepInstance: { updateMany: jest.fn() },
+        approvalAuditLog: { createMany: jest.fn() },
+        validationRequest: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
       };
 
-      const prismaMock = {
+      const prismaMock: any = {
         documentVersion: {
           findUnique: jest.fn().mockResolvedValue(currentVersion),
           update: jest
@@ -414,7 +424,7 @@ describe("OfficeService", () => {
         user: {
           findUnique: jest
             .fn()
-            .mockResolvedValue({ id: "user-1", role: "MANAGER", deletedAt: null }),
+            .mockResolvedValue({ id: "user-1", role: "MANAGER", isActive: true, deletedAt: null }),
         },
         validationRequest: { findFirst: jest.fn().mockResolvedValue(null) },
         signatureRequest: { findFirst: jest.fn().mockResolvedValue(null) },
@@ -425,6 +435,7 @@ describe("OfficeService", () => {
       const storageMock = {
         upload: jest.fn().mockResolvedValue({ fileUrl: "documents/doc-1/new-file.docx" }),
         getFilePath: jest.fn().mockReturnValue("/nonexistent/old-file.docx"),
+        deleteFile: jest.fn().mockResolvedValue(undefined),
       };
 
       jest.spyOn(trustedDownloads, "downloadTrustedBuffer").mockResolvedValue(Buffer.from("NOUVEAU CONTENU"));
@@ -502,8 +513,8 @@ describe("OfficeService", () => {
       expect(storageMock.upload).not.toHaveBeenCalled();
     });
 
-    it("DRAFT : overwrite de la version courante (update, pas de nouvelle row)", async () => {
-      const { prismaMock, storageMock } = buildCallbackMocks({ status: "DRAFT" });
+    it("DRAFT : nouvelle version immuable, DRAFT/PENDING et CAS du pointeur", async () => {
+      const { prismaMock, storageMock, txMocks } = buildCallbackMocks({ status: "DRAFT" });
       const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock });
       const dropSpy = jest.spyOn(svc, "dropSession").mockResolvedValue({ ok: true, message: "" });
 
@@ -517,11 +528,10 @@ describe("OfficeService", () => {
 
       expect(result).toEqual({ error: 0 });
       expect(storageMock.upload).toHaveBeenCalledTimes(1);
-      expect(prismaMock.documentVersion.update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: "ver-1" } }),
-      );
-      // Pas de bump : aucune transaction de création de version
-      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+      expect(prismaMock.documentVersion.update).not.toHaveBeenCalled();
+      expect(txMocks.documentVersion.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ versionNumber: "1.1" }) }));
+      expect(txMocks.document.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ currentVersionId: "ver-1" }), data: { currentVersionId: "ver-2", status: "DRAFT", scanStatus: "PENDING" } }));
+      expect(storageMock.deleteFile).not.toHaveBeenCalled();
       // status 2 = fin de session → purge du cache Docs Server avec la clé
       // RECALCULÉE (documentId-versionId-checksum8), jamais celle du body.
       expect(dropSpy).toHaveBeenCalledWith("doc-1-ver-1-old-chec");
@@ -549,8 +559,8 @@ describe("OfficeService", () => {
           data: expect.objectContaining({ versionNumber: "1.1", uploadedById: "user-1" }),
         }),
       );
-      expect(txMocks.document.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { currentVersionId: "ver-2" } }),
+      expect(txMocks.document.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { currentVersionId: "ver-2", status: "DRAFT", scanStatus: "PENDING" } }),
       );
       expect(prismaMock.documentVersion.update).not.toHaveBeenCalled();
       // Fin de session (status 2) → la clé de session de l'ancienne version est droppée
@@ -609,6 +619,117 @@ describe("OfficeService", () => {
       );
       expect(result).toEqual({ error: 0 });
       expect(storageMock.upload).not.toHaveBeenCalled();
+    });
+
+    it("ne lance le scan que sur le nouvel identifiant immuable", async () => {
+      const { prismaMock, storageMock, txMocks } = buildCallbackMocks({ status: "APPROVED" });
+      txMocks.approvalInstance.findMany.mockResolvedValue([{ id: "approval-1" }]);
+      const scanner = { scanDocumentVersion: jest.fn().mockResolvedValue({ status: "CLEAN", clean: true }) };
+      const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock, scanner });
+      expect(await svc.handleCallback({ status: 6, url: `${DS_URL}/cache/f.docx` }, "ver-1", "user-1")).toEqual({ error: 0 });
+      expect(scanner.scanDocumentVersion).toHaveBeenCalledWith("doc-1", "ver-2", "/nonexistent/old-file.docx");
+      expect(txMocks.approvalInstance.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "CANCELLED" }) }));
+      expect(txMocks.approvalStepInstance.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ decision: "SKIPPED" }) }));
+      expect(txMocks.validationRequest.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { status: "CANCELLED" } }));
+      expect(txMocks.approvalAuditLog.createMany).toHaveBeenCalledWith(expect.objectContaining({ data: [expect.objectContaining({ action: "APPROVAL_CANCELLED", actorId: "user-1" })] }));
+      expect(prismaMock.documentVersion.update).not.toHaveBeenCalled();
+    });
+
+    it("conflit concurrent après téléchargement : purge seulement le nouvel upload, aucun scan", async () => {
+      const { prismaMock, storageMock, txMocks } = buildCallbackMocks();
+      txMocks.document.updateMany.mockResolvedValue({ count: 0 });
+      const scanner = { scanDocumentVersion: jest.fn() };
+      const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock, scanner });
+      expect(await svc.handleCallback({ status: 6, url: `${DS_URL}/cache/f.docx` }, "ver-1", "user-1")).toEqual({ error: 1 });
+      expect(storageMock.deleteFile).toHaveBeenCalledTimes(1);
+      expect(storageMock.deleteFile).toHaveBeenCalledWith("documents/doc-1/new-file.docx");
+      expect(txMocks.approvalInstance.findMany).not.toHaveBeenCalled();
+      expect(scanner.scanDocumentVersion).not.toHaveBeenCalled();
+    });
+
+    it("antivirus indisponible : la sauvegarde reste PENDING et ne reçoit jamais CLEAN", async () => {
+      const { prismaMock, storageMock, txMocks } = buildCallbackMocks();
+      const scanner = { scanDocumentVersion: jest.fn().mockRejectedValue(new Error("offline")) };
+      const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock, scanner });
+      expect(await svc.handleCallback({ status: 6, url: `${DS_URL}/cache/f.docx` }, "ver-1", "user-1")).toEqual({ error: 0 });
+      expect(txMocks.document.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ scanStatus: "PENDING" }) }));
+      expect(txMocks.document.updateMany).toHaveBeenCalledTimes(1);
+    });
+
+    it("deux force-saves de la même session conservent les deux versions et une origine stable", async () => {
+      const { prismaMock, storageMock, txMocks, document, currentVersion } = buildCallbackMocks();
+      let session: any = null;
+      const versions = new Map([[currentVersion.id, currentVersion]]);
+      let count = 1;
+      prismaMock.appConfig = { findUnique: jest.fn(async () => session) };
+      txMocks.appConfig.upsert.mockImplementation(async ({ create }: any) => { session = create; });
+      txMocks.documentVersion.create.mockImplementation(async ({ data }: any) => {
+        const version = { id: `ver-${++count}`, ...data, document };
+        versions.set(version.id, version); return version;
+      });
+      txMocks.document.updateMany.mockImplementation(async ({ data }: any) => { Object.assign(document, data); return { count: 1 }; });
+      prismaMock.documentVersion.findUnique.mockImplementation(async ({ where }: any) => versions.get(where.id));
+      const download = jest.spyOn(trustedDownloads, "downloadTrustedBuffer");
+      download.mockResolvedValueOnce(Buffer.from("first edit")).mockResolvedValueOnce(Buffer.from("second edit"));
+      const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock });
+      const callback = { status: 6, url: `${DS_URL}/cache/f.docx` };
+      expect(await svc.handleCallback(callback, "ver-1", "user-1")).toEqual({ error: 0 });
+      expect(await svc.handleCallback(callback, "ver-1", "user-1")).toEqual({ error: 0 });
+      expect(document.currentVersionId).toBe("ver-3");
+      expect([...versions.values()].map(v => v.versionNumber)).toEqual(["1.0", "1.1", "1.2"]);
+      expect(JSON.parse(session.value)).toMatchObject({ originVersionId: "ver-1", latestVersionId: "ver-3" });
+      expect(prismaMock.documentVersion.update).not.toHaveBeenCalled();
+      // A canonical upload/restore invalidates this mapping by changing the pointer.
+      document.currentVersionId = "restored-version";
+      expect(await svc.handleCallback(callback, "ver-1", "user-1")).toEqual({ error: 1 });
+      expect(storageMock.upload).toHaveBeenCalledTimes(2);
+    });
+
+    it("chevauchement de sauvegardes : le second callback demande une nouvelle tentative", async () => {
+      const { prismaMock, storageMock } = buildCallbackMocks();
+      let finish!: (value: Buffer) => void;
+      jest.spyOn(trustedDownloads, "downloadTrustedBuffer").mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+      const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock });
+      const first = svc.handleCallback({ status: 6, url: `${DS_URL}/cache/f.docx` }, "ver-1", "user-1");
+      while (!finish) await new Promise(resolve => setImmediate(resolve));
+      expect(await svc.handleCallback({ status: 6, url: `${DS_URL}/cache/f.docx` }, "ver-1", "user-1")).toEqual({ error: 1 });
+      finish(Buffer.from("saved"));
+      expect(await first).toEqual({ error: 0 });
+      expect(storageMock.upload).toHaveBeenCalledTimes(1);
+    });
+
+    it("restaurer une version approuvée crée un brouillon PENDING, recalcule le hash et invalide la session", async () => {
+      const { prismaMock, storageMock, txMocks, document, currentVersion } = buildCallbackMocks({ status: "APPROVED" });
+      const target = { ...currentVersion, id: "old-version", versionNumber: "0.9", fileUrl: "/storage/documents/history.docx", checksum: "untrusted-old-metadata" };
+      Object.assign(prismaMock, { document: { findUnique: jest.fn().mockResolvedValue(document) } });
+      prismaMock.documentVersion.findUnique.mockImplementation(async ({ where }: any) => where.id === target.id ? target : currentVersion);
+      jest.spyOn(fs.promises, "readFile").mockResolvedValue(Buffer.from("restored bytes"));
+      const scanner = { scanDocumentVersion: jest.fn().mockResolvedValue({ clean: true, status: "CLEAN" }) };
+      const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock, scanner });
+      jest.spyOn(svc, "dropSession").mockResolvedValue({ ok: true, message: "" });
+      expect(await svc.restoreVersion("doc-1", target.id, { id: "user-1", role: "COLLABORATEUR" } as any)).toMatchObject({ newVersionId: "ver-2" });
+      expect(txMocks.documentVersion.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ checksum: require("crypto").createHash("sha256").update("restored bytes").digest("hex") }) }));
+      expect(txMocks.document.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ currentVersionId: "ver-1", status: "APPROVED" }), data: { currentVersionId: "ver-2", status: "DRAFT", scanStatus: "PENDING" } }));
+      expect(txMocks.appConfig.deleteMany).toHaveBeenCalledWith({ where: { key: "office.active-session.doc-1" } });
+      expect(txMocks.validationRequest.updateMany).toHaveBeenCalled();
+      expect(scanner.scanDocumentVersion).toHaveBeenCalledWith("doc-1", "ver-2", "/nonexistent/old-file.docx");
+      expect(storageMock.deleteFile).not.toHaveBeenCalled();
+    });
+
+    it("restauration concurrente : l'ancienne version et son fichier restent intacts", async () => {
+      const { prismaMock, storageMock, txMocks, document, currentVersion } = buildCallbackMocks();
+      const target = { ...currentVersion, id: "old-version", fileUrl: "/storage/documents/history.docx" };
+      Object.assign(prismaMock, { document: { findUnique: jest.fn().mockResolvedValue(document) } });
+      prismaMock.documentVersion.findUnique.mockImplementation(async ({ where }: any) => where.id === target.id ? target : currentVersion);
+      jest.spyOn(fs.promises, "readFile").mockResolvedValue(Buffer.from("restored bytes"));
+      txMocks.document.updateMany.mockResolvedValue({ count: 0 });
+      const scanner = { scanDocumentVersion: jest.fn() };
+      const { service: svc } = makeService({ prisma: prismaMock, storage: storageMock, scanner });
+      await expect(svc.restoreVersion("doc-1", target.id, { id: "user-1", role: "COLLABORATEUR" } as any)).rejects.toThrow("Le document a changé");
+      expect(storageMock.deleteFile).toHaveBeenCalledWith("documents/doc-1/new-file.docx");
+      expect(prismaMock.documentVersion.update).not.toHaveBeenCalled();
+      expect(scanner.scanDocumentVersion).not.toHaveBeenCalled();
+      expect(txMocks.appConfig.deleteMany).not.toHaveBeenCalled();
     });
 
     it("status 3/7 (erreur de save Docs Server) → loggé, error 0 (pas de retry en boucle)", async () => {
@@ -929,7 +1050,7 @@ describe("OfficeService", () => {
       expect(result.history[0].created).toBe("2026-01-01 08:00:00");
       expect(result.history[0].user.name).toBe("Jean Morin");
       // La clé d'historique est la clé de session stable de CETTE version
-      expect(result.history[1].key).toBe("doc-1-ver-2-bbbbbbbb");
+      expect(result.history[1].key).toBe("history-doc-1-ver-2-bbbbbbbb");
       expect(result.versions).toEqual([
         { version: 1, versionId: "ver-1", versionNumber: "1.0", changeLog: "Création" },
         { version: 2, versionId: "ver-2", versionNumber: "1.1", changeLog: "Correction" },
@@ -943,7 +1064,7 @@ describe("OfficeService", () => {
       const data = await svc.getHistoryVersionData("doc-1", "ver-2", owner);
 
       expect(data.version).toBe(2);
-      expect(data.key).toBe("doc-1-ver-2-bbbbbbbb");
+      expect(data.key).toBe("history-doc-1-ver-2-bbbbbbbb");
       expect(data.url).toContain("/api/v1/office/file?token=");
       expect(data.fileType).toBe("docx");
       // Secret DS défini → payload signé pour setHistoryData
@@ -982,6 +1103,52 @@ describe("OfficeService", () => {
           role: "COLLABORATEUR" as any,
         }),
       ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe("fichier tokenisé : droits et antivirus vérifiés au téléchargement", () => {
+    function fileMocks() {
+      const version = { id: "ver-1", documentId: "doc-1", fileUrl: "/storage/documents/a.docx", fileType: "application/octet-stream" };
+      const document = { id: "doc-1", ownerId: "user-1", classification: "SECRET", status: "DRAFT", currentVersionId: "ver-1", scanStatus: "CLEAN", deletedAt: null };
+      const account = { id: "user-1", role: "COLLABORATEUR", isActive: true, deletedAt: null };
+      const prisma = { documentVersion: { findUnique: jest.fn().mockResolvedValue(version) }, document: { findUnique: jest.fn().mockResolvedValue(document) }, user: { findUnique: jest.fn().mockResolvedValue(account) } };
+      const storage = { getFileStream: jest.fn().mockReturnValue("stream"), getFilePath: jest.fn().mockReturnValue("/immutable/a.docx") };
+      const scanner = { scanFile: jest.fn().mockResolvedValue({ clean: true, status: "CLEAN" }) };
+      const { service } = makeService({ prisma, storage, scanner });
+      return { service, version, document, account, prisma, storage, scanner };
+    }
+    it("la version courante CLEAN est accessible au propriétaire actif", async () => {
+      const { service, storage, scanner } = fileMocks();
+      await service.getFileStreamForOnlyOffice("ver-1", "user-1", "doc-1");
+      expect(storage.getFileStream).toHaveBeenCalledTimes(1);
+      expect(scanner.scanFile).not.toHaveBeenCalled();
+    });
+    it.each(["PENDING", "ERROR", "INFECTED"])("refuse le fichier courant %s même avec un token signé", async scanStatus => {
+      const { service, document, storage } = fileMocks(); document.scanStatus = scanStatus;
+      await expect(service.getFileStreamForOnlyOffice("ver-1", "user-1", "doc-1")).rejects.toThrow(ForbiddenException);
+      expect(storage.getFileStream).not.toHaveBeenCalled();
+    });
+    it.each(["deleted", "inactive", "wrong-document"])("refuse un token précédemment émis : %s", async mode => {
+      const { service, document, account, storage } = fileMocks();
+      if (mode === "deleted") (document as any).deletedAt = new Date();
+      if (mode === "inactive") account.isActive = false;
+      await expect(service.getFileStreamForOnlyOffice("ver-1", "user-1", mode === "wrong-document" ? "other" : "doc-1")).rejects.toThrow(ForbiddenException);
+      expect(storage.getFileStream).not.toHaveBeenCalled();
+    });
+    it("refuse après révocation des droits sans utiliser un faux rôle administrateur", async () => {
+      const { service, document, prisma, storage } = fileMocks(); document.ownerId = "other";
+      Object.assign(prisma, { userDepartment: { findMany: jest.fn().mockResolvedValue([]) }, documentPermission: { findFirst: jest.fn().mockResolvedValue(null) } });
+      await expect(service.getFileStreamForOnlyOffice("ver-1", "user-1", "doc-1")).rejects.toThrow(ForbiddenException);
+      expect(storage.getFileStream).not.toHaveBeenCalled();
+    });
+    it("ne réutilise jamais le statut antivirus courant pour un historique", async () => {
+      const { service, document, scanner, storage } = fileMocks(); document.currentVersionId = "new-version";
+      scanner.scanFile.mockResolvedValueOnce({ clean: false, status: "ERROR" });
+      await expect(service.getFileStreamForOnlyOffice("ver-1", "user-1", "doc-1")).rejects.toThrow(ForbiddenException);
+      expect(storage.getFileStream).not.toHaveBeenCalled();
+      await service.getFileStreamForOnlyOffice("ver-1", "user-1", "doc-1");
+      expect(scanner.scanFile).toHaveBeenCalledTimes(2);
+      expect(storage.getFileStream).toHaveBeenCalledTimes(1);
     });
   });
 
