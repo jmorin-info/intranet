@@ -899,7 +899,7 @@ export function Header() {
                 role="menuitem"
                 onClick={() => {
                   setShowUserMenu(false);
-                  logout();
+                  void logout().catch(() => undefined);
                 }}
                 className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors focus-visible:outline-none focus-visible:bg-red-50 dark:focus-visible:bg-red-900/20"
               >

@@ -1184,7 +1184,7 @@ export function Sidebar() {
             <NoaBadge />
             <button
               type="button"
-              onClick={() => logout()}
+              onClick={() => { void logout().catch(() => undefined); }}
               className="p-1.5 rounded hover:bg-white/10 text-white/70 hover:text-white transition-colors"
               aria-label="Deconnexion"
             >
@@ -1521,7 +1521,7 @@ export function Sidebar() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => logout()}
+                  onClick={() => { void logout().catch(() => undefined); }}
                   className="flex items-center gap-1 px-2 py-1 rounded text-[11px] text-white/60 hover:bg-white/10 hover:text-white transition-colors"
                   aria-label="Deconnexion"
                 >

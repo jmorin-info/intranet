@@ -19,6 +19,7 @@ describe('JwtStrategy current account state', () => {
 
   beforeEach(() => {
     prisma = {
+      refreshToken: { findFirst: jest.fn().mockResolvedValue({ id: 'session-a' }) },
       user: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'user-1',
@@ -59,6 +60,13 @@ describe('JwtStrategy current account state', () => {
       sid: 'session-a',
     });
     expect(user.sid).toBe('session-a');
+  });
+
+  it('rejects revoked/expired/mismatched sessions before touching the idle timer', async () => {
+    prisma.refreshToken.findFirst.mockResolvedValue(null);
+    await expect(strategy.validate({ sub: 'user-1', email: 'user@example.test', role: UserRole.COLLABORATEUR, sid: 'session-a' })).rejects.toThrow(UnauthorizedException);
+    expect(prisma.refreshToken.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'session-a', userId: 'user-1', revokedAt: null, expiresAt: { gt: expect.any(Date) }, userAgent: { not: 'PASSWORD_RESET' } } }));
+    expect(cache.set).not.toHaveBeenCalled();
   });
 
   it('accepts an existing JWT without a session id without inventing one', async () => {

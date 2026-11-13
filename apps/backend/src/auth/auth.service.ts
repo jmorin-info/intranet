@@ -14,6 +14,7 @@ import { AuditService } from '../audit/audit.service';
 import { HibpService } from './hibp.service';
 import { JwtPayload } from '../common/interfaces';
 import { UserRole } from '../common/enums';
+import { createSessionRefreshToken, sessionRevocationId } from './session-refresh-token';
 
 @Injectable()
 export class AuthService {
@@ -26,7 +27,7 @@ export class AuthService {
     private readonly ldapService: LdapService,
     private readonly auditService: AuditService,
     private readonly hibpService: HibpService,
-  ) {}
+  ) { this.sessionTokenSecret(); }
 
   /**
    * Validate user credentials.
@@ -115,8 +116,8 @@ export class AuthService {
     };
 
     const accessToken = this.generateAccessToken(payload);
-    const { token: refreshToken, hash: refreshTokenHash } =
-      this.generateRefreshToken();
+    const refreshToken = createSessionRefreshToken(sessionId, this.sessionTokenSecret());
+    const refreshTokenHash = this.hashToken(refreshToken);
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
@@ -212,6 +213,7 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string, ip: string, userAgent: string) {
+    if (typeof refreshToken !== 'string' || !refreshToken || refreshToken.length > 512) throw new UnauthorizedException('Session expirée');
     const tokenHash = this.hashToken(refreshToken);
 
     const storedToken = await this.prisma.refreshToken.findFirst({
@@ -233,20 +235,26 @@ export class AuthService {
       throw new UnauthorizedException('Ce compte est désactivé ou supprimé');
     }
 
-    const consumed = await this.prisma.refreshToken.updateMany({
-      where: {
-        id: storedToken.id,
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
-      data: { revokedAt: new Date() },
-    });
-
-    // Une seule rotation peut consommer ce jeton, même si plusieurs requêtes
-    // ont lu son état actif avant la première révocation.
-    if (consumed.count !== 1) {
-      throw new UnauthorizedException('Session expirée');
-    }
+    const newRefreshToken = createSessionRefreshToken(storedToken.id, this.sessionTokenSecret());
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    // Keep the session identifier stable across rotations. Revocation and MFA
+    // remain scoped to this login, including an in-flight rotation at logout.
+    const rotate = async (db: Pick<PrismaService, 'refreshToken' | 'appConfig'>) => {
+      const consumed = await db.refreshToken.updateMany({
+        where: { id: storedToken.id, tokenHash, revokedAt: null, expiresAt: { gt: new Date() } },
+        data: { tokenHash: this.hashToken(newRefreshToken), expiresAt, ipAddress: ip, userAgent },
+      });
+      if (consumed.count !== 1) throw new UnauthorizedException('Session expirée');
+      if (!refreshToken.startsWith('sr1.')) {
+        // One-time compatibility bridge for pre-deployment opaque UUID cookies.
+        // Its hash is not a credential for refresh; it may only revoke this sid.
+        const key = `auth.legacy-refresh.${tokenHash}`;
+        const value = JSON.stringify({ sessionId: storedToken.id, userId: storedToken.user.id, expiresAt: storedToken.expiresAt.getTime() });
+        await db.appConfig.upsert({ where: { key }, create: { key, value }, update: { value } });
+        await db.appConfig.deleteMany({ where: { key: { startsWith: 'auth.legacy-refresh.' }, updatedAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } });
+      }
+    };
+    await this.prisma.$transaction(rotate);
 
     // Propage le claim MFA du précédent refresh token : sans cela, l'utilisateur
     // serait re-challenge MFA à chaque rotation d'access token (15 min) sur les
@@ -254,7 +262,7 @@ export class AuthService {
     // FreshMfaGuard (12 h par défaut), donc cette propagation reste bornée.
     const previousMfaValidatedAt = storedToken.mfaValidatedAt;
 
-    const sessionId = crypto.randomUUID();
+    const sessionId = storedToken.id;
     const payload: JwtPayload = {
       sub: storedToken.user.id,
       sid: sessionId,
@@ -267,24 +275,6 @@ export class AuthService {
     };
 
     const newAccessToken = this.generateAccessToken(payload);
-    const { token: newRefreshToken, hash: newRefreshTokenHash } =
-      this.generateRefreshToken();
-
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-
-    await this.prisma.refreshToken.create({
-      data: {
-        id: sessionId,
-        tokenHash: newRefreshTokenHash,
-        userId: storedToken.user.id,
-        expiresAt,
-        ipAddress: ip,
-        userAgent,
-        mfaValidatedAt: previousMfaValidatedAt ?? null,
-      },
-    });
-
     const { passwordHash: _passwordHash, mfaSecret: _mfaSecret, ...safeUser } = storedToken.user;
 
     return {
@@ -294,19 +284,44 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string, refreshToken: string) {
-    const tokenHash = this.hashToken(refreshToken);
+  private sessionTokenSecret(): string {
+    const secret = process.env.JWT_REFRESH_SECRET;
+    if (process.env.NODE_ENV === 'production' && (!secret || secret.length < 32 || /change[-_ ]?me|insecure|example/i.test(secret))) throw new Error('JWT_REFRESH_SECRET must be a dedicated random secret of at least 32 characters');
+    return secret || 'omnitech-refresh-insecure-development-only';
+  }
 
-    await this.prisma.refreshToken.updateMany({
-      where: {
-        userId,
-        tokenHash,
-        revokedAt: null,
-      },
-      data: { revokedAt: new Date() },
-    });
-
-    this.logger.log(`User ${userId} logged out`);
+  /** Returns whether a real session credential was supplied, without exposing identity. */
+  async logoutSession(refreshToken: unknown, accessToken: unknown): Promise<boolean> {
+    let target: { id: string; userId?: string } | null = null;
+    if (typeof refreshToken === 'string' && refreshToken.length > 0 && refreshToken.length <= 512) {
+      const signedId = sessionRevocationId(refreshToken, this.sessionTokenSecret());
+      if (signedId) target = { id: signedId };
+      else {
+        const tokenHash = this.hashToken(refreshToken);
+        const row = await this.prisma.refreshToken.findFirst({ where: { tokenHash, userAgent: { not: 'PASSWORD_RESET' } }, select: { id: true, userId: true } });
+        if (row) target = row;
+        else if (!refreshToken.startsWith('sr1.')) {
+          const bridge = await this.prisma.appConfig.findUnique({ where: { key: `auth.legacy-refresh.${tokenHash}` } });
+          if (bridge) {
+            try {
+              const value = JSON.parse(bridge.value);
+              if (typeof value.sessionId === 'string' && typeof value.userId === 'string' && Number.isSafeInteger(value.expiresAt) && value.expiresAt > Date.now()) target = { id: value.sessionId, userId: value.userId };
+            } catch { /* Invalid compatibility state grants no revocation. */ }
+          }
+        }
+      }
+    }
+    if (!target && typeof accessToken === 'string' && accessToken.length > 0 && accessToken.length <= 8192) {
+      try {
+        // An expired signed access token may revoke only its own session. It
+        // never authenticates the request or grants access to another endpoint.
+        const payload = this.jwtService.verify<JwtPayload & { purpose?: unknown }>(accessToken, { ignoreExpiration: true, algorithms: ['HS256'] });
+        if (!payload.purpose && typeof payload.sub === 'string' && typeof payload.sid === 'string' && payload.sid) target = { id: payload.sid, userId: payload.sub };
+      } catch { /* Untrusted JWT contents are never used. */ }
+    }
+    if (!target) return false;
+    await this.prisma.refreshToken.updateMany({ where: { id: target.id, ...(target.userId ? { userId: target.userId } : {}), revokedAt: null, userAgent: { not: 'PASSWORD_RESET' } }, data: { revokedAt: new Date() } });
+    return true;
   }
 
   generateAccessToken(payload: JwtPayload): string {

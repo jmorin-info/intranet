@@ -76,6 +76,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found or inactive');
     }
 
+    if (payload.sid !== undefined) {
+      if (typeof payload.sid !== 'string' || !payload.sid || payload.sid.length > 128) throw new UnauthorizedException('Session expirée');
+      const session = await this.prisma.refreshToken.findFirst({ where: { id: payload.sid, userId: user.id, revokedAt: null, expiresAt: { gt: new Date() }, userAgent: { not: 'PASSWORD_RESET' } }, select: { id: true } });
+      if (!session) throw new UnauthorizedException('Session expirée');
+    }
+
     // ANSSI R29 — Session idle timeout (15 min).
     // On stocke le timestamp de dernière activité dans Redis.
     // Si le délai est dépassé, on force la re-authentification.
