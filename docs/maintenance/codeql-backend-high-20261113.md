@@ -1,0 +1,16 @@
+# Alertes High backend : HTML public, tri Prisma et protocole HIBP
+
+Référence : analyse CodeQL du commit2672ee24 (rapport SARIF conservé par l'opérateur), aucune alerte masquée ni règle désactivée.
+
+| Emplacement initial | Constat et correction | Preuve |
+| --- | --- | --- |
+| WorkflowController216,249,256, reflected-XSS et exception-as-HTML | `docId` pouvait entrer dans le lien de la page expirée avant contrôle HMAC ; les erreurs étaient directement interprétées comme HTML. Paramètres désormais scalaires/UUID, timestamp entier strict, MAC64hex en comparaison constante avant rendu, URLHTTP(S) sans identifiants validée puis encodage HTML de chaque interpolation. Les exceptions internes ne sont plus reflétées. CSP restrictive sans scripts, form-action self, no-store et no-referrer. | Tests HTTP réels : identifiant SVG, paramètres dupliqués, signature/timestamp altérés, origine javascript/data, exceptionHTML et lien expiré signé ; action légitime conservée. |
+| UsersService111, remote-property-injection | L'utilisateur contrôlait directement une clé `orderBy`. Construction remplacée par switch d'objets à propriétés statiques, direction à deux valeurs et identifiant de départage stable. Filtres structurés/immenses refusés, pagination bornée. L'export interne10000lignes reste disponible. | Tests à la frontière Prisma : `__proto__`, constructor, champs de secret, objet/array et filtres structurés, champs légitimes et pagination/export. |
+| DocumentsService346, remote-property-injection | L'ancienne liste finie empêchait déjà l'injection d'un nom arbitraire ; aucun prototype contrôlé reproduit. La sortie utilise maintenant aussi des propriétés statiques (switch), conservant tous les tris et le départage existants, sans cast masquant l'analyse. | Tests des six champs, directions et entrées hostiles. |
+| HibpService42, insufficient-password-hash | Faux positif de contexte à faire valider dans la revue : SHA1 sert exclusivement au protocole de recherche, sans stockage ni vérification de connexion. L'algorithme est conservé. | Tests du préfixe5/padding, absence de mot de passe/hash/suffixe dans la requête, seuil et panne externe. Stockage : bcrypt10 dans UsersService, bcrypt12 pour reset AuthService. |
+
+La [documentation officielle HIBP](https://haveibeenpwned.com/API/v3#SearchingPwnedPasswordsByRange) spécifie un préfixe de cinq caractères SHA1 ; les suffixes et compteurs sont comparés localement. Elle décrit aussi `Add-Padding: true`. Remplacer ici SHA1 par SHA256 casserait la recherche. Aucun mot de passe n'a été envoyé à HIBP pendant la qualification : les réponses réseau sont simulées.
+
+Validation sous Node24.22.3, réseau privé : types, build backend et115suites/1679tests réussis. Rapport privé `/root/intranet-backend-high-final-20261113.log`. Aucun fichier auth/session/cookie/OnlyOffice gelé n'est modifié, aucune migration, dépendance, VM, donnée métier ou publication externe.
+
+Ce commit préserve encore le comportement décisionnel historique du GET email signé. Un commit distinct doit le remplacer par une confirmation sans mutation, avec décision POST authentifiée et contexte version/circuit/étape signé. Ne pas considérer le présent lot comme une résolution de ce défaut de protocole connexe.

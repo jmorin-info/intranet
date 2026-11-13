@@ -70,6 +70,17 @@ describe('DocumentsService', () => {
     service = module.get<DocumentsService>(DocumentsService);
   });
 
+  describe('document list static sort keys', () => {
+    it.each(['title', 'createdAt', 'updatedAt', 'reference', 'status', 'nextReviewDate'])('retains the allowed %s sorting behavior', async field => {
+      await service.findAll({ sortBy: field, sortOrder: 'asc' }, { id: 'admin-1', role: 'ADMIN' } as any);
+      expect(repo.findManyWithCount.mock.calls[0][1]).toEqual([{ [field]: 'asc' }, { id: 'asc' }]);
+    });
+    it.each(['__proto__', 'constructor', 'passwordHash', ['title'], { toString: () => 'title' }])('never uses an arbitrary key for %o', async field => {
+      await service.findAll({ sortBy: field, sortOrder: {} } as any, { id: 'admin-1', role: 'ADMIN' } as any);
+      expect(repo.findManyWithCount.mock.calls[0][1]).toEqual([{ updatedAt: 'desc' }, { id: 'asc' }]);
+    });
+  });
+
   describe('getStatistics', () => {
     it('should return document statistics', async () => {
       const result = await service.getStatistics();

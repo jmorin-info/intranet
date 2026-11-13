@@ -19,6 +19,13 @@ import { WorkflowService, REJECTION_SUGGESTIONS } from "./workflow.service";
 import { RequestUser } from "../../common/interfaces";
 import { UserRole } from "../../common/enums";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Encode HTML text and double-quoted attributes without interpreting entities. */
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
 @Controller("documents")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class WorkflowController {
@@ -188,76 +195,37 @@ export class WorkflowController {
     @Query("ts") ts: string,
     @Res() res: Response,
   ) {
-    const crypto = await import("crypto");
+    res.set({
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+      "Cache-Control": "no-store",
+      "Referrer-Policy": "no-referrer",
+      "X-Content-Type-Options": "nosniff",
+    });
+    res.type("html");
+    const page = (title: string, message: string, documentUrl?: string) => `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head><body style="font-family:sans-serif;text-align:center;padding:40px"><h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p>${documentUrl ? `<a href="${escapeHtml(documentUrl)}">Ouvrir le document</a>` : ""}</body></html>`;
     const secret = process.env.JWT_ACCESS_SECRET;
-    if (!secret) {
-      res.status(500).send("Server configuration error");
-      return;
-    }
-
-    // Validate required params
-    if (!action || !docId || !userId || !token || !ts) {
-      return res
-        .status(400)
-        .send("<html><body><h1>Lien incomplet</h1><p>Paramètres manquants.</p></body></html>");
-    }
-
-    // Validate timestamp: must be a number, within 72 hours
-    const tokenTimestamp = parseInt(ts, 10);
-    if (isNaN(tokenTimestamp)) {
-      return res.status(403).send("<html><body><h1>Lien invalide</h1></body></html>");
-    }
-    const TOKEN_MAX_AGE_MS = 72 * 60 * 60 * 1000; // 72 hours
-    const tokenAge = Date.now() - tokenTimestamp;
-    if (tokenAge < 0 || tokenAge > TOKEN_MAX_AGE_MS) {
-      return res
-        .status(403)
-        .send(
-          '<html><body style="font-family:sans-serif;text-align:center;padding:40px;">' +
-            '<h1 style="color:#cc0000;">Lien expiré</h1>' +
-            "<p>Ce lien de validation a expiré (validité : 72 heures).</p>" +
-            "<p>Veuillez vous connecter à l'intranet pour effectuer cette action.</p>" +
-            `<a href="${process.env.APP_URL || "http://localhost:3001"}/documents/${docId}" style="color:#F68D2E;">Ouvrir le document</a>` +
-            "</body></html>",
-        );
-    }
-
-    // Timing-safe HMAC comparison (includes timestamp to prevent replay)
-    const expected = crypto
-      .createHmac("sha256", secret)
-      .update(`${action}:${docId}:${userId}:${ts}`)
-      .digest("hex");
-
-    // Use timing-safe comparison to prevent timing attacks
-    const tokenBuf = Buffer.from(token, "utf-8");
-    const expectedBuf = Buffer.from(expected, "utf-8");
-    if (tokenBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(tokenBuf, expectedBuf)) {
-      return res.status(403).send("<html><body><h1>Lien invalide ou expiré</h1></body></html>");
-    }
-
-    // Validate action value
-    if (action !== "approve" && action !== "reject") {
-      return res.status(400).send("<html><body><h1>Action invalide</h1></body></html>");
-    }
-
+    if (!secret) return res.status(500).send(page("Erreur de configuration", "L'action est temporairement indisponible."));
+    // Express query strings may be arrays or objects despite TS annotations.
+    if (typeof action !== "string" || !["approve", "reject"].includes(action) || typeof docId !== "string" || !UUID.test(docId) || typeof userId !== "string" || !UUID.test(userId) || typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token) || typeof ts !== "string" || !/^\d{13}$/.test(ts)) return res.status(400).send(page("Lien invalide", "Les paramètres du lien sont invalides."));
+    const crypto = await import("crypto");
+    const expected = crypto.createHmac("sha256", secret).update(`${action}:${docId}:${userId}:${ts}`).digest();
+    if (!crypto.timingSafeEqual(Buffer.from(token, "hex"), expected)) return res.status(403).send(page("Lien invalide", "Ce lien n'est pas autorisé."));
+    let documentUrl: string;
     try {
-      if (action === "approve") {
-        await this.workflowService.approveReview(docId, userId, "Approuvé par email");
-      } else {
-        await this.workflowService.rejectReview(docId, userId, "Rejeté par email");
-      }
-      return res.send(`<html><body style="font-family:sans-serif;text-align:center;padding:40px;">
-        <h1 style="color:#004469;">\u2713 Document ${action === "approve" ? "approuvé" : "rejeté"}</h1>
-        <p>Vous pouvez fermer cette page.</p>
-        <a href="${process.env.APP_URL || "http://localhost:3001"}/documents/${docId}" style="color:#F68D2E;">Voir le document</a>
-      </body></html>`);
-    } catch (err: any) {
-      return res.status(400)
-        .send(`<html><body style="font-family:sans-serif;text-align:center;padding:40px;">
-        <h1 style="color:#cc0000;">Erreur</h1>
-        <p>${err.message || "Une erreur est survenue."}</p>
-        <a href="${process.env.APP_URL || "http://localhost:3001"}/documents/${docId}" style="color:#F68D2E;">Voir le document</a>
-      </body></html>`);
+      const base = new URL(process.env.APP_URL || "http://localhost:3001");
+      if (!["http:", "https:"].includes(base.protocol) || base.username || base.password) throw new Error("Unsupported app origin");
+      documentUrl = new URL(`/documents/${encodeURIComponent(docId)}`, base.origin).href;
+    } catch { return res.status(500).send(page("Erreur de configuration", "L'action est temporairement indisponible.")); }
+    const tokenAge = Date.now() - Number(ts);
+    if (tokenAge < 0 || tokenAge > 72 * 60 * 60 * 1000) return res.status(403).send(page("Lien expiré", "Ce lien de validation a expiré. Connectez-vous à l'intranet pour effectuer cette action.", documentUrl));
+    try {
+      if (action === "approve") await this.workflowService.approveReview(docId, userId, "Approuvé par email");
+      else await this.workflowService.rejectReview(docId, userId, "Rejeté par email");
+      return res.send(page(action === "approve" ? "Document approuvé" : "Document rejeté", "Vous pouvez fermer cette page.", documentUrl));
+    } catch {
+      // Exceptions may contain arbitrary submitted or persisted HTML. The
+      // public action page never exposes that internal exception text.
+      return res.status(400).send(page("Action impossible", "Cette action n'a pas pu être effectuée. Consultez l'état du document dans l'intranet.", documentUrl));
     }
   }
 }

@@ -26,6 +26,7 @@ import { isLegalStatusTransition } from "../common/document-workflow";
 import { ISO_CONTROLS_FR } from "../iso-controls/iso-controls-fr.map";
 import { sanitizePlainText, sanitizeRichText } from "../common/sanitize";
 import { safeParseInt } from "../common/validation-helpers";
+import { documentSortOrder } from "../common/validation/sort-order";
 import { MeilisearchService, MeiliDocument } from "../search/meilisearch.service";
 import { RagService } from "../rag/rag.service";
 import { WorkflowRulesService } from "../workflow-rules/workflow-rules.service";
@@ -328,22 +329,11 @@ export class DocumentsService {
     let data: any[];
     let total: number;
     try {
-      const validSortFields = [
-        "title",
-        "createdAt",
-        "updatedAt",
-        "reference",
-        "status",
-        "nextReviewDate",
-      ];
-      const sortBy = validSortFields.includes(filters.sortBy || "") ? filters.sortBy! : "updatedAt";
-      const sortOrder = filters.sortOrder === "asc" ? "asc" : "desc";
-
       // Repository pattern : l'include partage (owner + isoControls + counts)
       // est encapsule dans DocumentsRepository.findManyWithCount.
       [data, total] = await this.repo.findManyWithCount(
         where,
-        [{ [sortBy]: sortOrder }, { id: "asc" }],
+        [documentSortOrder(filters.sortBy, filters.sortOrder), { id: "asc" }],
         (page - 1) * limit,
         limit,
       );
