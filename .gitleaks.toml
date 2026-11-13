@@ -1,41 +1,38 @@
-# Configuration gitleaks — détection de secrets.
-# https://github.com/gitleaks/gitleaks
-#
-# Étend le jeu de règles par défaut + ajoute des règles spécifiques au
-# projet (DATABASE_URL avec credentials, JWT secrets, etc.) et une
-# allowlist pour les faux positifs connus (placeholders .env.example).
-
 [extend]
 useDefault = true
 
-# ─── Règles custom ────────────────────────────────────────────────────────
 [[rules]]
 id = "omnitech-database-url-with-creds"
-description = "DATABASE_URL avec credentials en clair"
-regex = '''postgres(ql)?:\/\/[^:]+:[^@\s]{8,}@'''
-tags = ["database", "credentials"]
+description = "PostgreSQL password embedded in a connection URL"
+regex = '''postgres(?:ql)?://(?:[A-Za-z0-9_.-]+|\$\{[^}\s]+\}):([^@\s]{4,})@'''
+secretGroup = 1
 
 [[rules]]
 id = "omnitech-jwt-secret"
-description = "JWT secret en clair (>= 32 hex)"
-regex = '''(?i)(jwt_(access|refresh)_secret|session_secret)\s*[=:]\s*['"]?[a-f0-9]{32,}'''
-tags = ["jwt", "secret"]
+description = "Hardcoded JWT or session secret"
+regex = '''(?i)(?:jwt_(?:access|refresh)_secret|session_secret)\s*[=:]\s*['"]?([a-f0-9]{32,})'''
+secretGroup = 1
 
-# ─── Allowlist (faux positifs) ──────────────────────────────────────────────
+# Only literal examples and variable references are ignored. Documentation,
+# seed files and configuration templates are scanned like application code.
 [allowlist]
-description = "Placeholders et fichiers de template — pas de vrais secrets"
-paths = [
-  '''\.env\.example$''',
-  '''\.env\.prod\.example$''',
-  '''packages/database/prisma/seed.*\.ts$''',  # données de démo
-  '''docs/.*\.md$''',                            # exemples documentaires
-]
+description = "Explicit dummy fixtures and unresolved variable references"
 regexes = [
-  '''changeme_.*''',
-  '''CHANGE_ME.*''',
-  '''__GENERATED.*__''',
-  '''__SET_MANUALLY__''',
-  '''PLACEHOLDER.*''',
-  '''xxx+''',
-  '''stub:stub''',          # DATABASE_URL stub de la CI
+  '''^CHANGE_ME$''',
+  '''^changeme_[A-Za-z0-9_]*$''',
+  '''^__GENERATED[A-Za-z0-9_]*__$''',
+  '''^__SET_MANUALLY__$''',
+  '''^PLACEHOLDER[A-Za-z0-9_]*$''',
+  '''^stub$''',
+  '''^test$''',
+  '''^PASSWORD$''',
+  '''^\{password\}$''',
+  '''^<[^>\r\n]+>$''',
+  '''^omnitech_dev$''',
+  '''^\$\{[A-Z_][A-Z0-9_]*(?::-omnitech_dev)?\}$''',
+  '''^\$\([A-Z_][A-Z0-9_]*\)$''',
+  '''^abc123def456$''',
+  '''^e2e-jwt-secret-must-be-at-least-32-chars-long$''',
+  '''^e2e-refresh-secret-must-be-at-least-32-chars$''',
+  '''^0123456789abcdef0123456789abcdef$''',
 ]

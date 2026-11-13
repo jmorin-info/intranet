@@ -53,12 +53,22 @@ Node 24.22.3 a passé, dans une copie autonome sur SI-IA, les types, les mêmes
 1 805 tests, les deux builds, les modules natifs ABI 137, Next et les essais
 PostgreSQL 16.13. L'archive officielle et ses empreintes sont conservées.
 
-Le runtime applicatif actif reste **Node 20.20.2**. L'installation et les
-sondes Debian 12, puis l'activation de Node 24 pour les deux services seulement,
-restent à exécuter dans une fenêtre avec au moins 768 Mio disponibles. Les
-scripts et la procédure avec retour arrière sont privés sous
-`/root/intranet-maintenance-20261113/node24/`. Les tests locaux du helper et la
-qualification Ubuntu ne constituent pas une activation ni une preuve Debian.
+Le runtime applicatif actif est désormais **Node 24.22.3**, activé après les
+sondes natives sur Debian 12 : Prisma, Sharp, Sentry avec profilage ABI 137,
+SWC, import du backend sans démarrage et frontend précompilé. Deux surcharges
+systemd de PATH ciblent seulement les services backend et frontend ; le Node
+global reste 20.20.2. Leurs processus enfants ont été vérifiés indépendamment,
+ainsi que les réponses 200 et la CSP à nonce renouvelé. Le fichier `.env` et le
+commit du code applicatif n'ont pas changé pendant cette bascule.
+
+Le reçu `applied`, le plan et le retour arrière sont privés sous
+`/root/.omnitech-node24-switch/20261113T062806Z-7548c80172e5/`.
+Les scripts sont conservés sous
+`/root/intranet-maintenance-20261113/node24/`. La qualification locale et la
+bascule Debian ont donc des preuves distinctes. La réindexation nocturne
+ancienne a été interrompue par le redémarrage ; aucun nouveau départ n'a été
+constaté lors du contrôle. Le correctif RAG et sa reprise lexicale restent un
+lot applicatif séparé.
 
 La mise à jour PostgreSQL 16.16 reste à qualifier avec pgvector ; voir le
 [suivi sécurité](securite-et-mises-a-jour.md). Le durcissement du job de
