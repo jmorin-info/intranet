@@ -15,14 +15,21 @@ if [[ ! -f "$CONFIG" ]]; then
   exit 2
 fi
 
-gitleaks dir --redact --no-banner --config "$CONFIG" "$SEARCH_DIR"
+(
+  cd -- "$SEARCH_DIR"
+  gitleaks dir --redact --no-banner --config "$CONFIG" .
+)
 
 # An ignored environment file is still scanned if it was accidentally tracked.
 if git -C "$SEARCH_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  if git -C "$SEARCH_DIR" ls-files --error-unmatch .env >/dev/null 2>&1; then
-    echo "A real .env file is tracked; publication refused." >&2
-    exit 1
-  fi
+  while IFS= read -r -d '' tracked; do
+    case "${tracked##*/}" in
+      .env.example|.env.*.example) ;;
+      .env|.env.*)
+        echo "A real environment file is tracked; publication refused." >&2
+        exit 1 ;;
+    esac
+  done < <(git -C "$SEARCH_DIR" ls-files -z)
   if ! git -C "$SEARCH_DIR" check-ignore -q --no-index .env; then
     echo ".env must be ignored before publication." >&2
     exit 1
