@@ -16,15 +16,15 @@ const sizeClasses = {
 };
 
 export function Avatar({ src, initials, size = "md", className, ...props }: AvatarProps) {
-  const [imgError, setImgError] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
-  if (src && !imgError) {
+  if (src && failedSrc !== src) {
     return (
       <img
         src={src}
         alt={initials}
         className={cn("rounded-full object-cover", sizeClasses[size], className)}
-        onError={() => setImgError(true)}
+        onError={() => setFailedSrc(src)}
         {...props}
       />
     );

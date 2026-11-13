@@ -34,10 +34,10 @@ export function ProfileHeader({
   const setUser = useAuthStore((s) => s.setUser);
   const { t } = useTranslation();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (uploadingAvatar) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -50,9 +50,6 @@ export function ProfileHeader({
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
-    setAvatarPreview(previewUrl);
-
     setUploadingAvatar(true);
     try {
       const formData = new FormData();
@@ -64,16 +61,12 @@ export function ProfileHeader({
         setUser({ ...user, avatarUrl: data.avatarUrl });
       }
       toast.success(t("profile.photoUpdated"));
-      URL.revokeObjectURL(previewUrl);
-      setAvatarPreview(null);
     } catch (err) {
       toast.error(
         (err as ApiError)?.response?.data?.message ||
           (err as ApiError)?.message ||
           t("profile.photoError"),
       );
-      URL.revokeObjectURL(previewUrl);
-      setAvatarPreview(null);
     } finally {
       setUploadingAvatar(false);
       if (avatarInputRef.current) avatarInputRef.current.value = "";
@@ -91,6 +84,7 @@ export function ProfileHeader({
             ref={avatarInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
+            disabled={uploadingAvatar}
             className="hidden"
             onChange={handleAvatarUpload}
           />
@@ -102,9 +96,9 @@ export function ProfileHeader({
             title={t("profile.changePhoto")}
             aria-label={t("profile.changePhoto")}
           >
-            {avatarPreview || user.avatarUrl ? (
+            {user.avatarUrl ? (
               <Avatar
-                src={avatarPreview || getAvatarUrl(user.avatarUrl!)}
+                src={getAvatarUrl(user.avatarUrl)}
                 initials={getInitials(user.firstName, user.lastName)}
                 size="lg"
                 className="h-28 w-28 text-3xl ring-4 ring-white dark:ring-slate-900 shadow-lg"
@@ -126,9 +120,10 @@ export function ProfileHeader({
             </div>
           </button>
           <div className="flex-1 min-w-0 pb-1">
-            {!user.avatarUrl && !avatarPreview && (
+            {!user.avatarUrl && (
               <button
                 type="button"
+                disabled={uploadingAvatar}
                 onClick={() => avatarInputRef.current?.click()}
                 className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
               >
