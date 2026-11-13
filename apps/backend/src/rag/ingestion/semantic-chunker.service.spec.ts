@@ -94,6 +94,34 @@ Contenu de la section 2 avec details.`;
       expect(joined).not.toContain("<p>");
     });
 
+    it("decodes HTML character references once and preserves escaped code", () => {
+      const html = '<h2>Exemple &lt;strong&gt;</h2>' +
+        '<p>&amp;lt;script&amp;gt; &lt;em&gt;visible&lt;/em&gt; &#233; &#x1F512;</p>';
+      const text = service.chunk(html, { overlapChars: 0 }).join("\n");
+      expect(text).toContain("## Exemple <strong>");
+      expect(text).toContain("&lt;script&gt;");
+      expect(text).toContain("<em>visible</em> é 🔒");
+    });
+
+    it("preserves heading, list, and preformatted text without link attributes", () => {
+      const html = '<h1>Guide</h1><ul><li>Premier &amp; second</li><li>Suite</li></ul>' +
+        '<p><a href="https://example.invalid/private">Notice</a></p>' +
+        '<pre>if (a &lt; b) {\n  return 1;\n}</pre>';
+      const text = service.chunk(html, { overlapChars: 0 }).join("\n");
+      expect(text).toContain("# Guide");
+      expect(text).toContain("- Premier & second");
+      expect(text).toContain("- Suite");
+      expect(text).toContain("Notice");
+      expect(text).not.toContain("example.invalid");
+      expect(text).toContain("if (a < b) {\n  return 1;\n}");
+    });
+
+    it("does not index executable HTML content", () => {
+      const html = '<p>Texte visible<script>secretScript()</script>' +
+        '<style>.secretStyle { display:none }</style> seulement</p>';
+      expect(service.chunk(html, { overlapChars: 0 }).join(" ")).toBe("Texte visible seulement");
+    });
+
     it("subdivides oversized sections by paragraphs", () => {
       const para = "Une phrase. ".repeat(60); // ~720 chars
       const text = `# Big section\n\n${para}\n\n${para}\n\n${para}\n\n${para}`;
