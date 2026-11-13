@@ -6,9 +6,9 @@
 # ---------------------
 # Stage 1: Dependencies
 # ---------------------
-FROM node:20-alpine AS deps
+FROM node:24.22.3-alpine AS deps
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 WORKDIR /app
 
@@ -16,14 +16,14 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/ ./packages/
 
-RUN pnpm install --frozen-lockfile --filter backend...
+RUN pnpm install --frozen-lockfile --filter @omnitech/backend...
 
 # ---------------------
 # Stage 2: Build
 # ---------------------
-FROM node:20-alpine AS build
+FROM node:24.22.3-alpine AS build
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 WORKDIR /app
 
@@ -35,37 +35,37 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY apps/backend/ ./apps/backend/
 
 # Generate Prisma client
-RUN pnpm --filter backend exec prisma generate
+RUN pnpm --filter @omnitech/database exec prisma generate
 
 # Build the backend
-RUN pnpm --filter backend build
+RUN pnpm --filter @omnitech/backend build
 
 # ---------------------
 # Stage 3: Production
 # ---------------------
-FROM node:20-alpine AS prod
+FROM node:24.22.3-alpine AS prod
 
 RUN apk add --no-cache curl dumb-init
 
 WORKDIR /app
 
-# Copy built application
-COPY --from=build /app/apps/backend/dist ./dist
-COPY --from=build /app/apps/backend/node_modules ./node_modules
-COPY --from=build /app/node_modules/.pnpm ./node_modules/.pnpm
-COPY --from=build /app/apps/backend/prisma ./prisma
-COPY --from=build /app/apps/backend/package.json ./package.json
+# Keep pnpm's workspace-relative links intact at runtime.
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/packages ./packages
+COPY --from=build /app/apps/backend/node_modules ./apps/backend/node_modules
+COPY --from=build /app/apps/backend/dist ./apps/backend/dist
+COPY --from=build /app/apps/backend/package.json ./apps/backend/package.json
 
 # Create storage directory
 RUN mkdir -p /app/storage
 
 # Run as non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S node -u 1001 -G nodejs
+    adduser -S omnitech -u 1001 -G nodejs
 
-RUN chown -R node:nodejs /app/storage
+RUN chown -R omnitech:nodejs /app/storage
 
-USER node
+USER omnitech
 
 EXPOSE 3000
 
@@ -73,4 +73,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:3000/api/v1/health || exit 1
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/main.js"]
+ENV NODE_ENV=production
+CMD ["node", "apps/backend/dist/main.js"]

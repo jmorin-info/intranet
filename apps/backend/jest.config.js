@@ -5,10 +5,10 @@ module.exports = {
   transform: {
     '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: { allowJs: true } }],
   },
-  // Node 20 can require these ESM packages; Jest 29 must transform their JS.
+  // Node 24 can require these ESM packages; Jest 29 must transform their JS.
   transformIgnorePatterns: [
-    'node_modules/(?!\\.pnpm/|uuid/|otplib/|marked/|@scure/|@noble/|@otplib/)',
-    'node_modules/\\.pnpm/(?!(?:uuid|otplib|marked|@scure\\+[^/]+|@noble\\+[^/]+|@otplib\\+[^/]+)@)',
+    'node_modules/(?!\\.pnpm/|uuid/|otplib/|marked/|htmlparser2/|domhandler/|domutils/|dom-serializer/|domelementtype/|entities/|css-select/|css-what/|nth-check/|boolbase/|@scure/|@noble/|@otplib/)',
+    'node_modules/\\.pnpm/(?!(?:uuid|otplib|marked|htmlparser2|domhandler|domutils|dom-serializer|domelementtype|entities|css-select|css-what|nth-check|boolbase|@scure\\+[^/]+|@noble\\+[^/]+|@otplib\\+[^/]+)@)',
   ],
   collectCoverageFrom: ['**/*.(t|j)s'],
   coverageDirectory: '../coverage',

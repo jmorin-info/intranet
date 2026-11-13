@@ -46,7 +46,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24.22.3"
           cache: "pnpm"
 
       - name: Install dependencies
@@ -97,7 +97,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24.22.3"
           cache: "pnpm"
 
       - name: Install dependencies
@@ -112,7 +112,7 @@ jobs:
       - name: Backend tests (Jest)
         # Les specs unitaires mockent PrismaService — pas de DB réelle requise.
         # DATABASE_URL stub fourni au niveau workflow pour les imports Prisma.
-        run: pnpm --filter @omnitech/backend test
+        run: pnpm --filter @omnitech/backend exec jest --runInBand
 
   # ---------------------------------------------------------------------------
   # 3. Build backend (NestJS)
@@ -135,7 +135,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24.22.3"
           cache: "pnpm"
 
       - name: Install dependencies
@@ -171,7 +171,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24.22.3"
           cache: "pnpm"
 
       - name: Install dependencies
@@ -209,7 +209,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24.22.3"
           cache: "pnpm"
 
       - name: Install dependencies
@@ -258,7 +258,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24.22.3"
           cache: "pnpm"
 
       - name: Install dependencies
@@ -301,7 +301,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24.22.3"
           cache: "pnpm"
 
       - name: Install dependencies
@@ -328,7 +328,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24.22.3"
           cache: "pnpm"
 
       - name: Install dependencies
