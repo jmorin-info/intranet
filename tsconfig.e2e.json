@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "paths": {
+      "@prisma/client": ["./packages/database/node_modules/@prisma/client"],
+      "@omnitech/shared": ["./packages/shared/src/index.ts"]
+    },
+    "typeRoots": ["./apps/frontend/node_modules/@types", "./apps/backend/node_modules/@types", "./node_modules/@types"]
+  },
+  "include": ["e2e/**/*.ts", "scripts/e2e/**/*.ts", "packages/database/prisma/seed-e2e.ts", "playwright.config.ts"],
+  "exclude": ["node_modules"]
+}

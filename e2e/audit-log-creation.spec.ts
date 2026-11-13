@@ -5,11 +5,11 @@ import { login } from "./helpers/login";
  * Audit log — ISO 27001 A.5.15 / A.8.15 traçabilité.
  *
  * Flow : login ADMIN → modifier (best-effort) un user → naviguer vers
- * /admin/audit-logs → vérifier que la dernière entrée correspond à l'action
+ * /admin/audit → vérifier que la dernière entrée correspond à l'action
  * (acteur = admin, target type = user, action ~ update).
  *
  * Destructif côté DB → gated par `RUN_DESTRUCTIVE=1`. Une variante read-only
- * vérifie au moins que la page `/admin/audit-logs` est rendue avec ≥1 entrée.
+ * vérifie au moins que la page `/admin/audit` est rendue avec ≥1 entrée.
  */
 
 const DESTRUCTIVE = !!process.env.RUN_DESTRUCTIVE;
@@ -17,13 +17,13 @@ const DESTRUCTIVE = !!process.env.RUN_DESTRUCTIVE;
 test.describe("Audit log creation (ISO 27001 A.5.15)", () => {
   test("audit log page renders and lists entries", async ({ page }) => {
     await login(page, "ADMIN");
-    await page.goto("/admin/audit-logs");
+    await page.goto("/admin/audit");
 
     if (page.url().includes("/login") || page.url().includes("/dashboard")) {
-      test.skip(true, "Accès /admin/audit-logs refusé — vérifier rôle ADMIN.");
+      test.skip(true, "Accès /admin/audit refusé — vérifier rôle ADMIN.");
     }
 
-    await expect(page.locator("h1, h2").first()).toContainText(
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
       /audit|journal|logs/i,
       {
         timeout: 10_000,
@@ -31,14 +31,11 @@ test.describe("Audit log creation (ISO 27001 A.5.15)", () => {
     );
 
     // Tableau ou liste — au moins une ligne attendue
-    const rowCount = await page
+    const rows = page
       .locator(
         'table tbody tr, [role="row"]:not([aria-rowindex="1"]), [data-testid="audit-row"]',
-      )
-      .count();
-    expect(rowCount, "au moins 1 entrée d'audit log attendue").toBeGreaterThan(
-      0,
-    );
+      );
+    await expect(rows.first(), "au moins une entrée réelle de connexion attendue").toBeVisible();
   });
 
   test("admin user-update produces a fresh audit entry @destructive", async ({
@@ -85,8 +82,8 @@ test.describe("Audit log creation (ISO 27001 A.5.15)", () => {
 
     await page.waitForTimeout(1_500); // laisser l'event publier vers le journal
 
-    // Vérifier sur /admin/audit-logs que la dernière entrée correspond.
-    await page.goto("/admin/audit-logs");
+    // Vérifier sur /admin/audit que la dernière entrée correspond.
+    await page.goto("/admin/audit");
     const firstRow = page
       .locator(
         'table tbody tr, [role="row"]:not([aria-rowindex="1"]), [data-testid="audit-row"]',

@@ -16,17 +16,7 @@ import { test, expect } from './helpers/safe-test';
  */
 
 test.describe('Dark mode toggle', () => {
-  test.beforeEach(async ({ page }) => {
-    // Force a known starting state (light) by clearing localStorage before any
-    // app script runs.
-    await page.addInitScript(() => {
-      try {
-        localStorage.removeItem('darkMode');
-      } catch {
-        /* ignore */
-      }
-    });
-  });
+  test.use({ colorScheme: 'light' });
 
   test('toggle button switches html.dark class', async ({ page }) => {
     await page.goto('/dashboard');
@@ -34,10 +24,8 @@ test.describe('Dark mode toggle', () => {
     // The header exposes a theme toggle button with aria-pressed = darkMode
     // and an explicit aria-label ("Activer mode sombre/clair"). We locate by
     // role and a regex matching either label.
-    const toggle = page.getByRole('button', { name: /activer mode (sombre|clair)|dark mode|light mode/i }).first();
-    if (!(await toggle.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip(true, 'Bouton de thème non visible — header rendu différemment');
-    }
+    const toggle = page.getByRole('button', { name: /activer (?:le )?mode (sombre|clair)|dark mode|light mode/i }).first();
+    await expect(toggle).toBeVisible();
 
     // Initial: light (no `dark` class on <html>)
     const initial = await page.evaluate(() => document.documentElement.classList.contains('dark'));
@@ -61,10 +49,8 @@ test.describe('Dark mode toggle', () => {
 
   test('localStorage.darkMode persists across reload', async ({ page }) => {
     await page.goto('/dashboard');
-    const toggle = page.getByRole('button', { name: /activer mode (sombre|clair)|dark mode|light mode/i }).first();
-    if (!(await toggle.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip(true, 'Bouton thème indisponible');
-    }
+    const toggle = page.getByRole('button', { name: /activer (?:le )?mode (sombre|clair)|dark mode|light mode/i }).first();
+    await expect(toggle).toBeVisible();
 
     await toggle.click();
     await page.waitForTimeout(200);
@@ -76,19 +62,16 @@ test.describe('Dark mode toggle', () => {
 
     // Reload — boot script should restore the class without FOUC
     await page.reload();
-    const persisted = await page.evaluate(() => document.documentElement.classList.contains('dark'));
-    expect(persisted).toBe(expectedDark);
+    await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(expectedDark);
 
     // Restore — toggle off so we leave shared preprod in light mode.
     await toggle.click().catch(() => {});
   });
 
-  test('dark class persists across SPA navigation', async ({ page }) => {
+  test('dark class persists across page navigation', async ({ page }) => {
     await page.goto('/dashboard');
-    const toggle = page.getByRole('button', { name: /activer mode (sombre|clair)|dark mode|light mode/i }).first();
-    if (!(await toggle.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip(true, 'Bouton thème indisponible');
-    }
+    const toggle = page.getByRole('button', { name: /activer (?:le )?mode (sombre|clair)|dark mode|light mode/i }).first();
+    await expect(toggle).toBeVisible();
 
     // Force dark on
     const wasDark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
@@ -108,7 +91,7 @@ test.describe('Dark mode toggle', () => {
     if (!wasDark) {
       await page.goto('/dashboard');
       const t2 = page
-        .getByRole('button', { name: /activer mode (sombre|clair)|dark mode|light mode/i })
+        .getByRole('button', { name: /activer (?:le )?mode (sombre|clair)|dark mode|light mode/i })
         .first();
       await t2.click().catch(() => {});
     }

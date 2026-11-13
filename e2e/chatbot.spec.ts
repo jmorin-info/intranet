@@ -10,16 +10,15 @@ import { test, expect } from './helpers/safe-test';
 test.describe('Chatbot RAG', () => {
   test('Ctrl+Shift+K opens modal', async ({ page }) => {
     await page.goto('/dashboard');
-    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByRole('heading', { level: 1, name: /Compte/ })).toBeVisible();
     await page.keyboard.press('Control+Shift+K');
     await expect(
-      page
-        .locator('[role="dialog"], [data-testid="chatbot-modal"], [data-state="open"]')
-        .first(),
+      page.getByRole('dialog', { name: 'Recherche AI', exact: true }),
     ).toBeVisible({ timeout: 6_000 });
   });
 
   test('submits a question → receives a streaming response', async ({ page }) => {
+    test.skip(process.env.RAG_ENABLED !== 'true', 'RAG disabled in this disposable recipe; a real LLM response is not qualified here.');
     await page.goto('/dashboard');
     await page.keyboard.press('Control+Shift+K');
     const modal = page
@@ -42,6 +41,7 @@ test.describe('Chatbot RAG', () => {
   });
 
   test('stop generation button is available during streaming (V3-A)', async ({ page }) => {
+    test.skip(process.env.RAG_ENABLED !== 'true', 'RAG disabled in this disposable recipe; streaming cancellation is not qualified here.');
     await page.goto('/dashboard');
     await page.keyboard.press('Control+Shift+K');
     const modal = page.locator('[role="dialog"]').first();
@@ -64,6 +64,7 @@ test.describe('Chatbot RAG', () => {
   });
 
   test('copy response to clipboard', async ({ page, context }) => {
+    test.skip(process.env.RAG_ENABLED !== 'true', 'RAG disabled in this disposable recipe; response copy needs a real generated response.');
     await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
     await page.goto('/dashboard');
     await page.keyboard.press('Control+Shift+K');
@@ -85,6 +86,7 @@ test.describe('Chatbot RAG', () => {
   });
 
   test('negative feedback with reason', async ({ page }) => {
+    test.skip(process.env.RAG_ENABLED !== 'true', 'RAG disabled in this disposable recipe; feedback requires a real generated response.');
     await page.goto('/dashboard');
     await page.keyboard.press('Control+Shift+K');
     const modal = page.locator('[role="dialog"]').first();

@@ -108,3 +108,6 @@ packages/database/prisma/reg016/registre.tsv
 
 # Symlinks node_modules des worktrees (gitignore "node_modules/" ne matche pas un lien)
 node_modules
+
+# Disposable E2E storage (synthetic files only)
+/.e2e-runtime/

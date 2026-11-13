@@ -19,7 +19,8 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 10_000 },
   retries: IS_CI ? 1 : 0,
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: IS_CI,
   reporter: [['html', { open: 'never' }], ['list']],
 
@@ -39,7 +40,8 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], storageState: AUTH_FILE },
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_FILE,
+        launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined } },
     },
     {
       name: 'firefox',
@@ -52,7 +54,8 @@ export default defineConfig({
     {
       name: 'unauthenticated',
       testMatch: /(auth|portal|pwa)\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'], storageState: { cookies: [], origins: [] } },
+      use: { ...devices['Desktop Chrome'], storageState: { cookies: [], origins: [] },
+        launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined } },
     },
   ],
 });

@@ -1,213 +1,170 @@
 name: E2E Playwright
 
-# Wave G — exécution Playwright dédiée. Le job CI principal (`ci.yml`) ne fait
-# qu'un `playwright test --list` (compile-only). Ce workflow lance la suite
-# complète sur les flux critiques avec services postgres/redis/meili.
-#
-# Stratégie :
-#   - PR + push sur main → run la suite "smoke" (auth + dashboard + portal + pwa)
-#     en mode mocks (`E2E_API_URL` pointant sur backend stub).
-#   - workflow_dispatch (manuel) → suite complète y compris destructive
-#     (RUN_DESTRUCTIVE=1) sur l'env CI éphémère (services up, DB seed).
-
+# Real API/database/browser tests. Visual mocks have a separate CI job/profile.
+# Historical migrations do not bootstrap a fresh database completely; the
+# guarded fixture script uses db push ONLY on a new, empty disposable database.
 on:
   pull_request:
     paths:
       - 'apps/**'
       - 'packages/**'
       - 'e2e/**'
+      - 'scripts/e2e/**'
       - 'playwright.config.ts'
+      - 'tsconfig.e2e.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/e2e.yml'
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
     inputs:
       destructive:
-        description: 'Run destructive tests (RUN_DESTRUCTIVE=1)'
+        description: 'Run additional mutations on the disposable CI database'
         required: false
-        default: 'false'
+        default: false
         type: boolean
       grep:
-        description: 'Playwright --grep filter (e.g. "auth|documents")'
+        description: 'Optional Playwright test-name filter'
         required: false
         default: ''
         type: string
-
 permissions:
   contents: read
-
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
-
 env:
   NEXT_TELEMETRY_DISABLED: '1'
   HUSKY: '0'
   CI: '1'
-
 jobs:
   e2e:
     name: Playwright (chromium)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16.16-bookworm
         env:
-          POSTGRES_USER: test
+          POSTGRES_USER: e2e
           POSTGRES_PASSWORD: test
           POSTGRES_DB: omnitech_e2e
-        ports:
-          - 5432:5432
+        ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U test -d omnitech_e2e"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-
+          --health-cmd "pg_isready -U e2e -d omnitech_e2e"
+          --health-interval 5s --health-timeout 5s --health-retries 20
       redis:
         image: redis:7-alpine
-        ports:
-          - 6379:6379
+        ports: ['6379:6379']
         options: >-
           --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-
+          --health-interval 5s --health-timeout 5s --health-retries 20
       meilisearch:
         image: getmeili/meilisearch:v1.10
         env:
           MEILI_MASTER_KEY: e2e-master-key
           MEILI_NO_ANALYTICS: 'true'
           MEILI_ENV: development
-        ports:
-          - 7700:7700
+        ports: ['7700:7700']
         options: >-
           --health-cmd "curl --fail --silent http://127.0.0.1:7700/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-
+          --health-interval 5s --health-timeout 5s --health-retries 20
     env:
-      DATABASE_URL: postgresql://test:test@localhost:5432/omnitech_e2e
-      REDIS_URL: redis://localhost:6379
-      MEILISEARCH_HOST: http://localhost:7700
-      MEILISEARCH_KEY: e2e-master-key
-      JWT_SECRET: e2e-jwt-secret-must-be-at-least-32-chars-long
-      JWT_REFRESH_SECRET: e2e-refresh-secret-must-be-at-least-32-chars
-      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+      DATABASE_URL: postgresql://e2e:test@127.0.0.1:5432/omnitech_e2e
+      E2E_EPHEMERAL_DATABASE: '1'
       NODE_ENV: test
-      BASE_URL: http://localhost:3001
-      E2E_API_URL: http://localhost:3000/api
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: '6379'
+      REDIS_URL: redis://127.0.0.1:6379
+      THROTTLER_REDIS_REQUIRED: 'true'
+      MEILISEARCH_ENABLED: 'true'
+      MEILISEARCH_URL: http://127.0.0.1:7700
+      MEILISEARCH_MASTER_KEY: e2e-master-key
+      BASE_URL: http://127.0.0.1:3002
+      E2E_API_URL: http://127.0.0.1:3002/api/v1
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:3002/api/v1
+      NEXT_PUBLIC_WS_URL: http://127.0.0.1:3002
+      E2E_FRONTEND_INTERNAL_URL: http://127.0.0.1:3001
+      E2E_BACKEND_INTERNAL_URL: http://127.0.0.1:3000
+      CORS_ORIGINS: http://127.0.0.1:3002
+      CORS_ORIGINS_DEV: http://127.0.0.1:3002
       E2E_ADMIN_EMAIL: admin@e2e.local
-      E2E_ADMIN_PASSWORD: Admin123!
+      E2E_COLLAB_EMAIL: collaborator@e2e.local
+      E2E_SUPER_ADMIN_EMAIL: super-admin@e2e.local
+      RAG_ENABLED: 'false'
+      OLLAMA_ENABLED: 'false'
+      OVH_SMS_ENABLED: 'false'
+      GED_SHAREPOINT_SYNC_ENABLED: 'false'
+      SENTRY_DSN: ''
+      NEXT_PUBLIC_SENTRY_DSN: ''
+      NEXT_PUBLIC_CDN_URL: ''
       RUN_DESTRUCTIVE: ${{ github.event.inputs.destructive == 'true' && '1' || '' }}
-
+      E2E_GREP: ${{ github.event.inputs.grep || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
-
+          persist-credentials: false
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9.15.0
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24.22.3'
-          cache: 'pnpm'
-
+          cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
+      - name: Generate synthetic session credentials
+        run: node scripts/e2e/write-ci-env.mjs
       - name: Generate Prisma client
         run: pnpm -C packages/database exec prisma generate
-
-      - name: Apply Prisma migrations + seed
-        run: |
-          pnpm -C packages/database exec prisma migrate deploy
-          # Seed minimal dataset (admin user + 1 collab + a few docs/tickets)
-          if [ -f packages/database/prisma/seed.ts ] || [ -f packages/database/prisma/seed.js ]; then
-            pnpm -C packages/database exec prisma db seed || echo "seed not configured — skipping"
-          fi
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            playwright-${{ runner.os }}-
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - name: Typecheck E2E fixtures, specs and helpers
+        run: pnpm --filter @omnitech/frontend exec tsc --project ../../tsconfig.e2e.json
+      - name: Require standard ZIP inspection runtime
+        run: python3 --version
+      - name: Bootstrap empty disposable schema and fixtures
+        run: pnpm --filter @omnitech/database exec tsx prisma/seed-e2e.ts
+      - name: Install Playwright browser and dependencies
         run: pnpm exec playwright install --with-deps chromium
-
-      - name: Install Playwright system deps
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm exec playwright install-deps chromium
-
       - name: Build backend
         run: pnpm -C apps/backend run build
-
-      - name: Build frontend
+      - name: Build production frontend
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:3000/api
+          NODE_ENV: production
         run: pnpm -C apps/frontend run build
-
-      - name: Start backend (background)
+      - name: Start backend and require database readiness
         env:
-          PORT: 3000
+          PORT: '3000'
         run: |
           pnpm -C apps/backend run start:prod > backend.log 2>&1 &
           echo $! > backend.pid
-          # Wait for /api/health
-          for i in {1..60}; do
-            if curl -sf http://localhost:3000/api/health > /dev/null; then
-              echo "Backend up."
-              break
-            fi
-            sleep 2
-          done
-
-      - name: Start frontend (background)
+          pnpm --filter @omnitech/database exec tsx ../../scripts/e2e/wait-ready.ts backend "$E2E_BACKEND_INTERNAL_URL/api/v1/health?check=db" 120000 "$GITHUB_WORKSPACE/backend.pid"
+      - name: Start frontend and require Next.js readiness
         env:
-          PORT: 3001
-          NEXT_PUBLIC_API_URL: http://localhost:3000/api
+          NODE_ENV: production
         run: |
-          pnpm -C apps/frontend run start > frontend.log 2>&1 &
+          pnpm --filter @omnitech/frontend exec next start -p 3001 -H 127.0.0.1 > frontend.log 2>&1 &
           echo $! > frontend.pid
-          for i in {1..60}; do
-            if curl -sf http://localhost:3001 > /dev/null; then
-              echo "Frontend up."
-              break
-            fi
-            sleep 2
-          done
-
-      - name: Run Playwright tests
+          pnpm --filter @omnitech/database exec tsx ../../scripts/e2e/wait-ready.ts frontend "$E2E_FRONTEND_INTERNAL_URL/login" 120000 "$GITHUB_WORKSPACE/frontend.pid"
+      - name: Start same-origin test edge and require readiness
         run: |
-          if [ -n "${{ github.event.inputs.grep }}" ]; then
-            pnpm exec playwright test --project=chromium --grep "${{ github.event.inputs.grep }}"
-          else
-            pnpm exec playwright test --project=chromium
-          fi
-
-      - name: Stop background services
+          node scripts/e2e/proxy.mjs > proxy.log 2>&1 &
+          echo $! > proxy.pid
+          pnpm --filter @omnitech/database exec tsx ../../scripts/e2e/wait-ready.ts frontend "$BASE_URL/login" 120000 "$GITHUB_WORKSPACE/proxy.pid"
+      - name: Run real Playwright tests
+        run: |
+          args=(--project=chromium)
+          if [ -n "$E2E_GREP" ]; then args+=(--grep "$E2E_GREP"); fi
+          pnpm exec playwright test "${args[@]}"
+      - name: Stop owned server processes
         if: always()
         run: |
-          [ -f backend.pid ]  && kill "$(cat backend.pid)"  2>/dev/null || true
-          [ -f frontend.pid ] && kill "$(cat frontend.pid)" 2>/dev/null || true
-
-      - name: Upload Playwright HTML report
+          for file in proxy.pid frontend.pid backend.pid; do
+            if [ -f "$file" ]; then kill "$(cat "$file")" 2>/dev/null || true; fi
+          done
+      - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -215,8 +172,7 @@ jobs:
           path: playwright-report/
           if-no-files-found: ignore
           retention-days: 7
-
-      - name: Upload traces & videos
+      - name: Upload failure traces
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -224,8 +180,7 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
           retention-days: 7
-
-      - name: Upload server logs (on failure)
+      - name: Upload failure server logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -233,5 +188,6 @@ jobs:
           path: |
             backend.log
             frontend.log
+            proxy.log
           if-no-files-found: ignore
           retention-days: 3

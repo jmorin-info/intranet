@@ -1,129 +1,142 @@
 import { testApiUrl } from './helpers/test-environment';
 import { test, expect } from './helpers/safe-test';
-import { ADMIN_CREDS } from './helpers/auth';
-
-/**
- * Authentication flows — run unauthenticated (no storageState).
- * Covers login (OK/KO), MFA challenge, forgot-password, refresh, logout.
- */
+import { ADMIN_CREDS, authenticateRequest, assertAuthenticated } from './helpers/auth';
+import { testMfaCode, waitForTotpWindow } from './helpers/totp';
+import { waitForLoginSlot } from './helpers/login-budget';
 
 const API = testApiUrl();
+const loginResponse = (page: import('@playwright/test').Page) => page.waitForResponse((response) =>
+  new URL(response.url()).pathname.endsWith('/auth/login') && response.request().method() === 'POST');
 
-test.describe('Authentication', () => {
-  test('login page renders', async ({ page }) => {
+async function passwordStep(page: import('@playwright/test').Page) {
+  await page.goto('/login');
+  await page.locator('input[type="email"]').fill(ADMIN_CREDS.email);
+  await page.locator('input[type="password"]').fill(ADMIN_CREDS.password);
+  await waitForLoginSlot();
+  const response = loginResponse(page);
+  await page.locator('button[type="submit"]').click();
+  return response;
+}
+
+test.describe('Authentication with a real MFA-enabled fixture', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+  test.describe.configure({ timeout: 150_000 });
+
+  test('login page renders an accessible credential form', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.locator('h2')).toContainText('Connexion');
+    await expect(page.getByRole('heading', { level: 2, name: 'Connexion', exact: true })).toBeVisible();
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toBeVisible();
   });
 
-  test('login with valid credentials → dashboard or MFA', async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[type="email"]', ADMIN_CREDS.email);
-    await page.fill('input[type="password"]', ADMIN_CREDS.password);
-    await page.click('button[type="submit"]');
-
-    // Either dashboard (no MFA) or MFA challenge (MFA enforced) is acceptable
-    await Promise.race([
-      page.waitForURL('**/dashboard', { timeout: 10_000 }),
-      page.waitForURL('**/mfa/**', { timeout: 10_000 }),
-      expect(page.locator('input[autocomplete="one-time-code"], [data-testid="mfa-code"]'))
-        .toBeVisible({ timeout: 10_000 }),
-    ]);
+  test('password and valid OTP reach the authenticated dashboard', async ({ page }) => {
+    const challenge = await passwordStep(page);
+    expect(challenge.status()).toBe(200);
+    expect((await challenge.json()).mfaRequired).toBe(true);
+    const input = page.getByPlaceholder('000000', { exact: true });
+    await expect(input).toBeVisible();
+    await waitForLoginSlot();
+    await waitForTotpWindow();
+    const code = testMfaCode('ADMIN');
+    expect(code, 'The fixture must supply its explicit synthetic TOTP secret.').toMatch(/^\d{6}$/);
+    await input.fill(code!);
+    const completed = loginResponse(page);
+    await input.press('Enter');
+    expect((await completed).status()).toBe(200);
+    await page.waitForURL('**/dashboard');
+    await assertAuthenticated(page.request, 'ADMIN');
+    await expect(page.getByRole('heading', { level: 1, name: /Compte/ })).toBeVisible();
   });
 
-  test('login with invalid credentials → 401 + FR error toast', async ({ page, request }) => {
-    // API-level assertion: status 401 and French error message
-    const res = await request.post(`${API}/auth/login`, {
-      data: { email: 'invalid@omnitech-security.fr', password: 'WrongPassword!' },
-      failOnStatusCode: false,
-    });
-    expect([400, 401]).toContain(res.status());
-    const body = await res.json().catch(() => ({}));
-    // Accept any FR message from backend; common keys: message, error
-    const msg = JSON.stringify(body).toLowerCase();
-    expect(msg).toMatch(/incorrect|invalide|identifiant|mot de passe|invalid|unauthorized/);
-
-    // UI-level: toast shown
+  test('incorrect credentials return 401 and display a visible error', async ({ page, request }) => {
+    const invalid = { email: 'unknown@example.test', password: 'Wrong' + 'Password1!' };
+    await waitForLoginSlot();
+    const response = await request.post(`${API}/auth/login`, { data: invalid, failOnStatusCode: false, maxRedirects: 0 });
+    expect(response.status()).toBe(401);
+    expect((await response.json()).message).toMatch(/incorrect|invalide/i);
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'invalid@omnitech-security.fr');
-    await page.fill('input[type="password"]', 'WrongPassword!');
-    await page.click('button[type="submit"]');
-    await expect(
-      page.locator('[data-sonner-toast], [role="alert"], [role="status"]').first(),
-    ).toBeVisible({ timeout: 8_000 });
+    await page.locator('input[type="email"]').fill(invalid.email);
+    await page.locator('input[type="password"]').fill(invalid.password);
+    await waitForLoginSlot();
+    const rejected = loginResponse(page);
+    await page.locator('button[type="submit"]').click();
+    expect((await rejected).status()).toBe(401);
+    await expect(page.locator('[data-sonner-toast]').filter({ hasText: /incorrect|erreur|invalide/i }).first()).toBeVisible();
+    expect((await page.request.get(`${API}/auth/me`, { failOnStatusCode: false })).status()).toBe(401);
   });
 
-  test('MFA-enabled user → code prompt', async ({ page }) => {
-    // This test is non-destructive: we only assert that IF MFA is enforced on
-    // the admin, the code prompt appears. Otherwise we skip.
-    await page.goto('/login');
-    await page.fill('input[type="email"]', ADMIN_CREDS.email);
-    await page.fill('input[type="password"]', ADMIN_CREDS.password);
-    await page.click('button[type="submit"]');
-
-    const mfaInput = page.locator(
-      'input[autocomplete="one-time-code"], [data-testid="mfa-code"], input[name="code"]',
-    );
-    const dashboardUrl = page.waitForURL('**/dashboard', { timeout: 8_000 }).then(() => 'dashboard');
-    const mfaVisible = mfaInput.first().waitFor({ state: 'visible', timeout: 8_000 }).then(() => 'mfa');
-
-    const outcome = await Promise.race([dashboardUrl, mfaVisible]).catch(() => 'none');
-
-    if (outcome === 'mfa') {
-      await expect(mfaInput.first()).toBeVisible();
-    } else {
-      test.skip(true, 'MFA non imposé sur ce compte — étape non testable sans OTP secret');
-    }
+  test('a password-only MFA challenge does not create an authenticated session', async ({ page }) => {
+    const response = await passwordStep(page);
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.mfaRequired).toBe(true);
+    expect(body.accessToken).toBeUndefined();
+    await expect(page.getByPlaceholder('000000', { exact: true })).toBeVisible();
+    expect((await page.request.get(`${API}/auth/me`, { failOnStatusCode: false })).status()).toBe(401);
   });
 
-  test('forgot password → form submission acknowledged', async ({ page }) => {
+  test('forgot-password acknowledges a fictitious account without an SMTP integration', async ({ page }) => {
     await page.goto('/forgot-password');
-    await expect(page.locator('h1')).toContainText(/Mot de passe/i);
-    await page.fill('input[type="email"]', ADMIN_CREDS.email);
-    await page.click('button[type="submit"]');
-    // Expect any success indicator: toast, redirect, or confirmation text
-    await expect(
-      page
-        .locator('[data-sonner-toast], [role="status"], text=/envoy|reçu|email/i')
-        .first(),
-    ).toBeVisible({ timeout: 8_000 });
+    await page.locator('input[type="email"]').fill(ADMIN_CREDS.email);
+    const response = page.waitForResponse((r) => new URL(r.url()).pathname.endsWith('/auth/forgot-password') && r.request().method() === 'POST');
+    await page.locator('button[type="submit"]').click();
+    expect((await response).status()).toBe(200);
+    await expect(page.getByText(/envoy|reçu|vérifi|boîte|email/i).first()).toBeVisible();
   });
 
-  test('refresh endpoint issues new access token from refresh cookie', async ({ request }) => {
-    // 1) Login to obtain refresh cookie in the request context
-    const login = await request.post(`${API}/auth/login`, {
-      data: ADMIN_CREDS,
-      failOnStatusCode: false,
-    });
-    test.skip(!login.ok(), `Login failed on preprod (status ${login.status()}) — cannot test refresh`);
-
-    // 2) Call refresh — cookie is carried by the context; should return 200/201
-    const refresh = await request.post(`${API}/auth/refresh`, { failOnStatusCode: false });
-    expect([200, 201]).toContain(refresh.status());
-    const data = await refresh.json().catch(() => ({}));
-    // Should include an access token (field name varies across versions)
-    const hasAccess = Boolean(
-      data.accessToken || data.access_token || data.token || data.data?.accessToken,
-    );
-    expect(hasAccess).toBeTruthy();
+  test('refresh rotates a real cookie session and preserves the verified identity', async ({ request }) => {
+    await authenticateRequest(request, 'ADMIN');
+    const initial = (await request.storageState()).cookies;
+    const before = initial.find((cookie) => cookie.name === 'accessToken');
+    const beforeRefresh = initial.find((cookie) => cookie.name === 'refreshToken');
+    expect(before?.httpOnly).toBe(true);
+    expect(beforeRefresh?.httpOnly).toBe(true);
+    const response = await request.post(`${API}/auth/refresh`, { failOnStatusCode: false, maxRedirects: 0 });
+    expect(response.status()).toBe(200);
+    const rotated = (await request.storageState()).cookies;
+    const after = rotated.find((cookie) => cookie.name === 'accessToken');
+    expect(after?.httpOnly).toBe(true);
+    expect(rotated.find((cookie) => cookie.name === 'refreshToken')?.value).not.toBe(beforeRefresh?.value);
+    await assertAuthenticated(request, 'ADMIN');
   });
 
-  test('logout purges auth cookie', async ({ page, request }) => {
-    // Programmatic login first
-    const login = await request.post(`${API}/auth/login`, { data: ADMIN_CREDS, failOnStatusCode: false });
-    test.skip(!login.ok(), 'Preprod login unavailable — skipping logout UI test');
-
+  test('logout clears cookies, revokes the real refresh session and makes the browser anonymous', async ({ page, playwright }) => {
+    await authenticateRequest(page.request, 'ADMIN');
+    const refresh = (await page.context().cookies()).find((cookie) => cookie.name === 'refreshToken');
+    expect(refresh?.httpOnly).toBe(true);
     await page.goto('/dashboard');
-    // Trigger logout (endpoint + navigation)
-    await request.post(`${API}/auth/logout`, { failOnStatusCode: false });
-    await page.context().clearCookies();
-
+    const response = await page.request.post(`${API}/auth/logout`, { failOnStatusCode: false, maxRedirects: 0 });
+    expect(response.status()).toBe(200);
+    expect((await page.context().cookies()).some((cookie) => cookie.name === 'accessToken' || cookie.name === 'refreshToken')).toBe(false);
+    expect((await page.request.get(`${API}/auth/me`, { failOnStatusCode: false })).status()).toBe(401);
+    const replay = await playwright.request.newContext({ extraHTTPHeaders: { Cookie: `refreshToken=${refresh!.value}` } });
+    try {
+      expect((await replay.post(`${API}/auth/refresh`, { failOnStatusCode: false, maxRedirects: 0 })).status()).toBe(401);
+    } finally { await replay.dispose(); }
     await page.goto('/dashboard');
-    // Unauthenticated → redirect to /welcome or /login
-    await page.waitForURL(/\/(welcome|login)/, { timeout: 10_000 });
+    await page.waitForURL(/\/(welcome|login)(?:\?|$)/);
   });
 
-  test('should redirect to welcome when not authenticated', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForURL(/\/(welcome|login)/, { timeout: 10_000 });
+  test('an anonymous visit cannot open the dashboard', async ({ page }) => {
+    await page.goto('/dashboard');
+    await page.waitForURL(/\/(welcome|login)(?:\?|$)/);
+  });
+
+  test('the compatibility logout revokes a real refresh cookie scoped to the former path without an access cookie', async ({ request, playwright }) => {
+    await authenticateRequest(request, 'ADMIN');
+    const refresh = (await request.storageState()).cookies.find((cookie) => cookie.name === 'refreshToken');
+    expect(refresh?.httpOnly).toBe(true);
+    const legacy = await playwright.request.newContext({ storageState: {
+      cookies: [{ ...refresh!, path: new URL(`${API}/auth/refresh`).pathname }], origins: [],
+    } });
+    try {
+      const response = await legacy.post(`${API}/auth/refresh/logout`, { failOnStatusCode: false, maxRedirects: 0 });
+      expect(response.status()).toBe(200);
+      expect((await legacy.storageState()).cookies.some((cookie) => cookie.name === 'refreshToken')).toBe(false);
+    } finally { await legacy.dispose(); }
+    const replay = await playwright.request.newContext({ extraHTTPHeaders: { Cookie: `refreshToken=${refresh!.value}` } });
+    try {
+      expect((await replay.post(`${API}/auth/refresh`, { failOnStatusCode: false, maxRedirects: 0 })).status()).toBe(401);
+    } finally { await replay.dispose(); }
   });
 });

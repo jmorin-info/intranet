@@ -1,73 +1,43 @@
-import { test, expect } from "./helpers/safe-test";
-import { login, credsFor } from "./helpers/login";
+import { execFileSync } from 'node:child_process';
+import { test, expect } from './helpers/safe-test';
+import { login, credsFor } from './helpers/login';
 
-/**
- * GDPR — droit d'accès (RGPD art. 15).
- *
- * Flow : login USER → /profile → cliquer "Exporter mes données" → réceptionner
- * le téléchargement → vérifier que le JSON contient `id`, `email`, `firstName`.
- *
- * Pré-requis : un compte USER seedé. Si absent, le test est skippé avec une
- * note documentant comment seeder (cf. global-setup.ts / prisma seed).
- */
+// Python's standard ZIP reader avoids a second application dependency and
+// never extracts archive paths to disk. CI uses the Ubuntu Python 3 runtime.
+const readArchive = String.raw`
+import hashlib, json, sys, zipfile
+with zipfile.ZipFile(sys.argv[1]) as archive:
+    names = archive.namelist()
+    required = ['data.json', 'rapport.pdf', 'audit-logs.csv', 'README.txt']
+    if sorted(names) != sorted(required): raise ValueError('Unexpected export entries')
+    if any(entry.file_size > 20 * 1024 * 1024 for entry in archive.infolist()): raise ValueError('Oversized synthetic export')
+    data = archive.read('data.json')
+    print(json.dumps({'files': names, 'data': json.loads(data), 'hash': hashlib.sha256(data).hexdigest(),
+        'readme': archive.read('README.txt').decode('utf-8'), 'pdf': archive.read('rapport.pdf').startswith(b'%PDF-')}))
+`;
 
-test.describe("GDPR — export personal data (art. 15)", () => {
-  test("user can export their data as JSON from /profile", async ({ page }) => {
-    await login(page, "USER");
-
-    // Sanity check: if the login API returned 401 we won't be on dashboard.
-    const url = page.url();
-    if (url.includes("/login")) {
-      test.skip(
-        true,
-        "USER seed manquant — créer un compte USER (cf. apps/backend/prisma/seed.ts) ou exporter E2E_COLLAB_EMAIL/PASSWORD.",
-      );
-    }
-
-    await page.goto("/profile");
-    // TODO(selector): bouton GDPR — locator générique avec fallback texte FR/EN.
-    const exportBtn = page
-      .getByRole("button", {
-        name: /export(er)?( mes)? données|export( my)? data|RGPD|GDPR/i,
-      })
-      .first();
-
-    if (!(await exportBtn.isVisible().catch(() => false))) {
-      test.skip(
-        true,
-        "Bouton export GDPR non trouvé sur /profile — TODO(selector).",
-      );
-    }
-
-    const [download] = await Promise.all([
-      page.waitForEvent("download", { timeout: 15_000 }),
-      exportBtn.click(),
-    ]);
-
-    const path = await download.path();
-    expect(path, "download must produce a file path").toBeTruthy();
-    const fs = await import("node:fs");
-    const raw = fs.readFileSync(path!, "utf-8");
-    let payload: Record<string, unknown> = {};
-    try {
-      payload = JSON.parse(raw);
-    } catch {
-      throw new Error(
-        `GDPR export n'est pas du JSON valide. 1er kilo:\n${raw.slice(0, 1024)}`,
-      );
-    }
-
-    // The payload may be nested (e.g. { user: {...}, audit: [...] }) — try
-    // both shapes.
-    const user =
-      (payload as { user?: Record<string, unknown> }).user ?? payload;
-    expect(user).toHaveProperty("id");
-    expect(user).toHaveProperty("email");
-    expect(user).toHaveProperty("firstName");
-
-    const expectedEmail = credsFor("USER").email;
-    expect(String((user as { email: unknown }).email).toLowerCase()).toBe(
-      expectedEmail.toLowerCase(),
-    );
+test.describe('Personal data export of a synthetic collaborator', () => {
+  test('the profile downloads a ZIP with JSON, PDF, audit CSV and matching integrity hash', async ({ page }) => {
+    await login(page, 'USER');
+    await page.goto('/profile');
+    const button = page.getByRole('button', { name: 'Télécharger mes données (ZIP)', exact: true });
+    await expect(button).toBeVisible();
+    const response = page.waitForResponse((value) => new URL(value.url()).pathname.endsWith('/users/me/gdpr-export') && value.request().method() === 'POST');
+    const [download, exported] = await Promise.all([page.waitForEvent('download'), response, button.click()]);
+    expect(exported.status()).toBe(200);
+    expect(exported.headers()['content-type']).toContain('application/zip');
+    expect(download.suggestedFilename()).toMatch(/^export-rgpd-.*\.zip$/);
+    const filename = await download.path();
+    expect(filename).toBeTruthy();
+    const payload = JSON.parse(execFileSync('python3', ['-c', readArchive, filename!], { encoding: 'utf8', maxBuffer: 5 * 1024 * 1024 }));
+    expect(payload.files).toEqual(expect.arrayContaining(['data.json', 'rapport.pdf', 'audit-logs.csv', 'README.txt']));
+    expect(payload.pdf).toBe(true);
+    expect(payload.hash).toBe(exported.headers()['x-gdpr-data-sha256']);
+    expect(payload.readme).toContain(payload.hash);
+    expect(payload.data.user.email).toBe(credsFor('USER').email);
+    expect(payload.data.user).toHaveProperty('id');
+    expect(payload.data.user).toHaveProperty('firstName');
+    expect(payload.data.user).not.toHaveProperty('passwordHash');
+    expect(payload.data.user).not.toHaveProperty('mfaSecret');
   });
 });

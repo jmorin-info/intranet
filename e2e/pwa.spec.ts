@@ -16,6 +16,7 @@ test.describe('PWA', () => {
   });
 
   test('service worker is registered on the client', async ({ page }) => {
+    test.skip(test.info().project.use.serviceWorkers === 'block', 'This guarded E2E profile blocks service workers; registration needs a dedicated PWA profile.');
     await page.goto('/');
     // Wait for SW registration (best effort — app may register post-hydration)
     const registered = await page
@@ -38,6 +39,7 @@ test.describe('PWA', () => {
   });
 
   test('offline navigation serves /offline fallback', async ({ page, context }) => {
+    test.skip(test.info().project.use.serviceWorkers === 'block', 'This guarded E2E profile blocks service workers; offline caching is not qualified here.');
     // Prime SW
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');

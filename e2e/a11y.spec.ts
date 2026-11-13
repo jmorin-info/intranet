@@ -42,10 +42,13 @@ const AUTHENTICATED_PAGES = ["/dashboard", "/admin/content/blocks"];
  * mais non bloquantes — elles méritent revue mais pas blocage CI.
  */
 async function runAxe(page: import("@playwright/test").Page, path: string) {
-  await page.goto(path, { waitUntil: "networkidle" });
-  // Attendre la fin des transitions / hydratation (les composants async
-  // CMS et les Client Components peuvent ajouter du DOM après load).
-  await page.waitForTimeout(500);
+  const authenticated = path.startsWith('/dashboard') || path.startsWith('/admin/');
+  const profile = authenticated
+    ? page.waitForResponse((response) => new URL(response.url()).pathname.endsWith('/auth/me') && response.status() === 200)
+    : null;
+  await page.goto(path, { waitUntil: 'domcontentloaded' });
+  if (profile) await profile;
+  await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
 
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "best-practice"])

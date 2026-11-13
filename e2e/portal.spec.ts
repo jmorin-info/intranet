@@ -9,6 +9,7 @@ import { test, expect } from './helpers/safe-test';
  */
 
 test.describe('Public Portal (/welcome)', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
   test('portal loads without authentication', async ({ page }) => {
     await page.goto('/welcome');
     await expect(page).toHaveTitle(/OMNITECH/);
@@ -16,7 +17,7 @@ test.describe('Public Portal (/welcome)', () => {
 
   test('hero section renders with CTA', async ({ page }) => {
     await page.goto('/welcome');
-    await expect(page.locator('text=OMNITECH Security')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /Bienvenue.*OMNITECH Security/ })).toBeVisible();
     // CTA button should exist (login or dashboard)
     await expect(page.locator('a[href="/login"], a[href="/dashboard"]').first()).toBeVisible();
   });
@@ -54,6 +55,7 @@ test.describe('Public Portal (/welcome)', () => {
 });
 
 test.describe('Public API Endpoints', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
   const API = testApiUrl();
 
   test('GET /public/info returns platform stats', async ({ request }) => {

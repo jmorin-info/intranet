@@ -1,10 +1,20 @@
 import { test as base, expect } from '@playwright/test';
-import { assertTestEnvironment, assertTestUrl } from './test-environment';
+import { assertTestEnvironment, assertTestUrl, testBaseUrl } from './test-environment';
 
 /** Also protect against an already compiled front end pointing to production. */
 export const test = base.extend<{ productionRequestGuard: void }>({
   productionRequestGuard: [async ({ context }, use) => {
     assertTestEnvironment();
+    // Deterministic display preferences; authentication remains server-issued.
+    await context.addCookies([{ name: 'NEXT_LOCALE', value: 'fr', url: testBaseUrl(), sameSite: 'Lax' }]);
+    await context.addInitScript(() => {
+      localStorage.setItem('locale', 'fr');
+      // Display preferences for an experienced user, unrelated to authentication
+      // or server onboarding completion. The welcome tour has separate coverage.
+      localStorage.setItem('onboarding_completed', 'true');
+      localStorage.setItem('tips_first_login_done', 'true');
+      localStorage.setItem('tips_last_shown', String(Date.now()));
+    });
     const blocked: string[] = [];
     await context.route('**/*', async (route) => {
       const url = route.request().url();

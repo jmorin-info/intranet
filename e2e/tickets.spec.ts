@@ -8,23 +8,27 @@ import { test, expect } from './helpers/safe-test';
 const DESTRUCTIVE = !!process.env.RUN_DESTRUCTIVE;
 
 test.describe('Tickets — listing & views', () => {
-  test('lists tickets', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     await page.goto('/tickets');
-    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Espaces de ticketing', exact: true })).toBeVisible();
+    await page.getByRole('link', { name: /Support E2E/ }).click();
+    await expect(page).toHaveURL(/\/tickets\?space=support-e2e/);
+  });
+
+  test('the selected space lists the synthetic ticket', async ({ page }) => {
+    await expect(page.getByRole('cell', { name: 'Demande synthétique E2E', exact: true })).toBeVisible();
   });
 
   test('kanban view shows status columns', async ({ page }) => {
-    await page.goto('/tickets');
-    const kanbanTrigger = page.getByRole('button', { name: /kanban/i }).first();
-    if (!(await kanbanTrigger.isVisible().catch(() => false))) {
-      // Already on kanban or toggle is a text button
-      await page.locator('text=/Kanban/i').first().click().catch(() => {});
-    } else {
-      await kanbanTrigger.click();
+    const trigger = page.getByRole('tab', { name: 'Vue Kanban', exact: true });
+    await trigger.click();
+    await expect(trigger).toHaveAttribute('aria-selected', 'true');
+    const board = page.getByRole('list', { name: 'Vue Kanban des tickets', exact: true });
+    await expect(board).toBeVisible();
+    for (const name of ['Ouvert', 'En cours', 'En attente', 'Résolu']) {
+      await expect(board.getByRole('listitem', { name: `Colonne ${name}`, exact: true })).toBeVisible();
     }
-    await expect(page.locator('text=/Ouvert|Open/i').first()).toBeVisible({ timeout: 6_000 });
-    await expect(page.locator('text=/En cours|In progress/i').first()).toBeVisible();
-    await expect(page.locator('text=/Résolu|Resolved/i').first()).toBeVisible();
+    await expect(board.getByRole('button', { name: /Ticket E2E-TICKET-001 : Demande synthétique E2E/ })).toBeVisible();
   });
 });
 
