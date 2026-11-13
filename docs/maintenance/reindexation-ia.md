@@ -99,3 +99,59 @@ modèles génératifs et des autres tâches IA doit rester surveillé séparéme
 
 Aucune réindexation réelle de la VM n’a été exécutée pour qualifier le correctif.
 Les tests d’intégration emploient seulement des documents synthétiques.
+
+## Reprise locale avec root système, sans session applicative
+
+Le CLI `apps/backend/scripts/reindex-lexical.cjs` instancie uniquement les services
+nécessaires. Il ne démarre ni serveur HTTP, ni `AppModule`, ni scheduler, ni
+préchauffage et ne fabrique aucun utilisateur ou JWT. Il désactive les modèles
+et interdit `fetch` dans son processus. Les écritures restent exclusivement les
+remplacements d’index du service RAG, avec ses contrôles version/CLEAN,
+transactions, garde mémoire, verrou Redis et annulation.
+
+Il exige root système, le Node 24 qualifié, une URL PostgreSQL locale et un
+répertoire de stockage absolu déjà existant. Il contrôle l’identité effective
+PostgreSQL avant toute indexation et borne son pool à deux connexions.
+`--check` vérifie aussi Redis et affiche uniquement un nombre de documents
+éligibles et la mémoire disponible. Le CLI refuse un ancien build RAG ne portant
+pas son contrat explicite : reconstruire le backend avec le commit CLI avant
+utilisation.
+
+Depuis la VM, après vérification des chemins réellement utilisés par le service :
+
+```bash
+cd /root/omnitech-intranet
+# Fichier existant déjà utilisé par l'application ; ne pas copier ses secrets.
+INTRANET_ENV_FILE=/root/omnitech-intranet/.env
+# Choisir le stockage existant de l'application, jamais un répertoire de secours.
+INTRANET_STORAGE_ROOT=/root/omnitech-intranet/storage
+STORAGE_PATH="$INTRANET_STORAGE_ROOT" /opt/node-v24.22.3-linux-x64/bin/node \
+  --env-file="$INTRANET_ENV_FILE" apps/backend/scripts/reindex-lexical.cjs --check
+```
+
+Ces deux chemins sont à confronter à l’unité déployée. Le CLI refuse un stockage
+absent ; il n’en crée pas et n’essaie aucune autre base. Après résultat
+`status: ready`, même commande avec `--apply` :
+
+```bash
+STORAGE_PATH="$INTRANET_STORAGE_ROOT" /opt/node-v24.22.3-linux-x64/bin/node \
+  --env-file="$INTRANET_ENV_FILE" apps/backend/scripts/reindex-lexical.cjs --apply
+```
+
+La sortie est un JSON agrégé, sans contenu, titre, identifiant de document,
+chemin de fichier, URL ou secret. `status: complete` et code 0 indiquent une
+reconstruction sans erreur signalée ; `partial` et code 2 conservent les
+anciennes générations des sources échouées. Le nombre d’erreurs est borné à 100
+et `errorsMayBeTruncated` le signale. Une configuration/ressource/verrou refusé
+renvoie `stopped` et code 1. Ctrl+C/SIGTERM interrompent le travail de façon
+coopérative (codes 130/143), sans supprimer une génération valide.
+
+Ne pas changer `RAG_MAINTENANCE_MODE` pour forcer un lancement refusé et ne pas
+abaisser les planchers mémoire. Un signal ne réserve pas de RAM ; garder le
+suivi des OOM et la vérification de santé applicative pendant le traitement.
+
+Qualification : 5 tests de frontières du CLI et une exécution réelle sur
+PostgreSQL 16.16 + Redis isolés, sans port publié : précontrôle, refus quand un
+autre propriétaire tient le verrou, reconstruction d’un snapshot HTML et
+libération du verrou. Les 8 scénarios RAG cumulent 62 assertions. Le CLI a été
+exécuté sans `NODE_PATH` et sans données de production.

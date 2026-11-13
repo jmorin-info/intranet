@@ -110,6 +110,27 @@ async function main() {
     ok(!(await sqlHits()).some((r) => r.sourceId === wiki.id)); ok(!(await sqlHits()).some((r) => r.sourceId === rb.id));
     const candidates = await prisma.ragChunk.findMany({ where: { sourceId: { in: [wiki.id, rb.id] } } }); equal(await service.applyRbacFilter(candidates, reader), []);
   });
+  await test('root CLI performs a real lexical rebuild without JWT, HTTP, cron, warmup or business output', async () => {
+    await prisma.ragChunk.deleteMany(); await prisma.document.deleteMany(); await prisma.wikiPage.deleteMany(); await prisma.runbook.deleteMany();
+    const f = await fixture('UNSAVED DRAFT MUST NOT BE INDEXED');
+    const storage = path.join(runDir, 'cli-storage'); fs.mkdirSync(path.join(storage, 'cli'), { recursive: true });
+    fs.writeFileSync(path.join(storage, 'cli/current.html'), '<html><head><title>PRIVATE TITLE</title></head><body>Synthetic canonical CLI version</body></html>');
+    await prisma.documentVersion.update({ where: { id: f.version }, data: { fileUrl: '/storage/cli/current.html', fileType: 'text/html' } });
+    const cli = path.join(source, 'apps/backend/scripts/reindex-lexical.cjs');
+    const env = { ...process.env, NODE_PATH: '', DATABASE_URL: url.href, STORAGE_PATH: storage, REDIS_URL: process.env.INTEGRATION_REDIS_URL, RAG_SEMANTIC_ENABLED: 'true', RAG_REINDEX_SEMANTIC_ENABLED: 'true', OLLAMA_ENABLED: 'true', OLLAMA_WARMUP_ENABLED: 'true' };
+    const execute = (mode) => require('node:child_process').spawnSync(process.execPath, [cli, mode], { env, encoding: 'utf8', timeout: 30_000, maxBuffer: 16_384 });
+    const ready = execute('--check'); equal(ready.status, 0); const readiness = JSON.parse(ready.stdout); equal(readiness.status, 'ready'); equal(readiness.modelsEnabled, false);
+    const Redis = localRequire('ioredis'); const redis = new Redis(process.env.INTEGRATION_REDIS_URL);
+    try {
+      await redis.set('omnitech:rag:reindex:v1', 'synthetic-other-owner', 'PX', 30_000);
+      const busy = execute('--apply'); equal(busy.status, 1); equal(JSON.parse(busy.stdout).code, 'maintenance_failed');
+      equal(await redis.get('omnitech:rag:reindex:v1'), 'synthetic-other-owner'); await redis.del('omnitech:rag:reindex:v1');
+      const rebuilt = execute('--apply'); equal(rebuilt.status, 0); const result = JSON.parse(rebuilt.stdout); equal(result.status, 'complete'); equal(result.errorsCount, 0); equal(result.indexed.DOCUMENT, 1); equal(result.modelsEnabled, false);
+      ok(!rebuilt.stdout.includes('Synthetic canonical')); ok(!rebuilt.stdout.includes('PRIVATE TITLE')); ok(!rebuilt.stdout.includes('UNSAVED DRAFT')); ok(!rebuilt.stdout.includes(f.id));
+      const generated = await chunks(f.id); equal(generated[0].content, 'Synthetic canonical CLI version'); equal(generated[0].metadata.documentVersionId, f.version);
+      equal(await redis.get('omnitech:rag:reindex:v1'), null);
+    } finally { redis.disconnect(); }
+  });
   report.status = 'passed'; report.totals = { scenarios: report.tests.length, checks }; report.finishedAt = new Date().toISOString(); save();
 }
 main().catch((error) => { report.status = 'failed'; report.error = String(error.stack || error).replaceAll(url.password, '[redacted]'); save(); process.exitCode = 1; }).finally(() => prisma.$disconnect());

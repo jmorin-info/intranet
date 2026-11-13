@@ -62,7 +62,8 @@ def run(command, log, env=None):
         raise RuntimeError(f'{command[0]} failed ({result.returncode}); inspect private {log}')
 
 write_json('manifest.json', manifest)
-created_network = created_container = False
+created_network = created_container = created_redis = False
+redis_name = name + "-redis"
 try:
     run(['docker', 'network', 'create', '--internal', '--label', label, network], 'setup.log')
     created_network = True
@@ -84,7 +85,19 @@ try:
     namespace = ['nsenter', '--target', str(pid), '--net', '--']
     image = json.loads(subprocess.check_output(['docker', 'image', 'inspect', args.image]))[0]
     write_json('isolation.json', {'containerId': inspect['Id'], 'imageId': inspect['Image'], 'imageDigests': image.get('RepoDigests'), 'portBindings': bindings, 'effectivePorts': inspect['NetworkSettings']['Ports'], 'connectionMethod': 'nsenter-private-network', 'memoryBytes': inspect['HostConfig']['Memory'], 'nanoCpus': inspect['HostConfig']['NanoCpus'], 'networkInternal': True, 'tmpfs': inspect['HostConfig']['Tmpfs']})
-    env = {'PATH': os.environ['PATH'], 'HOME': str(Path.home()), 'NODE_PATH': str(source / 'node_modules/.pnpm/node_modules') + ':' + str(source / 'apps/backend/node_modules') + ':' + str(source / 'node_modules'), 'DATABASE_URL': url, 'INTRANET_INTEGRATION_SOURCE': str(source), 'INTRANET_INTEGRATION_DATABASE_URL': url, 'INTRANET_INTEGRATION_BACKEND_DIST': str(backend_dist), 'INTEGRATION_RUN_DIR': str(run_dir), 'INTEGRATION_PG_PORT': '5432', 'INTEGRATION_ALLOWED': 'throwaway-postgres-only', 'INTEGRATION_ONLY': args.only}
+    run(['docker', 'run', '-d', '--name', redis_name, '--label', label, '--network', network, '--cpus', '0.25', '--memory', '64m', '--memory-swap', '64m', '--read-only', '--tmpfs', '/data:rw,nosuid,noexec,size=8388608', 'redis:7-alpine', 'redis-server', '--save', '', '--appendonly', 'no'], 'redis-setup.log')
+    created_redis = True
+    for attempt in range(30):
+        ready = subprocess.run(['docker', 'exec', redis_name, 'redis-cli', 'ping'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if ready.returncode == 0: break
+        time.sleep(0.2)
+    else: raise RuntimeError('Isolated Redis did not become ready')
+    redis_info = json.loads(subprocess.check_output(['docker', 'inspect', redis_name]))[0]
+    assert not redis_info['HostConfig']['PortBindings'], 'Redis must not publish ports'
+    redis_address = redis_info['NetworkSettings']['Networks'][network]['IPAddress']
+    redis_image = json.loads(subprocess.check_output(['docker', 'image', 'inspect', 'redis:7-alpine']))[0]
+    write_json('redis-isolation.json', {'imageDigests': redis_image.get('RepoDigests'), 'networkInternal': True, 'portBindings': redis_info['HostConfig']['PortBindings'], 'memoryBytes': redis_info['HostConfig']['Memory']})
+    env = {'PATH': os.environ['PATH'], 'HOME': str(Path.home()), 'NODE_PATH': str(source / 'node_modules/.pnpm/node_modules') + ':' + str(source / 'apps/backend/node_modules') + ':' + str(source / 'node_modules'), 'DATABASE_URL': url, 'INTRANET_INTEGRATION_SOURCE': str(source), 'INTRANET_INTEGRATION_DATABASE_URL': url, 'INTRANET_INTEGRATION_BACKEND_DIST': str(backend_dist), 'INTEGRATION_RUN_DIR': str(run_dir), 'INTEGRATION_PG_PORT': '5432', 'INTEGRATION_ALLOWED': 'throwaway-postgres-only', 'INTEGRATION_ONLY': args.only, 'INTEGRATION_REDIS_URL': f'redis://{redis_address}:6379'}
     run(namespace + ['node', str(source / 'packages/database/node_modules/prisma/build/index.js'), 'db', 'push', '--skip-generate', '--schema', str(source / 'packages/database/prisma/schema.prisma')], 'schema.log', env)
     run(namespace + ['node', str(ROOT / 'runtime-postgres.cjs')], 'runtime.log', env)
     result = json.loads((run_dir / 'results.json').read_text())
@@ -95,6 +108,7 @@ try:
         subprocess.run(['docker', 'logs', name], stdout=stream, stderr=subprocess.STDOUT)
     # Proof is durable before removing this sandbox and its anonymous volumes.
     if not args.keep:
+        run(['docker', 'rm', '-fv', redis_name], 'cleanup.log'); created_redis = False
         run(['docker', 'rm', '-fv', name], 'cleanup.log'); created_container = False
         run(['docker', 'network', 'rm', network], 'cleanup.log'); created_network = False
         manifest['cleaned'] = True
@@ -102,6 +116,7 @@ try:
     print(json.dumps({'status': 'passed', 'proof': str(run_dir / 'results.json'), 'scenarios': result['totals']['scenarios'], 'checks': result['totals']['checks'], 'cleaned': manifest.get('cleaned', False)}))
 except Exception as error:
     manifest['status'] = 'failed'; manifest['error'] = str(error)
+    manifest['retainedRedis'] = redis_name if created_redis else None
     manifest['retainedContainer'] = name if created_container else None
     manifest['retainedNetwork'] = network if created_network else None
     write_json('manifest.json', manifest)

@@ -22,9 +22,15 @@ Les conteneurs/réseaux réussis sont supprimés automatiquement ; un échec est
 conservé pour diagnostic et doit être nettoyé en vérifiant son étiquette
 `omnitech.rag.integration` dans `manifest.json`.
 
-Les 7 scénarios vérifient : version courante distincte du dernier téléversement,
+Le test ajoute Redis officiel `redis:7-alpine` sur le même réseau interne,
+avec 64 MiB et sans port publié. Son digest est conservé dans
+`redis-isolation.json`. Le conteneur Redis est nettoyé avec PostgreSQL.
+
+Les 8 scénarios vérifient : version courante distincte du dernier téléversement,
 provenance et filtre SQL/lexical, suppression des résultats obsolètes/non CLEAN,
 course avec une version nouvelle, rollback réel après suppression et insertion,
 annulation d’embedding et fallback lexical, remplacements concurrents et absence
-de doublons, retrait de Wiki privées et Runbook non publiés. Les modèles Ollama
+de doublons, retrait de Wiki privées et Runbook non publiés. Le dernier scénario exécute réellement les modes `--check`/`--apply` du CLI
+root, le refus d’un verrou Redis déjà tenu et l’absence de contenu métier dans
+sa sortie. Les modèles Ollama
 sont simulés ; ce test ne qualifie ni l’inférence réelle ni pgvector lui-même.

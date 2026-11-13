@@ -69,6 +69,8 @@ export interface RagStreamStatus {
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+export const RAG_INDEX_CONTRACT_VERSION = 1;
+
 type SourceType = "DOCUMENT" | "WIKI" | "PROCEDURE" | "RUNBOOK" | "FAQ" | "TICKET";
 
 /**
