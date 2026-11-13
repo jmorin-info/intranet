@@ -9,6 +9,8 @@ name: Chromatic — Visual regression
 #   2. Recuperer le `CHROMATIC_PROJECT_TOKEN` dans Chromatic > Manage > Configure
 #   3. L'ajouter dans GitHub : Settings > Secrets and variables > Actions
 #      Nom : CHROMATIC_PROJECT_TOKEN
+#   4. Activer explicitement la variable de dépôt CHROMATIC_ENABLED=true.
+#      Sans cette intégration facultative, les tests UI locaux restent actifs.
 #
 # Le workflow ne s'execute que si les fichiers du design system / charte
 # changent — pas la peine de payer du Chromatic pour un changement backend.
@@ -43,6 +45,7 @@ concurrency:
 jobs:
   chromatic:
     name: Publish to Chromatic
+    if: vars.CHROMATIC_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
