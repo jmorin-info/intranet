@@ -37,7 +37,7 @@ concurrency:
 jobs:
   cdn-sync:
     name: Build + sync to CDN
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     # Skip tant que le CDN n'est pas configuré au niveau repo (variable
     # GitHub `NEXT_PUBLIC_CDN_URL`). Empêche les jobs ratés en preprod.

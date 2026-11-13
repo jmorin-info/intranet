@@ -50,7 +50,7 @@ env:
 jobs:
   e2e:
     name: Playwright (chromium)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     services:
@@ -63,7 +63,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U test -d omnitech_e2e"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
@@ -87,7 +87,7 @@ jobs:
         ports:
           - 7700:7700
         options: >-
-          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:7700/health || exit 1"
+          --health-cmd "curl --fail --silent http://127.0.0.1:7700/health || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10

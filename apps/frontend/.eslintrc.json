@@ -1,5 +1,6 @@
 {
   "extends": "next/core-web-vitals",
+  "plugins": ["@typescript-eslint"],
   "rules": {
     // reason: certaines pages app-router utilisent encore <a> au lieu de
     // <Link> pour les liens externes / cible blank — Next 14 ne se plaint
@@ -14,9 +15,10 @@
 
     // ── Low-hanging fruit reactives en error ──
     // reason: detecte les imports/variables non utilises. Pattern `_` ignore.
-    // Note : la regle `@typescript-eslint/no-unused-vars` n'est pas disponible
-    // dans le preset `next/core-web-vitals` — on utilise `no-unused-vars` core.
-    "no-unused-vars": [
+    // La règle TypeScript distingue les signatures de types des variables
+    // exécutables, contrairement à la règle JavaScript de base.
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": [
       "warn",
       {
         "argsIgnorePattern": "^_",

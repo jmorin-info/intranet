@@ -31,7 +31,7 @@ permissions:
 jobs:
   pa11y:
     name: Pa11y CI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout

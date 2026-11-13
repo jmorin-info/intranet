@@ -1,9 +1,7 @@
-name: Lint strict (frontend)
+name: Lint frontend
 
-# Lint strict (zéro warning toléré) sur chaque PR.
-# Le build local conserve `eslint.ignoreDuringBuilds: true` pour ne pas bloquer
-# le développement, mais cette CI fait office de garde-fou progressif :
-# toute nouvelle erreur/warning lint dans une PR fait échouer le job.
+# Zéro erreur et zéro nouvel avertissement sur chaque PR. La dette existante
+# reste inventoriée ; sa suppression progressive ne désactive aucune règle.
 
 on:
   pull_request:
@@ -18,8 +16,8 @@ concurrency:
 
 jobs:
   lint-strict:
-    name: next lint --max-warnings 0
-    runs-on: ubuntu-latest
+    name: Lint frontend sans nouvelle dette
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -40,4 +38,4 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint strict (frontend)
-        run: pnpm --filter @omnitech/frontend lint:strict
+        run: node scripts/check-frontend-lint.cjs

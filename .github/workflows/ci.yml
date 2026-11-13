@@ -30,7 +30,7 @@ jobs:
   # ---------------------------------------------------------------------------
   lint-typecheck:
     name: Lint & Typecheck
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -81,7 +81,7 @@ jobs:
   # ---------------------------------------------------------------------------
   unit-tests:
     name: Unit tests (Vitest + Jest)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -119,7 +119,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build-backend:
     name: Build backend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -152,7 +152,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build-frontend:
     name: Build frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       NODE_ENV: production
@@ -193,7 +193,7 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-compile:
     name: E2E specs compile (--list)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -242,7 +242,7 @@ jobs:
   # ---------------------------------------------------------------------------
   security-audit:
     name: Critical dependency gate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -284,7 +284,7 @@ jobs:
   # ---------------------------------------------------------------------------
   prettier-check:
     name: Prettier check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     continue-on-error: true
     steps:
@@ -314,7 +314,7 @@ jobs:
   # isolated database and dedicated accounts (see e2e/README.md).
   ui-browser-mocks:
     name: UI navigateur avec mocks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout

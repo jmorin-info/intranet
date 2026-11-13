@@ -25,7 +25,7 @@ jobs:
   # ─── 1. gitleaks — détection de secrets ─────────────────────────────────
   gitleaks:
     name: gitleaks (scan secrets)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout (historique complet pour scan profond)
@@ -43,7 +43,7 @@ jobs:
   # ─── 2. SBOM — inventaire des composants ────────────────────────────────
   sbom:
     name: SBOM (syft → SPDX)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout

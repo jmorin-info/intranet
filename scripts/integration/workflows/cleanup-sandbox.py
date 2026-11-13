@@ -21,7 +21,9 @@ for kind, name in [('container', manifest['container']), ('network', manifest['n
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode:
         # Missing owned resources are an idempotent cleanup, other inspect failures are errors.
-        if 'No such' in result.stderr or 'not found' in result.stderr:
+        message = result.stderr.casefold()
+        if ('no such object:' in message or 'no such container:' in message
+                or f'network {name} not found' in message):
             continue
         raise RuntimeError(result.stderr)
     resource = json.loads(result.stdout)[0]
