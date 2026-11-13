@@ -7,6 +7,12 @@ description = "PostgreSQL password embedded in a connection URL"
 regex = '''postgres(?:ql)?://(?:[A-Za-z0-9_.-]+|\$\{[^}\s]+\}):([^@\s]{4,})@'''
 secretGroup = 1
 
+[[rules.allowlists]]
+description = "Literal synthetic credentials in the CLI boundary unit test only"
+condition = "AND"
+paths = ['''^apps/backend/src/rag/reindex-cli\.spec\.ts$''']
+regexes = ['''^(synthetic|secret)$''']
+
 [[rules]]
 id = "omnitech-jwt-secret"
 description = "Hardcoded JWT or session secret"
