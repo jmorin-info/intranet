@@ -340,21 +340,21 @@ jobs:
       - name: Browser UI with local API fixtures (desktop and mobile)
         run: pnpm exec playwright test --config playwright.ui.config.ts
 
+      - name: Avatar image failure and replacement in Chromium
+        run: pnpm exec playwright test --config packages/ui/playwright.avatar.config.ts
+
       - name: Upload UI captures and traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ui-browser-mocks
-          path: test-results/ui/
+          path: |
+            test-results/ui/
+            test-results/avatar/
           retention-days: 14
           if-no-files-found: ignore
 
-# -----------------------------------------------------------------------------
-# TODO (next sprint): real e2e job
-#   - postgres:16 + redis:7 services on the runner
-#   - prisma migrate deploy + seed
-#   - start backend (nest start) and frontend (next start) in background
-#   - playwright install chromium --with-deps
+# Real authenticated business E2E runs in e2e.yml on disposable services.
 #   - playwright test --grep "csp-hydration|gdpr-export"
 #   - upload playwright-report/ on failure
 # Blocked on: standardising E2E_ADMIN_* env, smoke seed (no preprod data).
