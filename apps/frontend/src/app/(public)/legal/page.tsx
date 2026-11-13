@@ -171,7 +171,7 @@ export default async function LegalPage() {
                   DSI / RSSI —{" "}
                   <a
                     href="mailto:dpo@omnitech-security.fr"
-                    className="text-slate-900 hover:underline"
+                    className="text-slate-900 underline underline-offset-2"
                   >
                     dpo@omnitech-security.fr
                   </a>
@@ -201,7 +201,7 @@ export default async function LegalPage() {
                     </strong>{" "}
                     <a
                       href="mailto:dpo@omnitech-security.fr"
-                      className="text-slate-900 hover:underline"
+                      className="text-slate-900 underline underline-offset-2"
                     >
                       dpo@omnitech-security.fr
                     </a>
@@ -242,7 +242,7 @@ export default async function LegalPage() {
                   publiées dans la rubrique{" "}
                   <Link
                     href="/chartes"
-                    className="text-slate-900 hover:underline"
+                    className="text-slate-900 underline underline-offset-2"
                   >
                     Chartes
                   </Link>

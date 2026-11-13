@@ -109,7 +109,7 @@ export default async function PrivacyPolicyPage() {
                   l&apos;adresse{" "}
                   <a
                     href="mailto:dpo@omnitech-security.fr"
-                    className="text-slate-900 hover:underline"
+                    className="text-slate-900 underline underline-offset-2"
                   >
                     dpo@omnitech-security.fr
                   </a>
@@ -268,7 +268,7 @@ export default async function PrivacyPolicyPage() {
                   Toute demande peut être adressée au DPO à l&apos;adresse{" "}
                   <a
                     href="mailto:dpo@omnitech-security.fr"
-                    className="text-slate-900 hover:underline"
+                    className="text-slate-900 underline underline-offset-2"
                   >
                     dpo@omnitech-security.fr
                   </a>
