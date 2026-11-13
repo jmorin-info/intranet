@@ -41,6 +41,8 @@ export interface StatCard {
   show?: boolean;
   trend?: Trend;
   subtext?: string;
+  /** Explication courte de l'indicateur, affichée au survol (aide contextuelle). */
+  help?: string;
 }
 
 export interface ActionCard {
@@ -82,6 +84,7 @@ export function buildStatCards({ stats, isManager, t }: BuildStatCardsOptions): 
       subtext: stats
         ? `${stats.approvedDocuments} approuvé${stats.approvedDocuments !== 1 ? 's' : ''} · ${stats.pendingReview} en revue`
         : undefined,
+      help: 'Nombre total de documents de la base documentaire ISO 27001, toutes classifications confondues.',
     },
     {
       label: t('dashboard.stats.approved'),
@@ -95,6 +98,7 @@ export function buildStatCards({ stats, isManager, t }: BuildStatCardsOptions): 
       subtext: stats?.totalDocuments
         ? `${Math.round(((stats.approvedDocuments ?? 0) / stats.totalDocuments) * 100)}% du total`
         : undefined,
+      help: 'Documents validés et en vigueur. Le pourcentage indique leur part dans la base documentaire.',
     },
     {
       label: t('dashboard.stats.inReview'),
@@ -107,6 +111,7 @@ export function buildStatCards({ stats, isManager, t }: BuildStatCardsOptions): 
       show: isManager,
       trend: computeTrend(stats?.pendingReview, undefined),
       subtext: stats?.pendingApproval ? `${stats.pendingApproval} en attente d'approbation` : undefined,
+      help: 'Documents en cours de relecture par un relecteur avant de passer à l\'approbation finale.',
     },
     {
       label: t('dashboard.stats.pending'),
@@ -121,6 +126,7 @@ export function buildStatCards({ stats, isManager, t }: BuildStatCardsOptions): 
       subtext: stats?.overdueRevision
         ? `${stats.overdueRevision} revue${stats.overdueRevision !== 1 ? 's' : ''} en retard`
         : undefined,
+      help: 'Documents relus, en attente de validation finale par un approbateur habilité.',
     },
     {
       label: t('dashboard.stats.overdue'),
@@ -133,6 +139,7 @@ export function buildStatCards({ stats, isManager, t }: BuildStatCardsOptions): 
       show: isManager,
       trend: computeTrend(stats?.overdueRevision, undefined),
       subtext: (stats?.overdueRevision ?? 0) > 0 ? 'Action requise' : 'Aucun retard',
+      help: 'Documents dont la date de revue périodique est dépassée. À traiter pour maintenir la conformité ISO 27001.',
     },
     {
       label: 'Signatures',
@@ -144,6 +151,7 @@ export function buildStatCards({ stats, isManager, t }: BuildStatCardsOptions): 
       href: '/documents?tab=signatures',
       trend: computeTrend(stats?.pendingSignatures, undefined),
       subtext: (stats?.pendingSignatures ?? 0) > 0 ? `${stats?.pendingSignatures} en attente` : 'Tout est signé',
+      help: 'Documents nécessitant votre signature électronique (lecture et acceptation).',
     },
   ].filter((c) => c.show !== false);
 }

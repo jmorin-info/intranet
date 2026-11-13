@@ -9,15 +9,7 @@ import { Card, CardContent, Button, Avatar, Badge } from "@omnitech/ui";
 import { getInitials, formatDate, formatRelativeTime } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 import { getAvatarUrl } from "@/lib/avatar";
-import {
-  Shield,
-  Clock,
-  Camera,
-  MapPin,
-  Globe,
-  MessageSquare,
-  PenLine,
-} from "lucide-react";
+import { Shield, Clock, Camera, MapPin, Globe, MessageSquare, PenLine } from "lucide-react";
 import { SKILL_COLORS, type ApiError, type ProfileData } from "./types";
 
 interface ProfileHeaderProps {
@@ -42,10 +34,10 @@ export function ProfileHeader({
   const setUser = useAuthStore((s) => s.setUser);
   const { t } = useTranslation();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (uploadingAvatar) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -58,9 +50,6 @@ export function ProfileHeader({
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
-    setAvatarPreview(previewUrl);
-
     setUploadingAvatar(true);
     try {
       const formData = new FormData();
@@ -72,16 +61,12 @@ export function ProfileHeader({
         setUser({ ...user, avatarUrl: data.avatarUrl });
       }
       toast.success(t("profile.photoUpdated"));
-      URL.revokeObjectURL(previewUrl);
-      setAvatarPreview(null);
     } catch (err) {
       toast.error(
         (err as ApiError)?.response?.data?.message ||
           (err as ApiError)?.message ||
           t("profile.photoError"),
       );
-      URL.revokeObjectURL(previewUrl);
-      setAvatarPreview(null);
     } finally {
       setUploadingAvatar(false);
       if (avatarInputRef.current) avatarInputRef.current.value = "";
@@ -99,6 +84,7 @@ export function ProfileHeader({
             ref={avatarInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
+            disabled={uploadingAvatar}
             className="hidden"
             onChange={handleAvatarUpload}
           />
@@ -110,17 +96,16 @@ export function ProfileHeader({
             title={t("profile.changePhoto")}
             aria-label={t("profile.changePhoto")}
           >
-            {avatarPreview || user.avatarUrl ? (
+            {user.avatarUrl ? (
               <Avatar
-                src={avatarPreview || getAvatarUrl(user.avatarUrl!)}
+                src={getAvatarUrl(user.avatarUrl)}
                 initials={getInitials(user.firstName, user.lastName)}
                 size="lg"
                 className="h-28 w-28 text-3xl ring-4 ring-white dark:ring-slate-900 shadow-lg"
               />
             ) : (
               <div className="flex h-28 w-28 items-center justify-center rounded-full bg-primary text-white text-3xl font-semibold shadow-lg ring-4 ring-white dark:ring-slate-900">
-                {user.firstName.charAt(0)}
-                {user.lastName.charAt(0)}
+                {getInitials(user.firstName, user.lastName)}
               </div>
             )}
             <div className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -129,17 +114,16 @@ export function ProfileHeader({
               ) : (
                 <>
                   <Camera className="h-5 w-5 text-white" />
-                  <span className="text-[9px] text-white font-medium mt-0.5">
-                    Changer la photo
-                  </span>
+                  <span className="text-[9px] text-white font-medium mt-0.5">Changer la photo</span>
                 </>
               )}
             </div>
           </button>
           <div className="flex-1 min-w-0 pb-1">
-            {!user.avatarUrl && !avatarPreview && (
+            {!user.avatarUrl && (
               <button
                 type="button"
+                disabled={uploadingAvatar}
                 onClick={() => avatarInputRef.current?.click()}
                 className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
               >
@@ -151,21 +135,15 @@ export function ProfileHeader({
               {user.firstName} {user.lastName}
             </h1>
             {user.jobTitle && (
-              <p className="text-sm text-seal-gray-500 dark:text-slate-400">
-                {user.jobTitle}
-              </p>
+              <p className="text-sm text-seal-gray-500 dark:text-slate-400">{user.jobTitle}</p>
             )}
-            <p className="text-sm text-seal-gray-500 dark:text-slate-400">
-              {user.email}
-            </p>
+            <p className="text-sm text-seal-gray-500 dark:text-slate-400">{user.email}</p>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r from-primary to-primary/80 shadow-sm">
                 <Shield className="h-3.5 w-3.5" />
                 {USER_ROLE_LABELS[user.role]}
               </span>
-              {user.departmentName && (
-                <Badge variant="navy">{user.departmentName}</Badge>
-              )}
+              {user.departmentName && <Badge variant="navy">{user.departmentName}</Badge>}
               {user.location && (
                 <span className="inline-flex items-center gap-1 text-[11px] text-seal-gray-500 dark:text-slate-400">
                   <MapPin className="h-3 w-3" /> {user.location}
@@ -183,8 +161,7 @@ export function ProfileHeader({
             {(user.teamsLink || user.email) && (
               <a
                 href={
-                  user.teamsLink ||
-                  `ms-teams://l/chat/0/0?users=${encodeURIComponent(user.email)}`
+                  user.teamsLink || `ms-teams://l/chat/0/0?users=${encodeURIComponent(user.email)}`
                 }
                 target="_blank"
                 rel="noopener noreferrer"
@@ -241,12 +218,8 @@ export function ProfileHeader({
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
           <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
-            <p className="text-3xl font-bold text-seal-navy dark:text-white">
-              {myDocs}
-            </p>
-            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mb-1.5">
-              Documents
-            </p>
+            <p className="text-3xl font-bold text-seal-navy dark:text-white">{myDocs}</p>
+            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mb-1.5">Documents</p>
             <div className="h-1 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
               <div
                 className="h-full rounded-full bg-blue-500 transition-all duration-500"
@@ -255,9 +228,7 @@ export function ProfileHeader({
             </div>
           </div>
           <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
-            <p className="text-3xl font-bold text-seal-navy dark:text-white">
-              {unreadNotifCount}
-            </p>
+            <p className="text-3xl font-bold text-seal-navy dark:text-white">{unreadNotifCount}</p>
             <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mb-1.5">
               Notifications
             </p>
@@ -272,9 +243,7 @@ export function ProfileHeader({
             <p className="text-lg font-bold text-seal-navy dark:text-white">
               {user.createdAt ? formatDate(user.createdAt) : "—"}
             </p>
-            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
-              Membre depuis
-            </p>
+            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">Membre depuis</p>
           </div>
           <div
             className={`text-center p-3 rounded-lg ${profile?.mfaEnabled ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-amber-50 dark:bg-amber-900/20"}`}

@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useEffect,
-  useState,
-  useMemo,
-  useRef,
-  useCallback,
-} from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { isRoleAtLeast, UserRole } from "@omnitech/shared";
@@ -83,20 +77,28 @@ import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/utils";
 import DOMPurify from "dompurify";
+import { stripHtmlTags } from "@/lib/plain-text";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { WikiOutline, extractOutline } from "@/components/wiki/wiki-outline";
 import { WikiBacklinks } from "@/components/wiki/wiki-backlinks";
-import {
-  WikiTagInput,
-  type WikiTagOption,
-} from "@/components/wiki/wiki-tag-input";
+import { WikiTagInput, type WikiTagOption } from "@/components/wiki/wiki-tag-input";
 import { CategoryDndView } from "@/components/wiki/category-dnd-view";
-import {
-  WikiSlashMenu,
-  useSlashMenu,
-  type SlashCommand,
-} from "@/components/wiki/wiki-slash-menu";
+import { WikiSlashMenu, useSlashMenu, type SlashCommand } from "@/components/wiki/wiki-slash-menu";
 import { RichTextEditor } from "@/components/editor/rich-text-editor";
+import { wikiAttachmentUrl } from "@/lib/private-asset-url";
+
+function rewriteWikiAttachmentHtml(html: string): string {
+  if (typeof document === "undefined") return html;
+  const fragment = document.createElement("template");
+  fragment.innerHTML = html;
+  fragment.content.querySelectorAll("[href], [src]").forEach((element) => {
+    for (const attribute of ["href", "src"]) {
+      const value = element.getAttribute(attribute);
+      if (value) element.setAttribute(attribute, wikiAttachmentUrl(value));
+    }
+  });
+  return fragment.innerHTML;
+}
 
 type WikiVisibility = "PRIVATE" | "DEPARTMENT" | "ROLE" | "PUBLIC";
 
@@ -158,10 +160,7 @@ const VISIBILITY_DESCRIPTIONS: Record<WikiVisibility, string> = {
   PUBLIC: "Tous les utilisateurs de l\u0027entreprise",
 };
 
-const VISIBILITY_BADGE: Record<
-  WikiVisibility,
-  "navy" | "draft" | "success" | "warning"
-> = {
+const VISIBILITY_BADGE: Record<WikiVisibility, "navy" | "draft" | "success" | "warning"> = {
   PRIVATE: "draft",
   DEPARTMENT: "navy",
   ROLE: "warning",
@@ -199,8 +198,7 @@ const WIKI_TEMPLATES: WikiTemplate[] = [
   {
     id: "getting-started",
     title: "Guide de démarrage",
-    description:
-      "Documentez les premières étapes d'un nouvel arrivant ou utilisateur.",
+    description: "Documentez les premières étapes d'un nouvel arrivant ou utilisateur.",
     category: "Onboarding",
     icon: GraduationCap,
     content: `<h2>Bienvenue</h2><p>Présentez brièvement le contexte et l'objectif de ce guide.</p><h2>Prérequis</h2><ul><li>Compte utilisateur actif</li><li>Accès au VPN</li></ul><h2>Étapes</h2><ol><li>Première action</li><li>Deuxième action</li><li>Troisième action</li></ol><h2>Pour aller plus loin</h2><p>Listez les liens utiles.</p>`,
@@ -216,8 +214,7 @@ const WIKI_TEMPLATES: WikiTemplate[] = [
   {
     id: "faq",
     title: "FAQ",
-    description:
-      "Regroupez les questions fréquemment posées et leurs réponses.",
+    description: "Regroupez les questions fréquemment posées et leurs réponses.",
     category: "FAQ",
     icon: HelpCircle,
     content: `<h2>Question 1 ?</h2><p>Réponse détaillée à la première question.</p><h2>Question 2 ?</h2><p>Réponse détaillée à la deuxième question.</p><h2>Question 3 ?</h2><p>Réponse détaillée à la troisième question.</p>`,
@@ -251,25 +248,17 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   documentation: FileText,
 };
 
-function getCategoryIcon(
-  category: string | null | undefined,
-): React.ElementType {
+function getCategoryIcon(category: string | null | undefined): React.ElementType {
   if (!category) return BookOpen;
   return CATEGORY_ICONS[category.toLowerCase()] ?? BookOpen;
 }
 
 /** Infer import source from category name (Caramel / Notion / null). */
-function getImportSource(
-  category: string | null | undefined,
-): "Caramel" | "Notion" | null {
+function getImportSource(category: string | null | undefined): "Caramel" | "Notion" | null {
   if (!category) return null;
   const lower = category.toLowerCase();
   if (lower.includes("admin sys") || lower.includes("notes")) return "Notion";
-  if (
-    lower.includes("clients") ||
-    lower.includes("téléphonie") ||
-    lower.includes("telephonie")
-  )
+  if (lower.includes("clients") || lower.includes("téléphonie") || lower.includes("telephonie"))
     return "Caramel";
   return null;
 }
@@ -286,14 +275,12 @@ const CATEGORY_COLORS = [
 function getCategoryColor(category: string | null | undefined): string {
   if (!category) return CATEGORY_COLORS[0]!;
   let hash = 0;
-  for (let i = 0; i < category.length; i++)
-    hash = (hash * 31 + category.charCodeAt(i)) | 0;
+  for (let i = 0; i < category.length; i++) hash = (hash * 31 + category.charCodeAt(i)) | 0;
   return CATEGORY_COLORS[Math.abs(hash) % CATEGORY_COLORS.length]!;
 }
 
 function computeReadingTime(html: string): number {
-  const plain = html
-    .replace(/<[^>]+>/g, " ")
+  const plain = stripHtmlTags(html, true)
     .replace(/\s+/g, " ")
     .trim();
   const words = plain ? plain.split(" ").length : 0;
@@ -302,8 +289,7 @@ function computeReadingTime(html: string): number {
 
 function stripHtml(html: string | undefined): string {
   if (!html) return "";
-  return html
-    .replace(/<[^>]+>/g, "")
+  return stripHtmlTags(html)
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -324,8 +310,7 @@ function highlightText(text: string, query: string): React.ReactNode {
           "mark",
           {
             key: i,
-            className:
-              "bg-yellow-200 dark:bg-yellow-700/50 text-inherit rounded-sm px-0.5",
+            className: "bg-yellow-200 dark:bg-yellow-700/50 text-inherit rounded-sm px-0.5",
           },
           part,
         )
@@ -359,9 +344,7 @@ function searchScore(title: string, query: string, content?: string): number {
   return score;
 }
 
-export function WikiContent({
-  onCount,
-}: { onCount?: (count: number) => void } = {}) {
+export function WikiContent({ onCount }: { onCount?: (count: number) => void } = {}) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const [pages, setPages] = useState<WikiPage[]>([]);
@@ -394,9 +377,7 @@ export function WikiContent({
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WikiPage | null>(null);
   const [lockStatus, setLockStatus] = useState<LockStatus | null>(null);
-  const [lockedByOther, setLockedByOther] = useState<LockStatus["by"] | null>(
-    null,
-  );
+  const [lockedByOther, setLockedByOther] = useState<LockStatus["by"] | null>(null);
   const lockRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [versions, setVersions] = useState<WikiVersion[]>([]);
@@ -432,9 +413,7 @@ export function WikiContent({
   const [managedCategories, setManagedCategories] = useState<string[]>([]);
   const [newCategoryInput, setNewCategoryInput] = useState("");
   const [listViewMode, setListViewMode] = useState<ListViewMode>("grid");
-  const [expandedAccordions, setExpandedAccordions] = useState<
-    Record<string, boolean>
-  >({});
+  const [expandedAccordions, setExpandedAccordions] = useState<Record<string, boolean>>({});
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [zenMode, setZenMode] = useState(false);
@@ -481,7 +460,11 @@ export function WikiContent({
       } catch {}
       return next;
     });
-  }, [viewingPage?.id]);
+    // On depend des champs reellement utilises (id pour dedup + title/slug
+    // ecrits en localStorage) plutot que de l'objet entier — si le parent
+    // recree viewingPage a chaque render sans changer ses champs, on n'ecrit
+    // qu'une fois. Avant on ne tenait pas compte de l'evolution de title/slug.
+  }, [viewingPage?.id, viewingPage?.title, (viewingPage as any)?.slug]);
 
   // Editor enhanced toolbar state
   const [isEditorFullscreen, setIsEditorFullscreen] = useState(false);
@@ -611,14 +594,11 @@ export function WikiContent({
     [editingPage],
   );
 
-  const handleEditorDragOver = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      if (e.dataTransfer?.types?.includes("Files")) {
-        e.preventDefault();
-      }
-    },
-    [],
-  );
+  const handleEditorDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (e.dataTransfer?.types?.includes("Files")) {
+      e.preventDefault();
+    }
+  }, []);
 
   /** Toggle editor fullscreen overlay */
   const toggleEditorFullscreen = useCallback(() => {
@@ -626,7 +606,7 @@ export function WikiContent({
   }, []);
 
   // Word count derived from editor content
-  const editorPlainText = formData.content.replace(/<[^>]+>/g, "");
+  const editorPlainText = stripHtmlTags(formData.content);
   const editorWordCount = editorPlainText.split(/\s+/).filter(Boolean).length;
 
   // --- Reading experience state ---
@@ -634,9 +614,7 @@ export function WikiContent({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-  const [feedbackState, setFeedbackState] = useState<
-    Record<string, "up" | "down" | null>
-  >({});
+  const [feedbackState, setFeedbackState] = useState<Record<string, "up" | "down" | null>>({});
   const [feedbackCounts, setFeedbackCounts] = useState<
     Record<string, { up: number; down: number }>
   >({});
@@ -688,9 +666,7 @@ export function WikiContent({
         const target = e.target as HTMLElement;
         if (
           target &&
-          (target.tagName === "INPUT" ||
-            target.tagName === "TEXTAREA" ||
-            target.isContentEditable)
+          (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
         )
           return;
         e.preventDefault();
@@ -790,9 +766,7 @@ export function WikiContent({
 
   const reportError = () => {
     if (!viewingPage) return;
-    const subject = encodeURIComponent(
-      `[Wiki] Erreur dans la page: ${viewingPage.title}`,
-    );
+    const subject = encodeURIComponent(`[Wiki] Erreur dans la page: ${viewingPage.title}`);
     const body = encodeURIComponent(
       `Bonjour,\n\nJ'ai identifié un problème sur la page suivante :\nhttps://intranet.omnitech-security.fr/wiki/${viewingPage.slug}\n\nDescription du problème :\n\n`,
     );
@@ -895,13 +869,9 @@ export function WikiContent({
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
-    if (sortBy === "alpha")
-      return arr.sort((a, b) => a.title.localeCompare(b.title, "fr"));
+    if (sortBy === "alpha") return arr.sort((a, b) => a.title.localeCompare(b.title, "fr"));
     // 'recent' — newest first
-    return arr.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    return arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [filtered, sortBy]);
 
   const isNewArticle = (createdAt: string): boolean => {
@@ -949,10 +919,7 @@ export function WikiContent({
   // Close search suggestions on click outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(e.target as Node)
-      ) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setShowSearchSuggestions(false);
       }
     };
@@ -1003,9 +970,7 @@ export function WikiContent({
         const target = e.target as HTMLElement;
         if (
           target &&
-          (target.tagName === "INPUT" ||
-            target.tagName === "TEXTAREA" ||
-            target.isContentEditable)
+          (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
         )
           return;
         if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1020,8 +985,7 @@ export function WikiContent({
   // --- Copy all content ---
   const copyAllContent = useCallback(async () => {
     if (!viewingPage?.content) return;
-    const plain = viewingPage.content
-      .replace(/<[^>]+>/g, "")
+    const plain = stripHtmlTags(viewingPage.content)
       .replace(/\s+/g, " ")
       .trim();
     try {
@@ -1042,14 +1006,8 @@ export function WikiContent({
     }
     setMeiliLoading(true);
     try {
-      const { data } = await api.get(
-        `/search/meili?q=${encodeURIComponent(query)}&type=wiki`,
-      );
-      const hits = Array.isArray(data?.hits)
-        ? data.hits
-        : Array.isArray(data)
-          ? data
-          : [];
+      const { data } = await api.get(`/search/meili?q=${encodeURIComponent(query)}&type=wiki`);
+      const hits = Array.isArray(data?.hits) ? data.hits : Array.isArray(data) ? data : [];
       setMeiliResults(hits);
     } catch {
       // Meilisearch endpoint may not be available — fallback silently
@@ -1067,12 +1025,8 @@ export function WikiContent({
     }
     setCollabLoading(true);
     try {
-      const { data } = await api.get(
-        `/users/directory?search=${encodeURIComponent(query)}`,
-      );
-      const users: DirectoryUser[] = Array.isArray(data)
-        ? data
-        : data?.data || [];
+      const { data } = await api.get(`/users/directory?search=${encodeURIComponent(query)}`);
+      const users: DirectoryUser[] = Array.isArray(data) ? data : data?.data || [];
       setCollabResults(users);
     } catch {
       setCollabResults([]);
@@ -1082,18 +1036,12 @@ export function WikiContent({
   }, []);
 
   // Debounced collaborator search
-  const collabSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const collabSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleCollabSearchChange = useCallback(
     (value: string) => {
       setCollabSearch(value);
-      if (collabSearchTimerRef.current)
-        clearTimeout(collabSearchTimerRef.current);
-      collabSearchTimerRef.current = setTimeout(
-        () => searchCollaborators(value),
-        300,
-      );
+      if (collabSearchTimerRef.current) clearTimeout(collabSearchTimerRef.current);
+      collabSearchTimerRef.current = setTimeout(() => searchCollaborators(value), 300);
     },
     [searchCollaborators],
   );
@@ -1107,12 +1055,8 @@ export function WikiContent({
     }
     setMentionLoading(true);
     try {
-      const { data } = await api.get(
-        `/users/directory?search=${encodeURIComponent(query)}`,
-      );
-      const users: DirectoryUser[] = Array.isArray(data)
-        ? data
-        : data?.data || [];
+      const { data } = await api.get(`/users/directory?search=${encodeURIComponent(query)}`);
+      const users: DirectoryUser[] = Array.isArray(data) ? data : data?.data || [];
       setMentionResults(users.slice(0, 8));
       setShowMentionDropdown(users.length > 0);
       setMentionIndex(0);
@@ -1232,10 +1176,7 @@ export function WikiContent({
           return;
         } else if (e.key === "ArrowUp") {
           e.preventDefault();
-          setMentionIndex(
-            (prev) =>
-              (prev - 1 + mentionResults.length) % mentionResults.length,
-          );
+          setMentionIndex((prev) => (prev - 1 + mentionResults.length) % mentionResults.length);
           return;
         } else if (e.key === "Enter" || e.key === "Tab") {
           if (mentionResults[mentionIndex]) {
@@ -1250,11 +1191,7 @@ export function WikiContent({
       }
 
       // Ctrl+Shift+1/2/3 => H1/H2/H3
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        e.shiftKey &&
-        ["1", "2", "3"].includes(e.key)
-      ) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && ["1", "2", "3"].includes(e.key)) {
         e.preventDefault();
         const tag = `H${e.key}`;
         document.execCommand("formatBlock", false, tag);
@@ -1291,8 +1228,9 @@ export function WikiContent({
   useEffect(() => {
     if ((showCreate || showCreatePersonal || showEdit) && editorRef.current) {
       if (!editorInitializedRef.current) {
-        editorRef.current.innerHTML = formData.content;
-        editorContentRef.current = formData.content;
+        const html = rewriteWikiAttachmentHtml(DOMPurify.sanitize(formData.content));
+        editorRef.current.innerHTML = html;
+        editorContentRef.current = html;
         editorInitializedRef.current = true;
       }
     } else {
@@ -1348,9 +1286,7 @@ export function WikiContent({
       // Charge les tags pour les afficher dans l'entete + cliquables.
       api
         .get<WikiTagOption[]>(`/wiki/pages/${data.id}/tags`)
-        .then((res) =>
-          setViewingPageTags(Array.isArray(res.data) ? res.data : []),
-        )
+        .then((res) => setViewingPageTags(Array.isArray(res.data) ? res.data : []))
         .catch(() => setViewingPageTags([]));
     } catch {
       toast.error(t("wiki.fetchError"));
@@ -1440,9 +1376,7 @@ export function WikiContent({
     });
     // Charge les tags actuels de la page (best-effort, n'empeche pas l'edition).
     try {
-      const { data } = await api.get<WikiTagOption[]>(
-        `/wiki/pages/${page.id}/tags`,
-      );
+      const { data } = await api.get<WikiTagOption[]>(`/wiki/pages/${page.id}/tags`);
       setEditingTags(Array.isArray(data) ? data : []);
     } catch {
       setEditingTags([]);
@@ -1493,8 +1427,7 @@ export function WikiContent({
       }
       await fetchPages();
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response
-        ?.status;
+      const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 409) {
         toast.error("Page verrouillée par un autre utilisateur");
       } else {
@@ -1534,7 +1467,7 @@ export function WikiContent({
     setLoadingVersions(true);
     try {
       const { data } = await api.get(`/wiki/${page.id}/versions`);
-      setVersions(data.items || []);
+      setVersions(data.data || []);
     } catch {
       toast.error(t("wiki.fetchError"));
     } finally {
@@ -1586,10 +1519,7 @@ export function WikiContent({
       if (shareData.visibility === "ROLE") {
         payload.allowedRoles = shareData.allowedRoles;
       }
-      const { data } = await api.patch(
-        `/wiki/${viewingPage.id}/share`,
-        payload,
-      );
+      const { data } = await api.patch(`/wiki/${viewingPage.id}/share`, payload);
       setViewingPage((prev) => (prev ? { ...prev, ...data } : prev));
       toast.success("Partage mis à jour");
       setShowShare(false);
@@ -1659,9 +1589,7 @@ export function WikiContent({
                       {v.title}
                     </p>
                     <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">
-                      {v.author
-                        ? `${v.author.firstName} ${v.author.lastName} — `
-                        : ""}
+                      {v.author ? `${v.author.firstName} ${v.author.lastName} — ` : ""}
                       {new Date(v.createdAt).toLocaleString("fr-FR", {
                         day: "numeric",
                         month: "short",
@@ -1676,13 +1604,8 @@ export function WikiContent({
                       </p>
                     )}
                   </div>
-                  {(isAdmin ||
-                    (user && viewingPage?.author.id === user.id)) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setRestoreTarget(v)}
-                    >
+                  {(isAdmin || (user && viewingPage?.author.id === user.id)) && (
+                    <Button variant="outline" size="sm" onClick={() => setRestoreTarget(v)}>
                       <RotateCcw className="h-3 w-3" /> Restaurer
                     </Button>
                   )}
@@ -1709,11 +1632,7 @@ export function WikiContent({
 
   function renderShareDialog() {
     return (
-      <Dialog
-        open={showShare}
-        onClose={() => setShowShare(false)}
-        title="Partager la page"
-      >
+      <Dialog open={showShare} onClose={() => setShowShare(false)} title="Partager la page">
         <div className="space-y-4">
           {/* Visibility toggle */}
           <div className="space-y-2">
@@ -1721,34 +1640,30 @@ export function WikiContent({
               Visibilité
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {(["PRIVATE", "DEPARTMENT", "ROLE", "PUBLIC"] as const).map(
-                (vis) => (
-                  <button
-                    key={vis}
-                    type="button"
-                    onClick={() =>
-                      setShareData((s) => ({ ...s, visibility: vis }))
-                    }
-                    className={`flex items-start gap-2 rounded-lg border p-3 text-left transition-all ${
-                      shareData.visibility === vis
-                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                        : "border-gray-200 dark:border-slate-700 hover:border-primary/40"
-                    }`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-seal-navy dark:text-white">
-                        {VISIBILITY_LABELS[vis]}
-                      </p>
-                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5">
-                        {VISIBILITY_DESCRIPTIONS[vis]}
-                      </p>
-                    </div>
-                    {shareData.visibility === vis && (
-                      <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-                    )}
-                  </button>
-                ),
-              )}
+              {(["PRIVATE", "DEPARTMENT", "ROLE", "PUBLIC"] as const).map((vis) => (
+                <button
+                  key={vis}
+                  type="button"
+                  onClick={() => setShareData((s) => ({ ...s, visibility: vis }))}
+                  className={`flex items-start gap-2 rounded-lg border p-3 text-left transition-all ${
+                    shareData.visibility === vis
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      : "border-gray-200 dark:border-slate-700 hover:border-primary/40"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-seal-navy dark:text-white">
+                      {VISIBILITY_LABELS[vis]}
+                    </p>
+                    <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5">
+                      {VISIBILITY_DESCRIPTIONS[vis]}
+                    </p>
+                  </div>
+                  {shareData.visibility === vis && (
+                    <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -1820,9 +1735,7 @@ export function WikiContent({
                       <button
                         type="button"
                         onClick={() =>
-                          setCollabSelected((prev) =>
-                            prev.filter((p) => p.id !== u.id),
-                          )
+                          setCollabSelected((prev) => prev.filter((p) => p.id !== u.id))
                         }
                         className="hover:text-red-500 transition-colors"
                         aria-label={`Retirer ${u.firstName} ${u.lastName}`}
@@ -1928,11 +1841,7 @@ export function WikiContent({
   function renderFormDialog(mode: "edit" | "create" | "createPersonal") {
     const isEdit = mode === "edit";
     const isPersonal = mode === "createPersonal";
-    const open = isEdit
-      ? showEdit
-      : isPersonal
-        ? showCreatePersonal
-        : showCreate;
+    const open = isEdit ? showEdit : isPersonal ? showCreatePersonal : showCreate;
     const title = isEdit
       ? t("wiki.editPage")
       : isPersonal
@@ -1948,12 +1857,7 @@ export function WikiContent({
       resetForm();
     };
     return (
-      <Dialog
-        open={open}
-        onClose={onCloseDialog}
-        title={title}
-        className="!max-w-4xl"
-      >
+      <Dialog open={open} onClose={onCloseDialog} title={title} className="!max-w-4xl">
         <div
           className="space-y-3 max-h-[75vh] overflow-y-auto px-1"
           onKeyDown={(e) => {
@@ -1986,9 +1890,7 @@ export function WikiContent({
           <Input
             label={t("wiki.slugLabel")}
             value={formData.slug}
-            onChange={(e) =>
-              setFormData((f) => ({ ...f, slug: e.target.value }))
-            }
+            onChange={(e) => setFormData((f) => ({ ...f, slug: e.target.value }))}
             placeholder="mon-article"
           />
           <div className="space-y-1">
@@ -1998,9 +1900,7 @@ export function WikiContent({
             <input
               list="wiki-category-list"
               value={formData.category}
-              onChange={(e) =>
-                setFormData((f) => ({ ...f, category: e.target.value }))
-              }
+              onChange={(e) => setFormData((f) => ({ ...f, category: e.target.value }))}
               placeholder={t("wiki.categoryPlaceholder")}
               className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-seal-navy dark:text-white px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
@@ -2045,11 +1945,7 @@ export function WikiContent({
               <label className="block text-[13px] font-semibold text-seal-navy dark:text-white">
                 {t("wiki.tags.label") ?? "Tags"}
               </label>
-              <WikiTagInput
-                value={editingTags}
-                onChange={setEditingTags}
-                canCreate={!!isAdmin}
-              />
+              <WikiTagInput value={editingTags} onChange={setEditingTags} canCreate={!!isAdmin} />
             </div>
           )}
           <div
@@ -2062,16 +1958,8 @@ export function WikiContent({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  title={
-                    isEditorFullscreen
-                      ? "Quitter le plein écran"
-                      : "Plein écran"
-                  }
-                  aria-label={
-                    isEditorFullscreen
-                      ? "Quitter le plein écran"
-                      : "Plein écran"
-                  }
+                  title={isEditorFullscreen ? "Quitter le plein écran" : "Plein écran"}
+                  aria-label={isEditorFullscreen ? "Quitter le plein écran" : "Plein écran"}
                   onClick={toggleEditorFullscreen}
                   className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white"
                 >
@@ -2269,8 +2157,7 @@ export function WikiContent({
                           }}
                           className="w-6 h-6 rounded border border-gray-200 dark:border-slate-600 hover:scale-110 transition-transform"
                           style={{
-                            backgroundColor:
-                              c.value === "transparent" ? "#f3f4f6" : c.value,
+                            backgroundColor: c.value === "transparent" ? "#f3f4f6" : c.value,
                           }}
                         >
                           {c.value === "transparent" ? (
@@ -2413,8 +2300,7 @@ export function WikiContent({
                         }}
                         className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-navy dark:text-white flex items-center gap-2"
                       >
-                        <Table className="h-3.5 w-3.5 text-seal-gray-500" />{" "}
-                        Tableau 3x3
+                        <Table className="h-3.5 w-3.5 text-seal-gray-500" /> Tableau 3x3
                       </button>
                     </div>
                   )}
@@ -2435,16 +2321,8 @@ export function WikiContent({
                 {/* Fullscreen */}
                 <button
                   type="button"
-                  title={
-                    isEditorFullscreen
-                      ? "Quitter le plein écran"
-                      : "Plein écran"
-                  }
-                  aria-label={
-                    isEditorFullscreen
-                      ? "Quitter le plein écran"
-                      : "Plein écran"
-                  }
+                  title={isEditorFullscreen ? "Quitter le plein écran" : "Plein écran"}
+                  aria-label={isEditorFullscreen ? "Quitter le plein écran" : "Plein écran"}
                   onClick={toggleEditorFullscreen}
                   className="px-1.5 py-1 text-xs rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-seal-navy dark:text-white ml-auto"
                 >
@@ -2513,20 +2391,17 @@ export function WikiContent({
                   </div>
                 )}
                 {/* Slash command menu (Notion-style) */}
-                <WikiSlashMenu
-                  state={slashMenu.state}
-                  onSelect={slashMenu.select}
-                />
+                <WikiSlashMenu state={slashMenu.state} onSelect={slashMenu.select} />
               </div>
               {/* Word & character count */}
               <div className="flex justify-between items-center mt-1">
                 <span className="text-[10px] text-seal-gray-500/60 dark:text-slate-600">
-                  Glissez une image pour l&apos;insérer {"\u2022"} Ctrl+K lien{" "}
-                  {"\u2022"} Ctrl+Shift+1/2/3 titres {"\u2022"} / commandes
+                  Glissez une image pour l&apos;insérer {"\u2022"} Ctrl+K lien {"\u2022"}{" "}
+                  Ctrl+Shift+1/2/3 titres {"\u2022"} / commandes
                 </span>
                 <span className="text-[11px] text-seal-gray-500 dark:text-slate-500">
-                  {editorWordCount} mot{editorWordCount !== 1 ? "s" : ""}{" "}
-                  {"\u2022"} {editorPlainText.length} car.
+                  {editorWordCount} mot{editorWordCount !== 1 ? "s" : ""} {"\u2022"}{" "}
+                  {editorPlainText.length} car.
                 </span>
               </div>
             </div>
@@ -2545,8 +2420,7 @@ export function WikiContent({
               }
               loading={saving}
             >
-              <Save className="h-4 w-4" />{" "}
-              {isEdit ? t("wiki.save") : t("wiki.create")}
+              <Save className="h-4 w-4" /> {isEdit ? t("wiki.save") : t("wiki.create")}
             </Button>
           </div>
         </div>
@@ -2558,11 +2432,8 @@ export function WikiContent({
   if (viewingPage) {
     const isOwner = user && viewingPage.author.id === user.id;
     const canEditPage =
-      isAdmin ||
-      isOwner ||
-      (user && (viewingPage.collaborators ?? []).includes(user.id));
-    const pageVisibility =
-      (viewingPage.visibility as WikiVisibility) || "PUBLIC";
+      isAdmin || isOwner || (user && (viewingPage.collaborators ?? []).includes(user.id));
+    const pageVisibility = (viewingPage.visibility as WikiVisibility) || "PUBLIC";
     const lockActive =
       viewingPage.editLockUserId &&
       viewingPage.editLockExpiresAt &&
@@ -2571,10 +2442,10 @@ export function WikiContent({
 
     // Align sanitization with news reader: preserve id attributes (anchors for ToC)
     // and explicitly allow pre/code tags (fix du rendu des blocs de code).
-    const rawHtml = DOMPurify.sanitize(viewingPage.content || "", {
+    const rawHtml = rewriteWikiAttachmentHtml(DOMPurify.sanitize(viewingPage.content || "", {
       ADD_ATTR: ["id"],
       ADD_TAGS: ["pre", "code"],
-    });
+    }));
     const { html: withIds, entries: tocEntries } = extractOutline(rawHtml);
 
     const readingTime = computeReadingTime(viewingPage.content || "");
@@ -2585,16 +2456,8 @@ export function WikiContent({
     const counts = feedbackCounts[viewingPage.id] ?? { up: 0, down: 0 };
 
     const sameCategory = pages
-      .filter(
-        (p) =>
-          p.id !== viewingPage.id &&
-          p.category &&
-          p.category === viewingPage.category,
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      )
+      .filter((p) => p.id !== viewingPage.id && p.category && p.category === viewingPage.category)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 3);
     // Fallback to recent articles when no same-category articles exist
     const related =
@@ -2602,22 +2465,16 @@ export function WikiContent({
         ? sameCategory
         : pages
             .filter((p) => p.id !== viewingPage.id)
-            .sort(
-              (a, b) =>
-                new Date(b.updatedAt).getTime() -
-                new Date(a.updatedAt).getTime(),
-            )
+            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
             .slice(0, 3);
-    const relatedLabel =
-      sameCategory.length > 0 ? "Articles liés" : "Articles récents";
+    const relatedLabel = sameCategory.length > 0 ? "Articles liés" : "Articles récents";
 
     // Previous / Next navigation within category
     const categoryPages = pages
       .filter((p) => p.category && p.category === viewingPage.category)
       .sort((a, b) => a.title.localeCompare(b.title, "fr"));
     const currentIdx = categoryPages.findIndex((p) => p.id === viewingPage.id);
-    const prevPage =
-      currentIdx > 0 ? (categoryPages[currentIdx - 1] ?? null) : null;
+    const prevPage = currentIdx > 0 ? (categoryPages[currentIdx - 1] ?? null) : null;
     const nextPage =
       currentIdx >= 0 && currentIdx < categoryPages.length - 1
         ? (categoryPages[currentIdx + 1] ?? null)
@@ -2665,11 +2522,7 @@ export function WikiContent({
           </nav>
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setViewingPage(null)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setViewingPage(null)}>
               <ArrowLeft className="h-4 w-4" /> {t("wiki.backToList")}
             </Button>
             <div className="flex items-center gap-2">
@@ -2717,9 +2570,7 @@ export function WikiContent({
                 onClick={toggleFullscreen}
                 title="Mode plein écran (F)"
                 aria-label={
-                  isFullscreen
-                    ? "Quitter le mode plein écran"
-                    : "Activer le mode plein écran"
+                  isFullscreen ? "Quitter le mode plein écran" : "Activer le mode plein écran"
                 }
               >
                 {isFullscreen ? (
@@ -2735,15 +2586,11 @@ export function WikiContent({
             <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
               <Lock className="h-3.5 w-3.5" />
               <span>
-                Cette page est en cours d&apos;édition — verrou actif
-                jusqu&apos;à{" "}
-                {new Date(viewingPage.editLockExpiresAt!).toLocaleTimeString(
-                  "fr-FR",
-                  {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  },
-                )}
+                Cette page est en cours d&apos;édition — verrou actif jusqu&apos;à{" "}
+                {new Date(viewingPage.editLockExpiresAt!).toLocaleTimeString("fr-FR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </span>
             </div>
           )}
@@ -2780,9 +2627,7 @@ export function WikiContent({
                       <Badge variant="info">
                         <Users className="h-3 w-3" />
                         {viewingPage.collaborators?.length} collaborateur
-                        {(viewingPage.collaborators?.length ?? 0) > 1
-                          ? "s"
-                          : ""}
+                        {(viewingPage.collaborators?.length ?? 0) > 1 ? "s" : ""}
                       </Badge>
                     )}
                     {/* Tags badges (cliquable -> filtre sur la liste) */}
@@ -2808,10 +2653,7 @@ export function WikiContent({
                                 color: "rgb(55 65 81)",
                               }
                         }
-                        title={
-                          t("wiki.tags.filterByTag") ??
-                          `Filtrer par "${tag.name}"`
-                        }
+                        title={t("wiki.tags.filterByTag") ?? `Filtrer par "${tag.name}"`}
                         aria-label={`Filtrer par tag ${tag.name}`}
                       >
                         #{tag.name}
@@ -2841,8 +2683,7 @@ export function WikiContent({
                           {viewingPage.author.lastName[0]}
                         </span>
                         <span className="text-seal-navy dark:text-white font-medium">
-                          {viewingPage.author.firstName}{" "}
-                          {viewingPage.author.lastName}
+                          {viewingPage.author.firstName} {viewingPage.author.lastName}
                         </span>
                       </span>
                       <span className="flex items-center gap-1">
@@ -2920,9 +2761,7 @@ export function WikiContent({
                     uploadedAt: string;
                   }> = (() => {
                     try {
-                      return JSON.parse(
-                        (viewingPage as any).attachments || "[]",
-                      );
+                      return JSON.parse((viewingPage as any).attachments || "[]");
                     } catch {
                       return [];
                     }
@@ -2940,8 +2779,7 @@ export function WikiContent({
                   const attachIconForMime = (
                     m: string,
                   ): { Icon: React.ElementType; color: string } => {
-                    if (m.includes("pdf"))
-                      return { Icon: FileText, color: "text-red-500" };
+                    if (m.includes("pdf")) return { Icon: FileText, color: "text-red-500" };
                     if (m.startsWith("image/"))
                       return { Icon: FileImage, color: "text-emerald-500" };
                     if (m.includes("word") || m.includes("document"))
@@ -2970,11 +2808,7 @@ export function WikiContent({
                           )}
                         </h2>
                         {canEditAtt && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="relative"
-                          >
+                          <Button variant="outline" size="sm" className="relative">
                             <Paperclip className="h-4 w-4" /> Ajouter un fichier
                             <input
                               type="file"
@@ -2985,15 +2819,10 @@ export function WikiContent({
                                 const fd = new FormData();
                                 fd.append("file", file);
                                 try {
-                                  await api.post(
-                                    `/wiki/${viewingPage.id}/attachments`,
-                                    fd,
-                                  );
+                                  await api.post(`/wiki/${viewingPage.id}/attachments`, fd);
                                   toast.success(`${file.name} ajouté`);
                                   fetchPages();
-                                  const { data } = await api.get(
-                                    `/wiki/${viewingPage.slug}`,
-                                  );
+                                  const { data } = await api.get(`/wiki/${viewingPage.slug}`);
                                   setViewingPage(data);
                                 } catch {
                                   toast.error("Échec upload");
@@ -3011,8 +2840,9 @@ export function WikiContent({
                       ) : (
                         <div className="space-y-2">
                           {attachments.map((att, i) => {
-                            const { Icon: AttIcon, color: attColor } =
-                              attachIconForMime(att.mimeType);
+                            const { Icon: AttIcon, color: attColor } = attachIconForMime(
+                              att.mimeType,
+                            );
                             return (
                               <div
                                 key={i}
@@ -3025,7 +2855,7 @@ export function WikiContent({
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <a
-                                    href={att.url}
+                                    href={wikiAttachmentUrl(att.url)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-sm font-medium text-seal-navy dark:text-white hover:text-primary truncate block"
@@ -3034,13 +2864,11 @@ export function WikiContent({
                                   </a>
                                   <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">
                                     {fmtSize(att.size)} —{" "}
-                                    {new Date(
-                                      att.uploadedAt,
-                                    ).toLocaleDateString("fr-FR")}
+                                    {new Date(att.uploadedAt).toLocaleDateString("fr-FR")}
                                   </p>
                                 </div>
                                 <a
-                                  href={att.url}
+                                  href={wikiAttachmentUrl(att.url)}
                                   download
                                   className="text-xs text-primary hover:underline flex-shrink-0"
                                 >
@@ -3051,17 +2879,14 @@ export function WikiContent({
                                     type="button"
                                     className="text-xs text-red-500 hover:text-red-700 flex-shrink-0"
                                     onClick={async () => {
-                                      if (!confirm(`Supprimer ${att.name} ?`))
-                                        return;
+                                      if (!confirm(`Supprimer ${att.name} ?`)) return;
                                       try {
                                         const fname = att.url.split("/").pop();
                                         await api.delete(
                                           `/wiki/${viewingPage.id}/attachments/${fname}`,
                                         );
                                         toast.success("Fichier supprimé");
-                                        const { data } = await api.get(
-                                          `/wiki/${viewingPage.slug}`,
-                                        );
+                                        const { data } = await api.get(`/wiki/${viewingPage.slug}`);
                                         setViewingPage(data);
                                       } catch {
                                         toast.error("Erreur suppression");
@@ -3095,8 +2920,7 @@ export function WikiContent({
                           : "bg-white dark:bg-slate-800 text-seal-navy dark:text-white border-gray-200 dark:border-slate-700 hover:border-emerald-300 hover:text-emerald-600"
                       } disabled:cursor-not-allowed`}
                     >
-                      <ThumbsUp className="h-4 w-4" /> Oui{" "}
-                      {counts.up > 0 && `(${counts.up})`}
+                      <ThumbsUp className="h-4 w-4" /> Oui {counts.up > 0 && `(${counts.up})`}
                     </button>
                     <button
                       onClick={() => submitFeedback(viewingPage.id, "down")}
@@ -3107,8 +2931,7 @@ export function WikiContent({
                           : "bg-white dark:bg-slate-800 text-seal-navy dark:text-white border-gray-200 dark:border-slate-700 hover:border-red-300 hover:text-red-600"
                       } disabled:cursor-not-allowed`}
                     >
-                      <ThumbsDown className="h-4 w-4" /> Non{" "}
-                      {counts.down > 0 && `(${counts.down})`}
+                      <ThumbsDown className="h-4 w-4" /> Non {counts.down > 0 && `(${counts.down})`}
                     </button>
                   </div>
                   {currentFeedback && (
@@ -3146,9 +2969,7 @@ export function WikiContent({
                               { timeout: 120_000 },
                             )
                             .then(({ data }) => setWikiAnswer(data.answer))
-                            .catch(() =>
-                              setWikiAnswer("IA non disponible actuellement."),
-                            )
+                            .catch(() => setWikiAnswer("IA non disponible actuellement."))
                             .finally(() => setWikiAnswerLoading(false));
                         }
                       }}
@@ -3157,9 +2978,7 @@ export function WikiContent({
                     />
                     <Button
                       size="sm"
-                      disabled={
-                        wikiQuestion.trim().length < 2 || wikiAnswerLoading
-                      }
+                      disabled={wikiQuestion.trim().length < 2 || wikiAnswerLoading}
                       onClick={() => {
                         if (wikiQuestion.trim().length < 2) return;
                         setWikiAnswerLoading(true);
@@ -3171,15 +2990,11 @@ export function WikiContent({
                             { timeout: 120_000 },
                           )
                           .then(({ data }) => setWikiAnswer(data.answer))
-                          .catch(() =>
-                            setWikiAnswer("IA non disponible actuellement."),
-                          )
+                          .catch(() => setWikiAnswer("IA non disponible actuellement."))
                           .finally(() => setWikiAnswerLoading(false));
                       }}
                     >
-                      <Send
-                        className={`h-4 w-4 ${wikiAnswerLoading ? "animate-spin" : ""}`}
-                      />
+                      <Send className={`h-4 w-4 ${wikiAnswerLoading ? "animate-spin" : ""}`} />
                     </Button>
                   </div>
                   {wikiAnswerLoading && (
@@ -3291,14 +3106,10 @@ export function WikiContent({
             </article>
 
             {/* Sticky outline (>= 1280px) + mobile drawer fallback */}
-            {!zenMode && (
-              <WikiOutline entries={tocEntries} articleRef={articleRef} />
-            )}
+            {!zenMode && <WikiOutline entries={tocEntries} articleRef={articleRef} />}
 
             {/* Right column: floating actions (visible from lg upwards) */}
-            <aside
-              className={`hidden lg:block w-60 flex-shrink-0 ${zenMode ? "!hidden" : ""}`}
-            >
+            <aside className={`hidden lg:block w-60 flex-shrink-0 ${zenMode ? "!hidden" : ""}`}>
               <div className="sticky top-20 space-y-4">
                 {/* Actions bar */}
                 <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 flex flex-col">
@@ -3331,8 +3142,7 @@ export function WikiContent({
                   >
                     {contentCopied ? (
                       <>
-                        <Check className="h-3.5 w-3.5 text-emerald-500" />{" "}
-                        Contenu copié !
+                        <Check className="h-3.5 w-3.5 text-emerald-500" /> Contenu copié !
                       </>
                     ) : (
                       <>
@@ -3354,9 +3164,7 @@ export function WikiContent({
                         : "text-seal-gray-500 dark:text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                     }`}
                   >
-                    <Star
-                      className={`h-3.5 w-3.5 ${isFavorite ? "fill-current" : ""}`}
-                    />
+                    <Star className={`h-3.5 w-3.5 ${isFavorite ? "fill-current" : ""}`} />
                     {isFavorite ? "Favori" : "Marquer favori"}
                   </button>
                   <button
@@ -3409,11 +3217,7 @@ export function WikiContent({
             <Plus className="h-4 w-4" /> Nouvelle page personnelle
           </Button>
           {isAdmin && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowManageCategories(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowManageCategories(true)}>
               <Settings className="h-4 w-4" /> Catégories
             </Button>
           )}
@@ -3446,9 +3250,7 @@ export function WikiContent({
       {/* Total article count */}
       {!loading && pages.length > 0 && (
         <p className="text-sm text-seal-gray-500 dark:text-slate-400 font-medium">
-          <span className="text-seal-navy dark:text-white font-semibold">
-            {pages.length}
-          </span>{" "}
+          <span className="text-seal-navy dark:text-white font-semibold">{pages.length}</span>{" "}
           article{pages.length !== 1 ? "s" : ""}
           {search && sorted.length !== pages.length && (
             <span>
@@ -3523,94 +3325,79 @@ export function WikiContent({
             className="flex-1 w-full"
           />
           {/* Search suggestions dropdown — Meilisearch results preferred when available */}
-          {showSearchSuggestions &&
-            (meiliResults.length > 0 || searchSuggestions.length > 0) && (
-              <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
-                <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 border-b border-gray-100 dark:border-slate-700 flex items-center gap-1.5">
-                  <Search className="h-3 w-3" />{" "}
-                  {meiliResults.length > 0 ? "Résultats" : "Suggestions"}
-                  {meiliLoading && (
-                    <span className="ml-1 animate-pulse">...</span>
-                  )}
-                </div>
-                {(meiliResults.length > 0
-                  ? meiliResults.slice(0, 5)
-                  : searchSuggestions
-                ).map((p) => {
-                  const formatted =
-                    "_formatted" in p
-                      ? (p as (typeof meiliResults)[number])._formatted
-                      : undefined;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        setShowSearchSuggestions(false);
-                        handleViewPage(p.slug);
-                      }}
-                      className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 border-b last:border-b-0 border-gray-50 dark:border-slate-800"
-                    >
-                      <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <BookOpen className="h-3.5 w-3.5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        {formatted?.title ? (
-                          <p
-                            className="text-sm font-medium text-seal-navy dark:text-white truncate [&>em]:bg-yellow-200 [&>em]:dark:bg-yellow-700/50 [&>em]:not-italic [&>em]:rounded-sm [&>em]:px-0.5"
-                            dangerouslySetInnerHTML={{
-                              __html: DOMPurify.sanitize(formatted.title),
-                            }}
-                          />
-                        ) : (
-                          <p className="text-sm font-medium text-seal-navy dark:text-white truncate">
-                            {highlightText(p.title, search)}
-                          </p>
-                        )}
-                        {formatted?.content ? (
-                          <p
-                            className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate mt-0.5 [&>em]:bg-yellow-200 [&>em]:dark:bg-yellow-700/50 [&>em]:not-italic [&>em]:rounded-sm [&>em]:px-0.5"
-                            dangerouslySetInnerHTML={{
-                              __html: DOMPurify.sanitize(
-                                stripHtml(formatted.content).slice(0, 150),
-                              ),
-                            }}
-                          />
-                        ) : (
-                          (() => {
-                            const plain = stripHtml(p.content);
-                            const lIdx = plain
-                              .toLowerCase()
-                              .indexOf(search.toLowerCase());
-                            if (lIdx >= 0) {
-                              const start = Math.max(0, lIdx - 40);
-                              const end = Math.min(
-                                plain.length,
-                                lIdx + search.length + 80,
-                              );
-                              const snippet =
-                                (start > 0 ? "..." : "") +
-                                plain.slice(start, end) +
-                                (end < plain.length ? "..." : "");
-                              return (
-                                <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate mt-0.5">
-                                  {highlightText(snippet, search)}
-                                </p>
-                              );
-                            }
-                            return p.category ? (
-                              <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">
-                                {p.category}
-                              </p>
-                            ) : null;
-                          })()
-                        )}
-                      </div>
-                      <ChevronRight className="h-3 w-3 text-seal-gray-500 dark:text-slate-500 flex-shrink-0" />
-                    </button>
-                  );
-                })}
+          {showSearchSuggestions && (meiliResults.length > 0 || searchSuggestions.length > 0) && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
+              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 border-b border-gray-100 dark:border-slate-700 flex items-center gap-1.5">
+                <Search className="h-3 w-3" />{" "}
+                {meiliResults.length > 0 ? "Résultats" : "Suggestions"}
+                {meiliLoading && <span className="ml-1 animate-pulse">...</span>}
               </div>
-            )}
+              {(meiliResults.length > 0 ? meiliResults.slice(0, 5) : searchSuggestions).map((p) => {
+                const formatted =
+                  "_formatted" in p ? (p as (typeof meiliResults)[number])._formatted : undefined;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setShowSearchSuggestions(false);
+                      handleViewPage(p.slug);
+                    }}
+                    className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 border-b last:border-b-0 border-gray-50 dark:border-slate-800"
+                  >
+                    <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {formatted?.title ? (
+                        <p
+                          className="text-sm font-medium text-seal-navy dark:text-white truncate [&>em]:bg-yellow-200 [&>em]:dark:bg-yellow-700/50 [&>em]:not-italic [&>em]:rounded-sm [&>em]:px-0.5"
+                          dangerouslySetInnerHTML={{
+                            __html: DOMPurify.sanitize(formatted.title),
+                          }}
+                        />
+                      ) : (
+                        <p className="text-sm font-medium text-seal-navy dark:text-white truncate">
+                          {highlightText(p.title, search)}
+                        </p>
+                      )}
+                      {formatted?.content ? (
+                        <p
+                          className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate mt-0.5 [&>em]:bg-yellow-200 [&>em]:dark:bg-yellow-700/50 [&>em]:not-italic [&>em]:rounded-sm [&>em]:px-0.5"
+                          dangerouslySetInnerHTML={{
+                            __html: DOMPurify.sanitize(stripHtml(formatted.content).slice(0, 150)),
+                          }}
+                        />
+                      ) : (
+                        (() => {
+                          const plain = stripHtml(p.content);
+                          const lIdx = plain.toLowerCase().indexOf(search.toLowerCase());
+                          if (lIdx >= 0) {
+                            const start = Math.max(0, lIdx - 40);
+                            const end = Math.min(plain.length, lIdx + search.length + 80);
+                            const snippet =
+                              (start > 0 ? "..." : "") +
+                              plain.slice(start, end) +
+                              (end < plain.length ? "..." : "");
+                            return (
+                              <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 truncate mt-0.5">
+                                {highlightText(snippet, search)}
+                              </p>
+                            );
+                          }
+                          return p.category ? (
+                            <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">
+                              {p.category}
+                            </p>
+                          ) : null;
+                        })()
+                      )}
+                    </div>
+                    <ChevronRight className="h-3 w-3 text-seal-gray-500 dark:text-slate-500 flex-shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Select
@@ -3710,9 +3497,7 @@ export function WikiContent({
                   }`}
                 >
                   <BookOpen className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="flex-1 text-left truncate">
-                    Toutes les catégories
-                  </span>
+                  <span className="flex-1 text-left truncate">Toutes les catégories</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${
                       categoryFilter === CATEGORY_ALL
@@ -3730,9 +3515,7 @@ export function WikiContent({
                   const adminSysChildren = allCats.filter((c) =>
                     c.startsWith(ADMIN_SYS_PREFIX + " "),
                   );
-                  const otherCats = allCats.filter(
-                    (c) => !adminSysChildren.includes(c),
-                  );
+                  const otherCats = allCats.filter((c) => !adminSysChildren.includes(c));
 
                   const renderCatButton = (cat: string, indent = false) => {
                     const count = categoryCounts[cat] ?? 0;
@@ -3757,9 +3540,7 @@ export function WikiContent({
                       >
                         <Icon className="h-3.5 w-3.5 flex-shrink-0" />
                         <span className="flex-1 text-left truncate">
-                          {indent
-                            ? cat.replace(ADMIN_SYS_PREFIX + " — ", "")
-                            : cat}
+                          {indent ? cat.replace(ADMIN_SYS_PREFIX + " — ", "") : cat}
                         </span>
                         <span
                           className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${
@@ -3794,16 +3575,12 @@ export function WikiContent({
                         <div key="__admin-sys-group" className="mt-1 mb-0.5">
                           <div className="flex items-center gap-2 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
                             <Code className="h-3 w-3 flex-shrink-0" />
-                            <span className="flex-1 text-left">
-                              {ADMIN_SYS_PREFIX}
-                            </span>
+                            <span className="flex-1 text-left">{ADMIN_SYS_PREFIX}</span>
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-500">
                               {parentCount}
                             </span>
                           </div>
-                          {adminSysChildren.map((c) =>
-                            renderCatButton(c, true),
-                          )}
+                          {adminSysChildren.map((c) => renderCatButton(c, true))}
                         </div>,
                       );
                     }
@@ -3819,9 +3596,7 @@ export function WikiContent({
                       <div key="__admin-sys-group" className="mt-1 mb-0.5">
                         <div className="flex items-center gap-2 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-seal-gray-500 dark:text-slate-500">
                           <Code className="h-3 w-3 flex-shrink-0" />
-                          <span className="flex-1 text-left">
-                            {ADMIN_SYS_PREFIX}
-                          </span>
+                          <span className="flex-1 text-left">{ADMIN_SYS_PREFIX}</span>
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-500">
                             {parentCount}
                           </span>
@@ -3844,9 +3619,7 @@ export function WikiContent({
                 <div className="space-y-0.5">
                   {[...pages]
                     .sort(
-                      (a, b) =>
-                        new Date(b.updatedAt).getTime() -
-                        new Date(a.updatedAt).getTime(),
+                      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
                     )
                     .slice(0, 3)
                     .map((page) => (
@@ -3876,12 +3649,8 @@ export function WikiContent({
           <div className="flex md:hidden items-center gap-2 overflow-x-auto pb-3 scrollbar-thin">
             <Filter className="h-4 w-4 text-seal-gray-500 dark:text-slate-400 flex-shrink-0" />
             {categories.map((cat) => {
-              const count =
-                cat === CATEGORY_ALL
-                  ? pages.length
-                  : (categoryCounts[cat] ?? 0);
-              const Icon =
-                cat === CATEGORY_ALL ? BookOpen : getCategoryIcon(cat);
+              const count = cat === CATEGORY_ALL ? pages.length : (categoryCounts[cat] ?? 0);
+              const Icon = cat === CATEGORY_ALL ? BookOpen : getCategoryIcon(cat);
               return (
                 <button
                   key={cat}
@@ -3933,9 +3702,7 @@ export function WikiContent({
               <EmptyState
                 type="documents"
                 title={
-                  pages.length === 0
-                    ? t("wiki.empty")
-                    : "Aucune page ne correspond à vos critères"
+                  pages.length === 0 ? t("wiki.empty") : "Aucune page ne correspond à vos critères"
                 }
                 description={
                   pages.length === 0
@@ -3950,8 +3717,7 @@ export function WikiContent({
                       Démarrer à partir d&apos;un modèle
                     </h3>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                      Choisissez un modèle pré-rempli pour créer votre première
-                      page rapidement.
+                      Choisissez un modèle pré-rempli pour créer votre première page rapidement.
                     </p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -3975,8 +3741,7 @@ export function WikiContent({
                                 {tpl.description}
                               </p>
                               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary mt-2">
-                                Utiliser ce modèle{" "}
-                                <ArrowRight className="h-3 w-3" />
+                                Utiliser ce modèle <ArrowRight className="h-3 w-3" />
                               </span>
                             </div>
                           </div>
@@ -3993,11 +3758,8 @@ export function WikiContent({
               {sorted.map((page) => {
                 const isOwner = user && page.author.id === user.id;
                 const canEditPage =
-                  isAdmin ||
-                  isOwner ||
-                  (user && (page.collaborators ?? []).includes(user.id));
-                const pageVisibility =
-                  (page.visibility as WikiVisibility) || "PUBLIC";
+                  isAdmin || isOwner || (user && (page.collaborators ?? []).includes(user.id));
+                const pageVisibility = (page.visibility as WikiVisibility) || "PUBLIC";
                 const lockActive =
                   page.editLockUserId &&
                   page.editLockExpiresAt &&
@@ -4058,8 +3820,7 @@ export function WikiContent({
                       {excerpt && (
                         <p className="text-[12.5px] leading-relaxed text-seal-gray-500 dark:text-slate-400 mt-3 line-clamp-2">
                           {highlightText(
-                            excerpt.slice(0, 160) +
-                              (excerpt.length > 160 ? "…" : ""),
+                            excerpt.slice(0, 160) + (excerpt.length > 160 ? "…" : ""),
                             search,
                           )}
                         </p>
@@ -4269,9 +4030,7 @@ export function WikiContent({
                 const safeAlt = (imgAlt || "image").replace(/"/g, "&quot;");
                 const safeUrl = imgUrl.replace(/"/g, "&quot;");
                 const imgHtml = `<p><img src="${safeUrl}" alt="${safeAlt}" style="max-width:100%;" /></p>`;
-                const next =
-                  (editorContentRef.current || formData.content || "") +
-                  imgHtml;
+                const next = (editorContentRef.current || formData.content || "") + imgHtml;
                 editorContentRef.current = next;
                 setFormData((f) => ({ ...f, content: next }));
                 setShowImageDialog(false);
@@ -4294,8 +4053,8 @@ export function WikiContent({
       >
         <div className="space-y-4">
           <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-            Ajoutez des catégories prédéfinies. Elles apparaîtront dans le
-            filtre et en suggestion lors de la création/édition de pages.
+            Ajoutez des catégories prédéfinies. Elles apparaîtront dans le filtre et en suggestion
+            lors de la création/édition de pages.
           </p>
           {/* Add new category */}
           <div className="flex gap-2">
@@ -4342,9 +4101,7 @@ export function WikiContent({
                 .filter((c) => c !== CATEGORY_ALL)
                 .map((cat) => {
                   const isManaged = managedCategories.includes(cat);
-                  const pageCount = pages.filter(
-                    (p) => p.category === cat,
-                  ).length;
+                  const pageCount = pages.filter((p) => p.category === cat).length;
                   return (
                     <div
                       key={cat}
@@ -4366,9 +4123,7 @@ export function WikiContent({
                       {isManaged && (
                         <button
                           onClick={() => {
-                            const updated = managedCategories.filter(
-                              (c) => c !== cat,
-                            );
+                            const updated = managedCategories.filter((c) => c !== cat);
                             saveManagedCategories(updated);
                           }}
                           className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 transition-colors"

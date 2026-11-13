@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { CacheService } from "../common/cache/cache.service";
+import { inputArray, inputRecord, inputText } from "../common/validation/content-input";
 
 interface QuizQuestion {
   id: string;
@@ -14,8 +16,7 @@ interface QuizQuestion {
 const DEFAULT_QUESTIONS: QuizQuestion[] = [
   {
     id: "q1",
-    question:
-      "Quelle est la longueur minimale recommandée pour un mot de passe sécurisé ?",
+    question: "Quelle est la longueur minimale recommandée pour un mot de passe sécurisé ?",
     options: ["6 caractères", "8 caractères", "12 caractères", "4 caractères"],
     correctIndex: 2,
     explanation:
@@ -24,8 +25,7 @@ const DEFAULT_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: "q2",
-    question:
-      "Que faire si vous recevez un email suspect demandant vos identifiants ?",
+    question: "Que faire si vous recevez un email suspect demandant vos identifiants ?",
     options: [
       "Répondre avec vos identifiants",
       "Cliquer sur le lien pour vérifier",
@@ -67,8 +67,7 @@ const DEFAULT_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: "q5",
-    question:
-      "Quel est le délai maximum pour signaler un incident de sécurité ?",
+    question: "Quel est le délai maximum pour signaler un incident de sécurité ?",
     options: ["24 heures", "1 semaine", "4 heures", "1 mois"],
     correctIndex: 2,
     explanation:
@@ -105,8 +104,7 @@ const DEFAULT_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: "q8",
-    question:
-      "Que faire en cas de perte de votre téléphone avec l'application MFA ?",
+    question: "Que faire en cas de perte de votre téléphone avec l'application MFA ?",
     options: [
       "Attendre de le retrouver",
       "Utiliser un code de secours",
@@ -129,8 +127,7 @@ const DEFAULT_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: "q10",
-    question:
-      "Quelle norme ISO encadre la sécurité de l'information chez OMNITECH ?",
+    question: "Quelle norme ISO encadre la sécurité de l'information chez OMNITECH ?",
     options: ["ISO 9001", "ISO 14001", "ISO 27001:2022", "ISO 45001"],
     correctIndex: 2,
     explanation:
@@ -154,12 +151,7 @@ const DEFAULT_QUESTIONS: QuizQuestion[] = [
   {
     id: "q12",
     question: "Quel outil OMNITECH utilise pour les sauvegardes ?",
-    options: [
-      "Acronis",
-      "Veeam Backup & Replication",
-      "Windows Backup",
-      "rsync",
-    ],
+    options: ["Acronis", "Veeam Backup & Replication", "Windows Backup", "rsync"],
     correctIndex: 1,
     explanation:
       "OMNITECH utilise Veeam Backup & Replication pour les sauvegardes quotidiennes des VM et serveurs.",
@@ -176,8 +168,7 @@ const DEFAULT_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: "q14",
-    question:
-      "Quelle est la fréquence de revue des règles firewall chez OMNITECH ?",
+    question: "Quelle est la fréquence de revue des règles firewall chez OMNITECH ?",
     options: ["Annuelle", "Semestrielle", "Trimestrielle", "Mensuelle"],
     correctIndex: 2,
     explanation:
@@ -218,8 +209,7 @@ const DEFAULT_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: "q18",
-    question:
-      "Quel est le logiciel de signature électronique utilisé par OMNITECH ?",
+    question: "Quel est le logiciel de signature électronique utilisé par OMNITECH ?",
     options: ["DocuSign", "DocuSeal", "Adobe Sign", "HelloSign"],
     correctIndex: 1,
     explanation:
@@ -253,7 +243,10 @@ const DEFAULT_QUESTIONS: QuizQuestion[] = [
 
 @Injectable()
 export class QuizService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   // =========================================================================
   // Campaign CRUD
@@ -310,16 +303,12 @@ export class QuizService {
     if (!campaign) throw new NotFoundException("Quiz campaign not found");
     const updateData: any = {};
     if (data.title !== undefined) updateData.title = data.title;
-    if (data.description !== undefined)
-      updateData.description = data.description;
+    if (data.description !== undefined) updateData.description = data.description;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
-    if (data.passingScore !== undefined)
-      updateData.passingScore = data.passingScore;
+    if (data.passingScore !== undefined) updateData.passingScore = data.passingScore;
     if (data.questions !== undefined) {
       updateData.questions =
-        typeof data.questions === "string"
-          ? data.questions
-          : JSON.stringify(data.questions);
+        typeof data.questions === "string" ? data.questions : JSON.stringify(data.questions);
     }
     return this.prisma.quizCampaign.update({ where: { id }, data: updateData });
   }
@@ -405,16 +394,14 @@ export class QuizService {
       const meta = (r.metadata as Record<string, unknown>) ?? {};
       const score = typeof meta.score === "number" ? meta.score : 0;
       const total = typeof meta.total === "number" ? meta.total : 0;
-      const percentage =
-        typeof meta.percentage === "number" ? meta.percentage : 0;
+      const percentage = typeof meta.percentage === "number" ? meta.percentage : 0;
       return {
         id: r.id,
         score,
         total,
         percentage,
         passed: percentage >= 70,
-        campaignTitle:
-          (meta.campaignTitle as string) ?? "Quiz Sécurité OMNITECH",
+        campaignTitle: (meta.campaignTitle as string) ?? "Quiz Sécurité OMNITECH",
         completedAt: r.createdAt,
       };
     });
@@ -437,19 +424,14 @@ export class QuizService {
       take: 100,
     });
     // Best score per user
-    const bestScores = new Map<
-      string,
-      { user: any; score: number; total: number; date: Date }
-    >();
+    const bestScores = new Map<string, { user: any; score: number; total: number; date: Date }>();
     for (const r of results) {
       // Prisma.JsonValue dynamique — extraction défensive
       const meta = (r.metadata as Record<string, number> | null) ?? {};
       if (
         !bestScores.has(r.userId!) ||
         (meta.percentage ?? 0) >
-          (bestScores.get(r.userId!)!.score /
-            bestScores.get(r.userId!)!.total) *
-            100
+          (bestScores.get(r.userId!)!.score / bestScores.get(r.userId!)!.total) * 100
       ) {
         bestScores.set(r.userId!, {
           user: r.user,
@@ -464,7 +446,14 @@ export class QuizService {
       .slice(0, 20);
   }
 
-  async updateQuestions(questions: any[]) {
+  async updateQuestions(value: unknown) {
+    const questions: QuizQuestion[] = inputArray(value, "Questions", 200).map((entry) => {
+      const item = inputRecord(entry);
+      const options = inputArray(item.options, "Réponses", 10).map((option) => inputText(option, "Réponse", 1000));
+      if (options.length < 2 || !Number.isInteger(item.correctIndex) || (item.correctIndex as number) < 0 || (item.correctIndex as number) >= options.length) throw new BadRequestException("La bonne réponse doit désigner une option existante.");
+      return { id: inputText(item.id, "Identifiant", 128), question: inputText(item.question, "Question", 2000), options, correctIndex: item.correctIndex as number, explanation: item.explanation === undefined ? "" : inputText(item.explanation, "Explication", 4000, true), category: item.category === undefined ? "" : inputText(item.category, "Catégorie", 100, true) };
+    });
+    if (new Set(questions.map((question) => question.id)).size !== questions.length) throw new BadRequestException("Les identifiants des questions doivent être uniques.");
     await this.prisma.appConfig.upsert({
       where: { key: "quiz_questions" },
       create: {
@@ -600,67 +589,64 @@ export class QuizService {
   }
 
   async getParticipationStats() {
-    // Get all quiz completions
-    const completions = await this.prisma.auditLog.findMany({
-      where: { action: "QUIZ_COMPLETED" },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            departmentId: true,
+    return this.cache.wrap("stats:quiz:participation", 300, async () => {
+      // Get all quiz completions + totalUsers : indépendants → parallèle
+      const [completions, totalUsers] = await Promise.all([
+        this.prisma.auditLog.findMany({
+          where: { action: "QUIZ_COMPLETED" },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                departmentId: true,
+              },
+            },
           },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+          orderBy: { createdAt: "desc" },
+        }),
+        this.prisma.user.count({
+          where: { isActive: true, deletedAt: null },
+        }),
+      ]);
 
-    const totalUsers = await this.prisma.user.count({
-      where: { isActive: true, deletedAt: null },
-    });
-    const uniqueParticipants = new Set(completions.map((c) => c.userId)).size;
-    // Prisma.JsonValue dynamique — extraction défensive
-    const pct = (m: Prisma.JsonValue | null): number => {
-      if (m && typeof m === "object" && !Array.isArray(m)) {
-        const p = (m as Record<string, unknown>).percentage;
-        return typeof p === "number" ? p : 0;
+      const uniqueParticipants = new Set(completions.map((c) => c.userId)).size;
+      // Prisma.JsonValue dynamique — extraction défensive
+      const pct = (m: Prisma.JsonValue | null): number => {
+        if (m && typeof m === "object" && !Array.isArray(m)) {
+          const p = (m as Record<string, unknown>).percentage;
+          return typeof p === "number" ? p : 0;
+        }
+        return 0;
+      };
+      const averageScore =
+        completions.length > 0
+          ? completions.reduce((sum, c) => sum + pct(c.metadata), 0) / completions.length
+          : 0;
+
+      // By department
+      const byDepartment = new Map<string, { count: number; totalScore: number }>();
+      for (const c of completions) {
+        const dept = c.user?.departmentId || "unknown";
+        const current = byDepartment.get(dept) || { count: 0, totalScore: 0 };
+        current.count++;
+        current.totalScore += pct(c.metadata);
+        byDepartment.set(dept, current);
       }
-      return 0;
-    };
-    const averageScore =
-      completions.length > 0
-        ? completions.reduce((sum, c) => sum + pct(c.metadata), 0) /
-          completions.length
-        : 0;
 
-    // By department
-    const byDepartment = new Map<
-      string,
-      { count: number; totalScore: number }
-    >();
-    for (const c of completions) {
-      const dept = c.user?.departmentId || "unknown";
-      const current = byDepartment.get(dept) || { count: 0, totalScore: 0 };
-      current.count++;
-      current.totalScore += pct(c.metadata);
-      byDepartment.set(dept, current);
-    }
-
-    return {
-      totalUsers,
-      participants: uniqueParticipants,
-      participationRate:
-        totalUsers > 0
-          ? Math.round((uniqueParticipants / totalUsers) * 100)
-          : 0,
-      averageScore: Math.round(averageScore),
-      totalCompletions: completions.length,
-      passingRate: Math.round(
-        (completions.filter((c) => pct(c.metadata) >= 70).length /
-          Math.max(completions.length, 1)) *
-          100,
-      ),
-    };
+      return {
+        totalUsers,
+        participants: uniqueParticipants,
+        participationRate: totalUsers > 0 ? Math.round((uniqueParticipants / totalUsers) * 100) : 0,
+        averageScore: Math.round(averageScore),
+        totalCompletions: completions.length,
+        passingRate: Math.round(
+          (completions.filter((c) => pct(c.metadata) >= 70).length /
+            Math.max(completions.length, 1)) *
+            100,
+        ),
+      };
+    });
   }
 }

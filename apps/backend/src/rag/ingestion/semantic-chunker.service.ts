@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { compile } from "html-to-text";
 
 /**
  * Semantic chunking service (Item 30 — RAG fine-tuning corpus maison).
@@ -20,7 +21,7 @@ import { Injectable, Logger } from "@nestjs/common";
  * Active via `RAG_SEMANTIC_CHUNKING_ENABLED=true`. Quand off, on retombe sur
  * la strategie fixed-size historique (preserve la retro-compat).
  *
- * Pas de dependance NPM externe : on garde ca minimal et auditable.
+ * HTML est analysé une seule fois avec le parseur déjà utilisé par l'extracteur.
  */
 
 export interface ChunkingOptions {
@@ -32,6 +33,30 @@ export interface ChunkingOptions {
 const DEFAULT_MAX_CHARS = 2000;
 const DEFAULT_MIN_CHARS = 200;
 const DEFAULT_OVERLAP_CHARS = 100;
+
+// Decode character references once, while parsing. Re-parsing decoded text
+// would turn examples such as &lt;strong&gt; into real markup and lose content.
+const htmlToChunkText = compile({
+  wordwrap: false,
+  preserveNewlines: true,
+  formatters: {
+    ragHeading(element, walk, builder) {
+      builder.openBlock({ leadingLineBreaks: 2 });
+      builder.addInline("#".repeat(Number(element.name?.slice(1) ?? 1)) + " ");
+      walk(element.children, builder);
+      builder.closeBlock({ trailingLineBreaks: 2 });
+    },
+  },
+  selectors: [
+    ...[1, 2, 3, 4, 5, 6].map((level) => ({
+      selector: `h${level}`,
+      format: "ragHeading",
+    })),
+    { selector: "a", options: { ignoreHref: true } },
+    { selector: "img", format: "skip" },
+    { selector: "ul", options: { itemPrefix: "- " } },
+  ],
+});
 
 @Injectable()
 export class SemanticChunkerService {
@@ -111,46 +136,10 @@ export class SemanticChunkerService {
 
   /**
    * Strip HTML en preservant les titres (les transforme en `# Heading`) et
-   * les sauts de paragraphe (-> \n\n). Pas de dep externe.
+   * les sauts de paragraphe (-> \n\n), sans réinterpréter le texte décodé.
    */
   private stripHtmlPreservingHeadings(html: string): string {
-    let out = html;
-
-    // Headings -> Markdown headings
-    for (let level = 1; level <= 6; level++) {
-      const tag = `h${level}`;
-      const prefix = "#".repeat(level);
-      const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "gi");
-      out = out.replace(regex, (_m, inner) => `\n\n${prefix} ${this.stripTags(inner).trim()}\n\n`);
-    }
-
-    // <li> -> "- "
-    out = out.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, inner) => `\n- ${this.stripTags(inner).trim()}`);
-
-    // <br> -> \n
-    out = out.replace(/<br\s*\/?>/gi, "\n");
-
-    // <p> -> double newline autour
-    out = out.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (_m, inner) => `\n\n${this.stripTags(inner).trim()}\n\n`);
-
-    // Strip the rest
-    out = this.stripTags(out);
-
-    // Collapse multiple blank lines
-    out = out.replace(/\n{3,}/g, "\n\n").trim();
-
-    return out;
-  }
-
-  private stripTags(s: string): string {
-    return s
-      .replace(/<[^>]+>/g, "")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'");
+    return htmlToChunkText(html).replace(/\n{3,}/g, "\n\n").trim();
   }
 
   /**

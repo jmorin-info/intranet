@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Res,
-  UseGuards,
-  Req,
-  Logger,
-} from "@nestjs/common";
+import { Controller, Get, Post, Res, UseGuards, Req, Logger } from "@nestjs/common";
 import type { Response, Request } from "express";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
@@ -57,6 +49,15 @@ export class RssiDashboardController {
   }
 
   /**
+   * Pyramide documentaire PRO_040 §7.1 — compteurs par niveau, priorite
+   * et indicateur de couverture (% APPROVED). Voir service.getIsoPyramid().
+   */
+  @Get("iso-pyramid")
+  getIsoPyramid() {
+    return this.service.getIsoPyramid();
+  }
+
+  /**
    * Génère le rapport SMSI ISO 27001 (9 chapitres) signé SHA-256.
    * Réservé ADMIN / SUPER_ADMIN.
    */
@@ -73,9 +74,7 @@ export class RssiDashboardController {
       }
     ).user;
     const author = user
-      ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
-        user.email ||
-        "RSSI"
+      ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email || "RSSI"
       : "RSSI";
 
     const result = await this.pdf.generate({
@@ -84,10 +83,7 @@ export class RssiDashboardController {
     });
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${result.fileName}"`,
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${result.fileName}"`);
     res.setHeader("X-Export-Id", result.exportId);
     res.setHeader("X-Export-Hash", result.hash);
     res.setHeader("X-Generated-At", result.generatedAt);

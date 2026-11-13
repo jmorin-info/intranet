@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/safe-test";
 
 /**
  * CSP / Hydration smoke — critique post-fix nonce-based CSP.

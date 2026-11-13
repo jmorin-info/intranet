@@ -15,6 +15,7 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { PaginationParams, PaginatedResult } from "../common/interfaces";
 import { UserRole } from "../common/enums";
+import { userSortOrder } from "../common/validation/sort-order";
 
 @Injectable()
 export class UsersService {
@@ -74,11 +75,13 @@ export class UsersService {
     pagination: PaginationParams,
     filters?: { role?: string; departmentId?: string; search?: string },
   ): Promise<PaginatedResult<any>> {
-    const page = pagination.page || 1;
-    const limit = pagination.limit || 20;
+    const page = typeof pagination.page === "number" && Number.isSafeInteger(pagination.page) && pagination.page > 0 ? Math.min(pagination.page, 1_000_000) : 1;
+    // The admin CSV export legitimately requests 10,000 rows.
+    const limit = typeof pagination.limit === "number" && Number.isSafeInteger(pagination.limit) && pagination.limit > 0 ? Math.min(pagination.limit, 10_000) : 20;
     const skip = (page - 1) * limit;
-    const sortBy = pagination.sortBy || "createdAt";
-    const sortOrder = pagination.sortOrder || "desc";
+    for (const [field, value] of Object.entries(filters || {})) {
+      if (value !== undefined && value !== null && (typeof value !== "string" || value.length > (field === "search" ? 512 : 128))) throw new BadRequestException("Filtre utilisateur invalide");
+    }
 
     const where: any = {
       deletedAt: null,
@@ -108,7 +111,7 @@ export class UsersService {
         where,
         skip,
         take: limit,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy: [userSortOrder(pagination.sortBy, pagination.sortOrder), { id: "asc" }],
         select: {
           id: true,
           email: true,

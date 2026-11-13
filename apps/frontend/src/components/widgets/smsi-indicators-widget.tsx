@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { Info } from 'lucide-react';
 import {
   Shield,
   AlertTriangle,
@@ -9,7 +10,7 @@ import {
   Activity,
   Users,
 } from 'lucide-react';
-import { Card, CardContent, Skeleton } from '@omnitech/ui';
+import { Card, CardContent, Skeleton, Tooltip } from '@omnitech/ui';
 import { api } from '@/lib/api';
 
 type KpiStatus = 'success' | 'warning' | 'danger';
@@ -71,6 +72,8 @@ interface KpiCardProps {
   sublabel?: string;
   icon: LucideIcon;
   status: KpiStatus;
+  /** Explication courte affichée au survol/focus (aide contextuelle). */
+  help?: string;
 }
 
 const CARD_BG: Record<KpiStatus, string> = {
@@ -88,14 +91,29 @@ const ICON_COLOR: Record<KpiStatus, string> = {
   danger: 'text-red-600 dark:text-red-400',
 };
 
-function KpiCard({ label, value, target, sublabel, icon: Icon, status }: KpiCardProps) {
+function KpiCard({ label, value, target, sublabel, icon: Icon, status, help }: KpiCardProps) {
   return (
     <div className={`rounded-lg border px-3 py-2.5 ${CARD_BG[status]}`}>
       <div className="flex items-center gap-1.5 mb-1">
         <Icon className={`h-3.5 w-3.5 ${ICON_COLOR[status]}`} />
-        <span className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 truncate">
+        <span className="text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-400 truncate flex-1">
           {label}
         </span>
+        {help && (
+          <Tooltip
+            content={help}
+            side="top"
+            className="whitespace-normal w-56 text-left leading-snug font-normal"
+          >
+            <span
+              tabIndex={0}
+              aria-label={`À propos de l’indicateur « ${label} »`}
+              className="shrink-0 cursor-help text-seal-gray-500/50 hover:text-seal-gray-500 dark:text-slate-500 dark:hover:text-slate-300 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy/40 transition-colors"
+            >
+              <Info className="h-3 w-3" aria-hidden="true" />
+            </span>
+          </Tooltip>
+        )}
       </div>
       <div className="flex items-baseline gap-1">
         <span className={`text-2xl font-semibold ${ICON_COLOR[status]}`}>{value}</span>
@@ -177,6 +195,7 @@ export function SmsiIndicatorsWidget() {
         sublabel={`${data.mfaAdoption.mfaEnabled}/${data.mfaAdoption.total} utilisateurs`}
         icon={Shield}
         status={data.mfaAdoption.status}
+        help="Part des comptes utilisateurs ayant activé l'authentification multi-facteur (TOTP). Vise la cible affichée pour respecter la politique d'accès ISO 27001 A.5.16."
       />,
     );
   }
@@ -202,6 +221,7 @@ export function SmsiIndicatorsWidget() {
         sublabel={incidentSublabel}
         icon={AlertTriangle}
         status={incidentStatus}
+        help="Incidents de sécurité de criticité élevée déclarés sur les 30 derniers jours. Tendance comparée au mois précédent. Objectif : zéro."
       />,
     );
   }
@@ -221,6 +241,7 @@ export function SmsiIndicatorsWidget() {
         sublabel={`${data.documentCompliance.approved}/${data.documentCompliance.total} approuvés`}
         icon={FileCheck}
         status={docStatus}
+        help="Pourcentage de documents en vigueur (statut « approuvé ») par rapport à la base documentaire totale. Vise 100% en certification ISO 27001 A.5.31/A.5.32."
       />,
     );
   }
@@ -241,6 +262,7 @@ export function SmsiIndicatorsWidget() {
         sublabel={`${data.isoCoverage.withEvidence}/${data.isoCoverage.totalControls} contrôles`}
         icon={Activity}
         status={isoStatus}
+        help="Part des contrôles ISO 27001 disposant d'au moins une preuve documentée (politique, procédure, runbook). Indicateur clé d'avancement de la certification."
       />,
     );
   }
@@ -259,6 +281,7 @@ export function SmsiIndicatorsWidget() {
         value={`${data.charterAdoption.value}%`}
         sublabel={`${data.charterAdoption.signed}/${data.charterAdoption.total} signées`}
         icon={Users}
+        help="Part des collaborateurs ayant signé toutes les chartes obligatoires (informatique, confidentialité, télétravail…). Conforme ISO 27001 A.6.2 (sensibilisation)."
         status={charterStatus}
       />,
     );
@@ -277,6 +300,7 @@ export function SmsiIndicatorsWidget() {
         sublabel={`${highTickets} HIGH · ${data.openTicketsByPriority.MEDIUM || 0} MEDIUM`}
         icon={AlertTriangle}
         status={ticketStatus}
+        help="Tickets de support actuellement ouverts par criticité. Un volume CRITICAL > 0 doit déclencher l'astreinte ou la procédure d'escalade A.5.26 (gestion d'incidents)."
       />,
     );
   }

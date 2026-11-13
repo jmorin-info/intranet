@@ -44,10 +44,42 @@ api.interceptors.request.use((config) => {
   ) {
     config.timeout = 600_000;
   }
+  // RAG / IA : l'inférence LLM tourne en local (Ollama, CPU). Une réponse
+  // complète dépasse fréquemment le timeout par défaut de 15 s, alors que le
+  // backend accorde ~30 s au LLM. Sans cet alignement, le client avorte avant
+  // la fin → le chatbot bascule à tort sur le fallback (ou échoue) et l'IA
+  // « ne répond pas ». On laisse une marge au-dessus du budget backend.
+  if (url.startsWith("/rag/ask") || url.startsWith("/ai/search")) {
+    // Doit rester AU-DESSUS du budget backend (RAG_ANSWER_TIMEOUT_MS, défaut
+    // code 180 s, non surchargé par le .env de prod) pour ne pas avorter une
+    // génération qui aboutit côté serveur. On ne pose ce timeout QUE si
+    // l'appelant n'en a pas fourni un explicite (sinon on écrasait le
+    // { timeout: 200_000 } de handleAskAi → code mort).
+    if (!config.timeout || config.timeout === api.defaults.timeout) {
+      config.timeout = 200_000;
+    }
+  }
   return config;
 });
 
 let isRefreshing = false;
+type RetryRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+  _legacyAuthorization?: boolean;
+};
+
+function clearLegacyAuthorization(config: RetryRequestConfig) {
+  if (config._legacyAuthorization) {
+    config.headers.delete("Authorization");
+    delete config._legacyAuthorization;
+  }
+}
+
+function isPublicAuthRequest(config: RetryRequestConfig): boolean {
+  const path = (config.url || "").split(/[?#]/)[0]?.replace(/\/+$/, "") || "";
+  return /(?:^|\/)auth\/(?:login|refresh(?:\/logout)?|logout|forgot-password|reset-password)$/.test(path);
+}
+
 let failedQueue: Array<{
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
@@ -79,6 +111,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const legacyToken = localStorage.getItem("accessToken");
     if (legacyToken && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${legacyToken}`;
+      (config as RetryRequestConfig)._legacyAuthorization = true;
     }
   }
   return config;
@@ -87,17 +120,23 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean;
-    };
+    // AbortController cleanup / a replaced search request is intentional.
+    // Preserve rejection for the caller without reporting a network outage.
+    if (axios.isCancel(error) || error.code === 'ERR_CANCELED') return Promise.reject(error);
+    const originalRequest = error.config as RetryRequestConfig | undefined;
+    if (!originalRequest) return Promise.reject(error);
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // A rejected login/reset is its own result, not an expired existing session.
+    // In particular, preserve the login error for the form instead of navigating.
+    if (error.response?.status === 401 && !originalRequest._retry && !isPublicAuthRequest(originalRequest)) {
       if (isRefreshing) {
+        originalRequest._retry = true;
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then(() => {
           // Cookie has been rotated server-side — just retry, navigateur
           // attache le nouveau cookie automatiquement.
+          clearLegacyAuthorization(originalRequest);
           return api(originalRequest);
         });
       }
@@ -110,15 +149,12 @@ api.interceptors.response.use(
         // accessToken cookie on success — no need to read/write the body
         // token client-side. We still surface `accessToken` to processQueue
         // for legacy waiters that still want to set Authorization headers.
-        const { data } = await axios.post(
-          `${API_URL}/auth/refresh`,
-          {},
-          { withCredentials: true },
-        );
+        const { data } = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
 
         const { accessToken } = data;
         // Cleanup éventuel reliquat localStorage post-migration cookie.
-        localStorage.removeItem("accessToken");
+        if (typeof localStorage !== "undefined") localStorage.removeItem("accessToken");
+        clearLegacyAuthorization(originalRequest);
 
         processQueue(null, accessToken);
 
@@ -126,7 +162,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem("accessToken");
+        if (typeof localStorage !== "undefined") localStorage.removeItem("accessToken");
         if (typeof window !== "undefined") {
           window.location.href = "/login?reason=session_expired";
         }
@@ -145,10 +181,7 @@ api.interceptors.response.use(
       const body = error.response.data as { code?: string } | undefined;
       const code = body?.code;
       const currentPath = window.location.pathname + window.location.search;
-      if (
-        code === "MFA_SETUP_REQUIRED" &&
-        !window.location.pathname.startsWith("/mfa")
-      ) {
+      if (code === "MFA_SETUP_REQUIRED" && !window.location.pathname.startsWith("/mfa")) {
         // L'utilisateur a la politique mfaRequired imposée mais n'a pas activé
         // son MFA. On force le passage par /mfa avant tout autre accès.
         localStorage.setItem("mfaSetupRequired", "true");
@@ -174,7 +207,13 @@ api.interceptors.response.use(
       (error.response?.status === 403 || error.response?.status === 429) &&
       originalRequest.method === "get"
     ) {
-      return Promise.resolve({ data: null, status: error.response.status });
+      return Promise.resolve({
+        data: null,
+        status: error.response.status,
+        statusText: error.response.statusText,
+        headers: error.response.headers,
+        config: originalRequest,
+      });
     }
 
     // ── Offline fallback: serve from IndexedDB when a GET has no response ──
@@ -202,11 +241,7 @@ api.interceptors.response.use(
 
     // Network errors (no response) or server errors (5xx) — show a toast
     if (!error.response) {
-      showToast(
-        "error",
-        "api.networkError",
-        "Erreur réseau — vérifiez votre connexion internet.",
-      );
+      showToast("error", "api.networkError", "Erreur réseau — vérifiez votre connexion internet.");
     } else if (error.response.status >= 500) {
       showToast(
         "error",

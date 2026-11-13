@@ -53,9 +53,13 @@ export class FreshMfaGuard implements CanActivate {
     // fraîche — il tombera (ou pas) sous MfaRequiredGuard selon la politique.
     const dbUser = await this.prisma.user.findUnique({
       where: { id: user.id },
-      select: { mfaEnabled: true },
+      select: {
+        mfaEnabled: true,
+        _count: { select: { webauthnCredentials: true } },
+      },
     });
-    if (!dbUser?.mfaEnabled) return true;
+    const hasWebauthn = (dbUser?._count?.webauthnCredentials ?? 0) > 0;
+    if (!dbUser?.mfaEnabled && !hasWebauthn) return true;
 
     const maxAgeMs = opts.maxAgeMs ?? 12 * 60 * 60 * 1000;
     const validatedAt = user.mfaValidatedAt;

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Organigramme refondu — visualisation hiérarchique de l'organisation.
@@ -29,20 +29,11 @@
  * I18n : nouvelles clés sous `directory.organigramme.*`.
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
-import { api } from '@/lib/api';
-import { logger } from '@/lib/logger';
-import {
-  Card,
-  CardContent,
-  Badge,
-  Avatar,
-  EmptyState,
-  Button,
-  Dialog,
-  Select,
-} from '@omnitech/ui';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
+import { Card, CardContent, Badge, Avatar, EmptyState, Button, Dialog, Select } from "@omnitech/ui";
 import {
   Building2,
   Users,
@@ -54,10 +45,12 @@ import {
   Phone,
   Crown,
   Briefcase,
-} from 'lucide-react';
-import { getAvatarUrl } from '@/lib/avatar';
-import { useTranslation } from '@/lib/i18n';
-import { PageHeader } from '@/components/layout/page-header';
+} from "lucide-react";
+import { getAvatarUrl } from "@/lib/avatar";
+import { getInitials } from "@/lib/utils";
+import { USER_ROLE_LABELS, UserRole } from "@omnitech/shared";
+import { useTranslation } from "@/lib/i18n";
+import { PageHeader } from "@/components/layout/page-header";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -85,28 +78,57 @@ interface OrgChartResponse {
   users: OrgUser[];
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  ADMIN: 'Admin',
-  DIRECTION: 'Direction',
-  MANAGER: 'Manager',
-  REVIEWER: 'Réviseur',
-  AUDITEUR: 'Auditeur',
-  COLLABORATEUR: 'Collaborateur',
-  PRESTATAIRE: 'Prestataire',
-};
-
 // Palette département (cohérente avec la charte SEAL — bleus/orangers/violets).
 // Indexée stable via hash sur le code département.
 const DEPT_COLORS = [
-  { bg: 'bg-blue-500', ring: 'ring-blue-500', text: 'text-blue-600', soft: 'bg-blue-50 dark:bg-blue-900/20' },
-  { bg: 'bg-emerald-500', ring: 'ring-emerald-500', text: 'text-emerald-600', soft: 'bg-emerald-50 dark:bg-emerald-900/20' },
-  { bg: 'bg-violet-500', ring: 'ring-violet-500', text: 'text-violet-600', soft: 'bg-violet-50 dark:bg-violet-900/20' },
-  { bg: 'bg-amber-500', ring: 'ring-amber-500', text: 'text-amber-600', soft: 'bg-amber-50 dark:bg-amber-900/20' },
-  { bg: 'bg-rose-500', ring: 'ring-rose-500', text: 'text-rose-600', soft: 'bg-rose-50 dark:bg-rose-900/20' },
-  { bg: 'bg-cyan-500', ring: 'ring-cyan-500', text: 'text-cyan-600', soft: 'bg-cyan-50 dark:bg-cyan-900/20' },
-  { bg: 'bg-indigo-500', ring: 'ring-indigo-500', text: 'text-indigo-600', soft: 'bg-indigo-50 dark:bg-indigo-900/20' },
-  { bg: 'bg-teal-500', ring: 'ring-teal-500', text: 'text-teal-600', soft: 'bg-teal-50 dark:bg-teal-900/20' },
+  {
+    bg: "bg-blue-500",
+    ring: "ring-blue-500",
+    text: "text-blue-600",
+    soft: "bg-blue-50 dark:bg-blue-900/20",
+  },
+  {
+    bg: "bg-emerald-500",
+    ring: "ring-emerald-500",
+    text: "text-emerald-600",
+    soft: "bg-emerald-50 dark:bg-emerald-900/20",
+  },
+  {
+    bg: "bg-violet-500",
+    ring: "ring-violet-500",
+    text: "text-violet-600",
+    soft: "bg-violet-50 dark:bg-violet-900/20",
+  },
+  {
+    bg: "bg-amber-500",
+    ring: "ring-amber-500",
+    text: "text-amber-600",
+    soft: "bg-amber-50 dark:bg-amber-900/20",
+  },
+  {
+    bg: "bg-rose-500",
+    ring: "ring-rose-500",
+    text: "text-rose-600",
+    soft: "bg-rose-50 dark:bg-rose-900/20",
+  },
+  {
+    bg: "bg-cyan-500",
+    ring: "ring-cyan-500",
+    text: "text-cyan-600",
+    soft: "bg-cyan-50 dark:bg-cyan-900/20",
+  },
+  {
+    bg: "bg-indigo-500",
+    ring: "ring-indigo-500",
+    text: "text-indigo-600",
+    soft: "bg-indigo-50 dark:bg-indigo-900/20",
+  },
+  {
+    bg: "bg-teal-500",
+    ring: "ring-teal-500",
+    text: "text-teal-600",
+    soft: "bg-teal-50 dark:bg-teal-900/20",
+  },
 ];
 
 function hashIndex(s: string, mod: number): number {
@@ -120,7 +142,7 @@ function getDeptColor(code: string) {
 }
 
 function initials(u: { firstName: string; lastName: string }): string {
-  return `${u.firstName.charAt(0)}${u.lastName.charAt(0)}`.toUpperCase();
+  return getInitials(u.firstName, u.lastName);
 }
 
 // ── Tree node carte user ─────────────────────────────────────────────
@@ -146,9 +168,7 @@ function UserCard({
       type="button"
       onClick={() => onClick(node)}
       className={`group flex flex-col items-center w-44 rounded-card border bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 px-3 py-3 ${
-        highlight
-          ? `${c.ring} ring-2 border-transparent`
-          : 'border-gray-200 dark:border-slate-700'
+        highlight ? `${c.ring} ring-2 border-transparent` : "border-gray-200 dark:border-slate-700"
       }`}
       aria-label={`Profil de ${node.firstName} ${node.lastName}`}
     >
@@ -156,13 +176,13 @@ function UserCard({
         src={getAvatarUrl(node.avatarUrl)}
         initials={initials(node)}
         size="md"
-        className={`flex-shrink-0 ${!node.avatarUrl ? c.bg : ''}`}
+        className={`flex-shrink-0 ${!node.avatarUrl ? c.bg : ""}`}
       />
       <p className="mt-2 text-sm font-semibold text-seal-navy dark:text-white text-center truncate w-full">
         {node.firstName} {node.lastName}
       </p>
       <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 text-center truncate w-full">
-        {node.jobTitle || ROLE_LABELS[node.role] || node.role}
+        {node.jobTitle || USER_ROLE_LABELS[node.role as UserRole] || node.role}
       </p>
       {hasChildren && (
         <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-semibold">
@@ -176,13 +196,7 @@ function UserCard({
 
 // ── Sous-arbre récursif ──────────────────────────────────────────────
 
-function SubTree({
-  node,
-  onUserClick,
-}: {
-  node: UserNode;
-  onUserClick: (u: OrgUser) => void;
-}) {
+function SubTree({ node, onUserClick }: { node: UserNode; onUserClick: (u: OrgUser) => void }) {
   const hasChildren = node.children.length > 0;
   return (
     <div className="flex flex-col items-center">
@@ -237,9 +251,7 @@ function DepartmentBlock({
         className={`flex items-center gap-2 rounded-full px-4 py-1.5 ${c.soft} border-2 border-transparent`}
       >
         <span className={`h-2.5 w-2.5 rounded-full ${c.bg}`} aria-hidden />
-        <span className="text-xs font-semibold text-seal-navy dark:text-white">
-          {dept.name}
-        </span>
+        <span className="text-xs font-semibold text-seal-navy dark:text-white">{dept.name}</span>
         <Badge variant="navy" className="font-mono text-[10px]">
           {dept.code}
         </Badge>
@@ -271,10 +283,16 @@ export default function OrganigrammePage() {
   const [loading, setLoading] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [filterDeptId, setFilterDeptId] = useState<string>('all');
+  const [filterDeptId, setFilterDeptId] = useState<string>("all");
   const [activeUser, setActiveUser] = useState<OrgUser | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef<{ active: boolean; startX: number; startY: number; baseX: number; baseY: number }>({
+  const dragState = useRef<{
+    active: boolean;
+    startX: number;
+    startY: number;
+    baseX: number;
+    baseY: number;
+  }>({
     active: false,
     startX: 0,
     startY: 0,
@@ -287,10 +305,10 @@ export default function OrganigrammePage() {
     let cancelled = false;
     async function load() {
       try {
-        const res = await api.get<OrgChartResponse>('/directory/org-chart');
+        const res = await api.get<OrgChartResponse>("/directory/org-chart");
         if (!cancelled) setData(res.data);
       } catch (err) {
-        logger.error(err, { page: 'directory/organigramme', context: 'load org-chart' });
+        logger.error(err, { page: "directory/organigramme", context: "load org-chart" });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -305,7 +323,7 @@ export default function OrganigrammePage() {
   const tree = useMemo(() => {
     if (!data) return [];
     const visibleDepts =
-      filterDeptId === 'all'
+      filterDeptId === "all"
         ? data.departments
         : data.departments.filter((d) => d.id === filterDeptId);
 
@@ -355,7 +373,7 @@ export default function OrganigrammePage() {
   // ── Pan & Zoom ─────────────────────────────────────────────────────
   const onMouseDown = (e: React.MouseEvent) => {
     // ne déclenche le pan que si l'utilisateur drag le fond, pas une carte
-    if ((e.target as HTMLElement).closest('button')) return;
+    if ((e.target as HTMLElement).closest("button")) return;
     dragState.current = {
       active: true,
       startX: e.clientX,
@@ -363,7 +381,7 @@ export default function OrganigrammePage() {
       baseX: pan.x,
       baseY: pan.y,
     };
-    document.body.style.cursor = 'grabbing';
+    document.body.style.cursor = "grabbing";
   };
   const onMouseMove = (e: React.MouseEvent) => {
     if (!dragState.current.active) return;
@@ -375,7 +393,7 @@ export default function OrganigrammePage() {
   const stopDrag = () => {
     if (dragState.current.active) {
       dragState.current.active = false;
-      document.body.style.cursor = '';
+      document.body.style.cursor = "";
     }
   };
   const onWheel = (e: React.WheelEvent) => {
@@ -392,8 +410,8 @@ export default function OrganigrammePage() {
   return (
     <div className="space-y-4 animate-fade-in-up">
       <PageHeader
-        title={t('directory.organigramme.title') as string}
-        subtitle={t('directory.organigramme.subtitle') as string}
+        title={t("directory.organigramme.title") as string}
+        subtitle={t("directory.organigramme.subtitle") as string}
         icon={Building2}
         hub="work"
         actions={
@@ -435,7 +453,7 @@ export default function OrganigrammePage() {
               className="text-xs font-medium text-seal-gray-500 dark:text-slate-400"
               htmlFor="dept-filter"
             >
-              {t('directory.organigramme.filterLabel') as string}
+              {t("directory.organigramme.filterLabel") as string}
             </label>
             <Select
               id="dept-filter"
@@ -443,7 +461,7 @@ export default function OrganigrammePage() {
               onChange={(e) => setFilterDeptId(e.target.value)}
               className="w-56"
               options={[
-                { value: 'all', label: t('directory.organigramme.allDepts') as string },
+                { value: "all", label: t("directory.organigramme.allDepts") as string },
                 ...data.departments.map((d) => ({ value: d.id, label: d.name })),
               ]}
             />
@@ -453,8 +471,8 @@ export default function OrganigrammePage() {
               variant="outline"
               size="sm"
               onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))}
-              aria-label={t('directory.organigramme.zoomOut') as string}
-              title={t('directory.organigramme.zoomOut') as string}
+              aria-label={t("directory.organigramme.zoomOut") as string}
+              title={t("directory.organigramme.zoomOut") as string}
             >
               <ZoomOut className="h-4 w-4" />
             </Button>
@@ -465,8 +483,8 @@ export default function OrganigrammePage() {
               variant="outline"
               size="sm"
               onClick={() => setZoom((z) => Math.min(2, +(z + 0.1).toFixed(2)))}
-              aria-label={t('directory.organigramme.zoomIn') as string}
-              title={t('directory.organigramme.zoomIn') as string}
+              aria-label={t("directory.organigramme.zoomIn") as string}
+              title={t("directory.organigramme.zoomIn") as string}
             >
               <ZoomIn className="h-4 w-4" />
             </Button>
@@ -474,8 +492,8 @@ export default function OrganigrammePage() {
               variant="outline"
               size="sm"
               onClick={resetView}
-              aria-label={t('directory.organigramme.reset') as string}
-              title={t('directory.organigramme.reset') as string}
+              aria-label={t("directory.organigramme.reset") as string}
+              title={t("directory.organigramme.reset") as string}
             >
               <Maximize2 className="h-4 w-4" />
             </Button>
@@ -506,7 +524,7 @@ export default function OrganigrammePage() {
       {!loading && data && data.departments.length === 0 && (
         <EmptyState
           type="users"
-          title={t('directory.organigramme.noDept') as string}
+          title={t("directory.organigramme.noDept") as string}
           description="Les départements apparaîtront ici une fois créés."
         />
       )}
@@ -527,9 +545,9 @@ export default function OrganigrammePage() {
             className="origin-top-left transition-transform select-none"
             style={{
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              padding: '32px',
-              width: 'max-content',
-              minWidth: '100%',
+              padding: "32px",
+              width: "max-content",
+              minWidth: "100%",
             }}
           >
             <div className="flex flex-col items-center">
@@ -547,17 +565,20 @@ export default function OrganigrammePage() {
                       style={{ width: 44, height: 44 }}
                     />
                     <h2 className="font-semibold text-seal-navy dark:text-white text-sm text-center">
-                      {t('directory.organigramme.orgName') as string}
+                      {t("directory.organigramme.orgName") as string}
                     </h2>
                     <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                      {t('directory.organigramme.organization') as string}
+                      {t("directory.organigramme.organization") as string}
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Connecteur racine → départements */}
-              <div className="w-px h-8 bg-gradient-to-b from-primary/40 to-gray-300 dark:from-primary/50 dark:to-slate-600" aria-hidden />
+              <div
+                className="w-px h-8 bg-gradient-to-b from-primary/40 to-gray-300 dark:from-primary/50 dark:to-slate-600"
+                aria-hidden
+              />
 
               {/* Rangée des départements */}
               <div className="flex items-start gap-10 pt-2">
@@ -575,7 +596,7 @@ export default function OrganigrammePage() {
 
           {/* Hint Ctrl+wheel */}
           <p className="pointer-events-none absolute bottom-2 right-3 text-[10px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 italic">
-            {t('directory.organigramme.zoomHint') as string}
+            {t("directory.organigramme.zoomHint") as string}
           </p>
         </div>
       )}
@@ -584,12 +605,10 @@ export default function OrganigrammePage() {
       <Dialog
         open={!!activeUser}
         onClose={() => setActiveUser(null)}
-        title={
-          activeUser
-            ? `${activeUser.firstName} ${activeUser.lastName}`
-            : ''
+        title={activeUser ? `${activeUser.firstName} ${activeUser.lastName}` : ""}
+        description={
+          activeUser?.jobTitle || USER_ROLE_LABELS[(activeUser?.role || "") as UserRole] || ""
         }
-        description={activeUser?.jobTitle || ROLE_LABELS[activeUser?.role || ''] || ''}
       >
         {activeUser && (
           <div className="space-y-4">
@@ -601,7 +620,7 @@ export default function OrganigrammePage() {
               />
               <div className="flex-1 min-w-0">
                 <Badge variant="navy" className="text-[10px]">
-                  {ROLE_LABELS[activeUser.role] || activeUser.role}
+                  {USER_ROLE_LABELS[activeUser.role as UserRole] || activeUser.role}
                 </Badge>
                 {activeUser.jobTitle && (
                   <p className="mt-1 text-sm text-seal-gray-500 dark:text-slate-400 flex items-center gap-1.5">
@@ -634,7 +653,7 @@ export default function OrganigrammePage() {
                   return mgr ? (
                     <p className="flex items-center gap-2 text-seal-gray-500 dark:text-slate-400">
                       <Crown className="h-4 w-4 flex-shrink-0" />
-                      {t('directory.organigramme.reportsTo') as string}{' '}
+                      {t("directory.organigramme.reportsTo") as string}{" "}
                       <span className="font-semibold text-seal-navy dark:text-white">
                         {mgr.firstName} {mgr.lastName}
                       </span>
@@ -648,7 +667,7 @@ export default function OrganigrammePage() {
                 className="text-xs text-primary hover:underline"
                 onClick={() => setActiveUser(null)}
               >
-                {t('directory.organigramme.viewFullProfile') as string} →
+                {t("directory.organigramme.viewFullProfile") as string} →
               </Link>
             </div>
           </div>

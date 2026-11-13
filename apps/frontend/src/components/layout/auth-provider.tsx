@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, isLoading, fetchMe, user } = useAuthStore();
-  const { setNotifications, setUnreadCount, startPolling } =
+  const { setNotifications, startPolling } =
     useNotificationStore();
   const { setPendingCount } = useDocumentStore();
   const startHealthPolling = useHealthStore((s) => s.startPolling);
@@ -220,11 +220,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ]);
 
       if (notifRes.status === "fulfilled") {
-        const notifs = notifRes.value.data?.data || [];
-        setNotifications(notifs);
-        setUnreadCount(
-          notifs.filter((n: { isRead: boolean }) => !n.isRead).length,
-        );
+        const notifs = notifRes.value.data?.data;
+        if (Array.isArray(notifs)) setNotifications(notifs);
       }
       if (pendingRes.status === "fulfilled") {
         setPendingCount(pendingRes.value.data?.meta?.total || 0);
@@ -248,7 +245,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [
     isAuthenticated,
     setNotifications,
-    setUnreadCount,
     setPendingCount,
     pathname,
     router,

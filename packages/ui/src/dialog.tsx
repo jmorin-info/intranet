@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from './utils';
 import { X } from 'lucide-react';
 import { Button } from './button';
@@ -63,6 +64,9 @@ function getVisibleFocusable(root: HTMLElement): HTMLElement[] {
 }
 
 export function Dialog({ open, onClose, title, description, children, className, size = 'md' }: DialogProps) {
+  const [mounted, setMounted] = useState(false);
+  const titleId = useId();
+  const descriptionId = useId();
   const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -72,7 +76,10 @@ export function Dialog({ open, onClose, title, description, children, className,
   onCloseRef.current = onClose;
   const prevOpenRef = useRef(false);
 
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
+    if (!mounted) return;
     if (open) {
       // Remember the trigger so we can restore focus on close (WCAG 2.4.3)
       if (!prevOpenRef.current) {
@@ -115,7 +122,7 @@ export function Dialog({ open, onClose, title, description, children, className,
     return () => {
       document.body.style.overflow = '';
     };
-  }, [open]);
+  }, [open, mounted]);
 
   // Focus-trap + Escape : while the dialog is open, Tab/Shift+Tab cycle inside
   // the panel and never escape it. Escape closes.
@@ -161,12 +168,14 @@ export function Dialog({ open, onClose, title, description, children, className,
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  // A portal escapes transformed page containers and places the confirmation
+  // above fixed mobile navigation. All consumers share the same behavior.
+  return createPortal(
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-end sm:items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-0 sm:p-4 sm:pt-[5vh] sm:pb-[5vh] animate-fade-in-scale"
+      className="fixed inset-0 z-[200] flex items-end sm:items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-0 sm:p-4 sm:pt-[5vh] sm:pb-[5vh] animate-fade-in-scale"
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
@@ -181,15 +190,16 @@ export function Dialog({ open, onClose, title, description, children, className,
         )}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="dialog-title"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
       >
         <div className="mx-auto h-1 w-10 rounded-full bg-gray-300 dark:bg-slate-600 mt-2 mb-1 sm:hidden" aria-hidden />
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
           <div>
-            <h2 id="dialog-title" className="text-lg font-semibold text-seal-navy dark:text-white">
+            <h2 id={titleId} className="text-lg font-semibold text-seal-navy dark:text-white">
               {title}
             </h2>
-            {description && <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5">{description}</p>}
+            {description && <p id={descriptionId} className="text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5">{description}</p>}
           </div>
           <button
             type="button"
@@ -202,7 +212,8 @@ export function Dialog({ open, onClose, title, description, children, className,
         </div>
         <div className="px-6 py-4 overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -1,6 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 import * as fs from "fs";
 import * as path from "path";
+import sanitizeHtml from "sanitize-html";
+import { stripHtmlTags } from "../common/plain-text";
 
 /**
  * Wave G — Email Render Service.
@@ -125,10 +127,28 @@ export class EmailRenderService {
     body = this.resolvePartials(body, 8);
 
     // 5. Substituer les variables (avec couleurs SEAL exposées)
+    // POL_015 §7.1 : quand un template embarque `documentClassification` (raw
+    // enum DB), on derive automatiquement `classificationLevel` (1..4) +
+    // `classificationLabel` (« Niveau X — Libelle ») pour les utiliser dans
+    // les sujets et les corps sans dupliquer le mapping a chaque appelant.
+    const rawClass = (vars as Record<string, unknown>)?.documentClassification;
+    const derived: Record<string, unknown> = {};
+    if (typeof rawClass === 'string') {
+      const map: Record<string, { level: number; label: string }> = {
+        SECRET: { level: 1, label: 'Niveau 1 — Très sensible' },
+        CONFIDENTIEL: { level: 2, label: 'Niveau 2 — Sensible' },
+        INTERNE: { level: 3, label: 'Niveau 3 — Restreint' },
+        PUBLIC: { level: 4, label: 'Niveau 4 — Public' },
+      };
+      const entry = map[rawClass.toUpperCase()] || map.INTERNE;
+      derived.classificationLevel = entry.level;
+      derived.classificationLabel = entry.label;
+    }
     const allVars = {
       colors: SEAL_COLORS,
       locale,
       currentYear: new Date().getFullYear(),
+      ...derived,
       ...vars,
     };
     const mjmlContent = this.substituteVars(body, allVars);
@@ -609,11 +629,9 @@ export class EmailRenderService {
         ],
       });
     } catch {
-      // Fallback ultra basique
-      return html
-        .replace(/<style[\s\S]*?<\/style>/gi, "")
-        .replace(/<script[\s\S]*?<\/script>/gi, "")
-        .replace(/<[^>]+>/g, " ")
+      // Keep the fallback inert too; regex tag filters can reconstruct markup.
+      const sanitized = sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} });
+      return stripHtmlTags(sanitized, true)
         .replace(/\s+/g, " ")
         .trim();
     }

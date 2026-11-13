@@ -19,6 +19,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { List, X } from 'lucide-react';
+import { stripHtmlTags } from '@/lib/plain-text';
 
 export interface WikiOutlineEntry {
   /** Unique DOM id injected on the heading (e.g. `wiki-h-3`). */
@@ -65,7 +66,7 @@ export function extractOutline(html: string): {
   const out = html.replace(
     /<h([1-3])([^>]*)>([\s\S]*?)<\/h\1>/gi,
     (_m, lvl: string, attrs: string, inner: string) => {
-      const text = inner.replace(/<[^>]+>/g, '').trim();
+      const text = stripHtmlTags(inner).trim();
       const id = `wiki-h-${idx++}`;
       entries.push({ id, text, level: parseInt(lvl, 10) });
       return `<h${lvl}${attrs} id="${id}">${inner}</h${lvl}>`;

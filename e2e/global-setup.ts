@@ -1,59 +1,34 @@
 import { chromium, type FullConfig } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { assertTestEnvironment, assertTestUrl, testBaseUrl } from './helpers/test-environment';
+import { authenticateRequest, authDirectory, roleStateFile, saveRoleState, type TestRole } from './helpers/auth';
 
-/**
- * Global setup — performs one SUPER_ADMIN login and saves the browser storage
- * state (cookies + localStorage) to `e2e/.auth/admin.json`. All "authenticated"
- * projects reuse this file via `use.storageState`, avoiding the cost and
- * flakiness of logging in on every spec.
- *
- * If login fails (network, backend down, creds wrong) we write an EMPTY
- * storage state so the unauthenticated project can still run and
- * authenticated specs will fail fast with a clear error rather than a cryptic
- * "File not found: admin.json".
- */
+/** Fresh cookie sessions from the real backend, with real MFA verification. */
 export default async function globalSetup(config: FullConfig) {
-  const baseURL =
-    (config.projects[0]?.use?.baseURL as string | undefined) ||
-    process.env.BASE_URL ||
-    'http://10.33.120.55:3001';
-
-  const email = process.env.E2E_ADMIN_EMAIL || 'jmorin@omnitech-security.fr';
-  const password = process.env.E2E_ADMIN_PASSWORD || 'Admin123!';
-
-  const authDir = path.join(__dirname, '.auth');
-  const authFile = path.join(authDir, 'admin.json');
-  fs.mkdirSync(authDir, { recursive: true });
-
-  const browser = await chromium.launch();
-  const context = await browser.newContext({ baseURL });
-  const page = await context.newPage();
-
-  try {
-    await page.goto('/login', { timeout: 15_000 });
-    await page.fill('input[type="email"]', email);
-    await page.fill('input[type="password"]', password);
-    await page.click('button[type="submit"]');
-    // Wait for either dashboard (success) or MFA challenge (also valid — user
-    // is partially authenticated); fallback: just wait a moment.
-    await Promise.race([
-      page.waitForURL('**/dashboard', { timeout: 15_000 }),
-      page.waitForURL('**/mfa/**', { timeout: 15_000 }),
-    ]).catch(() => {
-      /* allow fallback */
-    });
-    await context.storageState({ path: authFile });
-    // eslint-disable-next-line no-console
-    console.log(`[e2e] storageState written to ${authFile}`);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[e2e] global-setup login failed — writing empty storageState. Authenticated specs will fail.',
-      (err as Error).message,
-    );
-    fs.writeFileSync(authFile, JSON.stringify({ cookies: [], origins: [] }));
-  } finally {
-    await browser.close();
+  assertTestEnvironment();
+  const baseURL = assertTestUrl(config.projects[0]?.use?.baseURL || testBaseUrl(), 'baseURL');
+  fs.mkdirSync(authDirectory, { recursive: true, mode: 0o700 });
+  fs.chmodSync(authDirectory, 0o700);
+  for (const file of ['admin.json', ...(['ADMIN', 'COLLAB', 'SUPER_ADMIN'] as const).map((role) => path.basename(roleStateFile(role)))]) {
+    fs.writeFileSync(path.join(authDirectory, file), JSON.stringify({ cookies: [], origins: [] }), { mode: 0o600 });
+    fs.chmodSync(path.join(authDirectory, file), 0o600);
   }
+  if (process.env.E2E_SKIP_LOGIN === '1') return;
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined });
+  try {
+    const roles: TestRole[] = ['ADMIN'];
+    if (process.env.E2E_COLLAB_EMAIL) roles.push('COLLAB');
+    if (process.env.E2E_SUPER_ADMIN_EMAIL) roles.push('SUPER_ADMIN');
+    for (const role of roles) {
+      const context = await browser.newContext({ baseURL });
+      try {
+        await authenticateRequest(context.request, role);
+        await saveRoleState(context, role);
+      } finally { await context.close(); }
+    }
+    const defaultRole = roles.includes('SUPER_ADMIN') ? 'SUPER_ADMIN' : 'ADMIN';
+    fs.copyFileSync(roleStateFile(defaultRole), path.join(authDirectory, 'admin.json'));
+    fs.chmodSync(path.join(authDirectory, 'admin.json'), 0o600);
+  } finally { await browser.close(); }
 }

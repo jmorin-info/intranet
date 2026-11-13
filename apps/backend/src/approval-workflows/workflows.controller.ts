@@ -24,6 +24,7 @@ import {
 } from "./workflow-engine.service";
 import { AddStepDto } from "./dto/add-step.dto";
 import { DecideStepDto } from "./dto/decide-step.dto";
+import { StartInstanceDto, StartDocumentInstanceDto, ReorderWorkflowStepsDto } from './dto/start-instance.dto';
 
 /**
  * Contrôleur REST pour les workflows d'approbation configurables.
@@ -95,6 +96,12 @@ export class WorkflowsController {
     return this.service.seedPresets(user.id);
   }
 
+  @Post(":id/duplicate")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  duplicate(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
+    return this.service.duplicate(id, user.id);
+  }
+
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   create(
@@ -161,7 +168,7 @@ export class WorkflowsController {
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   reorderSteps(
     @Param("id", ParseUUIDPipe) workflowId: string,
-    @Body() dto: { orderedStepIds: string[] },
+    @Body() dto: ReorderWorkflowStepsDto,
   ) {
     return this.service.reorderSteps(workflowId, dto.orderedStepIds);
   }
@@ -180,11 +187,7 @@ export class WorkflowsController {
   startInstance(
     @Param("id", ParseUUIDPipe) workflowId: string,
     @Param("docId", ParseUUIDPipe) documentId: string,
-    @Body()
-    dto: {
-      documentVersionId: string;
-      stepOverrides?: Array<{ stepId: string; approverUserId: string }>;
-    },
+    @Body() dto: StartInstanceDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.createInstance(
@@ -209,12 +212,7 @@ export class WorkflowsController {
   )
   startInstanceForDocument(
     @Param("docId", ParseUUIDPipe) documentId: string,
-    @Body()
-    dto: {
-      workflowId: string;
-      documentVersionId: string;
-      stepOverrides?: Array<{ stepId: string; approverUserId: string }>;
-    },
+    @Body() dto: StartDocumentInstanceDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.createInstance(
@@ -236,6 +234,7 @@ export class WorkflowsController {
    */
   @Get("instance/for-document/:documentId")
   @Roles(
+    UserRole.COLLABORATEUR,
     UserRole.REVIEWER,
     UserRole.AUDITEUR,
     UserRole.DIRECTION,
@@ -244,9 +243,10 @@ export class WorkflowsController {
   )
   async getActiveInstanceForDocument(
     @Param("documentId", ParseUUIDPipe) documentId: string,
+    @CurrentUser() user: RequestUser,
   ) {
     const instance =
-      await this.service.getActiveInstanceForDocument(documentId);
+      await this.service.getActiveInstanceForDocument(documentId, user);
     if (!instance) {
       // On renvoie null (200) plutôt qu'un 404 pour simplifier le front
       return null;
@@ -255,6 +255,7 @@ export class WorkflowsController {
   }
 
   @Post("steps/:stepInstanceId/decide")
+  @Roles(UserRole.COLLABORATEUR, UserRole.REVIEWER, UserRole.MANAGER, UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   decide(
     @Param("stepInstanceId", ParseUUIDPipe) stepInstanceId: string,
     @Body() dto: DecideStepDto,
@@ -270,11 +271,24 @@ export class WorkflowsController {
 
   @Post("instances/:instanceId/cancel")
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  cancelInstance(@Param("instanceId", ParseUUIDPipe) instanceId: string) {
-    return this.service.cancelInstance(instanceId);
+  cancelInstance(@Param("instanceId", ParseUUIDPipe) instanceId: string, @CurrentUser() user: RequestUser) {
+    return this.service.cancelInstance(instanceId, user.id);
+  }
+
+  @Post("instances/:instanceId/remind")
+  @Roles(UserRole.COLLABORATEUR, UserRole.REVIEWER, UserRole.MANAGER, UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  remind(@Param("instanceId", ParseUUIDPipe) instanceId: string, @CurrentUser() user: RequestUser) {
+    return this.service.remind(instanceId, user.id);
+  }
+
+  @Get("documents/:documentId/history")
+  @Roles(UserRole.COLLABORATEUR, UserRole.REVIEWER, UserRole.MANAGER, UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  history(@Param("documentId", ParseUUIDPipe) documentId: string, @CurrentUser() user: RequestUser) {
+    return this.service.getHistory(documentId, user);
   }
 
   @Get("pending/me")
+  @Roles(UserRole.COLLABORATEUR, UserRole.REVIEWER, UserRole.MANAGER, UserRole.DIRECTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   pendingForMe(@CurrentUser() user: RequestUser) {
     return this.service.getPendingForUser(
       user.id,

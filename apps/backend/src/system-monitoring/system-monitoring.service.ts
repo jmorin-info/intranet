@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import * as os from 'os';
-import { statfs } from 'fs/promises';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, Logger } from "@nestjs/common";
+import * as os from "os";
+import { statfs } from "fs/promises";
+import { PrismaService } from "../prisma/prisma.service";
+import { CacheService } from "../common/cache/cache.service";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -71,7 +72,10 @@ export interface StoragePerUserRow {
 export class SystemMonitoringService {
   private readonly logger = new Logger(SystemMonitoringService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   /**
    * CPU / RAM / disk / uptime snapshot of the host VM.
@@ -84,9 +88,8 @@ export class SystemMonitoringService {
     const totalMemMb = Math.round(totalMemBytes / 1024 / 1024);
     const freeMemMb = Math.round(freeMemBytes / 1024 / 1024);
     const usedMemMb = Math.round(usedMemBytes / 1024 / 1024);
-    const memUsagePct = totalMemBytes > 0
-      ? Math.round((usedMemBytes / totalMemBytes) * 1000) / 10
-      : 0;
+    const memUsagePct =
+      totalMemBytes > 0 ? Math.round((usedMemBytes / totalMemBytes) * 1000) / 10 : 0;
 
     const [la1, la5, la15] = os.loadavg();
     const cpu: CpuInfo = {
@@ -96,13 +99,13 @@ export class SystemMonitoringService {
         Math.round(la5 * 100) / 100,
         Math.round(la15 * 100) / 100,
       ],
-      model: cpus[0]?.model?.trim() ?? 'unknown',
+      model: cpus[0]?.model?.trim() ?? "unknown",
     };
 
     // Disk stats via statfs on /
     let disk: DiskInfo = { totalGb: 0, freeGb: 0, usedGb: 0, usagePct: 0 };
     try {
-      const stats = await statfs('/');
+      const stats = await statfs("/");
       // bsize * blocks = total, bsize * bavail = available to non-root users
       const totalBytes = Number(stats.bsize) * Number(stats.blocks);
       const freeBytes = Number(stats.bsize) * Number(stats.bavail);
@@ -110,9 +113,7 @@ export class SystemMonitoringService {
       const totalGb = Math.round((totalBytes / 1024 / 1024 / 1024) * 100) / 100;
       const freeGb = Math.round((freeBytes / 1024 / 1024 / 1024) * 100) / 100;
       const usedGb = Math.round((usedBytes / 1024 / 1024 / 1024) * 100) / 100;
-      const usagePct = totalBytes > 0
-        ? Math.round((usedBytes / totalBytes) * 1000) / 10
-        : 0;
+      const usagePct = totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 1000) / 10 : 0;
       disk = { totalGb, freeGb, usedGb, usagePct };
     } catch (err) {
       this.logger.warn(`statfs('/') failed: ${(err as Error).message}`);
@@ -141,56 +142,58 @@ export class SystemMonitoringService {
    * Intranet usage stats : API calls, uploads, active users in last 24h.
    */
   async getIntranetUsage(): Promise<IntranetUsage> {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return this.cache.wrap("stats:system-monitoring:intranet-usage", 20, async () => {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const [apiRequests24h, activeUsersRows, documentsUploaded24h, mediaUploaded24h, hourlyRows] =
-      await Promise.all([
-        this.prisma.auditLog.count({ where: { createdAt: { gte: since } } }),
-        this.prisma.auditLog.findMany({
-          where: { createdAt: { gte: since }, userId: { not: null } },
-          select: { userId: true },
-          distinct: ['userId'],
-        }),
-        this.prisma.documentVersion.count({ where: { createdAt: { gte: since } } }),
-        this.prisma.mediaItem.count({ where: { createdAt: { gte: since } } }),
-        this.prisma.$queryRawUnsafe<Array<{ hour: Date; count: bigint }>>(
-          `
-          SELECT date_trunc('hour', "createdAt") AS hour, COUNT(*)::bigint AS count
-          FROM "AuditLog"
-          WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
-          GROUP BY hour
-          ORDER BY hour ASC
-          `,
-        ),
-      ]);
+      const [apiRequests24h, activeUsersRows, documentsUploaded24h, mediaUploaded24h, hourlyRows] =
+        await Promise.all([
+          this.prisma.auditLog.count({ where: { createdAt: { gte: since } } }),
+          this.prisma.auditLog.findMany({
+            where: { createdAt: { gte: since }, userId: { not: null } },
+            select: { userId: true },
+            distinct: ["userId"],
+          }),
+          this.prisma.documentVersion.count({ where: { createdAt: { gte: since } } }),
+          this.prisma.mediaItem.count({ where: { createdAt: { gte: since } } }),
+          this.prisma.$queryRawUnsafe<Array<{ hour: Date; count: bigint }>>(
+            `
+              SELECT date_trunc('hour', "createdAt") AS hour, COUNT(*)::bigint AS count
+              FROM "AuditLog"
+              WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
+              GROUP BY hour
+              ORDER BY hour ASC
+              `,
+          ),
+        ]);
 
-    // Build 24 consecutive hourly buckets, fill missing with 0
-    const buckets = new Map<string, number>();
-    for (const row of hourlyRows) {
-      buckets.set(new Date(row.hour).toISOString(), Number(row.count));
-    }
+      // Build 24 consecutive hourly buckets, fill missing with 0
+      const buckets = new Map<string, number>();
+      for (const row of hourlyRows) {
+        buckets.set(new Date(row.hour).toISOString(), Number(row.count));
+      }
 
-    const hourlyRequests: HourlyBucket[] = [];
-    const now = new Date();
-    const currentHour = new Date(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      now.getUTCHours(),
-    );
-    for (let i = 23; i >= 0; i--) {
-      const h = new Date(currentHour.getTime() - i * 60 * 60 * 1000);
-      const key = h.toISOString();
-      hourlyRequests.push({ hour: key, count: buckets.get(key) ?? 0 });
-    }
+      const hourlyRequests: HourlyBucket[] = [];
+      const now = new Date();
+      const currentHour = new Date(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        now.getUTCHours(),
+      );
+      for (let i = 23; i >= 0; i--) {
+        const h = new Date(currentHour.getTime() - i * 60 * 60 * 1000);
+        const key = h.toISOString();
+        hourlyRequests.push({ hour: key, count: buckets.get(key) ?? 0 });
+      }
 
-    return {
-      apiRequests24h,
-      activeUsers24h: activeUsersRows.length,
-      documentsUploaded24h,
-      mediaUploaded24h,
-      hourlyRequests,
-    };
+      return {
+        apiRequests24h,
+        activeUsers24h: activeUsersRows.length,
+        documentsUploaded24h,
+        mediaUploaded24h,
+        hourlyRequests,
+      };
+    });
   }
 
   /**
@@ -228,10 +231,7 @@ export class SystemMonitoringService {
     );
 
     // Combine per user
-    const combined = new Map<
-      string,
-      { documentsBytes: number; mediaBytes: number }
-    >();
+    const combined = new Map<string, { documentsBytes: number; mediaBytes: number }>();
     for (const row of docRows) {
       const entry = combined.get(row.ownerId) ?? { documentsBytes: 0, mediaBytes: 0 };
       entry.documentsBytes = Number(row.bytes ?? 0n);

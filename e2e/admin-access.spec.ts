@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/safe-test';
 
 /**
  * /admin/access — 3-tab access configuration. Read-only assertions by default,
@@ -8,35 +8,25 @@ import { test, expect } from '@playwright/test';
 const DESTRUCTIVE = !!process.env.RUN_DESTRUCTIVE;
 
 test.describe('Admin — Access configuration', () => {
-  test('access page loads with 3 tabs', async ({ page }) => {
+  test('access page exposes the three real configuration sections', async ({ page }) => {
     await page.goto('/admin/access');
-    await expect(page.locator('h1, h2').first()).toContainText(/Accès|Access/i, { timeout: 8_000 });
-
-    // Collect tab labels — Shadcn/Radix tabs have role="tab"
-    const tabs = page.locator('[role="tab"]');
-    const count = await tabs.count();
-    // Allow for either exactly 3 tabs, or a section-based UI with 3 nav links
-    if (count >= 3) {
-      expect(count).toBeGreaterThanOrEqual(3);
-    } else {
-      const navLinks = page.locator('nav a, [data-testid="tab"]');
-      const navCount = await navLinks.count();
-      expect(navCount).toBeGreaterThanOrEqual(3);
+    await expect(page.getByRole('heading', { level: 1, name: 'Accès & modules', exact: true })).toBeVisible();
+    for (const name of ['Rôles & hiérarchie', 'Départements', 'Utilisateurs']) {
+      await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
     }
   });
 
-  test('each tab is clickable and reveals content', async ({ page }) => {
+  test('section buttons change the selected configuration and URL', async ({ page }) => {
     await page.goto('/admin/access');
-    const tabs = page.locator('[role="tab"]');
-    const tabCount = Math.min(await tabs.count(), 3);
-    if (tabCount < 2) {
-      test.skip(true, 'Page /admin/access non organisée en onglets — structure différente');
-    }
-    for (let i = 0; i < tabCount; i++) {
-      await tabs.nth(i).click();
-      // Associated panel should be visible
-      await expect(page.locator('[role="tabpanel"]').first()).toBeVisible({ timeout: 4_000 });
-    }
+    await page.getByRole('button', { name: 'Départements', exact: true }).click();
+    await expect(page).toHaveURL(/tab=departments/);
+    await expect(page.getByRole('heading', { name: /^Départements \(/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Utilisateurs', exact: true }).click();
+    await expect(page).toHaveURL(/tab=users/);
+    await expect(page.getByRole('heading', { name: 'Override par utilisateur', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Rôles & hiérarchie', exact: true }).click();
+    await expect(page).toHaveURL(/\/admin\/access$/);
+    await expect(page.getByRole('heading', { name: /^Hiérarchie des rôles/ })).toBeVisible();
   });
 
   test('edit & save user access config @destructive', async ({ page }) => {

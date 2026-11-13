@@ -6,10 +6,7 @@ import { CacheService } from "../common/cache/cache.service";
 import { ISO_CONTROLS_FR } from "../iso-controls/iso-controls-fr.map";
 import { RequestUser } from "../common/interfaces";
 import { UserRole } from "../common/enums";
-import {
-  SignedPdfService,
-  SignedPdfResult,
-} from "../exports/signed-pdf.service";
+import { SignedPdfService, SignedPdfResult } from "../exports/signed-pdf.service";
 import { IsoAnalyzerService } from "../iso-analyzer/iso-analyzer.service";
 import * as ExcelJS from "exceljs";
 
@@ -57,12 +54,8 @@ export class ReportsService {
       Status: doc.status,
       Owner: `${doc.owner.firstName} ${doc.owner.lastName}`,
       "Owner Email": doc.owner.email,
-      Réviseur: doc.reviewer
-        ? `${doc.reviewer.firstName} ${doc.reviewer.lastName}`
-        : "",
-      Approver: doc.approver
-        ? `${doc.approver.firstName} ${doc.approver.lastName}`
-        : "",
+      Réviseur: doc.reviewer ? `${doc.reviewer.firstName} ${doc.reviewer.lastName}` : "",
+      Approver: doc.approver ? `${doc.approver.firstName} ${doc.approver.lastName}` : "",
       "Current Version": doc.versions[0]?.versionNumber || "N/A",
       "ISO Controls": doc.isoControls
         .map(
@@ -70,9 +63,7 @@ export class ReportsService {
             `${ic.isoControl.code} - ${ISO_CONTROLS_FR[ic.isoControl.code] || ic.isoControl.title}`,
         )
         .join("; "),
-      "Next Review Date": doc.nextReviewDate
-        ? doc.nextReviewDate.toISOString().split("T")[0]
-        : "",
+      "Next Review Date": doc.nextReviewDate ? doc.nextReviewDate.toISOString().split("T")[0] : "",
       "Created At": doc.createdAt.toISOString().split("T")[0],
       "Updated At": doc.updatedAt.toISOString().split("T")[0],
     }));
@@ -94,18 +85,19 @@ export class ReportsService {
   }
 
   async generateAcknowledgmentReport(): Promise<Buffer> {
-    const documents = await this.prisma.document.findMany({
-      where: { deletedAt: null, status: "APPROVED" },
-      include: {
-        _count: { select: { acknowledgments: true } },
-        owner: { select: { firstName: true, lastName: true } },
-      },
-      orderBy: { reference: "asc" },
-    });
-
-    const totalUsers = await this.prisma.user.count({
-      where: { isActive: true, deletedAt: null },
-    });
+    const [documents, totalUsers] = await Promise.all([
+      this.prisma.document.findMany({
+        where: { deletedAt: null, status: "APPROVED" },
+        include: {
+          _count: { select: { acknowledgments: true } },
+          owner: { select: { firstName: true, lastName: true } },
+        },
+        orderBy: { reference: "asc" },
+      }),
+      this.prisma.user.count({
+        where: { isActive: true, deletedAt: null },
+      }),
+    ]);
 
     const rows = documents.map((doc) => ({
       Reference: doc.reference,
@@ -115,9 +107,7 @@ export class ReportsService {
       "Total Active Users": totalUsers,
       Acknowledgments: doc._count.acknowledgments,
       Percentage:
-        totalUsers > 0
-          ? `${Math.round((doc._count.acknowledgments / totalUsers) * 100)}%`
-          : "0%",
+        totalUsers > 0 ? `${Math.round((doc._count.acknowledgments / totalUsers) * 100)}%` : "0%",
     }));
 
     const workbook = new ExcelJS.Workbook();
@@ -145,8 +135,7 @@ export class ReportsService {
     const where: any = {};
 
     if (filters?.userId) where.userId = filters.userId;
-    if (filters?.action)
-      where.action = { contains: filters.action, mode: "insensitive" };
+    if (filters?.action) where.action = { contains: filters.action, mode: "insensitive" };
     if (filters?.dateFrom || filters?.dateTo) {
       where.createdAt = {};
       if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
@@ -350,9 +339,7 @@ export class ReportsService {
       this.getDashboardStats().catch(() => null),
       this.getSmsiIndicators(user).catch(() => null),
       this.prisma.document.count({ where: { deletedAt: null } }).catch(() => 0),
-      this.prisma.document
-        .count({ where: { deletedAt: null, status: "APPROVED" } })
-        .catch(() => 0),
+      this.prisma.document.count({ where: { deletedAt: null, status: "APPROVED" } }).catch(() => 0),
       this.prisma.document
         .count({
           where: {
@@ -381,12 +368,8 @@ export class ReportsService {
           },
         })
         .catch(() => 0),
-      this.prisma.veilleItem
-        .count({ where: { isProcessed: true } })
-        .catch(() => 0),
-      this.prisma.veilleItem
-        .count({ where: { isProcessed: false } })
-        .catch(() => 0),
+      this.prisma.veilleItem.count({ where: { isProcessed: true } }).catch(() => 0),
+      this.prisma.veilleItem.count({ where: { isProcessed: false } }).catch(() => 0),
       this.prisma.veilleItem
         .findMany({
           where: {},
@@ -434,9 +417,7 @@ export class ReportsService {
       this.prisma.user
         .count({ where: { isActive: true, deletedAt: null, mfaEnabled: true } })
         .catch(() => 0),
-      this.prisma.user
-        .count({ where: { isActive: true, deletedAt: null } })
-        .catch(() => 0),
+      this.prisma.user.count({ where: { isActive: true, deletedAt: null } }).catch(() => 0),
       this.prisma.user
         .count({
           where: {
@@ -446,9 +427,7 @@ export class ReportsService {
           },
         })
         .catch(() => 0),
-      this.prisma.user
-        .count({ where: { isActive: true, deletedAt: null } })
-        .catch(() => 0),
+      this.prisma.user.count({ where: { isActive: true, deletedAt: null } }).catch(() => 0),
     ]);
 
     const now = new Date();
@@ -458,8 +437,7 @@ export class ReportsService {
     });
     const timestampIso = now.toISOString();
     const mfaPct = mfaTotal > 0 ? Math.round((mfaEnabled / mfaTotal) * 100) : 0;
-    const chartesPct =
-      chartesTotal > 0 ? Math.round((chartesSigned / chartesTotal) * 100) : 0;
+    const chartesPct = chartesTotal > 0 ? Math.round((chartesSigned / chartesTotal) * 100) : 0;
 
     // Construction des sections texte (plain text — pdf-lib n'interprète pas de Markdown)
     const sections: Array<{ heading?: string; paragraphs: string[] }> = [];
@@ -475,12 +453,11 @@ export class ReportsService {
     });
 
     // -- Conformité ISO 27001 --
-    const byDomainEntries = Object.entries(
-      complianceSummary.byDomain || {},
-    ).sort(([a], [b]) => a.localeCompare(b));
+    const byDomainEntries = Object.entries(complianceSummary.byDomain || {}).sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
     const domainLines = byDomainEntries.map(([domain, stats]) => {
-      const pct =
-        stats.total > 0 ? Math.round((stats.covered / stats.total) * 100) : 0;
+      const pct = stats.total > 0 ? Math.round((stats.covered / stats.total) * 100) : 0;
       return `  • ${domain}: ${stats.covered}/${stats.total} couverts (${pct}%) — ${stats.partial} partiel(s), ${stats.uncovered} non couvert(s)`;
     });
     sections.push({
@@ -489,9 +466,7 @@ export class ReportsService {
         `Couverture globale: ${complianceSummary.coveragePercent}% (objectif 90%).`,
         `Total contrôles SoA: ${complianceSummary.total}. Couverts: ${complianceSummary.covered}. Partiellement couverts: ${complianceSummary.partial}. Non couverts: ${complianceSummary.uncovered}.`,
         "Décomposition par famille de contrôles:",
-        ...(domainLines.length > 0
-          ? domainLines
-          : ["  (aucune donnée de domaine disponible)"]),
+        ...(domainLines.length > 0 ? domainLines : ["  (aucune donnée de domaine disponible)"]),
       ],
     });
 
@@ -545,9 +520,7 @@ export class ReportsService {
     if (Array.isArray(bulletinRecent) && bulletinRecent.length > 0) {
       veilleLines.push("Bulletins récents:");
       for (const b of bulletinRecent) {
-        veilleLines.push(
-          `  • ${b.createdAt.toISOString().split("T")[0]} — ${b.title}`,
-        );
+        veilleLines.push(`  • ${b.createdAt.toISOString().split("T")[0]} — ${b.title}`);
       }
     }
     if (Array.isArray(veilleRecent) && veilleRecent.length > 0) {
@@ -575,8 +548,7 @@ export class ReportsService {
       ],
     });
 
-    const authorName =
-      `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
+    const authorName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
 
     const result = await this.signedPdfService.generate({
       title: "Rapport RSSI — Tableau de bord SMSI",
@@ -616,8 +588,7 @@ export class ReportsService {
       Expiration: entry.accessExpiresAt
         ? entry.accessExpiresAt.toISOString().split("T")[0]
         : "Illimité",
-      "Révision requise":
-        entry.accessExpiresAt && entry.accessExpiresAt < now ? "OUI" : "Non",
+      "Révision requise": entry.accessExpiresAt && entry.accessExpiresAt < now ? "OUI" : "Non",
       "Dernière révision": entry.lastReviewedAt
         ? entry.lastReviewedAt.toISOString().split("T")[0]
         : "",
@@ -655,9 +626,7 @@ export class ReportsService {
       const meta = (log.metadata as Record<string, unknown> | null) ?? {};
       return {
         Date: log.createdAt.toISOString().split("T")[0],
-        Utilisateur: log.user
-          ? `${log.user.firstName} ${log.user.lastName}`
-          : "Inconnu",
+        Utilisateur: log.user ? `${log.user.firstName} ${log.user.lastName}` : "Inconnu",
         Email: log.user?.email || "",
         Quiz: (meta.campaignTitle as string) || "Quiz Sécurité OMNITECH",
         Score: meta.score != null ? `${meta.score}/${meta.total}` : "",
@@ -702,9 +671,7 @@ export class ReportsService {
   async getSmsiIndicators(user?: RequestUser) {
     const role = (user?.role || "").toUpperCase() as UserRole;
     const isFullScope =
-      role === UserRole.SUPER_ADMIN ||
-      role === UserRole.ADMIN ||
-      role === UserRole.DIRECTION;
+      role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN || role === UserRole.DIRECTION;
     const isMidScope = role === UserRole.REVIEWER || role === UserRole.AUDITEUR;
     // everything else (COLLABORATEUR / PRESTATAIRE / unknown) = minimal scope
     const scopeKey = isFullScope ? "full" : isMidScope ? "mid" : "min";
@@ -728,19 +695,12 @@ export class ReportsService {
           }),
         ]);
       } catch (err) {
-        this.logger.warn(
-          `SMSI: MFA count failed: ${err instanceof Error ? err.message : err}`,
-        );
+        this.logger.warn(`SMSI: MFA count failed: ${err instanceof Error ? err.message : err}`);
       }
-      const mfaValue =
-        totalUsers > 0 ? Math.round((mfaEnabledUsers / totalUsers) * 100) : 0;
+      const mfaValue = totalUsers > 0 ? Math.round((mfaEnabledUsers / totalUsers) * 100) : 0;
       const mfaTarget = 95;
       const mfaStatus: "success" | "warning" | "danger" =
-        mfaValue >= mfaTarget
-          ? "success"
-          : mfaValue >= 80
-            ? "warning"
-            : "danger";
+        mfaValue >= mfaTarget ? "success" : mfaValue >= 80 ? "warning" : "danger";
 
       // 2) Monthly critical incidents (AuditLog severity CRITICAL this month)
       let monthlyIncidents = 0;
@@ -788,9 +748,7 @@ export class ReportsService {
         );
       }
       const documentComplianceValue =
-        totalDocuments > 0
-          ? Math.round((approvedDocuments / totalDocuments) * 100)
-          : 0;
+        totalDocuments > 0 ? Math.round((approvedDocuments / totalDocuments) * 100) : 0;
 
       // 4) ISO coverage: controls with at least one APPROVED non-deleted document as evidence
       let totalControls = 0;
@@ -809,14 +767,10 @@ export class ReportsService {
           }),
         ]);
       } catch (err) {
-        this.logger.warn(
-          `SMSI: ISO coverage failed: ${err instanceof Error ? err.message : err}`,
-        );
+        this.logger.warn(`SMSI: ISO coverage failed: ${err instanceof Error ? err.message : err}`);
       }
       const isoCoverageValue =
-        totalControls > 0
-          ? Math.round((controlsWithEvidence / totalControls) * 100)
-          : 0;
+        totalControls > 0 ? Math.round((controlsWithEvidence / totalControls) * 100) : 0;
       const isoTarget = 90;
 
       // 5) Charter adoption: % active users with chartesAcceptedAt set
@@ -830,12 +784,9 @@ export class ReportsService {
           },
         });
       } catch (err) {
-        this.logger.warn(
-          `SMSI: charter count failed: ${err instanceof Error ? err.message : err}`,
-        );
+        this.logger.warn(`SMSI: charter count failed: ${err instanceof Error ? err.message : err}`);
       }
-      const charterValue =
-        totalUsers > 0 ? Math.round((charterSigned / totalUsers) * 100) : 0;
+      const charterValue = totalUsers > 0 ? Math.round((charterSigned / totalUsers) * 100) : 0;
 
       // 6) Open tickets grouped by priority
       const openTicketsByPriority: {
@@ -969,26 +920,21 @@ export class ReportsService {
         }),
       ]);
 
-      const [totalUsers, mfaEnabled, unprocessedVeille, openTickets] =
-        await Promise.all([
-          this.prisma.user.count({
-            where: { isActive: true, deletedAt: null },
-          }),
-          this.prisma.user.count({
-            where: { isActive: true, deletedAt: null, mfaEnabled: true },
-          }),
-          this.prisma.veilleItem
-            .count({ where: { isProcessed: false } })
-            .catch(() => 0),
-          this.prisma.ticket.count({
-            where: { status: { in: ["OPEN", "IN_PROGRESS"] } },
-          }),
-        ]);
+      const [totalUsers, mfaEnabled, unprocessedVeille, openTickets] = await Promise.all([
+        this.prisma.user.count({
+          where: { isActive: true, deletedAt: null },
+        }),
+        this.prisma.user.count({
+          where: { isActive: true, deletedAt: null, mfaEnabled: true },
+        }),
+        this.prisma.veilleItem.count({ where: { isProcessed: false } }).catch(() => 0),
+        this.prisma.ticket.count({
+          where: { status: { in: ["OPEN", "IN_PROGRESS"] } },
+        }),
+      ]);
 
       const pendingAcknowledgments =
-        approvedDocuments > 0 && totalUsers > 0
-          ? approvedDocuments * totalUsers - totalAcks
-          : 0;
+        approvedDocuments > 0 && totalUsers > 0 ? approvedDocuments * totalUsers - totalAcks : 0;
 
       return {
         totalDocuments,
@@ -1000,8 +946,7 @@ export class ReportsService {
         pendingAcknowledgments: Math.max(0, pendingAcknowledgments),
         recentNews,
         totalUsers,
-        mfaAdoption:
-          totalUsers > 0 ? Math.round((mfaEnabled / totalUsers) * 100) : 0,
+        mfaAdoption: totalUsers > 0 ? Math.round((mfaEnabled / totalUsers) * 100) : 0,
         unprocessedVeille,
         openTickets,
       };
@@ -1040,9 +985,7 @@ export class ReportsService {
       }
       this.logger.log(`Weekly report sent to ${admins.length} admins`);
     } catch (err) {
-      this.logger.error(
-        `Weekly report failed: ${err instanceof Error ? err.message : err}`,
-      );
+      this.logger.error(`Weekly report failed: ${err instanceof Error ? err.message : err}`);
     }
   }
 
@@ -1068,13 +1011,9 @@ export class ReportsService {
           resourceType: "Report",
         });
       }
-      this.logger.log(
-        `Monthly compliance report sent to ${rssis.length} RSSI(s)`,
-      );
+      this.logger.log(`Monthly compliance report sent to ${rssis.length} RSSI(s)`);
     } catch (err) {
-      this.logger.error(
-        `Monthly report failed: ${err instanceof Error ? err.message : err}`,
-      );
+      this.logger.error(`Monthly report failed: ${err instanceof Error ? err.message : err}`);
     }
   }
 }

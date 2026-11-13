@@ -1,0 +1,108 @@
+name: Transactions approbation PostgreSQL
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feat/p1-9-prelaunch
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workflow-transactions-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HUSKY: "0"
+  # Only parsing/generation uses this stub; the runner creates a separate test URL.
+  DATABASE_URL: postgresql://stub:stub@127.0.0.1:5432/stub
+
+jobs:
+  workflow-transactions:
+    name: Transactions approbation PostgreSQL ${{ matrix.postgres }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ["16.13", "16.16"]
+    env:
+      POSTGRES_VERSION: ${{ matrix.postgres }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.22.3"
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @omnitech/database exec prisma generate
+
+      - name: Build backend
+        run: pnpm --filter @omnitech/backend build
+
+      - name: Verify sanitized exporter
+        run: python3 -m unittest discover -s scripts/integration/workflows -p test_ci_export.py
+
+      - name: Run isolated PostgreSQL transactions
+        run: |
+          sudo env "PATH=$PATH" python3 scripts/integration/workflows/run-isolated.py \
+            --source "$GITHUB_WORKSPACE" \
+            --artifacts "$RUNNER_TEMP/workflow-private-$POSTGRES_VERSION" \
+            --image "postgres:$POSTGRES_VERSION"
+
+      - name: Export sanitized JSON and readable summary
+        if: always()
+        run: |
+          private_results="$RUNNER_TEMP/workflow-private-$POSTGRES_VERSION"
+          public_results="$RUNNER_TEMP/workflow-public-$POSTGRES_VERSION"
+          mkdir -p "$public_results"
+          set +e
+          sudo env "PATH=$PATH" python3 scripts/integration/workflows/export_ci_results.py \
+            --private-root "$private_results" \
+            --output "$public_results" \
+            --expected-postgres "$POSTGRES_VERSION"
+          export_status=$?
+          set -e
+          cat "$public_results/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          exit "$export_status"
+
+      - name: Upload only sanitized results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-transactions-pg${{ matrix.postgres }}
+          path: ${{ runner.temp }}/workflow-public-${{ matrix.postgres }}/results.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean only completed owned sandboxes
+        if: always()
+        run: |
+          sudo env "PATH=$PATH" python3 - "$RUNNER_TEMP/workflow-private-$POSTGRES_VERSION" <<'PY'
+          import json
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          for manifest_path in Path(sys.argv[1]).glob('*/manifest.json'):
+              manifest = json.loads(manifest_path.read_text())
+              if manifest.get('status') in ('passed', 'failed'):
+                  subprocess.run([sys.executable, 'scripts/integration/workflows/cleanup-sandbox.py', str(manifest_path.parent)], check=True)
+          PY

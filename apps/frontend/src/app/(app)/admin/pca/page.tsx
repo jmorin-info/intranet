@@ -39,7 +39,8 @@ import {
 import { PageHeader } from "@/components/layout/page-header";
 import { RoleGuard } from "@/components/role-guard";
 import { UserRole } from "@omnitech/shared";
-import { Badge, Button, Card, CardContent, EmptyState } from "@omnitech/ui";
+import { Badge, Button, Card, CardContent, EmptyState, ConfirmDialog } from "@omnitech/ui";
+import { formatDate as formatDateUtil } from "@/lib/utils";
 
 // ───────────────────────────────────────────────────────────────────────────
 // Types alignés sur les DTO backend (apps/backend/src/pca/*)
@@ -101,10 +102,8 @@ interface RunsResponse {
 
 const STATUS_CLASSES: Record<RunStatus, string> = {
   PENDING: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-  RUNNING:
-    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  SUCCESS:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  RUNNING: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  SUCCESS: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   FAILED: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
   CANCELLED: "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300",
 };
@@ -117,12 +116,11 @@ const STATUS_LABELS: Record<RunStatus, string> = {
   CANCELLED: "Annulé",
 };
 
+// Format date + heure (numérique), délègue au helper partagé pour la logique commune.
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("fr-FR", {
-    day: "2-digit",
+  return formatDateUtil(iso, {
     month: "2-digit",
-    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -164,6 +162,7 @@ function PcaPageInner() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [launchingId, setLaunchingId] = useState<string | null>(null);
+  const [confirmScenario, setConfirmScenario] = useState<Scenario | null>(null);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -190,13 +189,15 @@ function PcaPageInner() {
     loadAll();
   }, [loadAll]);
 
-  const handleLaunch = async (scenario: Scenario) => {
+  const handleLaunch = (scenario: Scenario) => {
     if (scenario.destructive) {
-      const confirmed = window.confirm(
-        `${scenario.name}\n\nCe scénario est destructeur.\nContinuer ?`,
-      );
-      if (!confirmed) return;
+      setConfirmScenario(scenario);
+      return;
     }
+    void launchScenario(scenario);
+  };
+
+  const launchScenario = async (scenario: Scenario) => {
     setLaunchingId(scenario.id);
     try {
       const headers: Record<string, string> = {};
@@ -213,13 +214,18 @@ function PcaPageInner() {
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { message?: string } } }).response
-              ?.data?.message
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined;
       toast.error(msg || "Impossible de démarrer le scénario");
     } finally {
       setLaunchingId(null);
     }
+  };
+
+  const confirmLaunch = () => {
+    const scenario = confirmScenario;
+    setConfirmScenario(null);
+    if (scenario) void launchScenario(scenario);
   };
 
   return (
@@ -230,15 +236,8 @@ function PcaPageInner() {
         icon={ShieldCheck}
         hub="admin"
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadAll}
-            disabled={loading}
-          >
-            <RefreshCw
-              className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
-            />
+          <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Rafraîchir
           </Button>
         }
@@ -252,8 +251,7 @@ function PcaPageInner() {
         <KpiCard
           label="Dernier test"
           value={
-            kpis?.daysSinceLastRun === null ||
-            kpis?.daysSinceLastRun === undefined
+            kpis?.daysSinceLastRun === null || kpis?.daysSinceLastRun === undefined
               ? "—"
               : kpis.daysSinceLastRun === 0
                 ? "Aujourd'hui"
@@ -271,11 +269,7 @@ function PcaPageInner() {
           }
           icon={CheckCircle2}
         />
-        <KpiCard
-          label="Tests exécutés"
-          value={String(kpis?.totalRuns ?? 0)}
-          icon={Activity}
-        />
+        <KpiCard label="Tests exécutés" value={String(kpis?.totalRuns ?? 0)} icon={Activity} />
         <KpiCard
           label="Prochain test planifié"
           value={kpis?.nextScheduled?.humanSchedule || "—"}
@@ -294,9 +288,7 @@ function PcaPageInner() {
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {loading && scenarios.length === 0
-            ? [1, 2, 3, 4].map((i) => (
-                <div key={i} className="shimmer h-48 rounded-xl" />
-              ))
+            ? [1, 2, 3, 4].map((i) => <div key={i} className="shimmer h-48 rounded-xl" />)
             : scenarios.map((s) => (
                 <ScenarioCard
                   key={s.id}
@@ -321,10 +313,7 @@ function PcaPageInner() {
             {loading && runs.length === 0 ? (
               <div className="space-y-3 p-6">
                 {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="shimmer h-10 rounded-lg bg-gray-100 dark:bg-slate-700"
-                  />
+                  <div key={i} className="shimmer h-10 rounded-lg bg-gray-100 dark:bg-slate-700" />
                 ))}
               </div>
             ) : runs.length === 0 ? (
@@ -373,8 +362,7 @@ function PcaPageInner() {
                           <span
                             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_CLASSES[r.status]}`}
                           >
-                            {r.status === "RUNNING" ||
-                            r.status === "PENDING" ? (
+                            {r.status === "RUNNING" || r.status === "PENDING" ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
                             ) : null}
                             {STATUS_LABELS[r.status]}
@@ -479,9 +467,8 @@ function PcaPageInner() {
               Documentation de reprise
             </h3>
             <p className="mb-3 text-sm text-seal-gray-500 dark:text-slate-400">
-              Le runbook complet de restauration (pas-à-pas, contrôles, preuves
-              ISO A.5.30) est disponible dans <code>RESTORE.md</code> à la
-              racine du projet.
+              Le runbook complet de restauration (pas-à-pas, contrôles, preuves ISO A.5.30) est
+              disponible dans <code>RESTORE.md</code> à la racine du projet.
             </p>
             <div className="flex flex-wrap gap-2">
               <Link href="/admin/backups">
@@ -500,6 +487,15 @@ function PcaPageInner() {
           </CardContent>
         </Card>
       </section>
+
+      <ConfirmDialog
+        open={!!confirmScenario}
+        onClose={() => setConfirmScenario(null)}
+        onConfirm={confirmLaunch}
+        title={confirmScenario?.name || "Scénario destructeur"}
+        description="Ce scénario est destructeur. Continuer ?"
+        variant="danger"
+      />
     </div>
   );
 }
@@ -530,9 +526,7 @@ function KpiCard({ label, value, icon: Icon, hint }: KpiCardProps) {
             {value}
           </p>
           {hint && (
-            <p className="truncate text-xs text-seal-gray-500 dark:text-slate-500">
-              {hint}
-            </p>
+            <p className="truncate text-xs text-seal-gray-500 dark:text-slate-500">{hint}</p>
           )}
         </div>
       </CardContent>
@@ -579,12 +573,7 @@ function ScenarioCard({ scenario, launching, onLaunch }: ScenarioCardProps) {
             </Badge>
           )}
         </div>
-        <Button
-          onClick={onLaunch}
-          disabled={launching}
-          size="sm"
-          className="mt-2 w-full"
-        >
+        <Button onClick={onLaunch} disabled={launching} size="sm" className="mt-2 w-full">
           {launching ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (

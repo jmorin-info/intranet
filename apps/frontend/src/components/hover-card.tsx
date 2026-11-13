@@ -1,16 +1,10 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from "react";
-import {
-  FileText,
-  User,
-  Calendar,
-  Mail,
-  Building2,
-  Shield,
-  Clock,
-} from "lucide-react";
+import React, { useState, useRef, useCallback, useEffect, useId } from "react";
+import { FileText, User, Calendar, Mail, Building2, Shield, Clock } from "lucide-react";
 import { getAvatarUrl } from "@/lib/avatar";
+import { getInitials } from "@/lib/utils";
+import { USER_ROLE_LABELS, UserRole } from "@omnitech/shared";
 
 /* ════════════════════════════════════════════
    Generic Hover Card wrapper
@@ -23,12 +17,7 @@ interface HoverCardProps {
   className?: string;
 }
 
-export function HoverCard({
-  children,
-  content,
-  delay = 300,
-  className,
-}: HoverCardProps) {
+export function HoverCard({ children, content, delay = 300, className }: HoverCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<{
     top: number;
@@ -88,6 +77,12 @@ export function HoverCard({
     };
   }, []);
 
+  // a11y : `role=group` ne supporte ni aria-haspopup ni aria-expanded
+  // (jsx-a11y/role-supports-aria-props). On utilise le pattern correct
+  // pour une fiche-au-survol descriptive : aria-describedby sur le trigger
+  // pointant vers `role=tooltip` sur le contenu, quand il est ouvert.
+  const tooltipId = useId();
+
   return (
     <>
       <div
@@ -97,9 +92,7 @@ export function HoverCard({
         onFocus={handleMouseEnter}
         onBlur={handleMouseLeave}
         className={`inline-block ${className || ""}`}
-        role="group"
-        aria-haspopup="true"
-        aria-expanded={isOpen}
+        aria-describedby={isOpen ? tooltipId : undefined}
       >
         {children}
       </div>
@@ -107,6 +100,8 @@ export function HoverCard({
       {isOpen && (
         <div
           ref={cardRef}
+          id={tooltipId}
+          role="tooltip"
           onMouseEnter={() => {
             if (timerRef.current) clearTimeout(timerRef.current);
           }}
@@ -170,10 +165,7 @@ interface DocumentPreviewData {
   classification?: string;
 }
 
-const STATUS_COLORS: Record<
-  string,
-  { bg: string; text: string; label: string }
-> = {
+const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   DRAFT: {
     bg: "bg-gray-100 dark:bg-slate-700",
     text: "text-gray-600 dark:text-slate-300",
@@ -281,17 +273,8 @@ interface UserPreviewData {
   avatarUrl?: string;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: "Super Admin",
-  ADMIN: "Administrateur",
-  REVIEWER: "Réviseur",
-  COLLABORATEUR: "Collaborateur",
-  PRESTATAIRE: "Prestataire",
-};
-
 export function UserHoverContent({ user }: { user: UserPreviewData }) {
-  const initials =
-    `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
+  const initials = getInitials(user.firstName, user.lastName);
 
   return (
     <div className="p-4">
@@ -315,7 +298,7 @@ export function UserHoverContent({ user }: { user: UserPreviewData }) {
           {user.role && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F68D2E]/10 text-slate-900 dark:bg-blue-900/30 dark:text-blue-300 mt-0.5">
               <Shield className="h-2.5 w-2.5" />
-              {ROLE_LABELS[user.role] || user.role}
+              {USER_ROLE_LABELS[user.role as UserRole] || user.role}
             </span>
           )}
         </div>

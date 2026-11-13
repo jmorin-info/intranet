@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { Card, CardContent, CardHeader, Button } from "@omnitech/ui";
+import { Card, CardContent, CardHeader, Button, Skeleton } from "@omnitech/ui";
 import { Archive, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
@@ -39,7 +39,7 @@ export function ConfigRetentionSection() {
               Rétention documentaire
             </h2>
           </div>
-          <Link href="/admin/data-retention">
+          <Link href="/admin/audit/retention">
             <Button variant="outline" size="sm">
               <ExternalLink className="h-3.5 w-3.5" />
               Gérer la rétention
@@ -47,18 +47,14 @@ export function ConfigRetentionSection() {
           </Link>
         </div>
         <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-          Politique d&apos;archivage / suppression automatisée (ISO 27001
-          A.5.33)
+          Politique d&apos;archivage / suppression automatisée (ISO 27001 A.5.33)
         </p>
       </CardHeader>
       <CardContent>
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-16 animate-pulse rounded-xl bg-gray-100 dark:bg-slate-800"
-              />
+              <Skeleton key={i} className="h-16 rounded-xl" />
             ))}
           </div>
         ) : stats ? (
@@ -84,9 +80,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
       <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">
         {label}
       </p>
-      <p className="text-lg font-bold text-seal-navy dark:text-white">
-        {value}
-      </p>
+      <p className="text-lg font-bold text-seal-navy dark:text-white">{value}</p>
     </div>
   );
 }

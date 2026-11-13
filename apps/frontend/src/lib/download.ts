@@ -2,13 +2,11 @@ import { api } from "./api";
 
 const MIME_EXTENSIONS: Record<string, string> = {
   "application/pdf": "pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-    "docx",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
   "application/msword": "doc",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
   "application/vnd.ms-excel": "xls",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-    "pptx",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
   "application/vnd.ms-powerpoint": "ppt",
   "application/vnd.oasis.opendocument.text": "odt",
   "application/vnd.oasis.opendocument.spreadsheet": "ods",
@@ -38,14 +36,10 @@ const MIME_EXTENSIONS: Record<string, string> = {
  * Derive a safe file extension from a MIME type or a source URL.
  * Fallback order: MIME lookup → extension from URL → 'bin'.
  */
-export function extensionForMime(
-  mime?: string | null,
-  fallbackUrl?: string | null,
-): string {
+export function extensionForMime(mime?: string | null, fallbackUrl?: string | null): string {
   if (mime) {
     const normalized = (mime.toLowerCase().split(";")[0] ?? "").trim();
-    if (normalized && MIME_EXTENSIONS[normalized])
-      return MIME_EXTENSIONS[normalized]!;
+    if (normalized && MIME_EXTENSIONS[normalized]) return MIME_EXTENSIONS[normalized]!;
   }
   if (fallbackUrl) {
     const clean = (fallbackUrl.split("?")[0] ?? "").split("#")[0] ?? "";
@@ -95,8 +89,7 @@ export async function downloadFromApi(
   params?: Record<string, unknown>,
 ): Promise<void> {
   const response = await api.get(url, { params, responseType: "blob" });
-  const blob =
-    response.data instanceof Blob ? response.data : new Blob([response.data]);
+  const blob = response.data instanceof Blob ? response.data : new Blob([response.data]);
   const objectUrl = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = objectUrl;
@@ -105,41 +98,4 @@ export async function downloadFromApi(
   link.click();
   document.body.removeChild(link);
   setTimeout(() => window.URL.revokeObjectURL(objectUrl), 100);
-}
-
-/**
- * Securely download or preview a document version using Authorization header.
- * Does NOT leak the JWT token in query parameters.
- */
-export async function downloadDocument(
-  documentId: string,
-  versionId: string,
-  options?: { inline?: boolean; filename?: string },
-): Promise<void> {
-  const apiUrl = (
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
-  ).replace(/\/api\/?$/, "/api/v1");
-  const url = `${apiUrl}/documents/${documentId}/versions/${versionId}/download`;
-
-  // ANSSI A.5.34 — JWT vit en cookie httpOnly ; `credentials: 'include'`
-  // l'attache automatiquement (anti-XSS, plus de Bearer manuel).
-  const response = await fetch(url, {
-    credentials: "include",
-  });
-
-  if (!response.ok) throw new Error("Download failed");
-
-  const blob = await response.blob();
-  const blobUrl = URL.createObjectURL(blob);
-
-  if (options?.inline) {
-    window.open(blobUrl, "_blank");
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-  } else {
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = options?.filename || "document";
-    a.click();
-    URL.revokeObjectURL(blobUrl);
-  }
 }

@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentsService } from './documents.service';
 import { DocumentsRepository } from './documents.repository';
@@ -69,6 +70,17 @@ describe('DocumentsService', () => {
     service = module.get<DocumentsService>(DocumentsService);
   });
 
+  describe('document list static sort keys', () => {
+    it.each(['title', 'createdAt', 'updatedAt', 'reference', 'status', 'nextReviewDate'])('retains the allowed %s sorting behavior', async field => {
+      await service.findAll({ sortBy: field, sortOrder: 'asc' }, { id: 'admin-1', role: 'ADMIN' } as any);
+      expect(repo.findManyWithCount.mock.calls[0][1]).toEqual([{ [field]: 'asc' }, { id: 'asc' }]);
+    });
+    it.each(['__proto__', 'constructor', 'passwordHash', ['title'], { toString: () => 'title' }])('never uses an arbitrary key for %o', async field => {
+      await service.findAll({ sortBy: field, sortOrder: {} } as any, { id: 'admin-1', role: 'ADMIN' } as any);
+      expect(repo.findManyWithCount.mock.calls[0][1]).toEqual([{ updatedAt: 'desc' }, { id: 'asc' }]);
+    });
+  });
+
   describe('getStatistics', () => {
     it('should return document statistics', async () => {
       const result = await service.getStatistics();
@@ -106,6 +118,104 @@ describe('DocumentsService', () => {
           where: { resourceType: 'Document', resourceId: 'doc-1' },
         }),
       );
+    });
+  });
+
+  describe('findById — accès par assignation workflow', () => {
+    beforeEach(() => {
+      // hasExplicitPermission => aucune permission explicite.
+      prisma.userDepartment = { findMany: jest.fn().mockResolvedValue([]) };
+      prisma.documentPermission = { findFirst: jest.fn().mockResolvedValue(null) };
+      prisma.user.findUnique = jest.fn().mockResolvedValue({ departmentId: null });
+    });
+
+    it('laisse le relecteur assigné lire un document SECRET (pas de 403)', async () => {
+      repo.findById.mockResolvedValue({
+        id: 'doc-1',
+        ownerId: 'owner-x',
+        classification: 'SECRET',
+        status: 'IN_REVIEW',
+        verifierId: null,
+        reviewerId: 'me',
+        approverId: null,
+        deletedAt: null,
+        isoControls: [],
+      });
+      const result = await service.findById('doc-1', {
+        id: 'me',
+        role: 'REVIEWER',
+      } as any);
+      expect(result).toMatchObject({ id: 'doc-1' });
+    });
+
+    it('refuse toujours un REVIEWER NON assigné sur un document SECRET', async () => {
+      repo.findById.mockResolvedValue({
+        id: 'doc-1',
+        ownerId: 'owner-x',
+        classification: 'SECRET',
+        status: 'IN_REVIEW',
+        verifierId: null,
+        reviewerId: 'someone-else',
+        approverId: null,
+        deletedAt: null,
+        isoControls: [],
+      });
+      await expect(
+        service.findById('doc-1', { id: 'me', role: 'REVIEWER' } as any),
+      ).rejects.toThrow('Niveau de classification insuffisant');
+    });
+  });
+
+  describe('update — gardes workflow', () => {
+    it('refuse la désassignation du relecteur tant que la step REVIEW est en cours', async () => {
+      prisma.document.findUnique = jest.fn().mockResolvedValue({
+        id: 'doc-1',
+        ownerId: 'me',
+        status: 'IN_REVIEW',
+        classification: 'INTERNE',
+        verifierId: null,
+        reviewerId: 'alice',
+        approverId: null,
+        deletedAt: null,
+        validationRequests: [
+          {
+            id: 'req-1',
+            currentStep: 'REVIEW',
+            steps: [{ id: 's1', stepType: 'REVIEW', assignedToId: 'alice', action: null }],
+          },
+        ],
+      });
+      prisma.document.update = jest.fn();
+      await expect(
+        service.update('doc-1', { reviewerId: null } as any, {
+          id: 'me',
+          role: 'ADMIN',
+        } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      // Aucune écriture : on a refusé avant de persister le null.
+      expect(prisma.document.update).not.toHaveBeenCalled();
+    });
+
+    it('refuse DRAFT->IN_REVIEW via PATCH (doit passer par submit-review)', async () => {
+      prisma.document.findUnique = jest.fn().mockResolvedValue({
+        id: 'doc-1',
+        ownerId: 'me',
+        status: 'DRAFT',
+        classification: 'INTERNE',
+        verifierId: null,
+        reviewerId: null,
+        approverId: null,
+        deletedAt: null,
+        validationRequests: [],
+      });
+      prisma.document.update = jest.fn();
+      await expect(
+        service.update('doc-1', { status: 'IN_REVIEW' } as any, {
+          id: 'me',
+          role: 'ADMIN',
+        } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.document.update).not.toHaveBeenCalled();
     });
   });
 });

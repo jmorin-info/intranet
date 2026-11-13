@@ -29,6 +29,7 @@ import {
   Skeleton,
   Input,
   Textarea,
+  ConfirmDialog,
 } from "@omnitech/ui";
 import {
   Users,
@@ -169,6 +170,7 @@ function CampaignDetailView({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"ALL" | SignatureStatus>("ALL");
   const [addOpen, setAddOpen] = useState(false);
+  const [removeUserId, setRemoveUserId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -187,13 +189,17 @@ function CampaignDetailView({
     load();
   }, [load]);
 
-  async function handleRemove(userId: string) {
-    if (!confirm("Retirer cette personne de la campagne ?")) return;
+  function handleRemove(userId: string) {
+    setRemoveUserId(userId);
+  }
+
+  async function confirmRemove() {
+    if (!removeUserId) return;
+    const userId = removeUserId;
+    setRemoveUserId(null);
     setBusyId(userId);
     try {
-      await api.delete(
-        `/signature-campaigns/${campaignId}/signatures/${userId}`,
-      );
+      await api.delete(`/signature-campaigns/${campaignId}/signatures/${userId}`);
       toast.success("Personne retirée de la campagne");
       await load();
       onChange();
@@ -205,16 +211,11 @@ function CampaignDetailView({
   }
 
   async function handleReset(userId: string) {
-    const reason = prompt(
-      "Motif du re-déclenchement de signature (sera tracé dans l'audit) :",
-    );
+    const reason = prompt("Motif du re-déclenchement de signature (sera tracé dans l'audit) :");
     if (!reason?.trim()) return;
     setBusyId(userId);
     try {
-      await api.post(
-        `/signature-campaigns/${campaignId}/signatures/${userId}/reset`,
-        { reason },
-      );
+      await api.post(`/signature-campaigns/${campaignId}/signatures/${userId}/reset`, { reason });
       toast.success("Signature re-armée — l'utilisateur doit re-signer");
       await load();
       onChange();
@@ -228,9 +229,7 @@ function CampaignDetailView({
   async function handleRemind(userId: string) {
     setBusyId(userId);
     try {
-      await api.post(
-        `/signature-campaigns/${campaignId}/signatures/${userId}/remind`,
-      );
+      await api.post(`/signature-campaigns/${campaignId}/signatures/${userId}/remind`);
       toast.success("Relance envoyée");
       await load();
     } catch (e: any) {
@@ -240,12 +239,11 @@ function CampaignDetailView({
     }
   }
 
-  const signatures = detail?.signatures || [];
+  // Stabilise la reference : sans useMemo, `[]` est recree a chaque render
+  // quand detail.signatures est absent -> useMemo plus bas recompute pour rien.
+  const signatures = useMemo(() => detail?.signatures || [], [detail?.signatures]);
   const filtered = useMemo(
-    () =>
-      filter === "ALL"
-        ? signatures
-        : signatures.filter((s) => s.status === filter),
+    () => (filter === "ALL" ? signatures : signatures.filter((s) => s.status === filter)),
     [signatures, filter],
   );
 
@@ -271,9 +269,7 @@ function CampaignDetailView({
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-seal-navy dark:text-white">
-            {detail.title}
-          </h3>
+          <h3 className="text-lg font-semibold text-seal-navy dark:text-white">{detail.title}</h3>
           {detail.description && (
             <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-1">
               {detail.description}
@@ -303,9 +299,7 @@ function CampaignDetailView({
 
       {/* Filter chips */}
       <div className="flex flex-wrap gap-1.5">
-        {(
-          ["ALL", "PENDING", "OPENED", "SIGNED", "DECLINED", "EXPIRED"] as const
-        ).map((s) => {
+        {(["ALL", "PENDING", "OPENED", "SIGNED", "DECLINED", "EXPIRED"] as const).map((s) => {
           const active = filter === s;
           return (
             <button
@@ -318,8 +312,7 @@ function CampaignDetailView({
                   : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-seal-gray-500 dark:text-slate-400 hover:border-primary/40"
               }`}
             >
-              {s === "ALL" ? "Tous" : STATUS_LABEL[s as SignatureStatus]} ·{" "}
-              {counts[s] || 0}
+              {s === "ALL" ? "Tous" : STATUS_LABEL[s as SignatureStatus]} · {counts[s] || 0}
             </button>
           );
         })}
@@ -349,10 +342,7 @@ function CampaignDetailView({
               </tr>
             )}
             {filtered.map((s) => (
-              <tr
-                key={s.id}
-                className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40"
-              >
+              <tr key={s.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40">
                 <td className="px-4 py-2.5">
                   <div className="font-medium text-seal-navy dark:text-white">
                     {s.user?.firstName} {s.user?.lastName}
@@ -362,9 +352,7 @@ function CampaignDetailView({
                   </div>
                 </td>
                 <td className="px-4 py-2.5">
-                  <Badge variant={statusVariant(s.status) as any}>
-                    {STATUS_LABEL[s.status]}
-                  </Badge>
+                  <Badge variant={statusVariant(s.status) as any}>{STATUS_LABEL[s.status]}</Badge>
                 </td>
                 <td className="px-4 py-2.5 text-xs text-seal-gray-500 dark:text-slate-400">
                   {s.signedAt ? formatDateTime(s.signedAt) : "—"}
@@ -372,9 +360,7 @@ function CampaignDetailView({
                 <td className="px-4 py-2.5 text-xs text-seal-gray-500 dark:text-slate-400">
                   {s.remindersSent}
                   {s.lastReminderAt && (
-                    <span className="ml-1">
-                      ({formatDateTime(s.lastReminderAt)})
-                    </span>
+                    <span className="ml-1">({formatDateTime(s.lastReminderAt)})</span>
                   )}
                 </td>
                 <td className="px-4 py-2.5">
@@ -435,6 +421,15 @@ function CampaignDetailView({
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={!!removeUserId}
+        onClose={() => setRemoveUserId(null)}
+        onConfirm={confirmRemove}
+        title="Retirer de la campagne"
+        description="Retirer cette personne de la campagne ?"
+        variant="danger"
+      />
     </div>
   );
 }
@@ -458,17 +453,12 @@ function AddSignersDialog({
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const existingSet = useMemo(
-    () => new Set(existingUserIds),
-    [existingUserIds],
-  );
+  const existingSet = useMemo(() => new Set(existingUserIds), [existingUserIds]);
 
   useEffect(() => {
     api
       .get("/users?limit=500")
-      .then(({ data }) =>
-        setUsers(Array.isArray(data) ? data : data?.data || []),
-      )
+      .then(({ data }) => setUsers(Array.isArray(data) ? data : data?.data || []))
       .catch(() => setUsers([]));
   }, []);
 
@@ -477,8 +467,7 @@ function AddSignersDialog({
     if (!search) return true;
     const q = search.toLowerCase();
     return (
-      `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q)
+      `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
     );
   });
 
@@ -533,9 +522,7 @@ function AddSignersDialog({
                     checked={checked}
                     onChange={() =>
                       setSelected((prev) =>
-                        checked
-                          ? prev.filter((id) => id !== u.id)
-                          : [...prev, u.id],
+                        checked ? prev.filter((id) => id !== u.id) : [...prev, u.id],
                       )
                     }
                   />
@@ -543,9 +530,7 @@ function AddSignersDialog({
                     <div className="text-sm font-medium text-seal-navy dark:text-white">
                       {u.firstName} {u.lastName}
                     </div>
-                    <div className="text-xs text-seal-gray-500 dark:text-slate-400">
-                      {u.email}
-                    </div>
+                    <div className="text-xs text-seal-gray-500 dark:text-slate-400">{u.email}</div>
                   </div>
                 </label>
               );
@@ -602,9 +587,7 @@ function ChartesExemptionsPanel({ charte }: { charte: CharteListItem }) {
       await api.delete(`/chartes/${charte.id}/exemptions/${exemptionId}`, {
         data: { reason },
       } as any);
-      toast.success(
-        "Exemption levée — l'utilisateur redevient soumis à l'obligation",
-      );
+      toast.success("Exemption levée — l'utilisateur redevient soumis à l'obligation");
       load();
     } catch (e: any) {
       toast.error(e?.response?.data?.message || "Échec de la révocation");
@@ -620,15 +603,10 @@ function ChartesExemptionsPanel({ charte }: { charte: CharteListItem }) {
               Exemptions actives — {charte.title}
             </h3>
             <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
-              Personnes nominativement dispensées de signer cette charte
-              mandatory.
+              Personnes nominativement dispensées de signer cette charte mandatory.
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setGrantOpen(true)}
-          >
+          <Button variant="outline" size="sm" onClick={() => setGrantOpen(true)}>
             <UserPlus className="h-4 w-4" />
             Exempter une personne
           </Button>
@@ -644,10 +622,7 @@ function ChartesExemptionsPanel({ charte }: { charte: CharteListItem }) {
         ) : (
           <ul className="divide-y divide-gray-100 dark:divide-slate-700">
             {exemptions.map((e) => (
-              <li
-                key={e.id}
-                className="py-2.5 flex items-center justify-between gap-3"
-              >
+              <li key={e.id} className="py-2.5 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-seal-navy dark:text-white">
                     {e.user?.firstName} {e.user?.lastName}
@@ -659,11 +634,9 @@ function ChartesExemptionsPanel({ charte }: { charte: CharteListItem }) {
                     « {e.reason} »
                   </div>
                   <div className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-0.5">
-                    Accordée le {formatDateTime(e.exemptedAt)} par{" "}
-                    {e.exemptedBy?.firstName} {e.exemptedBy?.lastName}
-                    {e.expiresAt && (
-                      <> · expire le {formatDateTime(e.expiresAt)}</>
-                    )}
+                    Accordée le {formatDateTime(e.exemptedAt)} par {e.exemptedBy?.firstName}{" "}
+                    {e.exemptedBy?.lastName}
+                    {e.expiresAt && <> · expire le {formatDateTime(e.expiresAt)}</>}
                   </div>
                 </div>
                 <Button
@@ -715,17 +688,12 @@ function GrantExemptionDialog({
   const [reason, setReason] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const existingSet = useMemo(
-    () => new Set(existingUserIds),
-    [existingUserIds],
-  );
+  const existingSet = useMemo(() => new Set(existingUserIds), [existingUserIds]);
 
   useEffect(() => {
     api
       .get("/users?limit=500")
-      .then(({ data }) =>
-        setUsers(Array.isArray(data) ? data : data?.data || []),
-      )
+      .then(({ data }) => setUsers(Array.isArray(data) ? data : data?.data || []))
       .catch(() => setUsers([]));
   }, []);
 
@@ -734,8 +702,7 @@ function GrantExemptionDialog({
     if (!search) return true;
     const q = search.toLowerCase();
     return (
-      `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q)
+      `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
     );
   });
 
@@ -806,7 +773,7 @@ function GrantExemptionDialog({
           rows={3}
         />
         <div>
-          <label className="block text-[13px] font-semibold text-navy dark:text-white mb-1">
+          <label className="block text-[13px] font-semibold text-seal-navy dark:text-white mb-1">
             Date d'expiration (optionnel)
           </label>
           <input
@@ -846,9 +813,7 @@ export default function ManageSignaturesPage() {
   const [campaigns, setCampaigns] = useState<CampaignListItem[]>([]);
   const [chartes, setChartes] = useState<CharteListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
-    null,
-  );
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -973,9 +938,7 @@ export default function ManageSignaturesPage() {
               </CardContent>
             </Card>
           ) : (
-            chartes.map((ch) => (
-              <ChartesExemptionsPanel key={ch.id} charte={ch} />
-            ))
+            chartes.map((ch) => <ChartesExemptionsPanel key={ch.id} charte={ch} />)
           )}
         </div>
       )}

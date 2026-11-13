@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * AnnotationsDrawer
@@ -15,10 +15,11 @@
  * - Liste chronologique inversée
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { MessageCircle, X, Send, Trash2 } from 'lucide-react';
-import { useAuthStore } from '@/stores/auth-store';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { MessageCircle, X, Send, Trash2 } from "lucide-react";
+import { useAuthStore } from "@/stores/auth-store";
+import { getInitials } from "@/lib/utils";
 
 interface Annotation {
   id: string;
@@ -29,10 +30,10 @@ interface Annotation {
   createdAt: string;
 }
 
-const STORAGE_KEY = 'omnitech:annotations:v1';
+const STORAGE_KEY = "omnitech:annotations:v1";
 
 function loadAll(): Annotation[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
@@ -44,18 +45,12 @@ function loadAll(): Annotation[] {
 }
 
 function saveAll(list: Annotation[]) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   } catch {
     /* quota exceeded — silently ignore */
   }
-}
-
-function initialsOf(firstName?: string, lastName?: string): string {
-  const f = (firstName ?? '').charAt(0).toUpperCase();
-  const l = (lastName ?? '').charAt(0).toUpperCase();
-  return `${f}${l}` || '?';
 }
 
 function formatAt(iso: string): string {
@@ -69,15 +64,15 @@ function formatAt(iso: string): string {
   if (h < 24) return `Il y a ${h} h`;
   const day = Math.floor(h / 24);
   if (day < 7) return `Il y a ${day} j`;
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(d);
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(d);
 }
 
 export function AnnotationsDrawer() {
   const pathname = usePathname();
-  const user = useAuthStore(s => s.user);
+  const user = useAuthStore((s) => s.user);
   const [open, setOpen] = useState(false);
   const [all, setAll] = useState<Annotation[]>([]);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -85,7 +80,8 @@ export function AnnotationsDrawer() {
   }, []);
 
   const pageAnnotations = useMemo(
-    () => all.filter((a) => a.path === pathname).sort((x, y) => (x.createdAt < y.createdAt ? 1 : -1)),
+    () =>
+      all.filter((a) => a.path === pathname).sort((x, y) => (x.createdAt < y.createdAt ? 1 : -1)),
     [all, pathname],
   );
 
@@ -95,15 +91,15 @@ export function AnnotationsDrawer() {
     const entry: Annotation = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       path: pathname,
-      author: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || 'Utilisateur',
-      authorInitials: initialsOf(user.firstName, user.lastName),
+      author: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || "Utilisateur",
+      authorInitials: getInitials(user.firstName, user.lastName),
       body,
       createdAt: new Date().toISOString(),
     };
     const next = [...all, entry];
     setAll(next);
     saveAll(next);
-    setDraft('');
+    setDraft("");
   }, [draft, user, pathname, all]);
 
   const remove = useCallback(
@@ -116,7 +112,7 @@ export function AnnotationsDrawer() {
   );
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       e.preventDefault();
       submit();
     }
@@ -145,7 +141,7 @@ export function AnnotationsDrawer() {
         <MessageCircle className="h-5 w-5" />
         {count > 0 && (
           <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-seal-navy text-white text-[10px] font-bold flex items-center justify-center shadow">
-            {count > 99 ? '99+' : count}
+            {count > 99 ? "99+" : count}
           </span>
         )}
       </button>

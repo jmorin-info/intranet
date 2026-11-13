@@ -52,7 +52,17 @@ interface Charte {
   slug: string;
   isMandatory: boolean;
   isActive: boolean;
+  /** @deprecated Doublon legacy de `directionValidatedAt` (double écriture backend). */
   signedByDirection: boolean;
+  // Validation de la direction tracée : qui / quand / sur quelle version.
+  // Repassent à null dès qu'une nouvelle version est publiée (à re-valider).
+  directionValidatedAt: string | null;
+  directionValidatedVersionId: string | null;
+  directionValidatedBy: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  } | null;
   classification: string;
   versions: CharteVersion[];
   _count: { signatures: number };
@@ -210,7 +220,7 @@ export default function AdminChartesPage() {
       if (uploadChangeLog) formData.append("changeLog", uploadChangeLog);
       await api.post(`/chartes/${uploadCharteId}/versions`, formData);
       toast.success(
-        "Version PDF uploadée — les utilisateurs devront re-signer",
+        "Version PDF uploadée — validation de la direction à refaire, puis nouvelle attestation de lecture pour tous",
       );
       setUploadCharteId(null);
       setUploadFile(null);
@@ -226,13 +236,18 @@ export default function AdminChartesPage() {
     }
   };
 
+  // Validation de la direction — étape de workflow qualité (jamais appelée
+  // « signature » côté UI). Exige une MFA fraîche côté backend.
   const handleDirectionSign = async (charteId: string) => {
     try {
       await api.patch(`/chartes/${charteId}/direction-sign`);
-      toast.success("Charte validée par la Direction");
+      toast.success("Charte validée par la direction");
       fetchChartes();
-    } catch {
-      toast.error("Erreur lors de la validation de la charte");
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message ||
+          "Erreur lors de la validation de la charte",
+      );
     }
   };
 
@@ -254,7 +269,7 @@ export default function AdminChartesPage() {
       <AdminGroupTabs group="compliance" />
       <PageHeader
         title={t("nav.chartes")}
-        subtitle="Politiques et chartes à signer. Consultez les documents obligatoires et signez-les électroniquement."
+        subtitle="Chartes et politiques internes : validation de la direction, puis attestation de lecture par les collaborateurs."
         icon={Shield}
         hub="admin"
         actions={
@@ -439,7 +454,7 @@ export default function AdminChartesPage() {
         <EmptyState
           type="documents"
           title="Aucune charte ou politique configurée"
-          description="Les chartes (PSSI, charte informatique, politique de sécurité...) sont des documents obligatoires que chaque collaborateur doit signer électroniquement. Créez votre première charte ou importez-la depuis un document approuvé pour lancer le processus de signature."
+          description="Les chartes (PSSI, charte informatique, politique de sécurité...) sont des documents obligatoires : la direction valide la version en vigueur, puis chaque collaborateur atteste l'avoir lue. Créez votre première charte ou importez-la depuis un document approuvé."
           action={
             isDirection ? (
               <Button
@@ -472,12 +487,13 @@ export default function AdminChartesPage() {
                           )}
                           {charte.signedByDirection ? (
                             <Badge variant="approved">
-                              <CheckCircle2 className="h-3 w-3" /> Direction
+                              <CheckCircle2 className="h-3 w-3" /> Validée par
+                              la direction
                             </Badge>
                           ) : (
                             <Badge variant="error">
-                              <XCircle className="h-3 w-3" /> Non signée
-                              Direction
+                              <XCircle className="h-3 w-3" /> En attente de
+                              validation direction
                             </Badge>
                           )}
                           {activeVersion && (
@@ -486,9 +502,36 @@ export default function AdminChartesPage() {
                             </Badge>
                           )}
                           <span className="text-[10px] text-seal-gray-500">
-                            {charte._count.signatures} signature(s)
+                            {charte._count.signatures} attestation(s) de lecture
                           </span>
                         </div>
+                        {/* Traçabilité de la validation direction : qui, quand,
+                            sur quelle version. Une nouvelle version publiée
+                            réinitialise ces champs → « à re-valider ». */}
+                        {charte.directionValidatedAt ? (
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                            Validée par{" "}
+                            {charte.directionValidatedBy
+                              ? `${charte.directionValidatedBy.firstName} ${charte.directionValidatedBy.lastName}`
+                              : "un membre de la direction"}{" "}
+                            le {formatDate(charte.directionValidatedAt)}
+                            {(() => {
+                              const validated = charte.versions?.find(
+                                (v) =>
+                                  v.id === charte.directionValidatedVersionId,
+                              );
+                              return validated
+                                ? ` (version ${validated.versionNumber})`
+                                : "";
+                            })()}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                            Validation de la direction requise — tant qu&apos;elle
+                            n&apos;est pas faite, les collaborateurs ne peuvent
+                            pas attester leur lecture.
+                          </p>
+                        )}
                         {activeVersion?.changeLog && (
                           <p className="text-xs text-seal-gray-500 mt-1">
                             Changements : {activeVersion.changeLog}
@@ -633,7 +676,8 @@ export default function AdminChartesPage() {
                           size="sm"
                           onClick={() => handleDirectionSign(charte.id)}
                         >
-                          <CheckCircle2 className="h-3 w-3" /> Valider Direction
+                          <CheckCircle2 className="h-3 w-3" /> Validation de la
+                          direction
                         </Button>
                       )}
                       <Button
@@ -726,9 +770,10 @@ export default function AdminChartesPage() {
                         </Button>
                       </div>
                       <p className="text-[10px] text-amber-600 mt-2">
-                        L&apos;upload d&apos;une nouvelle version invalidera
-                        toutes les signatures existantes — tous les utilisateurs
-                        devront re-signer.
+                        L&apos;upload d&apos;une nouvelle version réinitialise
+                        la validation de la direction ET les attestations de
+                        lecture : la direction devra re-valider, puis chaque
+                        utilisateur ré-attester.
                       </p>
                     </div>
                   )}
@@ -784,7 +829,7 @@ export default function AdminChartesPage() {
                             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                             <div>
                               <p className="text-xs text-seal-gray-500">
-                                Ont signé
+                                Ont attesté
                               </p>
                               <p className="text-2xl font-medium text-emerald-600">
                                 {compliance.signed.length}
@@ -799,7 +844,7 @@ export default function AdminChartesPage() {
                             <XCircle className="h-5 w-5 text-red-500" />
                             <div>
                               <p className="text-xs text-seal-gray-500">
-                                N&apos;ont PAS signé
+                                N&apos;ont PAS attesté
                               </p>
                               <p className="text-2xl font-medium text-red-600">
                                 {compliance.unsigned.length}
@@ -941,8 +986,8 @@ export default function AdminChartesPage() {
                                 await api.post("/notifications", {
                                   userId: u.id,
                                   type: "ACK_REQUIRED",
-                                  title: `Charte à signer : ${compliance.charte.title}`,
-                                  body: `Vous n'avez pas encore signé la charte "${compliance.charte.title}" (v${compliance.activeVersion?.versionNumber}). Cette signature est obligatoire.`,
+                                  title: `Attestation de lecture requise : ${compliance.charte.title}`,
+                                  body: `Vous n'avez pas encore attesté avoir lu la charte "${compliance.charte.title}" (v${compliance.activeVersion?.versionNumber}). Cette attestation est obligatoire.`,
                                   resourceType: "Charte",
                                   resourceId: compliance.charte.id,
                                 });

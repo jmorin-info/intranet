@@ -1,13 +1,17 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { ConflictException, ForbiddenException, Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+import { createHash } from "node:crypto";
+import { assertBackgroundCapacity, positiveInt, throwIfAborted } from "./reindex-safety";
+import { acquireReindexLease } from "./reindex-lease";
 import { PrismaService } from "../prisma/prisma.service";
+import { documentReaderScope, canReadDocumentWithPermissions } from "../common/document-access";
 import { TextExtractorService } from "./text-extractor.service";
 import { EmbeddingService } from "./embedding/embedding.service";
 import { HybridSearchService, HybridChunk } from "./embedding/hybrid-search.service";
 import { RerankerService } from "./embedding/reranker.service";
 import { QueryExpansionService } from "./embedding/query-expansion.service";
 import { SemanticChunkerService } from "./ingestion/semantic-chunker.service";
-import { LlmService } from "./llm/llm.service";
+import { LlmService, getOllamaTimeoutMs } from "./llm/llm.service";
 import { getPromptTemplates } from "./prompts/templates";
 
 // ---------------------------------------------------------------------------
@@ -18,16 +22,56 @@ const CHUNK_SIZE_CHARS = 2000;
 const CHUNK_OVERLAP_CHARS = 200;
 const CONFIDENCE_THRESHOLD = 0.3;
 
+// Budgets IA réalistes pour l'inférence CPU (~5 tok/s génération, ~16 tok/s
+// prompt-eval mesurés). Les valeurs sont surchargées par l'env :
+//   RAG_ANSWER_TIMEOUT_MS (180 s), RAG_ANSWER_MAX_TOKENS (256).
+const DEFAULT_ANSWER_TIMEOUT_MS = 180_000;
+const DEFAULT_ANSWER_MAX_TOKENS = 256;
+
+// Résumé IA : entrée ≤ 2000 chars (≈ 550 tokens de prompt-eval, ~35 s CPU),
+// map-reduce en 2 passes au-delà (max 3 segments = 6000 chars couverts).
+const SUMMARY_INPUT_CHARS = 2000;
+// Fenêtre d'entrée de la PASSE UNIQUE en streaming (pas de map-reduce) : plus
+// large que le mode bloquant car un seul appel LLM, tokens streamés au fil de
+// l'eau. ~1700 tokens de contexte, acceptable sur mistral.
+// Budget d'entrée du résumé streamé. 4000 chars (baseline latence connu) mais
+// échantillonnés INTELLIGEMMENT (début + milieu + fin, cf. sampleForSummary) :
+// couvre tout le document au lieu de ne lire que le début, SANS alourdir le
+// prompt-eval CPU (le 1er token reste ~30-40 s, pas 54 s comme à 5000).
+const SUMMARY_STREAM_INPUT_CHARS = 4000;
+const SUMMARY_MAX_SEGMENTS = 3;
+// 240 tokens (2026-07-31) : résumé structuré et complet (objet + points clés +
+// portée) au lieu de 3-4 phrases. Streamé → surcoût peu perceptible.
+const SUMMARY_MAX_TOKENS = 240;
+const SUMMARY_SEGMENT_MAX_TOKENS = 120;
+const SUMMARY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 h — invalidé par checksum de version
+// Budget temps AGRÉGÉ de tout le map-reduce (jusqu'à 3 map + 1 reduce). Calé
+// SOUS le timeout client (240 s côté fiche document) pour qu'un backend saturé
+// n'accumule pas de requêtes zombies : sans lui, les 4 appels × 5 tentatives ×
+// 240 s pouvaient atteindre ~80 min par requête HTTP.
+const SUMMARY_TOTAL_BUDGET_MS = 200_000;
+// En-dessous de ce reliquat, inutile d'entamer un appel LLM : on réduit sur ce
+// qu'on a déjà (partiels) plutôt que de lancer une tentative vouée à l'échec.
+const SUMMARY_MIN_CALL_MS = 3_000;
+// Part du budget réservée à la passe reduce (sinon les 3 segments map peuvent
+// consommer tout le budget et ne rien laisser à la synthèse finale).
+const SUMMARY_REDUCE_RESERVE_MS = 60_000;
+
+/** Étapes de progression exposées en SSE (chatbot / recherche IA). */
+export interface RagStreamStatus {
+  stage: "retrieving" | "generating" | "model_fallback" | "queued";
+  model?: string;
+  level?: number;
+  /** Position en file d'attente LLM (stage=queued). 1 = juste après la requête en cours. */
+  position?: number;
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-type SourceType =
-  | "DOCUMENT"
-  | "WIKI"
-  | "PROCEDURE"
-  | "RUNBOOK"
-  | "FAQ"
-  | "TICKET";
+export const RAG_INDEX_CONTRACT_VERSION = 1;
+
+type SourceType = "DOCUMENT" | "WIKI" | "PROCEDURE" | "RUNBOOK" | "FAQ" | "TICKET";
 
 /**
  * Contexte RBAC pour le filtrage pré-retrieval (ISO 27001 Annex A.5.15, A.8.3).
@@ -162,7 +206,8 @@ const FR_STOP_WORDS = new Set([
 ]);
 
 @Injectable()
-export class RagService {
+export class RagService implements OnModuleDestroy {
+  private reindexController?: AbortController;
   private readonly logger = new Logger(RagService.name);
 
   constructor(
@@ -183,17 +228,12 @@ export class RagService {
 
   /** Check whether the RAG pipeline is enabled via env var. */
   isEnabled(): boolean {
-    return (
-      process.env.RAG_ENABLED === "true" || process.env.RAG_ENABLED === "1"
-    );
+    return process.env.RAG_ENABLED === "true" || process.env.RAG_ENABLED === "1";
   }
 
   /** Check whether Ollama LLM is enabled via env var. */
   isOllamaEnabled(): boolean {
-    return (
-      process.env.OLLAMA_ENABLED === "true" ||
-      process.env.OLLAMA_ENABLED === "1"
-    );
+    return process.env.OLLAMA_ENABLED === "true" || process.env.OLLAMA_ENABLED === "1";
   }
 
   /** Check whether semantic RAG (P1 pgvector) is enabled. */
@@ -206,6 +246,18 @@ export class RagService {
     const mode = process.env.RAG_HYBRID_MODE || "lexical";
     if (mode === "vector" || mode === "hybrid") return mode;
     return "lexical";
+  }
+
+  /** Budget temps de génération d'une réponse RAG (env RAG_ANSWER_TIMEOUT_MS). */
+  private getAnswerTimeoutMs(): number {
+    const raw = parseInt(process.env.RAG_ANSWER_TIMEOUT_MS || "", 10);
+    return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_ANSWER_TIMEOUT_MS;
+  }
+
+  /** Longueur max (tokens) d'une réponse RAG (env RAG_ANSWER_MAX_TOKENS). */
+  private getAnswerMaxTokens(): number {
+    const raw = parseInt(process.env.RAG_ANSWER_MAX_TOKENS || "", 10);
+    return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_ANSWER_MAX_TOKENS;
   }
 
   // =========================================================================
@@ -232,240 +284,161 @@ export class RagService {
         overlapChars: CHUNK_OVERLAP_CHARS,
       });
     }
-    return this.semanticChunker.fixedSizeChunks(
-      content,
-      CHUNK_SIZE_CHARS,
-      CHUNK_OVERLAP_CHARS,
-    );
+    return this.semanticChunker.fixedSizeChunks(content, CHUNK_SIZE_CHARS, CHUNK_OVERLAP_CHARS);
   }
 
   // =========================================================================
   // Indexing
   // =========================================================================
 
-  /**
-   * Index a single source: purge existing chunks then create new ones.
-   */
+  /** Prepare outside the transaction; replace the complete generation atomically. */
   async indexSource(
     sourceType: SourceType,
     sourceId: string,
     content: string,
     metadata?: Record<string, unknown>,
+    options: { signal?: AbortSignal; background?: boolean; semantic?: boolean } = {},
   ): Promise<number> {
-    const ragChunk = this.prisma.ragChunk;
-
-    // Purge old chunks
-    await ragChunk
-      .deleteMany({
-        where: { sourceType, sourceId },
-      })
-      .catch((err: Error) => {
-        this.logger.warn(
-          `Failed to delete old chunks for ${sourceType}/${sourceId}: ${err.message}`,
-        );
-      });
-
-    const chunks = this.chunkContent(content);
-    for (let i = 0; i < chunks.length; i++) {
-      await ragChunk
-        .create({
-          data: {
-            sourceType,
-            sourceId,
-            chunkIndex: i,
-            content: chunks[i],
-            tokenCount: Math.ceil(chunks[i].length / 4),
-            // Prisma.InputJsonValue : metadata est un Record<string, unknown>.
-            metadata: (metadata ?? undefined) as
-              | Prisma.InputJsonValue
-              | undefined,
-          },
-        })
-        .catch((err: Error) => {
-          this.logger.warn(
-            `Failed to create chunk ${i} for ${sourceType}/${sourceId}: ${err.message}`,
-          );
-        });
+    const check = () => {
+      throwIfAborted(options.signal);
+      if (options.background !== false) assertBackgroundCapacity(options.semantic !== false && this.embeddingService.isEnabled());
+    };
+    check();
+    let source: any;
+    if (sourceType === "DOCUMENT") {
+      source = await this.prisma.document.findFirst({ where: { id: sourceId, deletedAt: null, scanStatus: "CLEAN", currentVersionId: { not: null } } });
+      if (!source) return 0;
+      const version = await this.prisma.documentVersion.findFirst({ where: { id: source.currentVersionId!, documentId: sourceId } });
+      if (!version) return 0;
+      // Canonical current version only. Never trust content / provenance supplied by a caller.
+      check();
+      const stillClean = await this.prisma.document.findFirst({ where: { id: sourceId, deletedAt: null, scanStatus: "CLEAN", currentVersionId: source.currentVersionId, updatedAt: source.updatedAt } });
+      if (!stillClean) return 0;
+      content = await this.textExtractor.extractText(version.fileUrl, version.fileType, options.signal) ?? "";
+      if (!content.trim()) throw new Error("Current document text unavailable; previous index preserved");
+      metadata = { title: source.title, reference: source.reference, classification: source.classification, documentVersionId: source.currentVersionId, sourceUpdatedAt: String(source.updatedAt.getTime()) };
+    } else if (sourceType === "WIKI" || sourceType === "RUNBOOK") {
+      source = sourceType === "WIKI"
+        ? await this.prisma.wikiPage.findFirst({ where: { id: sourceId, isPublished: true, visibility: "PUBLIC" } })
+        : await this.prisma.runbook.findFirst({ where: { id: sourceId, isPublished: true } });
+      if (!source) return 0;
+      content = sourceType === "WIKI" ? source.content : `${source.title}\n${source.description ?? ""}\n${source.content}`;
+      metadata = { title: source.title, slug: source.slug, sourceUpdatedAt: String(source.updatedAt.getTime()) };
     }
-
-    this.logger.log(
-      `Indexed ${chunks.length} chunks for ${sourceType}/${sourceId}`,
-    );
+    if (content.length > 512_000) throw new Error("RAG source exceeds the 512000 character indexing limit");
+    const chunks = this.chunkContent(content);
+    if (chunks.length > 300) throw new Error("RAG source exceeds the 300 chunk indexing limit");
+    const vectors: Array<number[] | undefined> = [];
+    let embedded = 0;
+    for (const chunk of chunks) {
+      check();
+      let vector: number[] | undefined;
+      if (options.semantic !== false && this.embeddingService.isEnabled() && chunk.trim()) {
+        try {
+          vector = await this.embeddingService.embed(chunk, { signal: options.signal, background: options.background !== false });
+          embedded++;
+        } catch (err) {
+          check(); // cancellation / low capacity must preserve the previous complete index
+          this.logger.warn(`rag.embedding.lexical_fallback ${sourceType}/${sourceId}: ${(err as Error).message}`);
+        }
+      }
+      vectors.push(vector);
+    }
+    check();
+    await this.prisma.$transaction(async (tx) => {
+      // All writers (including deindex) serialize per source, across backend processes.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${sourceType}), hashtext(${sourceId}))`;
+      if (source) {
+        const table = sourceType === "DOCUMENT" ? Prisma.sql`"Document"` : sourceType === "WIKI" ? Prisma.sql`"WikiPage"` : Prisma.sql`"Runbook"`;
+        await tx.$queryRaw(Prisma.sql`SELECT id FROM ${table} WHERE id = ${sourceId} FOR UPDATE`);
+        const current = sourceType === "DOCUMENT"
+          ? await tx.document.findFirst({ where: { id: sourceId, deletedAt: null, scanStatus: "CLEAN", currentVersionId: source.currentVersionId, updatedAt: source.updatedAt } })
+          : sourceType === "WIKI"
+            ? await tx.wikiPage.findFirst({ where: { id: sourceId, isPublished: true, visibility: "PUBLIC", updatedAt: source.updatedAt } })
+            : await tx.runbook.findFirst({ where: { id: sourceId, isPublished: true, updatedAt: source.updatedAt } });
+        if (!current) throw new Error("RAG source changed during indexing; previous index preserved");
+      }
+      check();
+      await tx.ragChunk.deleteMany({ where: { sourceType, sourceId } });
+      for (let i = 0; i < chunks.length; i++) {
+        check();
+        const created = await tx.ragChunk.create({ data: { sourceType, sourceId, chunkIndex: i, content: chunks[i], tokenCount: Math.ceil(chunks[i].length / 4), metadata: metadata as Prisma.InputJsonValue | undefined }, select: { id: true } });
+        if (vectors[i]) {
+          await tx.$executeRaw`UPDATE "RagChunk" SET embedding = ${`[${vectors[i]!.join(",")}]`}::vector WHERE id = ${created.id}`;
+        }
+      }
+      check();
+    }, { maxWait: 5_000, timeout: 30_000 });
+    this.logger.log(`Indexed ${chunks.length} chunks for ${sourceType}/${sourceId} (embedded=${embedded})`);
     return chunks.length;
   }
 
-  /**
-   * Removes a source from the RAG index (all its chunks).
-   * Called when a Document / WikiPage / Runbook / NewsPost is deleted
-   * or soft-deleted so it disappears from AI search results.
-   * Safe to call on a source that's not indexed (no-op).
-   */
-  async removeFromIndex(
-    sourceType: SourceType,
-    sourceId: string,
-  ): Promise<number> {
-    const ragChunk = this.prisma.ragChunk;
-    const result = await ragChunk
-      .deleteMany({
-        where: { sourceType, sourceId },
-      })
-      .catch((err: Error) => {
-        this.logger.warn(
-          `rag.deindex.failed ${sourceType}/${sourceId}: ${err.message}`,
-        );
-        return { count: 0 };
-      });
-    const count = result?.count ?? 0;
-    if (count > 0) {
-      this.logger.log(
-        `rag.deindex ${sourceType}/${sourceId} — ${count} chunks removed`,
-      );
-    }
-    return count;
+  /** Deindex uses the same advisory lock as replacement. Retrieval also checks live state. */
+  async removeFromIndex(sourceType: SourceType, sourceId: string): Promise<number> {
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${sourceType}), hashtext(${sourceId}))`;
+      return tx.ragChunk.deleteMany({ where: { sourceType, sourceId } });
+    });
+    return result.count;
   }
 
-  /**
-   * Reindex all known content sources using cursor-based pagination.
-   */
-  async reindexAll(): Promise<{
-    indexed: Record<string, number>;
-    errors: string[];
-  }> {
-    const BATCH_SIZE = 100;
-    const indexed: Record<string, number> = {
-      DOCUMENT: 0,
-      WIKI: 0,
-      PROCEDURE: 0,
-      RUNBOOK: 0,
-      FAQ: 0,
-    };
+  /** Bounded, single-flight in this process; DB locks also protect multiple instances. */
+  async reindexAll(options: { signal?: AbortSignal; semantic?: boolean } = {}): Promise<{ indexed: Record<string, number>; errors: string[] }> {
+    if (this.reindexController) throw new ConflictException("A RAG reindex is already running");
+    const controller = new AbortController();
+    this.reindexController = controller;
+    const onAbort = () => controller.abort(options.signal?.reason);
+    options.signal?.addEventListener("abort", onAbort, { once: true });
+    if (options.signal?.aborted) onAbort();
+    const budget = positiveInt(process.env.RAG_REINDEX_MAX_DURATION_MS, 1_800_000, 7_200_000);
+    const deadline = Date.now() + budget;
+    const timer = setTimeout(() => controller.abort(new Error("RAG reindex execution budget exceeded")), budget);
+    let release: (() => Promise<void>) | undefined;
+    const semantic = options.semantic ?? process.env.RAG_REINDEX_SEMANTIC_ENABLED === "true";
+    const check = () => { if (Date.now() >= deadline) controller.abort(new Error("RAG reindex execution budget exceeded")); throwIfAborted(controller.signal); assertBackgroundCapacity(semantic && this.embeddingService.isEnabled()); };
+    const indexed: Record<string, number> = { DOCUMENT: 0, WIKI: 0, PROCEDURE: 0, RUNBOOK: 0, FAQ: 0 };
     const errors: string[] = [];
-
-    // --- Documents ---
     try {
-      let cursor: string | undefined;
-      while (true) {
-        const docs = await this.prisma.document.findMany({
-          take: BATCH_SIZE,
-          ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-          orderBy: { id: "asc" },
-          include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
-        });
-        if (docs.length === 0) break;
-        cursor = docs[docs.length - 1].id;
-
-        for (const doc of docs) {
-          try {
-            let text = doc.content ?? "";
-
-            // If the document has uploaded file versions, try to extract text
-            if (!text && doc.versions.length > 0) {
-              const latestVersion = doc.versions[0];
-              const extracted = await this.textExtractor.extractText(
-                latestVersion.fileUrl,
-                latestVersion.fileType,
-              );
-              if (extracted) text = extracted;
+      check();
+      release = await acquireReindexLease(budget);
+      check();
+      const sources = [
+        { type: "DOCUMENT" as const, model: this.prisma.document, where: { deletedAt: null, scanStatus: "CLEAN", currentVersionId: { not: null } } },
+        { type: "WIKI" as const, model: this.prisma.wikiPage, where: { isPublished: true, visibility: "PUBLIC" } },
+        { type: "RUNBOOK" as const, model: this.prisma.runbook, where: { isPublished: true } },
+      ];
+      for (const source of sources) {
+        let cursor: string | undefined;
+        while (true) {
+          check();
+          const rows: Array<{ id: string }> = await (source.model.findMany as Function)({ where: source.where, select: { id: true }, take: 10, ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}), orderBy: { id: "asc" } });
+          if (!rows.length) break;
+          cursor = rows[rows.length - 1].id;
+          for (const row of rows) {
+            check();
+            try {
+              indexed[source.type] += await this.indexSource(source.type, row.id, "", undefined, { signal: controller.signal, background: true, semantic });
+            } catch (err) {
+              check();
+              const message = `${source.type} ${row.id}: ${(err as Error).message}`;
+              this.logger.warn(message);
+              // Bound the report, keep the aggregate count in logs.
+              if (errors.length < 100) errors.push(message);
             }
-
-            if (text.trim().length > 0) {
-              const n = await this.indexSource("DOCUMENT", doc.id, text, {
-                title: doc.title,
-                reference: doc.reference,
-                classification: doc.classification,
-              });
-              indexed.DOCUMENT += n;
-            }
-          } catch (err) {
-            const msg = `Document ${doc.id}: ${(err as Error).message}`;
-            this.logger.warn(msg);
-            errors.push(msg);
           }
         }
       }
-    } catch (err) {
-      const msg = `Documents batch error: ${(err as Error).message}`;
-      this.logger.warn(msg);
-      errors.push(msg);
+      return { indexed, errors };
+    } finally {
+      clearTimeout(timer);
+      options.signal?.removeEventListener("abort", onAbort);
+      this.reindexController = undefined;
+      if (release) await release().catch(() => this.logger.warn("RAG lease release failed; lease will expire"));
     }
+  }
 
-    // --- Wiki pages ---
-    try {
-      let cursor: string | undefined;
-      while (true) {
-        const pages = await this.prisma.wikiPage.findMany({
-          take: BATCH_SIZE,
-          ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-          orderBy: { id: "asc" },
-        });
-        if (pages.length === 0) break;
-        cursor = pages[pages.length - 1].id;
-
-        for (const page of pages) {
-          try {
-            if (page.content && page.content.trim().length > 0) {
-              const n = await this.indexSource("WIKI", page.id, page.content, {
-                title: page.title,
-                slug: page.slug,
-              });
-              indexed.WIKI += n;
-            }
-          } catch (err) {
-            const msg = `Wiki ${page.id}: ${(err as Error).message}`;
-            this.logger.warn(msg);
-            errors.push(msg);
-          }
-        }
-      }
-    } catch (err) {
-      const msg = `Wiki batch error: ${(err as Error).message}`;
-      this.logger.warn(msg);
-      errors.push(msg);
-    }
-
-    // --- Runbooks ---
-    try {
-      let cursor: string | undefined;
-      while (true) {
-        const runbooks = await this.prisma.runbook.findMany({
-          take: BATCH_SIZE,
-          ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-          orderBy: { id: "asc" },
-        });
-        if (runbooks.length === 0) break;
-        cursor = runbooks[runbooks.length - 1].id;
-
-        for (const rb of runbooks) {
-          try {
-            const text = `${rb.title}\n${rb.description ?? ""}\n${rb.content}`;
-            if (text.trim().length > 0) {
-              const n = await this.indexSource("RUNBOOK", rb.id, text, {
-                title: rb.title,
-                slug: rb.slug,
-              });
-              indexed.RUNBOOK += n;
-            }
-          } catch (err) {
-            const msg = `Runbook ${rb.id}: ${(err as Error).message}`;
-            this.logger.warn(msg);
-            errors.push(msg);
-          }
-        }
-      }
-    } catch (err) {
-      const msg = `Runbooks batch error: ${(err as Error).message}`;
-      this.logger.warn(msg);
-      errors.push(msg);
-    }
-
-    // --- Procedures (via ragChunk — no dedicated model, indexed externally) ---
-    // Procedures and FAQs don't have dedicated Prisma models yet.
-    // They can be indexed via `indexSource()` from external callers.
-
-    this.logger.log(
-      `Reindex complete: ${JSON.stringify(indexed)}, errors: ${errors.length}`,
-    );
-    return { indexed, errors };
+  onModuleDestroy(): void {
+    this.reindexController?.abort(new Error("Backend shutting down"));
   }
 
   // =========================================================================
@@ -479,12 +452,10 @@ export class RagService {
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
     const words = normalized.split(/\W+/).filter(Boolean);
-    return words
-      .filter((w) => w.length >= 3 && !FR_STOP_WORDS.has(w))
-      .slice(0, 8);
+    return words.filter((w) => w.length >= 3 && !FR_STOP_WORDS.has(w)).slice(0, 8);
   }
 
-  /** Build a ~300-char snippet window centered on the first matching term. */
+  /** Build a ~420-char snippet window centered on the first matching term. */
   buildSnippet(content: string, terms: string[]): string {
     const lowerContent = content
       .normalize("NFD")
@@ -499,8 +470,8 @@ export class RagService {
       }
     }
     if (bestPos === -1) bestPos = 0;
-    const start = Math.max(0, bestPos - 150);
-    const end = Math.min(content.length, start + 300);
+    const start = Math.max(0, bestPos - 180);
+    const end = Math.min(content.length, start + 420);
     let snippet = content.slice(start, end).trim();
     if (start > 0) snippet = "…" + snippet;
     if (end < content.length) snippet = snippet + "…";
@@ -511,98 +482,52 @@ export class RagService {
   // RBAC helpers (ISO 27001 Annex A.5.15 — pré-filtrage par classification)
   // =========================================================================
 
-  /**
-   * Renvoie la liste des sourceIds de Documents auxquels l'utilisateur a accès,
-   * en se basant sur la classification (PUBLIC < INTERNE < CONFIDENTIEL < SECRET).
-   * Filtrage AVANT retrieval pour conformité ISO 27001.
-   */
-  private async getAccessibleDocumentIds(
-    ctx: RagSearchContext,
-  ): Promise<string[] | "ALL"> {
-    const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(
-      ctx.role,
-    );
-    if (isPrivileged) return "ALL";
-
+  private async getAccessibleDocuments(ctx: RagSearchContext): Promise<Array<{ id: string; currentVersionId: string | null; updatedAt: Date }>> {
+    if (!ctx?.userId || !ctx.role) return [];
     try {
-      const docs = await this.prisma.document.findMany({
-        where: {
-          OR: [
-            { classification: "PUBLIC" },
-            { classification: "INTERNE" },
-            // CONFIDENTIEL : accessible si owner, reviewer, ou approver
-            {
-              classification: "CONFIDENTIEL",
-              OR: [
-                { ownerId: ctx.userId },
-                { reviewerId: ctx.userId },
-                { approverId: ctx.userId },
-              ],
-            },
-            // SECRET : uniquement owner
-            { classification: "SECRET", ownerId: ctx.userId },
-          ],
-        },
-        select: { id: true },
+      const scope = await documentReaderScope(this.prisma, { id: ctx.userId, role: ctx.role, departmentId: ctx.departmentId });
+      return await this.prisma.document.findMany({
+        where: { AND: [scope, { scanStatus: "CLEAN", currentVersionId: { not: null } }] },
+        select: { id: true, currentVersionId: true, updatedAt: true },
       });
-      return docs.map((d) => d.id);
-    } catch (err) {
-      this.logger.error({
-        msg: "rbac.document_ids.failed",
-        userId: ctx.userId,
-        error: (err as Error).message,
-      });
-      return []; // Fail closed : aucun accès en cas d'erreur
+    } catch {
+      this.logger.error("rbac.document_ids.failed");
+      return [];
     }
   }
 
-  /**
-   * Applique le filtrage RBAC sur les chunks candidats.
-   * - Documents : filtrage par classification
-   * - Wiki / Runbook : accessible si publié (déjà filtré à l'indexation)
-   * - Procédure / FAQ : accessible à tous les authentifiés
-   */
-  private async applyRbacFilter(
-    candidates: any[],
-    ctx: RagSearchContext,
-  ): Promise<any[]> {
-    if (!ctx || process.env.RBAC_RAG_ENABLED === "false") {
-      return candidates; // Feature flag désactivé → pas de filtrage
-    }
+  private async getAccessibleDocumentIds(ctx: RagSearchContext): Promise<string[]> {
+    return (await this.getAccessibleDocuments(ctx)).map((doc) => doc.id);
+  }
 
-    const docChunks = candidates.filter(
-      (c: any) => c.sourceType === "DOCUMENT",
-    );
-    const otherChunks = candidates.filter(
-      (c: any) => c.sourceType !== "DOCUMENT",
-    );
+  /** Every retrieval path checks live source state and immutable generation provenance. */
+  private async applyRbacFilter(candidates: any[], ctx?: RagSearchContext): Promise<any[]> {
+    const docs = candidates.some((c) => c.sourceType === "DOCUMENT") && ctx?.userId && ctx.role
+      ? await this.getAccessibleDocuments(ctx) : [];
+    const currentDocs = new Map(docs.map((d) => [d.id, d]));
+    const wikiIds = candidates.filter((c) => c.sourceType === "WIKI").map((c) => c.sourceId);
+    const runbookIds = candidates.filter((c) => c.sourceType === "RUNBOOK").map((c) => c.sourceId);
+    const [wiki, runbooks] = await Promise.all([
+      wikiIds.length ? this.prisma.wikiPage.findMany({ where: { id: { in: wikiIds }, isPublished: true, visibility: "PUBLIC" }, select: { id: true, updatedAt: true } }).catch(() => []) : [],
+      runbookIds.length ? this.prisma.runbook.findMany({ where: { id: { in: runbookIds }, isPublished: true }, select: { id: true, updatedAt: true } }).catch(() => []) : [],
+    ]);
+    const wikiDates = new Map(wiki.map((p) => [p.id, String(p.updatedAt.getTime())]));
+    const runbookDates = new Map(runbooks.map((p) => [p.id, String(p.updatedAt.getTime())]));
+    return candidates.filter((chunk) => {
+      const meta = chunk.metadata;
+      if (chunk.sourceType === "DOCUMENT") {
+        const doc = currentDocs.get(chunk.sourceId);
+        return !!doc?.currentVersionId && meta?.documentVersionId === doc.currentVersionId && meta?.sourceUpdatedAt === String(doc.updatedAt.getTime());
+      }
+      if (chunk.sourceType === "WIKI") return wikiDates.has(chunk.sourceId) && meta?.sourceUpdatedAt === wikiDates.get(chunk.sourceId);
+      if (chunk.sourceType === "RUNBOOK") return runbookDates.has(chunk.sourceId) && meta?.sourceUpdatedAt === runbookDates.get(chunk.sourceId);
+      return true;
+    });
+  }
 
-    if (docChunks.length === 0) return candidates;
-
-    const accessibleIds = await this.getAccessibleDocumentIds(ctx);
-
-    let filteredDocChunks: any[];
-    if (accessibleIds === "ALL") {
-      filteredDocChunks = docChunks;
-    } else {
-      filteredDocChunks = docChunks.filter((c: any) =>
-        accessibleIds.includes(c.sourceId),
-      );
-    }
-
-    const filteredOut = docChunks.length - filteredDocChunks.length;
-    if (filteredOut > 0) {
-      this.logger.log({
-        msg: "rbac.chunks_filtered",
-        userId: ctx.userId,
-        role: ctx.role,
-        totalDocChunks: docChunks.length,
-        filteredOut,
-        remaining: filteredDocChunks.length,
-      });
-    }
-
-    return [...filteredDocChunks, ...otherChunks];
+  private async lexicalSourceFilter(ctx?: RagSearchContext): Promise<Prisma.RagChunkWhereInput> {
+    const ids = ctx?.userId && ctx.role ? await this.getAccessibleDocumentIds(ctx) : [];
+    return { OR: [{ sourceType: "DOCUMENT", sourceId: { in: ids } }, { sourceType: { not: "DOCUMENT" } }] };
   }
 
   /**
@@ -611,11 +536,7 @@ export class RagService {
    * then scores with TF heuristics.
    * Applique le filtrage RBAC AVANT le scoring (ISO 27001 A.5.15).
    */
-  async searchSimilar(
-    query: string,
-    limit = 10,
-    ctx?: RagSearchContext,
-  ): Promise<RagSource[]> {
+  async searchSimilar(query: string, limit = 10, ctx?: RagSearchContext): Promise<RagSource[]> {
     const terms = this.tokenizeQuery(query);
     if (terms.length === 0) return [];
 
@@ -626,6 +547,7 @@ export class RagService {
     try {
       candidates = await ragChunk.findMany({
         where: {
+          AND: [await this.lexicalSourceFilter(ctx)],
           OR: terms.map((t: string) => ({
             content: { contains: t, mode: "insensitive" },
           })),
@@ -642,9 +564,7 @@ export class RagService {
     }
 
     // RBAC filtering BEFORE scoring (ISO 27001 Annex A.5.15)
-    if (ctx) {
-      candidates = await this.applyRbacFilter(candidates, ctx);
-    }
+    candidates = await this.applyRbacFilter(candidates, ctx);
 
     const lowerQuery = query
       .normalize("NFD")
@@ -690,9 +610,7 @@ export class RagService {
     return top.map(({ chunk, score }) => {
       // Prisma.JsonValue dynamique — extraction défensive du metadata
       const meta =
-        chunk.metadata &&
-        typeof chunk.metadata === "object" &&
-        !Array.isArray(chunk.metadata)
+        chunk.metadata && typeof chunk.metadata === "object" && !Array.isArray(chunk.metadata)
           ? (chunk.metadata as Record<string, unknown>)
           : {};
       return {
@@ -714,11 +632,7 @@ export class RagService {
    * Recherche par similarité cosine via pgvector.
    * Nécessite RAG_SEMANTIC_ENABLED=true et des embeddings non-null.
    */
-  async vectorSearch(
-    query: string,
-    limit = 10,
-    ctx?: RagSearchContext,
-  ): Promise<RagSource[]> {
+  async vectorSearch(query: string, limit = 10, ctx?: RagSearchContext): Promise<RagSource[]> {
     if (!this.isSemanticEnabled()) return [];
 
     let queryEmbedding: number[];
@@ -732,27 +646,10 @@ export class RagService {
       return [];
     }
 
-    const threshold = parseFloat(
-      process.env.VECTOR_SIMILARITY_THRESHOLD || "0.5",
-    );
+    const threshold = parseFloat(process.env.VECTOR_SIMILARITY_THRESHOLD || "0.5");
 
-    // Build accessible IDs filter for RBAC
-    let accessFilter = "";
-    if (ctx && process.env.RBAC_RAG_ENABLED !== "false") {
-      const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(
-        ctx.role,
-      );
-      if (!isPrivileged) {
-        const accessibleIds = await this.getAccessibleDocumentIds(ctx);
-        if (accessibleIds !== "ALL" && accessibleIds.length === 0) {
-          // User has no document access — only search non-DOCUMENT sources
-          accessFilter = `AND ("sourceType" != 'DOCUMENT')`;
-        } else if (accessibleIds !== "ALL") {
-          const idsList = accessibleIds.map((id) => `'${id}'`).join(",");
-          accessFilter = `AND ("sourceType" != 'DOCUMENT' OR "sourceId" IN (${idsList}))`;
-        }
-      }
-    }
+    // The shared builder validates identifiers before constructing the SQL clause.
+    const accessFilter = await this.buildAccessFilter(ctx) ?? "";
 
     try {
       const embeddingStr = `[${queryEmbedding.join(",")}]`;
@@ -770,7 +667,8 @@ export class RagService {
         embeddingStr,
       );
 
-      return results.map((r: any) => ({
+      const filtered = await this.applyRbacFilter(results, ctx);
+      return filtered.map((r: any) => ({
         sourceType: r.sourceType as SourceType,
         sourceId: r.sourceId as string,
         title: r.metadata?.title ?? r.sourceId,
@@ -802,8 +700,7 @@ export class RagService {
   ): RagSource[] {
     const scores = new Map<string, { score: number; source: RagSource }>();
 
-    const makeKey = (s: RagSource) =>
-      `${s.sourceType}:${s.sourceId}:${s.snippet.slice(0, 50)}`;
+    const makeKey = (s: RagSource) => `${s.sourceType}:${s.sourceId}:${s.snippet.slice(0, 50)}`;
 
     lexicalResults.forEach((r, idx) => {
       const key = makeKey(r);
@@ -847,11 +744,7 @@ export class RagService {
    *
    * Tous les flags sont independants. Quand tous off, comportement = legacy.
    */
-  async search(
-    query: string,
-    limit = 10,
-    ctx?: RagSearchContext,
-  ): Promise<RagSource[]> {
+  async search(query: string, limit = 10, ctx?: RagSearchContext): Promise<RagSource[]> {
     if (!query || !query.trim()) return [];
 
     // Etape 1 : query expansion (no-op si flag off — retourne [query]).
@@ -929,8 +822,8 @@ export class RagService {
       const hybrid = await this.hybridSearch.search(query, limit, filter);
       // Le filtrage RBAC est deja applique cote SQL via `filter`. On ne re-filtre
       // que si l'appelant a fourni un ctx (defense en profondeur post-SQL).
-      const filtered = ctx ? await this.applyRbacFilter(hybrid, ctx) : hybrid;
-      return this.toRagSources(filtered, query);
+      const filtered = await this.applyRbacFilter(hybrid, ctx);
+      return filtered.length ? this.toRagSources(filtered, query) : this.searchSimilar(query, limit, ctx);
     }
 
     // Cas 2 : lexical pur (ou semantic disabled) -> ancien searchSimilar
@@ -940,7 +833,8 @@ export class RagService {
 
     // Cas 3 : vector pur
     if (mode === "vector") {
-      return this.vectorSearch(query, limit, ctx);
+      const vector = await this.vectorSearch(query, limit, ctx);
+      return vector.length ? vector : this.searchSimilar(query, limit, ctx);
     }
 
     // Cas 4 : hybrid sans BM25 (legacy) -> RRF lexical + vector
@@ -957,10 +851,7 @@ export class RagService {
    * apres query expansion). Cle = sourceType:sourceId pour deduper les chunks
    * issus de variants differents.
    */
-  private reciprocalRankFusionMulti(
-    lists: RagSource[][],
-    k = 60,
-  ): RagSource[] {
+  private reciprocalRankFusionMulti(lists: RagSource[][], k = 60): RagSource[] {
     const scores = new Map<string, { score: number; source: RagSource }>();
     const makeKey = (s: RagSource) => `${s.sourceType}:${s.sourceId}`;
 
@@ -987,35 +878,21 @@ export class RagService {
    * Retourne `undefined` si pas de contexte (filtrage applique post-retrieval),
    * ou si user privileged (acces total).
    */
-  private async buildAccessFilter(
-    ctx?: RagSearchContext,
-  ): Promise<string | undefined> {
-    if (!ctx || process.env.RBAC_RAG_ENABLED === "false") return undefined;
-
-    const isPrivileged = ["SUPER_ADMIN", "ADMIN", "DIRECTION"].includes(
-      ctx.role,
-    );
-    if (isPrivileged) return undefined;
-
-    const accessibleIds = await this.getAccessibleDocumentIds(ctx);
-    if (accessibleIds === "ALL") return undefined;
-    if (accessibleIds.length === 0) {
-      return `AND ("sourceType" != 'DOCUMENT')`;
-    }
-    // Defense-in-depth : whitelist UUID v4 strict avant l'injection SQL.
-    // Les ids viennent de Prisma (donc UUID-valides par construction), mais
-    // on valide explicitement pour bloquer toute corruption du flux amont
-    // (cache, mock test, futur refactor). N'importe quel id non-UUID est
-    // silencieusement filtré — l'effet est qu'il ne sera pas accessible,
-    // pas qu'on injecte du SQL.
-    const UUID_RE =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  private async buildAccessFilter(ctx?: RagSearchContext): Promise<string | undefined> {
+    const accessibleIds = ctx?.userId && ctx.role ? await this.getAccessibleDocumentIds(ctx) : [];
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const safeIds = accessibleIds.filter((id) => UUID_RE.test(id));
-    if (safeIds.length === 0) {
-      return `AND ("sourceType" != 'DOCUMENT')`;
-    }
-    const idsList = safeIds.map((id) => `'${id}'`).join(",");
-    return `AND ("sourceType" != 'DOCUMENT' OR "sourceId" IN (${idsList}))`;
+    const documentGuard = safeIds.length ? `("sourceType" = 'DOCUMENT' AND "sourceId" IN (${safeIds.map((id) => `'${id}'`).join(",")}) AND EXISTS (
+      SELECT 1 FROM "Document" d JOIN "DocumentVersion" v ON v.id = d."currentVersionId" AND v."documentId" = d.id
+      WHERE d.id = "RagChunk"."sourceId" AND d."deletedAt" IS NULL AND d."scanStatus" = 'CLEAN'
+        AND "RagChunk".metadata->>'documentVersionId' = d."currentVersionId"
+        AND "RagChunk".metadata->>'sourceUpdatedAt' = floor(extract(epoch FROM d."updatedAt") * 1000)::bigint::text
+    ))` : "FALSE";
+    return `AND (${documentGuard}
+      OR ("sourceType" = 'WIKI' AND EXISTS (SELECT 1 FROM "WikiPage" w WHERE w.id = "RagChunk"."sourceId" AND w."isPublished" = true AND w.visibility = 'PUBLIC' AND "RagChunk".metadata->>'sourceUpdatedAt' = floor(extract(epoch FROM w."updatedAt") * 1000)::bigint::text))
+      OR ("sourceType" = 'RUNBOOK' AND EXISTS (SELECT 1 FROM "Runbook" r WHERE r.id = "RagChunk"."sourceId" AND r."isPublished" = true AND "RagChunk".metadata->>'sourceUpdatedAt' = floor(extract(epoch FROM r."updatedAt") * 1000)::bigint::text))
+      OR "sourceType" IN ('PROCEDURE', 'FAQ', 'TICKET'))`;
+
   }
 
   /**
@@ -1048,7 +925,10 @@ export class RagService {
   async callLlm(prompt: string, maxTokens = 500): Promise<string> {
     const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
     const model = process.env.OLLAMA_MODEL || "mistral";
-    const timeoutMs = parseInt(process.env.OLLAMA_TIMEOUT_MS || "60000", 10);
+    // Budget global (env OLLAMA_TIMEOUT_MS, défaut 240 s) : l'ancien défaut de
+    // 60 s était mathématiquement intenable sur CPU (prompt-eval ~16 tok/s +
+    // génération ~5 tok/s → un résumé réaliste demande ~125 s).
+    const timeoutMs = getOllamaTimeoutMs();
 
     // Ajout timeout : sans signal d'abort, fetch peut pendre indéfiniment si
     // Ollama ne répond pas (CPU thrashing, deadlock, etc.) → bloque la requête HTTP appelante.
@@ -1065,9 +945,7 @@ export class RagService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Ollama returned ${response.status}: ${response.statusText}`,
-      );
+      throw new Error(`Ollama returned ${response.status}: ${response.statusText}`);
     }
 
     const data = (await response.json()) as { response?: string };
@@ -1078,16 +956,10 @@ export class RagService {
    * Stream tokens from Ollama. Yields each token string as it arrives.
    * Uses Ollama's native `stream: true` which emits newline-delimited JSON.
    */
-  async *callLlmStream(
-    prompt: string,
-    maxTokens = 500,
-  ): AsyncGenerator<string> {
+  async *callLlmStream(prompt: string, maxTokens = 500): AsyncGenerator<string> {
     const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
     const model = process.env.OLLAMA_MODEL || "mistral";
-    const timeoutMs = parseInt(
-      process.env.OLLAMA_STREAM_TIMEOUT_MS || "120000",
-      10,
-    );
+    const timeoutMs = parseInt(process.env.OLLAMA_STREAM_TIMEOUT_MS || "120000", 10);
 
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: "POST",
@@ -1104,9 +976,7 @@ export class RagService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Ollama returned ${response.status}: ${response.statusText}`,
-      );
+      throw new Error(`Ollama returned ${response.status}: ${response.statusText}`);
     }
 
     const reader = response.body as AsyncIterable<Uint8Array>;
@@ -1151,9 +1021,11 @@ export class RagService {
       queryId?: string;
     }) => void,
     ctx?: RagSearchContext,
+    onStatus?: (status: RagStreamStatus) => void,
   ): Promise<void> {
     const start = Date.now();
 
+    onStatus?.({ stage: "retrieving" });
     const sources = await this.search(question, 10, ctx);
     const retrievalConfidence = sources.length > 0 ? sources[0].score : 0;
 
@@ -1201,20 +1073,33 @@ export class RagService {
     // Emit sources immediately so the frontend can display them while LLM streams
     onMeta({ sources, retrievalConfidence, durationMs: 0, queryId });
 
-    // P1.8.1.3 : prompt template adapté au modèle actif
+    // P1.8.1.3 : prompt template adapté au modèle actif.
+    // Contexte : 4 chunks × 320 chars (enrichi le 2026-07-31 depuis 3×250 pour
+    // des réponses plus complètes). Le prompt-eval domine la latence CPU, donc
+    // on borne : 4×320 ≈ +130 tokens de contexte (~+5 s au 1er token) contre un
+    // gain net de justesse/ancrage. Au-delà, la latence deviendrait sensible.
     const templates = getPromptTemplates(this.llmService.getActiveModel());
     const prompt = templates.rag({
       query: question,
-      chunks: sources.slice(0, 5).map((s) => ({
+      chunks: sources.slice(0, 4).map((s) => ({
         sourceType: s.sourceType,
         title: s.title,
-        snippet: s.snippet,
+        snippet: s.snippet.slice(0, 320),
       })),
     });
 
     if (this.isOllamaEnabled()) {
       try {
-        for await (const token of this.llmService.generateStream(prompt)) {
+        onStatus?.({
+          stage: "generating",
+          model: this.llmService.getActiveModel(),
+        });
+        for await (const token of this.llmService.generateStream(prompt, {
+          maxTokens: this.getAnswerMaxTokens(),
+          timeoutMs: this.getAnswerTimeoutMs(),
+          onModelFallback: (model) => onStatus?.({ stage: "model_fallback", model }),
+          onQueue: (position) => onStatus?.({ stage: "queued", position }),
+        })) {
           onToken(token);
         }
       } catch (err) {
@@ -1253,18 +1138,13 @@ export class RagService {
    * Full RAG pipeline: search -> confidence gate -> context assembly -> LLM or extractive fallback.
    * Applique le filtrage RBAC si un contexte est fourni (P-1.1).
    */
-  async answer(
-    question: string,
-    userId: string,
-    ctx?: RagSearchContext,
-  ): Promise<RagAnswer> {
+  async answer(question: string, userId: string, ctx?: RagSearchContext): Promise<RagAnswer> {
     const start = Date.now();
 
     if (!this.isEnabled()) {
       this.logger.warn({ msg: "rag.pipeline.disabled", userId });
       return {
-        answer:
-          "Le moteur RAG est désactivé. Contactez un administrateur pour l'activer.",
+        answer: "Le moteur RAG est désactivé. Contactez un administrateur pour l'activer.",
         sources: [],
         retrievalConfidence: 0,
         source: "none",
@@ -1308,9 +1188,7 @@ export class RagService {
             data: { durationMs: earlyDurationMs },
           })
           .catch((err) => {
-            this.logger.warn(
-              `Failed to update RAG query duration: ${(err as Error).message}`,
-            );
+            this.logger.warn(`Failed to update RAG query duration: ${(err as Error).message}`);
           });
       }
       return {
@@ -1328,10 +1206,7 @@ export class RagService {
     // 3. Assemble context from top sources
     const contextParts = sources
       .slice(0, 5)
-      .map(
-        (s, i) =>
-          `[Source ${i + 1} — ${s.sourceType}] ${s.title}\n${s.snippet}`,
-      );
+      .map((s, i) => `[Source ${i + 1} — ${s.sourceType}] ${s.title}\n${s.snippet}`);
     // contextParts assemble plus bas par le LLM dans buildPrompt — on conserve
     // les chunks tries pour traceabilite de citation.
     const _context = contextParts.join("\n\n");
@@ -1353,8 +1228,16 @@ export class RagService {
           })),
         });
 
+        // Inférence Ollama en local sur CPU (~8 tok/s). Le défaut historique
+        // (500 tokens, timeout 30 s/modèle) ne pouvait JAMAIS aboutir sur le
+        // modèle principal : 500 tokens ≈ 60 s > 30 s → timeout → cascade
+        // primary→fallback→emergency (jusqu'à ~150 s) → réponse extractive ou
+        // perçue comme « le RAG ne répond pas ». On cale donc une réponse plus
+        // concise et un budget temps réaliste pour que le modèle principal
+        // termine en un seul passage (surchargeable par env pour le tuning).
         const result = await this.llmService.generate(prompt, {
-          maxTokens: 500,
+          maxTokens: this.getAnswerMaxTokens(),
+          timeoutMs: this.getAnswerTimeoutMs(),
         });
         answer = result.text;
         answerSource = "llm";
@@ -1410,25 +1293,136 @@ export class RagService {
   // Document summary
   // =========================================================================
 
-  /** Generate an LLM summary of a document. Results are cached. */
-  async summarizeDocument(documentId: string): Promise<{ summary: string }> {
-    const cacheKey = `doc-summary:${documentId}`;
-    const cached = getCached<{ summary: string }>(cacheKey);
-    if (cached) return cached;
+  /**
+   * Échantillonne le texte pour le résumé afin de couvrir TOUT le document sans
+   * dépasser `budget` caractères (le prompt-eval CPU domine la latence). Si le
+   * texte tient dans le budget, on le renvoie tel quel. Sinon on prend le début
+   * (~50 %, contient objet/portée), le milieu (~25 %) et la fin (~25 %,
+   * contient souvent conclusions/annexes) — bien mieux que de tronquer au début.
+   */
+  private sampleForSummary(text: string, budget: number): string {
+    const t = text.trim();
+    if (t.length <= budget) return t;
+    const head = Math.floor(budget * 0.5);
+    const mid = Math.floor(budget * 0.25);
+    const tail = budget - head - mid;
+    const midStart = Math.floor(t.length / 2 - mid / 2);
+    return [
+      t.slice(0, head).trim(),
+      "\n[…]\n" + t.slice(midStart, midStart + mid).trim(),
+      "\n[…]\n" + t.slice(t.length - tail).trim(),
+    ].join("");
+  }
 
-    const doc = await this.prisma.document.findUniqueOrThrow({
-      where: { id: documentId },
+  /**
+   * Cache L2 PERSISTANT (base) du résumé — survit aux redémarrages et partagé
+   * entre utilisateurs. Renvoie le résumé si une ligne existe pour ce document
+   * ET que son `versionKey` correspond (sinon le doc a changé → périmé).
+   */
+  private async getPersistedSummary(
+    documentId: string,
+    versionKey: string,
+  ): Promise<{ summary: string } | undefined> {
+    try {
+      const row = await this.prisma.documentAiSummary.findUnique({ where: { documentId } });
+      if (row && row.versionKey === versionKey && row.summary.trim()) {
+        return { summary: row.summary };
+      }
+    } catch {
+      // Cache best-effort : une erreur DB ne doit jamais casser le résumé.
+    }
+    return undefined;
+  }
+
+  /** Écrit/actualise le cache L2 (upsert par documentId). Best-effort. */
+  private async persistSummary(
+    documentId: string,
+    versionKey: string,
+    summary: string,
+    model: string,
+  ): Promise<void> {
+    if (!summary.trim()) return;
+    try {
+      await this.prisma.documentAiSummary.upsert({
+        where: { documentId },
+        create: { documentId, versionKey, summary, model },
+        update: { versionKey, summary, model },
+      });
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  /**
+   * Generate an LLM summary of a document.
+   *
+   * Fix 2026-07 :
+   *  - RBAC par classification DANS le service (ISO A.5.15) : la route est
+   *    désormais ouverte à tous les rôles authentifiés, un utilisateur ne
+   *    peut résumer que ce qu'il a le droit de lire.
+   *  - Passe par LlmService.generate (chaîne de fallback + template [INST]
+   *    par modèle) au lieu de callLlm brut.
+   *  - Entrée ≤ 2000 chars, map-reduce en 2 passes au-delà.
+   *  - Cache L1 mémoire + L2 base keyés par checksum de la version courante,
+   *    TTL 24 h L1 (invalidation auto quand une nouvelle version est uploadée).
+   *  - Les erreurs LLM REMONTENT à l'appelant (le contrôleur renvoie 503) au
+   *    lieu d'un 200 { summary: "Erreur…" } qui polluait cache et monitoring.
+   */
+  async summarizeDocument(
+    documentId: string,
+    ctx?: RagSearchContext,
+  ): Promise<{ summary: string }> {
+    if (!ctx?.userId || !ctx.role) throw new ForbiddenException("Un acteur authentifié est requis pour résumer un document");
+    // findFirstOrThrow (et non findUniqueOrThrow) pour filtrer les documents
+    // soft-supprimés : deletedAt n'est pas une colonne unique. Absent/soft-delete
+    // → P2025 → 404 (aligné sur DocumentsService.findById).
+    const doc = await this.prisma.document.findFirstOrThrow({
+      where: { id: documentId, deletedAt: null },
       include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
     });
+
+    // RBAC complet (rôle × statut × classification), aligné sur findById —
+    // fail closed. Sans le contrôle de statut, un PRESTATAIRE/COLLABORATEUR
+    // pouvait résumer un brouillon (status !== APPROVED) d'autrui via son UUID.
+    if (
+      doc.scanStatus !== "CLEAN" ||
+      !await canReadDocumentWithPermissions(this.prisma, doc, { id: ctx.userId, role: ctx.role, departmentId: ctx.departmentId })
+    ) {
+      this.logger.warn({
+        msg: "rag.summary.rbac_denied",
+        documentId,
+        userId: ctx.userId,
+        role: ctx.role,
+        classification: doc.classification,
+      });
+      throw new ForbiddenException(
+        "Accès restreint : la classification de ce document ne permet pas d'en générer un résumé avec vos habilitations.",
+      );
+    }
+
+    // Clé de cache liée au contenu : checksum de la version courante, ou hash
+    // du contenu natif. Une nouvelle version/édition invalide donc le cache.
+    const versionKey =
+      doc.versions[0]?.checksum ??
+      `native:${createHash("sha256")
+        .update(doc.content ?? "")
+        .digest("hex")
+        .slice(0, 16)}`;
+    const cacheKey = `doc-summary:${documentId}:${versionKey}`;
+    const cached = getCached<{ summary: string }>(cacheKey);
+    if (cached) return cached;
+    // L2 : cache persistant (base) — survit aux redémarrages, partagé.
+    const persisted = await this.getPersistedSummary(documentId, versionKey);
+    if (persisted) {
+      setCache(cacheKey, persisted, SUMMARY_CACHE_TTL_MS);
+      return persisted;
+    }
 
     let text = doc.content ?? "";
 
     if (!text && doc.versions.length > 0) {
       const latest = doc.versions[0];
-      const extracted = await this.textExtractor.extractText(
-        latest.fileUrl,
-        latest.fileType,
-      );
+      const extracted = await this.textExtractor.extractText(latest.fileUrl, latest.fileType);
       if (extracted) text = extracted;
     }
 
@@ -1438,25 +1432,192 @@ export class RagService {
 
     if (!this.isOllamaEnabled()) {
       // Extractive fallback: first 500 chars
-      const summary =
-        text.slice(0, 500).trim() + (text.length > 500 ? "…" : "");
+      const summary = text.slice(0, 500).trim() + (text.length > 500 ? "…" : "");
       const result = { summary };
-      setCache(cacheKey, result);
+      setCache(cacheKey, result, SUMMARY_CACHE_TTL_MS);
       return result;
     }
 
-    const prompt = `Tu es un assistant documentaire pour OMNITECH SECURITY. Résume le document suivant en français, en 3 à 5 phrases concises.
+    const templates = getPromptTemplates(this.llmService.getActiveModel());
+    // Budget temps AGRÉGÉ de tout l'appel (bornée sous le timeout client) : le
+    // reliquat est passé comme `timeoutMs` à chaque generate(), désormais
+    // interprété par LlmService comme un budget global (retries + fallbacks
+    // compris) et non plus par tentative.
+    const deadline = Date.now() + SUMMARY_TOTAL_BUDGET_MS;
+    const remaining = () => deadline - Date.now();
+    let summary: string;
 
-Document : ${doc.title}
-Contenu :
-${text.slice(0, 4000)}
+    if (text.length <= SUMMARY_INPUT_CHARS) {
+      const result = await this.llmService.generate(templates.summary(text), {
+        maxTokens: SUMMARY_MAX_TOKENS,
+        timeoutMs: Math.max(SUMMARY_MIN_CALL_MS, remaining()),
+      });
+      summary = result.text;
+    } else {
+      // Map-reduce en 2 passes : résumés partiels de segments de 2000 chars
+      // (max 3 segments), puis résumé final de la concaténation.
+      const segments: string[] = [];
+      for (
+        let i = 0;
+        i < text.length && segments.length < SUMMARY_MAX_SEGMENTS;
+        i += SUMMARY_INPUT_CHARS
+      ) {
+        const seg = text.slice(i, i + SUMMARY_INPUT_CHARS).trim();
+        if (seg) segments.push(seg);
+      }
 
-Résumé :`;
+      const partials: string[] = [];
+      for (let s = 0; s < segments.length; s++) {
+        // On réserve SUMMARY_REDUCE_RESERVE_MS pour la synthèse finale et on
+        // répartit le reste entre les segments map restants. Si le budget est
+        // trop maigre, on abandonne la boucle map et on réduit sur les partiels
+        // déjà obtenus (voire sur le début du texte) plutôt que d'accumuler des
+        // tentatives vouées à l'échec.
+        const mapBudget = remaining() - SUMMARY_REDUCE_RESERVE_MS;
+        if (mapBudget < SUMMARY_MIN_CALL_MS) break;
+        const perSegment = Math.max(
+          SUMMARY_MIN_CALL_MS,
+          Math.floor(mapBudget / (segments.length - s)),
+        );
+        const partial = await this.llmService.generate(templates.summary(segments[s]), {
+          maxTokens: SUMMARY_SEGMENT_MAX_TOKENS,
+          timeoutMs: perSegment,
+        });
+        if (partial.text.trim()) partials.push(partial.text.trim());
+      }
 
-    const summary = await this.callLlm(prompt, 300);
+      // Si la passe map n'a rien produit (réponses vides), on retombe sur le
+      // début du texte plutôt que d'envoyer un prompt vide à la passe reduce.
+      const combined =
+        partials.join("\n\n").slice(0, SUMMARY_INPUT_CHARS) || text.slice(0, SUMMARY_INPUT_CHARS);
+      const final = await this.llmService.generate(templates.summary(combined), {
+        maxTokens: SUMMARY_MAX_TOKENS,
+        timeoutMs: Math.max(SUMMARY_MIN_CALL_MS, remaining()),
+      });
+      summary = final.text;
+    }
+
     const result = { summary };
-    setCache(cacheKey, result);
+    setCache(cacheKey, result, SUMMARY_CACHE_TTL_MS);
+    void this.persistSummary(documentId, versionKey, summary, this.llmService.getActiveModel());
     return result;
+  }
+
+  /**
+   * Variante STREAMING du résumé (SSE).
+   *
+   * Pourquoi : sur CPU l'inférence dure 50 s–2 min ; un résumé bloquant est
+   * coupé par le timeout de la passerelle réseau (~30 s) avant d'aboutir. En
+   * streaming, les tokens partent au fur et à mesure → la connexion reste
+   * active (réarme le read-timeout) et l'utilisateur voit le texte se former.
+   *
+   * Différence avec `summarizeDocument` : PASSE UNIQUE (pas de map-reduce, qui
+   * n'est pas streamable et sous-budgétait chaque segment à ~46 s < un appel
+   * de 53 s → auto-coupure). On tronque l'entrée à SUMMARY_STREAM_INPUT_CHARS
+   * (fenêtre plus large qu'en bloquant car un seul appel) et on streame.
+   *
+   * Même RBAC (classification × statut) et même cache (checksum de version)
+   * que la version bloquante : un résumé déjà en cache est renvoyé en flux
+   * immédiat, et le résultat complet réalimente le cache.
+   */
+  async summarizeDocumentStream(
+    documentId: string,
+    ctx: RagSearchContext | undefined,
+    onToken: (token: string) => void,
+    onStatus?: (status: RagStreamStatus) => void,
+  ): Promise<void> {
+    if (!ctx?.userId || !ctx.role) throw new ForbiddenException("Un acteur authentifié est requis pour résumer un document");
+    onStatus?.({ stage: "retrieving" });
+
+    const doc = await this.prisma.document.findFirstOrThrow({
+      where: { id: documentId, deletedAt: null },
+      include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
+    });
+
+    if (
+      doc.scanStatus !== "CLEAN" ||
+      !await canReadDocumentWithPermissions(this.prisma, doc, { id: ctx.userId, role: ctx.role, departmentId: ctx.departmentId })
+    ) {
+      this.logger.warn({
+        msg: "rag.summary_stream.rbac_denied",
+        documentId,
+        userId: ctx.userId,
+        role: ctx.role,
+        classification: doc.classification,
+      });
+      throw new ForbiddenException(
+        "Accès restreint : la classification de ce document ne permet pas d'en générer un résumé avec vos habilitations.",
+      );
+    }
+
+    const versionKey =
+      doc.versions[0]?.checksum ??
+      `native:${createHash("sha256")
+        .update(doc.content ?? "")
+        .digest("hex")
+        .slice(0, 16)}`;
+    const cacheKey = `doc-summary:${documentId}:${versionKey}`;
+
+    // Cache chaud (L1 mémoire, puis L2 base) → on streame le texte déjà connu
+    // (chunks de mots) pour une UX cohérente, sans rappeler le LLM.
+    const cached =
+      getCached<{ summary: string }>(cacheKey) ??
+      (await this.getPersistedSummary(documentId, versionKey));
+    if (cached) {
+      setCache(cacheKey, cached, SUMMARY_CACHE_TTL_MS);
+      onStatus?.({ stage: "generating" });
+      for (const chunk of cached.summary.match(/\S+\s*/g) ?? [cached.summary]) {
+        onToken(chunk);
+      }
+      return;
+    }
+
+    let text = doc.content ?? "";
+    if (!text && doc.versions.length > 0) {
+      const latest = doc.versions[0];
+      const extracted = await this.textExtractor.extractText(latest.fileUrl, latest.fileType);
+      if (extracted) text = extracted;
+    }
+
+    if (!text.trim()) {
+      onToken("Aucun contenu textuel disponible pour ce document.");
+      return;
+    }
+
+    if (!this.isOllamaEnabled()) {
+      const summary = text.slice(0, 500).trim() + (text.length > 500 ? "…" : "");
+      onToken(summary);
+      setCache(cacheKey, { summary }, SUMMARY_CACHE_TTL_MS);
+      return;
+    }
+
+    onStatus?.({ stage: "generating" });
+    const templates = getPromptTemplates(this.llmService.getActiveModel());
+    // Échantillonnage début+milieu+fin → le résumé couvre tout le document.
+    const prompt = templates.summary(this.sampleForSummary(text, SUMMARY_STREAM_INPUT_CHARS));
+
+    let acc = "";
+    for await (const token of this.llmService.generateStream(prompt, {
+      maxTokens: SUMMARY_MAX_TOKENS,
+      timeoutMs: SUMMARY_TOTAL_BUDGET_MS,
+      onModelFallback: (model, level) => onStatus?.({ stage: "model_fallback", model, level }),
+      onQueue: (position) => onStatus?.({ stage: "queued", position }),
+    })) {
+      acc += token;
+      onToken(token);
+    }
+
+    // Ne mettre en cache qu'un résumé réellement produit (une génération vide
+    // ne doit pas empoisonner le cache). L1 mémoire + L2 base persistant.
+    if (acc.trim()) {
+      setCache(cacheKey, { summary: acc.trim() }, SUMMARY_CACHE_TTL_MS);
+      void this.persistSummary(
+        documentId,
+        versionKey,
+        acc.trim(),
+        this.llmService.getActiveModel(),
+      );
+    }
   }
 
   // =========================================================================
@@ -1464,9 +1625,7 @@ Résumé :`;
   // =========================================================================
 
   /** Suggest a response for a support ticket using RAG context. */
-  async suggestTicketResponse(
-    ticketId: string,
-  ): Promise<{ suggestion: string }> {
+  async suggestTicketResponse(ticketId: string): Promise<{ suggestion: string }> {
     const ticket = await this.prisma.ticket.findUniqueOrThrow({
       where: { id: ticketId },
       include: { comments: { orderBy: { createdAt: "asc" } } },
@@ -1518,10 +1677,7 @@ Réponse suggérée :`;
   // =========================================================================
 
   /** Answer a question about a specific wiki article. */
-  async askAboutArticle(
-    articleId: string,
-    question: string,
-  ): Promise<{ answer: string }> {
+  async askAboutArticle(articleId: string, question: string): Promise<{ answer: string }> {
     const page = await this.prisma.wikiPage.findUniqueOrThrow({
       where: { id: articleId },
     });
@@ -1559,8 +1715,7 @@ Réponse :`;
   async getStats(): Promise<Record<string, unknown>> {
     const ragChunk = this.prisma.ragChunk;
 
-    let chunksByType: Array<{ sourceType: string; _count: { id: number } }> =
-      [];
+    let chunksByType: Array<{ sourceType: string; _count: { id: number } }> = [];
     try {
       // Prisma's groupBy a une signature `T extends RagChunkGroupByArgs &
       // any[]` qui force l'argument à être déclaré comme tuple sinon TS rejette

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { NotificationType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -29,6 +29,7 @@ export class MentionsService {
    * Parse un texte et retourne la liste de handles mentionnés (sans le @).
    */
   extractHandles(text: string): string[] {
+    if (typeof text !== "string" || text.length > 100_000) throw new BadRequestException("Le texte des mentions doit être une chaîne de 100000 caractères au maximum.");
     if (!text) return [];
     // Retire les blocs code markdown (```…```) et inline code (`…`) : mentions dedans ignorées.
     const stripped = text
@@ -112,7 +113,9 @@ export class MentionsService {
     sourceTitle: string;
     link: string;
   }): Promise<number> {
-    const handles = this.extractHandles(params.text);
+    if (!params || typeof params.text !== "string" || params.text.length > 100_000) throw new BadRequestException("Texte de mention invalide.");
+    const text = params.text;
+    const handles = this.extractHandles(text);
     if (handles.length === 0) return 0;
 
     const users = await this.resolveHandles(handles);
@@ -130,7 +133,7 @@ export class MentionsService {
     const kind = label[params.sourceType] ?? "contenu";
     const title = `${params.authorName} vous a mentionné dans un ${kind}`;
     const excerpt =
-      params.text.length > 180 ? params.text.slice(0, 180) + "…" : params.text;
+      text.length > 180 ? text.slice(0, 180) + "…" : text;
 
     await Promise.all(
       recipients.map((r) =>

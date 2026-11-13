@@ -38,10 +38,7 @@ import type {
 import { classificationClasses, type ReviewDeadlineInfo } from "./helpers";
 
 const WorkflowPanel = dynamic(
-  () =>
-    import("@/components/documents/workflow-panel").then(
-      (m) => m.WorkflowPanel,
-    ),
+  () => import("@/components/documents/workflow-panel").then((m) => m.WorkflowPanel),
   {
     ssr: false,
     loading: () => <div className="shimmer h-20 rounded" />,
@@ -91,6 +88,23 @@ export function DocumentSidebar({
 }: DocumentSidebarProps) {
   const isos = doc.isoControls || [];
 
+  // Étape courante du workflow + assignations (pour cibler les boutons d'action).
+  const currentStep = doc.validationRequests?.[0]?.currentStep;
+  const isVerificationStep = currentStep === "VERIFICATION";
+  // Proxy de rôle : REVIEWER+/ADMIN peuvent agir (dérogation tracée côté back).
+  const canActOnReview = transitions.includes("REVIEW_APPROVED");
+  const isAssignedVerifier = !!currentUserId && doc.verifier?.id === currentUserId;
+  const isAssignedReviewer = !!currentUserId && doc.reviewer?.id === currentUserId;
+  // Décideur réel de l'approbation (≠ approbateur assigné en cas de dérogation).
+  const approvalDecider = doc.validationRequests?.[0]?.steps?.find(
+    (s) => s.stepType === "APPROVAL" && s.action === "APPROVED",
+  )?.decidedBy;
+  const deciderIsDerogation =
+    approvalDecider &&
+    doc.approver &&
+    approvalDecider.id !== undefined &&
+    approvalDecider.id !== doc.approver.id;
+
   // Merge relatedDocs and RAG similarity, deduplicate by id, max 4
   const seen = new Set<string>();
   const merged: RelatedDoc[] = [];
@@ -112,9 +126,7 @@ export function DocumentSidebar({
       {/* Workflow (vertical, compact) */}
       <Card className="shadow-sm rounded-xl">
         <CardHeader>
-          <h3 className="text-sm font-medium text-seal-navy dark:text-white">
-            Cycle de vie
-          </h3>
+          <h3 className="text-sm font-medium text-seal-navy dark:text-white">Cycle de vie</h3>
         </CardHeader>
         <CardContent>
           <WorkflowTimeline steps={workflowSteps} />
@@ -134,7 +146,20 @@ export function DocumentSidebar({
                 </Button>
               )}
               {doc.status === "IN_REVIEW" &&
-                transitions.includes("REVIEW_APPROVED") && (
+                isVerificationStep &&
+                (isAssignedVerifier || canActOnReview) && (
+                  <Button
+                    className="w-full"
+                    onClick={() => onAction("verify-approve")}
+                    loading={actionLoading}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Valider la vérification
+                  </Button>
+                )}
+              {doc.status === "IN_REVIEW" &&
+                !isVerificationStep &&
+                (isAssignedReviewer || canActOnReview) && (
                   <Button
                     className="w-full"
                     onClick={() => onAction("approve-review")}
@@ -147,9 +172,8 @@ export function DocumentSidebar({
               {doc.status === "REVIEW_APPROVED" && isOwner && (
                 <>
                   <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-3 text-xs text-emerald-700 dark:text-emerald-300">
-                    La revue a été validée par le réviseur. Vous pouvez prendre
-                    en compte les retours puis lancer la demande
-                    d&apos;approbation finale.
+                    La revue a été validée par le réviseur. Vous pouvez prendre en compte les
+                    retours puis lancer la demande d&apos;approbation finale.
                   </div>
                   <Button
                     className="w-full"
@@ -163,22 +187,33 @@ export function DocumentSidebar({
               )}
               {doc.status === "REVIEW_APPROVED" && !isOwner && (
                 <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-700 dark:text-amber-300">
-                  Revue validée — en attente que le rédacteur lance la demande
-                  d&apos;approbation.
+                  Revue validée — en attente que le rédacteur lance la demande d&apos;approbation.
                 </div>
               )}
-              {doc.status === "PENDING_APPROVAL" &&
-                transitions.includes("APPROVED") && (
+              {doc.status === "PENDING_APPROVAL" && transitions.includes("APPROVED") && (
+                <Button
+                  className="w-full"
+                  onClick={() => onAction("approve-direction")}
+                  loading={actionLoading}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Valider (Direction)
+                </Button>
+              )}
+              {doc.status === "IN_REVIEW" &&
+                isVerificationStep &&
+                (isAssignedVerifier || canActOnReview) && (
                   <Button
+                    variant="outline"
                     className="w-full"
-                    onClick={() => onAction("approve-direction")}
+                    onClick={() => onAction("verify-reject")}
                     loading={actionLoading}
                   >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Valider (Direction)
+                    <XCircle className="h-4 w-4" />
+                    Rejeter la vérification
                   </Button>
                 )}
-              {doc.status === "IN_REVIEW" && (
+              {doc.status === "IN_REVIEW" && !isVerificationStep && (
                 <Button
                   variant="outline"
                   className="w-full"
@@ -200,23 +235,14 @@ export function DocumentSidebar({
                   Refuser (Direction)
                 </Button>
               )}
-              {doc.status === "APPROVED" &&
-                transitions.includes("OBSOLETE") && (
-                  <Button
-                    variant="danger"
-                    className="w-full"
-                    onClick={onOpenObsoleteDialog}
-                  >
-                    <AlertTriangle className="h-4 w-4" />
-                    Marquer obsolète
-                  </Button>
-                )}
+              {doc.status === "APPROVED" && transitions.includes("OBSOLETE") && (
+                <Button variant="danger" className="w-full" onClick={onOpenObsoleteDialog}>
+                  <AlertTriangle className="h-4 w-4" />
+                  Marquer obsolète
+                </Button>
+              )}
               {transitions.includes("ARCHIVED") && (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={onOpenArchiveDialog}
-                >
+                <Button variant="outline" className="w-full" onClick={onOpenArchiveDialog}>
                   <History className="h-4 w-4" />
                   Archiver
                 </Button>
@@ -241,35 +267,23 @@ export function DocumentSidebar({
       {/* Document Metadata */}
       <Card className="shadow-sm rounded-xl">
         <CardHeader>
-          <h3 className="text-sm font-medium text-seal-navy dark:text-white">
-            Métadonnées
-          </h3>
+          <h3 className="text-sm font-medium text-seal-navy dark:text-white">Métadonnées</h3>
         </CardHeader>
         <CardContent className="space-y-2.5 text-[11px]">
           <div className="flex justify-between items-start">
-            <span className="text-seal-gray-500 dark:text-slate-400">
-              Référence
-            </span>
+            <span className="text-seal-gray-500 dark:text-slate-400">Référence</span>
             <span className="font-mono font-semibold text-seal-navy dark:text-white">
               {doc.reference}
             </span>
           </div>
           <div className="flex justify-between items-start">
-            <span className="text-seal-gray-500 dark:text-slate-400">
-              Catégorie
-            </span>
+            <span className="text-seal-gray-500 dark:text-slate-400">Catégorie</span>
             <Badge variant="navy">
-              {
-                DOCUMENT_CATEGORY_LABELS[
-                  doc.category as keyof typeof DOCUMENT_CATEGORY_LABELS
-                ]
-              }
+              {DOCUMENT_CATEGORY_LABELS[doc.category as keyof typeof DOCUMENT_CATEGORY_LABELS]}
             </Badge>
           </div>
           <div className="flex justify-between items-start">
-            <span className="text-seal-gray-500 dark:text-slate-400">
-              Classification
-            </span>
+            <span className="text-seal-gray-500 dark:text-slate-400">Classification</span>
             <span
               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${classificationClasses(doc.classification)}`}
             >
@@ -278,18 +292,22 @@ export function DocumentSidebar({
           </div>
           <div className="border-t border-gray-100 dark:border-slate-700 pt-2" />
           <div className="flex justify-between items-start">
-            <span className="text-seal-gray-500 dark:text-slate-400">
-              Propriétaire
-            </span>
+            <span className="text-seal-gray-500 dark:text-slate-400">Propriétaire</span>
             <span className="text-seal-navy dark:text-white font-medium">
               {doc.owner.firstName} {doc.owner.lastName}
             </span>
           </div>
+          {doc.verifier && (
+            <div className="flex justify-between items-start">
+              <span className="text-seal-gray-500 dark:text-slate-400">Vérificateur</span>
+              <span className="text-seal-navy dark:text-white font-medium">
+                {doc.verifier.firstName} {doc.verifier.lastName}
+              </span>
+            </div>
+          )}
           {doc.reviewer && (
             <div className="flex justify-between items-start">
-              <span className="text-seal-gray-500 dark:text-slate-400">
-                Réviseur
-              </span>
+              <span className="text-seal-gray-500 dark:text-slate-400">Relecteur</span>
               <span className="text-seal-navy dark:text-white font-medium">
                 {doc.reviewer.firstName} {doc.reviewer.lastName}
               </span>
@@ -297,36 +315,37 @@ export function DocumentSidebar({
           )}
           {doc.approver && (
             <div className="flex justify-between items-start">
-              <span className="text-seal-gray-500 dark:text-slate-400">
-                Approbateur
-              </span>
+              <span className="text-seal-gray-500 dark:text-slate-400">Approbateur</span>
               <span className="text-seal-navy dark:text-white font-medium">
                 {doc.approver.firstName} {doc.approver.lastName}
               </span>
             </div>
           )}
+          {approvalDecider && (
+            <div className="flex justify-between items-start">
+              <span className="text-seal-gray-500 dark:text-slate-400">Décideur</span>
+              <span className="text-right text-seal-navy dark:text-white font-medium">
+                {approvalDecider.firstName} {approvalDecider.lastName}
+                {deciderIsDerogation && (
+                  <span className="block text-[10px] font-normal text-amber-600 dark:text-amber-400">
+                    dérogation — assigné : {doc.approver?.firstName} {doc.approver?.lastName}
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
           <div className="border-t border-gray-100 dark:border-slate-700 pt-2" />
           <div className="flex justify-between items-start">
-            <span className="text-seal-gray-500 dark:text-slate-400">
-              Créé le
-            </span>
-            <span className="text-seal-navy dark:text-white">
-              {formatDate(doc.createdAt)}
-            </span>
+            <span className="text-seal-gray-500 dark:text-slate-400">Créé le</span>
+            <span className="text-seal-navy dark:text-white">{formatDate(doc.createdAt)}</span>
           </div>
           <div className="flex justify-between items-start">
-            <span className="text-seal-gray-500 dark:text-slate-400">
-              Modifié le
-            </span>
-            <span className="text-seal-navy dark:text-white">
-              {formatDate(doc.updatedAt)}
-            </span>
+            <span className="text-seal-gray-500 dark:text-slate-400">Modifié le</span>
+            <span className="text-seal-navy dark:text-white">{formatDate(doc.updatedAt)}</span>
           </div>
           {doc.nextReviewDate && (
             <div className="flex justify-between items-start">
-              <span className="text-seal-gray-500 dark:text-slate-400">
-                Prochaine révision
-              </span>
+              <span className="text-seal-gray-500 dark:text-slate-400">Prochaine révision</span>
               <span
                 className={`font-semibold ${reviewInfo?.color || "text-seal-navy dark:text-white"}`}
               >
@@ -335,9 +354,7 @@ export function DocumentSidebar({
             </div>
           )}
           <div className="flex justify-between items-start">
-            <span className="text-seal-gray-500 dark:text-slate-400">
-              Visibilité
-            </span>
+            <span className="text-seal-gray-500 dark:text-slate-400">Visibilité</span>
             <span
               className={`font-semibold ${doc.isPublic ? "text-emerald-600 dark:text-emerald-400" : "text-seal-gray-500 dark:text-slate-400"}`}
             >
@@ -404,16 +421,10 @@ export function DocumentSidebar({
           </CardHeader>
           <CardContent>
             {(() => {
-              const signed = signatures.filter(
-                (s) => s.status === "SIGNED",
-              ).length;
+              const signed = signatures.filter((s) => s.status === "SIGNED").length;
               const total = signatures.length;
-              const pending = signatures.filter(
-                (s) => s.status === "PENDING",
-              ).length;
-              const rejected = signatures.filter(
-                (s) => s.status === "REJECTED",
-              ).length;
+              const pending = signatures.filter((s) => s.status === "PENDING").length;
+              const rejected = signatures.filter((s) => s.status === "REJECTED").length;
               const pct = total > 0 ? Math.round((signed / total) * 100) : 0;
               return (
                 <div className="space-y-3">
@@ -458,15 +469,11 @@ export function DocumentSidebar({
       {/* Stats */}
       <Card className="shadow-sm rounded-xl">
         <CardHeader>
-          <h3 className="text-sm font-medium text-seal-navy dark:text-white">
-            Statistiques
-          </h3>
+          <h3 className="text-sm font-medium text-seal-navy dark:text-white">Statistiques</h3>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-seal-gray-500 dark:text-slate-400">
-              Versions
-            </span>
+            <span className="text-xs text-seal-gray-500 dark:text-slate-400">Versions</span>
             <span className="text-sm font-semibold text-seal-navy dark:text-white">
               {versions.length}
             </span>
@@ -488,9 +495,7 @@ export function DocumentSidebar({
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-seal-gray-500 dark:text-slate-400">
-              Contrôles ISO
-            </span>
+            <span className="text-xs text-seal-gray-500 dark:text-slate-400">Contrôles ISO</span>
             <span className="text-sm font-semibold text-seal-navy dark:text-white">
               {isos.length}
             </span>

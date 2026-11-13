@@ -226,7 +226,10 @@ export function RunbooksContent({ onCount }: { onCount?: (count: number) => void
         }).catch(() => {});
       });
     }).catch((err) => logger.error(err, { component: 'RunbooksContent', context: 'load runbooks' })).finally(() => setLoading(false));
-  }, []);
+    // onCount est passe comme un setState setter par le parent (wiki/page.tsx
+    // setRunbooksCount) -> reference STABLE garantie par React, son inclusion
+    // dans les deps ne re-declenche pas le useEffect.
+  }, [onCount]);
 
   const filtered = runbooks.filter(r => {
     const matchesSearch = !search || r.title.toLowerCase().includes(search.toLowerCase()) ||

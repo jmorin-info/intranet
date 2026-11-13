@@ -6,6 +6,8 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  Max,
+  MinLength,
   Min,
 } from "class-validator";
 import { UserRole, WorkflowStepMode } from "@prisma/client";
@@ -21,6 +23,7 @@ import { UserRole, WorkflowStepMode } from "@prisma/client";
  */
 export class AddStepDto {
   @IsString()
+  @MinLength(1)
   @MaxLength(255)
   name: string;
 
@@ -43,7 +46,14 @@ export class AddStepDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(8760)
   slaHours?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(500)
+  minApprovers?: number;
 
   @IsOptional()
   @IsUUID()

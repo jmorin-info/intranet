@@ -11,6 +11,7 @@ import type { ElementType } from 'react';
 import { useEffect, useState } from 'react';
 import { Eye, ScrollText, ShieldAlert, Ticket, UserCheck } from 'lucide-react';
 import { api } from '@/lib/api';
+import { approvalSummary, currentApprovals, type PendingApproval } from '@/lib/approvals';
 
 export interface ActionDetail {
   id: string;
@@ -45,8 +46,24 @@ export function useActionsRequises() {
       api.get('/tickets', { params: { assigneeId: 'me', status: 'OPEN,IN_PROGRESS' } }).then((r) => r.data),
       api.get('/alerts', { params: { unread: true, severity: 'P1' } }).then((r) => r.data),
       api.get('/chartes/unsigned').then((r) => r.data),
-    ]).then(([docsR, ticketsR, alertsR, chartesR]) => {
+      api.get<PendingApproval[]>('/approval-workflows/pending/me').then((r) => r.data),
+    ]).then(([docsR, ticketsR, alertsR, chartesR, approvalsR]) => {
       const items: ActionItem[] = [];
+      if (approvalsR.status === 'fulfilled' && Array.isArray(approvalsR.value)) {
+        const approvals = currentApprovals(approvalsR.value);
+        const overdue = approvalSummary(approvals, Date.now()).overdue;
+        if (approvals.length) items.push({
+          label: overdue ? `étapes à valider, dont ${overdue} en retard` : 'étapes de circuit à valider',
+          count: approvals.length,
+          href: '/approvals',
+          color: overdue ? 'text-red-700' : 'text-blue-700',
+          bgColor: overdue ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' : 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30',
+          icon: UserCheck,
+          urgent: overdue > 0,
+          details: approvals.slice(0, 3).map((row) => ({ id: row.id,
+            title: row.instance.document?.title || row.step.name, href: '/approvals' })),
+        });
+      }
       if (docsR.status === 'fulfilled') {
         const docs = Array.isArray(docsR.value) ? docsR.value : (docsR.value?.data || []);
         const toApprove = docs.filter((d: any) => d.status === 'REVIEW_APPROVED' || d.status === 'PENDING_APPROVAL');

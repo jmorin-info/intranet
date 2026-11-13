@@ -13,6 +13,7 @@ import {
   Badge,
   EmptyState,
   Skeleton,
+  ConfirmDialog,
 } from "@omnitech/ui";
 import { ShieldCheck, Trash2, Plus, User, Building2, Tag } from "lucide-react";
 
@@ -82,22 +83,18 @@ interface PermissionsPanelProps {
  * Panneau de gestion des permissions GED granulaires (ISO 27001 A.5.15).
  * Liste les permissions explicites + permet d'en ajouter / révoquer.
  */
-export function PermissionsPanel({
-  documentId,
-  canAdmin,
-}: PermissionsPanelProps) {
+export function PermissionsPanel({ documentId, canAdmin }: PermissionsPanelProps) {
   const [perms, setPerms] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [users, setUsers] = useState<UserOption[]>([]);
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [revokeId, setRevokeId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get<Permission[]>(
-        `/documents/${documentId}/permissions`,
-      );
+      const res = await api.get<Permission[]>(`/documents/${documentId}/permissions`);
       setPerms(res.data);
     } catch (e: any) {
       const status = e?.response?.status;
@@ -124,9 +121,7 @@ export function PermissionsPanel({
       api
         .get<{ data: UserOption[] } | UserOption[]>(`/users?limit=200`)
         .then((r) => {
-          const list = Array.isArray(r.data)
-            ? r.data
-            : (r.data as any)?.data || [];
+          const list = Array.isArray(r.data) ? r.data : (r.data as any)?.data || [];
           setUsers(list);
         })
         .catch(() => undefined);
@@ -134,17 +129,19 @@ export function PermissionsPanel({
     if (departments.length === 0) {
       api
         .get<DepartmentOption[]>(`/departments`)
-        .then((r) =>
-          setDepartments(
-            Array.isArray(r.data) ? r.data : (r.data as any)?.data || [],
-          ),
-        )
+        .then((r) => setDepartments(Array.isArray(r.data) ? r.data : (r.data as any)?.data || []))
         .catch(() => undefined);
     }
   }, [showAdd, users.length, departments.length]);
 
-  const handleRevoke = async (permId: string) => {
-    if (!confirm("Révoquer cette permission ?")) return;
+  const handleRevoke = (permId: string) => {
+    setRevokeId(permId);
+  };
+
+  const confirmRevoke = async () => {
+    if (!revokeId) return;
+    const permId = revokeId;
+    setRevokeId(null);
     try {
       await api.delete(`/documents/${documentId}/permissions/${permId}`);
       toast.success("Permission révoquée");
@@ -169,9 +166,7 @@ export function PermissionsPanel({
         <span className="inline-flex items-center gap-1.5 text-sm">
           <Building2 className="h-3.5 w-3.5 text-seal-navy/70" />
           Département {p.department.name}{" "}
-          <span className="text-xs text-seal-gray-500">
-            ({p.department.code})
-          </span>
+          <span className="text-xs text-seal-gray-500">({p.department.code})</span>
         </span>
       );
     }
@@ -202,9 +197,7 @@ export function PermissionsPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-seal-navy" />
-            <h3 className="font-semibold text-seal-navy">
-              Permissions explicites
-            </h3>
+            <h3 className="font-semibold text-seal-navy">Permissions explicites</h3>
           </div>
           <Button variant="primary" size="sm" onClick={() => setShowAdd(true)}>
             <Plus className="h-3.5 w-3.5" />
@@ -225,24 +218,17 @@ export function PermissionsPanel({
         ) : (
           <ul className="divide-y divide-gray-100 dark:divide-slate-700">
             {perms.map((p) => (
-              <li
-                key={p.id}
-                className="flex items-center justify-between gap-3 py-3"
-              >
+              <li key={p.id} className="flex items-center justify-between gap-3 py-3">
                 <div className="flex-1 min-w-0">
                   <div>{formatTarget(p)}</div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-seal-gray-500">
                     <Badge className={LEVEL_BADGE[p.level]}>{p.level}</Badge>
                     {p.expiresAt && (
-                      <span>
-                        Expire le{" "}
-                        {new Date(p.expiresAt).toLocaleDateString("fr-FR")}
-                      </span>
+                      <span>Expire le {new Date(p.expiresAt).toLocaleDateString("fr-FR")}</span>
                     )}
                     {p.grantedBy && (
                       <span>
-                        Accordé par {p.grantedBy.firstName}{" "}
-                        {p.grantedBy.lastName}
+                        Accordé par {p.grantedBy.firstName} {p.grantedBy.lastName}
                       </span>
                     )}
                   </div>
@@ -272,6 +258,15 @@ export function PermissionsPanel({
           load();
         }}
       />
+
+      <ConfirmDialog
+        open={!!revokeId}
+        onClose={() => setRevokeId(null)}
+        onConfirm={confirmRevoke}
+        title="Révoquer la permission"
+        description="Révoquer cette permission ? L'accès explicite sera retiré."
+        variant="danger"
+      />
     </Card>
   );
 }
@@ -293,9 +288,7 @@ function AddPermissionDialog({
   departments,
   onAdded,
 }: AddPermissionDialogProps) {
-  const [targetType, setTargetType] = useState<"user" | "department" | "role">(
-    "user",
-  );
+  const [targetType, setTargetType] = useState<"user" | "department" | "role">("user");
   const [userId, setUserId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [role, setRole] = useState("");
@@ -364,9 +357,7 @@ function AddPermissionDialog({
     >
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-seal-navy mb-1">
-            Cible
-          </label>
+          <label className="block text-sm font-medium text-seal-navy mb-1">Cible</label>
           <div className="grid grid-cols-3 gap-2">
             {(["user", "department", "role"] as const).map((t) => (
               <button
@@ -379,11 +370,7 @@ function AddPermissionDialog({
                     : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-seal-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
                 }`}
               >
-                {t === "user"
-                  ? "Utilisateur"
-                  : t === "department"
-                    ? "Département"
-                    : "Rôle"}
+                {t === "user" ? "Utilisateur" : t === "department" ? "Département" : "Rôle"}
               </button>
             ))}
           </div>
@@ -422,10 +409,7 @@ function AddPermissionDialog({
             label="Rôle"
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            options={[
-              { value: "", label: "— Sélectionner —" },
-              ...ROLE_OPTIONS,
-            ]}
+            options={[{ value: "", label: "— Sélectionner —" }, ...ROLE_OPTIONS]}
           />
         )}
 

@@ -16,17 +16,9 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ShieldCheck,
-  RefreshCw,
-  Save,
-  PlayCircle,
-  AlertTriangle,
-  Info,
-  Lock,
-} from "lucide-react";
+import { ShieldCheck, RefreshCw, Save, PlayCircle, AlertTriangle, Info, Lock } from "lucide-react";
 import { UserRole } from "@omnitech/shared";
-import { Button, Card, CardContent, CardHeader, Input } from "@omnitech/ui";
+import { Button, Card, CardContent, CardHeader, Input, ConfirmDialog } from "@omnitech/ui";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PageHeader } from "@/components/layout/page-header";
@@ -78,9 +70,8 @@ export default function AdminAuditRetentionPage() {
   const [running, setRunning] = useState(false);
   const [fullDaysInput, setFullDaysInput] = useState("");
   const [anonDaysInput, setAnonDaysInput] = useState("");
-  const [lastRunResult, setLastRunResult] = useState<AnonymizeResult | null>(
-    null,
-  );
+  const [runConfirmOpen, setRunConfirmOpen] = useState(false);
+  const [lastRunResult, setLastRunResult] = useState<AnonymizeResult | null>(null);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
@@ -141,33 +132,27 @@ export default function AdminAuditRetentionPage() {
       const full = parseDaysInput(fullDaysInput);
       const anon = parseDaysInput(anonDaysInput);
       if (full !== undefined) body.fullDays = full === null ? NEVER_TOKEN : full;
-      if (anon !== undefined)
-        body.anonymizedDays = anon === null ? NEVER_TOKEN : anon;
+      if (anon !== undefined) body.anonymizedDays = anon === null ? NEVER_TOKEN : anon;
       await api.patch("/audit/retention", body);
       toast.success(t("admin.audit.retention.saveSuccess") as string);
       await fetchStats();
     } catch (e: unknown) {
-      const message = (e as { response?: { data?: { message?: string } } })
-        .response?.data?.message;
+      const message = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
       toast.error(message || (t("admin.audit.retention.errors.save") as string));
     } finally {
       setSaving(false);
     }
   }, [fullDaysInput, anonDaysInput, validation, t, fetchStats]);
 
-  const handleRunNow = useCallback(async () => {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(t("admin.audit.retention.runConfirm") as string)
-    ) {
-      return;
-    }
+  const handleRunNow = useCallback(() => {
+    setRunConfirmOpen(true);
+  }, []);
+
+  const confirmRunNow = useCallback(async () => {
+    setRunConfirmOpen(false);
     setRunning(true);
     try {
-      const { data } = await api.post<AnonymizeResult>(
-        "/audit/anonymize-now",
-        {},
-      );
+      const { data } = await api.post<AnonymizeResult>("/audit/anonymize-now", {});
       setLastRunResult(data);
       toast.success(
         (t("admin.audit.retention.runSuccess") as string).replace(
@@ -177,8 +162,7 @@ export default function AdminAuditRetentionPage() {
       );
       await fetchStats();
     } catch (e: unknown) {
-      const message = (e as { response?: { data?: { message?: string } } })
-        .response?.data?.message;
+      const message = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
       toast.error(message || (t("admin.audit.retention.errors.run") as string));
     } finally {
       setRunning(false);
@@ -218,15 +202,8 @@ export default function AdminAuditRetentionPage() {
                 <ShieldCheck className="h-5 w-5 text-seal-navy dark:text-blue-400" />
                 {t("admin.audit.retention.statsTitle") as string}
               </h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchStats}
-                disabled={loading}
-              >
-                <RefreshCw
-                  className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`}
-                />
+              <Button variant="outline" size="sm" onClick={fetchStats} disabled={loading}>
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
                 {t("common.refresh") as string}
               </Button>
             </div>
@@ -299,9 +276,7 @@ export default function AdminAuditRetentionPage() {
                   value={fullDaysInput}
                   onChange={(e) => setFullDaysInput(e.target.value)}
                   placeholder="90"
-                  aria-label={
-                    t("admin.audit.retention.fullDaysLabel") as string
-                  }
+                  aria-label={t("admin.audit.retention.fullDaysLabel") as string}
                 />
                 <span className="block mt-1 text-xs text-seal-gray-500 dark:text-slate-400">
                   {t("admin.audit.retention.fullDaysHelp") as string}
@@ -317,9 +292,7 @@ export default function AdminAuditRetentionPage() {
                   value={anonDaysInput}
                   onChange={(e) => setAnonDaysInput(e.target.value)}
                   placeholder="730"
-                  aria-label={
-                    t("admin.audit.retention.anonymizedDaysLabel") as string
-                  }
+                  aria-label={t("admin.audit.retention.anonymizedDaysLabel") as string}
                 />
                 <span className="block mt-1 text-xs text-seal-gray-500 dark:text-slate-400">
                   {t("admin.audit.retention.anonymizedDaysHelp") as string}
@@ -363,14 +336,8 @@ export default function AdminAuditRetentionPage() {
               <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                 {t("admin.audit.retention.runNowExplain") as string}
               </span>
-              <Button
-                variant="outline"
-                onClick={handleRunNow}
-                disabled={running}
-              >
-                <PlayCircle
-                  className={`h-3.5 w-3.5 ${running ? "animate-spin" : ""}`}
-                />
+              <Button variant="outline" onClick={handleRunNow} disabled={running}>
+                <PlayCircle className={`h-3.5 w-3.5 ${running ? "animate-spin" : ""}`} />
                 {running
                   ? (t("admin.audit.retention.running") as string)
                   : (t("admin.audit.retention.runNow") as string)}
@@ -380,8 +347,7 @@ export default function AdminAuditRetentionPage() {
               <div className="rounded-lg border border-gray-200 dark:border-slate-700 p-3 space-y-1 text-xs text-seal-gray-500 dark:text-slate-400">
                 <p>
                   <strong className="text-seal-navy dark:text-white">
-                    {t("admin.audit.retention.runResult.anonymized") as string}
-                    :
+                    {t("admin.audit.retention.runResult.anonymized") as string}:
                   </strong>{" "}
                   {lastRunResult.anonymizedCount}
                 </p>
@@ -407,6 +373,15 @@ export default function AdminAuditRetentionPage() {
             ) : null}
           </CardContent>
         </Card>
+
+        <ConfirmDialog
+          open={runConfirmOpen}
+          onClose={() => setRunConfirmOpen(false)}
+          onConfirm={confirmRunNow}
+          title={t("admin.audit.retention.title") as string}
+          description={t("admin.audit.retention.runConfirm") as string}
+          variant="danger"
+        />
       </div>
     </RoleGuard>
   );
@@ -418,9 +393,7 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
       <p className="text-[10px] font-semibold text-seal-gray-500 dark:text-slate-400 uppercase mb-1">
         {label}
       </p>
-      <p className="text-lg font-bold text-seal-navy dark:text-white">
-        {value}
-      </p>
+      <p className="text-lg font-bold text-seal-navy dark:text-white">{value}</p>
     </div>
   );
 }

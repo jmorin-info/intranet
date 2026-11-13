@@ -12,13 +12,14 @@ import type { CookieOptions, Response } from 'express';
  *                                      jamais par un callback OAuth tiers, donc
  *                                      'strict' est plus sûr que 'lax' sans
  *                                      effet de bord.
- *  - path: '/api/v1/auth/refresh'   → cookie envoyé uniquement sur /refresh
- *                                      (et /logout via clearCookie ciblé).
+ *  - path: '/api/v1/auth'           → refresh et logout reçoivent le cookie.
+ *                                      L'ancien chemin est purgé à l'émission.
  *  - maxAge: 7 jours                → cohérent avec le TTL refresh (7j).
  *  - domain: undefined              → host-only cookie (plus sûr que .domain).
  */
 export const REFRESH_TOKEN_COOKIE_NAME = 'refreshToken';
-export const REFRESH_TOKEN_COOKIE_PATH = '/api/v1/auth/refresh';
+export const LEGACY_REFRESH_TOKEN_COOKIE_PATH = '/api/v1/auth/refresh';
+export const REFRESH_TOKEN_COOKIE_PATH = '/api/v1/auth';
 export const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export function getRefreshCookieOptions(): CookieOptions {
@@ -34,10 +35,12 @@ export function getRefreshCookieOptions(): CookieOptions {
 }
 
 export function setRefreshTokenCookie(res: Response, refreshToken: string): void {
+  res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, { path: LEGACY_REFRESH_TOKEN_COOKIE_PATH });
   res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
 }
 
 export function clearRefreshTokenCookie(res: Response): void {
+  res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, { path: LEGACY_REFRESH_TOKEN_COOKIE_PATH });
   res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, {
     path: REFRESH_TOKEN_COOKIE_PATH,
   });

@@ -70,7 +70,6 @@ interface HistoryPoint {
 const SEAL_GREEN = "#006233";
 const SEAL_ORANGE = "#f9964a";
 const SEAL_BORDEAUX = "#892034";
-const SEAL_NAVY = "#F68D2E";
 const SEAL_TAUPE = "#837274";
 
 /**

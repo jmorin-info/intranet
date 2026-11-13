@@ -1,8 +1,19 @@
-'use client';
+"use client";
 
-import React, { useCallback, useEffect, useRef } from 'react';
-import { Bold, Italic, Heading1, Heading2, List, ListOrdered, Quote, Undo2, Redo2 } from 'lucide-react';
-import { Button } from '@omnitech/ui';
+import React, { useCallback, useEffect, useRef } from "react";
+import {
+  Bold,
+  Italic,
+  Heading1,
+  Heading2,
+  List,
+  ListOrdered,
+  Quote,
+  Undo2,
+  Redo2,
+} from "lucide-react";
+import { Button } from "@omnitech/ui";
+import DOMPurify from "dompurify";
 
 /**
  * Simple contentEditable rich-text editor — no external dependency.
@@ -22,7 +33,7 @@ export interface InlineEditorProps {
 export function InlineEditor({
   value,
   onChange,
-  placeholder = 'Rédigez votre document ici…',
+  placeholder = "Rédigez votre document ici…",
   minHeight = 360,
   disabled = false,
 }: InlineEditorProps) {
@@ -33,7 +44,9 @@ export function InlineEditor({
   useEffect(() => {
     if (!ref.current) return;
     if (value !== lastExternalValue.current && value !== ref.current.innerHTML) {
-      ref.current.innerHTML = value || '';
+      // Sanitize au rendu : le contenu chargé peut avoir été stocké avant le
+      // sanitize backend (défense en profondeur contre une XSS stockée).
+      ref.current.innerHTML = DOMPurify.sanitize(value || "");
       lastExternalValue.current = value;
     }
   }, [value]);
@@ -64,18 +77,26 @@ export function InlineEditor({
   return (
     <div className="border rounded-lg overflow-hidden bg-white dark:bg-slate-900">
       <div className="flex flex-wrap items-center gap-1 p-1.5 border-b bg-slate-50 dark:bg-slate-800">
-        <ToolbarBtn onClick={() => exec('bold')} title="Gras (Ctrl+B)" icon={Bold} />
-        <ToolbarBtn onClick={() => exec('italic')} title="Italique (Ctrl+I)" icon={Italic} />
+        <ToolbarBtn onClick={() => exec("bold")} title="Gras (Ctrl+B)" icon={Bold} />
+        <ToolbarBtn onClick={() => exec("italic")} title="Italique (Ctrl+I)" icon={Italic} />
         <Separator />
-        <ToolbarBtn onClick={() => exec('formatBlock', 'H1')} title="Titre 1" icon={Heading1} />
-        <ToolbarBtn onClick={() => exec('formatBlock', 'H2')} title="Titre 2" icon={Heading2} />
-        <ToolbarBtn onClick={() => exec('formatBlock', 'BLOCKQUOTE')} title="Citation" icon={Quote} />
+        <ToolbarBtn onClick={() => exec("formatBlock", "H1")} title="Titre 1" icon={Heading1} />
+        <ToolbarBtn onClick={() => exec("formatBlock", "H2")} title="Titre 2" icon={Heading2} />
+        <ToolbarBtn
+          onClick={() => exec("formatBlock", "BLOCKQUOTE")}
+          title="Citation"
+          icon={Quote}
+        />
         <Separator />
-        <ToolbarBtn onClick={() => exec('insertUnorderedList')} title="Liste à puces" icon={List} />
-        <ToolbarBtn onClick={() => exec('insertOrderedList')} title="Liste numérotée" icon={ListOrdered} />
+        <ToolbarBtn onClick={() => exec("insertUnorderedList")} title="Liste à puces" icon={List} />
+        <ToolbarBtn
+          onClick={() => exec("insertOrderedList")}
+          title="Liste numérotée"
+          icon={ListOrdered}
+        />
         <Separator />
-        <ToolbarBtn onClick={() => exec('undo')} title="Annuler" icon={Undo2} />
-        <ToolbarBtn onClick={() => exec('redo')} title="Rétablir" icon={Redo2} />
+        <ToolbarBtn onClick={() => exec("undo")} title="Annuler" icon={Undo2} />
+        <ToolbarBtn onClick={() => exec("redo")} title="Rétablir" icon={Redo2} />
       </div>
       <div
         ref={ref}
@@ -87,7 +108,7 @@ export function InlineEditor({
         data-placeholder={placeholder}
       />
       <style jsx>{`
-        div[contenteditable='true']:empty::before {
+        div[contenteditable="true"]:empty::before {
           content: attr(data-placeholder);
           color: #94a3b8;
           pointer-events: none;

@@ -134,10 +134,11 @@ export default function SearchPage(): React.ReactElement {
 
   // --- Search call -----------------------------------------------------
 
-  const performSearch = useCallback(async () => {
+  const performSearch = useCallback(async (signal: AbortSignal) => {
     if (!debouncedQuery || debouncedQuery.length < 2) {
       setData(null);
       setError(null);
+      setLoading(false);
       return;
     }
     setLoading(true);
@@ -163,13 +164,15 @@ export default function SearchPage(): React.ReactElement {
       if (sortParam) params.sort = sortParam.join(",");
       const { data: resp } = await api.get<UnifiedSearchResponse>(
         "/search/unified",
-        { params },
+        { params, signal },
       );
+      if (signal.aborted) return;
       setData(resp);
       setTookMs(Math.round(performance.now() - start));
       setMeiliMs(resp.processingTimeMs ?? 0);
       saveRecent(debouncedQuery);
     } catch (err: any) {
+      if (signal.aborted) return;
       setError(
         err?.response?.data?.message ||
           err?.message ||
@@ -177,7 +180,7 @@ export default function SearchPage(): React.ReactElement {
       );
       setData(null);
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }, [
     debouncedQuery,
@@ -190,24 +193,32 @@ export default function SearchPage(): React.ReactElement {
   ]);
 
   useEffect(() => {
-    if (!smartMode) performSearch();
+    const controller = new AbortController();
+    if (!smartMode) void performSearch(controller.signal);
+    else setLoading(false);
+    return () => controller.abort();
   }, [performSearch, smartMode]);
 
   // AI smart search — feature flag
   useEffect(() => {
     if (!smartMode || !debouncedQuery || debouncedQuery.length < 2) {
       setAiResults(null);
+      setAiLoading(false);
       return;
     }
+    const controller = new AbortController();
     setAiLoading(true);
+    setAiResults(null);
     api
-      .get("/ai/search", { params: { q: debouncedQuery } })
+      .get("/ai/search", { params: { q: debouncedQuery }, signal: controller.signal })
       .then(({ data }) => {
+        if (controller.signal.aborted) return;
         setAiResults(data);
         saveRecent(debouncedQuery);
       })
-      .catch(() => setAiResults(null))
-      .finally(() => setAiLoading(false));
+      .catch(() => { if (!controller.signal.aborted) setAiResults(null); })
+      .finally(() => { if (!controller.signal.aborted) setAiLoading(false); });
+    return () => controller.abort();
   }, [debouncedQuery, smartMode, saveRecent]);
 
   // --- Derived ---------------------------------------------------------
@@ -293,6 +304,7 @@ export default function SearchPage(): React.ReactElement {
           ref={inputRef}
           value={query}
           onChange={setQuery}
+          aria-label="Rechercher dans tout l’intranet"
           placeholder={t("search.placeholder")}
           className="flex-1 min-w-[200px]"
           autoFocus

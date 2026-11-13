@@ -39,6 +39,8 @@ export class HibpService {
       return { pwned: false, count: 0 };
     }
 
+    // Protocol lookup only: HIBP requires five SHA-1 hex characters. This
+    // digest is never persisted or used as a password verifier (bcrypt owns that).
     const sha1 = crypto.createHash('sha1').update(password).digest('hex').toUpperCase();
     const prefix = sha1.slice(0, 5);
     const suffix = sha1.slice(5);

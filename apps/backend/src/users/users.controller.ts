@@ -9,6 +9,7 @@ import {
   Param,
   Query,
   Res,
+  Req,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -20,9 +21,8 @@ import {
 import { Response } from "express";
 import { Throttle } from "@nestjs/throttler";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { diskStorage } from "multer";
+import { memoryStorage } from "multer";
 import * as path from "path";
-import * as fs from "fs";
 import { UsersService } from "./users.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
@@ -40,6 +40,9 @@ import { RequestUser } from "../common/interfaces";
 import { rowsToCsv, csvFilename, CsvColumn } from "../common/utils/csv-export";
 import { packageGdprExport } from "./gdpr-export-packager";
 import type { GdprPdfPayload } from "./gdpr-export-pdf";
+import { AVATAR_MAX_BYTES, AVATAR_MIME_TYPES, publishAvatar } from "./avatar-upload";
+import { AvatarUploadGuard, type AvatarRequest } from "./avatar-upload.guard";
+import { AVATAR_ABORT_SIGNAL } from "./avatar-budget";
 
 const AVATAR_STORAGE_PATH = path.resolve(
   process.cwd(),
@@ -48,8 +51,6 @@ const AVATAR_STORAGE_PATH = path.resolve(
   "storage",
   "avatars",
 );
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 @Controller("users")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -307,28 +308,16 @@ export class UsersController {
   }
 
   @Post("me/avatar")
+  @UseGuards(UserThrottlerGuard, AvatarUploadGuard)
+  @UserThrottle({ limit: 5, ttl: 60_000 })
   @UseInterceptors(
     FileInterceptor("avatar", {
-      storage: diskStorage({
-        destination: (_req, _file, cb) => {
-          if (!fs.existsSync(AVATAR_STORAGE_PATH)) {
-            fs.mkdirSync(AVATAR_STORAGE_PATH, { recursive: true });
-          }
-          cb(null, AVATAR_STORAGE_PATH);
-        },
-        filename: (req: any, file, cb) => {
-          const userId = req.user?.id || "unknown";
-          const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
-          cb(null, `${userId}${ext}`);
-        },
-      }),
-      limits: { fileSize: MAX_FILE_SIZE },
+      storage: memoryStorage(),
+      limits: { fileSize: AVATAR_MAX_BYTES, files: 1, fields: 0 },
       fileFilter: (_req, file, cb) => {
-        if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+        if (!AVATAR_MIME_TYPES.includes(file.mimetype)) {
           return cb(
-            new BadRequestException(
-              "Seuls les fichiers JPG, PNG et WebP sont acceptés (max 2 Mo)",
-            ),
+            new BadRequestException("Seuls les fichiers JPG, PNG et WebP sont acceptés (max 2 Mo)"),
             false,
           );
         }
@@ -339,68 +328,20 @@ export class UsersController {
   async uploadAvatar(
     @CurrentUser() user: RequestUser,
     @UploadedFile() file: Express.Multer.File,
+    @Req() request?: AvatarRequest,
   ) {
-    if (!file) {
-      throw new BadRequestException("Aucun fichier fourni");
-    }
-
-    // Vérification des magic bytes (le fichier a déjà été écrit à ce stade
-    // par diskStorage, on le supprime immédiatement si l'entête ne matche pas
-    // une vraie image — cela bloque le spoofing de mimetype type `malware.exe`
-    // renommé en `.jpg`). On ne lit que les 12 premiers octets.
-    try {
-      const fd = fs.openSync(file.path, "r");
-      const head = Buffer.alloc(12);
-      fs.readSync(fd, head, 0, 12, 0);
-      fs.closeSync(fd);
-
-      const isJpeg = head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff;
-      const isPng =
-        head[0] === 0x89 &&
-        head[1] === 0x50 &&
-        head[2] === 0x4e &&
-        head[3] === 0x47 &&
-        head[4] === 0x0d &&
-        head[5] === 0x0a &&
-        head[6] === 0x1a &&
-        head[7] === 0x0a;
-      const isWebp =
-        head[0] === 0x52 &&
-        head[1] === 0x49 &&
-        head[2] === 0x46 &&
-        head[3] === 0x46 &&
-        head[8] === 0x57 &&
-        head[9] === 0x45 &&
-        head[10] === 0x42 &&
-        head[11] === 0x50;
-
-      if (!isJpeg && !isPng && !isWebp) {
-        fs.unlinkSync(file.path);
-        throw new BadRequestException(
-          "Le fichier n'est pas une image valide (signature binaire non reconnue)",
-        );
-      }
-    } catch (err) {
-      if (err instanceof BadRequestException) throw err;
-      // Si la vérification elle-même échoue, on refuse par sécurité
-      try {
-        fs.unlinkSync(file.path);
-      } catch {}
-      throw new BadRequestException("Échec de la validation de l'image");
-    }
-
-    // Remove old avatars with different extensions
-    const extensions = [".jpg", ".jpeg", ".png", ".webp"];
-    for (const ext of extensions) {
-      const oldFile = path.join(AVATAR_STORAGE_PATH, `${user.id}${ext}`);
-      if (oldFile !== file.path && fs.existsSync(oldFile)) {
-        fs.unlinkSync(oldFile);
-      }
-    }
-
-    const avatarUrl = `/storage/avatars/${file.filename}`;
-    await this.usersService.updateAvatarUrl(user.id, avatarUrl);
-    return { avatarUrl };
+    return publishAvatar(
+      user.id,
+      file,
+      {
+        readCurrentAvatar: async () => {
+          const current = await this.usersService.findById(user.id);
+          return current.avatarUrl ?? null;
+        },
+        saveAvatar: (avatarUrl) => this.usersService.updateAvatarUrl(user.id, avatarUrl),
+      },
+      { storagePath: AVATAR_STORAGE_PATH, signal: request?.[AVATAR_ABORT_SIGNAL] },
+    );
   }
 
   @Post("me/gdpr-export")

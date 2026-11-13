@@ -437,3 +437,116 @@ Le drill de restauration doit être joué chaque trimestre via
 - [ ] `.env` permissions = 600, owner root
 - [ ] ClamAV `freshclam` à jour, scan planifié
 - [ ] Compte admin de seed renommé/désactivé après bootstrap
+
+---
+
+## Annexe B — Réglages opérationnels critiques (maj 2026-07-31)
+
+> Ces réglages ne sont PAS dans le code : ils sont indispensables pour
+> reproduire une prod qui fonctionne. À appliquer après les sections 5, 8 et 9.
+
+### B.1 — Ollama : concurrence & RAM (machine CPU sans GPU, RAM serrée)
+
+Sur une machine **sans GPU** avec peu de RAM libre (< ~4 Go), la chaîne de
+fallback multi-modèles provoque un *thrashing* fatal (chaque modèle chargé
+évince le précédent → « All LLM models failed »). Config qui fonctionne :
+
+```bash
+# 1) Override systemd Ollama — 1 requête à la fois, 2 modèles chauds max
+mkdir -p /etc/systemd/system/ollama.service.d
+cat > /etc/systemd/system/ollama.service.d/concurrency.conf <<'EOF'
+[Service]
+Environment="OLLAMA_NUM_PARALLEL=1"
+Environment="OLLAMA_MAX_LOADED_MODELS=2"
+EOF
+cat > /etc/systemd/system/ollama.service.d/keep-alive.conf <<'EOF'
+[Service]
+Environment="OLLAMA_KEEP_ALIVE=30m"
+EOF
+systemctl daemon-reload && systemctl restart ollama
+```
+
+```bash
+# 2) .env : chaîne réduite à mistral seul (pas de bascule phi3/qwen2 qui
+#    évincerait mistral de la RAM) + budgets/streaming réalistes
+OLLAMA_LLM_MODEL_PRIMARY=mistral
+OLLAMA_LLM_MODEL_FALLBACK=mistral
+OLLAMA_LLM_MODEL_EMERGENCY=mistral
+OLLAMA_TIMEOUT_MS=240000
+OLLAMA_TTFT_TIMEOUT_MS=180000     # 1er token peut prendre 30-60 s sur CPU
+OLLAMA_IDLE_TIMEOUT_MS=30000
+RAG_ANSWER_TIMEOUT_MS=180000
+RAG_ANSWER_MAX_TOKENS=320
+CHATBOT_UNIFIED_ENABLED=false     # activer après E2E
+```
+
+> **Sur une machine GPU 16-24 Go** : remettre la vraie chaîne
+> (`FALLBACK=phi3:mini`, `EMERGENCY=qwen2:0.5b`), monter
+> `OLLAMA_NUM_PARALLEL=3..6` et `OLLAMA_MAX_LOADED_MODELS=3+`. Installer les
+> drivers NVIDIA + `nvidia-container-toolkit` si Ollama tourne en Docker.
+> mistral 7B passe alors de ~50 s à ~2-3 s par réponse.
+
+### B.2 — IA en streaming derrière un reverse-proxy
+
+Le résumé et le chatbot passent en **SSE**. Le reverse-proxy (BunkerWeb/nginx)
+NE DOIT PAS bufferiser ni couper ces flux :
+- côté app : le backend émet un heartbeat `data:{"type":"ping"}` toutes les 5 s
+  (déjà dans le code) — indispensable, un heartbeat en *commentaire* SSE est
+  ignoré par certains proxys ;
+- côté proxy : `proxy_read_timeout` ≥ 300 s et `proxy_buffering off` (ou
+  `X-Accel-Buffering: no`, déjà posé par le backend) sur `/api/v1/rag/*`.
+
+### B.3 — Webhook DocuSeal (sinon les signatures restent PENDING)
+
+DocuSeal 2.x n'émet pas de HMAC : il envoie le champ `secret` comme en-têtes
+littéraux → backend en mode legacy. À configurer une fois :
+
+```bash
+# .env backend
+DOCUSEAL_WEBHOOK_SECRET=<openssl rand -hex 24>
+DOCUSEAL_WEBHOOK_SECRET_HMAC_MODE=false
+
+# Créer le webhook dans DocuSeal (URL interne atteignable depuis son conteneur)
+docker exec -w /app -e S="$DOCUSEAL_WEBHOOK_SECRET" omnitech-docuseal \
+  bundle exec rails runner '
+  WebhookUrl.find_or_initialize_by(account: Account.first,
+    url: "http://172.17.0.1:3000/api/v1/signatures/webhook").tap { |w|
+    w.events = ["form.completed","form.declined","submission.completed"]
+    w.secret = {"X-DocuSeal-Signature" => ENV["S"]}; w.save! }'
+```
+Vérif : `POST /api/v1/signatures/webhook` avec header `X-DocuSeal-Signature:
+<secret>` → 200 ; header faux → 401.
+
+### B.4 — Ordonnancement de boot du backend
+
+Pour éviter des cycles crash/restart au reboot pendant que Docker/Ollama
+démarrent :
+
+```bash
+mkdir -p /etc/systemd/system/omnitech-backend.service.d
+cat > /etc/systemd/system/omnitech-backend.service.d/deps.conf <<'EOF'
+[Unit]
+After=docker.service ollama.service
+Wants=docker.service ollama.service
+EOF
+systemctl daemon-reload
+```
+
+Test reboot validé : backend sain en ~25 s, OnlyOffice ~60 s (conteneur lourd),
+tout remonte sans intervention (services `enabled` + conteneurs
+`restart=unless-stopped`).
+
+### B.5 — Spécificités machine PHYSIQUE (vs VM)
+
+- **Disque** : prévoir SSD/NVMe (Postgres + `.next` + modèles Ollama ~7 Go +
+  volumes Docker). RAID1 recommandé.
+- **RAM** : 16 Go = minimum pour CPU-only (mistral 4,4 + bge-m3 1,2 + services).
+  32 Go+ confortable. Avec GPU, la VRAM prime (cf. B.1).
+- **GPU (optionnel, fortement recommandé pour l'IA)** : carte ≥ 16 Go VRAM
+  (RTX A4000/4000 Ada), drivers NVIDIA + CUDA, `nvidia-smi` OK avant d'installer
+  Ollama. NE PAS prendre une carte 4 Go (A400) : mistral 7B n'y tient pas.
+- **Réseau** : IP fixe, le reverse-proxy et les webhooks internes utilisent
+  l'IP hôte / le bridge Docker `172.17.0.1` — vérifier que le pare-feu autorise
+  le conteneur→hôte sur le port backend (3000).
+- **Onduleur (UPS)** : une coupure brutale peut corrompre Postgres/SQLite
+  DocuSeal — indispensable en prod physique.

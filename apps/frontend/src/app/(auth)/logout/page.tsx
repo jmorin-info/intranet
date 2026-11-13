@@ -15,12 +15,19 @@ export default function LogoutPage() {
   const { t } = useTranslation();
   const [loggedOut, setLoggedOut] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const [logoutError, setLogoutError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    logout().then(() => {
-      setLoggedOut(true);
+    let active = true;
+    setLogoutError(false);
+    void logout().then(() => {
+      if (active) setLoggedOut(true);
+    }).catch(() => {
+      if (active) setLogoutError(true);
     });
-  }, [logout]);
+    return () => { active = false; };
+  }, [logout, attempt]);
 
   useEffect(() => {
     if (!loggedOut) return;
@@ -49,8 +56,17 @@ export default function LogoutPage() {
 
         {!loggedOut ? (
           <>
-            <div className="h-8 w-8 border-3 border-white/30 border-t-white rounded-full animate-spin mb-4" />
-            <p className="text-sm text-white/70">{t("logout.title")}</p>
+            {logoutError ? (
+              <>
+                <p role="alert" className="text-sm text-white mb-4">La déconnexion n’a pas pu être confirmée. Réessayez avant de quitter cette page.</p>
+                <Button className="bg-white text-seal-navy hover:bg-white/90" onClick={() => setAttempt(value => value + 1)}>Réessayer la déconnexion</Button>
+              </>
+            ) : (
+              <>
+                <div className="h-8 w-8 border-3 border-white/30 border-t-white rounded-full animate-spin mb-4" />
+                <p className="text-sm text-white/70">{t("logout.title")}</p>
+              </>
+            )}
           </>
         ) : (
           <>

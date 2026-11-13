@@ -8,7 +8,7 @@
  * unique. Aucune nouvelle API backend — merge client-side.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Newspaper, Bell, FileText, Filter, RefreshCw, Clock,
@@ -128,7 +128,10 @@ export default function TimelinePage() {
   );
   const { notifications: storeNotifs } = useNotificationStore();
 
-  const load = async () => {
+  // useCallback([]) car load ne depend d'aucun state externe — il ne lit que
+  // des refs stables (api, setters React). Permet d'inclure 'load' dans les
+  // deps du useEffect sans declencher de boucle infinie.
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -177,11 +180,11 @@ export default function TimelinePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const filtered = useMemo(
     () => entries.filter((e) => kindFilter.has(e.kind)),

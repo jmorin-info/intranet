@@ -9,13 +9,11 @@ import { noaZodResolver } from "@/lib/noa/zod-resolver";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
+import { RoleGuard } from "@/components/role-guard";
 import { UserRole, USER_ROLE_LABELS, isRoleAtLeast } from "@omnitech/shared";
-import {
-  adminUserCreateSchema,
-  type AdminUserCreateFormData,
-} from "@/lib/validation/schemas";
+import { adminUserCreateSchema, type AdminUserCreateFormData } from "@/lib/validation/schemas";
 import { useDebounce } from "@/hooks/use-debounce";
-import { formatRelativeTime } from "@/lib/utils";
+import { formatRelativeTime, getInitials } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { ExportCsvButton } from "@/components/ui/export-csv-button";
 import {
@@ -118,13 +116,19 @@ const ROLE_BADGE_VARIANT: Record<UserRole, string> = {
 /* ------------------------------------------------------------------ */
 
 export default function AdminUsersPage() {
+  return (
+    <RoleGuard minRole={UserRole.ADMIN}>
+      <AdminUsersContent />
+    </RoleGuard>
+  );
+}
+
+function AdminUsersContent() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
 
   /* ---- Data state ---- */
-  const [usersResponse, setUsersResponse] = useState<PaginatedResponse | null>(
-    null,
-  );
+  const [usersResponse, setUsersResponse] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [mfaStats, setMfaStats] = useState<{
@@ -137,9 +141,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"" | "active" | "inactive">(
-    "",
-  );
+  const [statusFilter, setStatusFilter] = useState<"" | "active" | "inactive">("");
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState("lastName");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -181,19 +183,13 @@ export default function AdminUsersPage() {
   const [editDeptUser, setEditDeptUser] = useState<UserRecord | null>(null);
   const [editDeptValue, setEditDeptValue] = useState("");
 
-  const [spaceAccessUser, setSpaceAccessUser] = useState<UserRecord | null>(
-    null,
-  );
+  const [spaceAccessUser, setSpaceAccessUser] = useState<UserRecord | null>(null);
   const [spaceAccessList, setSpaceAccessList] = useState<SpaceAccess[]>([]);
   const [spaceAccessLoading, setSpaceAccessLoading] = useState(false);
 
-  const [resetPasswordUser, setResetPasswordUser] = useState<UserRecord | null>(
-    null,
-  );
+  const [resetPasswordUser, setResetPasswordUser] = useState<UserRecord | null>(null);
   const [resetMfaUser, setResetMfaUser] = useState<UserRecord | null>(null);
-  const [toggleActiveUser, setToggleActiveUser] = useState<UserRecord | null>(
-    null,
-  );
+  const [toggleActiveUser, setToggleActiveUser] = useState<UserRecord | null>(null);
   const [deleteUser, setDeleteUser] = useState<UserRecord | null>(null);
 
   const [ldapSyncing, setLdapSyncing] = useState(false);
@@ -223,15 +219,7 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [
-    page,
-    debouncedSearch,
-    roleFilter,
-    departmentFilter,
-    statusFilter,
-    sortBy,
-    sortOrder,
-  ]);
+  }, [page, debouncedSearch, roleFilter, departmentFilter, statusFilter, sortBy, sortOrder]);
 
   const fetchDepartments = useCallback(async () => {
     try {
@@ -302,8 +290,8 @@ export default function AdminUsersPage() {
       fetchUsers();
     } catch (err: unknown) {
       const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Erreur lors de la création";
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Erreur lors de la création";
       toast.error(msg);
     } finally {
       setCreating(false);
@@ -314,9 +302,7 @@ export default function AdminUsersPage() {
     if (!editRoleUser || !editRoleValue) return;
     try {
       await api.patch(`/users/${editRoleUser.id}`, { role: editRoleValue });
-      toast.success(
-        `Rôle de ${editRoleUser.firstName} ${editRoleUser.lastName} modifié`,
-      );
+      toast.success(`Rôle de ${editRoleUser.firstName} ${editRoleUser.lastName} modifié`);
       setEditRoleUser(null);
       fetchUsers();
     } catch {
@@ -334,9 +320,7 @@ export default function AdminUsersPage() {
       } else {
         await api.patch(`/users/${editDeptUser.id}`, { departmentId: null });
       }
-      toast.success(
-        `Département de ${editDeptUser.firstName} ${editDeptUser.lastName} modifié`,
-      );
+      toast.success(`Département de ${editDeptUser.firstName} ${editDeptUser.lastName} modifié`);
       setEditDeptUser(null);
       fetchUsers();
     } catch {
@@ -365,9 +349,7 @@ export default function AdminUsersPage() {
         module,
         enabled,
       });
-      setSpaceAccessList((prev) =>
-        prev.map((s) => (s.module === module ? { ...s, enabled } : s)),
-      );
+      setSpaceAccessList((prev) => prev.map((s) => (s.module === module ? { ...s, enabled } : s)));
       toast.success(`Accès ${enabled ? "activé" : "désactivé"} pour ${module}`);
     } catch {
       toast.error("Erreur lors de la modification");
@@ -391,9 +373,7 @@ export default function AdminUsersPage() {
     if (!resetMfaUser) return;
     try {
       await api.post(`/mfa/disable/${resetMfaUser.id}`);
-      toast.success(
-        `MFA désactivé pour ${resetMfaUser.firstName} ${resetMfaUser.lastName}`,
-      );
+      toast.success(`MFA désactivé pour ${resetMfaUser.firstName} ${resetMfaUser.lastName}`);
       setResetMfaUser(null);
       fetchUsers();
     } catch {
@@ -443,9 +423,7 @@ export default function AdminUsersPage() {
     if (!deleteUser) return;
     try {
       await api.delete(`/users/${deleteUser.id}`);
-      toast.success(
-        `${deleteUser.firstName} ${deleteUser.lastName} supprimé définitivement`,
-      );
+      toast.success(`${deleteUser.firstName} ${deleteUser.lastName} supprimé définitivement`);
       setDeleteUser(null);
       fetchUsers();
     } catch {
@@ -556,9 +534,7 @@ export default function AdminUsersPage() {
 
   const mfaPercent =
     mfaStats.total > 0
-      ? Math.round(
-          ((mfaStats.total - mfaStats.withoutMfa) / mfaStats.total) * 100,
-        )
+      ? Math.round(((mfaStats.total - mfaStats.withoutMfa) / mfaStats.total) * 100)
       : 0;
 
   const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
@@ -601,8 +577,7 @@ export default function AdminUsersPage() {
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
               <span className="text-xs font-semibold text-primary">
-                {u.firstName.charAt(0)}
-                {u.lastName.charAt(0)}
+                {getInitials(u.firstName, u.lastName)}
               </span>
             </div>
             <div className="min-w-0">
@@ -614,9 +589,7 @@ export default function AdminUsersPage() {
                   {u.jobTitle}
                 </p>
               )}
-              <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">
-                {u.email}
-              </p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400 truncate">{u.email}</p>
             </div>
           </div>
         ),
@@ -626,9 +599,7 @@ export default function AdminUsersPage() {
         header: "Rôle",
         sortable: true,
         render: (u) => (
-          <Badge variant={ROLE_BADGE_VARIANT[u.role] as any}>
-            {USER_ROLE_LABELS[u.role]}
-          </Badge>
+          <Badge variant={ROLE_BADGE_VARIANT[u.role] as any}>{USER_ROLE_LABELS[u.role]}</Badge>
         ),
       },
       {
@@ -639,18 +610,12 @@ export default function AdminUsersPage() {
           const primary = u.department?.name;
           const secondaryCount = u.departmentMemberships?.length ?? 0;
           if (!primary && secondaryCount === 0) {
-            return (
-              <span className="text-xs text-seal-gray-500 dark:text-slate-500">
-                &mdash;
-              </span>
-            );
+            return <span className="text-xs text-seal-gray-500 dark:text-slate-500">&mdash;</span>;
           }
           return (
             <div className="flex items-center gap-1">
               {primary && <Badge variant="primary">{primary}</Badge>}
-              {secondaryCount > 0 && (
-                <Badge variant="navy">+{secondaryCount}</Badge>
-              )}
+              {secondaryCount > 0 && <Badge variant="navy">+{secondaryCount}</Badge>}
             </div>
           );
         },
@@ -669,12 +634,7 @@ export default function AdminUsersPage() {
         header: "MFA",
         render: (u) => {
           if (u.mfaEnabled) {
-            return (
-              <Shield
-                className="h-4 w-4 text-emerald-500"
-                aria-label="MFA activé"
-              />
-            );
+            return <Shield className="h-4 w-4 text-emerald-500" aria-label="MFA activé" />;
           }
           if (u.mfaRequired) {
             return (
@@ -686,9 +646,7 @@ export default function AdminUsersPage() {
                   className="h-4 w-4 text-amber-500"
                   aria-label="MFA obligatoire à la prochaine connexion"
                 />
-                <span className="text-[10px] font-medium text-amber-600">
-                  Forcé
-                </span>
+                <span className="text-[10px] font-medium text-amber-600">Forcé</span>
               </span>
             );
           }
@@ -706,9 +664,7 @@ export default function AdminUsersPage() {
         sortable: true,
         render: (u) => (
           <span className="text-xs text-seal-gray-500 dark:text-slate-400">
-            {u.lastLoginAt
-              ? formatRelativeTime(u.lastLoginAt)
-              : "Jamais connecté"}
+            {u.lastLoginAt ? formatRelativeTime(u.lastLoginAt) : "Jamais connecté"}
           </span>
         ),
       },
@@ -775,15 +731,13 @@ export default function AdminUsersPage() {
               aria-label={`${u.noaEnabled ? "Désactiver" : "Activer"} Noa pour ${u.firstName} ${u.lastName}`}
             >
               <span aria-hidden="true" className="text-sm leading-none">
-                \ud83c\udfad
+                🎭
               </span>
             </button>
             <button
               onClick={() => setToggleActiveUser(u)}
               className={`rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 ${u.isActive ? "text-seal-gray-500 hover:text-amber-600" : "text-seal-gray-500 hover:text-emerald-600"}`}
-              title={
-                u.isActive ? "Désactiver le compte" : "Réactiver le compte"
-              }
+              title={u.isActive ? "Désactiver le compte" : "Réactiver le compte"}
               aria-label={
                 u.isActive
                   ? `Désactiver le compte de ${u.firstName} ${u.lastName}`
@@ -883,10 +837,9 @@ export default function AdminUsersPage() {
               </Button>
             </div>
             <p className="mt-2 text-[11px] text-seal-gray-500 dark:text-slate-500 leading-snug">
-              Marque les utilisateurs sans MFA comme « MFA obligatoire ». À leur
-              prochaine connexion, ils sont redirigés vers l'enrôlement MFA
-              avant d'accéder à l'intranet. Les prestataires sont déjà soumis à
-              cette politique par défaut. ISO 27001 A.8.5.
+              Marque les utilisateurs sans MFA comme « MFA obligatoire ». À leur prochaine
+              connexion, ils sont redirigés vers l'enrôlement MFA avant d'accéder à l'intranet. Les
+              prestataires sont déjà soumis à cette politique par défaut. ISO 27001 A.8.5.
             </p>
           </CardContent>
         </Card>
@@ -907,11 +860,7 @@ export default function AdminUsersPage() {
                     : "Aucune synchronisation récente"}
                 </p>
               </div>
-              <Button
-                onClick={handleLdapSync}
-                loading={ldapSyncing}
-                disabled={ldapSyncing}
-              >
+              <Button onClick={handleLdapSync} loading={ldapSyncing} disabled={ldapSyncing}>
                 <RefreshCw className="h-4 w-4" />
                 Synchroniser
               </Button>
@@ -927,7 +876,7 @@ export default function AdminUsersPage() {
             <SearchInput
               value={search}
               onChange={setSearch}
-              placeholder="Rechercher par nom ou email\u2026"
+              placeholder="Rechercher par nom ou email…"
               className="flex-1"
             />
 
@@ -941,9 +890,7 @@ export default function AdminUsersPage() {
 
             <select
               value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as "" | "active" | "inactive")
-              }
+              onChange={(e) => setStatusFilter(e.target.value as "" | "active" | "inactive")}
               className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-seal-navy dark:text-white lg:w-36 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               aria-label="Filtrer par statut"
             >
@@ -1000,11 +947,7 @@ export default function AdminUsersPage() {
                   onChange={(e) => setBulkDepartmentId(e.target.value)}
                   className="w-48"
                 />
-                <Button
-                  size="sm"
-                  disabled={!bulkDepartmentId}
-                  onClick={handleBulkAssignDepartment}
-                >
+                <Button size="sm" disabled={!bulkDepartmentId} onClick={handleBulkAssignDepartment}>
                   <Building2 className="h-3.5 w-3.5" />
                   Affecter
                 </Button>
@@ -1016,20 +959,12 @@ export default function AdminUsersPage() {
                   onChange={(e) => setBulkRole(e.target.value)}
                   className="w-48"
                 />
-                <Button
-                  size="sm"
-                  disabled={!bulkRole}
-                  onClick={handleBulkChangeRole}
-                >
+                <Button size="sm" disabled={!bulkRole} onClick={handleBulkChangeRole}>
                   <Shield className="h-3.5 w-3.5" />
                   Appliquer
                 </Button>
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSelectedIds(new Set())}
-                >
+                <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
                   Annuler la sélection
                 </Button>
               </div>
@@ -1060,7 +995,7 @@ export default function AdminUsersPage() {
         <div className="md:hidden space-y-2">
           {loading ? (
             <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
-              Chargement\u2026
+              Chargement…
             </div>
           ) : users.length === 0 ? (
             <div className="rounded-card border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-seal-gray-500">
@@ -1082,8 +1017,7 @@ export default function AdminUsersPage() {
                 />
                 <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs font-semibold text-primary">
-                    {u.firstName.charAt(0)}
-                    {u.lastName.charAt(0)}
+                    {getInitials(u.firstName, u.lastName)}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1100,19 +1034,11 @@ export default function AdminUsersPage() {
                     <Badge variant={u.isActive ? "success" : "error"}>
                       {u.isActive ? "Actif" : "Inactif"}
                     </Badge>
-                    {u.department?.name && (
-                      <Badge variant="primary">{u.department.name}</Badge>
-                    )}
+                    {u.department?.name && <Badge variant="primary">{u.department.name}</Badge>}
                     {u.mfaEnabled ? (
-                      <Shield
-                        className="h-4 w-4 text-emerald-500"
-                        aria-label="MFA activé"
-                      />
+                      <Shield className="h-4 w-4 text-emerald-500" aria-label="MFA activé" />
                     ) : u.mfaRequired ? (
-                      <Lock
-                        className="h-4 w-4 text-amber-500"
-                        aria-label="MFA obligatoire"
-                      />
+                      <Lock className="h-4 w-4 text-amber-500" aria-label="MFA obligatoire" />
                     ) : null}
                   </div>
                   <p className="mt-1 text-[11px] text-seal-gray-500 dark:text-slate-500">
@@ -1177,9 +1103,7 @@ export default function AdminUsersPage() {
             total={total}
             onPageChange={setPage}
             emptyMessage="Aucun utilisateur trouvé"
-            emptyIcon={
-              <Users className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />
-            }
+            emptyIcon={<Users className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />}
           />
         </div>
       </div>
@@ -1199,11 +1123,7 @@ export default function AdminUsersPage() {
         title="Créer un utilisateur"
         description="Remplissez les informations du nouvel utilisateur."
       >
-        <form
-          onSubmit={handleSubmitCreate(handleCreateUser)}
-          className="space-y-3"
-          noValidate
-        >
+        <form onSubmit={handleSubmitCreate(handleCreateUser)} className="space-y-3" noValidate>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Input
@@ -1233,7 +1153,7 @@ export default function AdminUsersPage() {
           <Input
             label="Mot de passe"
             type="password"
-            placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+            placeholder="••••••••"
             autoComplete="new-password"
             error={createErrors.password?.message}
             {...registerCreate("password")}
@@ -1343,7 +1263,7 @@ export default function AdminUsersPage() {
         <div className="space-y-2">
           {spaceAccessLoading ? (
             <div className="py-8 text-center text-sm text-seal-gray-500 dark:text-slate-400">
-              Chargement des accès\u2026
+              Chargement des accès…
             </div>
           ) : spaceAccessList.length === 0 ? (
             <div className="py-8 text-center text-sm text-seal-gray-500 dark:text-slate-400">
@@ -1364,13 +1284,9 @@ export default function AdminUsersPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() =>
-                    handleToggleSpaceAccess(space.module, !space.enabled)
-                  }
+                  onClick={() => handleToggleSpaceAccess(space.module, !space.enabled)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    space.enabled
-                      ? "bg-emerald-500"
-                      : "bg-gray-300 dark:bg-slate-600"
+                    space.enabled ? "bg-emerald-500" : "bg-gray-300 dark:bg-slate-600"
                   }`}
                   role="switch"
                   aria-checked={space.enabled}
@@ -1428,11 +1344,7 @@ export default function AdminUsersPage() {
         open={!!toggleActiveUser}
         onClose={() => setToggleActiveUser(null)}
         onConfirm={handleToggleActive}
-        title={
-          toggleActiveUser?.isActive
-            ? "Désactiver le compte"
-            : "Réactiver le compte"
-        }
+        title={toggleActiveUser?.isActive ? "Désactiver le compte" : "Réactiver le compte"}
         description={
           toggleActiveUser
             ? toggleActiveUser.isActive

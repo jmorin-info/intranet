@@ -22,6 +22,7 @@
  * endpoint POST `/api/cms/revalidate` (secret partagé).
  */
 import type { ReactNode } from "react";
+import { cookies, headers } from "next/headers";
 
 import WelcomeClient from "./welcome-client";
 import { getContentBlocks, getBlockData } from "@/lib/cms";
@@ -47,10 +48,32 @@ const WELCOME_BLOCK_KEYS = [
   "welcome.layout",
 ];
 
+/**
+ * Resout la locale pour le pre-fetch des blocs CMS cote serveur.
+ * Priorite :
+ *   1. Cookie `NEXT_LOCALE` (utilisateurs deja venus / connectes)
+ *   2. Header `Accept-Language` du navigateur (premier visiteur)
+ *   3. Fallback `fr` (locale par defaut du seed-cms)
+ * Seules les locales supportees (`fr`, `en`) sont retournees ; sinon `fr`.
+ */
+async function resolveWelcomeLocale(): Promise<"fr" | "en"> {
+  const SUPPORTED = ["fr", "en"] as const;
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get("NEXT_LOCALE")?.value;
+  if (cookieLocale && (SUPPORTED as readonly string[]).includes(cookieLocale)) {
+    return cookieLocale as "fr" | "en";
+  }
+  const headersList = await headers();
+  const accept = headersList.get("accept-language") || "";
+  // Parse minimaliste : prend la 1ere langue, ignore les q-values.
+  const primary = accept.split(",")[0]?.trim().toLowerCase().split("-")[0];
+  if (primary === "en") return "en";
+  return "fr";
+}
+
 export default async function WelcomePage() {
-  // TODO i18n : tant que la page Welcome n'expose pas le sélecteur de locale
-  // côté serveur, on reste sur fr (cohérent avec le seed-cms initial).
-  const blocks = await getContentBlocks(WELCOME_BLOCK_KEYS, "fr");
+  const locale = await resolveWelcomeLocale();
+  const blocks = await getContentBlocks(WELCOME_BLOCK_KEYS, locale);
 
   const layout = normalizeWelcomeLayout(
     getBlockData<unknown>(blocks, "welcome.layout", null),

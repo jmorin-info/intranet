@@ -4,6 +4,7 @@ import { GoogleCalendarSyncService } from "./google-calendar-sync.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CryptoService } from "../common/crypto/crypto.service";
 import { AuditService } from "../audit/audit.service";
+import { OAuthCredsService } from "./oauth-creds.service";
 
 jest.mock("axios");
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -40,6 +41,13 @@ describe("GoogleCalendarSyncService", () => {
       providers: [
         GoogleCalendarSyncService,
         CryptoService,
+        {
+          provide: OAuthCredsService,
+          useValue: { getGoogle: () => ({
+            clientId: process.env.GOOGLE_OAUTH_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+          }) },
+        },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditService, useValue: { log: jest.fn() } },
       ],

@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useRef,
-  useMemo,
-} from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { TicketSpacesHub } from "./TicketSpacesHub";
@@ -89,10 +83,7 @@ import {
   type TicketFilterChipId,
 } from "@/components/tickets/ticket-filter-chips";
 import { TicketQuickActions } from "@/components/tickets/ticket-quick-actions";
-import {
-  useTicketShortcuts,
-  TicketShortcutsModal,
-} from "@/components/tickets/ticket-shortcuts";
+import { useTicketShortcuts, TicketShortcutsModal } from "@/components/tickets/ticket-shortcuts";
 import { useTicketsViewMode } from "@/hooks/use-tickets-view-mode";
 import { eventBus, createEvent, useEntityEvents } from "@/lib/events";
 import { useAISuggestions } from "@/lib/ai-ux";
@@ -116,10 +107,10 @@ const SavedFiltersBar = dynamic(
     })),
   { ssr: false, loading: () => <div className="shimmer h-20 rounded-xl" /> },
 );
-const SmartFilterBar = dynamic(
-  () => import("@/components/ui/smart-filter-bar"),
-  { ssr: false, loading: () => <div className="shimmer h-20 rounded-xl" /> },
-);
+const SmartFilterBar = dynamic(() => import("@/components/ui/smart-filter-bar"), {
+  ssr: false,
+  loading: () => <div className="shimmer h-20 rounded-xl" />,
+});
 // RichTextEditor — uniquement mounté dans la modale de création (showCreate=true).
 // Lazy pour éviter de payer le coût toolbar/contentEditable au First Load.
 const RichTextEditor = dynamic(
@@ -138,7 +129,7 @@ function useCountUp(target: number, duration = 800) {
       setValue(0);
       return;
     }
-    let start = 0;
+    const start = 0;
     const startTime = performance.now();
     const step = (now: number) => {
       const elapsed = now - startTime;
@@ -213,10 +204,7 @@ function getChecklistProgress(
   totalItems: number,
 ): { checked: number; total: number } | null {
   const checked = tags.filter((t) => t.startsWith("check:")).length;
-  if (
-    checked === 0 &&
-    !tags.some((t) => t.startsWith("field:") || t === "deploiement")
-  )
+  if (checked === 0 && !tags.some((t) => t.startsWith("field:") || t === "deploiement"))
     return null;
   return { checked, total: totalItems };
 }
@@ -301,16 +289,12 @@ const CATEGORY_ASSIGNEES: Record<string, string> = {
 };
 
 const CATEGORY_HINTS: Record<string, string> = {
-  INCIDENT:
-    "Décrivez le problème, depuis quand il se produit, et l'impact sur votre travail.",
-  HARDWARE:
-    "Précisez le type de matériel, le numéro de série si possible, et le lieu.",
-  SOFTWARE:
-    "Indiquez le nom du logiciel, la version, et le message d'erreur exact.",
+  INCIDENT: "Décrivez le problème, depuis quand il se produit, et l'impact sur votre travail.",
+  HARDWARE: "Précisez le type de matériel, le numéro de série si possible, et le lieu.",
+  SOFTWARE: "Indiquez le nom du logiciel, la version, et le message d'erreur exact.",
   NETWORK:
     "Décrivez le problème réseau, votre localisation, et si d'autres collègues sont impactés.",
-  ACCESS:
-    "Précisez le système ou l'application concernée et le type d'accès demandé.",
+  ACCESS: "Précisez le système ou l'application concernée et le type d'accès demandé.",
   SECURITY:
     "Décrivez l'incident de sécurité avec le maximum de détails. Ne partagez pas de mots de passe.",
   REQUEST: "Décrivez votre demande et la date souhaitée de réalisation.",
@@ -358,18 +342,12 @@ const TAG_COLORS = [
 
 function tagColor(tag: string): string {
   let hash = 0;
-  for (let i = 0; i < tag.length; i++)
-    hash = (hash * 31 + tag.charCodeAt(i)) & 0xffff;
+  for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) & 0xffff;
   return TAG_COLORS[hash % TAG_COLORS.length]!;
 }
 
 // --- Source tabs for Redmine segmentation -----------------------------------
-type SourceTab =
-  | "all"
-  | "support-it"
-  | "deploiements"
-  | "rma"
-  | "projets-internes";
+type SourceTab = "all" | "support-it" | "deploiements" | "rma" | "projets-internes";
 
 const SOURCE_TABS: { key: SourceTab; label: string }[] = [
   { key: "all", label: "Tous" },
@@ -403,14 +381,10 @@ function extractClientFromTags(tags: string[]): string | null {
   return tag ? tag.slice("client:".length) : null;
 }
 
-function extractSnFromDescription(
-  description: string | undefined | null,
-): string | null {
+function extractSnFromDescription(description: string | undefined | null): string | null {
   if (!description) return null;
   // SN is often in a table row like <td>SN</td><td>VALUE</td> or plain text "SN: VALUE"
-  const htmlMatch = description.match(
-    /S\/?N\s*[:=<\s/td>]*?(?:<td>|:\s*)([A-Z0-9][\w-]{3,})/i,
-  );
+  const htmlMatch = description.match(/S\/?N\s*[:=<\s/td>]*?(?:<td>|:\s*)([A-Z0-9][\w-]{3,})/i);
   if (htmlMatch?.[1]) return htmlMatch[1];
   const plainMatch = description.match(/\bS\/?N\s*[:=]\s*([A-Z0-9][\w-]{3,})/i);
   return plainMatch?.[1] ?? null;
@@ -439,11 +413,7 @@ function categoryBadgeVariant(
   }
 }
 
-function getSlaStatus(ticket: {
-  priority: string;
-  createdAt: string;
-  status: string;
-}) {
+function getSlaStatus(ticket: { priority: string; createdAt: string; status: string }) {
   if (!["OPEN", "IN_PROGRESS"].includes(ticket.status)) return null;
   const hours = (Date.now() - new Date(ticket.createdAt).getTime()) / 3600000;
   const thresholds: Record<string, number> = {
@@ -516,9 +486,7 @@ export default function TicketsPage() {
   >({});
   const [viewMode, setViewMode] = useTicketsViewMode("table");
   // Filtres rapides Wave C (chips Mes / Mentions / SLA / Aujourd'hui / Semaine)
-  const [activeChips, setActiveChips] = useState<Set<TicketFilterChipId>>(
-    new Set(),
-  );
+  const [activeChips, setActiveChips] = useState<Set<TicketFilterChipId>>(new Set());
   const [myTicketsOnly, setMyTicketsOnly] = useState(false);
   const [sourceTab, setSourceTab] = useState<SourceTab>("all");
   const [clientFilter, setClientFilter] = useState("");
@@ -585,15 +553,9 @@ export default function TicketsPage() {
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [requestType, setRequestType] = useState<string>("");
   // Deployment labels / checklist / custom fields
-  const [deployLabels, setDeployLabels] = useState<DeploymentLabels | null>(
-    null,
-  );
-  const [checklistState, setChecklistState] = useState<Record<string, boolean>>(
-    {},
-  );
-  const [customFieldsState, setCustomFieldsState] = useState<
-    Record<string, string>
-  >({});
+  const [deployLabels, setDeployLabels] = useState<DeploymentLabels | null>(null);
+  const [checklistState, setChecklistState] = useState<Record<string, boolean>>({});
+  const [customFieldsState, setCustomFieldsState] = useState<Record<string, string>>({});
 
   // Smart search suggestions for ticket creation
   const [titleSuggestions, setTitleSuggestions] = useState<{
@@ -694,9 +656,7 @@ export default function TicketsPage() {
       api
         .get("/tickets/analytics")
         .then((r) => setAnalytics(r.data))
-        .catch((err) =>
-          logger.error(err, { page: "tickets", context: "analytics" }),
-        );
+        .catch((err) => logger.error(err, { page: "tickets", context: "analytics" }));
       api
         .get("/users", { params: { limit: 100 } })
         .then((r) => {
@@ -709,9 +669,7 @@ export default function TicketsPage() {
             })),
           );
         })
-        .catch((err) =>
-          logger.error(err, { page: "tickets", context: "admin users" }),
-        );
+        .catch((err) => logger.error(err, { page: "tickets", context: "admin users" }));
     }
   }, [isAdmin]);
 
@@ -790,9 +748,7 @@ export default function TicketsPage() {
       .get("/departments")
       .then((r) => {
         const data = Array.isArray(r.data) ? r.data : r.data?.data || [];
-        setDepartments(
-          data.map((d: any) => ({ id: d.id, name: d.name, code: d.code })),
-        );
+        setDepartments(data.map((d: any) => ({ id: d.id, name: d.name, code: d.code })));
       })
       .catch(() => setDepartments([]));
   }, []);
@@ -835,9 +791,7 @@ export default function TicketsPage() {
       result = result.filter((t) => t.status !== "CLOSED");
     }
     if (clientFilter) {
-      result = result.filter(
-        (t) => extractClientFromTags(t.tags) === clientFilter,
-      );
+      result = result.filter((t) => extractClientFromTags(t.tags) === clientFilter);
     }
     return result;
   }, [tickets?.data, sourceTab, clientFilter, showClosed, statusFilter]);
@@ -848,12 +802,9 @@ export default function TicketsPage() {
     const counts: Record<SourceTab, number> = {
       all: all.length,
       "support-it": all.filter((t) => matchesSourceTab(t, "support-it")).length,
-      deploiements: all.filter((t) => matchesSourceTab(t, "deploiements"))
-        .length,
+      deploiements: all.filter((t) => matchesSourceTab(t, "deploiements")).length,
       rma: all.filter((t) => matchesSourceTab(t, "rma")).length,
-      "projets-internes": all.filter((t) =>
-        matchesSourceTab(t, "projets-internes"),
-      ).length,
+      "projets-internes": all.filter((t) => matchesSourceTab(t, "projets-internes")).length,
     };
     return counts;
   }, [tickets?.data]);
@@ -861,9 +812,7 @@ export default function TicketsPage() {
   // Contextual stats for the active source tab
   const contextualStats = useMemo(() => {
     const open = filteredTickets.filter((t) => t.status === "OPEN").length;
-    const inProgress = filteredTickets.filter(
-      (t) => t.status === "IN_PROGRESS",
-    ).length;
+    const inProgress = filteredTickets.filter((t) => t.status === "IN_PROGRESS").length;
     const resolved = filteredTickets.filter(
       (t) => t.status === "RESOLVED" || t.status === "CLOSED",
     ).length;
@@ -883,9 +832,7 @@ export default function TicketsPage() {
 
   // Client-side sort state
   const [ticketSortField, setTicketSortField] = useState<string>("createdAt");
-  const [ticketSortOrder, setTicketSortOrder] = useState<"asc" | "desc">(
-    "desc",
-  );
+  const [ticketSortOrder, setTicketSortOrder] = useState<"asc" | "desc">("desc");
 
   const handleTicketSort = useCallback(
     (key: string) => {
@@ -938,20 +885,12 @@ export default function TicketsPage() {
           bVal = `${b.creator.lastName} ${b.creator.firstName}`.toLowerCase();
           break;
         case "assignee":
-          aVal = a.assignee
-            ? `${a.assignee.lastName} ${a.assignee.firstName}`.toLowerCase()
-            : "";
-          bVal = b.assignee
-            ? `${b.assignee.lastName} ${b.assignee.firstName}`.toLowerCase()
-            : "";
+          aVal = a.assignee ? `${a.assignee.lastName} ${a.assignee.firstName}`.toLowerCase() : "";
+          bVal = b.assignee ? `${b.assignee.lastName} ${b.assignee.firstName}`.toLowerCase() : "";
           break;
         default:
-          aVal = String(
-            (a as unknown as Record<string, unknown>)[ticketSortField] ?? "",
-          );
-          bVal = String(
-            (b as unknown as Record<string, unknown>)[ticketSortField] ?? "",
-          );
+          aVal = String((a as unknown as Record<string, unknown>)[ticketSortField] ?? "");
+          bVal = String((b as unknown as Record<string, unknown>)[ticketSortField] ?? "");
       }
       if (typeof aVal === "number" && typeof bVal === "number") {
         return ticketSortOrder === "asc" ? aVal - bVal : bVal - aVal;
@@ -977,18 +916,17 @@ export default function TicketsPage() {
       createdAt: string;
       mentionedUserIds: string[];
     };
-    const lite: Array<TicketLite & TicketItem> = sortedFilteredTickets.map(
-      (t) => ({
-        ...t,
-        assigneeId: ((t as unknown as { assigneeId?: string | null })
-          .assigneeId ?? null) as string | null,
-        priority: (["CRITICAL", "HIGH", "MEDIUM", "LOW"].includes(t.priority)
-          ? t.priority
-          : "MEDIUM") as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
-        mentionedUserIds: ((t as unknown as { mentionedUserIds?: string[] })
-          .mentionedUserIds ?? []) as string[],
-      }),
-    );
+    const lite: Array<TicketLite & TicketItem> = sortedFilteredTickets.map((t) => ({
+      ...t,
+      assigneeId: ((t as unknown as { assigneeId?: string | null }).assigneeId ?? null) as
+        | string
+        | null,
+      priority: (["CRITICAL", "HIGH", "MEDIUM", "LOW"].includes(t.priority)
+        ? t.priority
+        : "MEDIUM") as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
+      mentionedUserIds: ((t as unknown as { mentionedUserIds?: string[] }).mentionedUserIds ??
+        []) as string[],
+    }));
     return applyTicketChipFilters(lite, {
       active: activeChips,
       currentUserId: user?.id ?? null,
@@ -1007,9 +945,7 @@ export default function TicketsPage() {
     onCreate: () => setShowCreate(true),
     onFocusNext: () =>
       setFocusedIdx((i) =>
-        chipFilteredTickets.length === 0
-          ? 0
-          : Math.min(i + 1, chipFilteredTickets.length - 1),
+        chipFilteredTickets.length === 0 ? 0 : Math.min(i + 1, chipFilteredTickets.length - 1),
       ),
     onFocusPrev: () => setFocusedIdx((i) => Math.max(i - 1, 0)),
     onOpenFocused: () => {
@@ -1094,8 +1030,7 @@ export default function TicketsPage() {
       LOW: 48,
     };
     const limitHours = thresholds[ticket.priority] || 48;
-    const elapsed =
-      (Date.now() - new Date(ticket.createdAt).getTime()) / 3600000;
+    const elapsed = (Date.now() - new Date(ticket.createdAt).getTime()) / 3600000;
     const remaining = limitHours - elapsed;
     if (remaining <= 0) {
       return (
@@ -1111,14 +1046,9 @@ export default function TicketsPage() {
         : remaining <= limitHours * 0.25
           ? "text-amber-600 dark:text-amber-400"
           : "text-emerald-600 dark:text-emerald-400";
-    const label =
-      remaining < 1
-        ? `${Math.round(remaining * 60)}min`
-        : `${remaining.toFixed(1)}h`;
+    const label = remaining < 1 ? `${Math.round(remaining * 60)}min` : `${remaining.toFixed(1)}h`;
     return (
-      <span
-        className={`inline-flex items-center gap-1 text-[10px] font-semibold ${color}`}
-      >
+      <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${color}`}>
         <Clock className="h-3 w-3" />
         {label}
       </span>
@@ -1173,9 +1103,7 @@ export default function TicketsPage() {
   // Event bus: auto-refresh list when ticket mutations happen elsewhere (detail page, other tab)
   useEntityEvents("TICKET", (event) => {
     if (event.metadata?.optimistic) return; // skip optimistic, wait for confirmed
-    if (
-      ["CREATED", "STATUS_CHANGED", "DELETED", "ASSIGNED"].includes(event.type)
-    ) {
+    if (["CREATED", "STATUS_CHANGED", "DELETED", "ASSIGNED"].includes(event.type)) {
       refetchAll();
     }
   });
@@ -1183,9 +1111,7 @@ export default function TicketsPage() {
   // Phase 13: Auto-focus search when AI detects search intent
   useEffect(() => {
     if (uiEmphasis.searchFocus) {
-      const input = document.querySelector<HTMLInputElement>(
-        'input[placeholder*="Rechercher"]',
-      );
+      const input = document.querySelector<HTMLInputElement>('input[placeholder*="Rechercher"]');
       input?.focus();
     }
   }, [uiEmphasis.searchFocus]);
@@ -1216,16 +1142,11 @@ export default function TicketsPage() {
   const handleBulkStatusChange = async () => {
     if (!bulkNewStatus || selectedIds.size === 0) return;
     try {
-      const { data } = await api.post<{ updated: number }>(
-        "/tickets/bulk/status",
-        {
-          ids: Array.from(selectedIds),
-          status: bulkNewStatus,
-        },
-      );
-      toast.success(
-        `Statut mis à jour sur ${data.updated} ticket${data.updated > 1 ? "s" : ""}`,
-      );
+      const { data } = await api.post<{ updated: number }>("/tickets/bulk/status", {
+        ids: Array.from(selectedIds),
+        status: bulkNewStatus,
+      });
+      toast.success(`Statut mis à jour sur ${data.updated} ticket${data.updated > 1 ? "s" : ""}`);
       setSelectedIds(new Set());
       setShowBulkStatus(false);
       setBulkNewStatus("");
@@ -1239,16 +1160,11 @@ export default function TicketsPage() {
   const handleBulkAssign = async () => {
     if (!bulkAssigneeId || selectedIds.size === 0) return;
     try {
-      const { data } = await api.post<{ updated: number }>(
-        "/tickets/bulk/assign",
-        {
-          ids: Array.from(selectedIds),
-          assigneeId: bulkAssigneeId,
-        },
-      );
-      toast.success(
-        `${data.updated} ticket${data.updated > 1 ? "s assignés" : " assigné"}`,
-      );
+      const { data } = await api.post<{ updated: number }>("/tickets/bulk/assign", {
+        ids: Array.from(selectedIds),
+        assigneeId: bulkAssigneeId,
+      });
+      toast.success(`${data.updated} ticket${data.updated > 1 ? "s assignés" : " assigné"}`);
       setSelectedIds(new Set());
       setShowBulkAssign(false);
       setBulkAssigneeId("");
@@ -1333,8 +1249,7 @@ export default function TicketsPage() {
   };
 
   const allSelected =
-    sortedFilteredTickets.length > 0 &&
-    selectedIds.size === sortedFilteredTickets.length;
+    sortedFilteredTickets.length > 0 && selectedIds.size === sortedFilteredTickets.length;
   const someSelected = selectedIds.size > 0 && !allSelected;
 
   const columns: Column<TicketItem>[] = [
@@ -1351,9 +1266,7 @@ export default function TicketsPage() {
                   toggleSelect(ticket.id);
                 }}
                 className="flex items-center justify-center p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                aria-label={
-                  selectedIds.has(ticket.id) ? "Désélectionner" : "Sélectionner"
-                }
+                aria-label={selectedIds.has(ticket.id) ? "Désélectionner" : "Sélectionner"}
               >
                 {selectedIds.has(ticket.id) ? (
                   <CheckSquare className="h-4 w-4 text-primary" />
@@ -1396,9 +1309,7 @@ export default function TicketsPage() {
       key: "category",
       header: t("tickets.column.category"),
       render: (t) => (
-        <Badge variant={categoryBadgeVariant(t.category)}>
-          {categoryLabel(t.category)}
-        </Badge>
+        <Badge variant={categoryBadgeVariant(t.category)}>{categoryLabel(t.category)}</Badge>
       ),
     },
     {
@@ -1456,9 +1367,7 @@ export default function TicketsPage() {
               </div>
             )}
             {visible.length === 0 && !progress && (
-              <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">
-                —
-              </span>
+              <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">—</span>
             )}
           </div>
         );
@@ -1473,13 +1382,9 @@ export default function TicketsPage() {
             render: (ticket: TicketItem) => {
               const client = extractClientFromTags(ticket.tags);
               return client ? (
-                <span className="text-xs font-medium text-seal-navy dark:text-white">
-                  {client}
-                </span>
+                <span className="text-xs font-medium text-seal-navy dark:text-white">{client}</span>
               ) : (
-                <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">
-                  --
-                </span>
+                <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">--</span>
               );
             },
           },
@@ -1490,13 +1395,9 @@ export default function TicketsPage() {
             render: (ticket: TicketItem) => {
               const sn = extractSnFromDescription(ticket.description);
               return sn ? (
-                <span className="font-mono text-xs text-seal-navy dark:text-white">
-                  {sn}
-                </span>
+                <span className="font-mono text-xs text-seal-navy dark:text-white">{sn}</span>
               ) : (
-                <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">
-                  --
-                </span>
+                <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">--</span>
               );
             },
           },
@@ -1525,9 +1426,7 @@ export default function TicketsPage() {
       className: "w-20",
       render: (t) =>
         slaRemainingLabel(t) ?? (
-          <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">
-            --
-          </span>
+          <span className="text-seal-gray-500/40 dark:text-slate-600 text-xs">--</span>
         ),
     },
     {
@@ -1550,9 +1449,7 @@ export default function TicketsPage() {
             {t.assignee.firstName} {t.assignee.lastName}
           </span>
         ) : (
-          <span className="text-xs text-seal-gray-500 dark:text-slate-500">
-            —
-          </span>
+          <span className="text-xs text-seal-gray-500 dark:text-slate-500">—</span>
         ),
     },
     {
@@ -1609,9 +1506,7 @@ export default function TicketsPage() {
                     key={s}
                     onClick={async (e) => {
                       e.stopPropagation();
-                      (
-                        e.currentTarget.parentElement as HTMLElement
-                      )?.classList.add("hidden");
+                      (e.currentTarget.parentElement as HTMLElement)?.classList.add("hidden");
                       try {
                         await api.patch(`/tickets/${ticket.id}`, { status: s });
                         toast.success(`Statut mis à jour`);
@@ -1628,29 +1523,27 @@ export default function TicketsPage() {
             </div>
           </div>
           {/* Assign to me */}
-          {user &&
-            (!ticket.assignee ||
-              ticket.assignee.firstName !== user.firstName) && (
-              <button
-                title="M'assigner ce ticket"
-                aria-label={`M'assigner le ticket ${ticket.reference}`}
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  try {
-                    await api.patch(`/tickets/${ticket.id}`, {
-                      assigneeId: user.id,
-                    });
-                    toast.success("Ticket assigné");
-                    fetchTickets();
-                  } catch {
-                    toast.error("Erreur");
-                  }
-                }}
-                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-gray-500 hover:text-primary transition"
-              >
-                <UserPlus className="h-3.5 w-3.5" />
-              </button>
-            )}
+          {user && (!ticket.assignee || ticket.assignee.firstName !== user.firstName) && (
+            <button
+              title="M'assigner ce ticket"
+              aria-label={`M'assigner le ticket ${ticket.reference}`}
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  await api.patch(`/tickets/${ticket.id}`, {
+                    assigneeId: user.id,
+                  });
+                  toast.success("Ticket assigné");
+                  fetchTickets();
+                } catch {
+                  toast.error("Erreur");
+                }
+              }}
+              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-seal-gray-500 hover:text-primary transition"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+            </button>
+          )}
           {/* Copy reference */}
           <button
             title="Copier la référence"
@@ -1702,6 +1595,42 @@ export default function TicketsPage() {
     },
   ];
 
+  // Wave C perf — données kanban + callbacks mémoïsés : chipFilteredTickets
+  // ne change que si son contenu change, donc memo() sur KanbanCard
+  // (ticket-kanban.tsx) bloque enfin les re-renders inutiles.
+  const kanbanTickets = useMemo(
+    () =>
+      chipFilteredTickets.map<KanbanTicket>((t) => ({
+        id: t.id,
+        reference: t.reference,
+        title: t.title,
+        status: (["OPEN", "IN_PROGRESS", "WAITING", "RESOLVED", "CLOSED"].includes(t.status)
+          ? t.status
+          : "OPEN") as KanbanTicketStatus,
+        priority: (["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(t.priority)
+          ? t.priority
+          : "MEDIUM") as KanbanTicket["priority"],
+        assigneeName: t.assignee ? `${t.assignee.firstName} ${t.assignee.lastName}` : null,
+        createdAt: t.createdAt,
+      })),
+    [chipFilteredTickets],
+  );
+
+  const handleKanbanStatusChange = useCallback(
+    async (ticketId: string, newStatus: KanbanTicketStatus) => {
+      try {
+        await api.patch(`/tickets/${ticketId}`, { status: newStatus });
+        toast.success("Statut mis à jour");
+        fetchTickets();
+      } catch {
+        toast.error("Erreur de mise a jour");
+      }
+    },
+    [fetchTickets],
+  );
+
+  const handleOpenTicket = useCallback((id: string) => router.push(`/tickets/${id}`), [router]);
+
   // Si aucun espace actif dans l'URL (?space=<slug>), on affiche le hub
   // de sélection AVANT d'entrer dans la liste des tickets. Choix produit
   // demandé par l'user 2026-04-20 : "le choix de l'espace doit apparaître
@@ -1751,11 +1680,7 @@ export default function TicketsPage() {
               </div>
               <ExportButton
                 filename="tickets"
-                rows={
-                  (tickets?.data || []) as unknown as Array<
-                    Record<string, unknown>
-                  >
-                }
+                rows={(tickets?.data || []) as unknown as Array<Record<string, unknown>>}
                 columns={[
                   { header: "ID", accessor: "id" },
                   { header: "Titre", accessor: "title" },
@@ -1836,9 +1761,7 @@ export default function TicketsPage() {
                       }}
                     />
                     {space.name}
-                    <span
-                      className={`opacity-60 tabular-nums ${active ? "text-white/80" : ""}`}
-                    >
+                    <span className={`opacity-60 tabular-nums ${active ? "text-white/80" : ""}`}>
                       ({space._count.tickets})
                     </span>
                   </button>
@@ -1909,9 +1832,7 @@ export default function TicketsPage() {
                 <Circle className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
-                  Ouverts
-                </p>
+                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">Ouverts</p>
                 <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">
                   {contextualStats.open}
                 </p>
@@ -1924,9 +1845,7 @@ export default function TicketsPage() {
                 <Clock className="h-5 w-5 text-amber-500" />
               </div>
               <div>
-                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
-                  En cours
-                </p>
+                <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">En cours</p>
                 <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">
                   {contextualStats.inProgress}
                 </p>
@@ -1961,9 +1880,7 @@ export default function TicketsPage() {
                   setSearchQuery(val);
                   setPage(1);
                 }}
-                placeholder={
-                  t("tickets.searchPlaceholder") || "Rechercher un ticket..."
-                }
+                placeholder={t("tickets.searchPlaceholder") || "Rechercher un ticket..."}
                 className="flex-1 min-w-[200px]"
               />
               {departments.length > 0 && (
@@ -1971,9 +1888,7 @@ export default function TicketsPage() {
                   options={[
                     {
                       value: "",
-                      label: isReviewer
-                        ? "Tous les départements"
-                        : "Mon département",
+                      label: isReviewer ? "Tous les départements" : "Mon département",
                     },
                     // ★ Mon département en raccourci, on l'exclut ensuite de la liste pour éviter le doublon de key
                     ...(isReviewer && user?.departmentId
@@ -1985,9 +1900,7 @@ export default function TicketsPage() {
                         ]
                       : []),
                     ...departments
-                      .filter(
-                        (d) => !(isReviewer && user?.departmentId === d.id),
-                      )
+                      .filter((d) => !(isReviewer && user?.departmentId === d.id))
                       .map((d) => ({ value: d.id, label: d.name })),
                   ]}
                   placeholder="Département..."
@@ -2071,8 +1984,7 @@ export default function TicketsPage() {
               <button
                 onClick={() => {
                   setShowClosed(!showClosed);
-                  if (!showClosed && statusFilter === "CLOSED")
-                    setStatusFilter("OPEN");
+                  if (!showClosed && statusFilter === "CLOSED") setStatusFilter("OPEN");
                 }}
                 className={`ml-2 rounded-full px-3 py-1 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${showClosed ? "bg-seal-navy/10 dark:bg-slate-600 text-seal-navy dark:text-white" : "bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600"}`}
                 title="Afficher / masquer les tickets fermés"
@@ -2107,11 +2019,9 @@ export default function TicketsPage() {
                   className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${priorityFilter === p ? "bg-primary text-white" : "bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200"}`}
                 >
                   {!p && t("tickets.priority.toutes")}
-                  {p === "CRITICAL" &&
-                    `${t("tickets.priority.critical")} \u{1F534}`}
+                  {p === "CRITICAL" && `${t("tickets.priority.critical")} \u{1F534}`}
                   {p === "HIGH" && `${t("tickets.priority.high")} \u{1F7E0}`}
-                  {p === "MEDIUM" &&
-                    `${t("tickets.priority.medium")} \u{1F535}`}
+                  {p === "MEDIUM" && `${t("tickets.priority.medium")} \u{1F535}`}
                   {p === "LOW" && `${t("tickets.priority.low")} \u26AA`}
                 </button>
               ))}
@@ -2184,30 +2094,28 @@ export default function TicketsPage() {
         />
 
         {/* Select all header for tickets */}
-        {isAdmin &&
-          sortedFilteredTickets.length > 0 &&
-          viewMode === "table" && (
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700">
-              <button
-                onClick={toggleSelectAll}
-                className="flex items-center gap-2 p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition text-xs text-seal-gray-500 dark:text-slate-400 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                {allSelected ? (
-                  <CheckSquare className="h-3.5 w-3.5 text-primary" />
-                ) : someSelected ? (
-                  <MinusSquare className="h-3.5 w-3.5 text-primary" />
-                ) : (
-                  <Square className="h-3.5 w-3.5 text-seal-gray-500/40 dark:text-slate-500" />
-                )}
-                {allSelected ? "Tout désélectionner" : "Tout sélectionner"}
-              </button>
-              {selectedIds.size > 0 && (
-                <span className="text-xs text-primary font-semibold">
-                  ({selectedIds.size}/{sortedFilteredTickets.length})
-                </span>
+        {isAdmin && sortedFilteredTickets.length > 0 && viewMode === "table" && (
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700">
+            <button
+              onClick={toggleSelectAll}
+              className="flex items-center gap-2 p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition text-xs text-seal-gray-500 dark:text-slate-400 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              {allSelected ? (
+                <CheckSquare className="h-3.5 w-3.5 text-primary" />
+              ) : someSelected ? (
+                <MinusSquare className="h-3.5 w-3.5 text-primary" />
+              ) : (
+                <Square className="h-3.5 w-3.5 text-seal-gray-500/40 dark:text-slate-500" />
               )}
-            </div>
-          )}
+              {allSelected ? "Tout désélectionner" : "Tout sélectionner"}
+            </button>
+            {selectedIds.size > 0 && (
+              <span className="text-xs text-primary font-semibold">
+                ({selectedIds.size}/{sortedFilteredTickets.length})
+              </span>
+            )}
+          </div>
+        )}
 
         {fetchError && !loading && (
           <Card className="border-l-4 border-l-red-400">
@@ -2261,8 +2169,7 @@ export default function TicketsPage() {
                         </Badge>
                         <Badge
                           variant={
-                            ticket.priority === "URGENT" ||
-                            ticket.priority === "HIGH"
+                            ticket.priority === "URGENT" || ticket.priority === "HIGH"
                               ? "error"
                               : ticket.priority === "MEDIUM"
                                 ? "warning"
@@ -2272,9 +2179,7 @@ export default function TicketsPage() {
                           {ticket.priority}
                         </Badge>
                         {sla && (
-                          <span className="text-[10px] font-medium text-amber-600">
-                            {sla}
-                          </span>
+                          <span className="text-[10px] font-medium text-amber-600">{sla}</span>
                         )}
                       </div>
                       <div className="mt-1.5 flex items-center justify-between text-[11px] text-seal-gray-500 dark:text-slate-400">
@@ -2392,40 +2297,10 @@ export default function TicketsPage() {
 
         {viewMode === "kanban" && !fetchError && (
           <TicketKanban
-            tickets={chipFilteredTickets.map<KanbanTicket>((t) => ({
-              id: t.id,
-              reference: t.reference,
-              title: t.title,
-              status: ([
-                "OPEN",
-                "IN_PROGRESS",
-                "WAITING",
-                "RESOLVED",
-                "CLOSED",
-              ].includes(t.status)
-                ? t.status
-                : "OPEN") as KanbanTicketStatus,
-              priority: (["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(
-                t.priority,
-              )
-                ? t.priority
-                : "MEDIUM") as KanbanTicket["priority"],
-              assigneeName: t.assignee
-                ? `${t.assignee.firstName} ${t.assignee.lastName}`
-                : null,
-              createdAt: t.createdAt,
-            }))}
+            tickets={kanbanTickets}
             loading={loading}
-            onStatusChange={async (ticketId, newStatus) => {
-              try {
-                await api.patch(`/tickets/${ticketId}`, { status: newStatus });
-                toast.success("Statut mis à jour");
-                fetchTickets();
-              } catch {
-                toast.error("Erreur de mise a jour");
-              }
-            }}
-            onOpenTicket={(id) => router.push(`/tickets/${id}`)}
+            onStatusChange={handleKanbanStatusChange}
+            onOpenTicket={handleOpenTicket}
           />
         )}
 
@@ -2468,9 +2343,7 @@ export default function TicketsPage() {
                       const cleanTags = existingTags.filter(
                         (t) => !REQUEST_TYPES.some((r) => r.tags.includes(t)),
                       );
-                      const newTags = [...cleanTags, ...rt.tags].filter(
-                        Boolean,
-                      );
+                      const newTags = [...cleanTags, ...rt.tags].filter(Boolean);
                       setForm((f) => ({
                         ...f,
                         category: rt.category,
@@ -2485,9 +2358,7 @@ export default function TicketsPage() {
                   >
                     <div
                       className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                        requestType === rt.id
-                          ? "bg-primary/10"
-                          : "bg-gray-100 dark:bg-slate-700"
+                        requestType === rt.id ? "bg-primary/10" : "bg-gray-100 dark:bg-slate-700"
                       }`}
                     >
                       {rt.icon}
@@ -2563,8 +2434,7 @@ export default function TicketsPage() {
                       }`}
                     >
                       <div className="h-8 w-8 rounded-lg bg-gray-50 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-                        {TEMPLATE_ICONS[tpl.category] ||
-                          TEMPLATE_ICONS["OTHER"]}
+                        {TEMPLATE_ICONS[tpl.category] || TEMPLATE_ICONS["OTHER"]}
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-seal-navy dark:text-white truncate">
@@ -2584,8 +2454,7 @@ export default function TicketsPage() {
               value={form.title}
               onChange={(e) => {
                 setForm({ ...form, title: e.target.value });
-                if (createErrors.title)
-                  setCreateErrors((p) => ({ ...p, title: undefined }));
+                if (createErrors.title) setCreateErrors((p) => ({ ...p, title: undefined }));
               }}
               placeholder={t("tickets.create.titlePlaceholder")}
               required
@@ -2644,8 +2513,7 @@ export default function TicketsPage() {
                             </span>
                             <Badge
                               variant={
-                                tk.status === "RESOLVED" ||
-                                tk.status === "CLOSED"
+                                tk.status === "RESOLVED" || tk.status === "CLOSED"
                                   ? "approved"
                                   : tk.status === "IN_PROGRESS"
                                     ? "warning"
@@ -2699,9 +2567,7 @@ export default function TicketsPage() {
                 ariaLabel={t("tickets.create.descriptionLabel")}
               />
               {createErrors.description && (
-                <p className="text-red-500 text-xs mt-1">
-                  {createErrors.description}
-                </p>
+                <p className="text-red-500 text-xs mt-1">{createErrors.description}</p>
               )}
             </div>
             {/* Category-based template hint */}
@@ -2752,9 +2618,7 @@ export default function TicketsPage() {
                     },
                   ]}
                   value={form.category}
-                  onChange={(e) =>
-                    setForm({ ...form, category: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
                 />
                 {form.category && CATEGORY_ASSIGNEES[form.category] && (
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
@@ -2778,9 +2642,7 @@ export default function TicketsPage() {
                     },
                   ]}
                   value={form.priority}
-                  onChange={(e) =>
-                    setForm({ ...form, priority: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, priority: e.target.value })}
                 />
                 {/* SLA Preview */}
                 {form.priority && (
@@ -2841,9 +2703,7 @@ export default function TicketsPage() {
                   ...departments.map((d) => ({ value: d.id, label: d.name })),
                 ]}
                 value={form.departmentId}
-                onChange={(e) =>
-                  setForm({ ...form, departmentId: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
               />
             )}
             {/* Tags / Labels input */}
@@ -2851,9 +2711,7 @@ export default function TicketsPage() {
               <Input
                 label="Labels / Tags"
                 value={form.tagsInput}
-                onChange={(e) =>
-                  setForm({ ...form, tagsInput: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, tagsInput: e.target.value })}
                 placeholder="urgent, reseau, vpn (séparés par des virgules)"
               />
               {form.tagsInput.trim() && (
@@ -2888,10 +2746,7 @@ export default function TicketsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                   {deployLabels.deployment.checklist.map((item) => (
-                    <label
-                      key={item.id}
-                      className="flex items-center gap-2 cursor-pointer group"
-                    >
+                    <label key={item.id} className="flex items-center gap-2 cursor-pointer group">
                       <input
                         type="checkbox"
                         checked={!!checklistState[item.id]}
@@ -2932,9 +2787,7 @@ export default function TicketsPage() {
                     Type
                   </span>
                   {deployLabels.deployment.types.map((dtype) => {
-                    const active = form.tagsInput
-                      .toLowerCase()
-                      .includes(dtype.toLowerCase());
+                    const active = form.tagsInput.toLowerCase().includes(dtype.toLowerCase());
                     return (
                       <button
                         key={dtype}
@@ -2945,11 +2798,7 @@ export default function TicketsPage() {
                             .map((t) => t.trim())
                             .filter(Boolean);
                           const lower = dtype.toLowerCase();
-                          if (
-                            currentTags
-                              .map((t) => t.toLowerCase())
-                              .includes(lower)
-                          ) {
+                          if (currentTags.map((t) => t.toLowerCase()).includes(lower)) {
                             setForm({
                               ...form,
                               tagsInput: currentTags
@@ -2976,9 +2825,7 @@ export default function TicketsPage() {
             {(aiLoading || aiAnalysis) && (
               <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 p-3 space-y-2 animate-[fadeIn_0.3s_ease-out]">
                 <div className="flex items-center gap-2">
-                  <Sparkles
-                    className={`h-4 w-4 text-primary ${aiLoading ? "animate-spin" : ""}`}
-                  />
+                  <Sparkles className={`h-4 w-4 text-primary ${aiLoading ? "animate-spin" : ""}`} />
                   <span className="text-xs font-semibold text-seal-navy dark:text-white">
                     Analyse IA
                   </span>
@@ -3051,11 +2898,7 @@ export default function TicketsPage() {
                           Mots-clés sécurité :
                         </span>
                         {aiAnalysis.keywordsDetected.map((kw: string) => (
-                          <Badge
-                            key={kw}
-                            variant="error"
-                            className="text-[9px]"
-                          >
+                          <Badge key={kw} variant="error" className="text-[9px]">
                             {kw}
                           </Badge>
                         ))}
@@ -3068,32 +2911,26 @@ export default function TicketsPage() {
                           {aiAnalysis.relatedTickets.length})
                         </p>
                         <div className="space-y-0.5">
-                          {aiAnalysis.relatedTickets
-                            .slice(0, 3)
-                            .map((rt: any) => (
-                              <div
-                                key={rt.id}
-                                className="flex items-center gap-2 text-[10px]"
+                          {aiAnalysis.relatedTickets.slice(0, 3).map((rt: any) => (
+                            <div key={rt.id} className="flex items-center gap-2 text-[10px]">
+                              <span className="font-mono font-semibold text-seal-navy dark:text-white">
+                                {rt.reference}
+                              </span>
+                              <span className="text-seal-gray-500 dark:text-slate-400 truncate">
+                                {rt.title}
+                              </span>
+                              <Badge
+                                variant={
+                                  rt.status === "RESOLVED" || rt.status === "CLOSED"
+                                    ? "approved"
+                                    : "warning"
+                                }
+                                className="text-[8px] ml-auto"
                               >
-                                <span className="font-mono font-semibold text-seal-navy dark:text-white">
-                                  {rt.reference}
-                                </span>
-                                <span className="text-seal-gray-500 dark:text-slate-400 truncate">
-                                  {rt.title}
-                                </span>
-                                <Badge
-                                  variant={
-                                    rt.status === "RESOLVED" ||
-                                    rt.status === "CLOSED"
-                                      ? "approved"
-                                      : "warning"
-                                  }
-                                  className="text-[8px] ml-auto"
-                                >
-                                  {rt.status}
-                                </Badge>
-                              </div>
-                            ))}
+                                {rt.status}
+                              </Badge>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -3120,11 +2957,7 @@ export default function TicketsPage() {
               >
                 {t("common.cancel")}
               </Button>
-              <Button
-                onClick={handleCreate}
-                loading={creating}
-                disabled={creating}
-              >
+              <Button onClick={handleCreate} loading={creating} disabled={creating}>
                 {creating ? (
                   <RefreshCw className="h-4 w-4 animate-spin" />
                 ) : (
@@ -3190,10 +3023,7 @@ export default function TicketsPage() {
               >
                 {t("common.cancel")}
               </Button>
-              <Button
-                onClick={handleBulkStatusChange}
-                disabled={!bulkNewStatus}
-              >
+              <Button onClick={handleBulkStatusChange} disabled={!bulkNewStatus}>
                 Appliquer
               </Button>
             </div>
@@ -3239,10 +3069,7 @@ export default function TicketsPage() {
         </Dialog>
 
         {/* Wave C — modale d'aide raccourcis clavier (ouverte par '?') */}
-        <TicketShortcutsModal
-          open={shortcutsOpen}
-          onClose={() => setShortcutsOpen(false)}
-        />
+        <TicketShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       </div>
     </AIOrchestratedLayout>
   );
@@ -3253,11 +3080,7 @@ export default function TicketsPage() {
 interface KanbanBoardProps {
   tickets: TicketItem[];
   isAdmin: boolean;
-  getSlaStatus: (t: {
-    priority: string;
-    createdAt: string;
-    status: string;
-  }) => string | null;
+  getSlaStatus: (t: { priority: string; createdAt: string; status: string }) => string | null;
   categoryBadgeVariant: (
     cat: string,
   ) => "error" | "warning" | "info" | "navy" | "primary" | "success";
@@ -3358,9 +3181,7 @@ function AnimatedStatsCards({ analytics }: { analytics: any }) {
               {c.icon}
             </div>
             <div>
-              <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">
-                {c.label}
-              </p>
+              <p className="text-[11px] text-seal-gray-500 dark:text-slate-400">{c.label}</p>
               <div className="flex items-baseline gap-1.5">
                 <p className="text-2xl font-medium text-seal-navy dark:text-white tabular-nums">
                   {c.value}
@@ -3465,11 +3286,7 @@ function KanbanBoard({
 
     // SLA bar color
     const slaBarColor =
-      sla === "exceeded"
-        ? "bg-red-500"
-        : sla === "warning"
-          ? "bg-amber-400"
-          : "bg-emerald-500";
+      sla === "exceeded" ? "bg-red-500" : sla === "warning" ? "bg-amber-400" : "bg-emerald-500";
 
     return (
       <div
@@ -3510,9 +3327,7 @@ function KanbanBoard({
               {ticket.priority}
             </span>
           </div>
-          <span className="text-[10px] text-seal-gray-500 font-mono">
-            {ticket.reference}
-          </span>
+          <span className="text-[10px] text-seal-gray-500 font-mono">{ticket.reference}</span>
         </div>
 
         {/* Title */}
@@ -3544,10 +3359,7 @@ function KanbanBoard({
 
         {/* Tags: category */}
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-          <Badge
-            variant={categoryBadgeVariant(ticket.category)}
-            className="text-[9px]"
-          >
+          <Badge variant={categoryBadgeVariant(ticket.category)} className="text-[9px]">
             {categoryLabel(ticket.category)}
           </Badge>
         </div>
@@ -3625,14 +3437,9 @@ function KanbanBoard({
     );
   };
 
-  const renderColumn = (
-    col: (typeof KANBAN_COLUMNS)[number],
-    columnTickets: TicketItem[],
-  ) => {
+  const renderColumn = (col: (typeof KANBAN_COLUMNS)[number], columnTickets: TicketItem[]) => {
     const isOver = dropTarget === col.status && draggedId !== null;
-    const draggedTicket = draggedId
-      ? tickets.find((t) => t.id === draggedId)
-      : null;
+    const draggedTicket = draggedId ? tickets.find((t) => t.id === draggedId) : null;
     const isDraggedFromHere = draggedTicket?.status === col.status;
     const isOverWip = col.wipLimit > 0 && columnTickets.length >= col.wipLimit;
 
@@ -3649,13 +3456,9 @@ function KanbanBoard({
         }`}
       >
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
-            {col.label}
-          </h3>
+          <h3 className="text-sm font-semibold text-seal-navy dark:text-white">{col.label}</h3>
           <div className="flex items-center gap-1.5">
-            <Badge variant={isOverWip ? "error" : "navy"}>
-              {columnTickets.length}
-            </Badge>
+            <Badge variant={isOverWip ? "error" : "navy"}>{columnTickets.length}</Badge>
             {col.wipLimit > 0 && (
               <span
                 className={`text-[9px] font-semibold ${isOverWip ? "text-red-500" : "text-seal-gray-500 dark:text-slate-400"}`}
@@ -3679,9 +3482,7 @@ function KanbanBoard({
         {/* Drop hint */}
         {isOver && !isDraggedFromHere && (
           <div className="border-2 border-dashed border-primary/40 rounded-lg p-3 mb-2 text-center">
-            <p className="text-xs text-primary font-semibold">
-              Déposer ici → {col.label}
-            </p>
+            <p className="text-xs text-primary font-semibold">Déposer ici → {col.label}</p>
           </div>
         )}
 
@@ -3708,8 +3509,7 @@ function KanbanBoard({
           <span className="text-seal-gray-500/40">|</span>
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-red-500" />{" "}
-            {tickets.filter((t) => getSlaStatus(t) === "exceeded").length} SLA
-            dépassés
+            {tickets.filter((t) => getSlaStatus(t) === "exceeded").length} SLA dépassés
           </span>
         </div>
         <button
@@ -3743,9 +3543,7 @@ function KanbanBoard({
           return (
             <div key={cat} className="space-y-2">
               <div className="flex items-center gap-2">
-                <Badge variant={categoryBadgeVariant(cat)}>
-                  {categoryLabel(cat)}
-                </Badge>
+                <Badge variant={categoryBadgeVariant(cat)}>{categoryLabel(cat)}</Badge>
                 <span className="text-xs text-seal-gray-500 dark:text-slate-400">
                   {catTickets.length} ticket(s)
                 </span>
@@ -3753,9 +3551,7 @@ function KanbanBoard({
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 {KANBAN_COLUMNS.map((col) => {
-                  const colTickets = catTickets.filter(
-                    (t) => t.status === col.status,
-                  );
+                  const colTickets = catTickets.filter((t) => t.status === col.status);
                   return renderColumn(col, colTickets);
                 })}
               </div>

@@ -1,93 +1,104 @@
-import type { APIRequestContext, Page } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+import type { APIRequestContext, BrowserContext, Page } from '@playwright/test';
+import { assertTestEnvironment, testApiUrl, requireTestCredentials } from './test-environment';
+import { testMfaCode, waitForTotpWindow } from './totp';
+import { waitForLoginSlot } from './login-budget';
 
-/**
- * Auth helpers — programmatic login utilities.
- *
- * The UI login flow is slow (form + navigation + hydration). For specs that
- * only need a valid session as a prerequisite we call the backend login
- * endpoint directly, set the access token cookie, and reload the page. This
- * makes each spec ~2–5s faster.
- *
- * NOTE: the frontend reads JWT from the `access_token` HTTP-only cookie set
- * by `/api/auth/login`. We therefore perform the POST through the page's own
- * request context so the cookie is stored in the right jar.
- */
+export type TestRole = 'ADMIN' | 'COLLAB' | 'SUPER_ADMIN';
+const expectedRoles = { ADMIN: 'ADMIN', COLLAB: 'COLLABORATEUR', SUPER_ADMIN: 'SUPER_ADMIN' } as const;
+const filenames = { ADMIN: 'administrator.json', COLLAB: 'collaborator.json', SUPER_ADMIN: 'super-admin.json' } as const;
+export const authDirectory = path.resolve(__dirname, '../.auth');
+export function roleStateFile(role: TestRole): string { return path.join(authDirectory, filenames[role]); }
 
+export function credentialsFor(role: TestRole) {
+  return { ...requireTestCredentials(role), mfaCode: testMfaCode(role) };
+}
+
+// Getters generate a current OTP for API specs that pass this object directly.
 export const ADMIN_CREDS = {
-  email: process.env.E2E_ADMIN_EMAIL || 'jmorin@omnitech-security.fr',
-  password: process.env.E2E_ADMIN_PASSWORD || 'Admin123!',
+  get email() { return process.env.E2E_ADMIN_EMAIL || ''; },
+  get password() { return process.env.E2E_ADMIN_PASSWORD || ''; },
+  get mfaCode() { return testMfaCode('ADMIN'); },
 };
-
 export const COLLAB_CREDS = {
-  email: process.env.E2E_COLLAB_EMAIL || 'collaborateur@omnitech-security.fr',
-  password: process.env.E2E_COLLAB_PASSWORD || 'Collab123!',
+  get email() { return process.env.E2E_COLLAB_EMAIL || ''; },
+  get password() { return process.env.E2E_COLLAB_PASSWORD || ''; },
+  get mfaCode() { return testMfaCode('COLLAB'); },
 };
 
-function apiBase(): string {
-  return process.env.E2E_API_URL || 'http://10.33.120.55:3000/api';
+export async function assertAuthenticated(request: APIRequestContext, role: TestRole): Promise<void> {
+  const response = await request.get(`${testApiUrl()}/auth/me`, { failOnStatusCode: false, maxRedirects: 0 });
+  if (!response.ok()) throw new Error(`[e2e] /auth/me failed for ${role}: ${response.status()}.`);
+  const user = await response.json();
+  if (user?.email !== requireTestCredentials(role).email || user?.role !== expectedRoles[role] || user?.mfaEnabled !== true) {
+    throw new Error(`[e2e] Authenticated identity, role or MFA state differs from the ${role} fixture.`);
+  }
 }
 
-async function apiLogin(
-  request: APIRequestContext,
-  email: string,
-  password: string,
-): Promise<{ ok: boolean; status: number; body?: unknown }> {
-  const res = await request.post(`${apiBase()}/auth/login`, {
-    data: { email, password },
-    failOnStatusCode: false,
-  });
-  const body = await res.json().catch(() => undefined);
-  return { ok: res.ok(), status: res.status(), body };
-}
-
-/**
- * Log in as SUPER_ADMIN via the API and attach cookies/tokens to the page
- * context. Falls back to UI form login if the API call fails.
- */
-export async function loginAsAdmin(page: Page): Promise<void> {
-  return loginAs(page, ADMIN_CREDS);
-}
-
-export async function loginAsCollaborateur(page: Page): Promise<void> {
-  return loginAs(page, COLLAB_CREDS);
-}
-
-async function loginAs(
-  page: Page,
-  creds: { email: string; password: string },
-): Promise<void> {
-  const { ok } = await apiLogin(page.request, creds.email, creds.password);
-  if (ok) {
-    // Cookie is stored in page.request context; reload so the SPA picks it up.
-    await page.goto('/dashboard').catch(() => page.goto('/'));
+/** Real password + OTP login. Never accepts an MFA challenge as a session. */
+export async function authenticateRequest(request: APIRequestContext, role: TestRole): Promise<void> {
+  assertTestEnvironment();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await waitForLoginSlot();
+    await waitForTotpWindow();
+    const response = await request.post(`${testApiUrl()}/auth/login`, {
+      data: credentialsFor(role), failOnStatusCode: false, maxRedirects: 0,
+    });
+    if (response.status() === 429 && attempt < 2) {
+      // Respect the real guard; do not raise its limit or fabricate proxy IPs.
+      const seconds = Number(response.headers()['retry-after'] || '60');
+      await new Promise((resolve) => setTimeout(resolve, Math.min(65, Math.max(1, seconds)) * 1000));
+      continue;
+    }
+    if (!response.ok()) throw new Error(`[e2e] Login failed for ${role}: ${response.status()}.`);
+    const body = await response.json();
+    if (body?.mfaRequired || body?.mfaSetupRequired || !body?.user) {
+      throw new Error(`[e2e] ${role} login is incomplete. Seed MFA and provide its explicit synthetic TOTP secret.`);
+    }
+    await assertAuthenticated(request, role);
     return;
   }
-  // Fallback — UI login
-  await page.goto('/login');
-  await page.fill('input[type="email"]', creds.email);
-  await page.fill('input[type="password"]', creds.password);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard', { timeout: 15_000 }).catch(() => {
-    /* MFA or similar — caller decides what to do */
-  });
+  throw new Error(`[e2e] Login rate limit did not clear for ${role}.`);
 }
 
-/**
- * Post-test cleanup hook. This is a best-effort no-op on the preprod DB — we
- * do NOT mutate real data. If a destructive spec needs a reset, implement it
- * behind `RUN_DESTRUCTIVE=1` in a dedicated helper.
- */
-export async function resetTestUser(_id: string): Promise<void> {
-  if (!process.env.RUN_DESTRUCTIVE) return;
-  // Intentionally a stub on preprod — wire to a real reset endpoint in CI/dev.
+export async function saveRoleState(context: BrowserContext, role: TestRole): Promise<void> {
+  fs.mkdirSync(authDirectory, { recursive: true, mode: 0o700 });
+  fs.chmodSync(authDirectory, 0o700);
+  await context.storageState({ path: roleStateFile(role) });
+  fs.chmodSync(roleStateFile(role), 0o600);
 }
 
-/**
- * Perform a logout by clearing auth cookies and navigating to /login.
- */
+export async function loginAsRole(page: Page, role: TestRole): Promise<void> {
+  assertTestEnvironment();
+  const file = roleStateFile(role);
+  let restored = false;
+  if (fs.existsSync(file)) {
+    const state = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (Array.isArray(state.cookies) && state.cookies.length) {
+      await page.context().clearCookies();
+      await page.context().addCookies(state.cookies);
+      try { await assertAuthenticated(page.request, role); restored = true; } catch { /* Fresh real login below. */ }
+    }
+  }
+  if (!restored) {
+    await authenticateRequest(page.request, role);
+    await saveRoleState(page.context(), role);
+  }
+  await page.goto('/dashboard');
+  await page.waitForURL('**/dashboard', { timeout: 15_000 });
+}
+
+export const loginAsAdmin = (page: Page) => loginAsRole(page, 'ADMIN');
+export const loginAsCollaborateur = (page: Page) => loginAsRole(page, 'COLLAB');
+
 export async function logout(page: Page): Promise<void> {
+  const response = await page.request.post(`${testApiUrl()}/auth/logout`, { failOnStatusCode: false, maxRedirects: 0 });
+  if (!response.ok()) throw new Error(`[e2e] Logout failed: ${response.status()}.`);
   await page.context().clearCookies();
-  await page.goto('/login').catch(() => {
-    /* ignore */
-  });
+  await page.goto('/login');
+}
+
+export async function resetTestUser(_id: string): Promise<void> {
+  // Test data lives in a disposable database. There is no production reset API.
 }

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Audit Timeline View
@@ -12,8 +12,8 @@
  * et double tabs.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   AlertOctagon,
   AlertTriangle,
@@ -22,16 +22,17 @@ import {
   ChevronRight,
   Loader2,
   RefreshCw,
-} from 'lucide-react';
-import { api } from '@/lib/api';
-import { PdfExportButton } from '@/components/ui/pdf-export-button';
-import type { SignedPdfRequest } from '@/lib/export-pdf';
-import { Skeleton, EmptyState } from '@omnitech/ui';
-import { useTranslation } from '@/lib/i18n';
+} from "lucide-react";
+import { api } from "@/lib/api";
+import { formatDate } from "@/lib/utils";
+import { PdfExportButton } from "@/components/ui/pdf-export-button";
+import type { SignedPdfRequest } from "@/lib/export-pdf";
+import { Skeleton, EmptyState } from "@omnitech/ui";
+import { useTranslation } from "@/lib/i18n";
 
 // --- Types ---
 
-type Severity = 'INFO' | 'WARN' | 'CRITICAL';
+type Severity = "INFO" | "WARN" | "CRITICAL";
 
 interface AuditEntry {
   id: string;
@@ -62,17 +63,17 @@ interface AuditStats {
   topFailedLoginIps: { ip: string; count: number }[];
 }
 
-type PeriodKey = '24h' | '7d' | '30d' | 'quarter' | 'year';
+type PeriodKey = "24h" | "7d" | "30d" | "quarter" | "year";
 
 const PERIODS: { value: PeriodKey; label: string }[] = [
-  { value: '24h', label: 'Dernières 24h' },
-  { value: '7d', label: '7 derniers jours' },
-  { value: '30d', label: '30 derniers jours' },
-  { value: 'quarter', label: 'Trimestre courant' },
-  { value: 'year', label: 'Année courante' },
+  { value: "24h", label: "Dernières 24h" },
+  { value: "7d", label: "7 derniers jours" },
+  { value: "30d", label: "30 derniers jours" },
+  { value: "quarter", label: "Trimestre courant" },
+  { value: "year", label: "Année courante" },
 ];
 
-const ALL_SEVERITIES: Severity[] = ['INFO', 'WARN', 'CRITICAL'];
+const ALL_SEVERITIES: Severity[] = ["INFO", "WARN", "CRITICAL"];
 
 // --- Helpers ---
 
@@ -80,20 +81,20 @@ function computeRange(period: PeriodKey): { from: Date; to: Date } {
   const to = new Date();
   const from = new Date(to);
   switch (period) {
-    case '24h':
+    case "24h":
       from.setDate(from.getDate() - 1);
       break;
-    case '7d':
+    case "7d":
       from.setDate(from.getDate() - 7);
       break;
-    case '30d':
+    case "30d":
       from.setDate(from.getDate() - 30);
       break;
-    case 'quarter': {
+    case "quarter": {
       const q = Math.floor(to.getMonth() / 3);
       return { from: new Date(to.getFullYear(), q * 3, 1), to };
     }
-    case 'year':
+    case "year":
       return { from: new Date(to.getFullYear(), 0, 1), to };
   }
   return { from, to };
@@ -112,28 +113,19 @@ function relativeTime(iso: string): string {
   return `il y a ${days}j`;
 }
 
-function formatDateFR(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('fr-FR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  return new Date(iso).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 }
 
 function severityIcon(sev: Severity) {
   switch (sev) {
-    case 'CRITICAL':
+    case "CRITICAL":
       return <AlertOctagon className="h-5 w-5 text-red-600 dark:text-red-400" />;
-    case 'WARN':
+    case "WARN":
       return <AlertTriangle className="h-5 w-5 text-amber-500 dark:text-amber-400" />;
     default:
       return <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />;
@@ -142,12 +134,12 @@ function severityIcon(sev: Severity) {
 
 function severityBadgeClass(sev: Severity): string {
   switch (sev) {
-    case 'CRITICAL':
-      return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
-    case 'WARN':
-      return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
+    case "CRITICAL":
+      return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+    case "WARN":
+      return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
     default:
-      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
+      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
   }
 }
 
@@ -155,9 +147,9 @@ function severityBadgeClass(sev: Severity): string {
 
 export function AuditTimelineView() {
   const { t } = useTranslation();
-  const [period, setPeriod] = useState<PeriodKey>('30d');
-  const [severities, setSeverities] = useState<Severity[]>(['WARN', 'CRITICAL']);
-  const [actionFilter, setActionFilter] = useState('');
+  const [period, setPeriod] = useState<PeriodKey>("30d");
+  const [severities, setSeverities] = useState<Severity[]>(["WARN", "CRITICAL"]);
+  const [actionFilter, setActionFilter] = useState("");
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -177,30 +169,31 @@ export function AuditTimelineView() {
       try {
         // Si plusieurs severities sélectionnées, on fait un appel par severity
         // puis on merge, car l'endpoint ne supporte pas le multi-severity.
-        const calls = severities.length > 0
-          ? severities.map((sev) =>
-              api.get<AuditListResponse>('/audit', {
-                params: {
-                  severity: sev,
-                  action: actionFilter || undefined,
-                  dateFrom: range.from.toISOString(),
-                  dateTo: range.to.toISOString(),
-                  page: targetPage,
-                  limit: 50,
-                },
-              }),
-            )
-          : [
-              api.get<AuditListResponse>('/audit', {
-                params: {
-                  action: actionFilter || undefined,
-                  dateFrom: range.from.toISOString(),
-                  dateTo: range.to.toISOString(),
-                  page: targetPage,
-                  limit: 50,
-                },
-              }),
-            ];
+        const calls =
+          severities.length > 0
+            ? severities.map((sev) =>
+                api.get<AuditListResponse>("/audit", {
+                  params: {
+                    severity: sev,
+                    action: actionFilter || undefined,
+                    dateFrom: range.from.toISOString(),
+                    dateTo: range.to.toISOString(),
+                    page: targetPage,
+                    limit: 50,
+                  },
+                }),
+              )
+            : [
+                api.get<AuditListResponse>("/audit", {
+                  params: {
+                    action: actionFilter || undefined,
+                    dateFrom: range.from.toISOString(),
+                    dateTo: range.to.toISOString(),
+                    page: targetPage,
+                    limit: 50,
+                  },
+                }),
+              ];
 
         const responses = await Promise.all(calls);
         const merged: AuditEntry[] = [];
@@ -211,15 +204,15 @@ export function AuditTimelineView() {
           maxTotal += r.data.meta.total;
           if (r.data.meta.totalPages > maxPages) maxPages = r.data.meta.totalPages;
         }
-        merged.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        );
+        merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         setTotal(maxTotal);
         setTotalPages(maxPages);
         setEntries((prev) => (append ? [...prev, ...merged] : merged));
       } catch (err: any) {
-        toast.error(err?.response?.data?.message || err?.message || 'Impossible de charger les événements');
+        toast.error(
+          err?.response?.data?.message || err?.message || "Impossible de charger les événements",
+        );
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -231,7 +224,7 @@ export function AuditTimelineView() {
   const fetchStats = useCallback(async () => {
     setStatsError(false);
     try {
-      const res = await api.get<AuditStats>('/audit/stats', {
+      const res = await api.get<AuditStats>("/audit/stats", {
         params: { from: range.from.toISOString(), to: range.to.toISOString() },
       });
       setStats(res.data);
@@ -239,8 +232,8 @@ export function AuditTimelineView() {
       // Fallback silencieux : la frise continue à fonctionner sans stats
       setStatsError(true);
       setStats(null);
-      toast.warning('Statistiques indisponibles', {
-        description: 'Le rapport PDF sera généré sans agrégats.',
+      toast.warning("Statistiques indisponibles", {
+        description: "Le rapport PDF sera généré sans agrégats.",
       });
     }
   }, [range]);
@@ -258,9 +251,7 @@ export function AuditTimelineView() {
   };
 
   const toggleSeverity = (sev: Severity) => {
-    setSeverities((prev) =>
-      prev.includes(sev) ? prev.filter((s) => s !== sev) : [...prev, sev],
-    );
+    setSeverities((prev) => (prev.includes(sev) ? prev.filter((s) => s !== sev) : [...prev, sev]));
   };
 
   // Groupement par jour
@@ -276,52 +267,52 @@ export function AuditTimelineView() {
 
   // --- Payload PDF ---
   const pdfPayload = useCallback((): SignedPdfRequest => {
-    const fromLabel = range.from.toLocaleDateString('fr-FR');
-    const toLabel = range.to.toLocaleDateString('fr-FR');
+    const fromLabel = range.from.toLocaleDateString("fr-FR");
+    const toLabel = range.to.toLocaleDateString("fr-FR");
 
-    const sections: SignedPdfRequest['sections'] = [];
+    const sections: SignedPdfRequest["sections"] = [];
 
     if (stats) {
       sections.push({
-        heading: 'Synthèse',
+        heading: "Synthèse",
         paragraphs: [
           `Nombre total d'événements : ${stats.total}`,
           `Répartition par sévérité : INFO ${stats.bySeverity.INFO ?? 0} • WARN ${stats.bySeverity.WARN ?? 0} • CRITICAL ${stats.bySeverity.CRITICAL ?? 0}`,
           `Top 5 actions : ${
             stats.topActions.length === 0
-              ? 'aucune'
-              : stats.topActions.map((a) => `${a.action} (${a.count})`).join(', ')
+              ? "aucune"
+              : stats.topActions.map((a) => `${a.action} (${a.count})`).join(", ")
           }`,
         ],
       });
 
       sections.push({
-        heading: 'Événements critiques',
+        heading: "Événements critiques",
         paragraphs:
           stats.criticalEvents.length === 0
-            ? ['Aucun événement critique sur la période.']
+            ? ["Aucun événement critique sur la période."]
             : stats.criticalEvents.slice(0, 50).map((e) => {
-                const who = e.user?.email || e.userId || 'système';
-                return `${new Date(e.createdAt).toLocaleString('fr-FR')} — ${e.action} — ${e.resourceType}${
-                  e.resourceId ? `#${e.resourceId.slice(0, 8)}` : ''
+                const who = e.user?.email || e.userId || "système";
+                return `${new Date(e.createdAt).toLocaleString("fr-FR")} — ${e.action} — ${e.resourceType}${
+                  e.resourceId ? `#${e.resourceId.slice(0, 8)}` : ""
                 } — ${who}`;
               }),
       });
 
       sections.push({
-        heading: 'Échecs de connexion',
+        heading: "Échecs de connexion",
         paragraphs: [
           `Nombre total d'échecs LOGIN_FAILED : ${stats.failedLogins}`,
           stats.topFailedLoginIps.length === 0
-            ? 'Aucune IP source identifiée.'
-            : `Top 10 IPs : ${stats.topFailedLoginIps.map((i) => `${i.ip} (${i.count})`).join(', ')}`,
+            ? "Aucune IP source identifiée."
+            : `Top 10 IPs : ${stats.topFailedLoginIps.map((i) => `${i.ip} (${i.count})`).join(", ")}`,
         ],
       });
     } else {
       sections.push({
-        heading: 'Synthèse',
+        heading: "Synthèse",
         paragraphs: [
-          'Statistiques indisponibles au moment de la génération.',
+          "Statistiques indisponibles au moment de la génération.",
           `Événements listés dans la frise : ${entries.length}`,
         ],
       });
@@ -331,7 +322,7 @@ export function AuditTimelineView() {
       title: "Rapport d'audit trimestriel",
       subtitle: `Période : ${fromLabel} → ${toLabel}`,
       reference: `AUDIT-${range.from.toISOString().slice(0, 10)}-${range.to.toISOString().slice(0, 10)}`,
-      context: 'ISO 27001 A.5.36 — Revue du journal d\'audit sécurité',
+      context: "ISO 27001 A.5.36 — Revue du journal d'audit sécurité",
       sections,
     };
   }, [stats, entries.length, range]);
@@ -390,7 +381,7 @@ export function AuditTimelineView() {
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition ${
                       active
                         ? `${severityBadgeClass(sev)} border-transparent`
-                        : 'bg-white dark:bg-slate-950 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700'
+                        : "bg-white dark:bg-slate-950 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700"
                     }`}
                   >
                     {severityIcon(sev)}
@@ -422,13 +413,20 @@ export function AuditTimelineView() {
               Total : <strong className="text-seal-navy dark:text-white">{stats.total}</strong>
             </span>
             <span className="text-xs text-gray-600 dark:text-slate-400">
-              CRITICAL : <strong className="text-red-600 dark:text-red-400">{stats.bySeverity.CRITICAL ?? 0}</strong>
+              CRITICAL :{" "}
+              <strong className="text-red-600 dark:text-red-400">
+                {stats.bySeverity.CRITICAL ?? 0}
+              </strong>
             </span>
             <span className="text-xs text-gray-600 dark:text-slate-400">
-              WARN : <strong className="text-amber-600 dark:text-amber-400">{stats.bySeverity.WARN ?? 0}</strong>
+              WARN :{" "}
+              <strong className="text-amber-600 dark:text-amber-400">
+                {stats.bySeverity.WARN ?? 0}
+              </strong>
             </span>
             <span className="text-xs text-gray-600 dark:text-slate-400">
-              Échecs login : <strong className="text-seal-navy dark:text-white">{stats.failedLogins}</strong>
+              Échecs login :{" "}
+              <strong className="text-seal-navy dark:text-white">{stats.failedLogins}</strong>
             </span>
           </div>
         )}
@@ -458,9 +456,14 @@ export function AuditTimelineView() {
               <div key={day}>
                 <div className="sticky top-0 z-10 bg-gray-50 dark:bg-slate-950 py-2 mb-3">
                   <h2 className="text-sm font-semibold text-seal-navy dark:text-white capitalize">
-                    {formatDateFR(day + 'T00:00:00Z')}
+                    {formatDate(day + "T00:00:00Z", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
                     <span className="ml-2 text-xs font-normal text-gray-500 dark:text-slate-500">
-                      ({dayEvents.length} événement{dayEvents.length > 1 ? 's' : ''})
+                      ({dayEvents.length} événement{dayEvents.length > 1 ? "s" : ""})
                     </span>
                   </h2>
                 </div>
@@ -488,14 +491,14 @@ export function AuditTimelineView() {
                                 </span>
                                 <span className="text-[11px] text-gray-500 dark:text-slate-500">
                                   {e.resourceType}
-                                  {e.resourceId ? ` #${e.resourceId.slice(0, 8)}` : ''}
+                                  {e.resourceId ? ` #${e.resourceId.slice(0, 8)}` : ""}
                                 </span>
                               </div>
                               <div className="text-xs text-gray-600 dark:text-slate-400">
                                 {e.user
                                   ? `${e.user.firstName} ${e.user.lastName} (${e.user.email})`
-                                  : e.userId || 'Système'}
-                                {e.ipAddress ? ` • ${e.ipAddress}` : ''}
+                                  : e.userId || "Système"}
+                                {e.ipAddress ? ` • ${e.ipAddress}` : ""}
                               </div>
                             </div>
                             <div className="text-right text-[11px] text-gray-500 dark:text-slate-500 whitespace-nowrap">

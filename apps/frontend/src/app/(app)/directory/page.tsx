@@ -4,15 +4,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useTranslation } from "@/lib/i18n";
-import { UserRole, isRoleAtLeast } from "@omnitech/shared";
-import {
-  Card,
-  CardContent,
-  Badge,
-  SearchInput,
-  Select,
-  Avatar,
-} from "@omnitech/ui";
+import { UserRole, isRoleAtLeast, USER_ROLE_LABELS } from "@omnitech/shared";
+import { Card, CardContent, Badge, SearchInput, Select, Avatar } from "@omnitech/ui";
 import {
   Users,
   Mail,
@@ -29,7 +22,7 @@ import {
 import Link from "next/link";
 import { getAvatarUrl } from "@/lib/avatar";
 import { logger } from "@/lib/logger";
-import { formatUserName } from "@/lib/utils";
+import { formatUserName, getInitials } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
 
 interface DirectoryUser {
@@ -50,37 +43,25 @@ interface DirectoryUser {
 
 const ROLE_COLORS: Record<string, string> = {
   SUPER_ADMIN: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-  ADMIN:
-    "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-  REVIEWER:
-    "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-  COLLABORATEUR:
-    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  PRESTATAIRE:
-    "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
+  ADMIN: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  REVIEWER: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  COLLABORATEUR: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  PRESTATAIRE: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: "Super Admin",
-  ADMIN: "Admin",
-  REVIEWER: "Réviseur",
-  COLLABORATEUR: "Collaborateur",
-  PRESTATAIRE: "Prestataire",
-};
-
+// Palette harmonisée sur la charte SEAL / OMNITECH SECURITY (bleu, navy, vert,
+// bordeaux, orange profond, taupe) — strictement namespace `seal-*`. Toutes
+// ces teintes offrent un contraste suffisant avec le texte blanc des initiales.
+// On évite les couleurs vives hors-charte (fuchsia, lime, rose…) pour une
+// grille d'avatars cohérente. 7 teintes distinctes (vs 12 criardes avant).
 const AVATAR_COLORS = [
-  "bg-blue-500",
-  "bg-emerald-500",
-  "bg-violet-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-cyan-500",
-  "bg-indigo-500",
-  "bg-teal-500",
-  "bg-orange-500",
-  "bg-pink-500",
-  "bg-lime-600",
-  "bg-fuchsia-500",
+  "bg-seal-blue",
+  "bg-seal-navy",
+  "bg-seal-green",
+  "bg-seal-bordeaux",
+  "bg-primary-700",
+  "bg-primary-800",
+  "bg-seal-taupe",
 ];
 
 function getAvatarColor(name: string): string {
@@ -182,12 +163,10 @@ export default function DirectoryPage() {
       u.department?.name ?? "",
       u.phone ?? "",
       u.location ?? "",
-      ROLE_LABELS[u.role] ?? u.role,
+      USER_ROLE_LABELS[u.role] ?? u.role,
     ]);
     const csvContent = [header, ...rows]
-      .map((row) =>
-        row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","),
-      )
+      .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","))
       .join("\n");
     const blob = new Blob(["﻿" + csvContent], {
       type: "text/csv;charset=utf-8;",
@@ -207,22 +186,14 @@ export default function DirectoryPage() {
       if (q) {
         const fullName = formatUserName(u).toLowerCase();
         const dept = (u.department?.name || "").toLowerCase();
-        if (
-          !fullName.includes(q) &&
-          !u.email.toLowerCase().includes(q) &&
-          !dept.includes(q)
-        )
+        if (!fullName.includes(q) && !u.email.toLowerCase().includes(q) && !dept.includes(q))
           return false;
       }
-      if (departmentFilter && u.department?.id !== departmentFilter)
-        return false;
+      if (departmentFilter && u.department?.id !== departmentFilter) return false;
       if (roleFilter && u.role !== roleFilter) return false;
       return true;
     });
   }, [users, search, departmentFilter, roleFilter]);
-
-  const getInitials = (first: string, last: string) =>
-    `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -330,16 +301,14 @@ export default function DirectoryPage() {
                 {roles.map((role) => (
                   <button
                     key={role}
-                    onClick={() =>
-                      setRoleFilter(roleFilter === role ? "" : role)
-                    }
+                    onClick={() => setRoleFilter(roleFilter === role ? "" : role)}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
                       roleFilter === role
                         ? "bg-primary text-white shadow-sm"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
                     }`}
                   >
-                    {ROLE_LABELS[role] || role}
+                    {USER_ROLE_LABELS[role as UserRole] || role}
                   </button>
                 ))}
                 {/* Result counter */}
@@ -362,11 +331,7 @@ export default function DirectoryPage() {
                     key={d.id}
                     onClick={() =>
                       setDepartmentFilter(
-                        departmentFilter === d.id
-                          ? ""
-                          : d.id === "__none__"
-                            ? ""
-                            : d.id,
+                        departmentFilter === d.id ? "" : d.id === "__none__" ? "" : d.id,
                       )
                     }
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
@@ -432,11 +397,7 @@ export default function DirectoryPage() {
             const initials = getInitials(u.firstName, u.lastName);
             const colorClass = getAvatarColor(u.firstName + u.lastName);
             return (
-              <Card
-                key={u.id}
-                hoverable
-                className="stagger-item shadow-sm rounded-xl group"
-              >
+              <Card key={u.id} hoverable className="stagger-item shadow-sm rounded-xl group">
                 <CardContent className="p-5">
                   <div className="flex flex-col items-center text-center gap-3">
                     {/* Avatar — prominent + online indicator */}
@@ -448,9 +409,7 @@ export default function DirectoryPage() {
                         className={`!w-20 !h-20 !text-xl ring-2 ring-white dark:ring-slate-800 shadow-md group-hover:scale-105 transition-transform duration-200 ${!u.avatarUrl ? colorClass : ""}`}
                       />
                       <span
-                        title={
-                          isOnline(u.lastLoginAt) ? "En ligne" : "Hors ligne"
-                        }
+                        title={isOnline(u.lastLoginAt) ? "En ligne" : "Hors ligne"}
                         className={`absolute bottom-0 right-0 block h-4 w-4 rounded-full ring-2 ring-white dark:ring-slate-800 ${
                           isOnline(u.lastLoginAt)
                             ? "bg-emerald-500"
@@ -510,9 +469,7 @@ export default function DirectoryPage() {
                     <Badge
                       className={`text-[9px] ${isAdmin ? ROLE_COLORS[u.role] || "bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-slate-200" : "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300"}`}
                     >
-                      {isAdmin
-                        ? ROLE_LABELS[u.role] || u.role
-                        : "Collaborateur"}
+                      {isAdmin ? USER_ROLE_LABELS[u.role] || u.role : "Collaborateur"}
                     </Badge>
                   </div>
                 </CardContent>
@@ -543,13 +500,9 @@ export default function DirectoryPage() {
                       className={`${!u.avatarUrl ? colorClass : ""}`}
                     />
                     <span
-                      title={
-                        isOnline(u.lastLoginAt) ? "En ligne" : "Hors ligne"
-                      }
+                      title={isOnline(u.lastLoginAt) ? "En ligne" : "Hors ligne"}
                       className={`absolute bottom-0 right-0 block h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-800 ${
-                        isOnline(u.lastLoginAt)
-                          ? "bg-emerald-500"
-                          : "bg-gray-300 dark:bg-slate-600"
+                        isOnline(u.lastLoginAt) ? "bg-emerald-500" : "bg-gray-300 dark:bg-slate-600"
                       }`}
                     />
                   </div>
@@ -580,9 +533,7 @@ export default function DirectoryPage() {
                     <Badge
                       className={`text-[9px] ${isAdmin ? ROLE_COLORS[u.role] || "bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-slate-200" : "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300"}`}
                     >
-                      {isAdmin
-                        ? ROLE_LABELS[u.role] || u.role
-                        : "Collaborateur"}
+                      {isAdmin ? USER_ROLE_LABELS[u.role] || u.role : "Collaborateur"}
                     </Badge>
                   </div>
 

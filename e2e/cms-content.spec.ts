@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/safe-test";
+import { roleStateFile } from './helpers/auth';
 
 /**
  * CMS module — flows admin critiques + sanitization XSS.
@@ -159,21 +160,15 @@ test.describe("Admin — CMS module", () => {
 
 test.describe("CMS RBAC — un COLLABORATEUR ne peut pas accéder à /admin/content", () => {
   test.skip(
-    !process.env.E2E_COLLAB_AUTH,
-    "Storage state COLLABORATEUR non disponible — skipper",
+    !process.env.E2E_COLLAB_EMAIL,
+    "Fixture COLLABORATEUR explicitement absente",
   );
 
-  test.use({ storageState: process.env.E2E_COLLAB_AUTH });
+  test.use({ storageState: roleStateFile('COLLAB') });
 
   test("redirect ou 403 sur /admin/content", async ({ page }) => {
-    const response = await page.goto("/admin/content");
-    // Soit la page client redirige vers /unauthorized ou /, soit on a un 403
-    const status = response?.status() ?? 0;
-    const finalUrl = page.url();
-    if (status === 403) {
-      expect(status).toBe(403);
-    } else {
-      expect(finalUrl).not.toMatch(/\/admin\/content/);
-    }
+    await page.goto('/admin/content/pages');
+    await expect(page.getByRole('heading', { name: 'Accès restreint', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Nouvelle page/i })).toHaveCount(0);
   });
 });

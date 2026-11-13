@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
 
 /**
  * DocumentsRepository — data-access layer for Document entity.
@@ -41,6 +41,9 @@ const DOCUMENT_DETAIL_INCLUDE = {
   owner: {
     select: { id: true, firstName: true, lastName: true, email: true },
   },
+  verifier: {
+    select: { id: true, firstName: true, lastName: true, email: true },
+  },
   reviewer: {
     select: { id: true, firstName: true, lastName: true, email: true },
   },
@@ -48,7 +51,7 @@ const DOCUMENT_DETAIL_INCLUDE = {
     select: { id: true, firstName: true, lastName: true, email: true },
   },
   versions: {
-    orderBy: { createdAt: 'desc' as const },
+    orderBy: { createdAt: "desc" as const },
     include: {
       uploadedBy: {
         select: { id: true, firstName: true, lastName: true },
@@ -77,13 +80,18 @@ const DOCUMENT_DETAIL_INCLUDE = {
     },
   },
   validationRequests: {
-    orderBy: { createdAt: 'desc' as const },
+    orderBy: { createdAt: "desc" as const },
     take: 1,
     include: {
       steps: {
-        orderBy: { createdAt: 'desc' as const },
+        orderBy: { createdAt: "desc" as const },
         include: {
           assignedTo: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+          // Décideur RÉEL de l'étape (≠ assigné en cas de dérogation ADMIN) —
+          // c'est lui qu'affiche la timeline (ISO 27001 A.5.1).
+          decidedBy: {
             select: { id: true, firstName: true, lastName: true },
           },
         },
@@ -111,7 +119,7 @@ export class DocumentsRepository {
 
   async findManyWithCount(
     where: Prisma.DocumentWhereInput,
-    orderBy: Prisma.DocumentOrderByWithRelationInput,
+    orderBy: Prisma.DocumentOrderByWithRelationInput | Prisma.DocumentOrderByWithRelationInput[],
     skip: number,
     take: number,
   ) {
@@ -133,7 +141,7 @@ export class DocumentsRepository {
 
   async groupByCategory(where?: Prisma.DocumentWhereInput) {
     return this.prisma.document.groupBy({
-      by: ['category'],
+      by: ["category"],
       where,
       _count: true,
     });
@@ -141,7 +149,7 @@ export class DocumentsRepository {
 
   async groupByStatus(where?: Prisma.DocumentWhereInput) {
     return this.prisma.document.groupBy({
-      by: ['status'],
+      by: ["status"],
       where,
       _count: true,
     });
@@ -163,10 +171,7 @@ export class DocumentsRepository {
     });
   }
 
-  async updateMany(
-    where: Prisma.DocumentWhereInput,
-    data: Prisma.DocumentUpdateManyMutationInput,
-  ) {
+  async updateMany(where: Prisma.DocumentWhereInput, data: Prisma.DocumentUpdateManyMutationInput) {
     return this.prisma.document.updateMany({ where, data });
   }
 }

@@ -31,6 +31,12 @@ if (cdnUrl) {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Visual QA owns its dev cache; it must never replace a release build.
+  ...(process.env.OMNITECH_UI_QA === "1" ? {
+    distDir: ".next-ui-qa",
+    devIndicators: false,
+    async rewrites() { return [{ source: "/api/:path*", destination: "http://127.0.0.1:17692/api/:path*" }]; },
+  } : {}),
   transpilePackages: ["@omnitech/shared", "@omnitech/ui"],
   eslint: {
     ignoreDuringBuilds: true,

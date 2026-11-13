@@ -43,7 +43,7 @@ describe("WorkflowEngineService", () => {
         deleteMany: jest.fn(),
       },
       approvalStepInstance: { deleteMany: jest.fn() },
-      $transaction: jest.fn().mockResolvedValue([]),
+      $transaction: jest.fn().mockImplementation(async operation => operation(prisma)),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -388,22 +388,8 @@ describe("WorkflowEngineService", () => {
       expect(result).toEqual([]);
     });
 
-    it("PARALLEL_ALL : retourne tous les nextStepIds", () => {
-      const result = service.computeNextSteps(
-        { id: "a", type: "PARALLEL_ALL", nextStepIds: ["b", "c", "d"] },
-        [],
-        {},
-      );
-      expect(result).toEqual(["b", "c", "d"]);
-    });
-
-    it("PARALLEL_ANY : même comportement (l'engine gère le 1er APPROVED en aval)", () => {
-      const result = service.computeNextSteps(
-        { id: "a", type: "PARALLEL_ANY", nextStepIds: ["b", "c"] },
-        [],
-        {},
-      );
-      expect(result).toEqual(["b", "c"]);
+    it.each(['PARALLEL_ALL', 'PARALLEL_ANY'] as const)('%s refuse une divergence sans embranchement explicite', type => {
+      expect(() => service.computeNextSteps({ id: 'a', type, nextStepIds: ['b', 'c'] }, [{ id: 'b', condition: null }, { id: 'c', condition: null }], {})).toThrow(BadRequestException);
     });
 
     it("BRANCH : ne retient que les transitions dont la condition matche", () => {
@@ -424,7 +410,7 @@ describe("WorkflowEngineService", () => {
       expect(result).toEqual(["high"]);
     });
 
-    it("BRANCH : fallback sur le 1er sortant si aucune condition ne matche", () => {
+    it("BRANCH : utilise uniquement une sortie explicitement par défaut", () => {
       const result = service.computeNextSteps(
         { id: "a", type: "BRANCH", nextStepIds: ["high", "low"] },
         [
@@ -434,12 +420,23 @@ describe("WorkflowEngineService", () => {
           },
           {
             id: "low",
-            condition: { field: "amount", op: "lt", value: 100 },
+            condition: null,
           },
         ],
         { amount: 5000 },
       );
-      expect(result).toEqual(["high"]); // fallback default = premier
+      expect(result).toEqual(["low"]);
+    });
+  });
+
+  describe('conservative branch conditions', () => {
+    it.each([true, 'yes', [], { and: [] }, { and: [null] }, { field: 'missing', op: 'neq', value: 'x' }, { field: '__proto__', op: 'neq', value: 'x' }, { field: 'x', value: 1, ignored: true }])('does not treat malformed %j as a match', value => {
+      expect(service.evaluateCondition(value, { x: 1 })).toBe(false);
+    });
+    it('refuses an ambiguous branch and a branch without an explicit default', () => {
+      const source = { id: 'branch', type: 'BRANCH' as const, nextStepIds: ['a', 'b'] };
+      expect(() => service.computeNextSteps(source, [{ id: 'a', condition: { field: 'x', value: 1 } }, { id: 'b', condition: { field: 'x', value: 1 } }], { x: 1 })).toThrow(BadRequestException);
+      expect(() => service.computeNextSteps(source, [{ id: 'a', condition: { field: 'x', value: 1 } }, { id: 'b', condition: { field: 'x', value: 2 } }], { x: 3 })).toThrow(BadRequestException);
     });
   });
 
@@ -448,6 +445,21 @@ describe("WorkflowEngineService", () => {
   // ---------------------------------------------------------------------------
 
   describe("getGraph", () => {
+    it('preserves a classic parallel quorum when saving through the visual editor', async () => {
+      const graph: WorkflowGraphInput = { nodes: [
+        { id: 'start', type: 'START', label: 'Début' },
+        { id: 'approval', type: 'APPROVAL', label: 'Contrôle collectif', data: { mode: 'PARALLEL_ALL', minApprovers: 2 } },
+        { id: 'end', type: 'END', label: 'Fin' },
+      ], edges: [{ source: 'start', target: 'approval' }, { source: 'approval', target: 'end' }] };
+      prisma.workflowStep.findMany.mockResolvedValue(graph.nodes.map(node => ({ id: node.id })));
+      prisma.approvalWorkflow.findUnique.mockResolvedValue({ id: 'workflow', name: 'Circuit', steps: graph.nodes.map((node, index) => ({
+        ...node, order: index + 1, name: node.label, nextStepIds: graph.edges.filter(edge => edge.source === node.id).map(edge => edge.target),
+      })) });
+      await service.saveGraph('workflow', graph);
+      expect(prisma.workflowStep.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'approval' }, data: expect.objectContaining({ mode: 'PARALLEL_ALL', minApprovers: 2 }) }));
+      expect(prisma.approvalStepInstance.deleteMany).not.toHaveBeenCalled();
+    });
+
     it("retourne nodes + edges depuis nextStepIds", async () => {
       prisma.approvalWorkflow.findUnique.mockResolvedValue({
         id: "wf-1",
@@ -548,7 +560,7 @@ describe("WorkflowEngineService", () => {
           ],
           edges: [{ source: "n1", target: "n2" }],
         }),
-      ).rejects.toThrow(/instance.*en cours/i);
+      ).rejects.toThrow(/instances|historique/i);
     });
   });
 });

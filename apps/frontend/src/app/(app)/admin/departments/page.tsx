@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { api } from "@/lib/api";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
+import { USER_ROLE_LABELS, UserRole } from "@omnitech/shared";
 import {
   Card,
   CardContent,
@@ -88,9 +89,7 @@ export default function AdminDepartmentsPage() {
   const [form, setForm] = useState({ name: "", code: "" });
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [deptUsers, setDeptUsers] = useState<Record<string, DepartmentUser[]>>(
-    {},
-  );
+  const [deptUsers, setDeptUsers] = useState<Record<string, DepartmentUser[]>>({});
   const [loadingUsers, setLoadingUsers] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [assignDeptId, setAssignDeptId] = useState<string | null>(null);
@@ -168,8 +167,8 @@ export default function AdminDepartmentsPage() {
       fetchDepartments();
     } catch (error: unknown) {
       const msg =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Erreur";
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Erreur";
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -224,20 +223,6 @@ export default function AdminDepartmentsPage() {
     PRESTATAIRE: "bg-teal-500",
   };
 
-  const roleLabels: Record<string, string> = {
-    SUPER_ADMIN: "Super Admin",
-    ADMIN: "Admin",
-    QUALITY_MANAGER: "Resp. qualité",
-    DEPARTMENT_HEAD: "Chef dept.",
-    COLLABORATOR: "Collaborateur",
-    COLLABORATEUR: "Collaborateur",
-    READER: "Lecteur",
-    AUDITEUR: "Auditeur",
-    REVIEWER: "Réviseur",
-    DIRECTION: "Direction",
-    PRESTATAIRE: "Prestataire",
-  };
-
   const cardGradients = [
     "from-primary via-primary/80 to-blue-400",
     "from-emerald-500 via-emerald-400 to-teal-400",
@@ -252,18 +237,14 @@ export default function AdminDepartmentsPage() {
       key: "code",
       header: t("departments.header.code"),
       render: (d) => (
-        <span className="font-mono font-semibold text-seal-navy dark:text-white">
-          {d.code}
-        </span>
+        <span className="font-mono font-semibold text-seal-navy dark:text-white">{d.code}</span>
       ),
     },
     {
       key: "name",
       header: t("departments.header.name"),
       render: (d) => (
-        <span className="text-sm font-semibold text-seal-navy dark:text-white">
-          {d.name}
-        </span>
+        <span className="text-sm font-semibold text-seal-navy dark:text-white">{d.name}</span>
       ),
     },
     {
@@ -316,17 +297,14 @@ export default function AdminDepartmentsPage() {
           <>
             <ExportButton
               filename="departements"
-              rows={
-                (departments || []) as unknown as Array<Record<string, unknown>>
-              }
+              rows={(departments || []) as unknown as Array<Record<string, unknown>>}
               columns={[
                 { header: "ID", accessor: (r: any) => r?.id || "" },
                 { header: "Code", accessor: (r: any) => r?.code || "" },
                 { header: "Nom", accessor: (r: any) => r?.name || "" },
                 {
                   header: "Nombre utilisateurs",
-                  accessor: (r: any) =>
-                    (r?._count?.users ?? 0) + (r?._count?.userMemberships ?? 0),
+                  accessor: (r: any) => (r?._count?.users ?? 0) + (r?._count?.userMemberships ?? 0),
                 },
                 { header: "Créé le", accessor: (r: any) => r?.createdAt || "" },
               ]}
@@ -364,9 +342,7 @@ export default function AdminDepartmentsPage() {
           keyExtractor={(d) => d.id}
           loading={loading}
           emptyMessage={t("departments.empty")}
-          emptyIcon={
-            <Building2 className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />
-          }
+          emptyIcon={<Building2 className="h-12 w-12 text-seal-gray-500 dark:text-slate-500" />}
         />
       ) : loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -391,8 +367,7 @@ export default function AdminDepartmentsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {departments.map((dept) => {
-            const userCount =
-              (dept._count?.users ?? 0) + (dept._count?.userMemberships ?? 0);
+            const userCount = (dept._count?.users ?? 0) + (dept._count?.userMemberships ?? 0);
             const users = deptUsers[dept.id] || [];
             const isExpanded = expandedId === dept.id;
             const isLoadingThisDept = loadingUsers === dept.id;
@@ -456,12 +431,7 @@ export default function AdminDepartmentsPage() {
                     {users.length > 0 &&
                       (() => {
                         const manager = users.find((u) =>
-                          [
-                            "DIRECTION",
-                            "DEPARTMENT_HEAD",
-                            "ADMIN",
-                            "SUPER_ADMIN",
-                          ].includes(u.role),
+                          ["DIRECTION", "DEPARTMENT_HEAD", "ADMIN", "SUPER_ADMIN"].includes(u.role),
                         );
                         if (!manager) return null;
                         return (
@@ -503,15 +473,14 @@ export default function AdminDepartmentsPage() {
                         ))}
                       </div>
                     )}
-                    {(!dept.managers || dept.managers.length === 0) &&
-                      userCount > 0 && (
-                        <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 text-amber-700 dark:text-amber-300">
-                          <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                          <span className="text-[11px]">
-                            Aucun responsable désigné (ADMIN / DIRECTION)
-                          </span>
-                        </div>
-                      )}
+                    {(!dept.managers || dept.managers.length === 0) && userCount > 0 && (
+                      <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 text-amber-700 dark:text-amber-300">
+                        <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                        <span className="text-[11px]">
+                          Aucun responsable désigné (ADMIN / DIRECTION)
+                        </span>
+                      </div>
+                    )}
 
                     {/* Member count - prominent */}
                     <div className="flex items-center flex-wrap gap-2 mt-3">
@@ -568,20 +537,16 @@ export default function AdminDepartmentsPage() {
                     {/* Mini avatar stack */}
                     {userCount > 0 && (
                       <div className="flex items-center mt-3 -space-x-2">
-                        {Array.from({ length: Math.min(userCount, 5) }).map(
-                          (_, i) => (
-                            <div
-                              key={i}
-                              className="h-7 w-7 rounded-full bg-primary/20 border-2 border-white dark:border-slate-900 flex items-center justify-center"
-                            >
-                              <span className="text-[10px] font-semibold text-primary">
-                                {users[i]
-                                  ? `${users[i].firstName[0]}${users[i].lastName[0]}`
-                                  : "?"}
-                              </span>
-                            </div>
-                          ),
-                        )}
+                        {Array.from({ length: Math.min(userCount, 5) }).map((_, i) => (
+                          <div
+                            key={i}
+                            className="h-7 w-7 rounded-full bg-primary/20 border-2 border-white dark:border-slate-900 flex items-center justify-center"
+                          >
+                            <span className="text-[10px] font-semibold text-primary">
+                              {users[i] ? `${users[i].firstName[0]}${users[i].lastName[0]}` : "?"}
+                            </span>
+                          </div>
+                        ))}
                         {userCount > 5 && (
                           <div className="h-7 w-7 rounded-full bg-gray-200 dark:bg-slate-700 border-2 border-white dark:border-slate-900 flex items-center justify-center">
                             <span className="text-[10px] font-semibold text-seal-gray-500">
@@ -606,7 +571,7 @@ export default function AdminDepartmentsPage() {
                               style={{
                                 width: `${(count / users.length) * 100}%`,
                               }}
-                              title={`${roleLabels[role] || role}: ${count}`}
+                              title={`${USER_ROLE_LABELS[role as UserRole] || role}: ${count}`}
                             />
                           ))}
                         </div>
@@ -619,7 +584,7 @@ export default function AdminDepartmentsPage() {
                               <span
                                 className={`h-2 w-2 rounded-sm ${roleColors[role] || "bg-gray-400"}`}
                               />
-                              {roleLabels[role] || role.replace(/_/g, " ")}{" "}
+                              {USER_ROLE_LABELS[role as UserRole] || role.replace(/_/g, " ")}{" "}
                               <span className="font-semibold text-seal-navy dark:text-white">
                                 {count}
                               </span>
@@ -662,10 +627,7 @@ export default function AdminDepartmentsPage() {
                       ) : (
                         <div className="divide-y divide-gray-100 dark:divide-slate-700 max-h-60 overflow-y-auto">
                           {users.map((u) => (
-                            <div
-                              key={u.id}
-                              className="flex items-center gap-3 px-4 py-2.5"
-                            >
+                            <div key={u.id} className="flex items-center gap-3 px-4 py-2.5">
                               <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                                 <span className="text-xs font-semibold text-primary">
                                   {u.firstName[0]}
@@ -680,9 +642,7 @@ export default function AdminDepartmentsPage() {
                                   {u.email}
                                 </p>
                               </div>
-                              <Badge variant="info">
-                                {u.role.replace(/_/g, " ")}
-                              </Badge>
+                              <Badge variant="info">{u.role.replace(/_/g, " ")}</Badge>
                               <button
                                 onClick={() => handleRemoveUser(dept.id, u.id)}
                                 disabled={removingUserId === u.id}
@@ -738,29 +698,23 @@ export default function AdminDepartmentsPage() {
                           variant="outline"
                           onClick={async () => {
                             try {
-                              const { data } =
-                                await api.get("/users?limit=200");
+                              const { data } = await api.get("/users?limit=200");
                               const allUsers = data?.data || [];
                               const currentMemberIds = new Set(
                                 users.map((m: DepartmentUser) => m.id),
                               );
                               setAvailableUsers(
-                                allUsers.filter(
-                                  (u: any) => !currentMemberIds.has(u.id),
-                                ),
+                                allUsers.filter((u: any) => !currentMemberIds.has(u.id)),
                               );
                               setAssignDeptId(dept.id);
                               setSelectedUserId("");
                               setUserSearch("");
                             } catch {
-                              toast.error(
-                                "Erreur lors du chargement des utilisateurs",
-                              );
+                              toast.error("Erreur lors du chargement des utilisateurs");
                             }
                           }}
                         >
-                          <UserPlus className="h-3.5 w-3.5" /> Ajouter un
-                          collaborateur
+                          <UserPlus className="h-3.5 w-3.5" /> Ajouter un collaborateur
                         </Button>
                         {assignDeptId === dept.id && (
                           <div className="mt-3 space-y-2">
@@ -777,13 +731,9 @@ export default function AdminDepartmentsPage() {
                                 aria-label="Sélectionner un collaborateur"
                                 className="flex-1 rounded border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
                                 value={selectedUserId}
-                                onChange={(e) =>
-                                  setSelectedUserId(e.target.value)
-                                }
+                                onChange={(e) => setSelectedUserId(e.target.value)}
                               >
-                                <option value="">
-                                  Sélectionner un collaborateur...
-                                </option>
+                                <option value="">Sélectionner un collaborateur...</option>
                                 {availableUsers
                                   .filter((u) => {
                                     if (!userSearch) return true;
@@ -791,30 +741,22 @@ export default function AdminDepartmentsPage() {
                                     return (
                                       `${u.firstName} ${u.lastName}`
                                         .toLowerCase()
-                                        .includes(search) ||
-                                      u.email?.toLowerCase().includes(search)
+                                        .includes(search) || u.email?.toLowerCase().includes(search)
                                     );
                                   })
                                   .map((u) => {
                                     const userDepts: string[] = [];
-                                    if (u.department?.name)
-                                      userDepts.push(u.department.name);
+                                    if (u.department?.name) userDepts.push(u.department.name);
                                     if (u.departmentMemberships) {
-                                      u.departmentMemberships.forEach(
-                                        (m: any) => {
-                                          if (m.department?.name)
-                                            userDepts.push(m.department.name);
-                                        },
-                                      );
+                                      u.departmentMemberships.forEach((m: any) => {
+                                        if (m.department?.name) userDepts.push(m.department.name);
+                                      });
                                     }
                                     const deptLabel =
-                                      userDepts.length > 0
-                                        ? ` [${userDepts.join(", ")}]`
-                                        : "";
+                                      userDepts.length > 0 ? ` [${userDepts.join(", ")}]` : "";
                                     return (
                                       <option key={u.id} value={u.id}>
-                                        {u.firstName} {u.lastName} ({u.email})
-                                        {deptLabel}
+                                        {u.firstName} {u.lastName} ({u.email}){deptLabel}
                                       </option>
                                     );
                                   })}
@@ -826,10 +768,9 @@ export default function AdminDepartmentsPage() {
                                 onClick={async () => {
                                   setAddingUser(true);
                                   try {
-                                    await api.patch(
-                                      `/departments/${dept.id}/assign-user`,
-                                      { userId: selectedUserId },
-                                    );
+                                    await api.patch(`/departments/${dept.id}/assign-user`, {
+                                      userId: selectedUserId,
+                                    });
                                     toast.success("Collaborateur ajouté");
                                     setAssignDeptId(null);
                                     setSelectedUserId("");
@@ -873,9 +814,7 @@ export default function AdminDepartmentsPage() {
       <Dialog
         open={showDialog}
         onClose={() => setShowDialog(false)}
-        title={
-          editDept ? t("departments.editTitle") : t("departments.createTitle")
-        }
+        title={editDept ? t("departments.editTitle") : t("departments.createTitle")}
       >
         <div className="space-y-3">
           <Input
@@ -888,20 +827,14 @@ export default function AdminDepartmentsPage() {
             label={t("departments.label.code")}
             placeholder={t("departments.codePlaceholder")}
             value={form.code}
-            onChange={(e) =>
-              setForm({ ...form, code: e.target.value.toUpperCase() })
-            }
+            onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
           />
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setShowDialog(false)}>
               {t("common.cancel")}
             </Button>
             <Button onClick={handleSave} loading={saving} disabled={saving}>
-              {saving
-                ? "Enregistrement…"
-                : editDept
-                  ? t("departments.save")
-                  : t("common.create")}
+              {saving ? "Enregistrement…" : editDept ? t("departments.save") : t("common.create")}
             </Button>
           </div>
         </div>

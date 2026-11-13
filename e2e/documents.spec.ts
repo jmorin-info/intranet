@@ -1,4 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { testApiUrl } from './helpers/test-environment';
+import { test, expect } from './helpers/safe-test';
+import { extractPdfText } from './helpers/pdf';
 
 /**
  * Documents flows — run authenticated (default storageState = SUPER_ADMIN).
@@ -6,7 +8,7 @@ import { test, expect } from '@playwright/test';
  * preprod unless RUN_DESTRUCTIVE=1.
  */
 
-const API = process.env.E2E_API_URL || 'http://10.33.120.55:3000/api';
+const API = testApiUrl();
 const DESTRUCTIVE = !!process.env.RUN_DESTRUCTIVE;
 
 test.describe('Documents — listing & filters', () => {
@@ -97,27 +99,19 @@ test.describe('Documents — watermark on download', () => {
   test('downloaded PDF stream contains CONFIDENTIEL watermark', async ({ request }) => {
     // Find a confidential document via list API
     const list = await request.get(`${API}/documents?limit=5`, { failOnStatusCode: false });
-    if (!list.ok()) {
-      test.skip(true, `API /documents non accessible (${list.status()}) — test watermark non joué`);
-    }
-    const body = await list.json().catch(() => ({ data: [] }));
-    const docs: any[] = body.data || body || [];
-    const target = docs.find((d) => d?.id) ?? docs[0];
-    if (!target?.id) {
-      test.skip(true, 'Aucun document disponible pour test watermark');
-    }
+    expect(list.status()).toBe(200);
+    const body = await list.json();
+    const docs: Array<{ id: string; classification: string }> = body.data || body;
+    const target = docs.find((document) => document.classification === 'CONFIDENTIEL');
+    expect(target, 'The disposable fixture must contain a confidential PDF.').toBeTruthy();
 
-    const dl = await request.get(`${API}/documents/${target.id}/download`, { failOnStatusCode: false });
-    // 200 with PDF body OR 302 redirect to signed URL — both acceptable
-    if (dl.status() === 302 || dl.status() === 307) {
-      test.skip(true, 'Téléchargement redirige vers un signed URL — watermark non vérifiable ici');
-    }
-    if (!dl.ok()) {
-      test.skip(true, `Download endpoint status ${dl.status()} — test non concluant`);
-    }
+    const dl = await request.get(`${API}/documents/${target!.id}/download`, { failOnStatusCode: false, maxRedirects: 0 });
+    expect(dl.status()).toBe(200);
+    expect(dl.headers()['content-type']).toContain('application/pdf');
+    expect(dl.headers()['x-watermark']).toContain('classification=CONFIDENTIEL');
     const buf = await dl.body();
-    const text = buf.toString('latin1'); // PDF streams are latin1-safe for text search
-    // CONFIDENTIEL watermark should appear somewhere in the PDF stream
-    expect(text).toMatch(/CONFIDENTIEL|CONFIDENTIAL/i);
+    const text = await extractPdfText(buf);
+    expect(text).toContain('CONFIDENTIEL');
+    expect(text).toContain(process.env.E2E_SUPER_ADMIN_EMAIL || process.env.E2E_ADMIN_EMAIL!);
   });
 });

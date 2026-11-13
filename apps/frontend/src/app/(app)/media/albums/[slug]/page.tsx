@@ -18,10 +18,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { isRoleAtLeast, UserRole } from "@omnitech/shared";
 import { api } from "@/lib/api";
 import { withAuthToken } from "@/lib/media-url";
-import {
-  MediaLightbox,
-  type LightboxItem,
-} from "@/components/media/media-lightbox";
+import { MediaLightbox, type LightboxItem } from "@/components/media/media-lightbox";
 import { HoverVideoPreview } from "@/components/media/hover-video-preview";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -78,11 +75,8 @@ export default function AlbumDetailPage() {
   const openLightbox = (idx: number) => setLightboxIndex(idx);
   const closeLightbox = () => setLightboxIndex(null);
   const nextLightbox = () =>
-    setLightboxIndex((i) =>
-      i !== null && album && i < album.items.length - 1 ? i + 1 : i,
-    );
-  const prevLightbox = () =>
-    setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
+    setLightboxIndex((i) => (i !== null && album && i < album.items.length - 1 ? i + 1 : i));
+  const prevLightbox = () => setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
 
   if (loading) {
     return (
@@ -119,10 +113,7 @@ export default function AlbumDetailPage() {
 
   // Pick the hero: image de couverture dédiée → coverItem → first image → first item
   const heroItem: LightboxItem | null =
-    album.coverItem ||
-    album.items.find((it) => it.type === "IMAGE") ||
-    album.items[0] ||
-    null;
+    album.coverItem || album.items.find((it) => it.type === "IMAGE") || album.items[0] || null;
   const hasDedicatedCover = Boolean(album.coverImageUrl);
   const showHero = hasDedicatedCover || Boolean(heroItem);
 
@@ -265,10 +256,11 @@ export default function AlbumDetailPage() {
                 <img
                   src={withAuthToken(item.thumbnailUrl)}
                   alt={item.title ?? ""}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                   onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.opacity =
-                      "0.25";
+                    (e.currentTarget as HTMLImageElement).style.opacity = "0.25";
                   }}
                 />
               )}
@@ -276,9 +268,7 @@ export default function AlbumDetailPage() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                 <div className="text-left">
                   {item.title && (
-                    <p className="text-xs font-semibold text-white line-clamp-1">
-                      {item.title}
-                    </p>
+                    <p className="text-xs font-semibold text-white line-clamp-1">{item.title}</p>
                   )}
                   <p className="text-[10px] text-white/70 flex items-center gap-1 mt-0.5">
                     {item.type === "VIDEO" ? (

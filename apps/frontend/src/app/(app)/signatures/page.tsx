@@ -3,13 +3,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { toast } from "sonner";
 import {
   Card,
   CardContent,
   Button,
   EmptyState,
-  ConfirmDialog,
   Skeleton,
 } from "@omnitech/ui";
 import { PageHeader } from "@/components/layout/page-header";
@@ -21,6 +19,7 @@ import {
   FileText,
   AlertTriangle,
   ExternalLink,
+  Megaphone,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { logger } from "@/lib/logger";
@@ -31,10 +30,41 @@ interface SignatureRequest {
   createdAt: string;
   signedAt: string | null;
   docusealSubmissionId: string | null;
+  /**
+   * Slug du submitter DocuSeal — c'est LUI qui construit l'URL de signature
+   * (/s/:slug). Le submissionId numérique donne un 404. Fallback historique
+   * possible (demandes créées avant la persistance du slug).
+   */
+  docusealSlug: string | null;
   documentVersion: {
     document: { id: string; title: string; reference: string };
   };
   requestedBy: { firstName: string; lastName: string };
+  /**
+   * Campagne d'origine si la demande a été générée par une campagne de
+   * signature (une campagne = un générateur de SignatureRequest). `null`
+   * pour une demande individuelle.
+   */
+  campaign: { id: string; title: string; dueAt: string | null } | null;
+}
+
+/**
+ * URL de signature DocuSeal. Une signature engageante passe TOUJOURS par
+ * DocuSeal : il n'existe plus de « signature au clic » côté intranet
+ * (l'ancien PATCH /signatures/:id/sign est désactivé par défaut via
+ * SIGNATURES_ALLOW_DIRECT=false et n'est plus exposé dans l'UI).
+ *
+ * DocuSeal sert le formulaire sur /s/:slug (slug du submitter). Le
+ * submissionId numérique donne un 404 : on privilégie donc le slug, avec
+ * repli sur le submissionId pour les demandes historiques sans slug persisté.
+ */
+function docusealUrl(sig: {
+  docusealSlug: string | null;
+  docusealSubmissionId: string | null;
+}) {
+  const base =
+    process.env.NEXT_PUBLIC_DOCUSEAL_URL || "http://localhost:7000";
+  return `${base}/s/${sig.docusealSlug || sig.docusealSubmissionId}`;
 }
 
 export default function MySignaturesPage() {
@@ -42,7 +72,6 @@ export default function MySignaturesPage() {
   const [pending, setPending] = useState<SignatureRequest[]>([]);
   const [completed, setCompleted] = useState<SignatureRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [confirmSignId, setConfirmSignId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"pending" | "signed" | "all">(
     "pending",
   );
@@ -63,20 +92,6 @@ export default function MySignaturesPage() {
   useEffect(() => {
     fetchSignatures();
   }, [fetchSignatures]);
-
-  const handleSign = async (sigId: string) => {
-    try {
-      await api.patch(`/signatures/${sigId}/sign`);
-      toast.success(t("mySignatures.signSuccess"));
-      fetchSignatures();
-    } catch (err) {
-      toast.error(
-        (err as any)?.response?.data?.message ||
-          (err as any)?.message ||
-          t("mySignatures.signError"),
-      );
-    }
-  };
 
   const signedCount = completed.filter((s) => s.status === "SIGNED").length;
   const rejectedCount = completed.filter((s) => s.status === "REJECTED").length;
@@ -256,6 +271,15 @@ export default function MySignaturesPage() {
                             <AlertTriangle className="h-3 w-3" /> Refuse
                           </span>
                         )}
+                        {sig.campaign && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                            title={`Demande issue de la campagne « ${sig.campaign.title} »`}
+                          >
+                            <Megaphone className="h-3 w-3" />
+                            {sig.campaign.title}
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-seal-gray-500 dark:text-slate-400">
                         <span className="font-mono">
@@ -269,11 +293,16 @@ export default function MySignaturesPage() {
                         {sig.signedAt && (
                           <span>Signe le {formatDate(sig.signedAt)}</span>
                         )}
+                        {sig.campaign?.dueAt && !sig.signedAt && (
+                          <span className="text-amber-600 dark:text-amber-400">
+                            Échéance campagne : {formatDate(sig.campaign.dueAt)}
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-3 mt-1">
                         {sig.docusealSubmissionId && (
                           <a
-                            href={`${process.env.NEXT_PUBLIC_DOCUSEAL_URL || "http://localhost:7000"}/s/${sig.docusealSubmissionId}`}
+                            href={docusealUrl(sig)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
@@ -290,15 +319,30 @@ export default function MySignaturesPage() {
                         </Link>
                       </div>
                     </div>
-                    {isPending && (
-                      <Button
-                        onClick={() => setConfirmSignId(sig.id)}
-                        className="flex-shrink-0 w-full sm:w-auto sm:max-w-[140px] transition duration-200 min-h-[44px]"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />{" "}
-                        {t("mySignatures.sign")}
-                      </Button>
-                    )}
+                    {/* Signature engageante = DocuSeal uniquement. Si la
+                        demande n'a pas de submission (cas résiduel d'avant la
+                        refonte), on l'indique au lieu de proposer un clic
+                        sans valeur probante. */}
+                    {isPending &&
+                      (sig.docusealSubmissionId ? (
+                        <Button
+                          onClick={() =>
+                            window.open(
+                              docusealUrl(sig),
+                              "_blank",
+                              "noopener,noreferrer",
+                            )
+                          }
+                          className="flex-shrink-0 w-full sm:w-auto transition duration-200 min-h-[44px]"
+                        >
+                          <PenLine className="h-4 w-4" /> Signer sur DocuSeal
+                        </Button>
+                      ) : (
+                        <span className="flex-shrink-0 text-[11px] text-amber-600 dark:text-amber-400 max-w-[200px]">
+                          Signature indisponible : aucune soumission DocuSeal
+                          rattachée. Contactez le demandeur.
+                        </span>
+                      ))}
                   </div>
                 </CardContent>
               </Card>
@@ -307,18 +351,6 @@ export default function MySignaturesPage() {
         </div>
       )}
 
-      <ConfirmDialog
-        open={!!confirmSignId}
-        onClose={() => setConfirmSignId(null)}
-        onConfirm={() => {
-          handleSign(confirmSignId!);
-          setConfirmSignId(null);
-        }}
-        title={t("mySignatures.confirmSign")}
-        description={t("mySignatures.confirmSignDescription")}
-        confirmLabel="Signer"
-        variant="primary"
-      />
     </div>
   );
 }

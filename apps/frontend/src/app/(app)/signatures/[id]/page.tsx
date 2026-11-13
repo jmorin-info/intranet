@@ -59,6 +59,9 @@ interface SignatureDetail {
   createdAt: string;
   signedAt: string | null;
   docusealSubmissionId: string | null;
+  // Slug submitter DocuSeal (URL de signature /s/:slug). Le submissionId
+  // numérique donne un 404 — repli seulement pour les demandes historiques.
+  docusealSlug: string | null;
   signerId: string;
   requestedById: string;
   signer: {
@@ -243,7 +246,7 @@ export default function SignatureDetailPage() {
           </div>
           {isPending && sig.docusealSubmissionId && (
             <a
-              href={`${process.env.NEXT_PUBLIC_DOCUSEAL_URL || 'http://localhost:7000'}/s/${sig.docusealSubmissionId}`}
+              href={`${process.env.NEXT_PUBLIC_DOCUSEAL_URL || 'http://localhost:7000'}/s/${sig.docusealSlug || sig.docusealSubmissionId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm hover:opacity-90"

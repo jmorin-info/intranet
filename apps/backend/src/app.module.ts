@@ -9,6 +9,7 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { BullModule } from "@nestjs/bullmq";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
+import { PreMfaAuthGuard } from "./auth/guards/pre-mfa-auth.guard";
 import { UsersModule } from "./users/users.module";
 import { DepartmentsModule } from "./departments/departments.module";
 import { DocumentsModule } from "./documents/documents.module";
@@ -28,6 +29,9 @@ import { IsoAnalyzerModule } from "./iso-analyzer/iso-analyzer.module";
 import { LdapModule } from "./ldap/ldap.module";
 import { TicketsModule } from "./tickets/tickets.module";
 import { VeilleModule } from "./veille/veille.module";
+// REG_016 / PRO_040 / SharePoint alignment — Phase 2 (2026-06-13)
+import { RegistreModule } from "./registre/registre.module";
+import { SharePointModule } from "./sharepoint/sharepoint.module";
 import { SatisfactionModule } from "./satisfaction/satisfaction.module";
 import { PublicModule } from "./public/public.module";
 import { MfaModule } from "./mfa/mfa.module";
@@ -140,6 +144,11 @@ import { MaintenanceModule } from "./maintenance/maintenance.module";
     LdapModule,
     TicketsModule,
     VeilleModule,
+    // REG_016 / PRO_040 / SharePoint alignment — Phase 2 (2026-06-13).
+    // SharePointModule est feature-flagged (GED_SHAREPOINT_SYNC_ENABLED)
+    // et se charge meme si non configure (status endpoint reste joignable).
+    RegistreModule,
+    SharePointModule,
     SatisfactionModule,
     PublicModule,
     MfaModule,
@@ -208,8 +217,9 @@ import { MaintenanceModule } from "./maintenance/maintenance.module";
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    // Ordre des APP_GUARD : ThrottlerGuard → JwtAuthGuard (déclaré au niveau
-    // controller via @UseGuards) → MfaRequiredGuard → FreshMfaGuard.
+    // Les APP_GUARD passent avant les gardes de contrôleur. Il faut résoudre
+    // l'identité JWT ici pour que les politiques MFA disposent de req.user.
+    { provide: APP_GUARD, useClass: PreMfaAuthGuard },
     // MfaRequiredGuard bloque toute requête authentifiée d'un user soumis à
     // la politique MFA mais non encore enrôlé (sauf @Public/@SkipMfaCheck).
     // FreshMfaGuard ne s'active que si la route est annotée @RequireFreshMfa.

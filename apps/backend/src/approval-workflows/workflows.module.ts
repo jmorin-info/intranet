@@ -6,6 +6,8 @@ import { WorkflowEngineService } from "./workflow-engine.service";
 import { DelegationService } from "./delegation.service";
 import { DelegationCronService } from "./delegation-cron.service";
 import { DelegationsController } from "./delegations.controller";
+import { WorkflowRuntimeService } from './workflow-runtime.service';
+import { WorkflowRemindersService } from './workflow-reminders.service';
 
 /**
  * ApprovalWorkflowsModule — Workflows d'approbation configurables (ISO 27001
@@ -25,10 +27,12 @@ import { DelegationsController } from "./delegations.controller";
   controllers: [WorkflowsController, DelegationsController],
   providers: [
     WorkflowsService,
+    WorkflowRuntimeService,
+    WorkflowRemindersService,
     WorkflowEngineService,
     DelegationService,
     DelegationCronService,
   ],
-  exports: [WorkflowsService, WorkflowEngineService, DelegationService],
+  exports: [WorkflowsService, WorkflowRuntimeService, WorkflowEngineService, DelegationService],
 })
 export class ApprovalWorkflowsModule {}

@@ -8,8 +8,18 @@ import {
   IsDateString,
   IsIn,
   MaxLength,
-} from 'class-validator';
-import { DocumentCategory } from '@prisma/client';
+  ValidateIf,
+} from "class-validator";
+import { Transform } from "class-transformer";
+import { DocumentCategory, DocumentLevel, DocumentPriority } from "@prisma/client";
+
+/**
+ * Le formulaire d'édition envoie systématiquement certains champs via un spread
+ * du payload — une chaîne vide '' pour « non renseigné ». Or @IsDateString /
+ * @IsUUID rejettent '' → 400. On normalise donc '' → undefined (champ ignoré,
+ * valeur DB inchangée). `null` explicite reste accepté (désassignation).
+ */
+const emptyToUndefined = ({ value }: { value: unknown }) => (value === "" ? undefined : value);
 
 export class UpdateDocumentDto {
   @IsOptional()
@@ -28,20 +38,34 @@ export class UpdateDocumentDto {
 
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID("4", { each: true })
   isoControlIds?: string[];
 
+  // Vérificateur (contrôle technique, étape VERIFICATION) — cycle qualité 5 rôles.
+  // null = désassignation explicite ; '' → undefined (ignoré).
   @IsOptional()
+  @Transform(emptyToUndefined)
+  @ValidateIf((_, v) => v !== null)
   @IsUUID()
-  reviewerId?: string;
+  verifierId?: string | null;
 
   @IsOptional()
+  @Transform(emptyToUndefined)
+  @ValidateIf((_, v) => v !== null)
   @IsUUID()
-  approverId?: string;
+  reviewerId?: string | null;
 
   @IsOptional()
+  @Transform(emptyToUndefined)
+  @ValidateIf((_, v) => v !== null)
+  @IsUUID()
+  approverId?: string | null;
+
+  @IsOptional()
+  @Transform(emptyToUndefined)
+  @ValidateIf((_, v) => v !== null)
   @IsDateString()
-  nextReviewDate?: string;
+  nextReviewDate?: string | null;
 
   @IsOptional()
   @IsBoolean()
@@ -51,7 +75,38 @@ export class UpdateDocumentDto {
   @IsString()
   classification?: string;
 
+  // --- Champs REG_016 (cf. CreateDocumentDto) — sinon PATCH rejeté en 400 ---
   @IsOptional()
-  @IsIn(['DRAFT', 'IN_REVIEW', 'REVIEW_APPROVED', 'PENDING_APPROVAL', 'APPROVED', 'OBSOLETE', 'ARCHIVED'])
+  @IsString()
+  @MaxLength(50)
+  parentReference?: string;
+
+  @IsOptional()
+  @IsEnum(DocumentLevel)
+  documentLevel?: DocumentLevel;
+
+  @IsOptional()
+  @IsEnum(DocumentPriority)
+  priority?: DocumentPriority;
+
+  @IsOptional()
+  @IsBoolean()
+  blocking?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  reviewPeriodicity?: string;
+
+  @IsOptional()
+  @IsIn([
+    "DRAFT",
+    "IN_REVIEW",
+    "REVIEW_APPROVED",
+    "PENDING_APPROVAL",
+    "APPROVED",
+    "OBSOLETE",
+    "ARCHIVED",
+  ])
   status?: string;
 }

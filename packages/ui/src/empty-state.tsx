@@ -11,7 +11,7 @@ import {
   TicketIcon,
   type LucideIcon,
 } from 'lucide-react';
-import { Button } from './button';
+import { Button, buttonVariants } from './button';
 
 type EmptyStateType = 'documents' | 'users' | 'news' | 'notifications' | 'search' | 'general' | 'success' | 'tickets';
 
@@ -69,7 +69,7 @@ export function EmptyState({
       renderedCta = (
         <a
           href={cta.href}
-          className="inline-flex items-center justify-center gap-2 rounded-btn bg-[#F9964A] px-4 h-10 text-sm font-semibold text-white hover:bg-[#e67d1e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy focus-visible:ring-offset-2 transition-colors"
+          className={buttonVariants({ variant: 'primary', size: 'md' })}
         >
           {cta.label}
         </a>

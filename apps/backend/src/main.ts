@@ -34,6 +34,7 @@ import { AppModule } from "./app.module";
 import { ApiSocketIoAdapter } from "./socket-io-adapter";
 import { SentryExceptionFilter } from "./common/sentry.filter";
 import { AppMetricsService } from "./health/app-metrics.service";
+import { blockPrivateUploads } from "./common/private-uploads.middleware";
 
 async function bootstrap() {
   const logger = new Logger("Bootstrap");
@@ -52,6 +53,7 @@ async function bootstrap() {
 
   // Serve uploaded files (wiki attachments, certificates, etc.)
   const uploadsDir = join(process.cwd(), "uploads");
+  app.use(blockPrivateUploads);
   app.useStaticAssets(uploadsDir, { prefix: "/uploads/" });
 
   // Enable strong ETags on GET responses so clients get automatic 304 Not
@@ -61,23 +63,20 @@ async function bootstrap() {
     httpAdapter.set("etag", "strong");
     // Derrière BunkerWeb : faire confiance à X-Forwarded-* pour récupérer l'IP client réelle
     // (rate-limiting, logs d'audit, détection brute-force).
-    httpAdapter.set(
-      "trust proxy",
-      process.env.TRUST_PROXY || "loopback, linklocal, uniquelocal",
-    );
+    httpAdapter.set("trust proxy", process.env.TRUST_PROXY || "loopback, linklocal, uniquelocal");
   }
 
   // Fail fast if critical secrets are missing
-  const requiredEnvVars = [
-    "DATABASE_URL",
-    "JWT_ACCESS_SECRET",
-    "JWT_REFRESH_SECRET",
-  ];
+  const requiredEnvVars = ["DATABASE_URL", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET"];
   // CRYPTO_SECRET only required in prod (dev fallback dérive de JWT_ACCESS_SECRET) :
   // sinon une rotation des secrets JWT invaliderait silencieusement les tokens
   // OAuth chiffrés au repos (Google Calendar, Outlook).
+  // STORAGE_SECRET idem : sans cette variable en prod, la signature HMAC des
+  // URLs de téléchargement retombe sur le fallback codé en dur
+  // 'storage-secret-change-me' (audit sécurité P0-5).
   if (process.env.NODE_ENV === "production") {
     requiredEnvVars.push("CRYPTO_SECRET");
+    requiredEnvVars.push("STORAGE_SECRET");
   }
   for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
@@ -244,10 +243,7 @@ async function bootstrap() {
         const method = String(req.method || "GET");
         const statusCode = String(res.statusCode || 0);
         appMetrics.httpRequestsTotal.inc({ route, method, statusCode });
-        appMetrics.httpRequestDurationSeconds.observe(
-          { route, method },
-          elapsed,
-        );
+        appMetrics.httpRequestDurationSeconds.observe({ route, method }, elapsed);
       } catch {
         // metrics must never break the request lifecycle
       }
@@ -319,6 +315,13 @@ async function bootstrap() {
   app.useGlobalFilters(new SentryExceptionFilter(httpAdapterHost.httpAdapter));
   if (isSentryEnabled()) {
     logger.log("Sentry error reporting: ENABLED");
+  }
+
+  // Statut SIEM au bootstrap (visibilité ops) — no-op si SIEM_ENABLED!=='true'.
+  if (process.env.SIEM_ENABLED === "true") {
+    logger.log(
+      `SIEM forwarding: ENABLED → GELF ${process.env.SIEM_GELF_HOST}:${process.env.SIEM_GELF_PORT || 12201}`,
+    );
   }
 
   const port = process.env.PORT || 3000;

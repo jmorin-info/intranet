@@ -40,7 +40,11 @@ function formatValue(value: unknown): string {
 }
 
 function formatCsvCell(value: unknown): string {
-  const str = formatValue(value);
+  const formatted = formatValue(value);
+  // Spreadsheet formula parsing also ignores leading whitespace/control bytes.
+  // Preserve actual numeric cells (including negative numbers).
+  const str = typeof value === "string" && /^[\s\x00-\x1f\x7f]*[=+@-]/.test(formatted)
+    ? "'" + formatted : formatted;
   if (str === "") return "";
   // Escape per RFC 4180: wrap in " if contains ";", ", \n, \r ; double any internal quote.
   if (/[";;\n\r]/.test(str) || str.includes(";")) {

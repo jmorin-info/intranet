@@ -21,6 +21,7 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { FileserverService } from "./fileserver.service";
 import { RequestUser } from "../common/interfaces";
 import { UserRole } from "../common/enums";
+import { AuthenticateFileserverDto, CreateFolderDto } from "./dto/authenticate-fileserver.dto";
 import * as path from "path";
 
 // Accès aux partages SMB internes (Samba/NAS). Sensible : un prestataire
@@ -47,17 +48,11 @@ export class FileserverController {
   }
 
   @Post("authenticate")
-  async authenticate(
-    @Body() body: { username: string; password: string },
-    @CurrentUser() user: RequestUser,
-  ) {
+  async authenticate(@Body() body: AuthenticateFileserverDto, @CurrentUser() user: RequestUser) {
     const smbUser = body.username.includes("@")
       ? body.username
       : `${body.username}@omnitech.security`;
-    const valid = await this.fileserverService.verifyCredentials(
-      smbUser,
-      body.password,
-    );
+    const valid = await this.fileserverService.verifyCredentials(smbUser, body.password);
     if (!valid) {
       return { success: false, message: "Identifiants invalides" };
     }
@@ -73,12 +68,7 @@ export class FileserverController {
   ) {
     const safeShare = FileserverService.validateShareName(share);
     const safeDir = FileserverService.validateSafePath(dirPath || "");
-    return this.fileserverService.listFiles(
-      safeShare,
-      safeDir,
-      user.role,
-      user.id,
-    );
+    return this.fileserverService.listFiles(safeShare, safeDir, user.role, user.id);
   }
 
   @Get("download/:share")
@@ -94,12 +84,7 @@ export class FileserverController {
       // A download always needs a file path
       throw new BadRequestException("Invalid path");
     }
-    const data = this.fileserverService.downloadFile(
-      safeShare,
-      safeFilePath,
-      user.role,
-      user.id,
-    );
+    const data = this.fileserverService.downloadFile(safeShare, safeFilePath, user.role, user.id);
     const fileName = path.basename(safeFilePath);
     res.set({
       "Content-Type": "application/octet-stream",
@@ -159,28 +144,17 @@ export class FileserverController {
     if (!safeFilePath) {
       throw new BadRequestException("Invalid path");
     }
-    return this.fileserverService.deleteFile(
-      safeShare,
-      safeFilePath,
-      user.role,
-      user.id,
-    );
+    return this.fileserverService.deleteFile(safeShare, safeFilePath, user.role, user.id);
   }
 
   @Post("mkdir/:share")
   createFolder(
     @Param("share") share: string,
-    @Body() body: { path: string; name: string },
+    @Body() body: CreateFolderDto,
     @CurrentUser() user: RequestUser,
   ) {
     const safeShare = FileserverService.validateShareName(share);
     const safeDir = FileserverService.validateSafePath(body?.path || "");
-    return this.fileserverService.createFolder(
-      safeShare,
-      safeDir,
-      body.name,
-      user.role,
-      user.id,
-    );
+    return this.fileserverService.createFolder(safeShare, safeDir, body.name, user.role, user.id);
   }
 }

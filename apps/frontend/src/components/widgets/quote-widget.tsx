@@ -33,6 +33,14 @@ const QUOTES = [
   { text: "Celui qui n'a pas de stratégie et sous-estime l'adversaire sera inévitablement capturé.", author: "Sun Tzu — appliqué à la cybersécurité" },
   { text: "J'ai cracké des systèmes non pas parce que la technologie était faible, mais parce que les gens étaient confiants.", author: "Kevin Mitnick" },
   { text: "Le management, c'est l'art de prendre des décisions à partir d'informations insuffisantes.", author: "Roy Rowan" },
+  { text: "La sécurité, c'est zéro fois — il n'y a pas de seconde chance après une fuite de données.", author: "RSSI OMNITECH" },
+  { text: "Une politique de sécurité non lue est une politique inutile.", author: "ISO 27001 A.5.1" },
+  { text: "L'attaquant n'a besoin de réussir qu'une fois ; le défenseur, à chaque fois.", author: "Adage cyber" },
+  { text: "La sauvegarde, c'est pour ceux qui se sont déjà fait chiffrer.", author: "Retour d'expérience ransomware" },
+  { text: "Le MFA est le casque de la cybersécurité : on le met AVANT de tomber.", author: "ANSSI — campagne 2024" },
+  { text: "Mesurer ce qui compte, plutôt que compter ce qui se mesure facilement.", author: "Albert Einstein" },
+  { text: "Le zéro-trust commence par ne pas se faire confiance soi-même.", author: "John Kindervag" },
+  { text: "La transparence est le meilleur antiseptique.", author: "Louis Brandeis" },
 ];
 
 export function QuoteWidget() {

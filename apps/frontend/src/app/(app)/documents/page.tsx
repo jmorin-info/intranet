@@ -1,10 +1,11 @@
 "use client";
 
-import React, { Suspense, useEffect, useState, useCallback } from "react";
+import React, { Suspense, useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
-import { downloadFromApi } from "@/lib/download";
+import { downloadFromApi, buildDocumentFilename } from "@/lib/download";
+import { downloadCsv } from "@/lib/export-csv";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDocumentStore } from "@/stores/document-store";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -35,6 +36,7 @@ import {
   EmptyState,
   Badge,
   ConfirmDialog,
+  Dialog,
 } from "@omnitech/ui";
 import { formatDate, formatRelativeTime } from "@/lib/utils";
 import {
@@ -47,7 +49,6 @@ import {
   Clock,
   Eye,
   FileCheck,
-  GripVertical,
   Trash2,
   FileDown,
   CheckSquare,
@@ -99,11 +100,7 @@ import {
   getValidityInfo,
   categoryBadgeVariant,
 } from "./_components/helpers";
-import type {
-  Document,
-  PaginatedDocs,
-  StatusTabKey,
-} from "./_components/types";
+import type { Document, PaginatedDocs, StatusTabKey } from "./_components/types";
 import { useDocumentsColumns } from "./_components/use-documents-columns";
 
 function DocumentsContent() {
@@ -121,92 +118,94 @@ function DocumentsContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [myDocsOnly, setMyDocsOnly] = useState(false);
   const [docStats, setDocStats] = useState<any>(null);
-  const [quickStats, setQuickStats] = useState<{
-    total: number;
-    mine: number;
-    pendingReview: number;
-    recentlyUpdated: number;
+  const [mySummary, setMySummary] = useState<{
+    myDrafts: number; myInReview: number; toApproveByMe: number; toConfirmByMe: number; nearReviewDate: number; total: number;
   } | null>(null);
+  const requestController = useRef<AbortController | null>(null);
+  const statusTab: StatusTabKey = filters.statusGroup || "all";
+  const clearAllFilters = () => {
+    resetFilters();
+    setMyDocsOnly(false);
+    router.replace("/documents", { scroll: false });
+  };
+  const setStatusTab = (key: StatusTabKey) => setFilters({ status: undefined, statusGroup: key === "all" ? undefined : key, page: 1 });
 
   const isAdmin = user && isRoleAtLeast(user.role, UserRole.ADMIN);
   const canReview = user && isRoleAtLeast(user.role, UserRole.REVIEWER);
-  const canCreate = user && isRoleAtLeast(user.role, UserRole.COLLABORATEUR);
+  const canCreate = user && isRoleAtLeast(user.role, UserRole.REVIEWER);
 
   useEffect(() => {
     if (isAdmin) {
       api
         .get("/documents/statistics")
         .then((r) => setDocStats(r.data))
-        .catch((err) =>
-          logger.error(err, { page: "documents", context: "load statistics" }),
-        );
+        .catch((err) => logger.error(err, { page: "documents", context: "load statistics" }));
     }
   }, [isAdmin]);
 
-  // Compute quick stats from loaded docs and stats
-  useEffect(() => {
-    if (docs && user) {
-      const total = docs.meta?.total ?? 0;
-      const docList = docs.data || [];
-      const mine = docList.filter((d) => d.owner.id === user.id).length;
-      const pendingReview = docList.filter(
-        (d) => d.status === "IN_REVIEW" || d.status === "PENDING_APPROVAL",
-      ).length;
-      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-      const recentlyUpdated = docList.filter(
-        (d) => d.updatedAt >= sevenDaysAgo,
-      ).length;
-      setQuickStats({ total, mine, pendingReview, recentlyUpdated });
-    }
-  }, [docs, user]);
+  const fetchMySummary = useCallback(async () => {
+    if (!user) return;
+    try { const response = await api.get("/documents/ged/my-summary"); setMySummary(response.data); }
+    catch { setMySummary(null); }
+  }, [user?.id]);
+  useEffect(() => { void fetchMySummary(); }, [fetchMySummary]);
 
   const debouncedSearch = useDebounce(filters.search || "", 300);
+  const requestFilterKey = JSON.stringify({ ...filters, search: debouncedSearch });
+  const requestFilters = useMemo(() => JSON.parse(requestFilterKey) as typeof filters, [requestFilterKey]);
 
-  // Initialize filters from URL params
+  // Only supported URL values reach the API; saved library criteria stay intact.
   useEffect(() => {
-    const status = searchParams.get("status") as DocumentStatus | null;
-    const category = searchParams.get("category") as DocumentCategory | null;
-    if (status || category) {
-      setFilters({
-        status: status || undefined,
-        category: category || undefined,
-      });
-    }
+    const rawStatus = searchParams.get("status");
+    const rawCategory = searchParams.get("category");
+    const rawGroup = searchParams.get("statusGroup");
+    const status = Object.values(DocumentStatus).includes(rawStatus as DocumentStatus) ? rawStatus as DocumentStatus : undefined;
+    const category = Object.values(DocumentCategory).includes(rawCategory as DocumentCategory) ? rawCategory as DocumentCategory : undefined;
+    const group = STATUS_TAB_DEFS.find((tab) => tab.key !== "all" && tab.key === rawGroup)?.key as Exclude<StatusTabKey, "all"> | undefined;
+    if (status || category || group) setFilters({ status, category, statusGroup: status ? undefined : group, page: 1 });
+    if (searchParams.get("owner") === "me") setMyDocsOnly(true);
   }, [searchParams, setFilters]);
 
   const fetchDocuments = useCallback(async () => {
+    requestController.current?.abort();
+    const controller = new AbortController();
+    requestController.current = controller;
     setLoading(true);
     setFetchError(false);
     try {
       const params: Record<string, string | number> = {
-        page: filters.page,
-        limit: filters.limit,
+        page: requestFilters.page,
+        limit: requestFilters.limit,
       };
-      if (filters.status) params.status = filters.status;
-      if (filters.category) params.category = filters.category;
-      if (filters.classification)
-        params.classification = filters.classification;
-      if (filters.isoControlCode)
-        params.isoControlCode = filters.isoControlCode;
+      if (requestFilters.status) params.status = requestFilters.status;
+      if (requestFilters.statusGroup) params.statusGroup = requestFilters.statusGroup;
+      if (requestFilters.category) params.category = requestFilters.category;
+      if (requestFilters.classification) params.classification = requestFilters.classification;
+      if (requestFilters.isoControlCode) params.isoControlCode = requestFilters.isoControlCode;
       if (debouncedSearch) params.search = debouncedSearch;
-      if (filters.dateFrom) params.dateFrom = filters.dateFrom;
-      if (filters.dateTo) params.dateTo = filters.dateTo;
-      if (filters.sortBy) params.sortBy = filters.sortBy;
-      if (filters.sortOrder) params.sortOrder = filters.sortOrder;
+      if (requestFilters.dateFrom) params.dateFrom = requestFilters.dateFrom;
+      if (requestFilters.dateTo) params.dateTo = requestFilters.dateTo;
+      if (requestFilters.sortBy) params.sortBy = requestFilters.sortBy;
+      if (requestFilters.sortOrder) params.sortOrder = requestFilters.sortOrder;
       if (myDocsOnly && user?.id) params.ownerId = user.id;
 
-      const { data } = await api.get("/documents", { params });
+      const { data } = await api.get("/documents", { params, signal: controller.signal });
+      if (controller.signal.aborted) return;
+      if (data.meta.totalPages > 0 && requestFilters.page > data.meta.totalPages) {
+        setFilters({ page: data.meta.totalPages });
+        return;
+      }
       setDocs(data);
     } catch {
-      setDocs(null);
-      setFetchError(true);
+      if (!controller.signal.aborted) { setDocs(null); setFetchError(true); }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
-  }, [filters, debouncedSearch, myDocsOnly, user?.id]);
+  }, [requestFilters, debouncedSearch, myDocsOnly, user?.id, setFilters]);
 
   useEffect(() => {
-    fetchDocuments();
+    void fetchDocuments();
+    return () => requestController.current?.abort();
   }, [fetchDocuments]);
 
   // Refetch when user returns from detail page (prevents stale status badges)
@@ -215,23 +214,20 @@ function DocumentsContent() {
   // Event bus: auto-refresh when document mutations happen elsewhere
   useEntityEvents("DOCUMENT", (event) => {
     if (event.metadata?.optimistic) return;
-    if (
-      ["CREATED", "APPROVED", "REJECTED", "STATUS_CHANGED", "DELETED"].includes(
-        event.type,
-      )
-    ) {
-      fetchDocuments();
+    if (["CREATED", "APPROVED", "REJECTED", "STATUS_CHANGED", "DELETED"].includes(event.type)) {
+      void fetchDocuments();
+      void fetchMySummary();
     }
   });
 
-  const [viewMode, setViewMode] = useState<"table" | "cards" | "kanban">(
-    "table",
-  );
+  const [viewMode, setViewMode] = useState<"table" | "cards" | "kanban">("table");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [statusTab, setStatusTab] = useState<StatusTabKey>("all");
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkAction, setBulkAction] = useState<"archive" | "classify" | null>(null);
+  const [bulkWorking, setBulkWorking] = useState(false);
+  const [bulkClassification, setBulkClassification] = useState("INTERNE");
   // Wave D — Create-from-template modal trigger (REVIEWER+ requis côté backend).
   const [showFromTemplate, setShowFromTemplate] = useState(false);
 
@@ -250,12 +246,7 @@ function DocumentsContent() {
     const isEditableTarget = (el: EventTarget | null): boolean => {
       if (!(el instanceof HTMLElement)) return false;
       const tag = el.tagName;
-      return (
-        tag === "INPUT" ||
-        tag === "TEXTAREA" ||
-        tag === "SELECT" ||
-        el.isContentEditable
-      );
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
     };
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -291,9 +282,7 @@ function DocumentsContent() {
       }
       if (key === "f") {
         e.preventDefault();
-        const input = document.querySelector<HTMLInputElement>(
-          'input[placeholder*="Rechercher"]',
-        );
+        const input = document.querySelector<HTMLInputElement>('input[placeholder*="Rechercher"]');
         input?.focus();
         return;
       }
@@ -330,24 +319,26 @@ function DocumentsContent() {
   const selectedDocs = docs?.data?.filter((d) => selectedIds.has(d.id)) || [];
 
   const handleBulkDownload = async () => {
+    let downloaded = 0;
     for (const doc of selectedDocs) {
       try {
-        const { data } = await api.get(`/documents/${doc.id}/download`, {
+        const { data, headers } = await api.get(`/documents/${doc.id}/download`, {
           responseType: "blob",
         });
         const url = window.URL.createObjectURL(new Blob([data]));
         const link = document.createElement("a");
         link.href = url;
-        link.setAttribute("download", `${doc.reference}-${doc.title}.pdf`);
+        link.setAttribute("download", buildDocumentFilename(doc.reference, undefined, String(headers["content-type"] || "")));
         document.body.appendChild(link);
         link.click();
         link.remove();
-        window.URL.revokeObjectURL(url);
+        setTimeout(() => window.URL.revokeObjectURL(url), 100);
+        downloaded++;
       } catch {
         toast.error(`Erreur de téléchargement : ${doc.title}`);
       }
     }
-    toast.success("Téléchargement lancé");
+    if (downloaded > 0) toast.success(`${downloaded} téléchargement${downloaded > 1 ? "s lancés" : " lancé"}`);
   };
 
   const handleBulkDelete = async () => {
@@ -368,81 +359,38 @@ function DocumentsContent() {
     }
   };
 
-  const handleBulkArchive = async () => {
-    if (selectedDocs.length === 0) return;
-    if (
-      !confirm(
-        `Archiver ${selectedDocs.length} document${selectedDocs.length > 1 ? "s" : ""} ?`,
-      )
-    )
-      return;
+  const handleBulkAction = async () => {
+    if (!bulkAction || selectedDocs.length === 0) return;
+    setBulkWorking(true);
     try {
-      const { data } = await api.post<{ updated: number }>(
-        "/documents/bulk/archive",
-        {
-          ids: selectedDocs.map((d) => d.id),
-        },
-      );
-      toast.success(
-        `${data.updated} document${data.updated > 1 ? "s archivés" : " archivé"}`,
-      );
+      const { data } = await api.post<{ updated: number }>(`/documents/bulk/${bulkAction}`, {
+        ids: selectedDocs.map((doc) => doc.id),
+        ...(bulkAction === "classify" ? { classification: bulkClassification } : {}),
+      });
+      toast.success(`${data.updated} document${data.updated > 1 ? "s mis à jour" : " mis à jour"}`);
       setSelectedIds(new Set());
-      fetchDocuments();
+      setBulkAction(null);
+      void fetchDocuments();
     } catch {
-      toast.error("Erreur d'archivage");
-    }
-  };
-
-  const handleBulkClassify = async () => {
-    if (selectedDocs.length === 0) return;
-    const choice = prompt(
-      "Nouvelle classification (PUBLIC / INTERNE / CONFIDENTIEL / SECRET) :",
-      "INTERNE",
-    );
-    if (!choice) return;
-    const value = choice.trim().toUpperCase();
-    if (!["PUBLIC", "INTERNE", "CONFIDENTIEL", "SECRET"].includes(value)) {
-      toast.error("Classification invalide");
-      return;
-    }
-    try {
-      const { data } = await api.post<{ updated: number }>(
-        "/documents/bulk/classify",
-        {
-          ids: selectedDocs.map((d) => d.id),
-          classification: value,
-        },
-      );
-      toast.success(
-        `Classification mise à jour sur ${data.updated} document${data.updated > 1 ? "s" : ""}`,
-      );
-      setSelectedIds(new Set());
-      fetchDocuments();
-    } catch {
-      toast.error("Erreur de classification");
-    }
+      toast.error(bulkAction === "archive" ? "L’archivage a échoué" : "La classification a échoué");
+    } finally { setBulkWorking(false); }
   };
 
   const handleExportAllCSV = async () => {
     try {
       const params: Record<string, unknown> = {};
       if (filters.status) params.status = filters.status;
+      if (filters.statusGroup) params.statusGroup = filters.statusGroup;
       if (filters.category) params.category = filters.category;
-      if (filters.classification)
-        params.classification = filters.classification;
-      if (filters.isoControlCode)
-        params.isoControlCode = filters.isoControlCode;
+      if (filters.classification) params.classification = filters.classification;
+      if (filters.isoControlCode) params.isoControlCode = filters.isoControlCode;
       if (debouncedSearch) params.search = debouncedSearch;
       if (filters.dateFrom) params.dateFrom = filters.dateFrom;
       if (filters.dateTo) params.dateTo = filters.dateTo;
       if (myDocsOnly && user?.id) params.ownerId = user.id;
 
       const stamp = new Date().toISOString().slice(0, 10);
-      await downloadFromApi(
-        "/documents/export/csv",
-        `documents-${stamp}.csv`,
-        params,
-      );
+      await downloadFromApi("/documents/export/csv", `documents-${stamp}.csv`, params);
       toast.success("Export en cours");
     } catch (err) {
       toast.error("Erreur d'export");
@@ -464,48 +412,27 @@ function DocumentsContent() {
     const rows = selectedDocs.map((doc) => [
       doc.reference,
       doc.title,
-      DOCUMENT_CATEGORY_LABELS[doc.category as DocumentCategory] ||
-        doc.category,
+      DOCUMENT_CATEGORY_LABELS[doc.category as DocumentCategory] || doc.category,
       doc.classification || "",
       DOCUMENT_STATUS_LABELS[doc.status as DocumentStatus] || doc.status,
       `${doc.owner.firstName} ${doc.owner.lastName}`,
       formatDate(doc.createdAt),
       formatDate(doc.updatedAt),
     ]);
-    const csv = [
-      headers.join(";"),
-      ...rows.map((r) =>
-        r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"),
-      ),
-    ].join("\n");
-    const blob = new Blob(["﻿" + csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      `documents-export-${new Date().toISOString().slice(0, 10)}.csv`,
-    );
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    downloadCsv("documents", rows.map((cells) => Object.fromEntries(cells.map((value, index) => [String(index), value]))),
+      headers.map((header, index) => ({ header, accessor: String(index) })), "Sélection documentaire");
     toast.success("Export terminé");
   };
 
-  const canSeeAllStatuses = user && isRoleAtLeast(user.role, UserRole.REVIEWER);
+  const canSeeAllStatuses = !!user;
   const statusOptions = Object.entries(DOCUMENT_STATUS_LABELS)
     .filter(([value]) => canSeeAllStatuses || value === "APPROVED")
     .map(([value, label]) => ({ value, label }));
 
-  const categoryOptions = Object.entries(DOCUMENT_CATEGORY_LABELS).map(
-    ([value, label]) => ({
-      value,
-      label,
-    }),
-  );
+  const categoryOptions = Object.entries(DOCUMENT_CATEGORY_LABELS).map(([value, label]) => ({
+    value,
+    label,
+  }));
 
   const allClassifications = [
     { value: "PUBLIC", label: "Public", minRole: null },
@@ -521,8 +448,7 @@ function DocumentsContent() {
     (c) => !c.minRole || (user && isRoleAtLeast(user.role, c.minRole)),
   );
 
-  const allSelected =
-    docs?.data && docs.data.length > 0 && selectedIds.size === docs.data.length;
+  const allSelected = docs?.data && docs.data.length > 0 && selectedIds.size === docs.data.length;
   const someSelected = selectedIds.size > 0 && !allSelected;
 
   const columns = useDocumentsColumns({
@@ -538,7 +464,7 @@ function DocumentsContent() {
     filters.category ||
     filters.classification ||
     filters.isoControlCode ||
-    filters.dateFrom;
+    filters.dateFrom || filters.dateTo || filters.statusGroup || filters.search || myDocsOnly;
 
   return (
     <AIOrchestratedLayout module="DOCUMENTS" hints={orchestration.hints}>
@@ -580,11 +506,7 @@ function DocumentsContent() {
               )}
               <ExportButton
                 filename="documents"
-                rows={
-                  (docs?.data || []) as unknown as Array<
-                    Record<string, unknown>
-                  >
-                }
+                rows={(docs?.data || []) as unknown as Array<Record<string, unknown>>}
                 columns={[
                   { header: "Référence", accessor: "reference" },
                   { header: "Titre", accessor: "title" },
@@ -597,9 +519,7 @@ function DocumentsContent() {
                   {
                     header: "Propriétaire",
                     accessor: (r: any) =>
-                      r?.owner
-                        ? `${r.owner.firstName} ${r.owner.lastName}`
-                        : "",
+                      r?.owner ? `${r.owner.firstName} ${r.owner.lastName}` : "",
                   },
                   {
                     header: "Créé le",
@@ -610,14 +530,14 @@ function DocumentsContent() {
               />
               {canCreate && (
                 <>
-                  <Button
+                  {canReview && <Button
                     variant="outline"
                     onClick={() => setShowFromTemplate(true)}
-                    title="Créer un document à partir d'un template"
+                    title="Créer un document à partir d'un modèle"
                   >
                     <FileText className="h-4 w-4" />
-                    Depuis template
-                  </Button>
+                    Depuis un modèle
+                  </Button>}
                   <Button onClick={() => router.push("/documents/new")}>
                     <Plus className="h-4 w-4" />
                     {t("documents.new")}
@@ -628,58 +548,29 @@ function DocumentsContent() {
           }
         />
 
-        {/* Quick stats bar */}
-        {quickStats && (
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              variant="navy"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5"
-            >
-              <FileText className="h-3.5 w-3.5" />
-              <span className="font-semibold">{quickStats.total}</span>{" "}
-              documents
-            </Badge>
-            <Badge
-              variant="primary"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 cursor-pointer"
-              onClick={() => {
-                setMyDocsOnly(true);
-                setFilters({ page: 1 });
-              }}
-            >
-              <User className="h-3.5 w-3.5" />
-              <span className="font-semibold">{quickStats.mine}</span> mes
-              documents
-            </Badge>
-            {canReview && quickStats.pendingReview > 0 && (
-              <Badge
-                variant="warning"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 cursor-pointer"
-                onClick={() =>
-                  setFilters({ status: "IN_REVIEW" as DocumentStatus, page: 1 })
-                }
-              >
-                <Eye className="h-3.5 w-3.5" />
-                <span className="font-semibold">
-                  {quickStats.pendingReview}
-                </span>{" "}
-                en revue
-              </Badge>
-            )}
-            {quickStats.recentlyUpdated > 0 && (
-              <Badge
-                variant="success"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5"
-              >
-                <Clock className="h-3.5 w-3.5" />
-                <span className="font-semibold">
-                  {quickStats.recentlyUpdated}
-                </span>{" "}
-                mis à jour (7j)
-              </Badge>
-            )}
+        <section aria-label="Suivi documentaire" className="rounded-xl border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-seal-navy dark:text-white">Votre activité documentaire</p>
+              <p className="mt-1 text-xs text-seal-gray-500">Retrouvez vos brouillons et les validations qui attendent votre action.</p>
+            </div>
+            <Link href="/approvals" className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-primary/30 px-3 py-2 text-sm font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <FileCheck className="h-4 w-4" aria-hidden="true" /> Approbations et relances
+            </Link>
           </div>
-        )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Badge variant="navy">{docs?.meta.total ?? "—"} résultat{docs?.meta.total === 1 ? "" : "s"} dans la bibliothèque</Badge>
+            {mySummary && <>
+              <button type="button" onClick={() => { setMyDocsOnly(true); setStatusTab("drafts"); }} className="min-h-[36px] rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800 focus-visible:ring-2 focus-visible:ring-primary dark:bg-blue-900/20 dark:text-blue-300">
+                {mySummary.myDrafts} brouillon{mySummary.myDrafts === 1 ? "" : "s"} à préparer
+              </button>
+              <Link href="/documents/pending" className="inline-flex min-h-[36px] items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 focus-visible:ring-2 focus-visible:ring-primary dark:bg-amber-900/20 dark:text-amber-300">
+                {mySummary.toApproveByMe} approbation{mySummary.toApproveByMe === 1 ? "" : "s"} finale{mySummary.toApproveByMe === 1 ? "" : "s"} · {mySummary.toConfirmByMe} confirmation{mySummary.toConfirmByMe === 1 ? "" : "s"}
+              </Link>
+              {mySummary.nearReviewDate > 0 && <Badge variant="warning">{mySummary.nearReviewDate} revue{mySummary.nearReviewDate === 1 ? "" : "s"} à planifier</Badge>}
+            </>}
+          </div>
+        </section>
 
         {/* Admin statistics — hidden by AI orchestrator when not needed */}
         {isAdmin && docStats && uiVisibility.analyticsWidgets && (
@@ -691,10 +582,7 @@ function DocumentsContent() {
                 </p>
                 <div className="space-y-1">
                   {docStats.byCategory?.slice(0, 5).map((c: any) => (
-                    <div
-                      key={c.category}
-                      className="flex items-center gap-2 text-xs"
-                    >
+                    <div key={c.category} className="flex items-center gap-2 text-xs">
                       <span className="w-20 text-seal-gray-500 dark:text-slate-400 truncate">
                         {c.category}
                       </span>
@@ -721,10 +609,7 @@ function DocumentsContent() {
                 </p>
                 <div className="space-y-1">
                   {docStats.byStatus?.map((s: any) => (
-                    <div
-                      key={s.status}
-                      className="flex items-center gap-2 text-xs"
-                    >
+                    <div key={s.status} className="flex items-center gap-2 text-xs">
                       <span className="w-20 text-seal-gray-500 dark:text-slate-400 truncate">
                         {s.status}
                       </span>
@@ -751,17 +636,15 @@ function DocumentsContent() {
                 </p>
                 <div className="space-y-1">
                   {docStats.byClassification?.map((c: any) => {
+                    // Couleurs SEAL/POL_015 — alignées sur le mapping de la vue cartes (cf. classColors plus bas).
                     const colors: Record<string, string> = {
-                      SECRET: "bg-red-500",
-                      CONFIDENTIEL: "bg-amber-500",
-                      INTERNE: "bg-blue-500",
-                      PUBLIC: "bg-emerald-500",
+                      PUBLIC: "bg-[#006233]",
+                      INTERNE: "bg-[#296DC1]",
+                      CONFIDENTIEL: "bg-[#F9964A]",
+                      SECRET: "bg-[#892034]",
                     };
                     return (
-                      <div
-                        key={c.classification}
-                        className="flex items-center gap-2 text-xs"
-                      >
+                      <div key={c.classification} className="flex items-center gap-2 text-xs">
                         <span className="w-20 text-seal-gray-500 dark:text-slate-400 truncate">
                           {c.classification}
                         </span>
@@ -788,12 +671,12 @@ function DocumentsContent() {
         {/* Search + filters */}
         <Card className="shadow-sm rounded-xl">
           <CardContent className="space-y-3 p-4">
-            <div className="flex gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <SearchInput
                 value={filters.search || ""}
                 onChange={(search) => setFilters({ search, page: 1 })}
                 placeholder={t("documents.search")}
-                className="flex-1"
+                className="min-w-[12rem] flex-1"
               />
               <Button
                 variant={showFilters ? "primary" : "outline"}
@@ -811,14 +694,14 @@ function DocumentsContent() {
                 <Button
                   variant="outline"
                   onClick={handleExportAllCSV}
-                  title="Exporte jusqu'a 1000 documents filtres au format CSV"
+                  title="Exporter jusqu’à 1 000 documents correspondant aux filtres"
                 >
                   <FileDown className="h-4 w-4" />
                   Exporter CSV
                 </Button>
               )}
               {hasFilters && (
-                <Button variant="ghost" onClick={resetFilters}>
+                <Button variant="ghost" onClick={clearAllFilters}>
                   <X className="h-4 w-4" />
                   Effacer
                 </Button>
@@ -846,8 +729,7 @@ function DocumentsContent() {
                   value={filters.category || ""}
                   onChange={(e) =>
                     setFilters({
-                      category:
-                        (e.target.value as DocumentCategory) || undefined,
+                      category: (e.target.value as DocumentCategory) || undefined,
                       page: 1,
                     })
                   }
@@ -941,8 +823,7 @@ function DocumentsContent() {
             ] as const
           )
             .filter((c) => {
-              if (c.value === "SECRET")
-                return user && isRoleAtLeast(user.role, UserRole.ADMIN);
+              if (c.value === "SECRET") return user && isRoleAtLeast(user.role, UserRole.ADMIN);
               if (c.value === "CONFIDENTIEL")
                 return user && isRoleAtLeast(user.role, UserRole.REVIEWER);
               return true;
@@ -952,8 +833,7 @@ function DocumentsContent() {
                 key={c.value}
                 onClick={() =>
                   setFilters({
-                    classification:
-                      filters.classification === c.value ? undefined : c.value,
+                    classification: filters.classification === c.value ? undefined : c.value,
                     page: 1,
                   })
                 }
@@ -1009,18 +889,13 @@ function DocumentsContent() {
               key={cat}
               onClick={() =>
                 setFilters({
-                  category:
-                    filters.category === cat
-                      ? undefined
-                      : (cat as DocumentCategory),
+                  category: filters.category === cat ? undefined : (cat as DocumentCategory),
                   page: 1,
                 })
               }
               className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${filters.category === cat ? "bg-primary text-white" : "bg-gray-100 dark:bg-slate-700 text-seal-gray-500 dark:text-slate-300 hover:bg-gray-200"}`}
             >
-              {DOCUMENT_CATEGORY_LABELS[
-                cat as keyof typeof DOCUMENT_CATEGORY_LABELS
-              ] || cat}
+              {DOCUMENT_CATEGORY_LABELS[cat as keyof typeof DOCUMENT_CATEGORY_LABELS] || cat}
             </button>
           ))}
         </div>
@@ -1062,30 +937,15 @@ function DocumentsContent() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-slate-700 pb-2">
           <div className="flex flex-wrap items-center gap-1">
             {STATUS_TAB_DEFS.filter(
-              (t) =>
-                canSeeAllStatuses || t.key === "all" || t.key === "published",
+              (t) => canSeeAllStatuses || t.key === "all" || t.key === "published",
             ).map((tab) => {
               const active = statusTab === tab.key;
-              const count =
-                tab.statuses === null
-                  ? (docs?.meta?.total ?? 0)
-                  : (docs?.data?.filter((d) =>
-                      tab.statuses!.includes(d.status as DocumentStatus),
-                    ).length ?? 0);
+              const count = active ? docs?.meta.total : undefined;
               return (
                 <button
                   key={tab.key}
-                  onClick={() => {
-                    setStatusTab(tab.key);
-                    if (tab.statuses === null) {
-                      setFilters({ status: undefined, page: 1 });
-                    } else if (tab.statuses.length === 1) {
-                      setFilters({ status: tab.statuses[0], page: 1 });
-                    } else {
-                      // Multi-status tab: apply first status then rely on client-side filter
-                      setFilters({ status: tab.statuses[0], page: 1 });
-                    }
-                  }}
+                  onClick={() => setStatusTab(tab.key)}
+                  aria-pressed={active}
                   className={`inline-flex items-center gap-1.5 rounded-t-lg border-b-2 px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     active
                       ? `${tab.color} bg-white dark:bg-slate-800`
@@ -1093,11 +953,7 @@ function DocumentsContent() {
                   }`}
                 >
                   {tab.label}
-                  <span
-                    className={`inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[9px] font-bold ${active ? "bg-white/60 dark:bg-slate-900/60" : "bg-gray-100 dark:bg-slate-700"}`}
-                  >
-                    {count}
-                  </span>
+                  {count !== undefined && <span className="inline-flex items-center justify-center rounded-full bg-white/60 px-1.5 py-0.5 text-[10px] font-bold dark:bg-slate-900/60">{count}</span>}
                 </button>
               );
             })}
@@ -1222,11 +1078,11 @@ function DocumentsContent() {
             selectedCount={selectedIds.size}
             onClearSelection={() => setSelectedIds(new Set())}
             actions={[
-              { label: "Archiver", icon: Archive, onClick: handleBulkArchive },
+              { label: "Archiver", icon: Archive, onClick: () => setBulkAction("archive") },
               {
                 label: "Classification",
                 icon: ShieldCheck,
-                onClick: handleBulkClassify,
+                onClick: () => setBulkAction("classify"),
               },
               {
                 label: "Exporter en CSV",
@@ -1255,11 +1111,7 @@ function DocumentsContent() {
               <p className="text-sm text-seal-gray-500 dark:text-slate-400">
                 Impossible de charger les documents.
               </p>
-              <Button
-                variant="outline"
-                className="mt-3"
-                onClick={fetchDocuments}
-              >
+              <Button variant="outline" className="mt-3" onClick={fetchDocuments}>
                 Réessayer
               </Button>
             </CardContent>
@@ -1298,11 +1150,7 @@ function DocumentsContent() {
               {/* Mobile: cards layout (< md) — table view sur mobile = cards par défaut */}
               <div className="md:hidden space-y-2">
                 {loading ? (
-                  <div
-                    className="space-y-2"
-                    aria-label="Chargement des documents"
-                    aria-busy="true"
-                  >
+                  <div className="space-y-2" aria-label="Chargement des documents" aria-busy="true">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div
                         key={i}
@@ -1327,16 +1175,14 @@ function DocumentsContent() {
                   </div>
                 ) : (
                   (docs?.data || []).map((doc) => {
-                    const classBadge = (CARD_CLASS_BADGE[
-                      doc.classification || "INTERNE"
-                    ] || CARD_CLASS_BADGE.INTERNE) as {
+                    const classBadge = (CARD_CLASS_BADGE[doc.classification || "INTERNE"] ||
+                      CARD_CLASS_BADGE.INTERNE) as {
                       bg: string;
                       text: string;
                       label: string;
                     };
                     const cardOverdue =
-                      doc.nextReviewDate &&
-                      new Date(doc.nextReviewDate).getTime() < Date.now();
+                      doc.nextReviewDate && new Date(doc.nextReviewDate).getTime() < Date.now();
                     return (
                       <button
                         key={doc.id}
@@ -1348,10 +1194,7 @@ function DocumentsContent() {
                           <span className="text-[11px] font-mono text-seal-gray-500 dark:text-slate-500 truncate">
                             {doc.reference}
                           </span>
-                          <StatusBadge
-                            status={doc.status as never}
-                            className="text-[10px]"
-                          />
+                          <StatusBadge status={doc.status as never} className="text-[10px]" />
                         </div>
                         <p className="mt-1 text-sm font-semibold text-seal-navy dark:text-white line-clamp-2">
                           {doc.title}
@@ -1423,9 +1266,7 @@ function DocumentsContent() {
                       ) : (
                         <Square className="h-3.5 w-3.5 text-seal-gray-500/40 dark:text-slate-500" />
                       )}
-                      {allSelected
-                        ? "Tout désélectionner"
-                        : "Tout sélectionner"}
+                      {allSelected ? "Tout désélectionner" : "Tout sélectionner"}
                     </button>
                     {selectedIds.size > 0 && (
                       <span className="text-xs text-primary font-semibold">
@@ -1448,9 +1289,7 @@ function DocumentsContent() {
                   sortOrder={(filters.sortOrder as "asc" | "desc") || "desc"}
                   onSort={(field) => {
                     const newOrder =
-                      filters.sortBy === field && filters.sortOrder === "asc"
-                        ? "desc"
-                        : "asc";
+                      filters.sortBy === field && filters.sortOrder === "asc" ? "desc" : "asc";
                     setFilters({ sortBy: field, sortOrder: newOrder, page: 1 });
                   }}
                   emptyMessage={
@@ -1467,134 +1306,114 @@ function DocumentsContent() {
           )}
 
         {/* Vue cartes */}
-        {viewMode === "cards" &&
-          !loading &&
-          docs?.data &&
-          docs.data.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {docs.data.map((doc) => {
-                const classColors: Record<string, string> = {
-                  PUBLIC: "border-l-[#006233] bg-[#006233]/5",
-                  INTERNE: "border-l-[#296DC1] bg-[#296DC1]/5",
-                  CONFIDENTIEL: "border-l-[#F9964A] bg-[#F9964A]/5",
-                  SECRET: "border-l-[#892034] bg-[#892034]/5",
-                };
-                const classStyle =
-                  classColors[doc.classification || "INTERNE"] ||
-                  classColors.INTERNE;
-                const cardOverdue =
-                  doc.nextReviewDate &&
-                  new Date(doc.nextReviewDate).getTime() < Date.now();
-                return (
-                  <Card
-                    key={doc.id}
-                    hoverable
-                    className={`stagger-item border-l-4 ${classStyle} cursor-pointer ${cardOverdue ? "ring-2 ring-[#892034]/40 dark:ring-red-500/40" : ""}`}
-                    onClick={() => router.push(`/documents/${doc.id}`)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <StatusBadge
-                            status={doc.status as never}
-                            className="text-[10px]"
-                          />
-                          {cardOverdue && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#892034]/10 dark:bg-red-900/30 px-2 py-0.5 text-[10px] font-bold text-[#892034] dark:text-red-400">
-                              <AlertTriangle className="h-2.5 w-2.5" />A revoir
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 whitespace-nowrap">
-                          {formatRelativeTime(doc.updatedAt)}
-                        </span>
-                      </div>
-                      <p className="text-xs font-mono text-seal-gray-500 dark:text-slate-500 mb-0.5">
-                        {doc.reference}
-                      </p>
-                      <h3 className="text-sm font-medium text-seal-navy dark:text-white line-clamp-2 mb-2">
-                        {doc.title}
-                      </h3>
-                      {(() => {
-                        const info = getValidityInfo(doc.nextReviewDate);
-                        return (
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold mb-2 ${info.className}`}
-                          >
-                            {info.label}
+        {viewMode === "cards" && !loading && docs?.data && docs.data.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {docs.data.map((doc) => {
+              const classColors: Record<string, string> = {
+                PUBLIC: "border-l-[#006233] bg-[#006233]/5",
+                INTERNE: "border-l-[#296DC1] bg-[#296DC1]/5",
+                CONFIDENTIEL: "border-l-[#F9964A] bg-[#F9964A]/5",
+                SECRET: "border-l-[#892034] bg-[#892034]/5",
+              };
+              const classStyle =
+                classColors[doc.classification || "INTERNE"] || classColors.INTERNE;
+              const cardOverdue =
+                doc.nextReviewDate && new Date(doc.nextReviewDate).getTime() < Date.now();
+              return (
+                <Card
+                  key={doc.id}
+                  hoverable
+                  className={`stagger-item border-l-4 ${classStyle} cursor-pointer ${cardOverdue ? "ring-2 ring-[#892034]/40 dark:ring-red-500/40" : ""}`}
+                  onClick={() => router.push(`/documents/${doc.id}`)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge status={doc.status as never} className="text-[10px]" />
+                        {cardOverdue && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#892034]/10 dark:bg-red-900/30 px-2 py-0.5 text-[10px] font-bold text-[#892034] dark:text-red-400">
+                            <AlertTriangle className="h-2.5 w-2.5" />À revoir
                           </span>
-                        );
-                      })()}
-                      {doc.description && (
-                        <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mb-3">
-                          {doc.description}
-                        </p>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          {doc.owner && (
-                            <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">
-                              {doc.owner.firstName} {doc.owner.lastName}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {doc.isoControls && doc.isoControls.length > 0 && (
-                            <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                              {doc.isoControls.length} ISO
-                            </span>
-                          )}
-                          {doc._count?.versions && doc._count.versions > 1 && (
-                            <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                              v{doc._count.versions}
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-500 whitespace-nowrap">
+                        {formatRelativeTime(doc.updatedAt)}
+                      </span>
+                    </div>
+                    <p className="text-xs font-mono text-seal-gray-500 dark:text-slate-500 mb-0.5">
+                      {doc.reference}
+                    </p>
+                    <h3 className="text-sm font-medium text-seal-navy dark:text-white line-clamp-2 mb-2">
+                      {doc.title}
+                    </h3>
+                    {(() => {
+                      const info = getValidityInfo(doc.nextReviewDate);
+                      return (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold mb-2 ${info.className}`}
+                        >
+                          {info.label}
+                        </span>
+                      );
+                    })()}
+                    {doc.description && (
+                      <p className="text-xs text-seal-gray-500 dark:text-slate-400 line-clamp-2 mb-3">
+                        {doc.description}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        {doc.owner && (
+                          <span className="text-[10px] text-seal-gray-500 dark:text-slate-500">
+                            {doc.owner.firstName} {doc.owner.lastName}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {doc.isoControls && doc.isoControls.length > 0 && (
+                          <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                            {doc.isoControls.length} ISO
+                          </span>
+                        )}
+                        {doc._count?.versions && doc._count.versions > 1 && (
+                          <span className="text-[9px] text-seal-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                            v{doc._count.versions}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
-        {viewMode === "cards" &&
-          !loading &&
-          (!docs?.data || docs.data.length === 0) && (
-            <EmptyState
-              type="documents"
-              title={t("documents.empty")}
-              description="Aucun document ne correspond aux filtres sélectionnés. Réinitialisez vos critères ou créez un nouveau document."
-              action={
-                <div className="flex flex-wrap items-center gap-2 justify-center">
-                  {(hasFilters ||
-                    !!debouncedSearch ||
-                    myDocsOnly ||
-                    statusTab !== "all") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        resetFilters();
-                        setStatusTab("all");
-                        setMyDocsOnly(false);
-                      }}
-                    >
-                      <X className="h-4 w-4" /> Reinitialiser les filtres
-                    </Button>
-                  )}
-                  {canCreate && (
-                    <Button
-                      size="sm"
-                      onClick={() => router.push("/documents/new")}
-                    >
-                      <Plus className="h-4 w-4" /> Créer un document
-                    </Button>
-                  )}
-                </div>
-              }
-            />
-          )}
+        {viewMode === "cards" && !loading && (!docs?.data || docs.data.length === 0) && (
+          <EmptyState
+            type="documents"
+            title={t("documents.empty")}
+            description="Aucun document ne correspond aux filtres sélectionnés. Réinitialisez vos critères ou créez un nouveau document."
+            action={
+              <div className="flex flex-wrap items-center gap-2 justify-center">
+                {(hasFilters || !!debouncedSearch || myDocsOnly || statusTab !== "all") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearAllFilters}
+                  >
+                    <X className="h-4 w-4" /> Réinitialiser les filtres
+                  </Button>
+                )}
+                {canCreate && (
+                  <Button size="sm" onClick={() => router.push("/documents/new")}>
+                    <Plus className="h-4 w-4" /> Créer un document
+                  </Button>
+                )}
+              </div>
+            }
+          />
+        )}
 
         {viewMode === "cards" && loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1612,11 +1431,10 @@ function DocumentsContent() {
         )}
 
         {/* Pagination pour vue cartes */}
-        {viewMode === "cards" && docs?.meta && docs.meta.totalPages > 1 && (
+        {(viewMode === "cards" || viewMode === "kanban") && docs?.meta && docs.meta.totalPages > 1 && (
           <div className="flex items-center justify-between">
             <span className="text-xs text-seal-gray-500 dark:text-slate-400">
-              Page {docs.meta.page} / {docs.meta.totalPages} — {docs.meta.total}{" "}
-              documents
+              Page {docs.meta.page} / {docs.meta.totalPages} — {docs.meta.total} documents
             </span>
             <div className="flex gap-2">
               <Button
@@ -1643,15 +1461,6 @@ function DocumentsContent() {
           <DocumentKanbanBoard
             documents={docs?.data || []}
             loading={loading}
-            isAdmin={!!isAdmin}
-            onStatusChange={async (docId, newStatus) => {
-              try {
-                await api.patch(`/documents/${docId}`, { status: newStatus });
-                fetchDocuments();
-              } catch {
-                /* handled */
-              }
-            }}
             onCardClick={(id) => router.push(`/documents/${id}`)}
           />
         )}
@@ -1662,13 +1471,34 @@ function DocumentsContent() {
           onClose={() => setShowDeleteConfirm(false)}
           onConfirm={handleBulkDelete}
           title="Supprimer les documents sélectionnés"
-          description={`Vous allez supprimer définitivement ${selectedIds.size} document${selectedIds.size > 1 ? "s" : ""}. Cette action est irréversible.`}
+          description={`Vous allez retirer ${selectedIds.size} document${selectedIds.size > 1 ? "s" : ""} de la bibliothèque. Leur historique reste conservé pour la traçabilité.`}
           confirmLabel={`Supprimer ${selectedIds.size} document${selectedIds.size > 1 ? "s" : ""}`}
           variant="danger"
           loading={bulkDeleting}
         />
 
-        {/* Wave D — Création depuis template */}
+        <ConfirmDialog
+          open={bulkAction === "archive"}
+          onClose={() => { if (!bulkWorking) setBulkAction(null); }}
+          onConfirm={handleBulkAction}
+          title="Archiver la sélection"
+          description={`${selectedIds.size} document${selectedIds.size > 1 ? "s seront archivés" : " sera archivé"}. Vous pourrez retrouver les documents dans l’onglet Archives.`}
+          confirmLabel="Archiver"
+          variant="primary"
+          loading={bulkWorking}
+        />
+        <Dialog open={bulkAction === "classify"} onClose={() => { if (!bulkWorking) setBulkAction(null); }} title="Modifier la classification" description={`La nouvelle classification s’appliquera aux ${selectedIds.size} documents sélectionnés et à leurs règles d’accès.`}>
+          <Select label="Nouvelle classification" value={bulkClassification} onChange={(event) => setBulkClassification(event.target.value)} options={[
+            { value: "PUBLIC", label: "Public" }, { value: "INTERNE", label: "Interne" },
+            { value: "CONFIDENTIEL", label: "Confidentiel" }, { value: "SECRET", label: "Secret" },
+          ]} />
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" disabled={bulkWorking} onClick={() => setBulkAction(null)}>Annuler</Button>
+            <Button loading={bulkWorking} onClick={handleBulkAction}>Appliquer</Button>
+          </div>
+        </Dialog>
+
+        {/* Création depuis un modèle */}
         <CreateFromTemplateDialog
           open={showFromTemplate}
           onOpenChange={setShowFromTemplate}
@@ -1716,225 +1546,37 @@ export default function DocumentsPage() {
   );
 }
 
-/* ─────── Document Kanban Board with HTML5 Drag & Drop ─────── */
-
+/* Les changements de statut passent par le circuit du document. */
 const DOC_KANBAN_COLUMNS = [
-  {
-    status: "DRAFT",
-    label: "Brouillon",
-    color: "border-t-gray-400",
-    dropBg: "bg-gray-50 dark:bg-gray-900/20",
-  },
-  {
-    status: "IN_REVIEW",
-    label: "En revue",
-    color: "border-t-blue-500",
-    dropBg: "bg-blue-50 dark:bg-blue-900/20",
-  },
-  {
-    status: "PENDING_APPROVAL",
-    label: "Approbation",
-    color: "border-t-amber-500",
-    dropBg: "bg-amber-50 dark:bg-amber-900/20",
-  },
-  {
-    status: "APPROVED",
-    label: "Approuvé",
-    color: "border-t-emerald-500",
-    dropBg: "bg-emerald-50 dark:bg-emerald-900/20",
-  },
+  { statuses: ["DRAFT"], label: "Brouillons", color: "border-t-gray-400" },
+  { statuses: ["IN_REVIEW", "REVIEW_APPROVED", "PENDING_APPROVAL"], label: "En validation", color: "border-t-amber-500" },
+  { statuses: ["APPROVED"], label: "Publiés", color: "border-t-emerald-500" },
+  { statuses: ["OBSOLETE", "ARCHIVED"], label: "Obsolètes et archives", color: "border-t-slate-500" },
 ];
 
-interface DocumentKanbanBoardProps {
-  documents: Document[];
-  loading: boolean;
-  isAdmin: boolean;
-  onStatusChange: (docId: string, newStatus: string) => Promise<void>;
-  onCardClick: (id: string) => void;
-}
-
-function DocumentKanbanBoard({
-  documents,
-  loading,
-  isAdmin,
-  onStatusChange,
-  onCardClick,
-}: DocumentKanbanBoardProps) {
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [dropTarget, setDropTarget] = useState<string | null>(null);
-  const [moving, setMoving] = useState<string | null>(null);
-
-  const handleDragStart = (e: React.DragEvent, docId: string) => {
-    if (!isAdmin) {
-      e.preventDefault();
-      return;
-    }
-    setDraggedId(docId);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", docId);
-    const el = e.currentTarget as HTMLElement;
-    requestAnimationFrame(() => {
-      if (el) el.style.opacity = "0.4";
-    });
-  };
-
-  const handleDragEnd = (e: React.DragEvent) => {
-    const el = e.currentTarget as HTMLElement;
-    if (el) el.style.opacity = "1";
-    setDraggedId(null);
-    setDropTarget(null);
-  };
-
-  const handleDragOver = (e: React.DragEvent, status: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setDropTarget(status);
-  };
-
-  const handleDragLeave = () => {
-    setDropTarget(null);
-  };
-
-  const handleDrop = async (e: React.DragEvent, newStatus: string) => {
-    e.preventDefault();
-    setDropTarget(null);
-    const docId = e.dataTransfer.getData("text/plain");
-    if (!docId) return;
-    const doc = documents.find((d) => d.id === docId);
-    if (!doc || doc.status === newStatus) return;
-    setMoving(docId);
-    await onStatusChange(docId, newStatus);
-    setMoving(null);
-    setDraggedId(null);
-  };
-
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {DOC_KANBAN_COLUMNS.map((col) => (
-          <div
-            key={col.status}
-            className="rounded-lg border-t-4 border-gray-200 dark:border-slate-600 p-3 min-h-[200px] bg-gray-50 dark:bg-slate-800/50"
-          >
-            <div className="h-5 w-24 skeleton-shimmer rounded mb-3" />
-            <div className="space-y-2">
-              {[1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="rounded-lg p-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="h-4 w-14 skeleton-shimmer rounded-full" />
-                    <div className="h-3 w-16 skeleton-shimmer rounded ml-auto" />
-                  </div>
-                  <div className="h-4 w-full skeleton-shimmer rounded mb-1" />
-                  <div className="h-3 w-2/3 skeleton-shimmer rounded" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
+function DocumentKanbanBoard({ documents, loading, onCardClick }: {
+  documents: Document[]; loading: boolean; onCardClick: (id: string) => void;
+}) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-      {DOC_KANBAN_COLUMNS.map((col) => {
-        const colDocs = documents.filter((d) => d.status === col.status);
-        const isOver = dropTarget === col.status && draggedId !== null;
-        const draggedDoc = draggedId
-          ? documents.find((d) => d.id === draggedId)
-          : null;
-        const isDraggedFromHere = draggedDoc?.status === col.status;
-
-        return (
-          <div
-            key={col.status}
-            onDragOver={(e) => handleDragOver(e, col.status)}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, col.status)}
-            className={`rounded-lg border-t-4 ${col.color} p-3 min-h-[200px] transition-all duration-200 ${
-              isOver && !isDraggedFromHere
-                ? `${col.dropBg} ring-2 ring-primary/30 scale-[1.01]`
-                : "bg-gray-50 dark:bg-slate-800/50"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-seal-navy dark:text-white">
-                {col.label}
-              </h3>
-              <Badge variant="navy">{colDocs.length}</Badge>
-            </div>
-
-            {isOver && !isDraggedFromHere && (
-              <div className="border-2 border-dashed border-primary/40 rounded-lg p-3 mb-2 text-center">
-                <p className="text-xs text-primary font-semibold">
-                  Déposer ici → {col.label}
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              {colDocs.map((doc) => {
-                const isDragged = draggedId === doc.id;
-                const isBeingMoved = moving === doc.id;
-                return (
-                  <div
-                    key={doc.id}
-                    draggable={isAdmin}
-                    onDragStart={(e) => handleDragStart(e, doc.id)}
-                    onDragEnd={handleDragEnd}
-                    onClick={() => {
-                      if (!isDragged) onCardClick(doc.id);
-                    }}
-                    className={`bg-white dark:bg-slate-900 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-slate-700 group ${
-                      isDragged
-                        ? "opacity-40 scale-95"
-                        : "card-hover cursor-pointer"
-                    } ${isBeingMoved ? "animate-pulse" : ""} ${isAdmin ? "cursor-grab active:cursor-grabbing" : ""}`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        {isAdmin && (
-                          <GripVertical className="h-3 w-3 text-seal-gray-500/30 group-hover:text-seal-gray-500/60 flex-shrink-0" />
-                        )}
-                        <Badge
-                          variant={categoryBadgeVariant(doc.category)}
-                          className="text-[9px]"
-                        >
-                          {DOCUMENT_CATEGORY_LABELS[
-                            doc.category as DocumentCategory
-                          ] || doc.category}
-                        </Badge>
-                      </div>
-                      <span className="text-[10px] text-seal-gray-500 font-mono">
-                        {doc.reference}
-                      </span>
-                    </div>
-                    <p className="text-xs font-semibold text-seal-navy dark:text-white line-clamp-2 group-hover:text-primary transition-colors">
-                      {doc.title}
-                    </p>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50 dark:border-slate-700/50">
-                      <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
-                        {doc.owner.firstName} {doc.owner.lastName}
-                      </p>
-                      <span className="text-[10px] text-seal-gray-500 dark:text-slate-400">
-                        {formatRelativeTime(doc.updatedAt)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-              {colDocs.length === 0 && !isOver && (
-                <p className="text-xs text-seal-gray-500 dark:text-slate-500 text-center py-8">
-                  Aucun document
-                </p>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+    <section aria-label="Tableau documentaire" className="space-y-3">
+      <p className="text-xs text-seal-gray-500 dark:text-slate-400">Documents de la page courante. Ouvrez un document pour consulter son circuit et effectuer les actions autorisées.</p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {DOC_KANBAN_COLUMNS.map((column) => {
+          const items = documents.filter((doc) => column.statuses.includes(doc.status));
+          return <div key={column.label} className={`rounded-lg border-t-4 ${column.color} bg-gray-50 p-3 dark:bg-slate-800/50`}>
+            <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">{column.label}</h3><Badge variant="navy">{items.length}</Badge></div>
+            {loading ? <div className="h-24 animate-pulse rounded-lg bg-gray-200 dark:bg-slate-700" /> : <div className="space-y-2">
+              {items.map((doc) => <button type="button" key={doc.id} onClick={() => onCardClick(doc.id)} className="w-full rounded-lg border border-gray-100 bg-white p-3 text-left shadow-sm transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-slate-700 dark:bg-slate-900">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-1"><span className="text-[10px] font-mono text-seal-gray-500">{doc.reference}</span><StatusBadge status={doc.status} /></div>
+                <p className="line-clamp-2 text-sm font-semibold">{doc.title}</p>
+                <p className="mt-2 text-xs text-seal-gray-500 dark:text-slate-400">{doc.owner.firstName} {doc.owner.lastName}</p>
+                <p className="mt-1 text-[10px] text-seal-gray-500">Modifié {formatRelativeTime(doc.updatedAt)}</p>
+              </button>)}
+              {items.length === 0 && <p className="py-6 text-center text-xs text-seal-gray-500">Aucun document sur cette page</p>}
+            </div>}
+          </div>;
+        })}
+      </div>
+    </section>
   );
 }

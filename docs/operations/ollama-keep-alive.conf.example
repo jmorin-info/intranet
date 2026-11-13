@@ -1,0 +1,7 @@
+# Garde les modèles chargés en RAM 30 min après chaque utilisation.
+# Sans ce paramètre, le défaut Ollama est 5 min → le 1er appel RAG d'une
+# session paie un cold-start de ~14 s (bge-m3) + ~3 s (mistral). Pour un
+# intranet à usage sporadique, 30 min couvre la majorité des sessions
+# d'un utilisateur. À ajuster selon RAM disponible (mistral=4.4 Go, bge-m3=1.2 Go).
+[Service]
+Environment="OLLAMA_KEEP_ALIVE=30m"

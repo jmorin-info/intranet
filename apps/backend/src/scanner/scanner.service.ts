@@ -1,16 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { execFile } from 'child_process';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 
-const execAsync = promisify(exec);
+export type ScanStatus = 'CLEAN' | 'INFECTED' | 'ERROR';
+export interface ScanResult { clean: boolean; result: string; status: ScanStatus }
 
-/**
- * ClamAV file scanner — ISO 27001 A.8.7 (Protection against malware)
- * Scans uploaded files and quarantines infected ones.
- */
 @Injectable()
 export class ScannerService {
   private readonly logger = new Logger(ScannerService.name);
@@ -20,75 +17,63 @@ export class ScannerService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  /**
-   * Scan a file on disk with ClamAV.
-   * Returns { clean: boolean, result: string }
-   */
-  async scanFile(filePath: string): Promise<{ clean: boolean; result: string }> {
-    try {
-      // Try clamdscan first (faster, uses daemon), fall back to clamscan
-      const { stdout } = await execAsync(`clamdscan --no-summary "${filePath}" 2>/dev/null || clamscan --no-summary "${filePath}" 2>/dev/null`);
-      const clean = !stdout.includes('FOUND');
-      return { clean, result: stdout.trim() };
-    } catch (error: unknown) {
-      const err = error as { stdout?: string; stderr?: string; code?: number };
-      // Exit code 1 = virus found, 2 = error
-      if (err.code === 1) {
-        return { clean: false, result: err.stdout || 'VIRUS FOUND' };
-      }
-      this.logger.warn(`ClamAV scan error: ${err.stderr || err}`);
-      return { clean: true, result: 'SCAN_ERROR — file allowed (ClamAV unavailable)' };
-    }
+  /** A daemon failure is not evidence that a file is safe. */
+  async scanFile(filePath: string): Promise<ScanResult> {
+    return new Promise((resolve) => {
+      execFile('clamdscan', ['--no-summary', '--', filePath], {
+        timeout: 120_000,
+        maxBuffer: 1024 * 1024,
+        encoding: 'utf8',
+      }, (error, stdout) => {
+        const output = String(stdout || '').trim();
+        if (!error) {
+          resolve({ clean: true, result: output || 'OK', status: 'CLEAN' });
+        } else if (error.code === 1 && !error.killed) {
+          resolve({ clean: false, result: output || 'VIRUS FOUND', status: 'INFECTED' });
+        } else {
+          this.logger.warn('ClamAV unavailable or scan incomplete; file remains unverified');
+          resolve({ clean: false, result: 'SCAN_ERROR — contrôle antivirus non terminé', status: 'ERROR' });
+        }
+      });
+    });
   }
 
-  /**
-   * Scan a document version after upload.
-   * Updates scanStatus on the Document. Quarantines if infected.
-   */
   async scanDocumentVersion(documentId: string, versionId: string, filePath: string) {
-    this.logger.log(`Scanning file: ${filePath}`);
-
-    const { clean, result } = await this.scanFile(filePath);
-
-    const status = clean ? 'CLEAN' : 'INFECTED';
-    await this.prisma.document.update({
-      where: { id: documentId },
-      data: { scanStatus: status },
+    const result = await this.scanFile(filePath);
+    // An older scan must never mark a more recent upload CLEAN.
+    await this.prisma.document.updateMany({
+      where: { id: documentId, currentVersionId: versionId, deletedAt: null },
+      data: { scanStatus: result.status },
     });
 
-    if (!clean) {
-      this.logger.warn(`INFECTED file detected: ${filePath} — ${result}`);
-
-      // Quarantine: move file
+    if (result.status === 'INFECTED') {
+      const quarantineDir = path.join(
+        process.env.STORAGE_PATH || path.join(process.cwd(), 'storage'), 'quarantine',
+      );
       try {
-        const quarantineDir = path.join(process.env.STORAGE_PATH || path.join(process.cwd(), 'storage'), 'quarantine');
-        await execAsync(`mkdir -p "${quarantineDir}"`);
-        await execAsync(`mv "${filePath}" "${quarantineDir}/"`);
-        this.logger.warn(`File quarantined: ${filePath}`);
-      } catch (e) {
-        this.logger.error(`Failed to quarantine: ${filePath} — ${e instanceof Error ? e.message : e}`);
+        await fs.mkdir(quarantineDir, { recursive: true });
+        await fs.rename(filePath, path.join(quarantineDir, `${versionId}-${path.basename(filePath)}`));
+      } catch {
+        // The document is still INFECTED even when filesystem quarantine fails.
+        this.logger.error('Unable to move infected attachment to quarantine');
       }
-
-      // Alert admins
-      const admins = await this.prisma.user.findMany({
-        where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] }, isActive: true, deletedAt: null },
-      });
-
-      const doc = await this.prisma.document.findUnique({ where: { id: documentId } });
+      const [admins, document] = await Promise.all([
+        this.prisma.user.findMany({
+          where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] }, isActive: true, deletedAt: null },
+          select: { id: true },
+        }),
+        this.prisma.document.findUnique({ where: { id: documentId }, select: { reference: true } }),
+      ]);
       for (const admin of admins) {
         await this.notifications.create({
           userId: admin.id,
-          type: 'DOC_PUBLISHED',
-          title: 'ALERTE — Fichier infecté détecté',
-          body: `Le fichier du document "${doc?.reference || documentId}" a été détecté comme malveillant et mis en quarantaine. Résultat: ${result}`,
-          resourceType: 'Document',
-          resourceId: documentId,
+          type: 'SECURITY_ALERT',
+          title: 'Fichier infecté détecté',
+          body: `Le contrôle antivirus du document « ${document?.reference || documentId} » a détecté un fichier infecté. Vérifiez sa mise en quarantaine.`,
+          resourceType: 'Document', resourceId: documentId,
         });
       }
-    } else {
-      this.logger.log(`File clean: ${filePath}`);
     }
-
-    return { clean, result, status };
+    return result;
   }
 }

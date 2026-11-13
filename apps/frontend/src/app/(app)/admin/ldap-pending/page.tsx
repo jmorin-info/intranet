@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
+import { formatDate as formatDateUtil } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
@@ -56,7 +57,7 @@ interface Department {
 
 function formatDateFr(iso: string): string {
   try {
-    return new Date(iso).toLocaleString("fr-FR", {
+    return formatDateUtil(iso, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -80,13 +81,13 @@ export default function LdapPendingPage() {
   const [items, setItems] = useState<PendingUser[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<
-    "PENDING" | "APPROVED" | "REJECTED" | "ALL"
-  >("PENDING");
+  const [statusFilter, setStatusFilter] = useState<"PENDING" | "APPROVED" | "REJECTED" | "ALL">(
+    "PENDING",
+  );
   // Map pendingId → { departmentId, role } pour le form inline
-  const [choices, setChoices] = useState<
-    Record<string, { departmentId?: string; role: string }>
-  >({});
+  const [choices, setChoices] = useState<Record<string, { departmentId?: string; role: string }>>(
+    {},
+  );
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -98,9 +99,7 @@ export default function LdapPendingPage() {
         api.get("/departments"),
       ]);
       const list: PendingUser[] =
-        pendingRes.status === "fulfilled"
-          ? pendingRes.value.data?.data || []
-          : [];
+        pendingRes.status === "fulfilled" ? pendingRes.value.data?.data || [] : [];
       if (pendingRes.status === "rejected")
         logger.error(pendingRes.reason, {
           page: "admin/ldap-pending",
@@ -128,9 +127,7 @@ export default function LdapPendingPage() {
       }
       setChoices(next);
     } catch (err: any) {
-      toast.error(
-        err?.response?.data?.message || t("loadError"),
-      );
+      toast.error(err?.response?.data?.message || t("loadError"));
     } finally {
       setLoading(false);
     }
@@ -270,16 +267,8 @@ export default function LdapPendingPage() {
       ) : items.length === 0 ? (
         <EmptyState
           type="success"
-          title={
-            statusFilter === "PENDING"
-              ? t("emptyPendingTitle")
-              : t("emptyTitle")
-          }
-          description={
-            statusFilter === "PENDING"
-              ? t("emptyPendingDesc")
-              : t("emptyDesc")
-          }
+          title={statusFilter === "PENDING" ? t("emptyPendingTitle") : t("emptyTitle")}
+          description={statusFilter === "PENDING" ? t("emptyPendingDesc") : t("emptyDesc")}
         />
       ) : (
         <div className="space-y-3">

@@ -55,7 +55,10 @@ export class NoaMemoryService {
       const result = await this.llm.generate(prompt, {
         maxTokens: 400,
         temperature: 0.1,
-        timeoutMs: 15_000,
+        // 90 s : l'extraction tourne en tâche de fond (fire-and-forget après
+        // la fermeture du stream) — l'ancien budget de 15 s était irréaliste
+        // sur mistral CPU (prompt-eval seul > 15 s) et échouait toujours.
+        timeoutMs: 90_000,
       });
       const items = this.parseExtractedJson(result.text);
       this.logger.debug({
@@ -74,10 +77,7 @@ export class NoaMemoryService {
     }
   }
 
-  private buildExtractPrompt(conversation: {
-    user: string;
-    assistant: string;
-  }): string {
+  private buildExtractPrompt(conversation: { user: string; assistant: string }): string {
     return `Tu es un extracteur de faits utilisateur pour un assistant intranet d'entreprise.
 Analyse l'échange ci-dessous et extrait UNIQUEMENT les faits pertinents pour personnaliser
 les réponses futures (préférences, contexte de travail, projets en cours, équipe, contraintes).
@@ -111,17 +111,10 @@ JSON:`;
       if (!Array.isArray(parsed.items)) return [];
       const items: ExtractedMemory[] = [];
       for (const item of parsed.items) {
-        if (
-          item &&
-          typeof item === "object" &&
-          "key" in item &&
-          "value" in item
-        ) {
+        if (item && typeof item === "object" && "key" in item && "value" in item) {
           const key = String((item as { key: unknown }).key).trim();
           const value = String((item as { value: unknown }).value).trim();
-          let importance = Number(
-            (item as { importance?: unknown }).importance ?? 0.5,
-          );
+          let importance = Number((item as { importance?: unknown }).importance ?? 0.5);
           if (!Number.isFinite(importance)) importance = 0.5;
           importance = Math.max(0, Math.min(1, importance));
           if (!key || !value) continue;
@@ -329,9 +322,7 @@ JSON:`;
       });
     } catch (err) {
       // Non-bloquant
-      this.logger.debug(
-        `noa.memory.mark_recalled_failed: ${(err as Error).message}`,
-      );
+      this.logger.debug(`noa.memory.mark_recalled_failed: ${(err as Error).message}`);
     }
   }
 

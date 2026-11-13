@@ -16,7 +16,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
-import { Response } from "express";
+import type { Response } from "express";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
@@ -73,7 +73,7 @@ export class DocumentsController {
   ) {}
 
   @Get("templates")
-  @Roles(UserRole.COLLABORATEUR)
+  @Roles(UserRole.PRESTATAIRE)
   getTemplates() {
     return [
       {
@@ -120,7 +120,7 @@ export class DocumentsController {
   }
 
   @Get()
-  @Roles(UserRole.COLLABORATEUR)
+  @Roles(UserRole.PRESTATAIRE)
   findAll(
     @Query() filters: DocumentFiltersDto,
     @CurrentUser() user: RequestUser,
@@ -148,6 +148,7 @@ export class DocumentsController {
     const result = await this.documentsService.findAll(
       { ...filters, page: "1", limit: "1000" },
       user,
+      1000,
     );
     const rows = result.data;
 
@@ -227,7 +228,7 @@ export class DocumentsController {
   }
 
   @Get(":id/history")
-  @Roles(UserRole.COLLABORATEUR)
+  @Roles(UserRole.PRESTATAIRE)
   async getHistory(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -236,7 +237,7 @@ export class DocumentsController {
   }
 
   @Get(":id/related")
-  @Roles(UserRole.COLLABORATEUR)
+  @Roles(UserRole.PRESTATAIRE)
   findRelated(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -250,7 +251,7 @@ export class DocumentsController {
   }
 
   @Get(":id")
-  @Roles(UserRole.COLLABORATEUR)
+  @Roles(UserRole.PRESTATAIRE)
   findById(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -341,7 +342,7 @@ export class DocumentsController {
   /**
    * Update the inline HTML content of a native document.
    * Only the owner, assigned reviewer, or ADMIN+ may edit,
-   * and only while the document is in DRAFT or IN_REVIEW.
+   * and only while the document is in DRAFT.
    */
   @Patch(":id/content")
   @Roles(UserRole.COLLABORATEUR)
@@ -379,13 +380,10 @@ export class DocumentsController {
 
   @Post(":id/versions")
   @Roles(
-    UserRole.ADMIN,
-    UserRole.REVIEWER,
-    UserRole.SUPER_ADMIN,
-    UserRole.DIRECTION,
+    UserRole.COLLABORATEUR,
   )
   @UseInterceptors(
-    FileInterceptor("file", { limits: { fileSize: 2 * 1024 * 1024 * 1024 } }),
+    FileInterceptor("file", { limits: { fileSize: 50 * 1024 * 1024 } }),
   )
   uploadVersion(
     @Param("id", ParseUUIDPipe) id: string,
@@ -398,7 +396,7 @@ export class DocumentsController {
   }
 
   @Get(":id/versions")
-  @Roles(UserRole.COLLABORATEUR)
+  @Roles(UserRole.PRESTATAIRE)
   getVersions(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -420,7 +418,7 @@ export class DocumentsController {
     UserRole.DIRECTION,
   )
   @UseInterceptors(
-    FileInterceptor("file", { limits: { fileSize: 2 * 1024 * 1024 * 1024 } }),
+    FileInterceptor("file", { limits: { fileSize: 50 * 1024 * 1024 } }),
   )
   async reimportObsolete(
     @Param("id", ParseUUIDPipe) id: string,
@@ -434,7 +432,7 @@ export class DocumentsController {
 
   /** Shortcut: download latest version of a document */
   @Get(":id/download")
-  @Roles(UserRole.COLLABORATEUR)
+  @Roles(UserRole.PRESTATAIRE)
   async downloadLatest(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -442,14 +440,14 @@ export class DocumentsController {
     @Query("raw") raw: string,
     @Res() res: Response,
   ) {
-    // Find latest version
-    const versions = await this.documentsService.getVersions(id, user);
-    if (!versions || versions.length === 0)
+    // Publication and approval refer to currentVersionId, never creation order.
+    const document = await this.documentsService.findById(id, user);
+    const currentVersionId = document.currentVersionId;
+    if (!currentVersionId)
       throw new NotFoundException("Aucune version disponible");
-    const latestVersionId = versions[0].id;
     await this.streamWatermarkedDocument(
       id,
-      latestVersionId,
+      currentVersionId,
       user,
       inline,
       raw,
@@ -458,7 +456,7 @@ export class DocumentsController {
   }
 
   @Get(":id/versions/:versionId/download")
-  @Roles(UserRole.COLLABORATEUR)
+  @Roles(UserRole.PRESTATAIRE)
   async downloadVersion(
     @Param("id", ParseUUIDPipe) id: string,
     @Param("versionId", ParseUUIDPipe) versionId: string,
@@ -508,7 +506,7 @@ export class DocumentsController {
       result.versionNumber,
       result.fileName,
     );
-    const disposition = inline === "true" ? "inline" : "attachment";
+    const disposition = inline === "true" && result.fileType !== "text/html" ? "inline" : "attachment";
     const isPdf =
       !!result.fileType?.includes("pdf") ||
       filename.toLowerCase().endsWith(".pdf");
@@ -621,7 +619,8 @@ export class DocumentsController {
     res.set({
       "Content-Type": result.fileType || "application/octet-stream",
       "Content-Disposition": `${disposition}; filename="${filename.replace(/"/g, "")}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
-      "Cache-Control": "private, max-age=3600",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
       ...(rawRequested ? { "X-Raw-Export": "super-admin" } : {}),
     });
     stream.pipe(res);

@@ -19,6 +19,9 @@ dist/
 # contient les VRAIS secrets, même s'il est nommé .bak/.old/.backup)
 .env.*backup*
 .env.*.bak
+# Variante où .bak est au milieu du nom, pas en suffixe (ex: .env.bak.cutover.<timestamp>)
+.env.bak.*
+.env*.bak.*
 .env.*.old
 .env.before-*
 .env.pre-*
@@ -45,6 +48,12 @@ trufflehog-report.*
 # ─── Données utilisateurs / uploads ─────────────────────────────────────
 uploads/
 storage/
+# Le pattern `storage/` ci-dessus, trop large, excluait par erreur le module
+# source `apps/backend/src/storage/` (controller + service + module Nest) —
+# la prod tournait avec ce module présent localement mais ABSENT de git, donc
+# un clone neuf ne compilait pas le backend. On le réintègre explicitement.
+!apps/backend/src/storage/
+!apps/backend/src/storage/**
 
 # ─── Logs ───────────────────────────────────────────────────────────────
 *.log
@@ -58,6 +67,7 @@ coverage/
 e2e/.auth/
 playwright-report/
 test-results/
+apps/frontend/.next-ui-qa/
 
 # ─── Storybook + Chromatic ──────────────────────────────────────────────
 storybook-static/
@@ -92,3 +102,12 @@ Thumbs.db
 *.temp
 .cache/
 .parcel-cache/
+
+# Registre SMSI en clair — ne pas versionner sur le remote
+packages/database/prisma/reg016/registre.tsv
+
+# Symlinks node_modules des worktrees (gitignore "node_modules/" ne matche pas un lien)
+node_modules
+
+# Disposable E2E storage (synthetic files only)
+/.e2e-runtime/

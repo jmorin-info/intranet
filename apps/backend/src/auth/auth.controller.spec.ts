@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { UserThrottlerGuard } from './guards/user-throttler.guard';
+import { WebAuthnService } from '../mfa/webauthn.service';
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -42,6 +44,7 @@ describe('AuthController', () => {
       status: jest.fn().mockReturnThis(),
       send: jest.fn().mockReturnThis(),
       set: jest.fn().mockReturnThis(),
+      redirect: jest.fn().mockReturnThis(),
     };
     return res as Response;
   };
@@ -52,6 +55,7 @@ describe('AuthController', () => {
       headers: { 'user-agent': 'jest' },
       socket: { remoteAddress: '127.0.0.1' } as Request['socket'],
       cookies: {},
+      path: '/api/v1/auth/logout',
       ...overrides,
     } as Request;
   };
@@ -69,7 +73,7 @@ describe('AuthController', () => {
         refreshToken: 'refresh2',
         user: { id: 'user-1' },
       }),
-      logout: jest.fn().mockResolvedValue(undefined),
+      logoutSession: jest.fn().mockResolvedValue(true),
       requestPasswordReset: jest
         .fn()
         .mockResolvedValue({ message: 'Si un compte est associé à cette adresse, un email a été envoyé.' }),
@@ -94,9 +98,10 @@ describe('AuthController', () => {
         { provide: AuthService, useValue: authService },
         { provide: UsersService, useValue: usersService },
         { provide: MfaService, useValue: mfaService },
+        { provide: WebAuthnService, useValue: { hasCredentials: jest.fn().mockResolvedValue(false) } },
         Reflector,
       ],
-    }).compile();
+    }).overrideGuard(UserThrottlerGuard).useValue({ canActivate: () => true }).compile();
 
     controller = module.get<AuthController>(AuthController);
   });
@@ -185,16 +190,38 @@ describe('AuthController', () => {
   });
 
   describe('logout', () => {
-    it('best-effort revokes tokens and clears cookies even when no refresh token in cookies', async () => {
-      const req = buildRequest({ cookies: {} });
+    it('revokes the actual refresh cookie and clears both scoped cookie paths', async () => {
+      const req = buildRequest({ cookies: { refreshToken: 'actual-cookie' } });
       const res = buildResponse();
-      const result = await controller.logout(
-        { id: 'user-1', email: mockUser.email, role: UserRole.COLLABORATEUR },
-        req,
-        res,
-      );
+      const result = await controller.logout(req, res);
+      expect(authService.logoutSession).toHaveBeenCalledWith('actual-cookie', undefined);
       expect(result).toEqual({ message: 'Logged out successfully' });
-      expect(res.clearCookie).toHaveBeenCalled();
+      expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', { path: '/api/v1/auth/refresh' });
+      expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', { path: '/api/v1/auth' });
+    });
+    it('no verifiable identity returns401 rather than claiming revocation', async () => {
+      authService.logoutSession.mockResolvedValue(false);
+      const res = buildResponse();
+      await expect(controller.logout(buildRequest(), res)).rejects.toThrow(UnauthorizedException);
+      expect(res.clearCookie).not.toHaveBeenCalled();
+    });
+    it('the alias accepts the real legacy refresh cookie without an access cookie', async () => {
+      const res = buildResponse();
+      const result = await controller.logout(buildRequest({ path: '/api/v1/auth/refresh/logout', cookies: { refreshToken: 'actual-legacy-cookie' } }), res);
+      expect(result).toEqual({ message: 'Logged out successfully' });
+      expect(authService.logoutSession).toHaveBeenCalledWith('actual-legacy-cookie', undefined);
+    });
+    it('the alias with no verifiable identity clears invalid cookies and returns401', async () => {
+      authService.logoutSession.mockResolvedValue(false);
+      const res = buildResponse();
+      await expect(controller.logout(buildRequest({ path: '/api/v1/auth/refresh/logout' }), res)).rejects.toThrow(UnauthorizedException);
+      expect(res.clearCookie).toHaveBeenCalledWith('accessToken', { path: '/api' });
+    });
+    it('a database error never returns a successful logout or clears its revocation proof', async () => {
+      authService.logoutSession.mockRejectedValue(new Error('database unavailable'));
+      const res = buildResponse();
+      await expect(controller.logout(buildRequest({ cookies: { refreshToken: 'actual-cookie' } }), res)).rejects.toThrow('database unavailable');
+      expect(res.clearCookie).not.toHaveBeenCalled();
     });
   });
 

@@ -57,16 +57,14 @@ export function migrateLegacySearches(rawJson: string): SavedSearch[] {
   for (const item of parsed as LegacySaved[]) {
     if (!item || typeof item.query !== "string") continue;
 
-    const modules = item.type ? TYPE_TO_MODULES[item.type] ?? [] : [];
+    const modules = item.type ? (TYPE_TO_MODULES[item.type] ?? []) : [];
     const classifications =
       item.classification && item.classification !== "all"
-        ? [item.classification.toUpperCase()]
+        ? [String(item.classification ?? "").toUpperCase()]
         : [];
 
     const sort: SortKey =
-      item.sortBy === "newest" || item.sortBy === "oldest"
-        ? (item.sortBy as SortKey)
-        : "relevance";
+      item.sortBy === "newest" || item.sortBy === "oldest" ? (item.sortBy as SortKey) : "relevance";
 
     out.push({
       id:
@@ -82,10 +80,7 @@ export function migrateLegacySearches(rawJson: string): SavedSearch[] {
       classifications,
       statuses: [],
       sort,
-      createdAt:
-        typeof item.createdAt === "string"
-          ? item.createdAt
-          : new Date().toISOString(),
+      createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString(),
     });
   }
   return out;

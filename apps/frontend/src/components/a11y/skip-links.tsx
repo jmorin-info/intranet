@@ -21,7 +21,7 @@ import React, { useEffect } from 'react';
 const SKIP_LINK_STYLES =
   'fixed top-0 left-1/2 -translate-x-1/2 -translate-y-full focus:translate-y-0 ' +
   'z-[10000] inline-flex items-center gap-2 rounded-b-lg px-4 py-2 text-sm font-semibold ' +
-  'bg-[#F9964A] text-white shadow-xl ring-4 ring-[#F9964A]/30 ' +
+  'bg-[#F9964A] text-[#004469] shadow-xl ring-4 ring-[#F9964A]/30 ' +
   'transition-transform duration-150 focus:outline-none';
 
 interface SkipLinkProps {
@@ -31,7 +31,14 @@ interface SkipLinkProps {
 
 function SkipLink({ href, children }: SkipLinkProps) {
   return (
-    <a href={href} className={SKIP_LINK_STYLES}>
+    <a href={href} className={SKIP_LINK_STYLES} onClick={(event) => {
+      const target = document.getElementById(href.slice(1));
+      if (!target) return;
+      event.preventDefault();
+      target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: 'start' });
+    }}>
       {children}
     </a>
   );
@@ -45,9 +52,13 @@ export function SkipLinks() {
   // Détecte à chaque changement de route si `#page-actions` existe côté DOM
   // afin d'afficher (ou pas) le skip-link "Aller aux actions".
   const [hasActions, setHasActions] = React.useState(false);
+  const [hasFooter, setHasFooter] = React.useState(false);
 
   useEffect(() => {
-    const check = () => setHasActions(!!document.getElementById('page-actions'));
+    const check = () => {
+      setHasActions(!!document.getElementById('page-actions'));
+      setHasFooter(!!document.getElementById('main-footer'));
+    };
     check();
     // MutationObserver : certaines pages rendent leur header après un fetch
     const obs = new MutationObserver(check);
@@ -73,7 +84,7 @@ export function SkipLinks() {
         e.preventDefault();
         el.setAttribute('tabindex', '-1');
         el.focus({ preventScroll: false });
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.scrollIntoView({ block: 'start' });
       }
     }
     window.addEventListener('keydown', handleAltKey);
@@ -88,7 +99,7 @@ export function SkipLinks() {
       <SkipLink href="#main-content">Aller au contenu principal</SkipLink>
       {hasActions && <SkipLink href="#page-actions">Aller aux actions</SkipLink>}
       <SkipLink href="#main-nav">Aller à la navigation</SkipLink>
-      <SkipLink href="#main-footer">Aller au pied de page</SkipLink>
+      {hasFooter && <SkipLink href="#main-footer">Aller au pied de page</SkipLink>}
     </nav>
   );
 }

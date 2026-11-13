@@ -1,11 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import {
-  DigestService,
-  groupByModule,
-  moduleFromNotification,
-} from "./digest.service";
+import { DigestService, groupByModule, moduleFromNotification } from "./digest.service";
 import { NotificationPreferencesService } from "./notification-preferences.service";
 
 /**
@@ -77,15 +73,11 @@ describe("DigestService", () => {
 
   describe("moduleFromNotification", () => {
     it("dispatch INCIDENT_* → incidents", () => {
-      expect(moduleFromNotification({ type: "INCIDENT_CREATED" })).toBe(
-        "incidents",
-      );
+      expect(moduleFromNotification({ type: "INCIDENT_CREATED" })).toBe("incidents");
     });
 
     it("dispatch SIGNATURE_* → signatures", () => {
-      expect(moduleFromNotification({ type: "SIGNATURE_NEEDED" })).toBe(
-        "signatures",
-      );
+      expect(moduleFromNotification({ type: "SIGNATURE_NEEDED" })).toBe("signatures");
     });
 
     it("dispatch MENTION → mentions", () => {
@@ -93,30 +85,42 @@ describe("DigestService", () => {
     });
 
     it("dispatch DOC_* → documents", () => {
-      expect(moduleFromNotification({ type: "DOC_PUBLISHED" })).toBe(
-        "documents",
-      );
-      expect(moduleFromNotification({ type: "ACK_REQUIRED" })).toBe(
-        "documents",
-      );
+      expect(moduleFromNotification({ type: "DOC_PUBLISHED" })).toBe("documents");
+      expect(moduleFromNotification({ type: "ACK_REQUIRED" })).toBe("documents");
     });
 
     it("dispatch TICKET_* → tickets", () => {
-      expect(moduleFromNotification({ type: "TICKET_CREATED" })).toBe(
-        "tickets",
-      );
+      expect(moduleFromNotification({ type: "TICKET_CREATED" })).toBe("tickets");
+    });
+
+    it("dispatch VEILLE_* → veille", () => {
+      expect(moduleFromNotification({ type: "VEILLE_CRITICAL" })).toBe("veille");
+      expect(moduleFromNotification({ type: "VEILLE_BULLETIN" })).toBe("veille");
+    });
+
+    it("dispatch legacy DOC_PUBLISHED+resourceType veille → veille (pas documents)", () => {
+      // Les notifs veille legacy (type DOC_PUBLISHED) ne doivent plus tomber
+      // dans le bucket « documents » : le resourceType prime.
+      expect(
+        moduleFromNotification({
+          type: "DOC_PUBLISHED",
+          resourceType: "VeilleItem",
+        }),
+      ).toBe("veille");
+      expect(
+        moduleFromNotification({
+          type: "DOC_PUBLISHED",
+          resourceType: "VeilleBulletin",
+        }),
+      ).toBe("veille");
     });
 
     it("dispatch resourceType=WIKI → wiki (priorité)", () => {
-      expect(
-        moduleFromNotification({ type: "OTHER", resourceType: "WIKI" }),
-      ).toBe("wiki");
+      expect(moduleFromNotification({ type: "OTHER", resourceType: "WIKI" })).toBe("wiki");
     });
 
     it("dispatch resourceType=NEWS → news (priorité)", () => {
-      expect(
-        moduleFromNotification({ type: "OTHER", resourceType: "NEWS" }),
-      ).toBe("news");
+      expect(moduleFromNotification({ type: "OTHER", resourceType: "NEWS" })).toBe("news");
     });
 
     it("fallback unknown → other", () => {

@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { toast } from 'sonner';
-import { api } from '@/lib/api';
-import { logger } from '@/lib/logger';
-import { Card, CardContent, Button, Select } from '@omnitech/ui';
-import { PageHeader } from '@/components/layout/page-header';
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
+import { Card, CardContent, Button, Select } from "@omnitech/ui";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Bell,
   Mail,
@@ -16,12 +16,13 @@ import {
   Ticket as TicketIcon,
   ShieldAlert,
   AtSign,
+  Rss,
   Save,
   RotateCcw,
   ArrowLeft,
-} from 'lucide-react';
+} from "lucide-react";
 
-type DigestFrequency = 'off' | 'daily' | 'weekly';
+type DigestFrequency = "off" | "daily" | "weekly";
 
 interface Preferences {
   email: {
@@ -29,6 +30,8 @@ interface Preferences {
     documents: boolean;
     incidents: boolean;
     mentions: boolean;
+    // Veille cyber — OFF par défaut (anti-spam si SMTP réactivé).
+    veille: boolean;
     digest: DigestFrequency;
   };
   inApp: {
@@ -36,6 +39,7 @@ interface Preferences {
     documents: boolean;
     incidents: boolean;
     mentions: boolean;
+    veille: boolean;
   };
   push: {
     tickets: boolean;
@@ -45,12 +49,19 @@ interface Preferences {
 }
 
 const DEFAULT_PREFS: Preferences = {
-  email: { tickets: true, documents: true, incidents: true, mentions: true, digest: 'daily' },
-  inApp: { tickets: true, documents: true, incidents: true, mentions: true },
+  email: {
+    tickets: true,
+    documents: true,
+    incidents: true,
+    mentions: true,
+    veille: false,
+    digest: "daily",
+  },
+  inApp: { tickets: true, documents: true, incidents: true, mentions: true, veille: true },
   push: { tickets: false, incidents: true, mentions: true },
 };
 
-type Category = 'tickets' | 'documents' | 'incidents' | 'mentions';
+type Category = "tickets" | "documents" | "incidents" | "mentions" | "veille";
 
 interface CategoryRow {
   key: Category;
@@ -64,36 +75,45 @@ interface CategoryRow {
 
 const CATEGORIES: CategoryRow[] = [
   {
-    key: 'tickets',
-    label: 'Tickets',
-    description: 'Création, assignation, mises à jour, SLA',
+    key: "tickets",
+    label: "Tickets",
+    description: "Création, assignation, mises à jour, SLA",
     icon: TicketIcon,
-    color: 'text-seal-blue',
+    color: "text-seal-blue",
     channels: { inApp: true, email: true, push: true },
   },
   {
-    key: 'documents',
-    label: 'Documents',
-    description: 'Revues, approbations, signatures, accusés de réception',
+    key: "documents",
+    label: "Documents",
+    description: "Revues, approbations, signatures, accusés de réception",
     icon: FileText,
-    color: 'text-seal-orange',
+    color: "text-seal-orange",
     channels: { inApp: true, email: true, push: false },
   },
   {
-    key: 'incidents',
-    label: 'Incidents',
-    description: 'Nouveaux incidents de sécurité, remédiations',
+    key: "incidents",
+    label: "Incidents",
+    description: "Nouveaux incidents de sécurité, remédiations",
     icon: ShieldAlert,
-    color: 'text-seal-bordeaux',
+    color: "text-seal-bordeaux",
     channels: { inApp: true, email: true, push: true },
   },
   {
-    key: 'mentions',
-    label: 'Mentions',
-    description: 'Quelqu’un vous mentionne dans un commentaire',
+    key: "mentions",
+    label: "Mentions",
+    description: "Quelqu’un vous mentionne dans un commentaire",
     icon: AtSign,
-    color: 'text-seal-green',
+    color: "text-seal-green",
     channels: { inApp: true, email: true, push: true },
+  },
+  {
+    key: "veille",
+    label: "Veille cyber",
+    description: "Alertes critiques et bulletins hebdomadaires (e-mail désactivé par défaut)",
+    icon: Rss,
+    color: "text-seal-navy",
+    // Jamais de push pour la veille (comme les documents).
+    channels: { inApp: true, email: true, push: false },
   },
 ];
 
@@ -118,15 +138,15 @@ function Toggle({
       onClick={() => !disabled && onChange(!checked)}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary ${
         disabled
-          ? 'bg-gray-200 dark:bg-slate-700 cursor-not-allowed opacity-50'
+          ? "bg-gray-200 dark:bg-slate-700 cursor-not-allowed opacity-50"
           : checked
-            ? 'bg-primary'
-            : 'bg-gray-300 dark:bg-slate-600'
+            ? "bg-primary"
+            : "bg-gray-300 dark:bg-slate-600"
       }`}
     >
       <span
         className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-          checked ? 'translate-x-5' : 'translate-x-0.5'
+          checked ? "translate-x-5" : "translate-x-0.5"
         }`}
       />
     </button>
@@ -141,7 +161,7 @@ export default function NotificationPreferencesPage() {
 
   useEffect(() => {
     api
-      .get('/notifications/preferences')
+      .get("/notifications/preferences")
       .then(({ data }) => {
         const next: Preferences = {
           email: { ...DEFAULT_PREFS.email, ...(data?.email || {}) },
@@ -152,11 +172,11 @@ export default function NotificationPreferencesPage() {
         setInitial(next);
       })
       .catch((err) => {
-        toast.error('Impossible de charger vos préférences');
+        toast.error("Impossible de charger vos préférences");
         // Fall back to defaults so the UI is usable.
         setPrefs({ ...DEFAULT_PREFS });
         setInitial({ ...DEFAULT_PREFS });
-        logger.error(err, { page: 'notifications/preferences', context: 'load' });
+        logger.error(err, { page: "notifications/preferences", context: "load" });
       })
       .finally(() => setLoading(false));
   }, []);
@@ -166,11 +186,7 @@ export default function NotificationPreferencesPage() {
     return JSON.stringify(prefs) !== JSON.stringify(initial);
   }, [prefs, initial]);
 
-  const updateChannel = (
-    channel: 'email' | 'inApp' | 'push',
-    key: Category,
-    value: boolean,
-  ) => {
+  const updateChannel = (channel: "email" | "inApp" | "push", key: Category, value: boolean) => {
     setPrefs((p) => {
       if (!p) return p;
       return { ...p, [channel]: { ...p[channel], [key]: value } };
@@ -185,7 +201,7 @@ export default function NotificationPreferencesPage() {
     if (!prefs) return;
     setSaving(true);
     try {
-      const { data } = await api.put('/notifications/preferences', prefs);
+      const { data } = await api.put("/notifications/preferences", prefs);
       const next: Preferences = {
         email: { ...DEFAULT_PREFS.email, ...(data?.email || {}) },
         inApp: { ...DEFAULT_PREFS.inApp, ...(data?.inApp || {}) },
@@ -193,12 +209,12 @@ export default function NotificationPreferencesPage() {
       };
       setPrefs(next);
       setInitial(next);
-      toast.success('Préférences enregistrées');
+      toast.success("Préférences enregistrées");
     } catch (err) {
       toast.error(
         (err as any)?.response?.data?.message ||
           (err as any)?.message ||
-          'Erreur lors de l’enregistrement',
+          "Erreur lors de l’enregistrement",
       );
     } finally {
       setSaving(false);
@@ -277,15 +293,22 @@ export default function NotificationPreferencesPage() {
                   {CATEGORIES.map((row) => {
                     const Icon = row.icon;
                     return (
-                      <tr key={row.key} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <tr
+                        key={row.key}
+                        className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                      >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 flex-shrink-0">
                               <Icon className={`h-4 w-4 ${row.color}`} />
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-seal-navy dark:text-white">{row.label}</p>
-                              <p className="text-xs text-seal-gray-500 dark:text-slate-400">{row.description}</p>
+                              <p className="text-sm font-semibold text-seal-navy dark:text-white">
+                                {row.label}
+                              </p>
+                              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                                {row.description}
+                              </p>
                             </div>
                           </div>
                         </td>
@@ -293,7 +316,7 @@ export default function NotificationPreferencesPage() {
                           <div className="inline-flex">
                             <Toggle
                               checked={prefs.inApp[row.key]}
-                              onChange={(v) => updateChannel('inApp', row.key, v)}
+                              onChange={(v) => updateChannel("inApp", row.key, v)}
                               disabled={!row.channels.inApp}
                               ariaLabel={`In-app ${row.label}`}
                             />
@@ -303,7 +326,7 @@ export default function NotificationPreferencesPage() {
                           <div className="inline-flex">
                             <Toggle
                               checked={prefs.email[row.key]}
-                              onChange={(v) => updateChannel('email', row.key, v)}
+                              onChange={(v) => updateChannel("email", row.key, v)}
                               disabled={!row.channels.email}
                               ariaLabel={`E-mail ${row.label}`}
                             />
@@ -314,11 +337,13 @@ export default function NotificationPreferencesPage() {
                             {row.channels.push ? (
                               <Toggle
                                 checked={(prefs.push as any)[row.key] ?? false}
-                                onChange={(v) => updateChannel('push', row.key, v)}
+                                onChange={(v) => updateChannel("push", row.key, v)}
                                 ariaLabel={`Push ${row.label}`}
                               />
                             ) : (
-                              <span className="text-xs text-seal-gray-500/60 dark:text-slate-500">—</span>
+                              <span className="text-xs text-seal-gray-500/60 dark:text-slate-500">
+                                —
+                              </span>
                             )}
                           </div>
                         </td>
@@ -342,8 +367,12 @@ export default function NotificationPreferencesPage() {
                         <Icon className={`h-4 w-4 ${row.color}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-seal-navy dark:text-white">{row.label}</p>
-                        <p className="text-xs text-seal-gray-500 dark:text-slate-400">{row.description}</p>
+                        <p className="text-sm font-semibold text-seal-navy dark:text-white">
+                          {row.label}
+                        </p>
+                        <p className="text-xs text-seal-gray-500 dark:text-slate-400">
+                          {row.description}
+                        </p>
                       </div>
                     </div>
                     <div className="space-y-2 pl-12">
@@ -353,7 +382,7 @@ export default function NotificationPreferencesPage() {
                         </span>
                         <Toggle
                           checked={prefs.inApp[row.key]}
-                          onChange={(v) => updateChannel('inApp', row.key, v)}
+                          onChange={(v) => updateChannel("inApp", row.key, v)}
                           ariaLabel={`In-app ${row.label}`}
                         />
                       </div>
@@ -363,7 +392,7 @@ export default function NotificationPreferencesPage() {
                         </span>
                         <Toggle
                           checked={prefs.email[row.key]}
-                          onChange={(v) => updateChannel('email', row.key, v)}
+                          onChange={(v) => updateChannel("email", row.key, v)}
                           ariaLabel={`E-mail ${row.label}`}
                         />
                       </div>
@@ -374,7 +403,7 @@ export default function NotificationPreferencesPage() {
                           </span>
                           <Toggle
                             checked={(prefs.push as any)[row.key] ?? false}
-                            onChange={(v) => updateChannel('push', row.key, v)}
+                            onChange={(v) => updateChannel("push", row.key, v)}
                             ariaLabel={`Push ${row.label}`}
                           />
                         </div>
@@ -394,15 +423,17 @@ export default function NotificationPreferencesPage() {
                   <Mail className="h-4 w-4 text-seal-blue" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-seal-navy dark:text-white">Résumé par e-mail</p>
+                  <p className="text-sm font-semibold text-seal-navy dark:text-white">
+                    Résumé par e-mail
+                  </p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400 mb-3">
                     Recevez un récapitulatif groupé de vos notifications non lues.
                   </p>
                   <Select
                     options={[
-                      { value: 'off', label: 'Désactivé' },
-                      { value: 'daily', label: 'Quotidien (en semaine, 8h)' },
-                      { value: 'weekly', label: 'Hebdomadaire (lundi matin)' },
+                      { value: "off", label: "Désactivé" },
+                      { value: "daily", label: "Quotidien (en semaine, 8h)" },
+                      { value: "weekly", label: "Hebdomadaire (lundi matin)" },
                     ]}
                     value={prefs.email.digest}
                     onChange={(e) => setDigest(e.target.value as DigestFrequency)}
@@ -421,7 +452,9 @@ export default function NotificationPreferencesPage() {
             </Button>
             <div className="flex items-center gap-3">
               {dirty && (
-                <span className="text-xs text-seal-orange font-medium">Modifications non enregistrées</span>
+                <span className="text-xs text-seal-orange font-medium">
+                  Modifications non enregistrées
+                </span>
               )}
               <Button onClick={handleSave} disabled={!dirty} loading={saving}>
                 <Save className="h-4 w-4" />

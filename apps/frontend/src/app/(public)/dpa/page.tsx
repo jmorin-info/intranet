@@ -127,7 +127,7 @@ function DpaFallbackBody() {
           l&apos;intranet. Il complète, sans s&apos;y substituer, le contrat de
           travail, le règlement intérieur et la charte informatique signés à
           l&apos;embauche, consultables dans la rubrique{" "}
-          <Link href="/chartes" className="text-slate-900 hover:underline">
+          <Link href="/chartes" className="text-slate-900 underline underline-offset-2">
             Chartes
           </Link>
           .
@@ -253,14 +253,14 @@ function DpaFallbackBody() {
           sont décrites dans la{" "}
           <Link
             href="/privacy-policy"
-            className="text-slate-900 hover:underline"
+            className="text-slate-900 underline underline-offset-2"
           >
             politique de confidentialité
           </Link>
           . Toute question peut être adressée au DPO à l&apos;adresse{" "}
           <a
             href="mailto:dpo@omnitech-security.fr"
-            className="text-slate-900 hover:underline"
+            className="text-slate-900 underline underline-offset-2"
           >
             dpo@omnitech-security.fr
           </a>
@@ -277,7 +277,7 @@ function DpaFallbackBody() {
           charte de sécurité et le règlement intérieur. En cas de divergence,
           les documents contractuels signés par l&apos;utilisateur prévalent. La
           consultation est accessible depuis la page{" "}
-          <Link href="/chartes" className="text-slate-900 hover:underline">
+          <Link href="/chartes" className="text-slate-900 underline underline-offset-2">
             Chartes
           </Link>
           .

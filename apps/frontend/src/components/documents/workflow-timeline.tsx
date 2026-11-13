@@ -1,21 +1,10 @@
 "use client";
 
 import React from "react";
-import {
-  FileEdit,
-  Eye,
-  UserCheck,
-  ShieldCheck,
-  Send,
-  Check,
-  X,
-} from "lucide-react";
+import { formatDate as formatDateUtil } from "@/lib/utils";
+import { FileEdit, Eye, UserCheck, ShieldCheck, Send, Check, X } from "lucide-react";
 
-export type WorkflowStepState =
-  | "pending"
-  | "current"
-  | "completed"
-  | "rejected";
+export type WorkflowStepState = "pending" | "current" | "completed" | "rejected";
 
 export interface WorkflowStepData {
   key: "draft" | "review" | "confirm" | "approval" | "published";
@@ -31,10 +20,7 @@ interface WorkflowTimelineProps {
   className?: string;
 }
 
-const ICONS: Record<
-  WorkflowStepData["key"],
-  React.ComponentType<{ className?: string }>
-> = {
+const ICONS: Record<WorkflowStepData["key"], React.ComponentType<{ className?: string }>> = {
   draft: FileEdit,
   review: Eye,
   confirm: UserCheck,
@@ -47,16 +33,14 @@ const STATE_STYLES: Record<
   { circle: string; line: string; label: string; badge: string }
 > = {
   pending: {
-    circle:
-      "bg-gray-100 dark:bg-slate-800 text-[#837274] border-gray-200 dark:border-slate-700",
+    circle: "bg-gray-100 dark:bg-slate-800 text-[#837274] border-gray-200 dark:border-slate-700",
     line: "bg-gray-200 dark:bg-slate-700",
     label: "text-[#837274]",
     badge: "bg-gray-100 text-[#837274] dark:bg-slate-800",
   },
   current: {
     // Orange PANTONE clignotant
-    circle:
-      "bg-[#F68D2E] text-white border-[#F68D2E] animate-pulse shadow-lg shadow-[#F68D2E]/30",
+    circle: "bg-[#F68D2E] text-white border-[#F68D2E] animate-pulse shadow-lg shadow-[#F68D2E]/30",
     line: "bg-gray-200 dark:bg-slate-700",
     label: "text-slate-900 font-semibold",
     badge: "bg-[#F68D2E]/10 text-slate-900",
@@ -78,7 +62,7 @@ const STATE_STYLES: Record<
 function formatDate(iso?: string | null): string {
   if (!iso) return "";
   try {
-    return new Date(iso).toLocaleDateString("fr-FR", {
+    return formatDateUtil(iso, {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -88,10 +72,7 @@ function formatDate(iso?: string | null): string {
   }
 }
 
-export function WorkflowTimeline({
-  steps,
-  className = "",
-}: WorkflowTimelineProps) {
+export function WorkflowTimeline({ steps, className = "" }: WorkflowTimelineProps) {
   return (
     <div className={`w-full ${className}`}>
       {/* Ligne horizontale avec cercles */}
@@ -100,14 +81,11 @@ export function WorkflowTimeline({
           const Icon = ICONS[step.key];
           const style = STATE_STYLES[step.state];
           const isLast = idx === steps.length - 1;
-          const nextStyle = !isLast
-            ? STATE_STYLES[steps[idx + 1]!.state]
-            : null;
+          const nextStyle = !isLast ? STATE_STYLES[steps[idx + 1]!.state] : null;
           // La ligne qui suit utilise la couleur du suivant si completed/rejected, sinon grise
           const lineCls =
             nextStyle &&
-            (steps[idx + 1]!.state === "completed" ||
-              steps[idx + 1]!.state === "rejected")
+            (steps[idx + 1]!.state === "completed" || steps[idx + 1]!.state === "rejected")
               ? nextStyle.line
               : "bg-gray-200 dark:bg-slate-700";
 
@@ -155,9 +133,7 @@ export function WorkflowTimeline({
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-slate-900 dark:text-slate-200">
-                    {step.actor
-                      ? `${step.actor.firstName} ${step.actor.lastName}`
-                      : "Système"}
+                    {step.actor ? `${step.actor.firstName} ${step.actor.lastName}` : "Système"}
                     {step.date && (
                       <span className="text-[#837274] dark:text-slate-400">
                         {" "}

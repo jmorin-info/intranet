@@ -205,7 +205,14 @@ export function HelpdeskChat() {
       .map((a) => a.question);
   }
 
-  async function findAnswer(query: string): Promise<Message> {
+  // `onPartial(text)` est appele a chaque token recu via /rag/ask-stream. Permet
+  // au caller (handleSend) d'afficher progressivement la reponse RAG sans
+  // attendre la fin de generation (28-80s sur CPU). Optionnel : les chemins
+  // rapides (intent/KB local) ne l'invoquent jamais.
+  async function findAnswer(
+    query: string,
+    onPartial?: (content: string) => void,
+  ): Promise<Message> {
     // ----- 1. Intent detection (priority) -----
     const intent = detectIntent(query);
     if (intent && intent.terminal) {
@@ -258,23 +265,67 @@ export function HelpdeskChat() {
       };
     }
 
-    // ----- 3. RAG search (preferred over /ai/search) -----
+    // ----- 3. RAG search (streamed) -----
     if (features.ai) {
       try {
-        const { data: ragData } = await api.post("/rag/ask", {
-          question: query,
+        // Stream tokens via /rag/ask-stream pour ne plus attendre 28-80s de
+        // generation CPU avant de montrer la reponse (gain UX majeur).
+        // Pattern aligne sur components/ai/ai-chatbot.tsx (chatbot flottant).
+        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(
+          /\/api\/?$/,
+          "/api/v1",
+        );
+        const res = await fetch(`${baseUrl}/rag/ask-stream`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include", // cookie httpOnly accessToken (ANSSI A.5.34)
+          body: JSON.stringify({ question: query }),
         });
-        if (ragData.sources && ragData.sources.length > 0) {
-          const score = normalizeRagScore(ragData.sources);
+        if (!res.ok || !res.body) throw new Error("stream not available");
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let fullAnswer = "";
+        let ragSources: Array<{
+          sourceType: string;
+          sourceId: string;
+          snippet: string;
+          score: number;
+        }> = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const payload = JSON.parse(line.slice(6));
+              if (payload.type === "token") {
+                fullAnswer += payload.token;
+                onPartial?.(fullAnswer);
+              } else if (
+                payload.type === "meta" ||
+                payload.type === "sources"
+              ) {
+                ragSources = payload.sources || [];
+              }
+            } catch {
+              /* partial JSON between chunks — drop, ignore */
+            }
+          }
+        }
+
+        // Si le RAG a effectivement repondu (tokens generes ET sources trouvees),
+        // on retourne la reponse RAG. Sinon, fall-through vers /ai/search.
+        if (ragSources.length > 0 && fullAnswer.trim().length > 0) {
+          const score = normalizeRagScore(ragSources);
           const ragActions: Array<{ label: string; href?: string }> = [];
 
-          // Build source links from RAG results
-          for (const src of ragData.sources.slice(0, 5) as Array<{
-            sourceType: string;
-            sourceId: string;
-            snippet: string;
-            score: number;
-          }>) {
+          for (const src of ragSources.slice(0, 5)) {
             const typeLabel: Record<string, string> = {
               DOCUMENT: "Document",
               WIKI: "Wiki",
@@ -307,7 +358,7 @@ export function HelpdeskChat() {
 
           return {
             role: "assistant",
-            content: ragData.answer,
+            content: fullAnswer,
             timestamp: new Date(),
             actions: ragActions,
             suggestions:
@@ -319,7 +370,7 @@ export function HelpdeskChat() {
           };
         }
       } catch {
-        // RAG failed, fall through to AI search
+        // Stream KO (reseau, abort, SSE malforme...) — fall through to /ai/search.
       }
 
       // ----- 4. Fallback: /ai/search -----
@@ -464,6 +515,54 @@ export function HelpdeskChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  /**
+   * Pipeline commun : prend une query (deja affichee comme user message),
+   * declenche findAnswer avec streaming si applicable (RAG), gere un
+   * placeholder progressif puis sa finalisation. Utilise par handleSend (input
+   * libre), le clic sur une question FAQ et le clic sur une suggestion.
+   */
+  const runQuery = (query: string) => {
+    setIsTyping(true);
+    setTimeout(async () => {
+      // Indice du placeholder de streaming (s'il en a un). Reste null pour les
+      // chemins rapides (intent/KB/fallback) qui ne streament pas.
+      let phIndex: number | null = null;
+
+      const answer = await findAnswer(query, (partial) => {
+        setMessages((prev) => {
+          if (phIndex === null) {
+            phIndex = prev.length;
+            return [
+              ...prev,
+              {
+                role: "assistant",
+                content: partial,
+                timestamp: new Date(),
+                source: "rag",
+              },
+            ];
+          }
+          return prev.map((m, i) =>
+            i === phIndex ? { ...m, content: partial } : m,
+          );
+        });
+        // Premier token recu = on cache le "Réfléchissement..." (le contenu
+        // qui s'affiche progressivement le remplace visuellement).
+        setIsTyping(false);
+      });
+
+      if (phIndex !== null) {
+        // Remplace le placeholder par la reponse finale (avec sources + actions).
+        const idx = phIndex;
+        setMessages((prev) => prev.map((m, i) => (i === idx ? answer : m)));
+      } else {
+        // Chemin rapide : append normal.
+        setMessages((prev) => [...prev, answer]);
+      }
+      setIsTyping(false);
+    }, 500);
+  };
+
   const handleSend = () => {
     if (!input.trim()) return;
     const userMsg: Message = {
@@ -474,13 +573,8 @@ export function HelpdeskChat() {
     const query = input.trim();
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
-    setIsTyping(true);
     setShowChat(true);
-    setTimeout(async () => {
-      const answer = await findAnswer(query);
-      setMessages((prev) => [...prev, answer]);
-      setIsTyping(false);
-    }, 500);
+    runQuery(query);
   };
 
   const formatTime = (date: Date) => {
@@ -533,12 +627,7 @@ export function HelpdeskChat() {
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMsg]);
-    setIsTyping(true);
-    setTimeout(async () => {
-      const answer = await findAnswer(article.question);
-      setMessages((prev) => [...prev, answer]);
-      setIsTyping(false);
-    }, 500);
+    runQuery(article.question);
     setInput("");
   };
 
@@ -734,8 +823,18 @@ export function HelpdeskChat() {
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="h-[500px] overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-slate-900">
+            {/* Messages
+                a11y : role=log + aria-live=polite + aria-relevant=additions
+                permet aux lecteurs d'ecran d'annoncer les nouveaux messages
+                (et leurs mises a jour progressives pendant le streaming RAG)
+                sans interrompre l'utilisateur. */}
+            <div
+              className="h-[500px] overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-slate-900"
+              role="log"
+              aria-live="polite"
+              aria-relevant="additions text"
+              aria-label="Conversation avec l’assistant"
+            >
               {messages.map((msg, i) => (
                 <div
                   key={i}
@@ -832,12 +931,7 @@ export function HelpdeskChat() {
                                   timestamp: new Date(),
                                 };
                                 setMessages((prev) => [...prev, userMsg]);
-                                setIsTyping(true);
-                                setTimeout(async () => {
-                                  const answer = await findAnswer(sq);
-                                  setMessages((prev) => [...prev, answer]);
-                                  setIsTyping(false);
-                                }, 500);
+                                runQuery(sq);
                               }}
                               className="block w-full text-left px-3 py-2 rounded-lg bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 text-xs text-seal-navy dark:text-white hover:border-primary/30 hover:bg-primary/5 transition-all duration-200"
                             >

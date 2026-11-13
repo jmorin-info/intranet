@@ -37,7 +37,7 @@ concurrency:
 jobs:
   cdn-sync:
     name: Build + sync to CDN
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     # Skip tant que le CDN n'est pas configuré au niveau repo (variable
     # GitHub `NEXT_PUBLIC_CDN_URL`). Empêche les jobs ratés en preprod.
@@ -75,7 +75,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24.22.3"
           cache: "pnpm"
 
       - name: Install dependencies (devDeps needed for build)

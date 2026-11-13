@@ -26,7 +26,20 @@ export interface CreateNotificationParams {
   resourceId?: string;
   /** Extra metadata for rich email templates */
   metadata?: Record<string, any>;
+  /**
+   * Clé de déduplication optionnelle (fenêtre glissante de 7 jours par
+   * utilisateur). Si une notification du même type existe déjà pour ce
+   * user avec `resourceId === dedupeKey` OU dont le titre contient la clé
+   * (ex. un identifiant CVE), la création est SKIPPÉE sur tous les canaux
+   * et create() renvoie null. Utilisé par la veille (dedupeKey = cveId)
+   * pour ne pas renotifier le même CVE arrivé via une autre source/URL.
+   * (Pas de colonne dédiée : lookup sur la table Notification existante.)
+   */
+  dedupeKey?: string;
 }
+
+/** Fenêtre de déduplication de create({ dedupeKey }) — 7 jours. */
+const DEDUPE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Notification types that justify a browser push (high-signal events only)
 const PUSH_WORTHY_TYPES = new Set<string>([
@@ -68,6 +81,9 @@ const _EMAIL_MUTABLE_TYPES = new Set<string>([
   "TICKET_ASSIGNED",
   "TICKET_UPDATED",
   "TICKET_SLA_BREACH",
+  // Veille cyber — mutable (catégorie « veille », email OFF par défaut)
+  "VEILLE_CRITICAL",
+  "VEILLE_BULLETIN",
 ]);
 
 // ── SEAL / OMNITECH PANTONE colors ──
@@ -112,6 +128,36 @@ export class NotificationsService {
   }
 
   async create(params: CreateNotificationParams) {
+    // ── Déduplication optionnelle (fenêtre 7 jours par user+type) ──
+    if (params.dedupeKey) {
+      try {
+        const since = new Date(Date.now() - DEDUPE_WINDOW_MS);
+        const duplicate = await this.prisma.notification.findFirst({
+          where: {
+            userId: params.userId,
+            type: params.type as NotificationType,
+            createdAt: { gte: since },
+            OR: [
+              { resourceId: params.dedupeKey },
+              { title: { contains: params.dedupeKey } },
+            ],
+          },
+          select: { id: true },
+        });
+        if (duplicate) {
+          this.logger.debug(
+            `Notification dédupliquée (key=${params.dedupeKey}, user=${params.userId}, type=${String(params.type)})`,
+          );
+          return null;
+        }
+      } catch (err) {
+        // Fail-open : une erreur de lookup ne doit pas bloquer la notification.
+        this.logger.warn(
+          `Dedupe lookup failed (key=${params.dedupeKey}): ${err instanceof Error ? err.message : err}`,
+        );
+      }
+    }
+
     // Resolve category once — null means the type is not user-mutable
     // (e.g. SECURITY_ALERT, ALERT_CRITICAL) and will bypass preferences.
     const category = categoryFromType(params.type as string);
@@ -313,10 +359,13 @@ export class NotificationsService {
       });
 
       const appUrl = process.env.APP_URL || "http://localhost:3001";
+      // Les ressources veille n'ont pas de page de détail : lien vers /veille.
       const actionUrl =
-        resourceType && resourceId
-          ? `${appUrl}/${resourceType.toLowerCase()}s/${resourceId}`
-          : appUrl;
+        resourceType === "VeilleItem" || resourceType === "VeilleBulletin"
+          ? `${appUrl}/veille`
+          : resourceType && resourceId
+            ? `${appUrl}/${resourceType.toLowerCase()}s/${resourceId}`
+            : appUrl;
 
       const isUrgent = [
         "SIGNATURE_NEEDED",
@@ -958,6 +1007,8 @@ export class NotificationsService {
       REVIEW_OVERDUE: "Voir le document",
       NEWS_POSTED: "Lire l'article",
       EXTERNAL_ACCESS_REVIEW: "R&eacute;viser les acc&egrave;s",
+      VEILLE_CRITICAL: "Voir la veille cyber",
+      VEILLE_BULLETIN: "Lire le bulletin",
     };
     const actionLabel = actionLabels[type] || "Voir dans l'intranet";
 

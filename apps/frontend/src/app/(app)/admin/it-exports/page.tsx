@@ -1,12 +1,14 @@
-'use client';
+"use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth-store';
-import { UserRole, isRoleAtLeast } from '@omnitech/shared';
-import { Badge, Button, Card, CardContent, Skeleton, EmptyState } from '@omnitech/ui';
-import { AdminGroupTabs } from '@/components/layout/admin-group-tabs';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDropzone } from "react-dropzone";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth-store";
+import { useDebounce } from "@/hooks/use-debounce";
+import { formatDate as formatDateUtil } from "@/lib/utils";
+import { UserRole, isRoleAtLeast } from "@omnitech/shared";
+import { Badge, Button, Card, CardContent, Skeleton, EmptyState } from "@omnitech/ui";
+import { AdminGroupTabs } from "@/components/layout/admin-group-tabs";
 import {
   Activity,
   AlertTriangle,
@@ -32,9 +34,9 @@ import {
   Users,
   X,
   XCircle,
-} from 'lucide-react';
-import { useTranslation } from '@/lib/i18n';
-import { PageHeader } from '@/components/layout/page-header';
+} from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
+import { PageHeader } from "@/components/layout/page-header";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -162,17 +164,17 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 };
 
 const ALLOWED_EXTENSIONS = [
-  '.pdf',
-  '.csv',
-  '.xlsx',
-  '.json',
-  '.xml',
-  '.zip',
-  '.txt',
-  '.log',
-  '.conf',
-  '.cfg',
-  '.bak',
+  ".pdf",
+  ".csv",
+  ".xlsx",
+  ".json",
+  ".xml",
+  ".zip",
+  ".txt",
+  ".log",
+  ".conf",
+  ".cfg",
+  ".bak",
 ];
 
 // -----------------------------------------------------------------------------
@@ -180,8 +182,8 @@ const ALLOWED_EXTENSIONS = [
 // -----------------------------------------------------------------------------
 
 function formatSize(bytes: number): string {
-  if (!bytes || bytes <= 0) return '0 o';
-  const units = ['o', 'Ko', 'Mo', 'Go', 'To'];
+  if (!bytes || bytes <= 0) return "0 o";
+  const units = ["o", "Ko", "Mo", "Go", "To"];
   let idx = 0;
   let value = bytes;
   while (value >= 1024 && idx < units.length - 1) {
@@ -192,26 +194,26 @@ function formatSize(bytes: number): string {
 }
 
 function formatDate(input: string | null | undefined): string {
-  if (!input) return '—';
+  if (!input) return "—";
   const d = new Date(input);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
+  if (Number.isNaN(d.getTime())) return "—";
+  return formatDateUtil(d, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   });
 }
 
 function formatDateTime(input: string | null | undefined): string {
-  if (!input) return '—';
+  if (!input) return "—";
   const d = new Date(input);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  if (Number.isNaN(d.getTime())) return "—";
+  return formatDateUtil(d, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -228,14 +230,14 @@ interface UploadDialogProps {
 }
 
 function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogProps) {
-  const [description, setDescription] = useState('');
-  const [reportPeriod, setReportPeriod] = useState('');
+  const [description, setDescription] = useState("");
+  const [reportPeriod, setReportPeriod] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setDescription('');
-      setReportPeriod('');
+      setDescription("");
+      setReportPeriod("");
       setSubmitting(false);
     }
   }, [open]);
@@ -269,7 +271,7 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
               Ajouter un export {category.label}
             </h2>
             <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
-              {category.iso ? `ISO 27001 — ${category.iso}` : 'Export libre'}
+              {category.iso ? `ISO 27001 — ${category.iso}` : "Export libre"}
             </p>
           </div>
           <button
@@ -345,21 +347,21 @@ function UploadDialog({ open, file, category, onClose, onSubmit }: UploadDialogP
 function VeeamReportWidget() {
   const [report, setReport] = useState<VeeamReport | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    setError('');
+    setError("");
     api
-      .get('/it-exports/veeam/latest')
+      .get("/it-exports/veeam/latest")
       .then((res) => {
         if (!mounted) return;
         setReport(res.data || null);
       })
       .catch(() => {
         if (!mounted) return;
-        setError('Impossible de charger le dernier rapport Veeam.');
+        setError("Impossible de charger le dernier rapport Veeam.");
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -404,13 +406,13 @@ function VeeamReportWidget() {
                 Aucun rapport Veeam disponible
               </p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-                Uploadez un fichier JSON via le drag-and-drop ci-dessous pour
-                alimenter le dashboard. Le script{' '}
+                Uploadez un fichier JSON via le drag-and-drop ci-dessous pour alimenter le
+                dashboard. Le script{" "}
                 <code className="font-mono text-[11px] bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                   Generate-VeeamMonthlyReport.ps1
-                </code>{' '}
-                (dossier <span className="font-mono">scripts/veeam/</span>)
-                peut aussi uploader automatiquement.
+                </code>{" "}
+                (dossier <span className="font-mono">scripts/veeam/</span>) peut aussi uploader
+                automatiquement.
               </p>
             </div>
           </div>
@@ -430,9 +432,9 @@ function VeeamReportWidget() {
                 Rapport Veeam présent mais non parsable
               </p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-                Le fichier <span className="font-mono">{report.originalName}</span>{' '}
-                existe mais n&apos;a pas pu être décodé en JSON valide.
-                Vérifiez le format produit par le script PowerShell.
+                Le fichier <span className="font-mono">{report.originalName}</span> existe mais
+                n&apos;a pas pu être décodé en JSON valide. Vérifiez le format produit par le script
+                PowerShell.
               </p>
             </div>
           </div>
@@ -450,10 +452,7 @@ function VeeamReportWidget() {
   const totalJobs = summary.totalJobs ?? report.jobsCount;
   const restoreCount = summary.restoreTestsCount ?? 0;
   const restoreOk = summary.restoreTestsSuccess ?? 0;
-  const successRate =
-    totalSessions > 0
-      ? Math.round((successCount / totalSessions) * 100)
-      : 0;
+  const successRate = totalSessions > 0 ? Math.round((successCount / totalSessions) * 100) : 0;
 
   return (
     <Card>
@@ -468,16 +467,14 @@ function VeeamReportWidget() {
               <h2 className="text-base font-semibold text-seal-navy dark:text-white">
                 Dernier rapport Veeam
                 {report.reportPeriod && (
-                  <span className="ml-2 text-primary">
-                    · {report.reportPeriod}
-                  </span>
+                  <span className="ml-2 text-primary">· {report.reportPeriod}</span>
                 )}
               </h2>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
                 Généré {formatDateTime(report.generatedAt)}
                 {report.generatedOn && ` sur ${report.generatedOn}`}
                 {report.generatedBy && ` par ${report.generatedBy}`}
-                {' · '}
+                {" · "}
                 Uploadé {formatDateTime(report.uploadedAt)}
                 {report.uploadedBy &&
                   ` par ${report.uploadedBy.firstName} ${report.uploadedBy.lastName}`}
@@ -486,7 +483,7 @@ function VeeamReportWidget() {
           </div>
           {report.iso27001Compliance?.control && (
             <Badge variant="info">
-              ISO 27001 - {report.iso27001Compliance.control.split(' - ')[0]}
+              ISO 27001 - {report.iso27001Compliance.control.split(" - ")[0]}
             </Badge>
           )}
         </div>
@@ -537,7 +534,7 @@ function VeeamReportWidget() {
               {failedCount}
             </p>
             <p className="text-[11px] text-red-600/80 dark:text-red-400/80 mt-0.5">
-              {failedCount > 0 ? 'action requise' : 'aucun incident'}
+              {failedCount > 0 ? "action requise" : "aucun incident"}
             </p>
           </div>
         </div>
@@ -557,9 +554,9 @@ function VeeamReportWidget() {
               Volume sauvegardé
             </p>
             <p className="text-sm font-semibold text-seal-navy dark:text-white mt-0.5">
-              {totalBackedUpGB.toLocaleString('fr-FR', {
+              {totalBackedUpGB.toLocaleString("fr-FR", {
                 maximumFractionDigits: 2,
-              })}{' '}
+              })}{" "}
               Go
             </p>
           </div>
@@ -587,16 +584,13 @@ function VeeamReportWidget() {
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
               <p className="text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wider">
-                {report.alerts.length} alerte{report.alerts.length > 1 ? 's' : ''} détectée
-                {report.alerts.length > 1 ? 's' : ''}
+                {report.alerts.length} alerte{report.alerts.length > 1 ? "s" : ""} détectée
+                {report.alerts.length > 1 ? "s" : ""}
               </p>
             </div>
             <ul className="space-y-1">
               {report.alerts.map((alert, idx) => (
-                <li
-                  key={idx}
-                  className="text-xs text-red-700 dark:text-red-300 pl-5 relative"
-                >
+                <li key={idx} className="text-xs text-red-700 dark:text-red-300 pl-5 relative">
                   <span className="absolute left-1">•</span>
                   {alert}
                 </li>
@@ -625,22 +619,22 @@ function VeeamReportWidget() {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                   {report.jobs.map((job, idx) => {
-                    const result = job.lastResult || 'NoData';
+                    const result = job.lastResult || "NoData";
                     const resultClass =
-                      result === 'Success'
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : result === 'Warning'
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : result === 'Failed'
-                            ? 'text-red-600 dark:text-red-400'
-                            : 'text-seal-gray-500 dark:text-slate-500';
+                      result === "Success"
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : result === "Warning"
+                          ? "text-amber-600 dark:text-amber-400"
+                          : result === "Failed"
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-seal-gray-500 dark:text-slate-500";
                     const rate = job.successRate ?? 0;
                     const rateClass =
                       rate >= 95
-                        ? 'text-emerald-600 dark:text-emerald-400'
+                        ? "text-emerald-600 dark:text-emerald-400"
                         : rate >= 80
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : 'text-red-600 dark:text-red-400';
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-red-600 dark:text-red-400";
                     return (
                       <tr
                         key={`${job.name}-${idx}`}
@@ -655,20 +649,14 @@ function VeeamReportWidget() {
                           )}
                         </td>
                         <td className="px-3 py-2 text-seal-gray-500 dark:text-slate-400">
-                          {job.type || '—'}
+                          {job.type || "—"}
                         </td>
-                        <td className={`px-3 py-2 font-medium ${resultClass}`}>
-                          {result}
-                        </td>
-                        <td
-                          className={`px-3 py-2 text-right font-medium ${rateClass}`}
-                        >
-                          {rate}%
-                        </td>
+                        <td className={`px-3 py-2 font-medium ${resultClass}`}>{result}</td>
+                        <td className={`px-3 py-2 text-right font-medium ${rateClass}`}>{rate}%</td>
                         <td className="px-3 py-2 text-right text-seal-gray-500 dark:text-slate-400">
-                          {(job.lastDataSizeGB ?? 0).toLocaleString('fr-FR', {
+                          {(job.lastDataSizeGB ?? 0).toLocaleString("fr-FR", {
                             maximumFractionDigits: 2,
-                          })}{' '}
+                          })}{" "}
                           Go
                         </td>
                         <td className="px-3 py-2 text-right text-seal-gray-500 dark:text-slate-400">
@@ -682,8 +670,8 @@ function VeeamReportWidget() {
             </div>
             {report.jobsCount > report.jobs.length && (
               <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 mt-2 text-right">
-                Affichage de {report.jobs.length} jobs sur {report.jobsCount}.
-                Téléchargez le JSON brut pour la liste complète.
+                Affichage de {report.jobs.length} jobs sur {report.jobsCount}. Téléchargez le JSON
+                brut pour la liste complète.
               </p>
             )}
           </div>
@@ -707,28 +695,29 @@ interface CategoryDetailProps {
 function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDetailProps) {
   const [items, setItems] = useState<ItExport[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [search, setSearch] = useState('');
-  const [periodFilter, setPeriodFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
+  const [periodFilter, setPeriodFilter] = useState("");
 
   const Icon = CATEGORY_ICONS[category.code] || Folder;
 
   const loadItems = useCallback(async () => {
     setLoading(true);
-    setError('');
+    setError("");
     try {
-      const params: Record<string, string> = { category: category.code, limit: '100' };
-      if (search.trim()) params.search = search.trim();
+      const params: Record<string, string> = { category: category.code, limit: "100" };
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (periodFilter.trim()) params.period = periodFilter.trim();
-      const res = await api.get('/it-exports', { params });
+      const res = await api.get("/it-exports", { params });
       setItems(res.data?.data || []);
     } catch {
       setError("Impossible de charger les exports de cette catégorie.");
     } finally {
       setLoading(false);
     }
-  }, [category.code, search, periodFilter]);
+  }, [category.code, debouncedSearch, periodFilter]);
 
   useEffect(() => {
     loadItems();
@@ -739,14 +728,12 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
       if (!canUpload) return;
       const file = accepted[0];
       if (!file) return;
-      const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
+      const ext = "." + (file.name.split(".").pop() || "").toLowerCase();
       if (!ALLOWED_EXTENSIONS.includes(ext)) {
-        setError(
-          `Extension "${ext}" non autorisée. Autorisées : ${ALLOWED_EXTENSIONS.join(', ')}`,
-        );
+        setError(`Extension "${ext}" non autorisée. Autorisées : ${ALLOWED_EXTENSIONS.join(", ")}`);
         return;
       }
-      setError('');
+      setError("");
       setPendingFile(file);
     },
     [canUpload],
@@ -768,13 +755,13 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
   }) => {
     if (!pendingFile) return;
     const formData = new FormData();
-    formData.append('file', pendingFile);
-    formData.append('category', category.code);
-    if (description.trim()) formData.append('description', description.trim());
-    if (reportPeriod.trim()) formData.append('reportPeriod', reportPeriod.trim());
+    formData.append("file", pendingFile);
+    formData.append("category", category.code);
+    if (description.trim()) formData.append("description", description.trim());
+    if (reportPeriod.trim()) formData.append("reportPeriod", reportPeriod.trim());
     try {
-      await api.post('/it-exports/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      await api.post("/it-exports/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       setPendingFile(null);
       await loadItems();
@@ -787,13 +774,13 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
   const handleDownload = async (item: ItExport) => {
     try {
       const res = await api.get(`/it-exports/${item.id}/download`, {
-        responseType: 'blob',
+        responseType: "blob",
       });
       const blob = new Blob([res.data], {
-        type: item.mimeType || 'application/octet-stream',
+        type: item.mimeType || "application/octet-stream",
       });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = item.originalName;
       document.body.appendChild(a);
@@ -801,7 +788,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      setError('Téléchargement impossible.');
+      setError("Téléchargement impossible.");
     }
   };
 
@@ -811,7 +798,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
       await api.delete(`/it-exports/${item.id}`);
       await loadItems();
     } catch {
-      setError('Suppression impossible.');
+      setError("Suppression impossible.");
     }
   };
 
@@ -825,9 +812,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
           <ArrowLeft className="h-4 w-4" />
           Retour aux catégories
         </button>
-        {category.iso && (
-          <Badge variant="info">ISO 27001 — {category.iso}</Badge>
-        )}
+        {category.iso && <Badge variant="info">ISO 27001 — {category.iso}</Badge>}
       </div>
 
       <Card>
@@ -849,7 +834,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
       </Card>
 
       {/* Veeam dashboard widget - only for VEEAM_BACKUP category */}
-      {category.code === 'VEEAM_BACKUP' && <VeeamReportWidget />}
+      {category.code === "VEEAM_BACKUP" && <VeeamReportWidget />}
 
       {/* Dropzone */}
       {canUpload && (
@@ -857,22 +842,20 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
           {...getRootProps()}
           className={`rounded-xl border-2 border-dashed px-6 py-10 cursor-pointer transition-colors ${
             isDragActive
-              ? 'border-primary bg-primary/10'
-              : 'border-gray-300 dark:border-slate-600 hover:border-primary hover:bg-primary/5'
+              ? "border-primary bg-primary/10"
+              : "border-gray-300 dark:border-slate-600 hover:border-primary hover:bg-primary/5"
           }`}
         >
           <input {...getInputProps()} />
           <div className="flex flex-col items-center gap-3 text-center">
             <div
               className={`flex h-14 w-14 items-center justify-center rounded-full ${
-                isDragActive
-                  ? 'bg-primary/20'
-                  : 'bg-gray-100 dark:bg-slate-800'
+                isDragActive ? "bg-primary/20" : "bg-gray-100 dark:bg-slate-800"
               }`}
             >
               <Upload
                 className={`h-7 w-7 ${
-                  isDragActive ? 'text-primary' : 'text-seal-gray-500 dark:text-slate-400'
+                  isDragActive ? "text-primary" : "text-seal-gray-500 dark:text-slate-400"
                 }`}
               />
             </div>
@@ -881,7 +864,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
                 Glissez vos fichiers ici ou cliquez pour parcourir
               </p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1">
-                {ALLOWED_EXTENSIONS.join(', ')} — max 200 Mo
+                {ALLOWED_EXTENSIONS.join(", ")} — max 200 Mo
               </p>
             </div>
           </div>
@@ -955,7 +938,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
                       {formatSize(item.fileSize)} · {formatDateTime(item.createdAt)}
                       {item.uploadedBy && (
                         <>
-                          {' · '}
+                          {" · "}
                           {item.uploadedBy.firstName} {item.uploadedBy.lastName}
                         </>
                       )}
@@ -966,9 +949,7 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
                       </p>
                     )}
                   </div>
-                  {item.reportPeriod && (
-                    <Badge variant="info">{item.reportPeriod}</Badge>
-                  )}
+                  {item.reportPeriod && <Badge variant="info">{item.reportPeriod}</Badge>}
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleDownload(item)}
@@ -1013,12 +994,12 @@ function CategoryDetail({ category, onBack, canUpload, canDelete }: CategoryDeta
 
 export default function ItExportsPage() {
   const { t } = useTranslation();
-  const user = useAuthStore(s => s.user);
+  const user = useAuthStore((s) => s.user);
   const [categories, setCategories] = useState<Category[]>([]);
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const [loadError, setLoadError] = useState("");
   const mounted = useRef(true);
 
   const canUpload = !!user && isRoleAtLeast(user.role, UserRole.ADMIN);
@@ -1034,12 +1015,12 @@ export default function ItExportsPage() {
 
   const loadOverview = useCallback(async () => {
     setLoading(true);
-    setLoadError('');
+    setLoadError("");
     try {
       const [catRes, statsRes] = await Promise.all([
-        api.get('/it-exports/categories'),
+        api.get("/it-exports/categories"),
         canViewStats
-          ? api.get('/it-exports/stats').catch(() => ({ data: null }))
+          ? api.get("/it-exports/stats").catch(() => ({ data: null }))
           : Promise.resolve({ data: null }),
       ]);
       if (!mounted.current) return;
@@ -1047,7 +1028,7 @@ export default function ItExportsPage() {
       setStats(statsRes.data || null);
     } catch {
       if (mounted.current) {
-        setLoadError('Impossible de charger les catégories.');
+        setLoadError("Impossible de charger les catégories.");
       }
     } finally {
       if (mounted.current) setLoading(false);
@@ -1089,28 +1070,28 @@ export default function ItExportsPage() {
         subtitle="Dépôt centralisé des preuves d'audit pour la certification ISO 27001:2022."
         icon={ClipboardCheck}
         hub="admin"
-        actions={canViewStats && stats ? (
-          <div className="flex items-center gap-6 text-xs text-seal-gray-500 dark:text-slate-400">
-            <div>
-              <p className="text-[10px] uppercase tracking-wider">Total exports</p>
-              <p className="text-lg font-medium text-seal-navy dark:text-white">
-                {globalCount}
-              </p>
+        actions={
+          canViewStats && stats ? (
+            <div className="flex items-center gap-6 text-xs text-seal-gray-500 dark:text-slate-400">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider">Total exports</p>
+                <p className="text-lg font-medium text-seal-navy dark:text-white">{globalCount}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider">Volume</p>
+                <p className="text-lg font-medium text-seal-navy dark:text-white">
+                  {formatSize(globalSize)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider">Dernier dépôt</p>
+                <p className="text-lg font-medium text-seal-navy dark:text-white">
+                  {formatDate(stats.totals.lastUploadAt)}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider">Volume</p>
-              <p className="text-lg font-medium text-seal-navy dark:text-white">
-                {formatSize(globalSize)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider">Dernier dépôt</p>
-              <p className="text-lg font-medium text-seal-navy dark:text-white">
-                {formatDate(stats.totals.lastUploadAt)}
-              </p>
-            </div>
-          </div>
-        ) : undefined}
+          ) : undefined
+        }
       />
 
       {loadError && (
@@ -1159,10 +1140,10 @@ export default function ItExportsPage() {
                 </p>
                 <div className="flex items-center justify-between text-xs">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-0.5 text-seal-gray-500 dark:text-slate-400 font-medium">
-                    {count} export{count > 1 ? 's' : ''}
+                    {count} export{count > 1 ? "s" : ""}
                   </span>
                   <span className="text-seal-gray-500 dark:text-slate-500">
-                    {lastUpload ? formatDate(lastUpload) : 'Vide'}
+                    {lastUpload ? formatDate(lastUpload) : "Vide"}
                   </span>
                 </div>
               </button>

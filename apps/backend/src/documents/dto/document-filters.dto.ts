@@ -5,8 +5,11 @@ import {
   IsUUID,
   IsDateString,
   IsNumberString,
-} from 'class-validator';
-import { DocumentStatus, DocumentCategory } from '@prisma/client';
+  IsBooleanString,
+  IsIn,
+  MaxLength,
+} from "class-validator";
+import { DocumentStatus, DocumentCategory, DocumentLevel, DocumentPriority } from "@prisma/client";
 
 export class DocumentFiltersDto {
   @IsOptional()
@@ -14,8 +17,26 @@ export class DocumentFiltersDto {
   status?: DocumentStatus;
 
   @IsOptional()
+  @IsIn(['drafts', 'review', 'published', 'expired', 'archived'])
+  statusGroup?: 'drafts' | 'review' | 'published' | 'expired' | 'archived';
+
+  @IsOptional()
   @IsEnum(DocumentCategory)
   category?: DocumentCategory;
+
+  // Filtres REG_016 — permettent de retrouver un document par niveau
+  // documentaire, priorité ou caractère bloquant hors espace admin.
+  @IsOptional()
+  @IsEnum(DocumentLevel)
+  documentLevel?: DocumentLevel;
+
+  @IsOptional()
+  @IsEnum(DocumentPriority)
+  priority?: DocumentPriority;
+
+  @IsOptional()
+  @IsBooleanString()
+  blocking?: string;
 
   @IsOptional()
   @IsString()
@@ -27,6 +48,7 @@ export class DocumentFiltersDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   search?: string;
 
   @IsOptional()

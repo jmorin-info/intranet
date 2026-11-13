@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
 import { BadRequestException } from '@nestjs/common';
 import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
@@ -82,7 +83,7 @@ describe('TicketsController', () => {
         { provide: TicketsService, useValue: service },
         Reflector,
       ],
-    }).compile();
+    }).overrideGuard(UserThrottlerGuard).useValue({ canActivate: () => true }).compile();
 
     controller = module.get<TicketsController>(TicketsController);
     reflector = module.get<Reflector>(Reflector);
@@ -118,8 +119,8 @@ describe('TicketsController', () => {
   });
 
   describe('findAll (input invalide)', () => {
-    it('throws BadRequestException when page < 1', async () => {
-      await expect(
+    it('throws BadRequestException when page < 1', () => {
+      expect(() =>
         controller.findAll(
           undefined as any,
           undefined as any,
@@ -133,11 +134,11 @@ describe('TicketsController', () => {
           '20',
           collabUser as any,
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).toThrow(BadRequestException);
     });
 
-    it('throws BadRequestException when limit > 100', async () => {
-      await expect(
+    it('throws BadRequestException when limit > 100', () => {
+      expect(() =>
         controller.findAll(
           undefined as any,
           undefined as any,
@@ -151,11 +152,11 @@ describe('TicketsController', () => {
           '200',
           collabUser as any,
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).toThrow(BadRequestException);
     });
 
-    it('throws BadRequestException when limit < 1', async () => {
-      await expect(
+    it('throws BadRequestException when limit < 1', () => {
+      expect(() =>
         controller.findAll(
           undefined as any,
           undefined as any,
@@ -169,7 +170,7 @@ describe('TicketsController', () => {
           '0',
           collabUser as any,
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).toThrow(BadRequestException);
     });
   });
 

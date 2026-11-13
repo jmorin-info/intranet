@@ -14,18 +14,34 @@ export const CLASS_COLORS: Record<string, string> = {
   SECRET: "border-l-[#892034] bg-[#892034]/5",
 };
 
+// Labels canoniques par niveau (POL_015 §5 — Echelle de classification).
+// Les valeurs techniques SECRET/CONFIDENTIEL/INTERNE/PUBLIC restent stables
+// cote DB (compat retrocompat) mais l'UI doit afficher le libelle officiel
+// « Niveau X — Libelle » plutot que la valeur brute du enum.
 export const CARD_CLASS_BADGE: Record<
   string,
   { bg: string; text: string; label: string }
 > = {
-  SECRET: { bg: "bg-[#892034]/10", text: "text-[#892034]", label: "Secret" },
+  SECRET: {
+    bg: "bg-[#892034]/10",
+    text: "text-[#892034]",
+    label: "Niveau 1 — Très sensible",
+  },
   CONFIDENTIEL: {
     bg: "bg-[#F9964A]/10",
     text: "text-[#F9964A]",
-    label: "Confidentiel",
+    label: "Niveau 2 — Sensible",
   },
-  INTERNE: { bg: "bg-[#296DC1]/10", text: "text-[#296DC1]", label: "Interne" },
-  PUBLIC: { bg: "bg-[#006233]/10", text: "text-[#006233]", label: "Public" },
+  INTERNE: {
+    bg: "bg-[#296DC1]/10",
+    text: "text-[#296DC1]",
+    label: "Niveau 3 — Restreint",
+  },
+  PUBLIC: {
+    bg: "bg-[#006233]/10",
+    text: "text-[#006233]",
+    label: "Niveau 4 — Public",
+  },
 };
 
 export function categoryBadgeVariant(
@@ -80,28 +96,31 @@ export function getValidityInfo(
 ): ValidityInfo {
   if (!nextReviewDate) {
     return {
-      label: "Permanent",
+      label: "Échéance non définie",
       className:
         "bg-gray-100 text-seal-gray-500 dark:bg-slate-800 dark:text-slate-400",
     };
   }
-  const diffMs = new Date(nextReviewDate).getTime() - Date.now();
-  const days = Math.floor(diffMs / 86400000);
+  const reviewDate = new Date(nextReviewDate);
+  if (!Number.isFinite(reviewDate.getTime())) return { label: "Échéance à vérifier", className: "bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300" };
+  const today = new Date();
+  const diffMs = Date.UTC(reviewDate.getUTCFullYear(), reviewDate.getUTCMonth(), reviewDate.getUTCDate()) - Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  const days = Math.round(diffMs / 86400000);
   if (days < 0) {
     return {
-      label: `Expire (${Math.abs(days)}j)`,
+      label: `Revue en retard de ${Math.abs(days)} j`,
       className:
         "bg-[#892034]/10 text-[#892034] dark:bg-[#892034]/20 dark:text-red-300",
     };
   }
   if (days <= 14) {
     return {
-      label: `Bientot (${days}j)`,
+      label: `À revoir dans ${days} j`,
       className: "bg-[#F9964A]/15 text-[#F9964A] dark:text-amber-300",
     };
   }
   return {
-    label: `Valide (${days}j)`,
+    label: `Prochaine revue dans ${days} j`,
     className:
       "bg-[#006233]/10 text-[#006233] dark:bg-[#006233]/20 dark:text-emerald-300",
   };
@@ -131,7 +150,7 @@ export const STATUS_TAB_DEFS: Array<{
   },
   {
     key: "review",
-    label: "En revue",
+    label: "En validation",
     color: "border-[#F9964A] text-[#F9964A]",
     statuses: [
       DocumentStatus.IN_REVIEW,
@@ -141,19 +160,19 @@ export const STATUS_TAB_DEFS: Array<{
   },
   {
     key: "published",
-    label: "Publies",
+    label: "Publiés",
     color: "border-[#006233] text-[#006233]",
     statuses: [DocumentStatus.APPROVED],
   },
   {
     key: "expired",
-    label: "Expires",
+    label: "Obsolètes",
     color: "border-[#892034] text-[#892034]",
     statuses: [DocumentStatus.OBSOLETE],
   },
   {
     key: "archived",
-    label: "Archives",
+    label: "Archivés",
     color:
       "border-gray-400 text-seal-gray-500 dark:border-slate-600 dark:text-slate-400",
     statuses: [DocumentStatus.ARCHIVED],

@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { ChartesController } from './chartes.controller';
 import { ChartesService } from './chartes.service';
+import { CharteExemptionsService } from './charte-exemptions.service';
 import { StorageService } from '../storage/storage.service';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '../common/enums';
 import { ROLES_KEY } from '../auth/decorators/roles.decorator';
+import { REQUIRE_FRESH_MFA_KEY } from '../mfa/decorators/require-fresh-mfa.decorator';
 import type { Request, Response } from 'express';
 
 /**
@@ -14,10 +16,12 @@ import type { Request, Response } from 'express';
  *  (b) RBAC : createFromDocument/uploadVersion/remove requièrent ADMIN+
  *  (c) sign happy path → délégation avec ip/user-agent
  *  (d) streamPdf input invalide → 404 si pas de version active
+ *  (e) cohérence MFA : validation direction = MFA fraîche, attestation = non
  */
 describe('ChartesController', () => {
   let controller: ChartesController;
   let chartesService: any;
+  let exemptionsService: any;
   let storageService: any;
   let reflector: Reflector;
 
@@ -72,11 +76,17 @@ describe('ChartesController', () => {
     storageService = {
       getFileStream: jest.fn().mockReturnValue({ pipe: jest.fn() }),
     };
+    exemptionsService = {
+      listForCharte: jest.fn().mockResolvedValue([]),
+      grant: jest.fn().mockResolvedValue({ id: 'exe-1' }),
+      revoke: jest.fn().mockResolvedValue({ id: 'exe-1' }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChartesController],
       providers: [
         { provide: ChartesService, useValue: chartesService },
+        { provide: CharteExemptionsService, useValue: exemptionsService },
         { provide: StorageService, useValue: storageService },
         Reflector,
       ],
@@ -149,6 +159,32 @@ describe('ChartesController', () => {
       expect(roles).toEqual(
         expect.arrayContaining([UserRole.DIRECTION, UserRole.SUPER_ADMIN]),
       );
+    });
+  });
+
+  describe('cohérence MFA / rôles (3 concepts étanches)', () => {
+    it('la validation de la direction exige une MFA fraîche', () => {
+      const meta = reflector.get(
+        REQUIRE_FRESH_MFA_KEY,
+        controller.markSignedByDirection,
+      );
+      expect(meta).toBeDefined();
+      expect(meta.maxAgeMs).toBeGreaterThan(0);
+    });
+
+    it("l'attestation de lecture n'exige PAS de MFA fraîche", () => {
+      // Une attestation de lecture n'est pas une signature engageante :
+      // imposer une re-validation MFA bloquerait le mur des chartes à la
+      // première connexion, sans rien apporter à la valeur de la preuve.
+      const meta = reflector.get(REQUIRE_FRESH_MFA_KEY, controller.sign);
+      expect(meta).toBeUndefined();
+    });
+
+    it("l'attestation est ouverte à tout utilisateur authentifié (rôle plancher)", () => {
+      const roles = reflector.get<UserRole[]>(ROLES_KEY, controller.sign);
+      // PRESTATAIRE est le niveau le plus bas de ROLE_HIERARCHY : le guard
+      // étant « >= niveau requis », cela équivaut à « tout utilisateur ».
+      expect(roles).toEqual([UserRole.PRESTATAIRE]);
     });
   });
 

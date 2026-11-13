@@ -2,6 +2,8 @@ import { Injectable, Logger, Optional } from "@nestjs/common";
 import {
   AccessReviewCampaignStatus,
   DocumentCategory,
+  DocumentLevel,
+  DocumentPriority,
   DocumentStatus,
   IncidentCategory,
   IncidentSeverity,
@@ -51,9 +53,7 @@ export class RssiDashboardService {
     // 5-min freshness is acceptable for a strategic dashboard ; a manual
     // refresh button on the UI can be implemented to skip the cache.
     if (this.cache) {
-      return this.cache.wrap("rssi-dashboard:snapshot:global", 300, () =>
-        this.computeSnapshot(),
-      );
+      return this.cache.wrap("rssi-dashboard:snapshot:global", 300, () => this.computeSnapshot());
     }
     return this.computeSnapshot();
   }
@@ -187,16 +187,8 @@ export class RssiDashboardService {
         0,
         "alertsLast7d",
       ),
-      safe(
-        this.prisma.veilleItem.count({ where: { severity: "CRITICAL" } }),
-        0,
-        "alertsCritical",
-      ),
-      safe(
-        this.prisma.charte.count({ where: { isActive: true } }),
-        0,
-        "chartesActive",
-      ),
+      safe(this.prisma.veilleItem.count({ where: { severity: "CRITICAL" } }), 0, "alertsCritical"),
+      safe(this.prisma.charte.count({ where: { isActive: true } }), 0, "chartesActive"),
       safe(
         (async () => {
           // On ne compte que les chartes actives qui ont au moins une version publiée,
@@ -210,10 +202,7 @@ export class RssiDashboardService {
             where: { isActive: true, deletedAt: null },
           });
           const signatures = await this.prisma.charteSignature.count();
-          return Math.max(
-            0,
-            chartesWithVersion * totalActiveUsers - signatures,
-          );
+          return Math.max(0, chartesWithVersion * totalActiveUsers - signatures);
         })(),
         0,
         "chartesPendingSignatures",
@@ -234,10 +223,7 @@ export class RssiDashboardService {
         this.prisma.accessReviewCampaign.count({
           where: {
             status: {
-              in: [
-                AccessReviewCampaignStatus.ACTIVE,
-                AccessReviewCampaignStatus.DRAFT,
-              ],
+              in: [AccessReviewCampaignStatus.ACTIVE, AccessReviewCampaignStatus.DRAFT],
             },
           },
         }),
@@ -248,10 +234,7 @@ export class RssiDashboardService {
         this.prisma.accessReviewCampaign.count({
           where: {
             status: {
-              in: [
-                AccessReviewCampaignStatus.ACTIVE,
-                AccessReviewCampaignStatus.DRAFT,
-              ],
+              in: [AccessReviewCampaignStatus.ACTIVE, AccessReviewCampaignStatus.DRAFT],
             },
             dueDate: { lt: now },
           },
@@ -281,8 +264,7 @@ export class RssiDashboardService {
       ),
     ]);
 
-    const mfaCoverage =
-      activeUsers > 0 ? Math.round((mfaEnabledUsers / activeUsers) * 100) : 0;
+    const mfaCoverage = activeUsers > 0 ? Math.round((mfaEnabledUsers / activeUsers) * 100) : 0;
 
     return {
       generatedAt: now.toISOString(),
@@ -335,86 +317,80 @@ export class RssiDashboardService {
     const safe = <T>(p: Promise<T>, fallback: T, label: string): Promise<T> =>
       this.safe(p, fallback, label);
 
-    const [
-      activePolicies,
-      criticalAssets,
-      openRisks,
-      lastReview,
-      nextReview,
-      activeFrameworks,
-    ] = await Promise.all([
-      // "Politiques actives" = documents catégorisés comme politiques approuvées
-      safe(
-        this.prisma.document.count({
-          where: {
-            deletedAt: null,
-            status: DocumentStatus.APPROVED,
-            category: {
-              in: [DocumentCategory.POLICY, DocumentCategory.PROCEDURE],
+    const [activePolicies, criticalAssets, openRisks, lastReview, nextReview, activeFrameworks] =
+      await Promise.all([
+        // "Politiques actives" = documents catégorisés comme politiques approuvées
+        safe(
+          this.prisma.document.count({
+            where: {
+              deletedAt: null,
+              status: DocumentStatus.APPROVED,
+              category: {
+                in: [DocumentCategory.POLICY, DocumentCategory.PROCEDURE],
+              },
             },
-          },
-        }),
-        0,
-        "activePolicies",
-      ),
-      // "Actifs critiques" = documents classifiés SECRET ou CONFIDENTIEL
-      safe(
-        this.prisma.document.count({
-          where: {
-            deletedAt: null,
-            // Document.classification est un String libre dans le schéma
-            // (PUBLIC | INTERNE | CONFIDENTIEL | SECRET).
-            classification: { in: ["SECRET", "CONFIDENTIEL"] },
-          },
-        }),
-        0,
-        "criticalAssets",
-      ),
-      // "Risques ouverts" = incidents critiques/élevés non clôturés (proxy)
-      safe(
-        this.prisma.incident.count({
-          where: {
-            severity: {
-              in: [IncidentSeverity.CRITICAL, IncidentSeverity.HIGH],
+          }),
+          0,
+          "activePolicies",
+        ),
+        // "Actifs critiques" = documents classifiés SECRET ou CONFIDENTIEL
+        safe(
+          this.prisma.document.count({
+            where: {
+              deletedAt: null,
+              // Document.classification est un String libre dans le schéma
+              // (PUBLIC | INTERNE | CONFIDENTIEL | SECRET).
+              classification: { in: ["SECRET", "CONFIDENTIEL"] },
             },
-            status: {
-              notIn: [IncidentStatus.CLOSED, IncidentStatus.RECOVERED],
+          }),
+          0,
+          "criticalAssets",
+        ),
+        // "Risques ouverts" = incidents critiques/élevés non clôturés (proxy)
+        safe(
+          this.prisma.incident.count({
+            where: {
+              severity: {
+                in: [IncidentSeverity.CRITICAL, IncidentSeverity.HIGH],
+              },
+              status: {
+                notIn: [IncidentStatus.CLOSED, IncidentStatus.RECOVERED],
+              },
             },
-          },
-        }),
-        0,
-        "openRisks",
-      ),
-      // Dernière revue = dernière tâche conformité COMPLETED
-      safe(
-        this.prisma.complianceTask.findFirst({
-          where: { status: "COMPLETED", lastCompletedAt: { not: null } },
-          orderBy: { lastCompletedAt: "desc" },
-          select: { lastCompletedAt: true, title: true },
-        }),
-        null,
-        "lastReview",
-      ),
-      // Prochaine revue = prochaine tâche compliance non terminée
-      safe(
-        this.prisma.complianceTask.findFirst({
-          where: {
-            status: { not: "COMPLETED" },
-            nextDueDate: { gte: now },
-          },
-          orderBy: { nextDueDate: "asc" },
-          select: { nextDueDate: true, title: true },
-        }),
-        null,
-        "nextReview",
-      ),
-      // Frameworks de conformité actifs
-      safe(
-        this.prisma.complianceFramework.count({ where: { isActive: true } }),
-        0,
-        "activeFrameworks",
-      ),
-    ]);
+          }),
+          0,
+          "openRisks",
+        ),
+        // Dernière revue = dernière tâche conformité COMPLETED
+        safe(
+          this.prisma.complianceTask.findFirst({
+            where: { status: "COMPLETED", lastCompletedAt: { not: null } },
+            orderBy: { lastCompletedAt: "desc" },
+            select: { lastCompletedAt: true, title: true },
+          }),
+          null,
+          "lastReview",
+        ),
+        // Prochaine revue = prochaine tâche compliance non terminée
+        safe(
+          this.prisma.complianceTask.findFirst({
+            where: {
+              status: { not: "COMPLETED" },
+              nextDueDate: { gte: now },
+            },
+            orderBy: { nextDueDate: "asc" },
+            select: { nextDueDate: true, title: true },
+          }),
+          null,
+          "nextReview",
+        ),
+        // Frameworks de conformité actifs
+        safe(
+          this.prisma.complianceFramework.count({ where: { isActive: true } }),
+          0,
+          "activeFrameworks",
+        ),
+      ]);
 
     return {
       generatedAt: now.toISOString(),
@@ -487,10 +463,7 @@ export class RssiDashboardService {
     for (const inc of incidents) {
       const idx = Math.min(
         29,
-        Math.max(
-          0,
-          Math.floor((inc.detectedAt.getTime() - since.getTime()) / dayMs),
-        ),
+        Math.max(0, Math.floor((inc.detectedAt.getTime() - since.getTime()) / dayMs)),
       );
       buckets[idx] = (buckets[idx] ?? 0) + 1;
     }
@@ -547,19 +520,11 @@ export class RssiDashboardService {
     ]);
 
     const totalControls = controls.length;
-    const coveredControls = controls.filter(
-      (c) => (c._count?.documents ?? 0) > 0,
-    ).length;
-    const coveragePct =
-      totalControls > 0
-        ? Math.round((coveredControls / totalControls) * 100)
-        : 0;
+    const coveredControls = controls.filter((c) => (c._count?.documents ?? 0) > 0).length;
+    const coveragePct = totalControls > 0 ? Math.round((coveredControls / totalControls) * 100) : 0;
 
     // Ventilation par domaine (A.5, A.6, A.7, A.8)
-    const byDomain: Record<
-      string,
-      { total: number; covered: number; pct: number }
-    > = {};
+    const byDomain: Record<string, { total: number; covered: number; pct: number }> = {};
     for (const ctl of controls) {
       const dom = ctl.domain || "autre";
       if (!byDomain[dom]) byDomain[dom] = { total: 0, covered: 0, pct: 0 };
@@ -607,89 +572,76 @@ export class RssiDashboardService {
     const safe = <T>(p: Promise<T>, fallback: T, label: string): Promise<T> =>
       this.safe(p, fallback, label);
 
-    const [resolved, contained, edrIncidents, activeUsers, mfaUsers] =
-      await Promise.all([
-        safe(
-          this.prisma.incident.findMany({
-            where: { detectedAt: { gte: since }, resolvedAt: { not: null } },
-            select: { detectedAt: true, resolvedAt: true },
-            take: 200,
-          }),
-          [],
-          "mttrIncidents",
-        ),
-        safe(
-          this.prisma.incident.findMany({
-            where: { detectedAt: { gte: since }, containedAt: { not: null } },
-            select: { detectedAt: true, containedAt: true },
-            take: 200,
-          }),
-          [],
-          "mttdIncidents",
-        ),
-        safe(
-          this.prisma.incident.findMany({
-            where: {
-              detectedAt: { gte: since },
-              category: {
-                in: [
-                  IncidentCategory.MALWARE,
-                  IncidentCategory.PHISHING,
-                  IncidentCategory.UNAUTHORIZED_ACCESS,
-                ],
-              },
+    const [resolved, contained, edrIncidents, activeUsers, mfaUsers] = await Promise.all([
+      safe(
+        this.prisma.incident.findMany({
+          where: { detectedAt: { gte: since }, resolvedAt: { not: null } },
+          select: { detectedAt: true, resolvedAt: true },
+          take: 200,
+        }),
+        [],
+        "mttrIncidents",
+      ),
+      safe(
+        this.prisma.incident.findMany({
+          where: { detectedAt: { gte: since }, containedAt: { not: null } },
+          select: { detectedAt: true, containedAt: true },
+          take: 200,
+        }),
+        [],
+        "mttdIncidents",
+      ),
+      safe(
+        this.prisma.incident.findMany({
+          where: {
+            detectedAt: { gte: since },
+            category: {
+              in: [
+                IncidentCategory.MALWARE,
+                IncidentCategory.PHISHING,
+                IncidentCategory.UNAUTHORIZED_ACCESS,
+              ],
             },
-            select: { detectedAt: true, containedAt: true },
-          }),
-          [],
-          "edrIncidents",
-        ),
-        safe(
-          this.prisma.user.count({
-            where: { isActive: true, deletedAt: null },
-          }),
-          0,
-          "activeUsers",
-        ),
-        safe(
-          this.prisma.user.count({
-            where: { isActive: true, deletedAt: null, mfaEnabled: true },
-          }),
-          0,
-          "mfaEnabled",
-        ),
-      ]);
+          },
+          select: { detectedAt: true, containedAt: true },
+        }),
+        [],
+        "edrIncidents",
+      ),
+      safe(
+        this.prisma.user.count({
+          where: { isActive: true, deletedAt: null },
+        }),
+        0,
+        "activeUsers",
+      ),
+      safe(
+        this.prisma.user.count({
+          where: { isActive: true, deletedAt: null, mfaEnabled: true },
+        }),
+        0,
+        "mfaEnabled",
+      ),
+    ]);
 
-    const avgHours = (
-      rows: Array<{ a: Date | null; b: Date | null }>,
-    ): number | null => {
+    const avgHours = (rows: Array<{ a: Date | null; b: Date | null }>): number | null => {
       const valid = rows.filter((r) => r.a && r.b);
       if (valid.length === 0) return null;
-      const totalMs = valid.reduce(
-        (acc, r) => acc + (r.b!.getTime() - r.a!.getTime()),
-        0,
-      );
+      const totalMs = valid.reduce((acc, r) => acc + (r.b!.getTime() - r.a!.getTime()), 0);
       return Math.round((totalMs / valid.length / 3600000) * 10) / 10;
     };
 
-    const mttrHours = avgHours(
-      resolved.map((r) => ({ a: r.detectedAt, b: r.resolvedAt })),
-    );
-    const mttdHours = avgHours(
-      contained.map((r) => ({ a: r.detectedAt, b: r.containedAt })),
-    );
+    const mttrHours = avgHours(resolved.map((r) => ({ a: r.detectedAt, b: r.resolvedAt })));
+    const mttdHours = avgHours(contained.map((r) => ({ a: r.detectedAt, b: r.containedAt })));
 
     // EDR : % incidents endpoint contenus < 1h
     const edrTotal = edrIncidents.length;
     const edrFast = edrIncidents.filter(
-      (i) =>
-        i.containedAt &&
-        i.containedAt.getTime() - i.detectedAt.getTime() < 3600 * 1000,
+      (i) => i.containedAt && i.containedAt.getTime() - i.detectedAt.getTime() < 3600 * 1000,
     ).length;
     const edrPct = edrTotal > 0 ? Math.round((edrFast / edrTotal) * 100) : null;
 
-    const mfaPct =
-      activeUsers > 0 ? Math.round((mfaUsers / activeUsers) * 100) : 0;
+    const mfaPct = activeUsers > 0 ? Math.round((mfaUsers / activeUsers) * 100) : 0;
 
     return {
       generatedAt: now.toISOString(),
@@ -700,6 +652,208 @@ export class RssiDashboardService {
       mfaPct,
       mfaActiveUsers: activeUsers,
       mfaEnabledUsers: mfaUsers,
+    };
+  }
+
+  /**
+   * Pyramide documentaire PRO_040 §7.1 — agrege le SMSI vivant par niveau
+   * (GOVERNANCE / OPERATIONAL / EVIDENCE / COMMUNICATION) avec compteurs
+   * par priorite (REG_016 col. H) et indicateur de couverture (% APPROVED).
+   *
+   * Les documents ARCHIVED/OBSOLETE sont exclus pour ne mesurer que le
+   * SMSI actif. Les documents sans `documentLevel` (cas pre-backfill) sont
+   * regroupes dans la categorie UNCATEGORIZED afin d'etre visibles dans la
+   * vue (signal d'alerte plutot que disparition silencieuse).
+   *
+   * Utilise par GET /rssi-dashboard/iso-pyramid.
+   */
+  async getIsoPyramid() {
+    const safe = <T>(p: Promise<T>, fallback: T, label: string): Promise<T> =>
+      this.safe(p, fallback, label);
+
+    // SMSI vivant : on ignore les documents supprimes ET ceux dont le
+    // status retire le doc du perimetre actif (ARCHIVED / OBSOLETE).
+    const liveWhere = {
+      deletedAt: null,
+      status: {
+        notIn: [DocumentStatus.ARCHIVED, DocumentStatus.OBSOLETE],
+      },
+    };
+
+    type LevelKey = DocumentLevel | "UNCATEGORIZED";
+    const LEVEL_KEYS: LevelKey[] = [
+      DocumentLevel.GOVERNANCE,
+      DocumentLevel.OPERATIONAL,
+      DocumentLevel.EVIDENCE,
+      DocumentLevel.COMMUNICATION,
+      "UNCATEGORIZED",
+    ];
+    const PRIORITY_KEYS: DocumentPriority[] = [
+      DocumentPriority.CRITICAL,
+      DocumentPriority.HIGH,
+      DocumentPriority.MEDIUM,
+      DocumentPriority.LOW,
+    ];
+
+    // Types locaux des resultats Prisma groupBy (uniquement les champs qu'on
+    // utilise). Permet de garder le `safe()` fallback simple sans avoir a
+    // s'aligner sur le type complet `GetDocumentGroupByPayload` (qui inclut
+    // toutes les colonnes selectionnees implicitement).
+    type LevelGroupRow = {
+      documentLevel: DocumentLevel | null;
+      status: DocumentStatus;
+      priority: DocumentPriority | null;
+      _count: { _all: number } | null;
+    };
+    type ClassificationGroupRow = {
+      classification: string;
+      _count: { _all: number } | null;
+    };
+
+    const [
+      groupedByLevelStatusPriorityRaw,
+      totalLive,
+      approvedLive,
+      blockingLive,
+      sharePointSyncLive,
+      groupedByClassificationRaw,
+    ] = await Promise.all([
+      safe(
+        this.prisma.document.groupBy({
+          by: ["documentLevel", "status", "priority"],
+          where: liveWhere,
+          _count: { _all: true },
+        }) as unknown as Promise<LevelGroupRow[]>,
+        [] as LevelGroupRow[],
+        "isoPyramid.groupByLevel",
+      ),
+      safe(this.prisma.document.count({ where: liveWhere }), 0, "isoPyramid.totalLive"),
+      safe(
+        this.prisma.document.count({
+          where: { ...liveWhere, status: DocumentStatus.APPROVED },
+        }),
+        0,
+        "isoPyramid.approvedLive",
+      ),
+      safe(
+        this.prisma.document.count({
+          where: { ...liveWhere, blocking: true },
+        }),
+        0,
+        "isoPyramid.blockingLive",
+      ),
+      safe(
+        this.prisma.document.count({
+          where: { ...liveWhere, externalStorageProvider: { not: null } },
+        }),
+        0,
+        "isoPyramid.sharePointSync",
+      ),
+      safe(
+        this.prisma.document.groupBy({
+          by: ["classification"],
+          where: liveWhere,
+          _count: { _all: true },
+        }) as unknown as Promise<ClassificationGroupRow[]>,
+        [] as ClassificationGroupRow[],
+        "isoPyramid.classifications",
+      ),
+    ]);
+
+    const groupedByLevelStatusPriority = groupedByLevelStatusPriorityRaw;
+    const groupedByClassification = groupedByClassificationRaw;
+
+    // Initialise l'accumulateur par niveau
+    const levelsAcc: Record<
+      LevelKey,
+      {
+        total: number;
+        approved: number;
+        byPriority: Record<DocumentPriority, number>;
+      }
+    > = LEVEL_KEYS.reduce(
+      (acc, key) => {
+        acc[key] = {
+          total: 0,
+          approved: 0,
+          byPriority: {
+            [DocumentPriority.CRITICAL]: 0,
+            [DocumentPriority.HIGH]: 0,
+            [DocumentPriority.MEDIUM]: 0,
+            [DocumentPriority.LOW]: 0,
+          },
+        };
+        return acc;
+      },
+      {} as Record<
+        LevelKey,
+        {
+          total: number;
+          approved: number;
+          byPriority: Record<DocumentPriority, number>;
+        }
+      >,
+    );
+
+    for (const row of groupedByLevelStatusPriority) {
+      const lvl: LevelKey = row.documentLevel ?? "UNCATEGORIZED";
+      const n = row._count?._all ?? 0;
+      const bucket = levelsAcc[lvl as LevelKey];
+      if (!bucket) continue;
+      bucket.total += n;
+      if (row.status === DocumentStatus.APPROVED) {
+        bucket.approved += n;
+      }
+      if (row.priority) {
+        bucket.byPriority[row.priority] = (bucket.byPriority[row.priority] ?? 0) + n;
+      }
+    }
+
+    const levels = LEVEL_KEYS.map((key) => {
+      const v = levelsAcc[key];
+      const coveragePct = v.total > 0 ? Math.round((v.approved / v.total) * 100) : 0;
+      return {
+        level: key,
+        total: v.total,
+        approved: v.approved,
+        coveragePct,
+        byPriority: PRIORITY_KEYS.reduce(
+          (acc, p) => {
+            acc[p] = v.byPriority[p] ?? 0;
+            return acc;
+          },
+          {} as Record<DocumentPriority, number>,
+        ),
+      };
+    });
+
+    // Classifications POL_015 §5 (4 niveaux + autres potentiels)
+    const CLASSIF_KEYS = ["SECRET", "CONFIDENTIEL", "INTERNE", "PUBLIC"];
+    const classifications = CLASSIF_KEYS.reduce(
+      (acc, key) => {
+        acc[key] = 0;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+    for (const row of groupedByClassification) {
+      const key = row.classification ?? "INTERNE";
+      classifications[key] = (classifications[key] ?? 0) + (row._count?._all ?? 0);
+    }
+
+    const overallCoveragePct = totalLive > 0 ? Math.round((approvedLive / totalLive) * 100) : 0;
+
+    return {
+      generatedAt: new Date().toISOString(),
+      levels,
+      totals: {
+        documents: totalLive,
+        approved: approvedLive,
+        blocking: blockingLive,
+        sharePointSync: sharePointSyncLive,
+        coveragePct: overallCoveragePct,
+      },
+      classifications,
     };
   }
 }

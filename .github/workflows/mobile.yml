@@ -48,7 +48,7 @@ jobs:
   # ---------------------------------------------------------------------------
   mobile-build-check:
     name: Mobile build check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -64,7 +64,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24.22.3"
           cache: "pnpm"
 
       - name: Install dependencies

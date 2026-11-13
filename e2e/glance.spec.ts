@@ -1,66 +1,32 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from './helpers/safe-test';
 
-/**
- * Glance overlay — Alt+click on an internal link previews the target in an
- * overlay; Escape closes it; "Étendre" navigates full-screen.
- */
+async function openPreview(page: Page) {
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { level: 1, name: /Compte/ })).toBeVisible();
+  const link = page.locator('a[href="/documents"]:visible').first();
+  await expect(link).toBeVisible();
+  await link.click({ modifiers: ['Alt'] });
+  const dialog = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Étendre en page courante', exact: true }) });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
 
-test.describe('Glance overlay', () => {
-  test('Alt+click on an internal link opens Glance', async ({ page }) => {
-    await page.goto('/dashboard');
-    await page.waitForLoadState('domcontentloaded');
-    // Find any internal link (excludes external http(s))
-    const internal = page
-      .locator('a[href^="/"]:not([href^="/logout"]):not([target="_blank"])')
-      .first();
-    if (!(await internal.isVisible().catch(() => false))) {
-      test.skip(true, 'Aucun lien interne trouvé sur le dashboard');
-    }
-    await internal.click({ modifiers: ['Alt'] });
-    const overlay = page.locator('[data-testid="glance-overlay"], [role="dialog"][aria-label*="Glance" i], [data-glance="true"]').first();
-    const visible = await overlay.waitFor({ state: 'visible', timeout: 6_000 }).then(() => true).catch(() => false);
-    if (!visible) {
-      test.skip(true, 'Overlay Glance non détecté — feature-flag off ou sélecteur différent');
-    }
-    await expect(overlay).toBeVisible();
+test.describe('Glance — preview of a real internal page', () => {
+  test('Alt+click opens the accessible preview without leaving the dashboard', async ({ page }) => {
+    const dialog = await openPreview(page);
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(dialog.locator('iframe[title="Aperçu Glance"]')).toHaveAttribute('src', '/documents');
   });
-
-  test('Escape closes Glance overlay', async ({ page }) => {
-    await page.goto('/dashboard');
-    const internal = page
-      .locator('a[href^="/"]:not([href^="/logout"]):not([target="_blank"])')
-      .first();
-    if (!(await internal.isVisible().catch(() => false))) {
-      test.skip(true, 'Aucun lien interne');
-    }
-    await internal.click({ modifiers: ['Alt'] });
-    const overlay = page.locator('[data-testid="glance-overlay"], [role="dialog"][aria-label*="Glance" i], [data-glance="true"]').first();
-    if (!(await overlay.isVisible({ timeout: 4_000 }).catch(() => false))) {
-      test.skip(true, 'Glance non ouvert');
-    }
+  test('Escape closes the preview', async ({ page }) => {
+    const dialog = await openPreview(page);
     await page.keyboard.press('Escape');
-    await expect(overlay).toBeHidden({ timeout: 4_000 });
+    await expect(dialog).toBeHidden();
+    await expect(page).toHaveURL(/\/dashboard$/);
   });
-
-  test('"Étendre" button navigates to full route', async ({ page }) => {
-    await page.goto('/dashboard');
-    const internal = page
-      .locator('a[href^="/"]:not([href^="/logout"]):not([target="_blank"])')
-      .first();
-    if (!(await internal.isVisible().catch(() => false))) {
-      test.skip(true, 'Aucun lien interne');
-    }
-    const href = await internal.getAttribute('href');
-    await internal.click({ modifiers: ['Alt'] });
-    const expandBtn = page.getByRole('button', { name: /étendre|expand|plein écran/i }).first();
-    if (!(await expandBtn.isVisible({ timeout: 4_000 }).catch(() => false))) {
-      test.skip(true, 'Bouton "Étendre" non visible');
-    }
-    await expandBtn.click();
-    if (href) {
-      await page.waitForURL((url) => url.pathname === href || url.pathname.startsWith(href), {
-        timeout: 6_000,
-      });
-    }
+  test('expanding the preview opens its actual target page', async ({ page }) => {
+    const dialog = await openPreview(page);
+    await dialog.getByRole('button', { name: 'Étendre en page courante', exact: true }).click();
+    await expect(page).toHaveURL(/\/documents$/);
+    await expect(dialog).toBeHidden();
   });
 });

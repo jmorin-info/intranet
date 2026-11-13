@@ -1,17 +1,29 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { noaZodResolver } from '@/lib/noa/zod-resolver';
-import { z } from 'zod';
-import { toast } from 'sonner';
-import { api } from '@/lib/api';
-import { logger } from '@/lib/logger';
-import { useTranslation } from '@/lib/i18n';
-import { DocumentCategory, DOCUMENT_CATEGORY_LABELS, formatFileSize, isRoleAtLeast, UserRole } from '@omnitech/shared';
-import { useAuthStore } from '@/stores/auth-store';
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { noaZodResolver } from "@/lib/noa/zod-resolver";
+import { z } from "zod";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
+import { useTranslation } from "@/lib/i18n";
+import {
+  DocumentCategory,
+  DOCUMENT_CATEGORY_LABELS,
+  DOCUMENT_CATEGORY_LEVEL,
+  formatFileSize,
+  isRoleAtLeast,
+  UserRole,
+} from "@omnitech/shared";
+import {
+  Reg016Fields,
+  defaultPriorityForCategory,
+  type Reg016Values,
+} from "../_components/reg016-fields";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   Card,
   CardContent,
@@ -23,9 +35,25 @@ import {
   Select,
   FileUploadZone,
   IsoControlBadge,
-} from '@omnitech/ui';
-import { ArrowLeft, Save, X, Sparkles, FileText, FileSpreadsheet, File, FilePlus, ShieldCheck, BookOpen, LifeBuoy, ClipboardList, BookMarked, HelpCircle, AlertTriangle } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
+} from "@omnitech/ui";
+import {
+  ArrowLeft,
+  Save,
+  X,
+  Sparkles,
+  FileText,
+  FileSpreadsheet,
+  File,
+  FilePlus,
+  ShieldCheck,
+  BookOpen,
+  LifeBuoy,
+  ClipboardList,
+  BookMarked,
+  HelpCircle,
+  AlertTriangle,
+} from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
 
 function Tooltip({ text }: { text: string }) {
   return (
@@ -40,12 +68,12 @@ function Tooltip({ text }: { text: string }) {
 }
 
 const documentSchema = z.object({
-  title: z.string().min(3, 'Titre requis (min 3 caractères)').max(300, '300 caractères max'),
-  reference: z.string().max(50, '50 caractères max').optional().or(z.literal('')),
+  title: z.string().min(3, "Titre requis (min 3 caractères)").max(300, "300 caractères max"),
+  reference: z.string().max(50, "50 caractères max").optional().or(z.literal("")),
   description: z.string().optional(),
-  category: z.nativeEnum(DocumentCategory, { required_error: 'Catégorie requise' }),
-  domain: z.string().min(1, 'Domaine requis'),
-  classification: z.string().min(1, 'Classification requise').optional().or(z.literal('')),
+  category: z.nativeEnum(DocumentCategory, { required_error: "Catégorie requise" }),
+  domain: z.string().min(1, "Domaine requis"),
+  classification: z.string().min(1, "Classification requise").optional().or(z.literal("")),
   isPublic: z.boolean().optional(),
   nextReviewDate: z.string().optional(),
 });
@@ -70,99 +98,148 @@ interface DocumentTemplate {
 
 const ISO_TEMPLATES: DocumentTemplate[] = [
   {
-    id: 'policy',
-    titlePrefix: 'Politique de sécurité',
+    id: "policy",
+    titlePrefix: "Politique de sécurité",
     category: DocumentCategory.POLICY,
-    classificationDefault: 'CONFIDENTIEL',
-    description: 'Règles et orientations de sécurité (ISO 27001 A.5.1)',
+    classificationDefault: "CONFIDENTIEL",
+    description: "Règles et orientations de sécurité (ISO 27001 A.5.1)",
     icon: <ShieldCheck className="h-5 w-5 text-orange-500" />,
   },
   {
-    id: 'procedure',
-    titlePrefix: 'Procédure opérationnelle',
+    id: "procedure",
+    titlePrefix: "Procédure opérationnelle",
     category: DocumentCategory.PROCEDURE,
-    classificationDefault: 'INTERNE',
-    description: 'Étapes d\'un processus de contrôle (ISO 27001 A.8)',
+    classificationDefault: "INTERNE",
+    description: "Étapes d'un processus de contrôle (ISO 27001 A.8)",
     icon: <ClipboardList className="h-5 w-5 text-blue-500" />,
   },
   {
-    id: 'plan',
-    titlePrefix: 'Plan de continuité',
+    id: "plan",
+    titlePrefix: "Plan de continuité",
     category: DocumentCategory.PLAN,
-    classificationDefault: 'CONFIDENTIEL',
-    description: 'Continuité d\'activité et reprise (ISO 27001 A.5.30)',
+    classificationDefault: "CONFIDENTIEL",
+    description: "Continuité d'activité et reprise (ISO 27001 A.5.30)",
     icon: <LifeBuoy className="h-5 w-5 text-red-500" />,
   },
   {
-    id: 'report',
-    titlePrefix: 'Rapport d\'audit',
+    id: "report",
+    titlePrefix: "Rapport d'audit",
     category: DocumentCategory.REPORT,
-    classificationDefault: 'CONFIDENTIEL',
-    description: 'Résultats d\'audit interne ou externe (ISO 27001 A.9.2)',
+    classificationDefault: "CONFIDENTIEL",
+    description: "Résultats d'audit interne ou externe (ISO 27001 A.9.2)",
     icon: <BookMarked className="h-5 w-5 text-purple-500" />,
   },
   {
-    id: 'guide',
-    titlePrefix: 'Guide utilisateur',
+    id: "guide",
+    titlePrefix: "Guide utilisateur",
     category: DocumentCategory.GUIDE,
-    classificationDefault: 'PUBLIC',
-    description: 'Sensibilisation et usage pour collaborateurs (ISO 27001 A.6.3)',
+    // POL_015 §5 : niveau par defaut = Niveau 3 - Restreint (INTERNE) ;
+    // un guide de sensibilisation cible les collaborateurs et n'est pas
+    // a diffusion libre (le passer en N4-PUBLIC est une decision explicite
+    // du proprietaire, pas un defaut).
+    classificationDefault: "INTERNE",
+    description: "Sensibilisation et usage pour collaborateurs (ISO 27001 A.6.3)",
     icon: <BookOpen className="h-5 w-5 text-green-500" />,
   },
 ];
 
 const ALL_CLASSIFICATIONS = [
-  { value: 'PUBLIC', label: '🟢', key: 'classificationPublic', color: 'text-emerald-600' },
-  { value: 'INTERNE', label: '🔵', key: 'classificationInternal', color: 'text-blue-600' },
-  { value: 'CONFIDENTIEL', label: '🟠', key: 'classificationConfidential', color: 'text-orange-600' },
-  { value: 'SECRET', label: '🔴', key: 'classificationSecret', color: 'text-red-600' },
+  { value: "PUBLIC", label: "🟢", key: "classificationPublic", color: "text-emerald-600" },
+  { value: "INTERNE", label: "🔵", key: "classificationInternal", color: "text-blue-600" },
+  {
+    value: "CONFIDENTIEL",
+    label: "🟠",
+    key: "classificationConfidential",
+    color: "text-orange-600",
+  },
+  { value: "SECRET", label: "🔴", key: "classificationSecret", color: "text-red-600" },
 ] as const;
 
 const CLASSIFICATION_COLORS: Record<string, string> = {
-  PUBLIC: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800',
-  INTERNE: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800',
-  CONFIDENTIEL: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800',
-  SECRET: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
+  PUBLIC:
+    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800",
+  INTERNE:
+    "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
+  CONFIDENTIEL:
+    "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800",
+  SECRET:
+    "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
 };
 
+// Aide en ligne (popover) — alignee sur les criteres canoniques de POL_015 §5
+// (Politique de classification, marquage et transfert ISO 27001 A.5.12).
 const SLA_CLASSIFICATION_HELP: Record<string, string> = {
-  PUBLIC: 'Diffusion libre, aucune restriction',
-  INTERNE: 'Usage interne uniquement, non diffusable',
-  CONFIDENTIEL: 'Accès restreint, diffusion contrôlée',
-  SECRET: 'Accès strictement limité, chiffrement requis',
+  PUBLIC: "Niveau 4 — Public : communicable sans risque (plaquettes, communiqués, site web).",
+  INTERNE:
+    "Niveau 3 — Restreint (défaut) : usage interne, sensibilité limitée (notes, comptes rendus, procédures internes).",
+  CONFIDENTIEL:
+    "Niveau 2 — Sensible : impact significatif sur l'activité ou des tiers (contrats, données RH, configurations infra, analyses de risque). Chiffrement obligatoire en transit.",
+  SECRET:
+    "Niveau 1 — Très sensible : conséquences graves ou sûreté en jeu (code source SEAL, clés privées, données OIV). Validation RSSI requise, chiffrement obligatoire.",
 };
+
+/**
+ * Filtre les valeurs vides ("", false, undefined) des champs REG_016 avant
+ * envoi au backend : on n'envoie un champ que si l'user l'a explicitement
+ * renseigne, sinon le DTO @IsOptional() le laisse intact cote DB.
+ */
+function buildReg016Payload(values: Reg016Values): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (values.parentReference && values.parentReference.trim() !== "") {
+    out.parentReference = values.parentReference.trim();
+  }
+  if (values.documentLevel) out.documentLevel = values.documentLevel;
+  if (values.priority) out.priority = values.priority;
+  if (values.blocking) out.blocking = true;
+  if (values.reviewPeriodicity && values.reviewPeriodicity.trim() !== "") {
+    out.reviewPeriodicity = values.reviewPeriodicity.trim();
+  }
+  return out;
+}
 
 const STEPPER_STEPS = [
-  { number: 1, label: 'Informations', description: 'Titre, domaine et description du document' },
-  { number: 2, label: 'Classification', description: 'Categorie, niveau de confidentialite et controles ISO' },
-  { number: 3, label: 'Validation', description: 'Fichier, réviseur et soumission' },
+  { number: 1, label: "Informations", description: "Titre, domaine et description du document" },
+  {
+    number: 2,
+    label: "Classification",
+    description: "Categorie, niveau de confidentialite et controles ISO",
+  },
+  { number: 3, label: "Validation", description: "Fichier, réviseur et soumission" },
 ] as const;
 
 function StepperIndicator({ currentStep }: { currentStep: number }) {
   return (
     <nav aria-label="Etapes du formulaire" className="flex items-center justify-center gap-0">
       {STEPPER_STEPS.map((step, idx) => {
-        const state: 'completed' | 'current' | 'upcoming' =
-          step.number < currentStep ? 'completed' : step.number === currentStep ? 'current' : 'upcoming';
+        const state: "completed" | "current" | "upcoming" =
+          step.number < currentStep
+            ? "completed"
+            : step.number === currentStep
+              ? "current"
+              : "upcoming";
         return (
           <div key={step.number} className="flex items-center">
             <div className="flex flex-col items-center min-w-[120px]">
               <div
                 className={[
-                  'flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-300',
-                  state === 'completed'
-                    ? 'border-emerald-500 bg-emerald-500 text-white'
-                    : state === 'current'
-                      ? 'border-primary bg-primary text-white shadow-lg shadow-primary/30'
-                      : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-500',
-                ].join(' ')}
+                  "flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-300",
+                  state === "completed"
+                    ? "border-emerald-500 bg-emerald-500 text-white"
+                    : state === "current"
+                      ? "border-primary bg-primary text-white shadow-lg shadow-primary/30"
+                      : "border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-seal-gray-500 dark:text-slate-500",
+                ].join(" ")}
               >
-                {state === 'completed' ? '\u2713' : step.number}
+                {state === "completed" ? "\u2713" : step.number}
               </div>
-              <p className={[
-                'mt-1.5 text-xs font-semibold leading-tight text-center',
-                state === 'upcoming' ? 'text-seal-gray-500 dark:text-slate-500' : 'text-seal-navy dark:text-white',
-              ].join(' ')}>
+              <p
+                className={[
+                  "mt-1.5 text-xs font-semibold leading-tight text-center",
+                  state === "upcoming"
+                    ? "text-seal-gray-500 dark:text-slate-500"
+                    : "text-seal-navy dark:text-white",
+                ].join(" ")}
+              >
                 {step.label}
               </p>
               <p className="text-[10px] text-seal-gray-500 dark:text-slate-500 text-center mt-0.5 max-w-[130px] leading-snug">
@@ -170,10 +247,12 @@ function StepperIndicator({ currentStep }: { currentStep: number }) {
               </p>
             </div>
             {idx < STEPPER_STEPS.length - 1 && (
-              <div className={[
-                'h-0.5 w-16 mx-2 rounded transition-all duration-300',
-                state === 'completed' ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-slate-700',
-              ].join(' ')} />
+              <div
+                className={[
+                  "h-0.5 w-16 mx-2 rounded transition-all duration-300",
+                  state === "completed" ? "bg-emerald-500" : "bg-gray-200 dark:bg-slate-700",
+                ].join(" ")}
+              />
             )}
           </div>
         );
@@ -191,8 +270,9 @@ export default function NewDocumentPage() {
   const classificationOptions = ALL_CLASSIFICATIONS.filter(({ value }) => {
     if (!user) return false;
     const role = user.role;
-    if (value === 'SECRET') return isRoleAtLeast(role, UserRole.DIRECTION);
-    if (value === 'CONFIDENTIEL') return isRoleAtLeast(role, UserRole.REVIEWER) || role === UserRole.AUDITEUR;
+    if (value === "SECRET") return isRoleAtLeast(role, UserRole.DIRECTION);
+    if (value === "CONFIDENTIEL")
+      return isRoleAtLeast(role, UserRole.REVIEWER) || role === UserRole.AUDITEUR;
     return true; // PUBLIC and INTERNE are always available
   }).map(({ value, label, key }) => ({
     value,
@@ -205,24 +285,54 @@ export default function NewDocumentPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isoControls, setIsoControls] = useState<IsoControl[]>([]);
   const [selectedControls, setSelectedControls] = useState<string[]>([]);
-  const [controlSearch, setControlSearch] = useState('');
-  const [reviewers, setReviewers] = useState<{ id: string; firstName: string; lastName: string; role: string }[]>([]);
-  const [selectedReviewerId, setSelectedReviewerId] = useState('');
+  const [controlSearch, setControlSearch] = useState("");
+  const [reviewers, setReviewers] = useState<
+    { id: string; firstName: string; lastName: string; role: string }[]
+  >([]);
+  const [selectedReviewerId, setSelectedReviewerId] = useState("");
+  const [selectedVerifierId, setSelectedVerifierId] = useState("");
   const [isPermanent, setIsPermanent] = useState(false);
   const [directPublish, setDirectPublish] = useState(false);
   const [classifying, setClassifying] = useState(false);
-  const [autoClassifySuggestion, setAutoClassifySuggestion] = useState<{ classification?: string; category?: string } | null>(null);
+  const [autoClassifySuggestion, setAutoClassifySuggestion] = useState<{
+    classification?: string;
+    category?: string;
+  } | null>(null);
   const autoClassifyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // --- Duplicate detection ---
-  const [duplicates, setDuplicates] = useState<Array<{ id: string; title: string; reference: string; status: string }>>([]);
+  const [duplicates, setDuplicates] = useState<
+    Array<{ id: string; title: string; reference: string; status: string }>
+  >([]);
   const duplicateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // --- Métadonnées REG_016 (optionnelles, alignement Registre Documentaire SMSI) ---
+  // Section pliable, defaults auto-derivees depuis la categorie (l'user peut
+  // override). Le backend accepte ces 5 champs grace au schema Phase 1.
+  const [reg016, setReg016] = useState<Reg016Values>({
+    parentReference: "",
+    documentLevel: "",
+    priority: "",
+    blocking: false,
+    reviewPeriodicity: "",
+  });
+  // Memoise si l'user a deja modifie manuellement l'un des champs derives
+  // pour eviter qu'un changement de categorie n'ecrase ses choix.
+  const reg016Touched = useRef<{ level: boolean; priority: boolean }>({
+    level: false,
+    priority: false,
+  });
+  const updateReg016 = (patch: Partial<Reg016Values>) => {
+    if ("documentLevel" in patch) reg016Touched.current.level = true;
+    if ("priority" in patch) reg016Touched.current.priority = true;
+    setReg016((prev) => ({ ...prev, ...patch }));
+  };
 
   // Auto-save brouillon localStorage : protège l'utilisateur contre la perte
   // d'un formulaire long (10 min de saisie) en cas d'expiration de session,
   // crash navigateur ou fermeture d'onglet par erreur. Restoration au mount,
   // sauvegarde toutes les 2s avec debounce. Clé scoped par user pour éviter
   // qu'un user voie le brouillon d'un autre sur poste partagé.
-  const DRAFT_KEY = 'documents/new/draft';
+  const DRAFT_KEY = "documents/new/draft";
   const draftSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
 
@@ -237,10 +347,10 @@ export default function NewDocumentPage() {
     // Création de procédure : Noa filtrée par la whitelist runtime
     // (/documents/* hors whitelist = no-op).
     resolver: noaZodResolver(documentSchema),
-    mode: 'onTouched',
+    mode: "onTouched",
     defaultValues: {
       isPublic: true,
-      category: (searchParams.get('category') as DocumentCategory) || undefined,
+      category: (searchParams.get("category") as DocumentCategory) || undefined,
     },
   });
 
@@ -255,8 +365,14 @@ export default function NewDocumentPage() {
           if (parsed.values) reset(parsed.values);
           if (parsed.selectedControls) setSelectedControls(parsed.selectedControls);
           if (parsed.selectedReviewerId) setSelectedReviewerId(parsed.selectedReviewerId);
-          if (typeof parsed.isPermanent === 'boolean') setIsPermanent(parsed.isPermanent);
-          if (typeof parsed.directPublish === 'boolean') setDirectPublish(parsed.directPublish);
+          if (typeof parsed.isPermanent === "boolean") setIsPermanent(parsed.isPermanent);
+          if (typeof parsed.directPublish === "boolean") setDirectPublish(parsed.directPublish);
+          if (parsed.reg016 && typeof parsed.reg016 === "object") {
+            // On considere une restauration comme "touched" pour preserver
+            // les choix utilisateur d'une session a l'autre.
+            setReg016(parsed.reg016 as Reg016Values);
+            reg016Touched.current = { level: true, priority: true };
+          }
           setDraftRestored(true);
           // Auto-dismiss l'indicateur après 6s
           setTimeout(() => setDraftRestored(false), 6000);
@@ -283,6 +399,7 @@ export default function NewDocumentPage() {
             selectedReviewerId,
             isPermanent,
             directPublish,
+            reg016,
           }),
         );
       } catch {
@@ -292,23 +409,38 @@ export default function NewDocumentPage() {
     return () => {
       if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
     };
-  }, [watchedAll, selectedControls, selectedReviewerId, isPermanent, directPublish, isDirty]);
+  }, [
+    watchedAll,
+    selectedControls,
+    selectedReviewerId,
+    isPermanent,
+    directPublish,
+    reg016,
+    isDirty,
+  ]);
 
   useEffect(() => {
-    api.get('/iso-controls', { params: { limit: 100 } }).then(({ data }) => {
-      setIsoControls(data.data || []);
-    }).catch((err) => logger.error(err, { page: 'documents/new', context: 'load ISO controls' }));
+    api
+      .get("/iso-controls", { params: { limit: 100 } })
+      .then(({ data }) => {
+        setIsoControls(data.data || []);
+      })
+      .catch((err) => logger.error(err, { page: "documents/new", context: "load ISO controls" }));
     // Load reviewers (REVIEWER+ roles)
-    api.get('/users/directory', { params: { limit: 200 } }).then(({ data }) => {
-      const eligible = (data.data || []).filter((u: any) =>
-        ['SUPER_ADMIN', 'ADMIN', 'DIRECTION', 'REVIEWER'].includes(u.role) && u.isActive
-      );
-      setReviewers(eligible);
-    }).catch((err) => logger.error(err, { page: 'documents/new', context: 'load reviewers' }));
+    api
+      .get("/users/directory", { params: { limit: 200 } })
+      .then(({ data }) => {
+        const eligible = (data.data || []).filter(
+          (u: any) =>
+            ["SUPER_ADMIN", "ADMIN", "DIRECTION", "REVIEWER"].includes(u.role) && u.isActive,
+        );
+        setReviewers(eligible);
+      })
+      .catch((err) => logger.error(err, { page: "documents/new", context: "load reviewers" }));
   }, []);
 
   // Auto-classify when title reaches 10+ characters (debounced 800ms)
-  const watchedTitle = watch('title');
+  const watchedTitle = watch("title");
   useEffect(() => {
     if (!watchedTitle || watchedTitle.length < 10) {
       setAutoClassifySuggestion(null);
@@ -317,9 +449,15 @@ export default function NewDocumentPage() {
     if (autoClassifyTimer.current) clearTimeout(autoClassifyTimer.current);
     autoClassifyTimer.current = setTimeout(async () => {
       try {
-        const { data } = await api.post('/iso-analyzer/classify', { title: watchedTitle, description: watch('description') || '' });
+        const { data } = await api.post("/iso-analyzer/classify", {
+          title: watchedTitle,
+          description: watch("description") || "",
+        });
         if (data.classification || data.category) {
-          setAutoClassifySuggestion({ classification: data.classification, category: data.category });
+          setAutoClassifySuggestion({
+            classification: data.classification,
+            category: data.category,
+          });
         }
       } catch {
         // silently ignore
@@ -339,9 +477,18 @@ export default function NewDocumentPage() {
     if (duplicateTimer.current) clearTimeout(duplicateTimer.current);
     duplicateTimer.current = setTimeout(async () => {
       try {
-        const { data } = await api.get('/documents', { params: { search: watchedTitle, limit: 5 } });
-        const results = (data?.data || data || []) as Array<{ id: string; title: string; reference: string; status: string }>;
-        setDuplicates(results.filter((d) => d.title.toLowerCase() !== watchedTitle.toLowerCase()).slice(0, 3));
+        const { data } = await api.get("/documents", {
+          params: { search: watchedTitle, limit: 5 },
+        });
+        const results = (data?.data || data || []) as Array<{
+          id: string;
+          title: string;
+          reference: string;
+          status: string;
+        }>;
+        setDuplicates(
+          results.filter((d) => d.title.toLowerCase() !== watchedTitle.toLowerCase()).slice(0, 3),
+        );
       } catch {
         setDuplicates([]);
       }
@@ -356,40 +503,62 @@ export default function NewDocumentPage() {
     const handler = (e: BeforeUnloadEvent) => {
       if (isDirty || file) {
         e.preventDefault();
-        e.returnValue = '';
+        e.returnValue = "";
       }
     };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty, file]);
 
   const handleAutoClassify = async () => {
-    const title = watch('title');
-    const description = watch('description');
+    const title = watch("title");
+    const description = watch("description");
     if (!title || title.length < 3) {
-      toast.error('Saisissez un titre avant de lancer l\'auto-classification');
+      toast.error("Saisissez un titre avant de lancer l'auto-classification");
       return;
     }
     setClassifying(true);
     try {
-      const { data } = await api.post('/iso-analyzer/classify', { title, description: description || '' });
-      if (data.classification) setValue('classification', data.classification);
-      if (data.category) setValue('category', data.category);
-      toast.success(`Suggestion : ${data.classification || '—'} / ${data.category || '—'}`);
+      const { data } = await api.post("/iso-analyzer/classify", {
+        title,
+        description: description || "",
+      });
+      if (data.classification) setValue("classification", data.classification);
+      if (data.category) setValue("category", data.category);
+      toast.success(`Suggestion : ${data.classification || "—"} / ${data.category || "—"}`);
     } catch {
-      toast.error('Erreur lors de l\'auto-classification');
+      toast.error("Erreur lors de l'auto-classification");
     } finally {
       setClassifying(false);
     }
   };
 
   // Compute the current wizard step based on form completion
-  const watchedCategory = watch('category');
-  const watchedClassification = watch('classification');
-  const watchedDomain = watch('domain');
+  const watchedCategory = watch("category");
+
+  // Defaults REG_016 derives de la categorie : niveau (pyramide PRO_040 §7.1)
+  // + priorite metier. On respecte le choix manuel de l'utilisateur via le
+  // ref reg016Touched (pas d'ecrasement apres modification explicite).
+  useEffect(() => {
+    if (!watchedCategory) return;
+    setReg016((prev) => {
+      const next = { ...prev };
+      if (!reg016Touched.current.level) {
+        const lvl = DOCUMENT_CATEGORY_LEVEL[watchedCategory as DocumentCategory];
+        if (lvl) next.documentLevel = lvl;
+      }
+      if (!reg016Touched.current.priority) {
+        next.priority = defaultPriorityForCategory(watchedCategory);
+      }
+      return next;
+    });
+  }, [watchedCategory]);
+  const watchedClassification = watch("classification");
+  const watchedDomain = watch("domain");
   const currentStep: number = (() => {
     // Step 1: title + domain + description filled
-    if (!watchedTitle || watchedTitle.length < 3 || !watchedDomain || watchedDomain.length < 1) return 1;
+    if (!watchedTitle || watchedTitle.length < 3 || !watchedDomain || watchedDomain.length < 1)
+      return 1;
     // Step 2: category + classification chosen
     if (!watchedCategory || !watchedClassification) return 2;
     // Step 3: validation (reviewer, file, submit)
@@ -412,38 +581,46 @@ export default function NewDocumentPage() {
   const handleSaveDraft = async () => {
     const formData = watch();
     if (!formData.title || formData.title.length < 3) {
-      toast.error('Un titre (min 3 caractères) est requis même pour un brouillon');
+      toast.error("Un titre (min 3 caractères) est requis même pour un brouillon");
       return;
     }
     if (!formData.category) {
-      toast.error('Une catégorie est requise');
+      toast.error("Une catégorie est requise");
       return;
     }
     if (!formData.domain || formData.domain.length < 1) {
-      toast.error('Un domaine est requis');
+      toast.error("Un domaine est requis");
       return;
     }
     setSavingDraft(true);
     try {
-      const { data: doc } = await api.post('/documents', {
+      const { data: doc } = await api.post("/documents", {
         ...formData,
         isoControlIds: selectedControls,
+        ...(selectedVerifierId && { verifierId: selectedVerifierId }),
         ...(selectedReviewerId && { reviewerId: selectedReviewerId }),
+        ...buildReg016Payload(reg016),
       });
       if (file) {
         const fd = new FormData();
-        fd.append('file', file);
-        fd.append('changeLog', 'Version initiale (brouillon)');
+        fd.append("file", file);
+        fd.append("changeLog", "Version initiale (brouillon)");
         await api.post(`/documents/${doc.id}/versions`, fd, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: { "Content-Type": "multipart/form-data" },
         });
       }
-      toast.success('Brouillon enregistré');
+      toast.success("Brouillon enregistré");
       // Brouillon serveur enregistré → purger le brouillon localStorage
-      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        /* ignore */
+      }
       router.push(`/documents/${doc.id}`);
     } catch (error: unknown) {
-      const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Erreur';
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Erreur";
       toast.error(msg);
     } finally {
       setSavingDraft(false);
@@ -451,44 +628,62 @@ export default function NewDocumentPage() {
   };
 
   const onSubmit = async (data: DocumentForm) => {
+    if (directPublish && !file) {
+      toast.error("Ajoutez un fichier avant de demander une publication administrative");
+      return;
+    }
     setLoading(true);
+    let createdDocumentId: string | null = null;
     try {
       // Document permanent = pas de nextReviewDate. On le force à null pour
       // ne pas envoyer une chaîne vide que le DTO backend refuserait.
       const payload = {
         ...data,
         isoControlIds: selectedControls,
+        ...(selectedVerifierId && { verifierId: selectedVerifierId }),
         ...(selectedReviewerId && { reviewerId: selectedReviewerId }),
         ...(isPermanent ? { nextReviewDate: undefined } : {}),
+        ...buildReg016Payload(reg016),
       };
 
-      // Direct-publish : endpoint dédié qui crée + met APPROVED en une
-      // transaction (admin bypass workflow, audit log WARN).
-      const endpoint = directPublish ? '/documents/direct-publish' : '/documents';
-      const { data: doc } = await api.post(endpoint, payload);
+      // Every upload starts in draft and is scanned before publication.
+      const { data: doc } = await api.post("/documents", payload);
+      createdDocumentId = doc.id;
 
       // Upload file if provided
       if (file) {
         const formData = new FormData();
-        formData.append('file', file);
-        formData.append('changeLog', t('documents.new.initialVersion'));
+        formData.append("file", file);
+        formData.append("changeLog", t("documents.new.initialVersion"));
         await api.post(`/documents/${doc.id}/versions`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: { "Content-Type": "multipart/form-data" },
         });
       }
 
-      toast.success(
-        directPublish
-          ? 'Document publié directement (workflow court-circuité)'
-          : t('documents.new.success'),
-      );
+      if (directPublish) {
+        const { data: uploaded } = await api.get(`/documents/${doc.id}`);
+        if (uploaded.scanStatus === "CLEAN") {
+          await api.post(`/documents/${doc.id}/force-approve`, { makePermanent: isPermanent });
+          toast.success("Document publié après contrôle antivirus");
+        } else {
+          toast.info("Brouillon enregistré. Confirmez sa publication depuis la fiche après le contrôle antivirus.");
+        }
+      } else toast.success(t("documents.new.success"));
       // Brouillon submitted avec succès → purger pour ne pas le re-restaurer
       // au prochain /documents/new
-      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        /* ignore */
+      }
       router.push(`/documents/${doc.id}`);
     } catch (error: unknown) {
-      const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || t('documents.new.error');
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        t("documents.new.error");
       toast.error(msg);
+      // A failed upload must lead back to the created draft, avoiding duplicates.
+      if (createdDocumentId) router.push(`/documents/${createdDocumentId}`);
     } finally {
       setLoading(false);
     }
@@ -497,8 +692,8 @@ export default function NewDocumentPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-4">
       <PageHeader
-        title={t('documents.new.title')}
-        subtitle={t('documents.new.subtitle')}
+        title={t("documents.new.title")}
+        subtitle={t("documents.new.subtitle")}
         icon={FilePlus}
         hub="work"
         actions={
@@ -531,7 +726,11 @@ export default function NewDocumentPage() {
           <button
             type="button"
             onClick={() => {
-              try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+              try {
+                localStorage.removeItem(DRAFT_KEY);
+              } catch {
+                /* ignore */
+              }
               window.location.reload();
             }}
             className="text-xs font-semibold underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded"
@@ -560,7 +759,9 @@ export default function NewDocumentPage() {
       <Card>
         <CardHeader>
           <h2 className="text-lg font-medium text-seal-navy dark:text-white">Choisir un modèle</h2>
-          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5">Sélectionnez un modèle ISO 27001 pour pré-remplir le formulaire</p>
+          <p className="text-sm text-seal-gray-500 dark:text-slate-400 mt-0.5">
+            Sélectionnez un modèle ISO 27001 pour pré-remplir le formulaire
+          </p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -575,28 +776,36 @@ export default function NewDocumentPage() {
                       setSelectedTemplate(null);
                     } else {
                       setSelectedTemplate(tpl.id);
-                      setValue('title', tpl.titlePrefix + ' — ');
-                      setValue('category', tpl.category);
-                      setValue('classification', tpl.classificationDefault);
+                      setValue("title", tpl.titlePrefix + " — ");
+                      setValue("category", tpl.category);
+                      setValue("classification", tpl.classificationDefault);
                     }
                   }}
                   className={[
-                    'flex items-start gap-3 rounded-lg border p-3 text-left transition-all',
+                    "flex items-start gap-3 rounded-lg border p-3 text-left transition-all",
                     isActive
-                      ? 'border-primary bg-primary/5 ring-2 ring-primary/30'
-                      : 'border-gray-200 dark:border-slate-700 hover:border-primary/50 hover:bg-gray-50 dark:hover:bg-slate-800',
-                  ].join(' ')}
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                      : "border-gray-200 dark:border-slate-700 hover:border-primary/50 hover:bg-gray-50 dark:hover:bg-slate-800",
+                  ].join(" ")}
                 >
                   <div className="mt-0.5 flex-shrink-0">{tpl.icon}</div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-seal-navy dark:text-white leading-snug">{tpl.titlePrefix}</p>
-                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5 leading-snug">{tpl.description}</p>
-                    <span className={[
-                      'mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                      tpl.classificationDefault === 'CONFIDENTIEL' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                      tpl.classificationDefault === 'INTERNE' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                      'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-                    ].join(' ')}>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white leading-snug">
+                      {tpl.titlePrefix}
+                    </p>
+                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5 leading-snug">
+                      {tpl.description}
+                    </p>
+                    <span
+                      className={[
+                        "mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                        tpl.classificationDefault === "CONFIDENTIEL"
+                          ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                          : tpl.classificationDefault === "INTERNE"
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                            : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                      ].join(" ")}
+                    >
                       {tpl.classificationDefault}
                     </span>
                   </div>
@@ -606,7 +815,7 @@ export default function NewDocumentPage() {
           </div>
           {selectedTemplate && (
             <p className="mt-3 text-xs text-seal-gray-500 dark:text-slate-400">
-              Modèle appliqué — vous pouvez modifier les champs ci-dessous.{' '}
+              Modèle appliqué — vous pouvez modifier les champs ci-dessous.{" "}
               <button
                 type="button"
                 className="text-primary hover:underline font-semibold"
@@ -619,10 +828,20 @@ export default function NewDocumentPage() {
         </CardContent>
       </Card>
 
-      <form onSubmit={handleSubmit(onSubmit)} onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleSubmit(onSubmit)(); } }}>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        onKeyDown={(e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+            e.preventDefault();
+            handleSubmit(onSubmit)();
+          }
+        }}
+      >
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-medium text-seal-navy dark:text-white">{t('documents.new.formTitle')}</h2>
+            <h2 className="text-lg font-medium text-seal-navy dark:text-white">
+              {t("documents.new.formTitle")}
+            </h2>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Reference preview */}
@@ -630,14 +849,20 @@ export default function NewDocumentPage() {
               <div className="rounded-xl border border-dashed border-gray-300 dark:border-slate-600 bg-gray-50/50 dark:bg-slate-800/30 px-4 py-2.5 flex items-center gap-3 transition-all duration-200">
                 <FileText className="h-4 w-4 text-seal-gray-500 dark:text-slate-400 flex-shrink-0" />
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 font-medium">Référence générée</p>
+                  <p className="text-[11px] uppercase tracking-wider text-seal-gray-500 dark:text-slate-500 font-medium">
+                    Référence générée
+                  </p>
                   <p className="text-sm font-mono font-medium text-seal-navy dark:text-white">
-                    {(watch('category') || 'DOC').substring(0, 3).toUpperCase()}-{new Date().getFullYear()}-{String(Math.floor(Math.random() * 900) + 100).padStart(3, '0')}
+                    {(watch("category") || "DOC").substring(0, 3).toUpperCase()}-
+                    {new Date().getFullYear()}-
+                    {String(Math.floor(Math.random() * 900) + 100).padStart(3, "0")}
                   </p>
                 </div>
-                {watch('classification') && (
-                  <span className={`ml-auto inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${CLASSIFICATION_COLORS[watch('classification') || ''] || ''}`}>
-                    {watch('classification')}
+                {watch("classification") && (
+                  <span
+                    className={`ml-auto inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${CLASSIFICATION_COLORS[watch("classification") || ""] || ""}`}
+                  >
+                    {watch("classification")}
                   </span>
                 )}
               </div>
@@ -648,14 +873,16 @@ export default function NewDocumentPage() {
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center mb-1">
-                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.titleLabel')}</label>
+                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">
+                      {t("documents.new.titleLabel")}
+                    </label>
                     <Tooltip text="Titre complet du document. Sera utilise pour la recherche et la reference." />
                   </div>
                   <Input
-                    placeholder={t('documents.new.titlePlaceholder')}
+                    placeholder={t("documents.new.titlePlaceholder")}
                     error={errors.title?.message}
                     autoFocus
-                    {...register('title')}
+                    {...register("title")}
                   />
                   {/* Duplicate detection warning */}
                   {duplicates.length > 0 && (
@@ -676,8 +903,9 @@ export default function NewDocumentPage() {
                                   className="font-medium hover:underline"
                                 >
                                   {d.reference}
-                                </a>{' '}
-                                — {d.title} <span className="text-[10px] opacity-75">({d.status})</span>
+                                </a>{" "}
+                                — {d.title}{" "}
+                                <span className="text-[10px] opacity-75">({d.status})</span>
                               </li>
                             ))}
                           </ul>
@@ -692,39 +920,45 @@ export default function NewDocumentPage() {
 
                 <div>
                   <div className="flex items-center mb-1">
-                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.domainLabel')}</label>
+                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">
+                      {t("documents.new.domainLabel")}
+                    </label>
                     <Tooltip text="Domaine d'application du document (ex: Securite reseau, Gestion des acces)." />
                   </div>
                   <Input
-                    placeholder={t('documents.new.domainPlaceholder')}
+                    placeholder={t("documents.new.domainPlaceholder")}
                     error={errors.domain?.message}
-                    {...register('domain')}
+                    {...register("domain")}
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center mb-1">
-                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.descriptionLabel')}</label>
+                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">
+                      {t("documents.new.descriptionLabel")}
+                    </label>
                     <Tooltip text="Description detaillee du contenu et de l'objectif du document." />
                   </div>
                   <Textarea
-                    placeholder={t('documents.new.descriptionPlaceholder')}
-                    {...register('description')}
+                    placeholder={t("documents.new.descriptionPlaceholder")}
+                    {...register("description")}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center mb-1">
-                      <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.nextReview')}</label>
+                      <label className="text-[13px] font-medium text-seal-navy dark:text-white">
+                        {t("documents.new.nextReview")}
+                      </label>
                       <Tooltip text="Date de la prochaine révision obligatoire. Cochez 'Permanent' si le document n'a pas besoin d'être revu périodiquement." />
                     </div>
                     <input
                       type="date"
-                      {...register('nextReviewDate')}
-                      aria-label={t('documents.new.nextReview')}
+                      {...register("nextReviewDate")}
+                      aria-label={t("documents.new.nextReview")}
                       disabled={isPermanent}
-                      min={new Date().toISOString().split('T')[0]}
+                      min={new Date().toISOString().split("T")[0]}
                       className="w-full rounded-btn border border-gray-300 dark:border-slate-700 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <label className="flex items-center gap-2 text-[11px] text-seal-gray-500 dark:text-slate-400 mt-1 cursor-pointer">
@@ -733,7 +967,7 @@ export default function NewDocumentPage() {
                         checked={isPermanent}
                         onChange={(e) => {
                           setIsPermanent(e.target.checked);
-                          if (e.target.checked) setValue('nextReviewDate', '');
+                          if (e.target.checked) setValue("nextReviewDate", "");
                         }}
                         className="h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900"
                       />
@@ -744,10 +978,12 @@ export default function NewDocumentPage() {
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        {...register('isPublic')}
+                        {...register("isPublic")}
                         className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary"
                       />
-                      <span className="text-sm text-seal-navy dark:text-white">{t('documents.new.isPublic')}</span>
+                      <span className="text-sm text-seal-navy dark:text-white">
+                        {t("documents.new.isPublic")}
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -757,28 +993,32 @@ export default function NewDocumentPage() {
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center mb-1">
-                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.categoryLabel')}</label>
+                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">
+                      {t("documents.new.categoryLabel")}
+                    </label>
                     <Tooltip text="Categorie ISO 27001 du document (Politique, Procedure, Plan, etc.)." />
                   </div>
                   <Select
                     options={categoryOptions}
-                    placeholder={t('documents.new.selectPlaceholder')}
+                    placeholder={t("documents.new.selectPlaceholder")}
                     error={errors.category?.message}
-                    {...register('category')}
+                    {...register("category")}
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center mb-1">
-                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.classificationLabel')}</label>
+                    <label className="text-[13px] font-medium text-seal-navy dark:text-white">
+                      {t("documents.new.classificationLabel")}
+                    </label>
                     <Tooltip text="Niveau de confidentialité. Détermine les droits d'accès au document." />
                   </div>
                   <div className="flex items-end gap-2">
                     <div className="flex-1">
                       <Select
                         options={classificationOptions}
-                        placeholder={t('documents.new.selectPlaceholder')}
-                        {...register('classification')}
+                        placeholder={t("documents.new.selectPlaceholder")}
+                        {...register("classification")}
                       />
                     </div>
                     <Button
@@ -794,11 +1034,14 @@ export default function NewDocumentPage() {
                     </Button>
                   </div>
                   {/* Classification color indicator */}
-                  {watch('classification') && SLA_CLASSIFICATION_HELP[watch('classification') || ''] && (
-                    <p className={`mt-1.5 text-[11px] font-medium ${ALL_CLASSIFICATIONS.find(c => c.value === watch('classification'))?.color || 'text-seal-gray-500'}`}>
-                      {SLA_CLASSIFICATION_HELP[watch('classification') || '']}
-                    </p>
-                  )}
+                  {watch("classification") &&
+                    SLA_CLASSIFICATION_HELP[watch("classification") || ""] && (
+                      <p
+                        className={`mt-1.5 text-[11px] font-medium ${ALL_CLASSIFICATIONS.find((c) => c.value === watch("classification"))?.color || "text-seal-gray-500"}`}
+                      >
+                        {SLA_CLASSIFICATION_HELP[watch("classification") || ""]}
+                      </p>
+                    )}
                 </div>
 
                 {/* Auto-classify suggestion banner */}
@@ -807,16 +1050,26 @@ export default function NewDocumentPage() {
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
                       <div className="text-xs">
-                        <span className="font-medium text-seal-navy dark:text-white">Suggestion IA : </span>
+                        <span className="font-medium text-seal-navy dark:text-white">
+                          Suggestion IA :{" "}
+                        </span>
                         {autoClassifySuggestion.category && (
                           <span className="text-seal-gray-500 dark:text-slate-400">
-                            Categorie <span className="font-medium text-seal-navy dark:text-white">{DOCUMENT_CATEGORY_LABELS[autoClassifySuggestion.category as DocumentCategory] || autoClassifySuggestion.category}</span>
+                            Categorie{" "}
+                            <span className="font-medium text-seal-navy dark:text-white">
+                              {DOCUMENT_CATEGORY_LABELS[
+                                autoClassifySuggestion.category as DocumentCategory
+                              ] || autoClassifySuggestion.category}
+                            </span>
                           </span>
                         )}
                         {autoClassifySuggestion.classification && (
                           <span className="text-seal-gray-500 dark:text-slate-400">
-                            {autoClassifySuggestion.category ? ' / ' : ''}
-                            Classification <span className="font-medium text-seal-navy dark:text-white">{autoClassifySuggestion.classification}</span>
+                            {autoClassifySuggestion.category ? " / " : ""}
+                            Classification{" "}
+                            <span className="font-medium text-seal-navy dark:text-white">
+                              {autoClassifySuggestion.classification}
+                            </span>
                           </span>
                         )}
                       </div>
@@ -824,10 +1077,12 @@ export default function NewDocumentPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        if (autoClassifySuggestion.category) setValue('category', autoClassifySuggestion.category as DocumentCategory);
-                        if (autoClassifySuggestion.classification) setValue('classification', autoClassifySuggestion.classification);
+                        if (autoClassifySuggestion.category)
+                          setValue("category", autoClassifySuggestion.category as DocumentCategory);
+                        if (autoClassifySuggestion.classification)
+                          setValue("classification", autoClassifySuggestion.classification);
                         setAutoClassifySuggestion(null);
-                        toast.success('Suggestion appliquee');
+                        toast.success("Suggestion appliquee");
                       }}
                       className="text-xs font-medium text-primary hover:underline flex-shrink-0"
                     >
@@ -836,11 +1091,41 @@ export default function NewDocumentPage() {
                   </div>
                 )}
 
+                {/* Verifier selection (étape de vérification, optionnelle) */}
+                {reviewers.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex items-center mb-1">
+                      <label className="text-[13px] font-medium text-seal-navy dark:text-white">
+                        Vérificateur
+                      </label>
+                      <Tooltip text="Contrôle technique optionnel réalisé AVANT la revue. Si défini, le workflow démarre par l'étape de vérification." />
+                    </div>
+                    <select
+                      value={selectedVerifierId}
+                      onChange={(e) => setSelectedVerifierId(e.target.value)}
+                      aria-label="Vérificateur"
+                      className="w-full rounded-btn border border-gray-300 dark:border-slate-700 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                    >
+                      <option value="">Aucun (pas d'étape de vérification)</option>
+                      {reviewers.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.firstName} {r.lastName} -- {r.role}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">
+                      Optionnel — 1re étape du cycle qualité si renseigné
+                    </p>
+                  </div>
+                )}
+
                 {/* Reviewer selection */}
                 {reviewers.length > 0 && (
                   <div className="space-y-1">
                     <div className="flex items-center mb-1">
-                      <label className="text-[13px] font-medium text-seal-navy dark:text-white">Réviseur / Approbateur</label>
+                      <label className="text-[13px] font-medium text-seal-navy dark:text-white">
+                        Réviseur / Approbateur
+                      </label>
                       <Tooltip text="Personne responsable de la validation du document avant publication." />
                     </div>
                     <select
@@ -850,13 +1135,15 @@ export default function NewDocumentPage() {
                       className="w-full rounded-btn border border-gray-300 dark:border-slate-700 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
                     >
                       <option value="">Aucun (assignation ultérieure)</option>
-                      {reviewers.map(r => (
+                      {reviewers.map((r) => (
                         <option key={r.id} value={r.id}>
                           {r.firstName} {r.lastName} -- {r.role}
                         </option>
                       ))}
                     </select>
-                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">Le réviseur sera notifié lors de la soumission</p>
+                    <p className="text-[11px] text-seal-gray-500 dark:text-slate-500">
+                      Le réviseur sera notifié lors de la soumission
+                    </p>
                   </div>
                 )}
               </div>
@@ -873,13 +1160,10 @@ export default function NewDocumentPage() {
                     />
                     <div className="flex-1">
                       <p className="text-[13px] font-semibold text-amber-800 dark:text-amber-200">
-                        Publier directement (sans workflow de revue)
+                        Publication administrative après contrôle antivirus
                       </p>
                       <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
-                        Le document sera créé en statut <strong>Approuvé</strong> sans
-                        passer par les étapes Revue/Approbation. Réservé aux documents
-                        permanents (notes info, références internes). Action tracée
-                        en audit log.
+                        Un fichier est requis. Sa publication peut être approuvée par un administrateur après un contrôle antivirus concluant. Si l’analyse est encore en cours, le document reste en brouillon et vous pourrez confirmer depuis sa fiche. Cette décision est tracée.
                       </p>
                     </div>
                   </label>
@@ -887,10 +1171,17 @@ export default function NewDocumentPage() {
               )}
             </div>
 
+            {/* Metadonnees REG_016 — section pliable, tous les champs optionnels */}
+            <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
+              <Reg016Fields values={reg016} onChange={updateReg016} category={watchedCategory} />
+            </div>
+
             {/* ISO Controls - full width section */}
             <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-slate-700">
               <div className="flex items-center">
-                <label className="text-[13px] font-medium text-seal-navy dark:text-white">{t('documents.new.isoControls')}</label>
+                <label className="text-[13px] font-medium text-seal-navy dark:text-white">
+                  {t("documents.new.isoControls")}
+                </label>
                 <Tooltip text="Controles ISO 27001 couverts par ce document. Impacte le taux de couverture conformité." />
               </div>
               <div className="flex flex-wrap gap-1.5 min-h-[32px]">
@@ -909,10 +1200,10 @@ export default function NewDocumentPage() {
               </div>
               <input
                 type="text"
-                placeholder={t('documents.new.isoSearch')}
+                placeholder={t("documents.new.isoSearch")}
                 value={controlSearch}
                 onChange={(e) => setControlSearch(e.target.value)}
-                aria-label={t('documents.new.isoSearch')}
+                aria-label={t("documents.new.isoSearch")}
                 className="w-full rounded-btn border border-gray-300 dark:border-slate-700 px-3 py-2 text-sm dark:bg-slate-800 dark:text-white placeholder:text-seal-gray-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
               {controlSearch && (
@@ -923,11 +1214,13 @@ export default function NewDocumentPage() {
                       type="button"
                       onClick={() => {
                         setSelectedControls((prev) => [...prev, ctrl.id]);
-                        setControlSearch('');
+                        setControlSearch("");
                       }}
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700 text-sm transition-colors duration-200"
                     >
-                      <span className="font-mono font-medium text-seal-navy dark:text-white">{ctrl.code}</span>
+                      <span className="font-mono font-medium text-seal-navy dark:text-white">
+                        {ctrl.code}
+                      </span>
                       <span className="text-seal-gray-500 ml-2">{ctrl.titleFr || ctrl.title}</span>
                     </button>
                   ))}
@@ -938,7 +1231,7 @@ export default function NewDocumentPage() {
             {/* File upload */}
             <div>
               <label className="block text-[13px] font-semibold text-seal-navy dark:text-white mb-1">
-                {t('documents.new.fileLabel')}
+                {t("documents.new.fileLabel")}
               </label>
               <FileUploadZone
                 onFileSelect={setFile}
@@ -949,21 +1242,31 @@ export default function NewDocumentPage() {
               {file && (
                 <div className="mt-2 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-3 flex items-center gap-3">
                   <div className="flex-shrink-0">
-                    {file.type.includes('pdf') ? (
+                    {file.type.includes("pdf") ? (
                       <FileText className="h-8 w-8 text-red-500" />
-                    ) : file.type.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc') ? (
+                    ) : file.type.includes("word") ||
+                      file.name.endsWith(".docx") ||
+                      file.name.endsWith(".doc") ? (
                       <FileText className="h-8 w-8 text-blue-500" />
-                    ) : file.type.includes('sheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls') ? (
+                    ) : file.type.includes("sheet") ||
+                      file.name.endsWith(".xlsx") ||
+                      file.name.endsWith(".xls") ? (
                       <FileSpreadsheet className="h-8 w-8 text-green-500" />
                     ) : (
                       <File className="h-8 w-8 text-gray-400 dark:text-slate-500" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">{file.name}</p>
+                    <p className="text-sm font-semibold text-seal-navy dark:text-white truncate">
+                      {file.name}
+                    </p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-seal-gray-500 dark:text-slate-400">{formatFileSize(file.size)}</span>
-                      <span className="text-xs text-seal-gray-500 dark:text-slate-400">{file.type || 'Type inconnu'}</span>
+                      <span className="text-xs text-seal-gray-500 dark:text-slate-400">
+                        {formatFileSize(file.size)}
+                      </span>
+                      <span className="text-xs text-seal-gray-500 dark:text-slate-400">
+                        {file.type || "Type inconnu"}
+                      </span>
                     </div>
                   </div>
                   <button
@@ -983,7 +1286,7 @@ export default function NewDocumentPage() {
             <div className="flex justify-between">
               <Button variant="outline" type="button" onClick={() => router.back()}>
                 <X className="h-4 w-4" />
-                {t('documents.new.cancel')}
+                {t("documents.new.cancel")}
               </Button>
               <div className="flex gap-3">
                 <Button
@@ -996,9 +1299,13 @@ export default function NewDocumentPage() {
                   <FilePlus className="h-4 w-4" />
                   Brouillon
                 </Button>
-                <Button type="submit" loading={loading || isSubmitting} disabled={savingDraft || isSubmitting}>
+                <Button
+                  type="submit"
+                  loading={loading || isSubmitting}
+                  disabled={savingDraft || isSubmitting}
+                >
                   <Save className="h-4 w-4" />
-                  {t('documents.new.submit')}
+                  {t("documents.new.submit")}
                 </Button>
               </div>
             </div>

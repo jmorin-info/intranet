@@ -4,6 +4,9 @@ import { SignaturesController } from './signatures.controller';
 import { SignaturesService } from './signatures.service';
 import { EvidenceService } from './evidence.service';
 import { Reflector } from '@nestjs/core';
+import { ThrottlerStorage } from '@nestjs/throttler';
+import { THROTTLER_OPTIONS } from '@nestjs/throttler/dist/throttler.constants';
+import { AuditService } from '../audit/audit.service';
 import { UserRole } from '../common/enums';
 import type { Response } from 'express';
 
@@ -73,6 +76,22 @@ describe('SignaturesController', () => {
       providers: [
         { provide: SignaturesService, useValue: service },
         { provide: EvidenceService, useValue: evidenceMock },
+        // Le controller est annoté @UseGuards(UserThrottlerGuard) : Nest
+        // instancie le guard et exige ses dépendances Throttler même si le
+        // guard n'est jamais exécuté dans ces tests unitaires.
+        { provide: THROTTLER_OPTIONS, useValue: { throttlers: [] } },
+        {
+          provide: ThrottlerStorage,
+          useValue: {
+            increment: jest.fn().mockResolvedValue({
+              totalHits: 1,
+              timeToExpire: 60,
+              isBlocked: false,
+              timeToBlockExpire: 0,
+            }),
+          },
+        },
+        { provide: AuditService, useValue: { log: jest.fn() } },
         Reflector,
       ],
     }).compile();

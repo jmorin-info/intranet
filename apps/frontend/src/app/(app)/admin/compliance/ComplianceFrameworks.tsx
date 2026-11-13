@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
+import { showToast } from "@/lib/toast-utils";
 import {
   Card,
   CardContent,
@@ -62,10 +63,7 @@ interface FrameworkSummary {
   partial: number;
   uncovered: number;
   coveragePercent: number;
-  byDomain: Record<
-    string,
-    { total: number; covered: number; partial: number; uncovered: number }
-  >;
+  byDomain: Record<string, { total: number; covered: number; partial: number; uncovered: number }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -77,9 +75,7 @@ export function ComplianceFrameworks() {
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
   const [frameworks, setFrameworks] = useState<Framework[]>([]);
-  const [summaries, setSummaries] = useState<Record<string, FrameworkSummary>>(
-    {},
-  );
+  const [summaries, setSummaries] = useState<Record<string, FrameworkSummary>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, FrameworkDetail>>({});
   const [loading, setLoading] = useState(true);
@@ -180,20 +176,14 @@ export function ComplianceFrameworks() {
       await fetchFrameworks();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Erreur lors de la création");
+      showToast("error", null, err.response?.data?.message || "Erreur lors de la création");
     } finally {
       setCreating(false);
     }
   };
 
   // ------- Coverage ring helper -------
-  const CoverageRing = ({
-    percent,
-    size = 80,
-  }: {
-    percent: number;
-    size?: number;
-  }) => {
+  const CoverageRing = ({ percent, size = 80 }: { percent: number; size?: number }) => {
     const radius = (size - 16) / 2;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percent / 100) * circumference;
@@ -217,11 +207,7 @@ export function ComplianceFrameworks() {
           fill="none"
           stroke="currentColor"
           className={
-            percent >= 75
-              ? "text-emerald-500"
-              : percent >= 40
-                ? "text-amber-400"
-                : "text-red-400"
+            percent >= 75 ? "text-emerald-500" : percent >= 40 ? "text-amber-400" : "text-red-400"
           }
           strokeWidth="8"
           strokeDasharray={circumference}
@@ -282,12 +268,7 @@ export function ComplianceFrameworks() {
         actions={
           <div className="flex items-center gap-3">
             {frameworks.length === 0 && isSuperAdmin && (
-              <Button
-                variant="outline"
-                onClick={handleSeed}
-                loading={seeding}
-                disabled={seeding}
-              >
+              <Button variant="outline" onClick={handleSeed} loading={seeding} disabled={seeding}>
                 <Sprout className="h-4 w-4" />
                 Importer les référentiels par défaut
               </Button>
@@ -311,13 +292,8 @@ export function ComplianceFrameworks() {
           action={
             isSuperAdmin ? (
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleSeed}
-                  loading={seeding}
-                >
-                  <Sprout className="h-4 w-4" /> Importer les référentiels par
-                  défaut
+                <Button variant="outline" onClick={handleSeed} loading={seeding}>
+                  <Sprout className="h-4 w-4" /> Importer les référentiels par défaut
                 </Button>
                 <Button onClick={() => setShowCreate(true)}>
                   <Plus className="h-4 w-4" /> Nouveau référentiel
@@ -392,15 +368,11 @@ export function ComplianceFrameworks() {
                           </div>
                           <div className="flex items-center gap-1.5 text-xs">
                             <span className="h-2 w-2 rounded-full bg-amber-400" />
-                            <span className="text-amber-600 font-semibold">
-                              {summary.partial}
-                            </span>
+                            <span className="text-amber-600 font-semibold">{summary.partial}</span>
                           </div>
                           <div className="flex items-center gap-1.5 text-xs">
                             <span className="h-2 w-2 rounded-full bg-red-400" />
-                            <span className="text-red-500 font-semibold">
-                              {summary.uncovered}
-                            </span>
+                            <span className="text-red-500 font-semibold">{summary.uncovered}</span>
                           </div>
                         </>
                       )}
@@ -424,39 +396,35 @@ export function ComplianceFrameworks() {
                   {/* Domain coverage bars */}
                   {summary && Object.keys(summary.byDomain).length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                      {Object.entries(summary.byDomain).map(
-                        ([domain, stats]) => {
-                          const pct =
-                            stats.total > 0
-                              ? Math.round((stats.covered / stats.total) * 100)
-                              : 0;
-                          const barColor =
-                            pct === 100
-                              ? "bg-emerald-500"
-                              : pct >= 50
-                                ? "bg-amber-400"
-                                : "bg-red-400";
-                          return (
-                            <div
-                              key={domain}
-                              className="rounded-lg bg-gray-50 dark:bg-slate-800/50 p-3"
-                            >
-                              <p className="text-xs font-semibold text-seal-navy dark:text-white truncate mb-1">
-                                {domain}
-                              </p>
-                              <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full ${barColor} transition-all duration-500`}
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                              <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mt-1">
-                                {stats.covered}/{stats.total} couverts ({pct}%)
-                              </p>
+                      {Object.entries(summary.byDomain).map(([domain, stats]) => {
+                        const pct =
+                          stats.total > 0 ? Math.round((stats.covered / stats.total) * 100) : 0;
+                        const barColor =
+                          pct === 100
+                            ? "bg-emerald-500"
+                            : pct >= 50
+                              ? "bg-amber-400"
+                              : "bg-red-400";
+                        return (
+                          <div
+                            key={domain}
+                            className="rounded-lg bg-gray-50 dark:bg-slate-800/50 p-3"
+                          >
+                            <p className="text-xs font-semibold text-seal-navy dark:text-white truncate mb-1">
+                              {domain}
+                            </p>
+                            <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${barColor} transition-all duration-500`}
+                                style={{ width: `${pct}%` }}
+                              />
                             </div>
-                          );
-                        },
-                      )}
+                            <p className="text-[10px] text-seal-gray-500 dark:text-slate-400 mt-1">
+                              {stats.covered}/{stats.total} couverts ({pct}%)
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -474,62 +442,57 @@ export function ComplianceFrameworks() {
                     </p>
                   ) : (
                     <div className="space-y-6 max-h-[600px] overflow-y-auto">
-                      {groupByDomain(detail.controls).map(
-                        ([domain, controls]) => (
-                          <div key={domain}>
-                            <h4 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
-                              <Shield className="h-4 w-4 text-primary" />
-                              {domain}
-                              <Badge variant="info">{controls.length}</Badge>
-                            </h4>
-                            <div className="divide-y divide-gray-100 dark:divide-slate-700 rounded-lg border border-gray-100 dark:border-slate-700 overflow-hidden">
-                              {controls.map((ctrl) => (
-                                <div
-                                  key={ctrl.id}
-                                  className="flex items-start gap-3 px-4 py-3 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
-                                >
-                                  <span className="font-mono text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded mt-0.5 flex-shrink-0">
-                                    {ctrl.code}
-                                  </span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-seal-navy dark:text-white">
-                                      {ctrl.titleFr || ctrl.title}
+                      {groupByDomain(detail.controls).map(([domain, controls]) => (
+                        <div key={domain}>
+                          <h4 className="text-sm font-semibold text-seal-navy dark:text-white mb-2 flex items-center gap-2">
+                            <Shield className="h-4 w-4 text-primary" />
+                            {domain}
+                            <Badge variant="info">{controls.length}</Badge>
+                          </h4>
+                          <div className="divide-y divide-gray-100 dark:divide-slate-700 rounded-lg border border-gray-100 dark:border-slate-700 overflow-hidden">
+                            {controls.map((ctrl) => (
+                              <div
+                                key={ctrl.id}
+                                className="flex items-start gap-3 px-4 py-3 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                              >
+                                <span className="font-mono text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded mt-0.5 flex-shrink-0">
+                                  {ctrl.code}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-seal-navy dark:text-white">
+                                    {ctrl.titleFr || ctrl.title}
+                                  </p>
+                                  {ctrl.titleFr && ctrl.title !== ctrl.titleFr && (
+                                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
+                                      {ctrl.title}
                                     </p>
-                                    {ctrl.titleFr &&
-                                      ctrl.title !== ctrl.titleFr && (
-                                        <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-0.5">
-                                          {ctrl.title}
-                                        </p>
-                                      )}
-                                    {ctrl.description && (
-                                      <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1 line-clamp-2">
-                                        {ctrl.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2 flex-shrink-0">
-                                    {ctrl.mappedIsoCode && (
-                                      <Badge variant="navy">
-                                        <Link2 className="h-3 w-3 mr-1" />
-                                        {ctrl.mappedIsoCode}
-                                      </Badge>
-                                    )}
-                                    {ctrl.documentLinks.length > 0 && (
-                                      <Badge variant="primary">
-                                        <FileText className="h-3 w-3 mr-1" />
-                                        {ctrl.documentLinks.length} doc
-                                        {ctrl.documentLinks.length !== 1
-                                          ? "s"
-                                          : ""}
-                                      </Badge>
-                                    )}
-                                  </div>
+                                  )}
+                                  {ctrl.description && (
+                                    <p className="text-xs text-seal-gray-500 dark:text-slate-400 mt-1 line-clamp-2">
+                                      {ctrl.description}
+                                    </p>
+                                  )}
                                 </div>
-                              ))}
-                            </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {ctrl.mappedIsoCode && (
+                                    <Badge variant="navy">
+                                      <Link2 className="h-3 w-3 mr-1" />
+                                      {ctrl.mappedIsoCode}
+                                    </Badge>
+                                  )}
+                                  {ctrl.documentLinks.length > 0 && (
+                                    <Badge variant="primary">
+                                      <FileText className="h-3 w-3 mr-1" />
+                                      {ctrl.documentLinks.length} doc
+                                      {ctrl.documentLinks.length !== 1 ? "s" : ""}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ),
-                      )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </CardContent>
@@ -569,11 +532,7 @@ export function ComplianceFrameworks() {
             <Button variant="outline" onClick={() => setShowCreate(false)}>
               Annuler
             </Button>
-            <Button
-              onClick={handleCreate}
-              loading={creating}
-              disabled={creating}
-            >
+            <Button onClick={handleCreate} loading={creating} disabled={creating}>
               <Plus className="h-4 w-4" />
               Créer
             </Button>

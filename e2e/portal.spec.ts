@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { testApiUrl } from './helpers/test-environment';
+import { test, expect } from './helpers/safe-test';
 
 /**
  * E2E Tests — Public Portal & Route Health
@@ -8,6 +9,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Public Portal (/welcome)', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
   test('portal loads without authentication', async ({ page }) => {
     await page.goto('/welcome');
     await expect(page).toHaveTitle(/OMNITECH/);
@@ -15,7 +17,7 @@ test.describe('Public Portal (/welcome)', () => {
 
   test('hero section renders with CTA', async ({ page }) => {
     await page.goto('/welcome');
-    await expect(page.locator('text=OMNITECH Security')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /Bienvenue.*OMNITECH Security/ })).toBeVisible();
     // CTA button should exist (login or dashboard)
     await expect(page.locator('a[href="/login"], a[href="/dashboard"]').first()).toBeVisible();
   });
@@ -53,7 +55,8 @@ test.describe('Public Portal (/welcome)', () => {
 });
 
 test.describe('Public API Endpoints', () => {
-  const API = process.env.E2E_API_URL || 'http://localhost:3000/api';
+  test.use({ storageState: { cookies: [], origins: [] } });
+  const API = testApiUrl();
 
   test('GET /public/info returns platform stats', async ({ request }) => {
     const res = await request.get(`${API}/public/info`);

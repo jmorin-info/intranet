@@ -26,6 +26,7 @@ import { CharteExemptionsService } from "./charte-exemptions.service";
 import { StorageService } from "../storage/storage.service";
 import { RequestUser } from "../common/interfaces";
 import { UserRole } from "../common/enums";
+import { RequireFreshMfa } from "../mfa/decorators/require-fresh-mfa.decorator";
 
 @Controller("chartes")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -120,8 +121,12 @@ export class ChartesController {
     );
   }
 
+  // Validation de la direction (étape de workflow qualité tracée : qui,
+  // quand, quelle version). Action sensible → MFA fraîche exigée, comme
+  // pour les vraies signatures DocuSeal.
   @Patch(":id/direction-sign")
   @Roles(UserRole.DIRECTION, UserRole.SUPER_ADMIN)
+  @RequireFreshMfa()
   markSignedByDirection(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
@@ -129,6 +134,10 @@ export class ChartesController {
     return this.chartesService.markSignedByDirection(id, user.id);
   }
 
+  // Attestation de lecture — simple accusé horodaté, accessible à TOUT
+  // utilisateur authentifié actif (PRESTATAIRE = niveau plancher de la
+  // hiérarchie RBAC). Pas de MFA fraîche : ce n'est pas une signature
+  // engageante, c'est une preuve de lecture.
   @Post(":id/sign")
   @Roles(UserRole.PRESTATAIRE)
   sign(

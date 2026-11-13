@@ -1,12 +1,8 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  ConflictException,
-} from "@nestjs/common";
+import { Injectable, Logger, NotFoundException, ConflictException } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { stripHtmlTags } from "../common/plain-text";
 
 interface RSSItem {
   title: string;
@@ -92,12 +88,88 @@ const RSS_FEEDS = [
   { name: "Milestone XProtect", url: "https://www.milestonesys.com/feed/" },
 ];
 
-// Mots-clés supplémentaires pour taguer/prioriser la veille selon les sujets
-// OMNITECH (vidéosurveillance, NIS2, IA, contrôle d'accès…). Utilisés dans
-// l'analyse de pertinence (VeilleItem.description) pour flaguer la sévérité
-// lorsqu'un produit/sujet du parc est mentionné.
+// ---------------------------------------------------------------------------
+// Pertinence parc — listes DURCIES (2026-07-24, remédiation spam notifications)
+// ---------------------------------------------------------------------------
+// RÈGLE : uniquement des noms de PRODUITS/SUJETS précis et non ambigus.
+// Les termes génériques utilisés auparavant (« windows », « microsoft »,
+// « hp  », « dell », « docker », « llm », « badge », « defender » seuls…)
+// matchaient la quasi-totalité de la presse cyber et ont produit jusqu'à
+// 60 notifications/jour/admin en juillet 2026. Ils sont INTERDITS ici.
+// Le match se fait par frontière de mot (containsToken) pour éviter les
+// faux positifs par sous-chaîne (ex. « eset » ⊂ « reset », « hid » ⊂ « hidden »).
+
+// Parc OMNITECH — correspondance STRICTE (ISO 27001 A.5.7).
+// Utilisée par le canal de notification immédiat : chaque entrée doit
+// désigner un produit précis effectivement déployé chez OMNITECH.
+const OMNITECH_PARC_STRICT = [
+  // Firewall / VPN Fortinet
+  "fortigate",
+  "fortios",
+  "forticlient",
+  "fortianalyzer",
+  "fortimail",
+  "fortiweb",
+  "fortinet",
+  // Virtualisation VMware
+  "vmware",
+  "vsphere",
+  "esxi",
+  "vcenter",
+  // Endpoint / antivirus (produits, jamais « defender » seul)
+  "eset",
+  "nod32",
+  "sophos",
+  "crowdstrike",
+  "sentinelone",
+  "microsoft defender",
+  "windows defender",
+  // Microsoft — produits précis, jamais « windows »/« microsoft »/« azure » seuls
+  "microsoft exchange",
+  "exchange server",
+  "office 365",
+  "microsoft 365",
+  "windows server",
+  "active directory",
+  "entra id",
+  "intune",
+  // Backup
+  "veeam",
+  "acronis",
+  // Réseau / wifi (marques d'équipements réseau du parc)
+  "aruba clearpass",
+  "clearpass",
+  "aruba instant on",
+  "cisco",
+  "meraki",
+  "catalyst",
+  // Sécurité physique / vidéosurveillance / hypervision (métier OMNITECH)
+  "genetec",
+  "security center",
+  "synergis",
+  "milestone",
+  "xprotect",
+  "hikvision",
+  "dahua",
+  "axis camera",
+  "avigilon",
+  // Contrôle d'accès (cartes, lecteurs — jamais « hid » seul : ⊂ « hidden »)
+  "hid global",
+  "mifare",
+  "desfire",
+  // Infra backend intranet
+  "postgresql",
+  "redis",
+  "nginx",
+  "node.js",
+  "nodejs",
+];
+
+// Sujets métier OMNITECH (réglementaire, sécurité physique, sécurité IA) —
+// utilisés en COMPLÉMENT du parc pour la pertinence « large » (bulletin
+// hebdo, liste /veille/relevant), jamais pour le canal immédiat.
 const OMNITECH_TOPICS = [
-  // Réglementaire
+  // Réglementaire (précis)
   "nis2",
   "nis 2",
   "dora",
@@ -105,7 +177,7 @@ const OMNITECH_TOPICS = [
   "gdpr",
   "ai act",
   "ia act",
-  // Sécurité physique + hypervision
+  // Sécurité physique / hypervision (cœur de métier)
   "vidéosurveillance",
   "videosurveillance",
   "cctv",
@@ -113,106 +185,77 @@ const OMNITECH_TOPICS = [
   "camera ip",
   "contrôle d'accès",
   "controle d'acces",
-  "badge",
   "biométrie",
   "biometrie",
-  "intrusion",
-  "alarme",
   "hypervision",
   "nvr",
-  "vms",
-  "genetec",
-  "milestone",
-  "xprotect",
-  "synergis",
-  // IA / cybersec IA
-  "intelligence artificielle",
-  "llm",
-  "chatbot",
-  "deepfake",
+  // Sécurité IA — sujets précis uniquement (« llm »/« chatbot » seuls bannis)
   "prompt injection",
-  "ai security",
-  "adversarial",
+  "deepfake",
   "model poisoning",
-  // Infra réseau / PSIRT (produits parc — doublon avec OMNITECH_PRODUCTS mais
-  // facilite le match quand le titre mentionne juste "Aruba ClearPass" sans
-  // "aruba" en tag explicite)
-  "aruba",
-  "clearpass",
-  "instant on",
-  "hpe",
 ];
 
-// Parc OMNITECH — produits à surveiller (ISO 27001 A.5.7)
-const OMNITECH_PRODUCTS = [
-  // Firewall / VPN
-  "fortigate",
-  "fortinet",
-  "forticlient",
-  "fortios",
-  "fortianalyzer",
-  "fortimail",
-  "fortiweb",
-  // Virtualisation
-  "vmware",
-  "vsphere",
-  "esxi",
-  "vcenter",
-  "nsx",
-  "horizon",
-  // Endpoint / antivirus
-  "eset",
-  "nod32",
-  "sophos",
-  "defender",
-  "crowdstrike",
-  "sentinelone",
-  // Microsoft
-  "windows",
-  "microsoft",
-  "exchange",
-  "office 365",
-  "azure",
-  "intune",
-  "active directory",
-  // Backup
-  "veeam",
-  "veeam b&r",
-  "acronis",
-  // Hardware / switch / wifi
-  "dell",
-  "hp ",
-  "hpe",
-  "aruba",
-  "clearpass",
-  "cisco",
-  "meraki",
-  "catalyst",
-  // Sécurité physique / vidéosurveillance / hypervision
-  "genetec",
-  "security center",
-  "synergis",
-  "milestone",
-  "xprotect",
-  "husky",
-  "hikvision",
-  "dahua",
-  "axis camera",
-  "bosch",
-  "avigilon",
-  // Contrôle d'accès (cartes, lecteurs)
-  "hid",
-  "mifare",
-  "desfire",
-  // Infra backend
-  "postgresql",
-  "redis",
-  "nginx",
-  "node.js",
-  "nodejs",
-  "docker",
-  "kubernetes",
-];
+/**
+ * Match par frontière de mot (insensible à la casse). Contrairement à un
+ * simple `String.includes`, « eset » ne matche pas « reset » et « nvr » ne
+ * matche pas un mot qui le contiendrait. Les tokens multi-mots («·office
+ * 365·», « axis camera ») fonctionnent tels quels.
+ */
+function containsToken(text: string, token: string): boolean {
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "i").test(text);
+}
+
+/**
+ * Normalise un titre pour la déduplication (même annonce via deux flux de la
+ * même source avec une ponctuation/casse différente).
+ */
+function normalizeTitle(title: string): string {
+  return (title || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // accents (combining diacritics)
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * Extrait un score CVSS mentionné dans le texte (« CVSS 9.8 »,
+ * « CVSS:3.1/... 9.1 », « score CVSS de 9,8 »…). Renvoie null si absent
+ * ou invraisemblable (> 10).
+ */
+// Numéro de version / vecteur CVSS (« cvss:3.1/av:n/... », « cvss v3.1 »,
+// « cvssv3 »…). Neutralisé AVANT le match du score, sinon la regex du score
+// s'arrête sur le premier chiffre venu — le « 3.1 » de la version — et classe
+// une CVE 9.8 en HIGH. La liste des versions est fermée (2.0/3.0/3.1/4.0) pour
+// ne PAS avaler « cvss: 9.8 » (le 9.8 n'est pas une version connue).
+const CVSS_VERSION_OR_VECTOR =
+  /cvss(?:\s*:\s*|\s*v\s*|v)(?:2(?:\.0)?|3(?:\.[01])?|4(?:\.0)?)\b(?:\/[a-z:/]*)?/g;
+
+function extractCvssScore(lowerText: string): number | null {
+  const t = lowerText.replace(CVSS_VERSION_OR_VECTOR, "cvss");
+  const m = /cvss[^0-9]{0,20}(\d{1,2}(?:[.,]\d)?)/.exec(t);
+  if (!m || !m[1]) return null;
+  const score = parseFloat(m[1].replace(",", "."));
+  if (!Number.isFinite(score) || score > 10) return null;
+  return score;
+}
+
+/**
+ * Clé AppConfig du kill-switch des notifications veille.
+ * Défaut : DÉSACTIVÉ (fail-closed anti-spam) — l'ingestion RSS continue
+ * quel que soit l'état, seule l'émission de notifications est conditionnée.
+ */
+export const VEILLE_NOTIFICATIONS_ENABLED_KEY = "veille.notifications.enabled";
+
+/** Item CRITICAL nouvellement ingéré, candidat au canal immédiat. */
+interface NewCriticalItem {
+  id: string;
+  title: string;
+  description: string | null;
+  sourceName: string;
+  cveId: string | null;
+}
 
 @Injectable()
 export class VeilleService {
@@ -222,6 +265,54 @@ export class VeilleService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
   ) {}
+
+  // ---------------------------------------------------------------------------
+  // Kill-switch notifications (AppConfig veille.notifications.enabled)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Les notifications veille sont-elles activées ? Défaut : NON.
+   * Seule la valeur exacte "true" active l'émission (fail-closed).
+   */
+  async areNotificationsEnabled(): Promise<boolean> {
+    try {
+      const cfg = await this.prisma.appConfig.findUnique({
+        where: { key: VEILLE_NOTIFICATIONS_ENABLED_KEY },
+      });
+      return cfg?.value === "true";
+    } catch {
+      return false;
+    }
+  }
+
+  async getNotificationsConfig(): Promise<{ enabled: boolean; key: string }> {
+    return {
+      enabled: await this.areNotificationsEnabled(),
+      key: VEILLE_NOTIFICATIONS_ENABLED_KEY,
+    };
+  }
+
+  async setNotificationsEnabled(
+    enabled: boolean,
+    updatedById?: string,
+  ): Promise<{ enabled: boolean }> {
+    await this.prisma.appConfig.upsert({
+      where: { key: VEILLE_NOTIFICATIONS_ENABLED_KEY },
+      update: { value: String(enabled), updatedById, updatedAt: new Date() },
+      create: {
+        key: VEILLE_NOTIFICATIONS_ENABLED_KEY,
+        value: String(enabled),
+        description:
+          "Kill-switch des notifications du module veille (alertes critiques + bulletins). " +
+          "L'ingestion RSS continue quel que soit l'état. Défaut : false.",
+        updatedById,
+      },
+    });
+    this.logger.warn(
+      `Notifications veille ${enabled ? "ACTIVÉES" : "DÉSACTIVÉES"} (par ${updatedById || "system"})`,
+    );
+    return { enabled };
+  }
 
   async findAll(filters: {
     isProcessed?: boolean;
@@ -234,8 +325,7 @@ export class VeilleService {
     const limit = filters.limit || 30;
     const where: any = {};
 
-    if (filters.isProcessed !== undefined)
-      where.isProcessed = filters.isProcessed;
+    if (filters.isProcessed !== undefined) where.isProcessed = filters.isProcessed;
     if (filters.dateFrom) {
       where.publishedAt = { gte: new Date(filters.dateFrom) };
     }
@@ -270,12 +360,7 @@ export class VeilleService {
     };
   }
 
-  async acknowledge(
-    veilleItemId: string,
-    userId: string,
-    action: string,
-    comment?: string,
-  ) {
+  async acknowledge(veilleItemId: string, userId: string, action: string, comment?: string) {
     const item = await this.prisma.veilleItem.findUnique({
       where: { id: veilleItemId },
     });
@@ -334,25 +419,24 @@ export class VeilleService {
     bySource: Record<string, number>;
     lastCollect: string | null;
   }> {
-    const [total, unprocessed, processed, bySeverity, bySource, lastItem] =
-      await Promise.all([
-        this.prisma.veilleItem.count(),
-        this.prisma.veilleItem.count({ where: { isProcessed: false } }),
-        this.prisma.veilleItem.count({ where: { isProcessed: true } }),
-        this.prisma.veilleItem.groupBy({
-          by: ["severity"],
-          _count: true,
-          where: { isProcessed: false },
-        }),
-        this.prisma.veilleItem.groupBy({
-          by: ["sourceName"],
-          _count: true,
-        }),
-        this.prisma.veilleItem.findFirst({
-          orderBy: { publishedAt: "desc" },
-          select: { publishedAt: true },
-        }),
-      ]);
+    const [total, unprocessed, processed, bySeverity, bySource, lastItem] = await Promise.all([
+      this.prisma.veilleItem.count(),
+      this.prisma.veilleItem.count({ where: { isProcessed: false } }),
+      this.prisma.veilleItem.count({ where: { isProcessed: true } }),
+      this.prisma.veilleItem.groupBy({
+        by: ["severity"],
+        _count: true,
+        where: { isProcessed: false },
+      }),
+      this.prisma.veilleItem.groupBy({
+        by: ["sourceName"],
+        _count: true,
+      }),
+      this.prisma.veilleItem.findFirst({
+        orderBy: { publishedAt: "desc" },
+        select: { publishedAt: true },
+      }),
+    ]);
     return {
       total,
       unprocessed,
@@ -387,10 +471,7 @@ export class VeilleService {
     }
   }
 
-  async updateSource(
-    id: string,
-    data: { name?: string; url?: string; isActive?: boolean },
-  ) {
+  async updateSource(id: string, data: { name?: string; url?: string; isActive?: boolean }) {
     const existing = await this.prisma.veilleSource.findUnique({
       where: { id },
     });
@@ -427,9 +508,7 @@ export class VeilleService {
       });
       inserted++;
     }
-    this.logger.log(
-      `seedDefaultSources: ${inserted} inserted, ${skipped} skipped`,
-    );
+    this.logger.log(`seedDefaultSources: ${inserted} inserted, ${skipped} skipped`);
     return { inserted, skipped };
   }
 
@@ -457,13 +536,10 @@ export class VeilleService {
       error?: string;
     }> = [];
 
-    // Items CRITICAL nouvellement créés → notification admins en fin de cycle
-    const newCriticalItems: Array<{
-      id: string;
-      title: string;
-      sourceName: string;
-      cveId: string | null;
-    }> = [];
+    // Items CRITICAL nouvellement créés → candidats au canal immédiat
+    // (filtrage strict dans notifyImmediateCriticals, le reste part dans
+    // le digest quotidien de 8h).
+    const newCriticalItems: NewCriticalItem[] = [];
 
     for (const feed of feeds) {
       const stat = { feed: feed.name, fetched: 0, upserted: 0 } as {
@@ -482,12 +558,8 @@ export class VeilleService {
             });
             if (existing) continue; // déjà ingéré
 
-            const severity = this.detectSeverity(
-              item.title + " " + (item.description || ""),
-            );
-            const cveId = this.extractCVE(
-              item.title + " " + (item.description || ""),
-            );
+            const severity = this.detectSeverity(item.title + " " + (item.description || ""));
+            const cveId = this.extractCVE(item.title + " " + (item.description || ""));
             const created = await this.prisma.veilleItem.create({
               data: {
                 title: item.title,
@@ -502,15 +574,14 @@ export class VeilleService {
             stat.upserted++;
             total++;
 
-            // ISO 27001 A.5.7 — notification rapide sur vulnérabilité critique
-            // concernant le parc OMNITECH (évite le bruit des CVE hors périmètre).
-            if (
-              severity === "CRITICAL" &&
-              this.isRelevantToParc(item.title + " " + (item.description || ""))
-            ) {
+            // ISO 27001 A.5.7 — candidats au canal immédiat. Le filtrage
+            // (kill-switch, CVE non nul, parc STRICT, dédup 30 j) est fait
+            // en fin de cycle par notifyImmediateCriticals.
+            if (severity === "CRITICAL") {
               newCriticalItems.push({
                 id: created.id,
                 title: created.title,
+                description: created.description,
                 sourceName: created.sourceName,
                 cveId: created.cveId,
               });
@@ -531,30 +602,11 @@ export class VeilleService {
       feedStats.push(stat);
     }
 
-    // Notifier les admins/super_admins des nouvelles alertes CRITIQUES
-    // pertinentes pour le parc (max 5 notifs pour éviter le flood).
+    // Canal immédiat — strictement filtré (le gros du signal passe par le
+    // digest quotidien de 8h, cf. sendDailyCriticalDigest).
     if (newCriticalItems.length > 0) {
       try {
-        const admins = await this.prisma.user.findMany({
-          where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
-          select: { id: true },
-        });
-        const toNotify = newCriticalItems.slice(0, 5);
-        for (const admin of admins) {
-          for (const crit of toNotify) {
-            await this.notificationsService.create({
-              userId: admin.id,
-              type: "DOC_PUBLISHED", // Type générique réutilisé (cf. bulletin hebdo)
-              title: `Veille CRITIQUE${crit.cveId ? ` — ${crit.cveId}` : ""}`,
-              body: `${crit.sourceName} : ${crit.title.substring(0, 180)}`,
-              resourceType: "VeilleItem",
-              resourceId: crit.id,
-            });
-          }
-        }
-        this.logger.warn(
-          `Veille: ${newCriticalItems.length} nouvelle(s) alerte(s) CRITIQUE(S) pertinente(s) pour le parc — ${admins.length} admin(s) notifié(s)`,
-        );
+        await this.notifyImmediateCriticals(newCriticalItems);
       } catch (err) {
         this.logger.error(
           `Failed to notify admins of critical veille items: ${err instanceof Error ? err.message : err}`,
@@ -569,22 +621,231 @@ export class VeilleService {
         `Veille: ${failed.length}/${feeds.length} sources vides ou en erreur: ${failed.map((f) => f.feed).join(", ")}`,
       );
     }
-    this.logger.log(
-      `Veille: ${total} items processed sur ${feeds.length} sources`,
+    this.logger.log(`Veille: ${total} items processed sur ${feeds.length} sources`);
+  }
+
+  /**
+   * Canal de notification IMMÉDIAT (entre deux digests quotidiens) —
+   * volontairement TRÈS restrictif pour éliminer le spam :
+   *  1. kill-switch AppConfig `veille.notifications.enabled` (défaut OFF) ;
+   *  2. sévérité CRITICAL (garantie par l'appelant) ;
+   *  3. cveId NON NUL (une alerte sans CVE attend le digest) ;
+   *  4. correspondance STRICTE avec le parc (OMNITECH_PARC_STRICT — produits
+   *     précis, pas de « windows »/« microsoft » seuls) ;
+   *  5. dédup ingestion : un VeilleItem des 30 derniers jours avec le même
+   *     CVE (ou même titre normalisé + même source) → skip la notification
+   *     (l'item reste créé pour l'historique) ;
+   *  6. dédup notification : NotificationsService.create avec
+   *     dedupeKey=CVE (fenêtre 7 jours par utilisateur).
+   * Plus de cap silencieux slice(0,5) : tout item passant ces filtres est
+   * notifié (le filtrage strict garantit un volume très faible).
+   */
+  private async notifyImmediateCriticals(items: NewCriticalItem[]): Promise<void> {
+    if (!(await this.areNotificationsEnabled())) {
+      this.logger.debug(
+        `Veille: notifications désactivées (${VEILLE_NOTIFICATIONS_ENABLED_KEY}=false) — ${items.length} item(s) CRITICAL non notifié(s), disponibles dans le digest si réactivation`,
+      );
+      return;
+    }
+
+    // 1. Candidats : CVE non nul + correspondance parc STRICTE.
+    const candidates = items.filter(
+      (i) => i.cveId && this.isStrictParcMatch(i.title + " " + (i.description || "")),
+    );
+
+    // 2. Dédup INTRA-cycle par CVE : le même CVE arrivé via plusieurs flux
+    //    dans le même cycle ne donne qu'UN candidat. Sans cette étape, la
+    //    dédup historique (§3) verrait chaque copie comme le doublon des
+    //    autres et les annulerait TOUTES (l'alerte ne partirait jamais).
+    const byCve = new Map<string, NewCriticalItem>();
+    for (const c of candidates) {
+      const key = c.cveId as string; // non nul (garanti par le filtre §1)
+      if (!byCve.has(key)) byCve.set(key, c);
+    }
+
+    // 3. Dédup HISTORIQUE : on exclut TOUT le lot courant du lookup pour ne
+    //    comparer qu'aux items des cycles précédents (fenêtre 30 jours).
+    const batchIds = items.map((i) => i.id);
+    const toNotify: NewCriticalItem[] = [];
+    for (const cand of byCve.values()) {
+      if (await this.hasRecentDuplicate(cand, batchIds)) {
+        this.logger.debug(
+          `Veille: notification skippée (doublon <30j) pour ${cand.cveId} — ${cand.title.substring(0, 80)}`,
+        );
+        continue;
+      }
+      toNotify.push(cand);
+    }
+    if (toNotify.length === 0) return;
+
+    const admins = await this.prisma.user.findMany({
+      where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
+      select: { id: true },
+    });
+    for (const admin of admins) {
+      for (const crit of toNotify) {
+        await this.notificationsService.create({
+          userId: admin.id,
+          type: "VEILLE_CRITICAL",
+          title: `Veille CRITIQUE — ${crit.cveId}`,
+          body: `${crit.sourceName} : ${crit.title.substring(0, 180)}`,
+          resourceType: "VeilleItem",
+          resourceId: crit.id,
+          // Fenêtre anti-doublon 7 j par utilisateur (même CVE via une
+          // autre source/URL → une seule notification).
+          dedupeKey: crit.cveId ?? undefined,
+        });
+      }
+    }
+    this.logger.warn(
+      `Veille: ${toNotify.length} alerte(s) CRITIQUE(S) parc strict notifiée(s) immédiatement à ${admins.length} admin(s) (sur ${items.length} candidat(s))`,
     );
   }
 
-  private async parseRSSFeed(
-    url: string,
-    sourceName: string,
-  ): Promise<RSSItem[]> {
+  /**
+   * Dédup à l'ingestion : existe-t-il déjà un VeilleItem des 30 derniers
+   * jours portant le même CVE, ou le même titre normalisé venant de la même
+   * source ? (Le même CVE revient souvent via plusieurs flux/URLs — la
+   * contrainte unique sourceUrl ne suffit pas.)
+   */
+  private async hasRecentDuplicate(
+    item: {
+      id: string;
+      title: string;
+      sourceName: string;
+      cveId: string | null;
+    },
+    excludeIds: string[] = [item.id],
+  ): Promise<boolean> {
+    const since = new Date(Date.now() - 30 * 86400000);
+    // On exclut le lot courant (par défaut le seul `item.id`) pour ne
+    // comparer qu'aux items PRÉEXISTANTS (cf. notifyImmediateCriticals §3).
+    const idFilter = excludeIds.length > 0 ? { notIn: excludeIds } : undefined;
+    if (item.cveId) {
+      const dupByCve = await this.prisma.veilleItem.findFirst({
+        where: {
+          id: idFilter,
+          cveId: item.cveId,
+          fetchedAt: { gte: since },
+        },
+        select: { id: true },
+      });
+      if (dupByCve) return true;
+    }
+    const siblings = await this.prisma.veilleItem.findMany({
+      where: {
+        id: idFilter,
+        sourceName: item.sourceName,
+        fetchedAt: { gte: since },
+      },
+      select: { title: true },
+      orderBy: { fetchedAt: "desc" },
+      take: 200,
+    });
+    const norm = normalizeTitle(item.title);
+    return siblings.some((s) => normalizeTitle(s.title) === norm);
+  }
+
+  /**
+   * DIGEST QUOTIDIEN de veille — remplace le fil continu de notifications
+   * par item (cron 2h) supprimé le 2026-07-24.
+   *
+   * Tous les jours ouvrés à 8h : agrège les items CRITICAL pertinents parc
+   * des dernières 24h (72h le lundi pour couvrir le week-end) et émet UNE
+   * seule notification VEILLE_CRITICAL de synthèse par admin.
+   * Gardé par le kill-switch `veille.notifications.enabled`.
+   */
+  @Cron("0 8 * * 1-5")
+  async sendDailyCriticalDigestCron() {
+    try {
+      await this.sendDailyCriticalDigest();
+    } catch (err) {
+      this.logger.error(`Veille daily digest failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  async sendDailyCriticalDigest(
+    now: Date = new Date(),
+  ): Promise<{ notified: number; items: number }> {
+    if (!(await this.areNotificationsEnabled())) {
+      this.logger.debug(
+        `Veille: digest quotidien skippé (${VEILLE_NOTIFICATIONS_ENABLED_KEY}=false)`,
+      );
+      return { notified: 0, items: 0 };
+    }
+
+    // 72h le lundi (couvre le week-end sans cron sam/dim), 24h sinon.
+    const windowHours = now.getDay() === 1 ? 72 : 24;
+    const since = new Date(now.getTime() - windowHours * 3600000);
+
+    const criticals = await this.prisma.veilleItem.findMany({
+      where: { severity: "CRITICAL", fetchedAt: { gte: since } },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        cveId: true,
+        sourceName: true,
+      },
+      orderBy: { fetchedAt: "desc" },
+    });
+
+    // Pertinence « large » (parc strict + sujets métier) puis dédup par CVE
+    // (ou titre normalisé) pour ne compter chaque alerte qu'une fois.
+    const seen = new Set<string>();
+    const relevant = criticals.filter((i) => {
+      const text = (i.title || "") + " " + (i.description || "");
+      if (!this.isRelevantToParc(text)) return false;
+      const key = i.cveId || normalizeTitle(i.title);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (relevant.length === 0) {
+      this.logger.log(
+        `Veille digest: aucune alerte critique pertinente sur ${windowHours}h — aucune notification`,
+      );
+      return { notified: 0, items: 0 };
+    }
+
+    const parcCveCount = relevant.filter(
+      (i) => i.cveId && this.isStrictParcMatch((i.title || "") + " " + (i.description || "")),
+    ).length;
+
+    const top = relevant
+      .slice(0, 3)
+      .map((i) => `• ${i.cveId ? `${i.cveId} — ` : ""}${i.title.substring(0, 120)}`)
+      .join("\n");
+    const rest = relevant.length > 3 ? `\n… et ${relevant.length - 3} autre(s).` : "";
+
+    const admins = await this.prisma.user.findMany({
+      where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
+      select: { id: true },
+    });
+    let notified = 0;
+    for (const admin of admins) {
+      await this.notificationsService.create({
+        userId: admin.id,
+        type: "VEILLE_CRITICAL",
+        title: `Veille : ${relevant.length} alerte${relevant.length > 1 ? "s" : ""} critique${relevant.length > 1 ? "s" : ""} dont ${parcCveCount} CVE parc`,
+        body: `${top}${rest}`,
+        resourceType: "VeilleItem",
+      });
+      notified++;
+    }
+    this.logger.log(
+      `Veille digest: ${relevant.length} alerte(s) critique(s) (${parcCveCount} CVE parc) → 1 notification de synthèse pour ${notified} admin(s)`,
+    );
+    return { notified, items: relevant.length };
+  }
+
+  private async parseRSSFeed(url: string, sourceName: string): Promise<RSSItem[]> {
     // Le `fetchRSSFeeds` catche par-source : on laisse remonter l'erreur
     // pour qu'elle soit loggée avec le nom du flux (diagnostic).
     const response = await fetch(url, {
       signal: AbortSignal.timeout(10000),
       headers: {
-        "User-Agent":
-          "OmnitechVeille/1.0 (+https://intranet.omnitech-security.fr)",
+        "User-Agent": "OmnitechVeille/1.0 (+https://intranet.omnitech-security.fr)",
       },
     });
     if (!response.ok) {
@@ -619,11 +880,9 @@ export class VeilleService {
         const linkMatch = /<link[^>]*href="([^"]+)"/.exec(entryXml);
         const link = linkMatch?.[1] || this.extractTag(entryXml, "id");
         const description =
-          this.extractTag(entryXml, "summary") ||
-          this.extractTag(entryXml, "content");
+          this.extractTag(entryXml, "summary") || this.extractTag(entryXml, "content");
         const pubDate =
-          this.extractTag(entryXml, "updated") ||
-          this.extractTag(entryXml, "published");
+          this.extractTag(entryXml, "updated") || this.extractTag(entryXml, "published");
         if (title && link) {
           items.push({ title, description, link, pubDate, source: sourceName });
         }
@@ -638,21 +897,41 @@ export class VeilleService {
       `<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`,
     );
     const match = regex.exec(xml);
-    return (match?.[1] || match?.[2] || "").trim().replace(/<[^>]+>/g, "");
+    return stripHtmlTags((match?.[1] || match?.[2] || "").trim());
   }
 
-  private detectSeverity(text: string): string {
+  /**
+   * Détection de sévérité DURCIE (2026-07-24).
+   *
+   * Avant : « critical »/« critique » n'importe où dans le texte → CRITICAL,
+   * ce qui classait CRITICAL ~8 % de toute la presse cyber (1 058 items) et
+   * alimentait le spam de notifications.
+   *
+   * Désormais CRITICAL exige un CVE ET un signal fort :
+   *  - exploitation active (« exploited in the wild », « actively exploited »,
+   *    « activement exploité », KEV) ou zero-day/0-day ;
+   *  - OU un score CVSS ≥ 9 détecté dans le texte.
+   * Un simple mot-clé « critical »/« critique » classe l'item HIGH au mieux.
+   */
+  detectSeverity(text: string): string {
     const t = text.toLowerCase();
+    const hasCve = /cve-\d{4}-\d{4,}/i.test(text);
+    const activelyExploited =
+      /exploited in the wild|actively exploited|activement exploit|exploitation active|known exploited|zero[- ]?day|\b0[- ]?day\b/.test(
+        t,
+      );
+    const cvss = extractCvssScore(t);
+
+    if (hasCve && (activelyExploited || (cvss !== null && cvss >= 9))) return "CRITICAL";
+
+    const criticalWords = /\b(critical|critique|urgent|urgente)\b/.test(t);
     if (
-      t.includes("critique") ||
-      t.includes("critical") ||
-      t.includes("urgente")
+      criticalWords ||
+      (cvss !== null && cvss >= 7) ||
+      /\b(important|importante|haute|high)\b/.test(t)
     )
-      return "CRITICAL";
-    if (t.includes("important") || t.includes("haute") || t.includes("high"))
       return "HIGH";
-    if (t.includes("moyenne") || t.includes("medium") || t.includes("moderate"))
-      return "MEDIUM";
+    if (/\b(moyenne|medium|moderate)\b/.test(t)) return "MEDIUM";
     return "LOW";
   }
 
@@ -662,16 +941,25 @@ export class VeilleService {
   }
 
   /**
-   * Check if a veille item concerns a product in OMNITECH's parc OR a topic
-   * directly pertinent pour l'activité d'OMNITECH (sécurité physique, NIS2,
-   * vidéosurveillance, IA, conformité RGPD/AI Act…).
+   * Pertinence « large » : produit du parc STRICT ou sujet métier OMNITECH
+   * (sécurité physique, NIS2, sécurité IA…). Utilisée pour le bulletin
+   * hebdo, /veille/relevant et le digest quotidien. Les tokens génériques
+   * historiques (« windows », « microsoft », « docker », « llm »…) ont été
+   * retirés — voir OMNITECH_PARC_STRICT / OMNITECH_TOPICS.
    */
   isRelevantToParc(text: string): boolean {
-    const t = text.toLowerCase();
     return (
-      OMNITECH_PRODUCTS.some((p) => t.includes(p)) ||
-      OMNITECH_TOPICS.some((topic) => t.includes(topic))
+      this.isStrictParcMatch(text) || OMNITECH_TOPICS.some((topic) => containsToken(text, topic))
     );
+  }
+
+  /**
+   * Correspondance STRICTE avec le parc : uniquement les produits précis de
+   * OMNITECH_PARC_STRICT, avec frontières de mot. C'est le seul critère de
+   * pertinence accepté par le canal de notification immédiat.
+   */
+  isStrictParcMatch(text: string): boolean {
+    return OMNITECH_PARC_STRICT.some((p) => containsToken(text, p));
   }
 
   // --- Weekly Bulletin ---
@@ -709,9 +997,7 @@ export class VeilleService {
 
     // Filter relevant to OMNITECH parc
     const relevant = items.filter((item) =>
-      this.isRelevantToParc(
-        (item.title || "") + " " + (item.description || ""),
-      ),
+      this.isRelevantToParc((item.title || "") + " " + (item.description || "")),
     );
 
     // Group by severity
@@ -723,12 +1009,7 @@ export class VeilleService {
     };
 
     // Generate HTML
-    const content = this.generateBulletinHtml(
-      start,
-      end,
-      bySeverity,
-      relevant.length,
-    );
+    const content = this.generateBulletinHtml(start, end, bySeverity, relevant.length);
 
     const title = `Bulletin Cybersécurité — Semaine du ${start.toLocaleDateString("fr-FR")} au ${end.toLocaleDateString("fr-FR")}`;
 
@@ -752,19 +1033,27 @@ export class VeilleService {
       });
     }
 
-    // Notify all ADMIN/SUPER_ADMIN users
-    const admins = await this.prisma.user.findMany({
-      where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
-      select: { id: true },
-    });
-    for (const admin of admins) {
-      await this.notificationsService.create({
-        userId: admin.id,
-        type: "DOC_PUBLISHED",
-        title: "Bulletin cybersécurité hebdomadaire",
-        body: `${relevant.length} alertes pertinentes cette semaine.`,
-        resourceType: "VeilleBulletin",
+    // Notification ADMIN/SUPER_ADMIN — type dédié VEILLE_BULLETIN, gardée
+    // par le kill-switch (le bulletin est créé dans tous les cas).
+    if (await this.areNotificationsEnabled()) {
+      const admins = await this.prisma.user.findMany({
+        where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
+        select: { id: true },
       });
+      for (const admin of admins) {
+        await this.notificationsService.create({
+          userId: admin.id,
+          type: "VEILLE_BULLETIN",
+          title: "Bulletin cybersécurité hebdomadaire",
+          body: `${relevant.length} alertes pertinentes cette semaine.`,
+          resourceType: "VeilleBulletin",
+          resourceId: bulletin.id,
+        });
+      }
+    } else {
+      this.logger.debug(
+        `Veille: notification bulletin skippée (${VEILLE_NOTIFICATIONS_ENABLED_KEY}=false)`,
+      );
     }
 
     this.logger.log(
@@ -884,59 +1173,54 @@ export class VeilleService {
       sourceUrl: i.sourceUrl,
     }));
 
-    // Collect products mentioned in this week's items
+    // Collect products mentioned in this week's items (parc strict only)
+    const PRODUCT_DISPLAY: Record<string, string> = {
+      fortigate: "Fortinet/FortiGate",
+      fortios: "Fortinet/FortiGate",
+      forticlient: "Fortinet/FortiGate",
+      fortianalyzer: "Fortinet/FortiGate",
+      fortimail: "Fortinet/FortiGate",
+      fortiweb: "Fortinet/FortiGate",
+      fortinet: "Fortinet/FortiGate",
+      vmware: "VMware/vSphere",
+      vsphere: "VMware/vSphere",
+      esxi: "VMware/vSphere",
+      vcenter: "VMware/vSphere",
+      eset: "ESET",
+      nod32: "ESET",
+      "microsoft defender": "Microsoft",
+      "windows defender": "Microsoft",
+      "microsoft exchange": "Microsoft",
+      "exchange server": "Microsoft",
+      "office 365": "Microsoft",
+      "microsoft 365": "Microsoft",
+      "windows server": "Microsoft",
+      "active directory": "Microsoft",
+      "entra id": "Microsoft",
+      intune: "Microsoft",
+      veeam: "Veeam",
+      acronis: "Acronis",
+      "aruba clearpass": "Aruba/ClearPass",
+      clearpass: "Aruba/ClearPass",
+      "aruba instant on": "Aruba/ClearPass",
+      cisco: "Cisco/Meraki",
+      meraki: "Cisco/Meraki",
+      catalyst: "Cisco/Meraki",
+      sophos: "Sophos",
+      crowdstrike: "CrowdStrike",
+      sentinelone: "SentinelOne",
+      postgresql: "PostgreSQL",
+      redis: "Redis",
+      nginx: "Nginx",
+      "node.js": "Node.js",
+      nodejs: "Node.js",
+    };
     const productsFound = new Set<string>();
     for (const item of items) {
-      const text = (
-        (item.title || "") +
-        " " +
-        (item.description || "")
-      ).toLowerCase();
-      for (const product of OMNITECH_PRODUCTS) {
-        if (text.includes(product.toLowerCase())) {
-          // Normalise to a display-friendly name
-          const display =
-            product === "fortigate" ||
-            product === "fortinet" ||
-            product === "forticlient" ||
-            product === "fortios"
-              ? "Fortinet/FortiGate"
-              : product === "vmware" ||
-                  product === "vsphere" ||
-                  product === "esxi" ||
-                  product === "vcenter"
-                ? "VMware/vSphere"
-                : product === "eset" || product === "nod32"
-                  ? "ESET"
-                  : product === "windows" ||
-                      product === "microsoft" ||
-                      product === "exchange" ||
-                      product === "office 365" ||
-                      product === "azure"
-                    ? "Microsoft"
-                    : product === "veeam"
-                      ? "Veeam"
-                      : product === "dell"
-                        ? "Dell"
-                        : product === "hp " || product === "hpe"
-                          ? "HPE/Dell"
-                          : product === "cisco" || product === "meraki"
-                            ? "Cisco/Meraki"
-                            : product === "sophos"
-                              ? "Sophos"
-                              : product === "acronis"
-                                ? "Acronis"
-                                : product === "postgresql"
-                                  ? "PostgreSQL"
-                                  : product === "redis"
-                                    ? "Redis"
-                                    : product === "nginx"
-                                      ? "Nginx"
-                                      : product === "node.js" ||
-                                          product === "nodejs"
-                                        ? "Node.js"
-                                        : product;
-          productsFound.add(display);
+      const text = (item.title || "") + " " + (item.description || "");
+      for (const product of OMNITECH_PARC_STRICT) {
+        if (containsToken(text, product)) {
+          productsFound.add(PRODUCT_DISPLAY[product] || product);
         }
       }
     }
@@ -1000,7 +1284,7 @@ export class VeilleService {
       </div>
       <div style="padding:20px 24px;background:white;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
         <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:12px 16px;margin-bottom:20px;">
-          <strong>Produits surveillés :</strong> FortiGate/FortiOS, VMware/vSphere/ESXi, ESET, Microsoft/Windows/Exchange/Azure, Veeam, Dell/HPE, Cisco/Meraki, Sophos, Acronis, PostgreSQL, Redis, Nginx, Node.js
+          <strong>Produits surveillés :</strong> FortiGate/FortiOS, VMware/vSphere/ESXi, ESET, Microsoft (Exchange/365/Windows Server/AD/Entra/Defender), Veeam, Acronis, Aruba/ClearPass, Cisco/Meraki, Sophos, CrowdStrike, SentinelOne, Genetec/Milestone (hypervision), Hikvision/Dahua/Axis/Avigilon, HID/MIFARE, PostgreSQL, Redis, Nginx, Node.js
         </div>
         ${renderSection("Alertes CRITIQUES", "🔴", bySeverity.CRITICAL)}
         ${renderSection("Alertes HAUTES", "🟠", bySeverity.HIGH)}
@@ -1037,11 +1321,7 @@ export class VeilleService {
     });
 
     return all
-      .filter((item) =>
-        this.isRelevantToParc(
-          (item.title || "") + " " + (item.description || ""),
-        ),
-      )
+      .filter((item) => this.isRelevantToParc((item.title || "") + " " + (item.description || "")))
       .slice(0, limit);
   }
 }

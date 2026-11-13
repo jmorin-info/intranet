@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { UserRole } from "@omnitech/shared";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 export interface AuthUser {
   id: string;
@@ -162,9 +163,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       // Both accessToken and refreshToken cookies are sent automatically and
       // cleared server-side by the backend.
-      await api.post("/auth/logout", {});
-    } catch {
-      // ignore logout errors
+      await api.post("/auth/refresh/logout", {});
+    } catch (error) {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status !== 401) {
+        toast.error("La déconnexion n'a pas pu être confirmée. Réessayez.");
+        throw error;
+      }
     }
     // Cleanup rétrocompat — supprime le legacy localStorage des sessions
     // précédentes (avant migration cookie). N'a aucun effet sur les sessions

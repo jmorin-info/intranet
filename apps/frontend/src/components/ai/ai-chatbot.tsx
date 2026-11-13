@@ -1,33 +1,16 @@
 "use client";
 
-import React, {
-  useRef,
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  Bot,
-  X,
-  Send,
-  Trash2,
-  Sparkles,
-  Zap,
-  Square,
-  Search as SearchIcon,
-} from "lucide-react";
+import { features } from "@/lib/features";
+import { Bot, X, Send, Trash2, Sparkles, Zap, Square, Search as SearchIcon } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useChatbotStore, type ChatMessage } from "@/stores/chatbot-store";
 import { useTranslation } from "@/lib/i18n";
 import { api } from "@/lib/api";
-import {
-  getPageContext,
-  getActionsForRole,
-  executeAction,
-  trackPageView,
-} from "@/lib/copilot";
+import { aiErrorMessage } from "@/lib/ai-errors";
+import { aiStreamStageLabel } from "@/lib/ai-stream-status";
+import { getPageContext, getActionsForRole, executeAction, trackPageView } from "@/lib/copilot";
 import { MarkdownRenderer } from "@/components/chatbot/markdown-renderer";
 import { MessageToolbar } from "@/components/chatbot/message-toolbar";
 import { ConversationMenu } from "@/components/chatbot/conversation-menu";
@@ -105,17 +88,10 @@ function getQuickSuggestions(mod: string): string[] {
       "Articles les plus consultés",
       "Créer une nouvelle page",
     ],
-    dashboard: [
-      "Résumé de mon activité",
-      "Tâches en attente",
-      "État de la conformité ISO",
-    ],
+    dashboard: ["Résumé de mon activité", "Tâches en attente", "État de la conformité ISO"],
     general: ["Naviguer vers les documents", "Mon profil", "État du système"],
   };
-  return [...(modSuggestions[mod] || modSuggestions.general!), ...base].slice(
-    0,
-    4,
-  );
+  return [...(modSuggestions[mod] || modSuggestions.general!), ...base].slice(0, 4);
 }
 
 // ── Local intelligence engine (heuristic, no ML) ──────────────────
@@ -132,14 +108,10 @@ async function generateResponse(
 ): Promise<AssistantResponse> {
   const q = query.toLowerCase();
   const isAdmin = userRole === "SUPER_ADMIN" || userRole === "ADMIN";
-  const isReviewer =
-    isAdmin || userRole === "DIRECTION" || userRole === "REVIEWER";
+  const isReviewer = isAdmin || userRole === "DIRECTION" || userRole === "REVIEWER";
 
   // ── Navigation + creation intents ──────────────────────────────
-  if (
-    q.includes("document") &&
-    (q.includes("créer") || q.includes("nouveau"))
-  ) {
+  if (q.includes("document") && (q.includes("créer") || q.includes("nouveau"))) {
     return {
       content:
         "Pour créer un document, cliquez sur **Nouveau document**. Choisissez la catégorie (Politique, Procédure, Plan, etc.) et la classification ISO 27001 (Public, Interne, Confidentiel, Secret). Le document passera ensuite par le workflow de validation configuré.",
@@ -151,10 +123,7 @@ async function generateResponse(
   }
   if (
     q.includes("ticket") &&
-    (q.includes("créer") ||
-      q.includes("nouveau") ||
-      q.includes("ouvrir") ||
-      q.includes("demande"))
+    (q.includes("créer") || q.includes("nouveau") || q.includes("ouvrir") || q.includes("demande"))
   ) {
     return {
       content:
@@ -221,11 +190,7 @@ async function generateResponse(
   }
 
   // ── Shortcuts + keyboard ───────────────────────────────────────
-  if (
-    q.includes("raccourci") ||
-    q.includes("clavier") ||
-    q.includes("shortcut")
-  ) {
+  if (q.includes("raccourci") || q.includes("clavier") || q.includes("shortcut")) {
     return {
       content:
         "**Raccourcis clavier principaux :**\n- `⌘K` ou `Ctrl+.` — Palette de commandes\n- `?` — Afficher tous les raccourcis\n- `Ctrl+Shift+D` — Documents\n- `Ctrl+Shift+T` — Tickets\n- `Ctrl+Shift+I` — Incidents\n- `Ctrl+Shift+N` — Actualités\n- `Alt` — Mode focus (masquer le superflu)\n- `Ctrl+Alt+1-5` — Naviguer entre les hubs\n- `/` (sur la page recherche) — Focus dans le champ",
@@ -245,11 +210,7 @@ async function generateResponse(
       actions: [{ label: "Configurer le MFA", href: "/mfa" }],
     };
   }
-  if (
-    q.includes("mot de passe") ||
-    q.includes("password") ||
-    q.includes("réinitialiser")
-  ) {
+  if (q.includes("mot de passe") || q.includes("password") || q.includes("réinitialiser")) {
     return {
       content:
         "Pour **changer votre mot de passe**, accédez à votre profil. Le mot de passe doit contenir au minimum **12 caractères** avec : une majuscule, une minuscule, un chiffre et un caractère spécial.",
@@ -261,10 +222,7 @@ async function generateResponse(
   }
 
   // ── Admin-specific intents ─────────────────────────────────────
-  if (
-    isAdmin &&
-    (q.includes("utilisateur") || q.includes("user") || q.includes("compte"))
-  ) {
+  if (isAdmin && (q.includes("utilisateur") || q.includes("user") || q.includes("compte"))) {
     return {
       content:
         "En tant qu'administrateur, vous pouvez :\n- **Créer** des comptes utilisateurs\n- **Assigner** des rôles et départements\n- **Importer** via CSV depuis l'Active Directory\n- **Désactiver** ou **supprimer** des comptes\n- **Appliquer** la politique MFA\n- **Synchroniser** avec le LDAP",
@@ -276,9 +234,7 @@ async function generateResponse(
   }
   if (
     isAdmin &&
-    (q.includes("ldap") ||
-      q.includes("active directory") ||
-      q.includes("synchroni"))
+    (q.includes("ldap") || q.includes("active directory") || q.includes("synchroni"))
   ) {
     return {
       content:
@@ -289,10 +245,7 @@ async function generateResponse(
       ],
     };
   }
-  if (
-    isAdmin &&
-    (q.includes("audit") || q.includes("journal") || q.includes("trace"))
-  ) {
+  if (isAdmin && (q.includes("audit") || q.includes("journal") || q.includes("trace"))) {
     return {
       content:
         "Le **journal d'audit** (ISO 27001 A.8.15) enregistre toutes les actions : connexions, modifications, créations, suppressions. Filtrez par sévérité, action ou utilisateur pour investiguer.",
@@ -304,12 +257,15 @@ async function generateResponse(
   }
 
   // ── Veille + alerts ────────────────────────────────────────────
+  // Ne propose la veille que si le module est actif (features.veille) — sinon
+  // on ne renvoie pas de lien vers une page désactivée (fall-through).
   if (
-    q.includes("veille") ||
-    q.includes("cert") ||
-    q.includes("anssi") ||
-    q.includes("vulnérabilité") ||
-    q.includes("cve")
+    features.veille &&
+    (q.includes("veille") ||
+      q.includes("cert") ||
+      q.includes("anssi") ||
+      q.includes("vulnérabilité") ||
+      q.includes("cve"))
   ) {
     return {
       content:
@@ -470,6 +426,33 @@ async function generateResponse(
   };
 }
 
+// ── Chatbot unifié (flag serveur CHATBOT_UNIFIED_ENABLED) ─────────
+
+/**
+ * Clé localStorage de la session /chat/* courante (mode unifié uniquement).
+ * Permet de reprendre la même ChatSession persistée entre deux montages.
+ */
+const CHAT_SESSION_KEY = "omnitech:chatbot:sessionId";
+
+function loadChatSessionId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(CHAT_SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveChatSessionId(id: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (id) localStorage.setItem(CHAT_SESSION_KEY, id);
+    else localStorage.removeItem(CHAT_SESSION_KEY);
+  } catch {
+    /* quota — ignore */
+  }
+}
+
 // ── Haptic feedback (safe local util, no cross-package dep) ───────
 function hapticTap(): void {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -496,10 +479,7 @@ interface AIChatbotProps {
   placeholder?: string;
 }
 
-export function AIChatbot({
-  mode = "floating",
-  placeholder,
-}: AIChatbotProps = {}) {
+export function AIChatbot({ mode = "floating", placeholder }: AIChatbotProps = {}) {
   const { t: _t } = useTranslation();
   void _t;
   const pathname = usePathname();
@@ -528,18 +508,24 @@ export function AIChatbot({
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [slashIndex, setSlashIndex] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
+  /** Étape SSE en cours (retrieving/generating/model_fallback) — fix 2026-07. */
+  const [streamStage, setStreamStage] = useState<string | null>(null);
+  /**
+   * Mode chatbot unifié (/chat/* : sessions persistées serveur, mémoire Noa).
+   * Piloté par GET /chat/config (flag serveur CHATBOT_UNIFIED_ENABLED) —
+   * false par défaut : le flux historique /rag/ask-stream reste utilisé.
+   */
+  const [unifiedChat, setUnifiedChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastQuestionRef = useRef<string>("");
+  const chatSessionIdRef = useRef<string | null>(null);
 
   const currentModule = detectModule(pathname || "/");
   const pageContext = getPageContext(pathname || "/");
-  const contextActions = getActionsForRole(
-    pageContext,
-    user?.role || "COLLABORATEUR",
-  );
+  const contextActions = getActionsForRole(pageContext, user?.role || "COLLABORATEUR");
 
   // Track page views for usage analytics
   useEffect(() => {
@@ -564,8 +550,7 @@ export function AIChatbot({
     const el = scrollRef.current;
     if (!el) return;
     const threshold = 60; // px slack from bottom
-    const atBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
     setIsAtBottom(atBottom);
   }, []);
 
@@ -575,10 +560,7 @@ export function AIChatbot({
       hapticTap();
       setTimeout(() => inputRef.current?.focus(), 100);
       // Mobile body scroll lock while sheet is open
-      if (
-        typeof window !== "undefined" &&
-        window.matchMedia("(max-width: 1023px)").matches
-      ) {
+      if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
         const prevOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
         return () => {
@@ -588,6 +570,32 @@ export function AIChatbot({
     }
     return undefined;
   }, [open]);
+
+  /**
+   * Détection du mode chatbot unifié au montage (fix 2026-07).
+   *
+   * GET /chat/config est la seule route /chat/* hors ChatbotUnifiedGuard :
+   * elle répond { unified: false } quand CHATBOT_UNIFIED_ENABLED est
+   * absent/false (les autres routes restent 404). Toute erreur (401 au
+   * chargement, réseau) laisse le mode historique /rag/ask-stream actif.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data } = await api.get("/chat/config");
+        if (!cancelled && data?.unified === true) {
+          setUnifiedChat(true);
+          chatSessionIdRef.current = loadChatSessionId();
+        }
+      } catch {
+        // Flag off, route absente ou non authentifié → flux historique.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /**
    * Stop génération (Feature 1) — abort le controller SSE/HTTP en cours.
@@ -607,14 +615,13 @@ export function AIChatbot({
     // immédiat — on lit le state à la volée pour ne pas re-créer le hook
     // à chaque mutation de `messages`.
     const list = useChatbotStore.getState().messages;
-    const lastAssistant = [...list]
-      .reverse()
-      .find((m) => m.role === "assistant");
+    const lastAssistant = [...list].reverse().find((m) => m.role === "assistant");
     if (lastAssistant) {
       updateMessage(lastAssistant.id, { aborted: true });
     }
     setStreaming(false);
     setLoading(false);
+    setStreamStage(null);
   }, [setLoading, setStreaming, updateMessage]);
 
   // ESC handling :
@@ -642,22 +649,26 @@ export function AIChatbot({
 
   /**
    * Tente une requête RAG en SSE pour récupérer le queryId + sources.
-   * Renvoie null si SSE indisponible (l'appelant fait alors le fallback local).
+   *
+   * Format historique /rag/ask-stream : lignes `data: {type: token|meta|status}`.
+   * Le champ `status` (retrieving/generating/model_fallback) alimente le
+   * libellé d'attente — sur cette machine (inférence CPU) le prompt-eval seul
+   * prend 15-40 s, un spinner muet donne l'impression d'une panne.
+   *
+   * `httpStatus` est remonté à l'appelant pour différencier 403/429/503.
    */
   const tryRagStream = useCallback(
     async (
       question: string,
       assistantId: string,
-    ): Promise<{ ok: boolean; aborted: boolean }> => {
+    ): Promise<{ ok: boolean; aborted: boolean; httpStatus?: number }> => {
       // ANSSI A.5.34 — JWT vit en cookie httpOnly. `credentials: 'include'`
       // demande au navigateur d'attacher le cookie. On ne lit plus le token
       // depuis localStorage (anti-XSS).
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(
-        /\/api\/?$/,
-        "/api/v1",
-      );
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "/api/v1");
       const controller = new AbortController();
       abortRef.current = controller;
+      setStreamStage("retrieving");
 
       let res: Response;
       try {
@@ -669,12 +680,15 @@ export function AIChatbot({
           signal: controller.signal,
         });
       } catch (err) {
-        if ((err as Error).name === "AbortError")
-          return { ok: false, aborted: true };
+        setStreamStage(null);
+        if ((err as Error).name === "AbortError") return { ok: false, aborted: true };
         return { ok: false, aborted: false };
       }
 
-      if (!res.ok || !res.body) return { ok: false, aborted: false };
+      if (!res.ok || !res.body) {
+        setStreamStage(null);
+        return { ok: false, aborted: false, httpStatus: res.status };
+      }
 
       setStreaming(true);
       setLoading(false);
@@ -696,37 +710,156 @@ export function AIChatbot({
               const payload = JSON.parse(line.slice(6));
               if (payload.type === "token") {
                 fullAnswer += payload.token;
+                setStreamStage(null);
                 updateMessage(assistantId, { content: fullAnswer });
               } else if (payload.type === "meta") {
                 updateMessage(assistantId, {
                   sources: payload.sources ?? [],
                   queryId: payload.queryId ?? undefined,
                 });
+              } else if (payload.type === "status") {
+                setStreamStage(payload.stage ?? null);
               }
             } catch {
               /* partial JSON */
             }
           }
         }
-        return { ok: true, aborted: false };
+        // Un flux vide (aucun token) doit repartir sur le fallback non-streamé.
+        return { ok: fullAnswer.length > 0, aborted: false };
       } catch (err) {
-        if ((err as Error).name === "AbortError")
-          return { ok: false, aborted: true };
+        if ((err as Error).name === "AbortError") return { ok: false, aborted: true };
         return { ok: false, aborted: false };
       } finally {
         reader.cancel().catch(() => {});
         setStreaming(false);
+        setStreamStage(null);
         abortRef.current = null;
       }
     },
     [setStreaming, setLoading, updateMessage],
   );
 
-  const handleSend = useCallback(
+  /**
+   * Mode chatbot unifié (/chat/ask-stream) — actif seulement si le serveur
+   * répond { unified: true } sur /chat/config.
+   *
+   * Différences avec le flux historique :
+   *  - session persistée côté serveur (id mémorisé en localStorage, repris
+   *    au montage suivant → historique multi-appareils) ;
+   *  - format SSE à événements nommés (`event: token|sources|status|done`)
+   *    et non `data: {type}` ;
+   *  - la mémoire Noa (recall + extraction) est exécutée côté serveur.
+   */
+  const tryUnifiedStream = useCallback(
     async (
-      text?: string,
-      opts: { regenerate?: boolean; replaceId?: string } = {},
-    ) => {
+      question: string,
+      assistantId: string,
+    ): Promise<{ ok: boolean; aborted: boolean; httpStatus?: number }> => {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "/api/v1");
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setStreamStage("retrieving");
+
+      let res: Response;
+      try {
+        res = await fetch(`${baseUrl}/chat/ask-stream`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            query: question,
+            sessionId: chatSessionIdRef.current ?? undefined,
+            surface: embedded ? "MODAL" : "FAB",
+            context: { page: pathname || "/", module: currentModule },
+          }),
+          signal: controller.signal,
+        });
+      } catch (err) {
+        setStreamStage(null);
+        if ((err as Error).name === "AbortError") return { ok: false, aborted: true };
+        return { ok: false, aborted: false };
+      }
+
+      if (!res.ok || !res.body) {
+        setStreamStage(null);
+        // 404 = flag désactivé entre-temps → on repassera par /rag/ask-stream.
+        if (res.status === 404) setUnifiedChat(false);
+        return { ok: false, aborted: false, httpStatus: res.status };
+      }
+
+      setStreaming(true);
+      setLoading(false);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullAnswer = "";
+      // SSE à événements nommés : `event:` puis `data:` sur la ligne suivante.
+      let currentEvent = "message";
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              currentEvent = line.slice(7).trim();
+              continue;
+            }
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const payload = JSON.parse(line.slice(6));
+              switch (currentEvent) {
+                case "token":
+                  fullAnswer += payload.token ?? "";
+                  setStreamStage(null);
+                  updateMessage(assistantId, { content: fullAnswer });
+                  break;
+                case "sources":
+                  updateMessage(assistantId, { sources: payload.sources ?? [] });
+                  break;
+                case "status":
+                  setStreamStage(payload.stage ?? null);
+                  break;
+                case "session":
+                  if (payload.id) {
+                    chatSessionIdRef.current = payload.id;
+                    saveChatSessionId(payload.id);
+                  }
+                  break;
+                case "done":
+                  // messageId serveur : permet feedback/regenerate côté /chat/*.
+                  if (payload.messageId) {
+                    updateMessage(assistantId, { queryId: payload.messageId });
+                  }
+                  break;
+                default:
+                  break;
+              }
+            } catch {
+              /* partial JSON */
+            }
+          }
+        }
+        return { ok: fullAnswer.length > 0, aborted: false };
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return { ok: false, aborted: true };
+        return { ok: false, aborted: false };
+      } finally {
+        reader.cancel().catch(() => {});
+        setStreaming(false);
+        setStreamStage(null);
+        abortRef.current = null;
+      }
+    },
+    [setStreaming, setLoading, updateMessage, embedded, pathname, currentModule],
+  );
+
+  const handleSend = useCallback(
+    async (text?: string, opts: { regenerate?: boolean; replaceId?: string } = {}) => {
       let query = (text || input).trim();
       if (!query || loading || streaming) return;
 
@@ -768,8 +901,7 @@ export function AIChatbot({
           content: "",
           aborted: false,
           regenerateCount:
-            (messages.find((m) => m.id === opts.replaceId)?.regenerateCount ??
-              0) + 1,
+            (messages.find((m) => m.id === opts.replaceId)?.regenerateCount ?? 0) + 1,
         });
       } else {
         addMessage({
@@ -786,19 +918,14 @@ export function AIChatbot({
       let local: AssistantResponse | null = null;
       try {
         const before = Date.now();
-        local = await generateResponse(
-          query,
-          currentModule,
-          user?.role || "COLLABORATEUR",
-        );
+        local = await generateResponse(query, currentModule, user?.role || "COLLABORATEUR");
         // Si la réponse locale est riche (actions ou contenu non générique), on la prend
         const isRich = !!local.actions?.length || local.content.length > 200;
         if (isRich || Date.now() - before > 500) {
           const fullContent =
             local.content +
             (local.actions
-              ? "\n\n" +
-                local.actions.map((a) => `→ [${a.label}](${a.href})`).join("\n")
+              ? "\n\n" + local.actions.map((a) => `→ [${a.label}](${a.href})`).join("\n")
               : "");
           updateMessage(assistantId, { content: fullContent });
           setLoading(false);
@@ -808,8 +935,12 @@ export function AIChatbot({
         /* continue vers RAG */
       }
 
-      // 2. Fallback RAG streaming SSE → fournit queryId + sources
-      const stream = await tryRagStream(query, assistantId);
+      // 2. Streaming SSE → fournit queryId + sources.
+      //    Mode unifié (/chat/ask-stream, sessions persistées) si le serveur
+      //    l'annonce via /chat/config, sinon flux historique /rag/ask-stream.
+      const stream = unifiedChat
+        ? await tryUnifiedStream(query, assistantId)
+        : await tryRagStream(query, assistantId);
       if (stream.aborted) {
         updateMessage(assistantId, { aborted: true });
         setLoading(false);
@@ -817,6 +948,21 @@ export function AIChatbot({
         return;
       }
       if (stream.ok) {
+        setLoading(false);
+        return;
+      }
+
+      // Erreurs explicites du stream : inutile de retenter en non-streamé,
+      // le message doit être actionnable (habilitations / quota / surcharge).
+      if (
+        stream.httpStatus === 403 ||
+        stream.httpStatus === 429 ||
+        stream.httpStatus === 503 ||
+        stream.httpStatus === 504
+      ) {
+        updateMessage(assistantId, {
+          content: aiErrorMessage({ response: { status: stream.httpStatus } }),
+        });
         setLoading(false);
         return;
       }
@@ -836,10 +982,7 @@ export function AIChatbot({
             content:
               local.content +
               (local.actions
-                ? "\n\n" +
-                  local.actions
-                    .map((a) => `→ [${a.label}](${a.href})`)
-                    .join("\n")
+                ? "\n\n" + local.actions.map((a) => `→ [${a.label}](${a.href})`).join("\n")
                 : ""),
           });
         } else {
@@ -848,10 +991,14 @@ export function AIChatbot({
               "Je n'ai pas trouvé de réponse précise. Essayez de reformuler ou créez un ticket.",
           });
         }
-      } catch {
+      } catch (err) {
+        // Erreur différenciée (403 habilitations / 429 quota / 503 surcharge)
+        // au lieu du générique « une erreur est survenue ».
         updateMessage(assistantId, {
-          content:
+          content: aiErrorMessage(
+            err,
             "Désolé, une erreur est survenue. Réessayez dans quelques instants.",
+          ),
         });
       } finally {
         setLoading(false);
@@ -869,6 +1016,8 @@ export function AIChatbot({
       setLoading,
       setStreaming,
       tryRagStream,
+      tryUnifiedStream,
+      unifiedChat,
       messages,
     ],
   );
@@ -877,9 +1026,7 @@ export function AIChatbot({
    * Régénère le dernier message assistant (Feature 3).
    */
   const handleRegenerateLast = useCallback(() => {
-    const lastAssistant = [...messages]
-      .reverse()
-      .find((m) => m.role === "assistant");
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
     if (!lastAssistant) return;
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     if (!lastUser) return;
@@ -928,6 +1075,12 @@ export function AIChatbot({
     [editingId, messages, removeAfter, clearHistory, handleSend],
   );
 
+  /**
+   * Libellé de l'étape IA en cours (« Recherche documentaire… », « Rédaction… »).
+   * Null tant qu'aucun événement de statut n'est arrivé, ou dès le 1er token.
+   */
+  const stageLabel = aiStreamStageLabel(streamStage);
+
   // Filtré pour la recherche dans l'historique (Feature 9)
   const visibleMessages = useMemo(() => {
     if (!searchTerm.trim()) return messages;
@@ -963,10 +1116,7 @@ export function AIChatbot({
     );
     return parts.map((p, i) =>
       p.toLowerCase() === term.toLowerCase() ? (
-        <mark
-          key={i}
-          className="bg-yellow-200 dark:bg-yellow-700/50 text-inherit rounded px-0.5"
-        >
+        <mark key={i} className="bg-yellow-200 dark:bg-yellow-700/50 text-inherit rounded px-0.5">
           {p}
         </mark>
       ) : (
@@ -1030,6 +1180,10 @@ export function AIChatbot({
           ref={scrollRef}
           onScroll={handleScroll}
           className="overflow-y-auto px-4 py-3 space-y-3 min-h-[260px] max-h-[440px]"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions text"
+          aria-label="Conversation avec l’assistant"
         >
           {messages.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center text-center py-6 px-2">
@@ -1037,8 +1191,8 @@ export function AIChatbot({
                 Bonjour{user?.firstName ? ` ${user.firstName}` : ""} !
               </p>
               <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-5 max-w-sm">
-                Décrivez votre problème — je peux peut-être répondre
-                directement. Sinon, créez un ticket en un clic.
+                Décrivez votre problème — je peux peut-être répondre directement. Sinon, créez un
+                ticket en un clic.
               </p>
               <div className="flex flex-col gap-2 w-full max-w-md">
                 {suggestions.map((s) => (
@@ -1055,9 +1209,7 @@ export function AIChatbot({
           )}
 
           {visibleMessages.map((msg) => {
-            const lastAssistantId = [...messages]
-              .reverse()
-              .find((m) => m.role === "assistant")?.id;
+            const lastAssistantId = [...messages].reverse().find((m) => m.role === "assistant")?.id;
             return (
               <div
                 key={msg.id}
@@ -1091,7 +1243,7 @@ export function AIChatbot({
             );
           })}
 
-          {loading && !streaming && (
+          {((loading && !streaming) || stageLabel) && (
             <div className="flex justify-start">
               <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
                 <div className="flex items-center gap-1.5">
@@ -1108,6 +1260,16 @@ export function AIChatbot({
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
+                {/* Étape en cours : l'inférence CPU peut prendre 15-40 s avant
+                    le 1er token — un spinner muet passe pour une panne. */}
+                {stageLabel && (
+                  <p
+                    className="mt-1.5 text-xs text-gray-500 dark:text-slate-400"
+                    aria-live="polite"
+                  >
+                    {stageLabel}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -1117,11 +1279,7 @@ export function AIChatbot({
         {/* Input */}
         <div className="relative shrink-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2.5">
           {slashSuggestions.length > 0 && (
-            <SlashCommands
-              input={input}
-              onPick={pickSlashCommand}
-              activeIndex={slashIndex}
-            />
+            <SlashCommands input={input} onPick={pickSlashCommand} activeIndex={slashIndex} />
           )}
           <div className="flex items-center gap-2">
             <input
@@ -1142,9 +1300,7 @@ export function AIChatbot({
                   if (e.key === "ArrowUp") {
                     e.preventDefault();
                     setSlashIndex(
-                      (i) =>
-                        (i - 1 + slashSuggestions.length) %
-                        slashSuggestions.length,
+                      (i) => (i - 1 + slashSuggestions.length) % slashSuggestions.length,
                     );
                     return;
                   }
@@ -1163,10 +1319,7 @@ export function AIChatbot({
                   handleSendOrEdit();
                 }
               }}
-              placeholder={
-                placeholder ||
-                "Décrivez votre problème… (tapez / pour les commandes)"
-              }
+              placeholder={placeholder || "Décrivez votre problème… (tapez / pour les commandes)"}
               className="flex-1 min-h-[44px] rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-[#F68D2E] focus:bg-white dark:focus:bg-slate-900 px-3.5 text-sm text-seal-navy dark:text-white placeholder-seal-taupe/50 dark:placeholder-slate-500 focus:outline-none transition"
               disabled={loading}
             />
@@ -1332,8 +1485,8 @@ export function AIChatbot({
             {searchTerm && (
               <p className="mt-1 text-[10px] text-seal-gray-500">
                 {visibleMessages.length} résultat
-                {visibleMessages.length !== 1 ? "s" : ""} sur {messages.length}{" "}
-                message{messages.length !== 1 ? "s" : ""}
+                {visibleMessages.length !== 1 ? "s" : ""} sur {messages.length} message
+                {messages.length !== 1 ? "s" : ""}
               </p>
             )}
           </div>
@@ -1385,6 +1538,10 @@ export function AIChatbot({
           ref={scrollRef}
           onScroll={handleScroll}
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 space-y-3 sm:space-y-4 lg:max-h-[400px] lg:min-h-[200px]"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions text"
+          aria-label="Conversation avec l’assistant"
         >
           {messages.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center text-center py-8 sm:py-6 px-2">
@@ -1401,8 +1558,7 @@ export function AIChatbot({
                 Bonjour{user?.firstName ? ` ${user.firstName}` : ""} !
               </p>
               <p className="text-sm text-seal-gray-500 dark:text-slate-400 mb-5 max-w-xs">
-                Je suis votre assistant. Posez-moi une question ou choisissez
-                une suggestion.
+                Je suis votre assistant. Posez-moi une question ou choisissez une suggestion.
               </p>
               <div className="flex flex-col gap-2 w-full max-w-sm">
                 {suggestions.map((s) => (
@@ -1419,9 +1575,7 @@ export function AIChatbot({
           )}
 
           {visibleMessages.map((msg) => {
-            const lastAssistantId = [...messages]
-              .reverse()
-              .find((m) => m.role === "assistant")?.id;
+            const lastAssistantId = [...messages].reverse().find((m) => m.role === "assistant")?.id;
             return (
               <div
                 key={msg.id}
@@ -1461,7 +1615,7 @@ export function AIChatbot({
             );
           })}
 
-          {loading && !streaming && (
+          {((loading && !streaming) || stageLabel) && (
             <div className="flex justify-start">
               <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
                 <div className="flex items-center gap-1.5">
@@ -1478,6 +1632,16 @@ export function AIChatbot({
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
+                {/* Étape en cours : l'inférence CPU peut prendre 15-40 s avant
+                    le 1er token — un spinner muet passe pour une panne. */}
+                {stageLabel && (
+                  <p
+                    className="mt-1.5 text-xs text-gray-500 dark:text-slate-400"
+                    aria-live="polite"
+                  >
+                    {stageLabel}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -1505,17 +1669,12 @@ export function AIChatbot({
         {/* Input — sticky bottom with safe-area inset */}
         <div className="relative shrink-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+0.625rem)] lg:pb-2.5">
           {slashSuggestions.length > 0 && (
-            <SlashCommands
-              input={input}
-              onPick={pickSlashCommand}
-              activeIndex={slashIndex}
-            />
+            <SlashCommands input={input} onPick={pickSlashCommand} activeIndex={slashIndex} />
           )}
           {editingId && (
             <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
               <span className="text-[10px] text-amber-600 dark:text-amber-400">
-                Édition d&apos;un message — l&apos;envoi remplacera
-                l&apos;ancien.
+                Édition d&apos;un message — l&apos;envoi remplacera l&apos;ancien.
               </span>
               <button
                 type="button"
@@ -1548,9 +1707,7 @@ export function AIChatbot({
                   if (e.key === "ArrowUp") {
                     e.preventDefault();
                     setSlashIndex(
-                      (i) =>
-                        (i - 1 + slashSuggestions.length) %
-                        slashSuggestions.length,
+                      (i) => (i - 1 + slashSuggestions.length) % slashSuggestions.length,
                     );
                     return;
                   }
@@ -1570,9 +1727,7 @@ export function AIChatbot({
                 }
               }}
               placeholder={
-                editingId
-                  ? "Modifiez le message…"
-                  : "Posez une question (/ pour les commandes)"
+                editingId ? "Modifiez le message…" : "Posez une question (/ pour les commandes)"
               }
               className="flex-1 min-h-[44px] rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-[#F68D2E] focus:bg-white dark:focus:bg-slate-900 px-3.5 text-base lg:text-sm text-seal-navy dark:text-white placeholder-seal-taupe/50 dark:placeholder-slate-500 focus:outline-none transition touch-manipulation"
               inputMode="text"

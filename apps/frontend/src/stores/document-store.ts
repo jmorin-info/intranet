@@ -5,6 +5,7 @@ import { DocumentStatus, DocumentCategory } from '@omnitech/shared';
 
 interface DocumentFilters {
   status?: DocumentStatus;
+  statusGroup?: 'drafts' | 'review' | 'published' | 'expired' | 'archived';
   category?: DocumentCategory;
   classification?: string;
   isoControlCode?: string;
@@ -39,7 +40,11 @@ export const useDocumentStore = create<DocumentState>((set) => ({
 
   setFilters: (newFilters) =>
     set((state) => ({
-      filters: { ...state.filters, ...newFilters },
+      filters: {
+        ...state.filters,
+        ...('statusGroup' in newFilters ? { status: undefined } : 'status' in newFilters ? { statusGroup: undefined } : {}),
+        ...newFilters,
+      },
     })),
 
   resetFilters: () => set({ filters: defaultFilters }),

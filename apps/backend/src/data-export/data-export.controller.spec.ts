@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DataExportController } from './data-export.controller';
 import { DataExportService } from './data-export.service';
@@ -73,7 +74,7 @@ describe('DataExportController', () => {
         { provide: DataExportService, useValue: service },
         Reflector,
       ],
-    }).compile();
+    }).overrideGuard(UserThrottlerGuard).useValue({ canActivate: () => true }).compile();
 
     controller = module.get<DataExportController>(DataExportController);
   });

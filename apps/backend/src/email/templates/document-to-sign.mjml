@@ -1,5 +1,5 @@
-<!-- subject:fr [OMNITECH] Signature requise — {{ documentTitle }} -->
-<!-- subject:en [OMNITECH] Signature required — {{ documentTitle }} -->
+<!-- subject:fr [OMNITECH] [Niveau {{ classificationLevel }}] Signature requise — {{ documentTitle }} -->
+<!-- subject:en [OMNITECH] [Level {{ classificationLevel }}] Signature required — {{ documentTitle }} -->
 {{> greeting }}
 
 <mj-section padding="16px 32px 0 32px">
@@ -25,7 +25,7 @@
       <tr style="border-bottom:1px solid #e5e7eb;">
         <td style="padding:6px 0;color:#6b7280;font-weight:600;">Classification</td>
         <td style="padding:6px 0;">
-          <span class="seal-badge" style="background:{{ colors.blue }};">{{ documentClassification }}</span>
+          <span class="seal-badge" style="background:{{ colors.blue }};">{{ classificationLabel }}</span>
         </td>
       </tr>
       <tr>

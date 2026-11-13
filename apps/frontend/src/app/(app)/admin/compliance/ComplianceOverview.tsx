@@ -25,6 +25,7 @@ import {
   ScanSearch,
 } from "lucide-react";
 import { toast } from "sonner";
+import { showToast } from "@/lib/toast-utils";
 import { PageHeader } from "@/components/layout/page-header";
 
 interface ComplianceSummary {
@@ -33,10 +34,7 @@ interface ComplianceSummary {
   partial: number;
   uncovered: number;
   coveragePercent: number;
-  byDomain: Record<
-    string,
-    { total: number; covered: number; partial: number; uncovered: number }
-  >;
+  byDomain: Record<string, { total: number; covered: number; partial: number; uncovered: number }>;
   uncoveredControls: Array<{ code: string; title: string; domain: string }>;
 }
 
@@ -89,8 +87,7 @@ export function ComplianceOverview() {
               limit: 1,
             },
           });
-          const entries =
-            auditData?.data || (Array.isArray(auditData) ? auditData : []);
+          const entries = auditData?.data || (Array.isArray(auditData) ? auditData : []);
           if (entries.length > 0) {
             if (entries[0].createdAt) {
               setLastAuditDate(entries[0].createdAt as string);
@@ -120,10 +117,7 @@ export function ComplianceOverview() {
   const filteredGaps = gaps.filter((g) => {
     if (search) {
       const s = search.toLowerCase();
-      if (
-        !g.controlCode.toLowerCase().includes(s) &&
-        !g.controlTitle.toLowerCase().includes(s)
-      ) {
+      if (!g.controlCode.toLowerCase().includes(s) && !g.controlTitle.toLowerCase().includes(s)) {
         return false;
       }
     }
@@ -148,17 +142,11 @@ export function ComplianceOverview() {
   const statusBadge = (status: string) => {
     switch (status) {
       case "COUVERT":
-        return (
-          <Badge variant="approved">{t("compliance.status.covered")}</Badge>
-        );
+        return <Badge variant="approved">{t("compliance.status.covered")}</Badge>;
       case "PARTIELLEMENT_COUVERT":
-        return (
-          <Badge variant="warning">{t("compliance.status.partial")}</Badge>
-        );
+        return <Badge variant="warning">{t("compliance.status.partial")}</Badge>;
       case "NON_COUVERT":
-        return (
-          <Badge variant="error">{t("compliance.status.uncovered")}</Badge>
-        );
+        return <Badge variant="error">{t("compliance.status.uncovered")}</Badge>;
       default:
         return null;
     }
@@ -195,7 +183,7 @@ export function ComplianceOverview() {
       setSummary(summaryRes.data);
       setGaps(gapRes.data);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Erreur lors du scan");
+      showToast("error", null, err.response?.data?.message || "Erreur lors du scan");
     } finally {
       setScanning(false);
     }
@@ -209,11 +197,7 @@ export function ComplianceOverview() {
         icon={Shield}
         hub="admin"
         actions={
-          <Button
-            onClick={handleFullScan}
-            loading={scanning}
-            disabled={scanning}
-          >
+          <Button onClick={handleFullScan} loading={scanning} disabled={scanning}>
             <ScanSearch className="h-4 w-4" />
             {scanning ? "Analyse en cours..." : "Scanner tous les documents"}
           </Button>
@@ -233,9 +217,7 @@ export function ComplianceOverview() {
                   </p>
                   <p className="text-xs text-seal-gray-500 dark:text-slate-400">
                     {scanResult.assigned} contrôles assignés
-                    {scanResult.errors > 0
-                      ? ` · ${scanResult.errors} erreur(s)`
-                      : ""}
+                    {scanResult.errors > 0 ? ` · ${scanResult.errors} erreur(s)` : ""}
                   </p>
                 </div>
               </div>
@@ -256,8 +238,7 @@ export function ComplianceOverview() {
                         key={i}
                         className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"
                       >
-                        <CheckCircle2 className="h-2.5 w-2.5" /> {d.reference} (
-                        {d.controls})
+                        <CheckCircle2 className="h-2.5 w-2.5" /> {d.reference} ({d.controls})
                       </span>
                     ))}
                 </div>
@@ -272,8 +253,7 @@ export function ComplianceOverview() {
         (() => {
           const radius = 80;
           const circumference = 2 * Math.PI * radius;
-          const offset =
-            circumference - (summary.coveragePercent / 100) * circumference;
+          const offset = circumference - (summary.coveragePercent / 100) * circumference;
           return (
             <Card className="shadow-sm rounded-xl">
               <CardContent>
@@ -306,13 +286,7 @@ export function ComplianceOverview() {
                         }}
                       />
                       <defs>
-                        <linearGradient
-                          id="coverageGradient"
-                          x1="0%"
-                          y1="0%"
-                          x2="100%"
-                          y2="100%"
-                        >
+                        <linearGradient id="coverageGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" stopColor="#F68D2E" />
                           <stop offset="100%" stopColor="#006233" />
                         </linearGradient>
@@ -351,9 +325,7 @@ export function ComplianceOverview() {
                           <p
                             className={`text-center text-[11px] font-semibold mt-2 flex items-center justify-center gap-0.5 ${isUp ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}
                           >
-                            <TrendingUp
-                              className={`h-3.5 w-3.5 ${isUp ? "" : "rotate-180"}`}
-                            />
+                            <TrendingUp className={`h-3.5 w-3.5 ${isUp ? "" : "rotate-180"}`} />
                             {isUp ? "+" : ""}
                             {diff}% vs mois dernier
                           </p>
@@ -397,9 +369,7 @@ export function ComplianceOverview() {
                           <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                             {t("compliance.covered")}
                           </p>
-                          <p className="text-xl font-medium text-emerald-600">
-                            {summary.covered}
-                          </p>
+                          <p className="text-xl font-medium text-emerald-600">{summary.covered}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 p-3">
@@ -410,9 +380,7 @@ export function ComplianceOverview() {
                           <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                             {t("compliance.partial")}
                           </p>
-                          <p className="text-xl font-medium text-amber-600">
-                            {summary.partial}
-                          </p>
+                          <p className="text-xl font-medium text-amber-600">{summary.partial}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 rounded-xl bg-red-50 dark:bg-red-900/20 p-3">
@@ -423,9 +391,7 @@ export function ComplianceOverview() {
                           <p className="text-[10px] text-seal-gray-500 dark:text-slate-400">
                             {t("compliance.uncovered")}
                           </p>
-                          <p className="text-xl font-medium text-red-500">
-                            {summary.uncovered}
-                          </p>
+                          <p className="text-xl font-medium text-red-500">{summary.uncovered}</p>
                         </div>
                       </div>
                     </div>
@@ -497,22 +463,11 @@ export function ComplianceOverview() {
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Object.entries(summary.byDomain).map(([domain, stats]) => {
-            const pct =
-              stats.total > 0
-                ? Math.round((stats.covered / stats.total) * 100)
-                : 0;
+            const pct = stats.total > 0 ? Math.round((stats.covered / stats.total) * 100) : 0;
             const barColor =
-              pct === 100
-                ? "bg-emerald-500"
-                : pct >= 50
-                  ? "bg-amber-400"
-                  : "bg-red-400";
+              pct === 100 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-400" : "bg-red-400";
             const textColor =
-              pct === 100
-                ? "text-emerald-600"
-                : pct >= 50
-                  ? "text-amber-600"
-                  : "text-red-500";
+              pct === 100 ? "text-emerald-600" : pct >= 50 ? "text-amber-600" : "text-red-500";
             const ringColor =
               pct === 100
                 ? "ring-emerald-200 dark:ring-emerald-900/40"
@@ -520,21 +475,15 @@ export function ComplianceOverview() {
                   ? "ring-amber-200 dark:ring-amber-900/40"
                   : "ring-red-200 dark:ring-red-900/40";
             return (
-              <Card
-                key={domain}
-                className={`shadow-sm rounded-xl ring-2 ${ringColor}`}
-              >
+              <Card key={domain} className={`shadow-sm rounded-xl ring-2 ${ringColor}`}>
                 <CardContent>
                   <p className="text-xs font-semibold text-seal-navy dark:text-white mb-2 truncate">
                     {domain}
                   </p>
                   <div className="flex items-end gap-2 mb-2">
-                    <span className={`text-xl font-medium ${textColor}`}>
-                      {pct}%
-                    </span>
+                    <span className={`text-xl font-medium ${textColor}`}>{pct}%</span>
                     <span className="text-xs text-seal-gray-500 dark:text-slate-400 mb-0.5">
-                      {stats.covered}/{stats.total}{" "}
-                      {t("compliance.coveredCount")}
+                      {stats.covered}/{stats.total} {t("compliance.coveredCount")}
                     </span>
                   </div>
                   <div className="h-2.5 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
@@ -571,15 +520,13 @@ export function ComplianceOverview() {
             </h2>
             <div className="flex items-center gap-3">
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                {filteredGaps.length}{" "}
-                {t("compliance.totalControls").toLowerCase()}
+                {filteredGaps.length} {t("compliance.totalControls").toLowerCase()}
               </p>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const header =
-                    "Code;Titre;Domaine;Statut;Documents;Références\n";
+                  const header = "Code;Titre;Domaine;Statut;Documents;Références\n";
                   const rows = filteredGaps
                     .map(
                       (g) =>
@@ -644,10 +591,7 @@ export function ComplianceOverview() {
 
           <div className="divide-y divide-gray-100 dark:divide-slate-700 max-h-[600px] overflow-y-auto">
             {filteredGaps.map((gap) => (
-              <div
-                key={gap.controlCode}
-                className="flex items-start gap-3 py-3 px-1"
-              >
+              <div key={gap.controlCode} className="flex items-start gap-3 py-3 px-1">
                 {statusIcon(gap.status)}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

@@ -16,8 +16,30 @@
 import React from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { Card, CardContent } from '@omnitech/ui';
-import { Rss, ShieldCheck, Ticket } from 'lucide-react';
+import { Card, CardContent, Tooltip } from '@omnitech/ui';
+import { Info, Rss, ShieldCheck, Ticket } from 'lucide-react';
+
+/** Libellé d'un KPI avec une infobulle d'aide contextuelle (survol + focus). */
+function KpiLabel({ label, help }: { label: string; help: string }) {
+  return (
+    <span className="flex items-center gap-1">
+      <span className="text-xs text-seal-gray-500 dark:text-slate-400">{label}</span>
+      <Tooltip content={help} side="top" className="whitespace-normal w-56 text-left leading-snug font-normal">
+        <span
+          tabIndex={0}
+          aria-label={`À propos de l’indicateur « ${label} »`}
+          className="shrink-0 cursor-help text-seal-gray-500/50 hover:text-seal-gray-500 dark:text-slate-500 dark:hover:text-slate-300 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-seal-navy/40 transition-colors"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          <Info className="h-3 w-3" aria-hidden="true" />
+        </span>
+      </Tooltip>
+    </span>
+  );
+}
 
 const SystemHealthCompact = dynamic(
   () => import('@/components/widgets/system-health-compact').then((m) => m.SystemHealthCompact),
@@ -98,7 +120,10 @@ export function DashboardAdminPanel({
                       <ShieldCheck className="h-6 w-6 text-seal-navy dark:text-blue-400" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs text-seal-gray-500 dark:text-slate-400">Conformité ISO</p>
+                      <KpiLabel
+                        label="Conformité ISO"
+                        help="Part des contrôles ISO 27001 couverts par au moins une mesure documentée. L'objectif de certification vise une couverture maximale."
+                      />
                       <p className="text-xl font-medium text-seal-navy dark:text-white">{compliance.coveragePercent}%</p>
                       <div className="h-1.5 rounded-full bg-gray-200 dark:bg-slate-700 mt-1 overflow-hidden">
                         <div
@@ -119,7 +144,10 @@ export function DashboardAdminPanel({
                       <Ticket className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-seal-gray-500 dark:text-slate-400">Tickets IT</p>
+                      <KpiLabel
+                        label="Tickets IT"
+                        help="Tickets de support informatique actuellement ouverts ou en cours de traitement par l'équipe."
+                      />
                       <p className="text-xl font-medium text-seal-navy dark:text-white">
                         {ticketStats.open + ticketStats.inProgress}
                       </p>
@@ -139,7 +167,10 @@ export function DashboardAdminPanel({
                       <Rss className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-seal-gray-500 dark:text-slate-400">Veille cyber</p>
+                      <KpiLabel
+                        label="Veille cyber"
+                        help="Alertes de veille sécurité (CVE, bulletins CERT-FR, sources spécialisées) non encore qualifiées par l'équipe."
+                      />
                       <p className="text-xl font-medium text-seal-navy dark:text-white">{veilleStats.unprocessed}</p>
                       <p className="text-[10px] text-seal-gray-500 dark:text-slate-500">
                         alertes à traiter sur {veilleStats.total}

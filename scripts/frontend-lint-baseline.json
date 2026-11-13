@@ -1,0 +1,1349 @@
+{
+  "schemaVersion": 1,
+  "warnings": {
+    "028b93179f35a324b5e5c8d532375a2e5fd6132add0741c2af1145213d666ac1": {
+      "file": "apps/frontend/src/app/(app)/alerts/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Select' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "086ec5bf75f800f7def040f373bcfb294ced408cdc4274b650a58c13587ce680": {
+      "file": "apps/frontend/src/app/(app)/admin/workflows/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "08c38c209c3b359943b668d056884ddfaa0f52455ad3747813a509a75650f132": {
+      "file": "apps/frontend/src/app/(app)/incidents/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'STATUS_BADGE_VARIANT' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "095889abb57ea75ba4bc886ef0aa73c3a153477ce530f395009cace01fafd47f": {
+      "file": "apps/frontend/src/components/editor/editor-preview.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "0bad2d2dd50d67542525b8e29b0c89d2edb02ec1bcbcdeb59697e81fd537b11d": {
+      "file": "apps/frontend/src/app/(app)/admin/spaces/page.tsx",
+      "rule": "react-hooks/exhaustive-deps",
+      "message": "React Hook useMemo has a missing dependency: 'SECTION_LABELS'. Either include it or remove the dependency array.",
+      "count": 1
+    },
+    "0d526041cc792507f455e8e345800fffb5c5fb056d3b6d62b89adc2a093a8291": {
+      "file": "apps/frontend/src/app/(app)/documents/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'err' is defined but never used. Allowed unused caught errors must match /^_/u.",
+      "count": 2
+    },
+    "0e06f15fbd0805323aee43b62035950bbcca8c719bf916b5b766a56952436f6d": {
+      "file": "apps/frontend/src/lib/ai-orchestrator/ui-rewriter.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'EMPTY_STATE' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "0f664129c76dd0188ca2d93577096c583d2b351bb338aa5a4a01b04368e540b0": {
+      "file": "apps/frontend/src/components/hover-card.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Calendar' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "119b194ffce341e898417ac6acde87234f64843e72370e20152833815bf77c68": {
+      "file": "apps/frontend/src/app/(app)/incidents/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "11e366e6a096d5da81ca24e7d867b928b995b28a14877f2af390aa40ff26d790": {
+      "file": "apps/frontend/src/app/layout.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'DarkModeInit' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "12c914f5bd1082239ed9690ab16ea700499e49e4fdc1aaef8334b9c551c4d741": {
+      "file": "apps/frontend/src/app/(app)/news/compose/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'zodResolver' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "145506ffeba26816b0978950213a2b8a4ad5b044cc8307c2d4eebc784712d7dd": {
+      "file": "apps/frontend/src/app/(app)/incidents/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'ArrowLeft' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "14ec2571ae3b36f32b1dc34a4544936e2be2a150ac5b2b54ddd03e75a6dcba2e": {
+      "file": "apps/frontend/src/app/(app)/timeline/page.tsx",
+      "rule": "react-hooks/exhaustive-deps",
+      "message": "React Hook useCallback has a missing dependency: 'storeNotifs'. Either include it or remove the dependency array.",
+      "count": 1
+    },
+    "15567cff2a967a3b33241b9ffca95780e22b49a4d3b02bea7af03b53c18cdc0d": {
+      "file": "apps/frontend/src/components/admin/audit-timeline-view.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "170dc9e2988deae85075c0a9a66ef04747b3ec71ef316b64d426a2e3b746b885": {
+      "file": "apps/frontend/src/components/widgets/quick-links.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Users' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "17c3930eefe406228e587b965f06e1fc9e5aeaed3cd96d5049cb9406e840af12": {
+      "file": "apps/frontend/src/app/(app)/admin/users/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "18c1c674a3c3f4611cbae4ec6714ff0addfa0573e99c165cb2020aabc80525b3": {
+      "file": "apps/frontend/src/app/(app)/admin/integrations/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "19007e120056ee6d3a118edaaa5891dd0965eac10033970f1f8e350c32ed733a": {
+      "file": "apps/frontend/src/components/ux/ux-command-center.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Card' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "1934f8a973f347ec540e62ddec0a232133016571892a9928a13c95d6d7b5c605": {
+      "file": "apps/frontend/src/app/(app)/admin/it-exports/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "1be55a51587613ff093526d06c5e7f7b48e717e9bb4b68fecc6c4532843a6ace": {
+      "file": "apps/frontend/src/app/(app)/admin/compliance/CompliancePlanning.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'allTasks' is defined but never used. Allowed unused args must match /^_/u.",
+      "count": 1
+    },
+    "1d25b9ccce6d6fffb3dbf38f2a5cf7cba8e6c75fc4a0753c17a4d261ac7d9c23": {
+      "file": "apps/frontend/src/app/(app)/satisfaction/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'StarDistribution' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "1d825bc778b954116a6c308f74700bf2aa8b7e847ea08bbe2e48bb9b7a72a48a": {
+      "file": "apps/frontend/src/app/(app)/wiki/WikiContent.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'ChevronDown' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "1d83873ba0502bdf2034b01a3efe871a13e7aeb1575f4c0b0bc814ae19763daa": {
+      "file": "apps/frontend/src/components/onboarding/onboarding-steps.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Bell' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "1db1190b192902b58135df2be6604ae93438143fea2e16d6b5a19533858d9e30": {
+      "file": "apps/frontend/src/app/(app)/admin/system-health/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'meilisearchOk' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "1fedceff44aabdfc79a19affe0f0c7d0e957420f61f9a60a76d3d3ef6f71425e": {
+      "file": "apps/frontend/src/app/(app)/admin/compliance/CompliancePlanning.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'cfg' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "221e48112ab59ef18f0ab2092fc10de7e2c99d4ef2a1e2e597da967976eb2ad0": {
+      "file": "apps/frontend/src/components/layout/sidebar.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'sidebarCompact' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "22445aad62b0b36a1f06a26c58d5bd4ba9502230c38d21e82ddbd2cde73689c3": {
+      "file": "apps/frontend/src/app/(app)/notifications/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'ExternalLink' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "224e2a31da326497e26fb54f773074b26bcecffa26a418e9fd5b8e8c5ee011dc": {
+      "file": "apps/frontend/src/lib/ui-os/governance-engine.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'PRIORITY_WEIGHT' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "2545f74ba06ae3e1a6f8c36f7a147c8918b41ea1b27e04ca35cc0d53731be692": {
+      "file": "apps/frontend/src/app/(app)/alerts/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CardHeader' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "25567e6d73f088050d33d5a79d359493d1697632cedd63a1d60046f578a7ddba": {
+      "file": "apps/frontend/src/app/(app)/wiki/WikiContent.tsx",
+      "rule": "react-hooks/exhaustive-deps",
+      "message": "React Hook useEffect has a missing dependency: 'fetchPages'. Either include it or remove the dependency array.",
+      "count": 1
+    },
+    "258db6dc763f064f62180f070d4ac026426e856080cefe7880dc06042f7e012c": {
+      "file": "apps/frontend/src/app/(app)/admin/workflows/[id]/edit/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CardContent' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "2789680eeadbfb3b0749de524c42271c69ed6c0ec61565e494db7a3fbb569b00": {
+      "file": "apps/frontend/src/app/(public)/welcome/welcome-client.tsx",
+      "rule": "@next/next/no-img-element",
+      "message": "Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element",
+      "count": 1
+    },
+    "27a4f88cd5293959a542598153dc39735cc4c4ae0f20aa5b9d31b36bd719de76": {
+      "file": "apps/frontend/src/app/(app)/timeline/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "27ad27b0479f0326aa4514d21d31a899d79e5b7a32ea004fab19a7a07177f6cb": {
+      "file": "apps/frontend/src/app/(app)/admin/workflows/[id]/edit/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Save' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "2995348d00eff2bb7b5e3d4fcdd53fd8beff737139475dc014da1ceedf6a9374": {
+      "file": "apps/frontend/src/app/(app)/admin/system-health/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'onlyOfficeOk' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "2c09528cd4c6b35d78824cb52fa20933b3ecc8327ec4da75ee859765fdb1c227": {
+      "file": "apps/frontend/src/app/(app)/tickets/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'ShieldCheck' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "2f119145f990f47a792d987bc621dfbd0371bfad23496bea20948f34e241d104": {
+      "file": "apps/frontend/src/app/(app)/admin/content/_components/StructuredEditor.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "2fd6875248564b90301011d1df757f957e3478bc260f28dd7fe04464ffcf5d08": {
+      "file": "apps/frontend/src/app/(app)/admin/access/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "310cf4b91b979ae81fe2a2d11c0ad64a82109b59bbbd5c656382124b595b0670": {
+      "file": "apps/frontend/src/app/(app)/admin/integrations/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "33f5caca8fa424d195b3acb33f3c10089d40cdbd5a126348ef9c1284c405eb49": {
+      "file": "apps/frontend/src/app/(app)/incidents/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Badge' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "34b1fb5bfc0d206b59da436b158255845abe18fc4953368efdbf87d0757dc42f": {
+      "file": "apps/frontend/src/app/(app)/helpdesk/SelfServicePortal.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'totalSteps' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "37a1315200f20e6016580b6b6945856ed8320686b8bf4df1310cdb657b63cd9b": {
+      "file": "apps/frontend/src/components/documents/detail/document-header.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'PenLine' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "37a8c85b6b53ecde0076f775c4078a52ee2ac6b5635c51c837469e6ec41829a3": {
+      "file": "apps/frontend/src/app/(app)/procedures/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'FileText' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "384d625ef87814771fbc3e8546c2f6c7ec8792cc4d528d3ebb34bb72545318b3": {
+      "file": "apps/frontend/src/app/(app)/quiz/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'TrendingUp' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "38d6025eb119fffb4f9e0189b212bf208d69d17de8f60ff3cb600f98757bed1c": {
+      "file": "apps/frontend/src/app/(app)/admin/feedback/surveys/[id]/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`\"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.",
+      "count": 2
+    },
+    "39326759d6b37902ae1d8cc1fa51df93f4b9a1f0ced2d8b6f7bbd82b559a71f5": {
+      "file": "apps/frontend/src/app/(app)/incidents/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'nextStatuses' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "3969d60717652fe1c2baf9c2ba1319d8b0c7c444921c14c923e395a8c2d0bcdd": {
+      "file": "apps/frontend/src/app/(app)/files/smb-editor/[sessionId]/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 2
+    },
+    "3d5401b599abab87110d92b98756d9b444dd8b32ea666f3f0309f256a2e3d285": {
+      "file": "apps/frontend/src/app/(app)/mfa/revalidate/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'router' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "409c3237509176095d450fc84a03357e73e86da9400e33acd75fad990eb59ac9": {
+      "file": "apps/frontend/src/app/(app)/admin/access/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'modules' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "4230f4ce61e30b4b62d81fdc0052f3df0a45bbfde2881cd05a02d7d281794f89": {
+      "file": "apps/frontend/src/app/(app)/chat/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "43e7b7fed8667c16a09249d0b51b52a131bcbad692aaceedbb3776c3fed1d91a": {
+      "file": "apps/frontend/src/components/editor/rich-text-editor.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'onImage' is defined but never used. Allowed unused args must match /^_/u.",
+      "count": 1
+    },
+    "452aaa8d8eab9f95d24923581b60497478b2f112bb05ae90c7a18e5980f153fd": {
+      "file": "apps/frontend/src/components/ai/ai-chatbot.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'isReviewer' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "458d14122b3a966944e06eaaa8992a86b8ced337c0f74ee5d6bf41490a809ee5": {
+      "file": "apps/frontend/src/app/(app)/wiki/RunbooksContent.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Select' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "45958490ec29003a0a68d7af3957522b22c4e0354c683dc3d4e2ea8882c06438": {
+      "file": "apps/frontend/src/app/(app)/runbooks/[slug]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'router' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "48032ef5acca0962ed76da64cdcca21a35fa1043cb18efee27b9e63e6ef1909d": {
+      "file": "apps/frontend/src/app/(app)/helpdesk/SelfServicePortal.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'statusIcon' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "48e4b767a285168745681be9478af6e546c5a81801d88563272931cd9fe0e9ce": {
+      "file": "apps/frontend/src/app/(app)/admin/workflows/[id]/edit/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 2
+    },
+    "4951fa0d23d016b0454863c558066e912eac02fa2c50cfc22345d20f0ff9e09d": {
+      "file": "apps/frontend/src/app/(app)/directory/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Building2' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "4b20e9c87193b3c44ef6d47483d51b18792841c2cebad677bae12b0ac6a81f52": {
+      "file": "apps/frontend/src/app/(app)/admin/integrations/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "4d5d7f61af7f370511aafdb852c98697d56a86edb4018b7cb780744ac25094c3": {
+      "file": "apps/frontend/src/app/(app)/files/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'user' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "4d68bcf8f1a51b8d91f1625e0745159a6a7a2880b52ac918a996735a13f02071": {
+      "file": "apps/frontend/src/app/(app)/incidents/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'useRef' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "4ef34ba3da44a6e0ea4628ed91112d73e2a89c981cb86653b1b20ad9346fb886": {
+      "file": "apps/frontend/src/app/(app)/admin/media/albums/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Badge' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "4fcc99b6e438d1a5f19bc8545c9c65dcd6ed4cb028bff4124816c7c3c10d6acb": {
+      "file": "apps/frontend/src/components/pwa/update-notification.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'api' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "51078be1b0bef8964712d65a5d2e3864c211b8dccafdef63cddb03c5b0c62fc0": {
+      "file": "apps/frontend/src/app/(app)/procedures/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'BookOpen' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "511dfd2ed442155bb4a078b1f7b8358cac6dbdd7a41dea2183474744917691a5": {
+      "file": "apps/frontend/src/app/(app)/documents/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Clock' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "5138498950caadb7ec0787097f0a5ef7a3c8f58981cf06aee32da6b3ad3e4c88": {
+      "file": "apps/frontend/src/app/(app)/documents/new-inline/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "51ef853683e42e5bef1ef2f8a9c05ca2b31c5bcadc30cf09933a7b6a1ca9ea80": {
+      "file": "apps/frontend/src/app/(app)/admin/compliance/CompliancePlanning.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Filter' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "5219e65e43ab6b11cf6987206b3e1532b4e3fe4002f8f4d45374e1d38cba2edc": {
+      "file": "apps/frontend/src/app/(app)/admin/system-health/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'ragEnabled' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "52388bab0336aee0672e4abdb6c56fe18e83354e749d2ddf5ffa64f25ede104c": {
+      "file": "apps/frontend/src/app/(app)/news/compose/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'reset' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "52be405d730ed659ad2dbfec7339caf4925330f6c3f6cd149d96a6e6528100bd": {
+      "file": "apps/frontend/src/components/layout/focus-mode.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Minimize2' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "56f3f2e30e9e574a82c3836e9e002cf2a6d8926b6a289e7826080477b5440dc7": {
+      "file": "apps/frontend/src/app/(app)/incidents/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'e' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "581b717d2595c652c624b48ecc5a9d34b36bd524b5e0601842900789e997d8c8": {
+      "file": "apps/frontend/src/app/(app)/news/[slug]/edit/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'setContent' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "5b4de20bff811202d71f04b7b2c64c7edf3963a70d309d43c77dc1211fa9bea6": {
+      "file": "apps/frontend/src/app/error.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "5c7f7fab6d66a27a07e26a43e343b31e302e714d8d0ce806662231ac1d818efe": {
+      "file": "apps/frontend/src/components/profile/integrations/push-integration-section.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "5e6680be0bc6a6e8e3f960931c3b9893a24e06744d536de75856ca09e0180212": {
+      "file": "apps/frontend/src/app/(app)/documents/new/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "5ebc636e23dc3347528bc64abe5fb5aac6e8c3c3957b0fedd8a736da4cec4bf0": {
+      "file": "apps/frontend/src/app/(app)/tickets/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'start' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "5ee54b19a4849d3e1e1f49d2039c462c6c8a337aedc9086585a3446c5f6e7f05": {
+      "file": "apps/frontend/src/app/(app)/profile/delegations/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "5f18fa116e514b626ec24a4fc7c3d7b8eda9c37c767f431c441308dfc1a685fc": {
+      "file": "apps/frontend/src/components/widgets/quick-links.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'FileText' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "5ff3ab94b85aae7f8112f18cd07814b0b69378804706dd1bdd2fdbebd338a552": {
+      "file": "apps/frontend/src/app/(app)/files/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'goBack' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "6149c65320d68f3a8db0fae08043a5649e350fcab3c990639e77e21b0c0c0a58": {
+      "file": "apps/frontend/src/app/(app)/tools/pdf/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'useLayoutEffect' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "62566ebf7f6b6a4c9a5d6bedea85912be84d958d13c3f7c52acf01cc6b843f6a": {
+      "file": "apps/frontend/src/components/layout/sidebar.tsx",
+      "rule": "react-hooks/exhaustive-deps",
+      "message": "React Hook React.useEffect has a missing dependency: 'user'. Either include it or remove the dependency array.",
+      "count": 1
+    },
+    "62a1231d777457805372807330f710fc56df5fae4c59f8f45486a9bf1de41519": {
+      "file": "apps/frontend/src/components/layout/status-bar.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Bell' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "6454d399f5c1e60dfcc5bfb15d0655d4142ce60f68f2a6870fd9e762d6c5b05f": {
+      "file": "apps/frontend/src/app/(app)/admin/compliance/CompliancePlanning.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Select' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "6476f767b7416cb6bc3ebd4d91600aab171477c856d48a2c2046c06ad1daf7c4": {
+      "file": "apps/frontend/src/app/(app)/admin/users/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'zodResolver' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "64f22453eff28efdf9ea7a8c402987c1b11b324bd64fc33d5cfe95acc7fcd14d": {
+      "file": "apps/frontend/src/components/widgets/quote-widget.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Quote' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "6559d435e1c5380c6db558dfb6e137df70dee7678b566fb1f4f21a45585ed5b8": {
+      "file": "apps/frontend/src/app/(app)/tickets/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Textarea' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "66b5fadcf01eb18f276ccd29c17a7c42d1073915ec534f93a9c082dbafd43599": {
+      "file": "apps/frontend/src/app/(app)/signatures/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'rejectedCount' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "68fb5d0fa57f8e10ee787541f7b2da6f9f7ac8b851fe7375eca17de9fdb32c52": {
+      "file": "apps/frontend/src/app/(app)/admin/departments/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'useMemo' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "6943840beb7e3f9d7ea367855f86a90f9f09146d8dd69b36e7fe6701a7c404a8": {
+      "file": "apps/frontend/src/app/(app)/wiki/RunbooksContent.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "6978c9f7f31eb04f411dd4c17347f4fffbe5001e95272ddf439114677b4ba2db": {
+      "file": "apps/frontend/src/lib/intelligence/insights-engine.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'now' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "69dcbd5379d4e42ef62d0661124dd0eee8322e4f71c4a21e5b22e9508103440b": {
+      "file": "apps/frontend/src/app/(app)/admin/access/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "6e88e9d8136333ce4731ef5d5d598096fc77d2a22ec8949f19712c593522bbd3": {
+      "file": "apps/frontend/src/app/(app)/files/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CardHeader' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "6f56d40bc84accf853bb61c8fa5ca674610182ceff1b9aed1347b9b97da58f03": {
+      "file": "apps/frontend/src/app/(app)/signatures/[id]/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "6f8fb1ba43be8f7e3a302802e7ef4c04a65cfbe9685b1f5269a2b2e2b90284d2": {
+      "file": "apps/frontend/src/components/ux/ux-command-center.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CardContent' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "6fc13319973b299fad8d15e765d343b6aebcefcb8f20208d24dc1f5dbf3767e4": {
+      "file": "apps/frontend/src/app/(app)/admin/signatures/manage/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "7176a197ef944cdec5fd50a9eddcfd98b02dc5c057692395c59bd346e17508ab": {
+      "file": "apps/frontend/src/app/(app)/admin/workflows/[id]/edit/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Card' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "72b28202c79eb06128381519f683ca77eb5c1f89035ae8e2d0776d169607c4c7": {
+      "file": "apps/frontend/src/app/(auth)/login/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'router' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "73e330016fd2df0172bcad4c35e5f629ba3ea4ae49063918619fea84ae6dbdb3": {
+      "file": "apps/frontend/src/app/(app)/documents/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'DocumentCard' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "74061312a88febc0773069fd71d54213327da1c1335ad19b3443143dd134d74e": {
+      "file": "apps/frontend/src/components/layout/sidebar.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'toggleCompact' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "74f2be885921b2751cb7ddae35880a03e81f4c822e7c1a6a29822cf048e9bd51": {
+      "file": "apps/frontend/src/app/(app)/signatures/[id]/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 2
+    },
+    "75014535380c27962958fa0f0ba4dd9c834c051f091b85cdbf23f2425c521d46": {
+      "file": "apps/frontend/src/app/(app)/admin/chartes/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Eye' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "76226a8dc8dfb01580c6fd1960a066ef3fd7d0ba803f6cfd4863557a1cf57f1d": {
+      "file": "apps/frontend/src/app/(app)/admin/access/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'departments' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "775fb340189e2cbeac5b20659c1e099baf3a4c67b13b421425168d0904bcc149": {
+      "file": "apps/frontend/src/app/(app)/procedures/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'StatusBadge' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "77e0f0212cc6de2634bc6fb040289c93e38bc6208f668d78902f9554a4f7f98d": {
+      "file": "apps/frontend/src/app/(app)/news/[slug]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'User' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "77f27f277690d72cf6f236b756e03bc28d75cf9a72ee97436f56f03f43770243": {
+      "file": "apps/frontend/src/app/(app)/admin/workflows/[id]/edit/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'router' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "78d3fb6023c9d9229b1eae098d1f31c9d26930070d5f86d926a984f4eedb14fa": {
+      "file": "apps/frontend/src/app/(app)/wiki/WikiContent.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "7927cc39932458029e7ce1cfc4ad110de0651ee2621a615a25d89e225307f6ad": {
+      "file": "apps/frontend/src/app/(app)/admin/backups/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "7b407c5bb7030a811ed43471f4b90a35c06ab91b8415916602812a119c7e3aac": {
+      "file": "apps/frontend/src/app/(app)/wiki/RunbooksContent.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "7d314fc30daa6eab19630e3e305e03526668f9477bcb0f51193875b36f7f89d9": {
+      "file": "apps/frontend/src/app/(app)/news/[slug]/edit/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'zodResolver' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "7d35311e697cef86036239e5747aadc0a85d9c0433152bdb022028719faef775": {
+      "file": "apps/frontend/src/components/widgets/rss-feed-widget.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "8348a16efbdf268df4fee46ab694a98cab0ae6fa27152edd43d4f23556023e8a": {
+      "file": "apps/frontend/src/app/(app)/satisfaction/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CheckCircle2' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "83a0764c8040c6024c12209403df0475cf89d8ad433b9a523978b834654aee31": {
+      "file": "apps/frontend/src/app/(app)/tickets/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'KanbanBoard' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "8631ca1f21aba4e54ab75fb922899501cf488cda9303a7ecc25fe441add5e066": {
+      "file": "apps/frontend/src/app/(app)/admin/onboarding/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'stepIcons' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "87aaa201bb3a91176657568fc13e6b989e75a1409c7ae18d97616ba142350014": {
+      "file": "apps/frontend/src/app/(app)/documents/[id]/edit/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "885b3e8901c9e51c9aeb8b0fa33370009e30d27d8429069f9c1cd283473dd8c1": {
+      "file": "apps/frontend/src/app/(app)/satisfaction/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'savingSurvey' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "8988c6421f5077c1bc710fb2d722ebd62f820461be3fa83188b6df5b7c31d473": {
+      "file": "apps/frontend/src/app/(app)/procedures/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Download' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "89c32bad0b07a7b116a599fb0c6e1b3c4484a61005a1a6088ce97780ee201cf7": {
+      "file": "apps/frontend/src/app/(app)/files/smb-editor/[sessionId]/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "89e84953db2775c8581ea158de6103fc6f03c644ebf126ad710939330df026e5": {
+      "file": "apps/frontend/src/app/(app)/admin/webdav/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "8b72ea136228a973429005c2f8ec8279b070ce2103b35401c051d8fc73ea2ab0": {
+      "file": "apps/frontend/src/components/layout/status-bar.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'router' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "8c0596cbab305699ec0addd3e9c748b25b429f46c04a569c14ae9dbd74bb5bb9": {
+      "file": "apps/frontend/src/app/(app)/wiki/WikiContent.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'copyShareLink' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "8e76da49ccdaec5bd1b8d3e667b92421f75c9595fa0fb2ae3fb78cb6e112ad4f": {
+      "file": "apps/frontend/src/app/(app)/documents/[id]/editor/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Save' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "8f00d0c2bed29eac1d849ddc9d67d24240eafe559ed82cc5f778783b30cdda32": {
+      "file": "apps/frontend/src/app/(app)/admin/external-access/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'setGrantTimeout' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "8f9ea405c4686705382ac71dea716101dfa5c926db0f6105124f869a904dd89f": {
+      "file": "apps/frontend/src/app/(app)/admin/media/albums/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'formatRelativeTime' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "9027eaa98be0d34a66c4edd339c7cab33f8f0b1c8decdbabe448eca8172d8ccd": {
+      "file": "apps/frontend/src/app/(app)/satisfaction/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Select' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "90784edd8540b9dc9cb3d0263a628dda732c95e71abf78d534b747adb0768e2e": {
+      "file": "apps/frontend/src/app/(app)/satisfaction/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CardFooter' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "9104d3d232a6bc1d1f65408464fc16411e127c76d4d52587d73a5535b3e2bcbd": {
+      "file": "apps/frontend/src/components/layout/auth-provider.tsx",
+      "rule": "react-hooks/exhaustive-deps",
+      "message": "React Hook useEffect has a missing dependency: 'user?.mfaEnabled'. Either include it or remove the dependency array.",
+      "count": 1
+    },
+    "91db0485a645f5954882812224a09dd2d908c167b7d33da15f3b923c5ad7ccef": {
+      "file": "apps/frontend/src/app/(app)/admin/access-reviews/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "927c883909cafdb33f7ac9bcd3b268edc29901d97261c69628e307b4f98409e1": {
+      "file": "apps/frontend/src/app/(app)/files/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Badge' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "94a474c2fb49e8d515d0a196a3ddfbd8783d3db2a61d0fd3b896b1768f87546e": {
+      "file": "apps/frontend/src/app/(app)/tickets/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'getFieldValue' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "9710906b0a65de93c8ad3523b124e9213019793432727ba3dd4996628d6c9b79": {
+      "file": "apps/frontend/src/app/(app)/incidents/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'STATUS_BADGE_VARIANT' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "97723a47c3ccfc84a65e241d001a1af9c2d7335ff50989c381af408284ba4d9d": {
+      "file": "apps/frontend/src/app/chartes/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "991de60b8fd045d7eeaaebac7a17de20a0673facfe42ae092fd8d45e3be9279c": {
+      "file": "apps/frontend/src/app/(app)/admin/media/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Video' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "9d9cf62e892190e0976263c46a1172668200e9240002eb0273cab36059039b3d": {
+      "file": "apps/frontend/src/app/(app)/admin/access/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "9ec7017e4e014b41faf198c62c74a784e1c5514e0d8920f9eefbec680a452fab": {
+      "file": "apps/frontend/src/lib/ui-os/optimization/performance-analyzer.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'clicksSaved' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "9f4b5d6812528dc8f98ceb6808c05fcb7c2e8eb88df42f90d00e759ee475fc0b": {
+      "file": "apps/frontend/src/app/(app)/tickets/TicketSpacesHub.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Users' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "a08d83cc5917ee00edd6042de714b343c09ac0b5eea66a6477fe01ac4443fa51": {
+      "file": "apps/frontend/src/app/(app)/admin/media/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Edit3' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "a37a5978e33b60ec5f2b6da1ce55fe397848f78ca828553631b01288bf4674a5": {
+      "file": "apps/frontend/src/app/(app)/wiki/WikiContent.tsx",
+      "rule": "react-hooks/exhaustive-deps",
+      "message": "React Hook useEffect has a missing dependency: 'viewingPage'. Either include it or remove the dependency array. You can also replace multiple useState variables with useReducer if 'setRecentlyViewed' needs the current value of 'viewingPage'.",
+      "count": 1
+    },
+    "a39d0000d09e8673f6edb75343c3fdeec7b05f9afdeae1ea29589e7df63d3022": {
+      "file": "apps/frontend/src/app/(app)/documents/page.tsx",
+      "rule": "react-hooks/exhaustive-deps",
+      "message": "React Hook useCallback has a missing dependency: 'user'. Either include it or remove the dependency array.",
+      "count": 1
+    },
+    "a464be227c87627fc353a4dcd429bf0ed53fe758c22fb2b2a6305cd1a80768d3": {
+      "file": "apps/frontend/src/components/ux/ux-command-center.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "a50a7ab475d46cf05c1fbe873bab45ed6a8c6f74f6577a52a9d7559c77bb5132": {
+      "file": "apps/frontend/src/app/(app)/documents/[id]/editor/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "a85dd7219ab6df1036a401168e50fa7d7c4cb7a51c036f4274a31dc60c2c9bcc": {
+      "file": "apps/frontend/src/app/(app)/extranet/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CardHeader' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "a93e7f9b721cb663ae9bfa8eeb1d040a6c25f333caad9fbfe9359e8575070503": {
+      "file": "apps/frontend/src/app/(app)/admin/compliance/CompliancePlanning.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CardHeader' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "a960ecb651b8fa5388234f6f42c8303019ed2c242a834331eafba2d27de6dff6": {
+      "file": "apps/frontend/src/app/(app)/helpdesk/HelpdeskChat.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'faqCategories' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "aa1002337bcdaf5e7e67e98d494580cd663f071c455f9ce74fe9091d46e9f259": {
+      "file": "apps/frontend/src/components/onboarding/mini-mockup.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'ChevronRight' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "af4beea9b3caa09de46f0667b9c3e9e702b2e04c24807037987a69d4d9719fe2": {
+      "file": "apps/frontend/src/app/(app)/tickets/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'statusColor' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "b1f5022b0c8f36c18e36b107f65d723ef4c00f424c3919cbed2b6dd7b7ab9016": {
+      "file": "apps/frontend/src/app/(app)/certificates/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'ExternalLink' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "b1f6b183e4089550c1df221c51ebce8a00be61455ed14af77c87277047d240a7": {
+      "file": "apps/frontend/src/app/(app)/notifications/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Badge' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "b20963a1de51e8b632bd011ddbf94e795eb769fbc1279b1c1ea9eaafd6638d42": {
+      "file": "apps/frontend/src/app/(app)/admin/signatures/manage/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "b23b062fc454da737aa0eb016929f3d69b2818a9e5baf7af9bb1f984e261e0bd": {
+      "file": "apps/frontend/src/app/maintenance/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'MaintenancePageProps' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "b32bb4922cdfccb290b32cb0e5855575699619a2ed82384885b0f1ce35950290": {
+      "file": "apps/frontend/src/components/onboarding/onboarding-steps.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'GitBranch' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "b3e8254ffc7b9a820e9d2a1116c8ec5e7da7662ca3012cd9ad27039b84ebdfa9": {
+      "file": "apps/frontend/src/app/(app)/files/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'ArrowLeft' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "b46cf29e41172e597817046785fc024cee95e89861a4592f0fc678e92ea142a1": {
+      "file": "apps/frontend/src/app/(app)/admin/onboarding/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "b61ff525b696f25087abdba8256ce34b13a050f6d7593daf5459d2fa24355b1d": {
+      "file": "apps/frontend/src/app/(app)/admin/ticket-spaces/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'user' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "b62c9aedff09537b4faac14ce3c251de928d42f51507e7f228c65630a1c58505": {
+      "file": "apps/frontend/src/app/(app)/documents/[id]/editor/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'ExternalLink' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "b699d56fa428fd8ad6f74029f3ade09551d4ae4cff3cedcc3ff47f801ae6d3fb": {
+      "file": "apps/frontend/src/app/(app)/documents/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'categoryBadgeVariant' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "b7032209e2523153d5fafb164de7c14f3b58f62bc08db40e95fcafe7cdce813e": {
+      "file": "apps/frontend/src/app/(app)/admin/users/import/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "b7e246eb4ebe4015e31aee338d92ccf78e2003f0e8176ee0b3bf3b9fc0176a8e": {
+      "file": "apps/frontend/src/lib/__tests__/platform-detection.test.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'beforeEach' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "ba7298a9c47997cc9271785cd941ba9f280c043a0967ee510b5415770dcc7609": {
+      "file": "apps/frontend/src/app/(app)/certificates/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "baa457d480341e72d5e5ddfa3070d41d437390a46fc95c73da5efeac5756742c": {
+      "file": "apps/frontend/src/app/(app)/documents/new-inline/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CardHeader' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "bb35972ad53bf9ca35294083505a7aa101d9ee4d20c6509c6a02593ce0bc9fff": {
+      "file": "apps/frontend/src/app/(app)/admin/departments/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'useCallback' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "bbe102d71662b1bf0b45dcfac83c669681453d4af6cca331e3a1959893ab0a86": {
+      "file": "apps/frontend/src/app/(app)/admin/ticket-spaces/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Edit3' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "bc3a33d958c729e41eed2ef30522b264c5360bc0d12777f3551af675e76f4558": {
+      "file": "apps/frontend/src/app/(app)/satisfaction/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CardHeader' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "bd8b44770c783687fdf68f5707590ca4f0d8e691a36832aef30b4fc0cf8746fc": {
+      "file": "apps/frontend/src/app/(app)/quiz/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'BarChart3' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "bf99b17cc91608e04166b3dfaadff3af5748158696667911b2a9769bf336437a": {
+      "file": "apps/frontend/src/components/ui/inline-status-dropdown.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CheckCircle2' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "c1586571104284a42b11d10c8906e1cb71e943458150d3019de976468bf8a001": {
+      "file": "apps/frontend/src/app/(app)/tickets/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'err' is defined but never used. Allowed unused caught errors must match /^_/u.",
+      "count": 2
+    },
+    "c2b700277e1d4a4c78f35223ca788f24b19d88d06b8e3c2043c33912e3c21cf5": {
+      "file": "apps/frontend/src/app/(app)/documents/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Eye' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "c314329dadebb3c4575bf8d3a71b7aae472dcde5233dec731014fb4d6212d755": {
+      "file": "apps/frontend/src/app/(app)/mfa/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'mfaEnabled' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "c3d679e955b220db57763a407d2700d685cc03f919230572e659d879a725af38": {
+      "file": "apps/frontend/src/app/(app)/extranet/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Search' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "c86615d0c6d11d87276d4ef5a9e6e059589e80297ae37c7216b56bcdc958e3c7": {
+      "file": "apps/frontend/src/components/admin/audit-timeline-view.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'err' is defined but never used. Allowed unused caught errors must match /^_/u.",
+      "count": 1
+    },
+    "c985b794ba22fff773f6fb166cad301caad0f4bc49373f1363d1b081dc23e331": {
+      "file": "apps/frontend/src/app/(app)/admin/integrations/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "c98d0e8020a1f8076eb4ad165700a6c337eb41fc45052f9a77a15563aa65085c": {
+      "file": "apps/frontend/src/components/chatbot/conversation-menu.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'err' is defined but never used. Allowed unused caught errors must match /^_/u.",
+      "count": 1
+    },
+    "c9a397cf96b88a6fcbfe6a2b9e5e8b4c1029e7ec6118dba3a9b134fb01ee1cd0": {
+      "file": "apps/frontend/src/app/(app)/news/compose/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'EditorPreview' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "cabddf88b7abe1925709933e3ae83244e133c6c6eb0bf974ace2770a036e4282": {
+      "file": "apps/frontend/src/app/(app)/procedures/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Skeleton' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "cadabdb7f4684085f0d2ff245972854bf70901b6f50446afbc9d9eefa88ac645": {
+      "file": "apps/frontend/src/app/(app)/news/[slug]/edit/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "cf1f1eca3e15f5fee8242ee4625d180c479dbda3eb2dc4f3f41f9c4227463991": {
+      "file": "apps/frontend/src/components/documents/workflow-panel.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 2
+    },
+    "cf3bea01d5e3c80cf4b2441a9dd85eec72a3a25a8370a33686fe35af26f15997": {
+      "file": "apps/frontend/src/app/offline/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "cfef3adebd31798257bb43df7d9645e75a5001dd302e537fa7e3aa2a18df8b5c": {
+      "file": "apps/frontend/src/app/(app)/search/_components/saved-searches-dropdown.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'ModuleKey' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "d0767e9011ff81bd9b61aad2873a2e8cbf7574d67d9a6f1032deae46529319ba": {
+      "file": "apps/frontend/src/app/(app)/admin/chartes/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'DataTable' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "d19ce70c69d53be2915f5a27cca56c8d9193b086c20cdf1b3ff711f93ca8dbef": {
+      "file": "apps/frontend/src/app/(app)/admin/workflows/[id]/edit/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "d2e07b9dcea101df4eabc5afe90847e78bec3ba941a7ff76c07aa07c15281aa7": {
+      "file": "apps/frontend/src/app/(app)/admin/users/page.tsx",
+      "rule": "react-hooks/exhaustive-deps",
+      "message": "React Hook useMemo has a missing dependency: 'handleToggleNoaForUser'. Either include it or remove the dependency array.",
+      "count": 1
+    },
+    "d5bc1c9eb48bed1c9c914de00366d588d145e3b7be802014eae2482c5e9bcb53": {
+      "file": "apps/frontend/src/app/(app)/admin/workflows/[id]/edit/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`\"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.",
+      "count": 2
+    },
+    "d81e13d87498d23f6f7319d723bdfb6be1120c32e19af92427954ec3eccf2d5b": {
+      "file": "apps/frontend/src/app/(app)/documents/new/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'zodResolver' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "d877fdf30d064b3414bff11bd272e3efc9424df1f9d7ad419dc044f70d6765bb": {
+      "file": "apps/frontend/src/app/(app)/admin/content/_components/StructuredEditor.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "d8c65d6431140a07885211cac3fdb7a85b47e9ec0381f5301d99ce13056636d2": {
+      "file": "apps/frontend/src/app/(app)/admin/compliance/ComplianceFrameworks.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Layers' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "d8e041faff9ccdbcc6e8400c3a993a4c5ff001aae627e6bb074deedff2f8ad01": {
+      "file": "apps/frontend/src/app/(app)/admin/workflows/[id]/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "d90fa02c4254080210b6da472bc64dcf828996e606321478dc6ee69223c160d6": {
+      "file": "apps/frontend/src/app/(public)/kiosk/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "d9f6510bf9b29fad6bae706a1cb8b07cf1747bd42194884a91743f0859581bcc": {
+      "file": "apps/frontend/src/app/(app)/admin/content/_components/PageForm.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "da2919f6fdaee0d6f484f5f5353cb54889c3fd4fff732d9b64ab7fa1f17e8325": {
+      "file": "apps/frontend/src/lib/ai-orchestrator/decision-engine.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'s' is defined but never used. Allowed unused args must match /^_/u.",
+      "count": 1
+    },
+    "db987476e0d6225ebb1ac00fac1e005f0fe7200e91e53555168c9848830a0675": {
+      "file": "apps/frontend/src/app/(app)/admin/signatures/manage/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'CheckCircle2' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "dc32095354bf25386161c697981edcf430ac294450ddb077e4a33fa6f6af643f": {
+      "file": "apps/frontend/src/app/(app)/wiki/WikiContent.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'mentionQuery' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "de66e9ef57c65c39fec20d6c113d7ffee1d2d511a25bfee8d09d2e894898c4e7": {
+      "file": "apps/frontend/src/components/admin/config/config-app-section.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'setSyncingAll' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "e131f3e256a20783cfe5cc5d955fa24bce932b4d8f7d62b12e9e830d68c994b8": {
+      "file": "apps/frontend/src/app/(app)/helpdesk/HelpdeskChat.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'User' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "e2a4d33f8e3ead77825181edfd242e87db09c0a4fe4a1d27e6c35b073a3bca75": {
+      "file": "apps/frontend/src/components/layout/status-bar.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'recentUnread' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "e3608fdddf686bc00addfa5d5270df78649781d694ed66380f558c57a37675a8": {
+      "file": "apps/frontend/src/app/(app)/admin/access/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "e3e9673f88d800c8520340004bd0a3683c0bc361f8b2f6d18bc9267fa2ca280a": {
+      "file": "apps/frontend/src/app/(app)/helpdesk/HelpdeskChat.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'useCallback' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "e469195abd1244ac7ba61daf4df019215c84c3eedac9f09b1c2556016b0739bf": {
+      "file": "apps/frontend/src/components/layout/admin-group-tabs.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Activity' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "e48d17affce3120d0e6e1a33e0fcb2c35e41cb90133f6582d12f88bf4605941b": {
+      "file": "apps/frontend/src/app/(app)/tools/pdf/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "e5322c84dd04422bc1bc2d123742c682c461f9e89399555cf7cb77fba892acf8": {
+      "file": "apps/frontend/src/app/(app)/admin/external-access/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'handleGrant' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "e53d938872d70726cba3c512c1278e24c204cf2f8aadb8c05c56c247844a1d90": {
+      "file": "apps/frontend/src/components/layout/command-palette.tsx",
+      "rule": "react-hooks/exhaustive-deps",
+      "message": "React Hook useMemo has a missing dependency: 'onClose'. Either include it or remove the dependency array. If 'onClose' changes too often, find the parent component that defines it and wrap that definition in useCallback.",
+      "count": 1
+    },
+    "e5ab811b4fe8949b75ddb550fb510f9bf26f5b125bb82579f436847a6336fe20": {
+      "file": "apps/frontend/src/app/(app)/admin/users/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 3
+    },
+    "e7720fd32622c54c2b17f93c97cdda5784a0e8b0b4eff9a078f6d80e4eb127a5": {
+      "file": "apps/frontend/src/components/layout/sidebar.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Moon' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "e7c8543d54cd129571c884d80099d34f25677b400a1f4d8d285e90c4b42b6b92": {
+      "file": "apps/frontend/src/lib/api.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'toast' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "e9833f38054252bf0a398c6eea08ecbbf66109e86f57b63dc5287abab5637618": {
+      "file": "apps/frontend/src/app/(app)/wiki/WikiContent.tsx",
+      "rule": "react-hooks/exhaustive-deps",
+      "message": "React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked.",
+      "count": 1
+    },
+    "e9fcd1bffc1c77b55ad4c64b0b44e5e6100904e3bc63299ea1b2ad08122d1d42": {
+      "file": "apps/frontend/src/app/(app)/incidents/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'STATUS_LABEL' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "ed11996e5c0a762eb79a47834d77a53c6d6036aeb88836e562a76c9c8634f422": {
+      "file": "apps/frontend/src/app/(app)/search/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Filter' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "edb2355639a1514aaab00edbb33c945988e4800544ccd118472c3db0b8d81545": {
+      "file": "apps/frontend/src/components/layout/sidebar.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Globe2' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "ef40e09361b5166ccd38ff855d210cbe67a689e58c29f27addadd4e0fa90b832": {
+      "file": "apps/frontend/src/app/(app)/signatures/[id]/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "efc110d43f259fd2efecc0b544a7dc41cd450897c6a65ac092a081538b941028": {
+      "file": "apps/frontend/src/app/(app)/mfa/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'statusLoading' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "f1223a05549e5133170b5d602ea6c7d1e99e411da91c9e7d9d0534e052f366dc": {
+      "file": "apps/frontend/src/app/(app)/admin/feedback/surveys/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'MessageSquare' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "f1ff44505b793562d96321932296714f47a66da7c0202d7f61509095b5ccd464": {
+      "file": "apps/frontend/src/app/(app)/admin/rssi-dashboard/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "f2699a35dca6c4dd3c12f1127bae93856ee0df595f748e23c6aafd9f9d50421d": {
+      "file": "apps/frontend/src/app/(app)/admin/users/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'isRoleAtLeast' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "f2f2bee0bdcb49816f4798f0312dfa611469db1d5377db0bd842a0faef5ed3f4": {
+      "file": "apps/frontend/src/app/(app)/admin/ad-audit/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "f6b801146b949a5a8c471a3711ce664bddfaa015ec5d315ae2b0b1e0c4fdf44d": {
+      "file": "apps/frontend/src/app/(app)/files/smb-editor/[sessionId]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "f6e7cd932600b8faae83b26dcd71952a5751e647bda16c05eaac19ba67fefdce": {
+      "file": "apps/frontend/src/app/(app)/admin/integrations/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 2
+    },
+    "f71d088391a388bf3b521fbfb6af6e6a79c42942d9e65858cdc08873baef407c": {
+      "file": "apps/frontend/src/lib/ai-orchestrator/decision-engine.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'UIActionType' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "f743dd06173bfb0d3c2f66b19ffae547975402a1338b3670283d8ff2191906da": {
+      "file": "apps/frontend/src/app/(app)/extranet/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "f773965a1869ced122ea7f114e1fe9628140fa33c5b975cb60ff6f08dcf41148": {
+      "file": "apps/frontend/src/app/(app)/news/compose/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Save' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "f79d6ff8980f83841c749771fd5824d76afd44077e03bc1385ca6778a24ea287": {
+      "file": "apps/frontend/src/app/(app)/admin/certificates/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'t' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "f8271f53ea9b626fd08e23e6ebc6fc9309e9e9e92b2739b7c9d37cdbd7867a95": {
+      "file": "apps/frontend/src/app/(app)/search/_components/saved-searches-dropdown.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'SortKey' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "fb5b8ee0cf1336e195888b4b6fc7c2049f294ecd4e88951f47b30474fd557eef": {
+      "file": "apps/frontend/src/app/(app)/admin/access/page.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 2
+    },
+    "fbb46a4901817d1662b3dd8a3e8a7f9163ba4a1c55469bc349ad52cfa5e1d998": {
+      "file": "apps/frontend/src/app/(app)/media/albums/[slug]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Download' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "fbf0e2c1bf678c55a8734a893438b874774faa89930b27d356712074dda577f3": {
+      "file": "apps/frontend/src/app/(app)/tickets/[id]/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'err' is defined but never used. Allowed unused caught errors must match /^_/u.",
+      "count": 2
+    },
+    "fda94aaa0b3aa266af761b08cd1aae87281d99b50dc9fe8dfd256465cdd7d1bd": {
+      "file": "apps/frontend/src/app/(app)/admin/ticket-spaces/page.tsx",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'Check' is defined but never used. Allowed unused vars must match /^_/u.",
+      "count": 1
+    },
+    "ff0622bd4c3d0ebe21be9c6cbcf75d2d24fae0ad148e93b1e8a7ae93c16afbbd": {
+      "file": "apps/frontend/src/app/(app)/documents/[id]/_components/SharesPanel.tsx",
+      "rule": "react/no-unescaped-entities",
+      "message": "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.",
+      "count": 1
+    },
+    "ffc31fcdc94c544abbae5ae7fceeae2ef0673aa7503aed26f0ad2804115565a2": {
+      "file": "apps/frontend/src/components/layout/sidebar.tsx",
+      "rule": "react-hooks/exhaustive-deps",
+      "message": "React Hook React.useEffect has a missing dependency: 'setPanelHidden'. Either include it or remove the dependency array.",
+      "count": 1
+    }
+  }
+}

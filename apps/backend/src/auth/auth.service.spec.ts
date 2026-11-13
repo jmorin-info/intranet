@@ -15,6 +15,7 @@ describe('AuthService', () => {
   let prisma: any;
   let jwtService: any;
   let usersService: any;
+  let ldapService: any;
 
   const mockUser = {
     id: 'user-1',
@@ -43,12 +44,15 @@ describe('AuthService', () => {
         findUnique: jest.fn(),
         update: jest.fn().mockResolvedValue(mockUser),
       },
+      appConfig: { upsert: jest.fn().mockResolvedValue({}), deleteMany: jest.fn().mockResolvedValue({ count: 0 }), findUnique: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn().mockImplementation((operation: any) => operation(prisma)),
       refreshToken: {
-        create: jest.fn().mockResolvedValue({ id: 'rt-1' }),
+        create: jest.fn().mockResolvedValue({ id: '00000000-0000-4000-8000-000000000001' }),
         findFirst: jest.fn(),
         update: jest.fn(),
-        updateMany: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         count: jest.fn().mockResolvedValue(0),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
     };
 
@@ -61,6 +65,10 @@ describe('AuthService', () => {
       findByEmail: jest.fn().mockResolvedValue(mockUser),
       findById: jest.fn().mockResolvedValue(mockUser),
     };
+    ldapService = {
+      authenticate: jest.fn().mockResolvedValue(null),
+      syncUser: jest.fn().mockResolvedValue(mockUser),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -70,7 +78,7 @@ describe('AuthService', () => {
         { provide: UsersService, useValue: usersService },
         {
           provide: LdapService,
-          useValue: { authenticate: jest.fn().mockResolvedValue(null) },
+          useValue: ldapService,
         },
         {
           provide: AuditService,
@@ -90,6 +98,20 @@ describe('AuthService', () => {
   });
 
   describe('validateUser', () => {
+    it.each([
+      { ...mockUser, isActive: false },
+      { ...mockUser, deletedAt: new Date() },
+    ])('rejects a locally disabled or deleted account after successful LDAP authentication', async (account) => {
+      ldapService.authenticate.mockResolvedValue({ email: mockUser.email });
+      prisma.user.findUnique.mockResolvedValue(account);
+
+      await expect(
+        service.validateUser(mockUser.email, 'valid-directory-password'),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(usersService.findByEmail).not.toHaveBeenCalled();
+    });
+
     it('should return user for valid credentials', async () => {
       const result = await service.validateUser(
         'test@omnitech.fr',
@@ -134,6 +156,15 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
+    it('binds the signed access token to its own refresh row', async () => {
+      await service.login(mockUser, '127.0.0.1', 'test-agent', true);
+      const row = prisma.refreshToken.create.mock.calls[0][0].data;
+      const payload = jwtService.sign.mock.calls[0][0];
+      expect(row.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      expect(payload.sid).toBe(row.id);
+      expect(row.mfaValidatedAt).toBeInstanceOf(Date);
+    });
+
     it('should return accessToken, refreshToken, and user', async () => {
       const result = await service.login(mockUser, '127.0.0.1', 'test-agent');
       expect(result.accessToken).toBe('mock-jwt-token');
@@ -205,6 +236,85 @@ describe('AuthService', () => {
   });
 
   describe('refreshTokens', () => {
+    it('rotates the one-time token within the same session and preserves its MFA time', async () => {
+      const validatedAt = new Date('2026-01-01T10:00:00Z');
+      prisma.refreshToken.findFirst.mockResolvedValue({
+        id: '00000000-0000-4000-8000-000000000002', userAgent: 'agent', user: mockUser, expiresAt: new Date(Date.now() + 60000),
+        mfaValidatedAt: validatedAt,
+      });
+      await service.refreshTokens('valid-token', '127.0.0.1', 'agent');
+      const update = prisma.refreshToken.updateMany.mock.calls[0][0];
+      const payload = jwtService.sign.mock.calls[0][0];
+      expect(payload.sid).toBe('00000000-0000-4000-8000-000000000002');
+      expect(update.where.id).toBe(payload.sid);
+      expect(update.data.tokenHash).toEqual(expect.any(String));
+      expect(update.data.revokedAt).toBeUndefined();
+      expect(update.data.mfaValidatedAt).toBeUndefined();
+      expect(payload.mfaValidatedAt).toBe(validatedAt.getTime());
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('must not exchange a password-reset token for a session', async () => {
+      prisma.refreshToken.findFirst.mockResolvedValue({
+        id: 'reset-1',
+        userAgent: 'PASSWORD_RESET',
+        user: mockUser,
+      });
+
+      await expect(
+        service.refreshTokens('reset-token', '127.0.0.1', 'agent'),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(jwtService.sign).not.toHaveBeenCalled();
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('allows only one concurrent rotation of the same refresh token', async () => {
+      const token = { id: '00000000-0000-4000-8000-000000000001', userAgent: 'agent', user: mockUser, expiresAt: new Date(Date.now() + 60000) };
+      prisma.refreshToken.findFirst.mockResolvedValue(token);
+      let consumed = false;
+      prisma.refreshToken.updateMany.mockImplementation(async ({ where }: any) => {
+        expect(where).toEqual({
+          id: '00000000-0000-4000-8000-000000000001',
+          tokenHash: expect.any(String),
+          revokedAt: null,
+          expiresAt: { gt: expect.any(Date) },
+        });
+        if (consumed) return { count: 0 };
+        consumed = true;
+        return { count: 1 };
+      });
+
+      const results = await Promise.allSettled([
+        service.refreshTokens('same-token', '127.0.0.1', 'agent'),
+        service.refreshTokens('same-token', '127.0.0.1', 'agent'),
+      ]);
+
+      expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+      const failure = results.find((result) => result.status === 'rejected');
+      expect(failure?.status === 'rejected' && failure.reason).toBeInstanceOf(UnauthorizedException);
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+      expect(jwtService.sign).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects a token revoked between its lookup and consumption', async () => {
+      prisma.refreshToken.findFirst.mockResolvedValue({
+        id: '00000000-0000-4000-8000-000000000001',
+        expiresAt: new Date(Date.now() + 60000),
+        userAgent: 'agent',
+        user: mockUser,
+      });
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.refreshTokens('revoked-token', '127.0.0.1', 'agent'),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+      expect(jwtService.sign).not.toHaveBeenCalled();
+    });
+
     it('should throw for invalid refresh token', async () => {
       prisma.refreshToken.findFirst.mockResolvedValue(null);
       await expect(
@@ -214,7 +324,8 @@ describe('AuthService', () => {
 
     it('should throw for deactivated user on refresh', async () => {
       prisma.refreshToken.findFirst.mockResolvedValue({
-        id: 'rt-1',
+        id: '00000000-0000-4000-8000-000000000001',
+        expiresAt: new Date(Date.now() + 60000),
         user: { ...mockUser, isActive: false },
       });
       await expect(
@@ -225,7 +336,8 @@ describe('AuthService', () => {
 
   describe('logout', () => {
     it('should revoke the refresh token', async () => {
-      await service.logout('user-1', 'some-token');
+      prisma.refreshToken.findFirst.mockResolvedValue({ id: '00000000-0000-4000-8000-000000000001', userId: 'user-1' });
+      await service.logoutSession('some-token', undefined);
       expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
         where: expect.objectContaining({
           userId: 'user-1',
@@ -266,7 +378,7 @@ describe('AuthService', () => {
 
     it('should update password and revoke all tokens', async () => {
       prisma.refreshToken.findFirst.mockResolvedValue({
-        id: 'rt-1',
+        id: '00000000-0000-4000-8000-000000000001',
         userId: 'user-1',
         user: mockUser,
       });
@@ -281,7 +393,7 @@ describe('AuthService', () => {
       expect(result.message).toContain('succès');
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        data: { passwordHash: expect.any(String) },
+        data: { passwordHash: expect.any(String), passwordChangedAt: expect.any(Date) },
       });
       // Should revoke ALL refresh tokens
       expect(prisma.refreshToken.updateMany).toHaveBeenCalled();
@@ -289,7 +401,7 @@ describe('AuthService', () => {
 
     it('should reject weak password (no uppercase)', async () => {
       prisma.refreshToken.findFirst.mockResolvedValue({
-        id: 'rt-1',
+        id: '00000000-0000-4000-8000-000000000001',
         userId: 'user-1',
         user: mockUser,
       });
@@ -300,7 +412,7 @@ describe('AuthService', () => {
 
     it('should reject password shorter than 12 chars', async () => {
       prisma.refreshToken.findFirst.mockResolvedValue({
-        id: 'rt-1',
+        id: '00000000-0000-4000-8000-000000000001',
         userId: 'user-1',
         user: mockUser,
       });
@@ -329,7 +441,8 @@ describe('AuthService', () => {
 
     it('should strip mfaSecret from refreshTokens response', async () => {
       prisma.refreshToken.findFirst.mockResolvedValue({
-        id: 'rt-1',
+        id: '00000000-0000-4000-8000-000000000001',
+        expiresAt: new Date(Date.now() + 60000),
         user: { ...mockUser, mfaEnabled: true, mfaSecret: 'secret123' },
       });
       const result = await service.refreshTokens('valid-token', '127.0.0.1', 'agent');

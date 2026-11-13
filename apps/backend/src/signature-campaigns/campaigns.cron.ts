@@ -3,13 +3,22 @@ import { Cron } from "@nestjs/schedule";
 import {
   CampaignSignatureStatus,
   SignatureCampaignStatus,
+  SignatureStatus,
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CampaignsService } from "./campaigns.service";
 
 /**
  * Cron des campagnes de signature — tous les jours a 9h.
- * Envoie des rappels J-7 / J-1 / J et marque les retards EXPIRED.
+ *
+ * Trois responsabilites :
+ *  1. RETRY DU DISPATCH : re-tente la creation des submissions DocuSeal
+ *     individuelles des cibles restees PENDING sans docusealSubmissionId
+ *     (DocuSeal indisponible au moment du launch, template renseigne apres
+ *     coup, signataires ajoutes hors ligne...). C'est ce qui garantit
+ *     qu'aucune cible ne reste orpheline sans intervention manuelle.
+ *  2. Rappels J-7 / J-1 / J.
+ *  3. Marquage EXPIRED des campagnes en retard.
  *
  * Regle absolue : NE JAMAIS throw depuis un cron — on log et on continue.
  */
@@ -58,19 +67,40 @@ export class CampaignsCron {
   }
 
   private async processCampaign(campaign: any, now: Date) {
+    // 1. ÉCHÉANCE D'ABORD : une campagne déjà échue est marquée EXPIRED et on
+    //    s'arrête. Il ne faut SURTOUT PAS dispatcher (créer des submissions
+    //    DocuSeal + envoyer des e-mails « merci de signer ») pour une campagne
+    //    qu'on s'apprête à expirer dans la même passe — les collaborateurs
+    //    recevraient une invitation à signer une campagne déjà expirée.
+    if (campaign.dueAt && new Date(campaign.dueAt).getTime() < now.getTime()) {
+      await this.markExpired(campaign.id);
+      return;
+    }
+
+    // 2. Retry du dispatch DocuSeal — independant de dueAt : une campagne
+    //    sans echeance (ou non echue) peut avoir des cibles non dispatchees.
+    try {
+      const res = await this.campaigns.dispatchPendingSubmissions(campaign.id);
+      if (res.dispatched > 0 || res.failed > 0) {
+        this.logger.log(
+          `Retry dispatch campagne ${campaign.id}: ${res.dispatched} creee(s), ${res.failed} echec(s), ${res.skipped} ignoree(s)`,
+        );
+      }
+    } catch (err: any) {
+      this.logger.error(
+        `Retry dispatch a echoue pour ${campaign.id}: ${err?.message || err}`,
+      );
+    }
+
     if (!campaign.dueAt) return;
 
     const due = new Date(campaign.dueAt);
     const msPerDay = 1000 * 60 * 60 * 24;
+    // La campagne n'est pas échue ici (test d'échéance ci-dessus) :
+    // daysRemaining >= 0. Le test `< 0` d'origine est devenu mort.
     const daysRemaining = Math.floor(
       (due.getTime() - now.getTime()) / msPerDay,
     );
-
-    // Retard : marquer EXPIRED
-    if (daysRemaining < 0) {
-      await this.markExpired(campaign.id);
-      return;
-    }
 
     // Palier J-7 / J-1 / J — 1 rappel par palier
     let shouldRemind = false;
@@ -111,6 +141,14 @@ export class CampaignsCron {
           },
         },
         data: { status: CampaignSignatureStatus.EXPIRED },
+      });
+      // Propage l'expiration aux SignatureRequest jumelles : sinon elles
+      // restaient PENDING pour toujours sur /signatures (badge « échéance
+      // dépassée ») et polluaient le digest quotidien des tâches en attente.
+      // Filtre PENDING → idempotent, ne touche ni SIGNED ni REJECTED.
+      await this.prisma.signatureRequest.updateMany({
+        where: { campaignId, status: SignatureStatus.PENDING },
+        data: { status: SignatureStatus.EXPIRED },
       });
       await this.prisma.signatureCampaign.update({
         where: { id: campaignId },

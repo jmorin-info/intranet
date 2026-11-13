@@ -196,28 +196,29 @@ export class AuthController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Post("logout")
+  @Public()
+  @Post(["logout", "refresh/logout"])
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async logout(
-    @CurrentUser() user: RequestUser,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    // Best-effort : on n'échoue jamais un logout pour un refreshToken manquant/bancal,
-    // sinon le frontend se retrouve bloqué en boucle 400 et ne nettoie pas son état local.
-    try {
-      // ANSSI R16 : le refresh token vient exclusivement du cookie httpOnly.
-      const token: string | undefined = req.cookies?.refreshToken as
-        | string
-        | undefined;
-      if (token) {
-        await this.authService.logout(user.id, token);
+    const token = req.cookies?.refreshToken;
+    const authorization = req.headers.authorization;
+    const accessToken = req.cookies?.accessToken || (typeof authorization === "string" && authorization.startsWith("Bearer ") ? authorization.slice(7) : undefined);
+    // Storage failures must not claim successful revocation. They surface as
+    // 5xx so the caller can retry, without clearing the only revocation proof.
+    const verified = await this.authService.logoutSession(token, accessToken);
+    if (!verified) {
+      // /logout may not receive an old refresh-scoped cookie. Preserve it so
+      // an older client can refresh/migrate and retry. The alias receives all
+      // supported cookie paths and can safely remove invalid browser state.
+      if (req.path.endsWith("/refresh/logout")) {
+        clearRefreshTokenCookie(res);
+        clearAccessTokenCookie(res);
       }
-    } catch (err) {
-      this.logger.warn(
-        `logout cleanup failed for user ${user.id}: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      throw new UnauthorizedException("Aucune session vérifiable à déconnecter");
     }
     clearRefreshTokenCookie(res);
     clearAccessTokenCookie(res);

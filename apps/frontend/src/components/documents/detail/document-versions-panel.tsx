@@ -79,7 +79,7 @@ export function DocumentVersionsPanel({
 
   return (
     <div className="space-y-3">
-      {canEdit && doc.status !== "ARCHIVED" && doc.status !== "OBSOLETE" && (
+      {canEdit && !doc.isNative && ["DRAFT", "APPROVED"].includes(doc.status) && (
         <div className="rounded-xl border-2 border-dashed border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800/40 p-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-[#F9964A]/15 flex items-center justify-center flex-shrink-0">
@@ -94,7 +94,7 @@ export function DocumentVersionsPanel({
               <p className="text-[11px] text-seal-gray-500 dark:text-slate-400 mt-0.5">
                 {versions.length === 0
                   ? "Ce brouillon n'a pas encore de contenu. Déposez un fichier pour démarrer."
-                  : "Incrémente automatiquement la version (1.1, 1.2…). Le hash SHA-256 est calculé à l'upload."}
+                  : "Conserve les anciennes versions. Le nouveau contenu repasse en brouillon et doit être analysé puis validé avant publication (50 Mo maximum)."}
               </p>
             </div>
             <input
@@ -119,6 +119,9 @@ export function DocumentVersionsPanel({
           </div>
         </div>
       )}
+
+      {["IN_REVIEW", "REVIEW_APPROVED", "PENDING_APPROVAL"].includes(doc.status) && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-200">Le contenu est figé pendant la validation. Un retour en correction est nécessaire pour déposer une nouvelle version.</p>}
+      {doc.isNative && doc.status === "DRAFT" && <p className="text-sm text-seal-gray-500 dark:text-slate-400">Modifiez le contenu dans l’éditeur. Une version sera figée automatiquement à la soumission.</p>}
 
       {versions.length === 0 ? (
         !canEdit && (

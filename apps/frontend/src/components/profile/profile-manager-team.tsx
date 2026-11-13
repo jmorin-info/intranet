@@ -4,6 +4,7 @@ import React from "react";
 import { Card, CardContent, CardHeader } from "@omnitech/ui";
 import { Users } from "lucide-react";
 import type { AuthUser } from "@/stores/auth-store";
+import { getInitials } from "@/lib/utils";
 
 interface ProfileManagerTeamProps {
   user: AuthUser;
@@ -26,16 +27,13 @@ export function ProfileManagerTeam({ user }: ProfileManagerTeamProps) {
         {user.manager && (
           <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold">
-              {user.manager.firstName.charAt(0)}
-              {user.manager.lastName.charAt(0)}
+              {getInitials(user.manager.firstName, user.manager.lastName)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-seal-navy dark:text-white">
                 Manager : {user.manager.firstName} {user.manager.lastName}
               </p>
-              <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                {user.manager.email}
-              </p>
+              <p className="text-xs text-seal-gray-500 dark:text-slate-400">{user.manager.email}</p>
             </div>
           </div>
         )}
@@ -48,9 +46,7 @@ export function ProfileManagerTeam({ user }: ProfileManagerTeamProps) {
                 {user.subordinates.length > 1 ? "s" : ""}
               </p>
               <p className="text-xs text-seal-gray-500 dark:text-slate-400">
-                {user.subordinates
-                  .map((s) => `${s.firstName} ${s.lastName}`)
-                  .join(", ")}
+                {user.subordinates.map((s) => `${s.firstName} ${s.lastName}`).join(", ")}
               </p>
             </div>
           </div>
