@@ -6,10 +6,10 @@ import { useFocusModeStore } from '@/stores/focus-mode-store';
 
 /**
  * Focus Mode — Two modes:
- * 1. Alt press → toggle full-page focus (hides sidebar/header, centers main)
+ * 1. Alt released on its own → toggle full-page focus (hides sidebar/header, centers main)
  * 2. Alt+Click on any card/section → focus just that element (clone in overlay)
  *
- * Press Alt again or Esc to exit either mode.
+ * Tap Alt on its own again or press Esc to exit either mode.
  * Elements in the focused view are INTERACTIVE.
  */
 
@@ -68,7 +68,6 @@ export function FocusMode() {
   const [mode, setMode] = useState<'off' | 'page' | 'element'>('off');
   const cloneRef = useRef<HTMLDivElement>(null);
   const sourceRef = useRef<HTMLElement | null>(null);
-  const lastToggle = useRef(0);
   const storeMode = useFocusModeStore((s) => s.mode);
   const storeActivate = useFocusModeStore((s) => s.activate);
   const storeDeactivate = useFocusModeStore((s) => s.deactivate);
@@ -77,7 +76,7 @@ export function FocusMode() {
     setMode('off');
     document.body.classList.remove('focus-mode-active');
     document.body.classList.remove('focus-mode-store-active');
-    if (cloneRef.current) cloneRef.current.innerHTML = '';
+    if (cloneRef.current) cloneRef.current.replaceChildren();
     sourceRef.current = null;
     storeDeactivate();
   }, [storeDeactivate]);
@@ -86,7 +85,7 @@ export function FocusMode() {
     setMode('page');
     document.body.classList.add('focus-mode-active');
     document.body.classList.add('focus-mode-store-active');
-    if (cloneRef.current) cloneRef.current.innerHTML = '';
+    if (cloneRef.current) cloneRef.current.replaceChildren();
     sourceRef.current = null;
     storeActivate();
   }, [storeActivate]);
@@ -100,52 +99,67 @@ export function FocusMode() {
       setMode('off');
       document.body.classList.remove('focus-mode-active');
       document.body.classList.remove('focus-mode-store-active');
-      if (cloneRef.current) cloneRef.current.innerHTML = '';
+      if (cloneRef.current) cloneRef.current.replaceChildren();
       sourceRef.current = null;
     }
   }, [storeMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const enterElementMode = useCallback((el: HTMLElement) => {
     document.body.classList.remove('focus-mode-active');
-    const clone = el.cloneNode(true) as HTMLElement;
-    clone.style.cssText = 'position:static;margin:0;transform:none;opacity:1;max-width:100%;width:100%;';
-    // Keep interactivity — don't disable pointerEvents on the clone
-    if (cloneRef.current) {
-      cloneRef.current.innerHTML = '';
-      cloneRef.current.appendChild(clone);
-      // Restore scroll position inside the clone to match the source element
-      const sourceScrollables = el.querySelectorAll<HTMLElement>('*');
-      const cloneScrollables = cloneRef.current.querySelectorAll<HTMLElement>('*');
-      sourceScrollables.forEach((src, i) => {
-        const dst = cloneScrollables[i];
-        if (dst && (src.scrollTop || src.scrollLeft)) {
-          dst.scrollTop = src.scrollTop;
-          dst.scrollLeft = src.scrollLeft;
-        }
-      });
-    }
     sourceRef.current = el;
     setMode('element');
   }, []);
 
-  // Alt key = toggle page focus / exit element focus
+  // The clone container exists only after element mode has mounted.
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { exit(); return; }
-      if (e.key !== 'Alt' || e.repeat) return;
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
+    const source = sourceRef.current;
+    const container = cloneRef.current;
+    if (mode !== 'element' || !source || !container) return;
+    const clone = source.cloneNode(true) as HTMLElement;
+    clone.style.cssText = 'position:static;margin:0;transform:none;opacity:1;max-width:100%;width:100%;';
+    container.replaceChildren(clone);
+    const sourceScrollables = source.querySelectorAll<HTMLElement>('*');
+    const cloneScrollables = container.querySelectorAll<HTMLElement>('*');
+    sourceScrollables.forEach((src, index) => {
+      const target = cloneScrollables[index];
+      if (target) { target.scrollTop = src.scrollTop; target.scrollLeft = src.scrollLeft; }
+    });
+  }, [mode]);
 
-      const now = Date.now();
-      if (now - lastToggle.current < 300) return;
-      lastToggle.current = now;
-
+  // A modifier key cannot be interpreted until the gesture ends. In
+  // particular, Alt+click must reach Glance before page focus hides its link.
+  useEffect(() => {
+    let pending = false;
+    const cancel = () => { pending = false; };
+    const editable = (target: EventTarget | null) => target instanceof Element
+      && !!target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { cancel(); exit(); return; }
+      if (event.key !== 'Alt') { cancel(); return; }
+      if (event.repeat) return;
+      pending = !event.defaultPrevented && !event.ctrlKey && !event.metaKey && !event.shiftKey
+        && !event.getModifierState('AltGraph') && !editable(event.target);
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key !== 'Alt') { cancel(); return; }
+      const solo = pending;
+      cancel();
+      if (!solo || event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey
+          || event.getModifierState('AltGraph') || editable(event.target)) return;
+      event.preventDefault();
       if (mode === 'off') enterPageMode();
       else exit();
     };
-
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('pointerdown', cancel, true);
+    window.addEventListener('blur', cancel);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('pointerdown', cancel, true);
+      window.removeEventListener('blur', cancel);
+    };
   }, [mode, exit, enterPageMode]);
 
   // Alt+Click on an element → focus that element.
@@ -154,8 +168,9 @@ export function FocusMode() {
   // les événements qui ciblent un <a>, pour laisser Glance ouvrir son panneau.
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (!e.altKey) return;
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.getModifierState('AltGraph')) return;
       const el = e.target as HTMLElement;
+      if (el.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
       // Si le clic est sur un lien, Glance prend le relais → ne rien faire.
       if (el.closest?.('a[href]')) return;
       e.preventDefault();
@@ -170,8 +185,9 @@ export function FocusMode() {
     };
 
     const block = (e: MouseEvent) => {
-      if (!e.altKey) return;
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.getModifierState('AltGraph')) return;
       const el = e.target as HTMLElement;
+      if (el.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
       // Idem : on laisse passer les clics sur <a> pour Glance.
       if (el.closest?.('a[href]')) return;
       e.preventDefault();
@@ -202,6 +218,7 @@ export function FocusMode() {
           <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-16 pb-6 px-4 md:px-12 overflow-auto">
             <div
               ref={cloneRef}
+              data-focus-content
               className={[
                 'w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden',
                 'ring-2 ring-primary/30',
