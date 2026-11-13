@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { stripHtmlTags } from "../../common/plain-text";
 
 /**
  * Semantic chunking service (Item 30 — RAG fine-tuning corpus maison).
@@ -143,8 +144,7 @@ export class SemanticChunkerService {
   }
 
   private stripTags(s: string): string {
-    return s
-      .replace(/<[^>]+>/g, "")
+    return stripHtmlTags(s)
       .replace(/&nbsp;/g, " ")
       .replace(/&amp;/g, "&")
       .replace(/&lt;/g, "<")

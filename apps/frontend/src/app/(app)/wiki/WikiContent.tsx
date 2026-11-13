@@ -77,6 +77,7 @@ import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/utils";
 import DOMPurify from "dompurify";
+import { stripHtmlTags } from "@/lib/plain-text";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { WikiOutline, extractOutline } from "@/components/wiki/wiki-outline";
 import { WikiBacklinks } from "@/components/wiki/wiki-backlinks";
@@ -279,8 +280,7 @@ function getCategoryColor(category: string | null | undefined): string {
 }
 
 function computeReadingTime(html: string): number {
-  const plain = html
-    .replace(/<[^>]+>/g, " ")
+  const plain = stripHtmlTags(html, true)
     .replace(/\s+/g, " ")
     .trim();
   const words = plain ? plain.split(" ").length : 0;
@@ -289,8 +289,7 @@ function computeReadingTime(html: string): number {
 
 function stripHtml(html: string | undefined): string {
   if (!html) return "";
-  return html
-    .replace(/<[^>]+>/g, "")
+  return stripHtmlTags(html)
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -607,7 +606,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
   }, []);
 
   // Word count derived from editor content
-  const editorPlainText = formData.content.replace(/<[^>]+>/g, "");
+  const editorPlainText = stripHtmlTags(formData.content);
   const editorWordCount = editorPlainText.split(/\s+/).filter(Boolean).length;
 
   // --- Reading experience state ---
@@ -986,8 +985,7 @@ export function WikiContent({ onCount }: { onCount?: (count: number) => void } =
   // --- Copy all content ---
   const copyAllContent = useCallback(async () => {
     if (!viewingPage?.content) return;
-    const plain = viewingPage.content
-      .replace(/<[^>]+>/g, "")
+    const plain = stripHtmlTags(viewingPage.content)
       .replace(/\s+/g, " ")
       .trim();
     try {

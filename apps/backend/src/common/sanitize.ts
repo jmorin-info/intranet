@@ -14,11 +14,7 @@
  */
 
 import sanitizeHtml from 'sanitize-html';
-
-/** Strip all HTML tags from a string. */
-function stripTags(input: string): string {
-  return input.replace(/<[^>]*>/g, '');
-}
+import { stripHtmlTags } from './plain-text';
 
 /** Remove javascript:, data:, vbscript: URI schemes (case-insensitive, ignoring whitespace). */
 function stripDangerousUris(input: string): string {
@@ -37,7 +33,7 @@ function stripEventHandlers(input: string): string {
 export function sanitizePlainText(input: string | null | undefined): string {
   if (!input) return '';
   let out = input.trim();
-  out = stripTags(out);
+  out = stripHtmlTags(out);
   out = stripDangerousUris(out);
   out = stripEventHandlers(out);
   return out;

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { stripHtmlTags } from "@/lib/plain-text";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { noaZodResolver } from "@/lib/noa/zod-resolver";
@@ -146,7 +147,7 @@ export default function ComposeNewsPage() {
       }
     }
   }, [content]);
-  const plainText = content.replace(/<[^>]+>/g, "");
+  const plainText = stripHtmlTags(content);
   const wordCount = plainText.split(/\s+/).filter(Boolean).length;
   const charCount = plainText.length;
 

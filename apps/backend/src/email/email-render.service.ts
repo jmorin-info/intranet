@@ -1,6 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 import * as fs from "fs";
 import * as path from "path";
+import sanitizeHtml from "sanitize-html";
+import { stripHtmlTags } from "../common/plain-text";
 
 /**
  * Wave G — Email Render Service.
@@ -627,11 +629,9 @@ export class EmailRenderService {
         ],
       });
     } catch {
-      // Fallback ultra basique
-      return html
-        .replace(/<style[\s\S]*?<\/style>/gi, "")
-        .replace(/<script[\s\S]*?<\/script>/gi, "")
-        .replace(/<[^>]+>/g, " ")
+      // Keep the fallback inert too; regex tag filters can reconstruct markup.
+      const sanitized = sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} });
+      return stripHtmlTags(sanitized, true)
         .replace(/\s+/g, " ")
         .trim();
     }

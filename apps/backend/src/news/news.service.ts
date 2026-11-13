@@ -16,6 +16,7 @@ import { UpdateNewsDto } from "./dto/update-news.dto";
 import { UserRole as PrismaUserRole } from "@prisma/client";
 import { UserRole } from "../common/enums";
 import { sanitizeRichText } from "../common/sanitize";
+import { stripHtmlTags } from "../common/plain-text";
 import { CacheService } from "../common/cache/cache.service";
 
 @Injectable()
@@ -201,7 +202,7 @@ export class NewsService {
       const authorName =
         `${post.author.firstName} ${post.author.lastName}`.trim() ||
         "Un auteur";
-      const plain = `${dto.title}\n${dto.excerpt || ""}\n${dto.content.replace(/<[^>]*>/g, " ")}`;
+      const plain = `${dto.title}\n${dto.excerpt || ""}\n${stripHtmlTags(dto.content, true)}`;
       void this.mentions
         .parseAndNotify({
           text: plain,
@@ -480,7 +481,7 @@ export class NewsService {
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+      .replace(/^-|-$/g, "");
 
     const existing = await this.prisma.newsPost.findUnique({
       where: { slug },

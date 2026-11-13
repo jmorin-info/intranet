@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException, ConflictException } from "@nestj
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { stripHtmlTags } from "../common/plain-text";
 
 interface RSSItem {
   title: string;
@@ -896,7 +897,7 @@ export class VeilleService {
       `<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`,
     );
     const match = regex.exec(xml);
-    return (match?.[1] || match?.[2] || "").trim().replace(/<[^>]+>/g, "");
+    return stripHtmlTags((match?.[1] || match?.[2] || "").trim());
   }
 
   /**

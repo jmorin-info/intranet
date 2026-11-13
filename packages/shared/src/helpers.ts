@@ -108,7 +108,7 @@ export function slugify(text: string): string {
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric with hyphens
-    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+    .replace(/^-|-$/g, ""); // At most one hyphen remains at either end.
 }
 
 /**

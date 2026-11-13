@@ -43,6 +43,12 @@ describe('slugify', () => {
   it('handle unicode/emojis', () => {
     expect(slugify('🚀 Rocket Launch 2026')).toBe('rocket-launch-2026');
   });
+
+  it('handles large separator runs and keeps truncation semantics', () => {
+    expect(slugify('-'.repeat(200_000))).toBe('');
+    expect(slugify('abc def', { maxLength: 4 })).toBe('abc');
+    expect(slugify('---abc---', { maxLength: 4 })).toBe('abc');
+  });
 });
 
 describe('generateUniqueSlug', () => {

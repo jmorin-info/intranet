@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { stripHtmlTags } from "@/lib/plain-text";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import {
@@ -207,7 +208,7 @@ export default function NewsArticlePage() {
     if (!post?.content) return [];
     const matches = post.content.match(/<h[23][^>]*>(.*?)<\/h[23]>/gi) || [];
     return matches.map((m, i) => ({
-      text: m.replace(/<[^>]+>/g, ""),
+      text: stripHtmlTags(m),
       level: m.startsWith("<h2") ? 2 : 3,
       id: `heading-${i}`,
     }));
@@ -230,7 +231,7 @@ export default function NewsArticlePage() {
 
   const estimatedReadTime = useMemo(() => {
     if (!post?.content) return 0;
-    const text = post.content.replace(/<[^>]+>/g, "");
+    const text = stripHtmlTags(post.content);
     const words = text.trim().split(/\s+/).length;
     return Math.max(1, Math.ceil(words / 200));
   }, [post]);

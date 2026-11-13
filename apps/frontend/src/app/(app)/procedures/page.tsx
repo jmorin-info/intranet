@@ -133,7 +133,7 @@ export default function ProceduresPage() {
         hub="work"
         actions={
           <div className="flex items-center gap-3">
-            <Link href={`/documents/new?category=${category || 'PROCEDURE'}`}>
+            <Link href={`/documents/new?category=${encodeURIComponent(category || 'PROCEDURE')}`}>
               <Button>
                 <Plus className="h-4 w-4" />
                 {category === 'PROCEDURE' || !category ? 'Nouvelle procédure' : `Nouveau ${DOCUMENT_CATEGORY_LABELS[category as DocumentCategory]?.toLowerCase() || 'document'}`}

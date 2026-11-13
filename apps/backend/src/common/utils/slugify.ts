@@ -41,9 +41,9 @@ export function slugify(input: string, options: SlugifyOptions = {}): string {
     .replace(/[_\s]+/g, '-') // underscores et espaces comme séparateurs
     .replace(/[^a-z0-9-]/g, '') // alphanum + tirets seulement
     .replace(/-+/g, '-') // tirets multiples → 1 tiret
-    .replace(/^-+|-+$/g, '') // trim tirets
+    .replace(/^-|-$/g, '') // les répétitions sont déjà compactées
     .slice(0, maxLength)
-    .replace(/-+$/g, ''); // re-trim après troncature
+    .replace(/-$/g, ''); // au plus un tiret après la troncature
 
   if (!slug) {
     slug = options.fallback ?? '';
@@ -77,7 +77,10 @@ export async function generateUniqueSlug(
   const maxLen = options.maxLength ?? DEFAULT_MAX;
   for (let i = 2; i <= maxAttempts; i++) {
     const suffix = `-${i}`;
-    const trimmed = base.slice(0, Math.max(1, maxLen - suffix.length)).replace(/-+$/g, '');
+    const prefix = base.slice(0, Math.max(1, maxLen - suffix.length));
+    let end = prefix.length;
+    while (end > 0 && prefix[end - 1] === '-') end--;
+    const trimmed = prefix.slice(0, end);
     const candidate = `${trimmed}${suffix}`;
     if (!(await isTaken(candidate))) {
       return candidate;

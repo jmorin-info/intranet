@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { stripHtmlTags } from '@/lib/plain-text';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/stores/auth-store';
@@ -376,7 +377,7 @@ export default function NewsPage() {
 }
 
 function estimateReadingTime(content: string): number {
-  const wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean).length;
+  const wordCount = stripHtmlTags(content).split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(wordCount / 200));
 }
 

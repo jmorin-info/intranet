@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LayoutGrid, Plus, Trash2 } from "lucide-react";
+import { stripHtmlTags } from "@/lib/plain-text";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -187,7 +188,7 @@ export default function AdminContentBlocksList() {
       key: "body",
       header: "Aperçu",
       render: (b) => {
-        const plain = b.body.replace(/<[^>]+>/g, "").trim();
+        const plain = stripHtmlTags(b.body).trim();
         return (
           <span
             className="text-xs text-seal-gray-500 line-clamp-1 max-w-md"
